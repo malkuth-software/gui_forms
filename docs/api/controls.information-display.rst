@@ -27,6 +27,10 @@ Labels, images, progress and review cards.
      - A box that displays one image from its window's image registry.
    * - :cpp:class:`ProgressBar <gui_forms::ProgressBar>`
      - A bar that shows how far an operation has progressed.
+   * - :cpp:class:`ProgressRing <gui_forms::ProgressRing>`
+     - Circular progress indicator of forty dots: lit in proportion to value over maximum, or a turning run while indeterminate, on the window's frame clock with reduced motion honoured.
+   * - :cpp:class:`Spinner <gui_forms::Spinner>`
+     - Indeterminate busy indicator: a ring of twelve dots, three lit, turning while active on the window's frame clock; still under reduced motion; busy to assistive technology.
    * - :cpp:class:`SweepScope <gui_forms::SweepScope>`
      - A read-only scope that draws a level as a trace on a graticule.
    * - :cpp:class:`ReviewCard <gui_forms::ReviewCard>`
@@ -43,6 +47,8 @@ Labels, images, progress and review cards.
    generated/gui_forms.Toast
    generated/gui_forms.PictureBox
    generated/gui_forms.ProgressBar
+   generated/gui_forms.ProgressRing
+   generated/gui_forms.Spinner
    generated/gui_forms.SweepScope
    generated/gui_forms.ReviewCard
 
@@ -151,6 +157,16 @@ Related types
      - The laser etch: phase bands over the fill, a glowing edge, and a burning front with flickering lobes and short sparks (ProgressBarVisualStyle:: laser_etch).
    * - :cpp:class:`ProgressPulse <gui_forms::ProgressPulse>`
      - A soft luminance band sweeping along the fill (ProgressBarVisualStyle:: pulse).
+   * - :cpp:class:`ProgressRing::Parts <gui_forms::ProgressRing::Parts>`
+     - Stage T1 anatomy, as dot members (see Control::Parts).
+   * - :cpp:class:`ProgressRingCapabilities <gui_forms::ProgressRingCapabilities>`
+     - Every ProgressRing capability, in the order the declaring class takes them.
+   * - :cpp:class:`ProgressRingIndeterminateCapability <gui_forms::ProgressRingIndeterminateCapability>`
+     - Whether the ring shows activity without an amount: a turning arc instead of the value.
+   * - :cpp:class:`ProgressRingMaximumCapability <gui_forms::ProgressRingMaximumCapability>`
+     - The value of a full ring (100 by default).
+   * - :cpp:class:`ProgressRingValueCapability <gui_forms::ProgressRingValueCapability>`
+     - The progress, from 0 to maximum; a value outside that range is drawn clamped to it.
    * - :cpp:class:`ProgressStripes <gui_forms::ProgressStripes>`
      - Marching diagonal stripes over the fill (ProgressBarVisualStyle:: marching_stripes and the moving-stripes overlay).
    * - :cpp:class:`ProgressWovenStripes <gui_forms::ProgressWovenStripes>`
@@ -165,6 +181,12 @@ Related types
      - One bubble rising in the fill, or one puff of steam rising above the bar.
    * - :cpp:class:`ScopeSweep <gui_forms::ScopeSweep>`
      - The trace (a rise from the lower left to a peak above the level's place, and a fall to the right edge) and the sweep line crossing the plot once a period.
+   * - :cpp:class:`Spinner::Parts <gui_forms::Spinner::Parts>`
+     - Stage T1 anatomy, as dot members (see Control::Parts).
+   * - :cpp:class:`SpinnerActiveCapability <gui_forms::SpinnerActiveCapability>`
+     - Whether the spinner shows and turns; an inactive spinner draws nothing and reports no busy state.
+   * - :cpp:class:`SpinnerCapabilities <gui_forms::SpinnerCapabilities>`
+     - Every Spinner capability, in the order the declaring class takes them.
    * - :cpp:class:`SweepScope::Parts <gui_forms::SweepScope::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`SweepScope::States <gui_forms::SweepScope::States>`
@@ -1139,6 +1161,96 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: ProgressRing::Parts final
+
+   ``#include <gui_forms/controls/progress_ring/progress_ring.hpp>``
+
+   Stage T1 anatomy, as dot members (see Control::Parts). ``track`` is the ring's square; ``fill`` the same square while determinate with a positive fraction, ``activity`` while indeterminate.
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry track
+
+   .. cpp:member:: PartGeometry fill
+
+   .. cpp:member:: PartGeometry activity
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ProgressRingCapabilities : public ProgressRingValueCapability<Declaring>, public ProgressRingMaximumCapability<Declaring>, public ProgressRingIndeterminateCapability<Declaring>
+
+   ``#include <gui_forms/controls/progress_ring/progress_ring_capabilities/progress_ring_capabilities.hpp>``
+
+   Every ProgressRing capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: double value
+
+      The progress, from 0 to maximum; a value outside that range is drawn clamped to it. Not finite throws std::invalid_argument.
+
+   .. cpp:member:: double maximum
+
+      The value of a full ring (100 by default). Not finite or not above zero throws std::invalid_argument.
+
+   .. cpp:member:: bool indeterminate
+
+      Whether the ring shows activity without an amount: a turning arc instead of the value.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ProgressRingIndeterminateCapability
+
+   ``#include <gui_forms/controls/progress_ring/progress_ring_capabilities/progress_ring_capabilities.hpp>``
+
+   Whether the ring shows activity without an amount: a turning arc instead of the value.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ProgressRingIndeterminateCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ProgressRingIndeterminateCapability<Declaring>> indeterminate
+
+      Default: ``{false}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ProgressRingMaximumCapability
+
+   ``#include <gui_forms/controls/progress_ring/progress_ring_capabilities/progress_ring_capabilities.hpp>``
+
+   The value of a full ring (100 by default). Not finite or not above zero throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ProgressRingMaximumCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, ProgressRingMaximumCapability<Declaring>> maximum
+
+      Default: ``{100.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ProgressRingValueCapability
+
+   ``#include <gui_forms/controls/progress_ring/progress_ring_capabilities/progress_ring_capabilities.hpp>``
+
+   The progress, from 0 to maximum; a value outside that range is drawn clamped to it. Not finite throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ProgressRingValueCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, ProgressRingValueCapability<Declaring>> value
+
+      Default: ``{0.0}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:class:: ProgressStripes final
 
    ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_effects.hpp>``
@@ -1273,6 +1385,50 @@ Related types
       Default: ``1.0``.
 
    .. cpp:member:: constexpr EffectDeclaration declaration
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: Spinner::Parts final
+
+   ``#include <gui_forms/controls/spinner/spinner.hpp>``
+
+   Stage T1 anatomy, as dot members (see Control::Parts). ``activity`` is the ring's square, present while active.
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry activity
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SpinnerActiveCapability
+
+   ``#include <gui_forms/controls/spinner/spinner_capabilities/spinner_capabilities.hpp>``
+
+   Whether the spinner shows and turns; an inactive spinner draws nothing and reports no busy state.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SpinnerActiveCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, SpinnerActiveCapability<Declaring>> active
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SpinnerCapabilities : public SpinnerActiveCapability<Declaring>
+
+   ``#include <gui_forms/controls/spinner/spinner_capabilities/spinner_capabilities.hpp>``
+
+   Every Spinner capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: bool active
+
+      Whether the spinner shows and turns; an inactive spinner draws nothing and reports no busy state.
 
 .. cpp:namespace:: gui_forms
 

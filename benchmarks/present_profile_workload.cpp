@@ -46,6 +46,8 @@ namespace {
 using gui_forms::AnimationTickResult;
 using gui_forms::AnimationTimer;
 using gui_forms::Application;
+using gui_forms::ApplicationConfig;
+using gui_forms::ApplicationCreateResult;
 using gui_forms::ApplicationResult;
 using gui_forms::ApplicationWindowHandle;
 using gui_forms::ApplicationWindowOptions;

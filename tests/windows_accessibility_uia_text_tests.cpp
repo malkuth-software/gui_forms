@@ -160,8 +160,8 @@ struct ReadModel final {
     ModelState* state{};
     void operator()() const {
         (*state).single_selection = (*(*fixture).single).selection();
-        (*state).single_text = std::string((*(*fixture).single).text());
-        (*state).multi_text = std::string((*(*fixture).multi).text());
+        (*state).single_text = std::string((*(*fixture).single).text.read());
+        (*state).multi_text = std::string((*(*fixture).multi).text.read());
     }
 };
 

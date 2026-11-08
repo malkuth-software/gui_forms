@@ -130226,6 +130226,27 @@
           "page": "gui-forms-hostwindowing-query-monitors-hostmonitorresult-14ec7142c1.html"
         },
         {
+          "id": "gui_forms::HostWindowing::query_monitors|HostServiceStatus (HostMonitorResult &)",
+          "name": "query_monitors",
+          "type": "HostServiceStatus (HostMonitorResult &)",
+          "namespace": "gui_forms::HostWindowing",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [
+            {
+              "name": "result",
+              "type": "HostMonitorResult &",
+              "declaration": "HostMonitorResult& result"
+            }
+          ],
+          "declaration": "HostServiceStatus query_monitors(HostMonitorResult& result)",
+          "comment": "",
+          "header": "gui_forms/host/windowing/host_windowing.hpp",
+          "source": "include/gui_forms/host/windowing/host_windowing.hpp",
+          "line": 310,
+          "page": "gui-forms-hostwindowing-query-monitors-hostservicestatus-hostmonitorresult-306dd05229.html"
+        },
+        {
           "id": "gui_forms::HostWindowing::set_visible|HostServiceStatus (HostWindowId, bool)",
           "name": "set_visible",
           "type": "HostServiceStatus (HostWindowId, bool)",
@@ -130248,7 +130269,7 @@
           "comment": "",
           "header": "gui_forms/host/windowing/host_windowing.hpp",
           "source": "include/gui_forms/host/windowing/host_windowing.hpp",
-          "line": 310,
+          "line": 315,
           "page": "gui-forms-hostwindowing-set-visible-hostservicestatus-hostwindowid-bool-298567adaf.html"
         },
         {
@@ -130269,7 +130290,7 @@
           "comment": "",
           "header": "gui_forms/host/windowing/host_windowing.hpp",
           "source": "include/gui_forms/host/windowing/host_windowing.hpp",
-          "line": 313,
+          "line": 318,
           "page": "gui-forms-hostwindowing-find-std-optional-hostwindowid-std-string-view-const-noexcept-77855d1c48.html"
         },
         {
@@ -130290,7 +130311,7 @@
           "comment": "",
           "header": "gui_forms/host/windowing/host_windowing.hpp",
           "source": "include/gui_forms/host/windowing/host_windowing.hpp",
-          "line": 314,
+          "line": 319,
           "page": "gui-forms-hostwindowing-live-bool-hostwindowid-const-noexcept-1c7dca5348.html"
         },
         {
@@ -130311,7 +130332,7 @@
           "comment": "",
           "header": "gui_forms/host/windowing/host_windowing.hpp",
           "source": "include/gui_forms/host/windowing/host_windowing.hpp",
-          "line": 315,
+          "line": 320,
           "page": "gui-forms-hostwindowing-kind-std-optional-hostwindowkind-hostwindowid-const-noexcept-8788eb63ac.html"
         },
         {
@@ -130332,7 +130353,7 @@
           "comment": "",
           "header": "gui_forms/host/windowing/host_windowing.hpp",
           "source": "include/gui_forms/host/windowing/host_windowing.hpp",
-          "line": 318,
+          "line": 323,
           "page": "gui-forms-hostwindowing-owner-std-optional-hostwindowid-hostwindowid-const-noexcept-bf91747f76.html"
         },
         {
@@ -130347,7 +130368,7 @@
           "comment": "",
           "header": "gui_forms/host/windowing/host_windowing.hpp",
           "source": "include/gui_forms/host/windowing/host_windowing.hpp",
-          "line": 319,
+          "line": 324,
           "page": "gui-forms-hostwindowing-primary-hostwindowid-const-noexcept-bc8b0af9ef.html"
         },
         {
@@ -130368,7 +130389,7 @@
           "comment": "",
           "header": "gui_forms/host/windowing/host_windowing.hpp",
           "source": "include/gui_forms/host/windowing/host_windowing.hpp",
-          "line": 323,
+          "line": 328,
           "page": "gui-forms-hostwindowing-policy-visible-bool-hostwindowid-const-noexcept-5bd376c8f3.html"
         },
         {
@@ -130383,7 +130404,7 @@
           "comment": "",
           "header": "gui_forms/host/windowing/host_windowing.hpp",
           "source": "include/gui_forms/host/windowing/host_windowing.hpp",
-          "line": 324,
+          "line": 329,
           "page": "gui-forms-hostwindowing-application-active-bool-const-noexcept-98fb7f9ba1.html"
         },
         {
@@ -130398,7 +130419,7 @@
           "comment": "",
           "header": "gui_forms/host/windowing/host_windowing.hpp",
           "source": "include/gui_forms/host/windowing/host_windowing.hpp",
-          "line": 325,
+          "line": 330,
           "page": "gui-forms-hostwindowing-window-count-std-size-t-const-noexcept-e9ff0aedd8.html"
         },
         {
@@ -130413,7 +130434,7 @@
           "comment": "",
           "header": "gui_forms/host/windowing/host_windowing.hpp",
           "source": "include/gui_forms/host/windowing/host_windowing.hpp",
-          "line": 326,
+          "line": 331,
           "page": "gui-forms-hostwindowing-floating-window-count-std-size-t-const-noexcept-bdaa7889cb.html"
         },
         {
@@ -130428,7 +130449,7 @@
           "comment": "",
           "header": "gui_forms/host/windowing/host_windowing.hpp",
           "source": "include/gui_forms/host/windowing/host_windowing.hpp",
-          "line": 327,
+          "line": 332,
           "page": "gui-forms-hostwindowing-capabilities-const-hostcapabilities-const-noexcept-5f5060ef09.html"
         },
         {
@@ -130443,7 +130464,7 @@
           "comment": "",
           "header": "gui_forms/host/windowing/host_windowing.hpp",
           "source": "include/gui_forms/host/windowing/host_windowing.hpp",
-          "line": 333,
+          "line": 338,
           "page": "gui-forms-hostwindowing-supports-popup-windows-bool-const-noexcept-83209fd043.html"
         },
         {
@@ -130458,7 +130479,7 @@
           "comment": "",
           "header": "gui_forms/host/windowing/host_windowing.hpp",
           "source": "include/gui_forms/host/windowing/host_windowing.hpp",
-          "line": 339,
+          "line": 344,
           "page": "gui-forms-hostwindowing-supports-splash-windows-bool-const-noexcept-f88497eec3.html"
         },
         {
@@ -130473,7 +130494,7 @@
           "comment": "",
           "header": "gui_forms/host/windowing/host_windowing.hpp",
           "source": "include/gui_forms/host/windowing/host_windowing.hpp",
-          "line": 345,
+          "line": 350,
           "page": "gui-forms-hostwindowing-transient-windows-translucent-bool-const-noexcept-84d334de58.html"
         },
         {
@@ -130488,7 +130509,7 @@
           "comment": "",
           "header": "gui_forms/host/windowing/host_windowing.hpp",
           "source": "include/gui_forms/host/windowing/host_windowing.hpp",
-          "line": 346,
+          "line": 351,
           "page": "gui-forms-hostwindowing-frame-changed-event-const-hostwindowframeevent-noexcept-11921c90c6.html"
         },
         {
@@ -130503,7 +130524,7 @@
           "comment": "",
           "header": "gui_forms/host/windowing/host_windowing.hpp",
           "source": "include/gui_forms/host/windowing/host_windowing.hpp",
-          "line": 349,
+          "line": 354,
           "page": "gui-forms-hostwindowing-snapshot-hostwindowingsnapshot-const-bf87344085.html"
         },
         {
@@ -130518,7 +130539,7 @@
           "comment": "",
           "header": "gui_forms/host/windowing/host_windowing.hpp",
           "source": "include/gui_forms/host/windowing/host_windowing.hpp",
-          "line": 352,
+          "line": 357,
           "page": "gui-forms-hostwindowing-shutdown-void-noexcept-d96b4ab220.html"
         },
         {
@@ -130539,7 +130560,7 @@
           "comment": "",
           "header": "gui_forms/host/windowing/host_windowing.hpp",
           "source": "include/gui_forms/host/windowing/host_windowing.hpp",
-          "line": 366,
+          "line": 371,
           "page": "gui-forms-hostwindowing-admit-hostwindowadmission-const-hostwindowdescription-2d0fc174bb.html"
         },
         {
@@ -130565,7 +130586,7 @@
           "comment": "",
           "header": "gui_forms/host/windowing/host_windowing.hpp",
           "source": "include/gui_forms/host/windowing/host_windowing.hpp",
-          "line": 369,
+          "line": 374,
           "page": "gui-forms-hostwindowing-window-created-void-hostwindowid-bool-noexcept-0346abdc18.html"
         },
         {
@@ -130580,7 +130601,7 @@
           "comment": "",
           "header": "gui_forms/host/windowing/host_windowing.hpp",
           "source": "include/gui_forms/host/windowing/host_windowing.hpp",
-          "line": 372,
+          "line": 377,
           "page": "gui-forms-hostwindowing-mark-started-void-noexcept-eab5d62f3d.html"
         },
         {
@@ -130601,7 +130622,7 @@
           "comment": "",
           "header": "gui_forms/host/windowing/host_windowing.hpp",
           "source": "include/gui_forms/host/windowing/host_windowing.hpp",
-          "line": 374,
+          "line": 379,
           "page": "gui-forms-hostwindowing-retire-void-hostwindowid-noexcept-724279cdfa.html"
         },
         {
@@ -130627,7 +130648,7 @@
           "comment": "",
           "header": "gui_forms/host/windowing/host_windowing.hpp",
           "source": "include/gui_forms/host/windowing/host_windowing.hpp",
-          "line": 379,
+          "line": 384,
           "page": "gui-forms-hostwindowing-report-frame-void-hostwindowid-const-hostwindowframe-8dee684891.html"
         },
         {
@@ -130648,7 +130669,7 @@
           "comment": "",
           "header": "gui_forms/host/windowing/host_windowing.hpp",
           "source": "include/gui_forms/host/windowing/host_windowing.hpp",
-          "line": 382,
+          "line": 387,
           "page": "gui-forms-hostwindowing-report-application-active-void-bool-09f335727c.html"
         },
         {
@@ -130674,7 +130695,7 @@
           "comment": "",
           "header": "gui_forms/host/windowing/host_windowing.hpp",
           "source": "include/gui_forms/host/windowing/host_windowing.hpp",
-          "line": 385,
+          "line": 390,
           "page": "gui-forms-hostwindowing-report-minimized-void-hostwindowid-bool-199e1f2628.html"
         },
         {
@@ -130695,7 +130716,7 @@
           "comment": "",
           "header": "gui_forms/host/windowing/host_windowing.hpp",
           "source": "include/gui_forms/host/windowing/host_windowing.hpp",
-          "line": 389,
+          "line": 394,
           "page": "gui-forms-hostwindowing-report-hidden-on-close-void-hostwindowid-noexcept-3c2adf15b9.html"
         },
         {
@@ -130716,7 +130737,7 @@
           "comment": "",
           "header": "gui_forms/host/windowing/host_windowing.hpp",
           "source": "include/gui_forms/host/windowing/host_windowing.hpp",
-          "line": 394,
+          "line": 399,
           "page": "gui-forms-hostwindowing-frame-impl-hostwindowframeresult-hostwindowid-2ca87f8d8e.html"
         },
         {
@@ -130742,7 +130763,7 @@
           "comment": "",
           "header": "gui_forms/host/windowing/host_windowing.hpp",
           "source": "include/gui_forms/host/windowing/host_windowing.hpp",
-          "line": 395,
+          "line": 400,
           "page": "gui-forms-hostwindowing-request-frame-impl-hostservicestatus-hostwindowid-rect-8667208d80.html"
         },
         {
@@ -130757,7 +130778,7 @@
           "comment": "",
           "header": "gui_forms/host/windowing/host_windowing.hpp",
           "source": "include/gui_forms/host/windowing/host_windowing.hpp",
-          "line": 397,
+          "line": 402,
           "page": "gui-forms-hostwindowing-pointer-position-impl-hostscreenpointresult-d72a354dac.html"
         },
         {
@@ -130778,7 +130799,7 @@
           "comment": "",
           "header": "gui_forms/host/windowing/host_windowing.hpp",
           "source": "include/gui_forms/host/windowing/host_windowing.hpp",
-          "line": 400,
+          "line": 405,
           "page": "gui-forms-hostwindowing-window-at-impl-hostwindowatresult-desktoplogicalpoint-d443427860.html"
         },
         {
@@ -130799,7 +130820,7 @@
           "comment": "",
           "header": "gui_forms/host/windowing/host_windowing.hpp",
           "source": "include/gui_forms/host/windowing/host_windowing.hpp",
-          "line": 401,
+          "line": 406,
           "page": "gui-forms-hostwindowing-bring-to-front-impl-hostservicestatus-hostwindowid-c59f158432.html"
         },
         {
@@ -130820,7 +130841,7 @@
           "comment": "",
           "header": "gui_forms/host/windowing/host_windowing.hpp",
           "source": "include/gui_forms/host/windowing/host_windowing.hpp",
-          "line": 404,
+          "line": 409,
           "page": "gui-forms-hostwindowing-destroy-window-impl-hostservicestatus-hostwindowid-e6d14c866f.html"
         },
         {
@@ -130835,8 +130856,29 @@
           "comment": "",
           "header": "gui_forms/host/windowing/host_windowing.hpp",
           "source": "include/gui_forms/host/windowing/host_windowing.hpp",
-          "line": 405,
+          "line": 410,
           "page": "gui-forms-hostwindowing-query-monitors-impl-hostmonitorresult-8d5defb313.html"
+        },
+        {
+          "id": "gui_forms::HostWindowing::query_monitors_into_impl|void (HostMonitorResult &)",
+          "name": "query_monitors_into_impl",
+          "type": "void (HostMonitorResult &)",
+          "namespace": "gui_forms::HostWindowing",
+          "kind": "CXXMethodDecl",
+          "access": "protected",
+          "parameters": [
+            {
+              "name": "result",
+              "type": "HostMonitorResult &",
+              "declaration": "HostMonitorResult& result"
+            }
+          ],
+          "declaration": "virtual void query_monitors_into_impl(HostMonitorResult& result)",
+          "comment": "",
+          "header": "gui_forms/host/windowing/host_windowing.hpp",
+          "source": "include/gui_forms/host/windowing/host_windowing.hpp",
+          "line": 414,
+          "page": "gui-forms-hostwindowing-query-monitors-into-impl-void-hostmonitorresult-1914d0cfcf.html"
         },
         {
           "id": "gui_forms::HostWindowing::show_impl|HostServiceStatus (HostWindowId)",
@@ -130856,7 +130898,7 @@
           "comment": "",
           "header": "gui_forms/host/windowing/host_windowing.hpp",
           "source": "include/gui_forms/host/windowing/host_windowing.hpp",
-          "line": 408,
+          "line": 417,
           "page": "gui-forms-hostwindowing-show-impl-hostservicestatus-hostwindowid-e123e571a7.html"
         },
         {
@@ -130877,7 +130919,7 @@
           "comment": "",
           "header": "gui_forms/host/windowing/host_windowing.hpp",
           "source": "include/gui_forms/host/windowing/host_windowing.hpp",
-          "line": 409,
+          "line": 418,
           "page": "gui-forms-hostwindowing-hide-impl-hostservicestatus-hostwindowid-41f4ae751f.html"
         }
       ],
@@ -198522,6 +198564,653 @@
       "enclosing_type": null
     },
     {
+      "id": "gui_forms::ProgressRing",
+      "name": "ProgressRing",
+      "namespace": "gui_forms",
+      "kind": "class",
+      "header": "gui_forms/controls/progress_ring/progress_ring.hpp",
+      "source": "include/gui_forms/controls/progress_ring/progress_ring.hpp",
+      "line": 34,
+      "declaration": "class ProgressRing final : public Control, public ProgressRingCapabilities<ProgressRing>",
+      "comment": "",
+      "access": "public",
+      "bases": [
+        "Control",
+        "gui_forms::ProgressRingCapabilities<gui_forms::ProgressRing>"
+      ],
+      "members": [
+        {
+          "id": "gui_forms::ProgressRing::ProgressRing|void (StableId)",
+          "name": "ProgressRing",
+          "type": "void (StableId)",
+          "namespace": "gui_forms::ProgressRing",
+          "kind": "CXXConstructorDecl",
+          "access": "public",
+          "parameters": [
+            {
+              "name": "stable_id",
+              "type": "StableId",
+              "declaration": "StableId stable_id"
+            }
+          ],
+          "declaration": "explicit ProgressRing(StableId stable_id)",
+          "comment": "",
+          "header": "gui_forms/controls/progress_ring/progress_ring.hpp",
+          "source": "include/gui_forms/controls/progress_ring/progress_ring.hpp",
+          "line": 36,
+          "page": "gui-forms-progressring-progressring-void-stableid-1a97ccec2b.html"
+        },
+        {
+          "id": "gui_forms::ProgressRing::dot_count|const std::size_t",
+          "name": "dot_count",
+          "type": "const std::size_t",
+          "namespace": "gui_forms::ProgressRing",
+          "kind": "VarDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "static constexpr std::size_t dot_count = 40U",
+          "comment": "",
+          "header": "gui_forms/controls/progress_ring/progress_ring.hpp",
+          "source": "include/gui_forms/controls/progress_ring/progress_ring.hpp",
+          "line": 38,
+          "page": "gui-forms-progressring-dot-count-const-std-size-t-20c5f17552.html"
+        },
+        {
+          "id": "gui_forms::ProgressRing::run_count|const std::size_t",
+          "name": "run_count",
+          "type": "const std::size_t",
+          "namespace": "gui_forms::ProgressRing",
+          "kind": "VarDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "static constexpr std::size_t run_count = 10U",
+          "comment": "",
+          "header": "gui_forms/controls/progress_ring/progress_ring.hpp",
+          "source": "include/gui_forms/controls/progress_ring/progress_ring.hpp",
+          "line": 40,
+          "page": "gui-forms-progressring-run-count-const-std-size-t-7b2ab5c43c.html"
+        },
+        {
+          "id": "gui_forms::ProgressRing::turn_period|const FrameInterval",
+          "name": "turn_period",
+          "type": "const FrameInterval",
+          "namespace": "gui_forms::ProgressRing",
+          "kind": "VarDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "static constexpr FrameInterval turn_period = std::chrono::milliseconds(1200)",
+          "comment": "",
+          "header": "gui_forms/controls/progress_ring/progress_ring.hpp",
+          "source": "include/gui_forms/controls/progress_ring/progress_ring.hpp",
+          "line": 41,
+          "page": "gui-forms-progressring-turn-period-const-frameinterval-64d78054ed.html"
+        },
+        {
+          "id": "gui_forms::ProgressRing::fraction|double () const noexcept",
+          "name": "fraction",
+          "type": "double () const noexcept",
+          "namespace": "gui_forms::ProgressRing",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "[[nodiscard]] double fraction() const noexcept",
+          "comment": "",
+          "header": "gui_forms/controls/progress_ring/progress_ring.hpp",
+          "source": "include/gui_forms/controls/progress_ring/progress_ring.hpp",
+          "line": 44,
+          "page": "gui-forms-progressring-fraction-double-const-noexcept-ad76416c51.html"
+        },
+        {
+          "id": "gui_forms::ProgressRing::lit_dots|std::size_t () const noexcept",
+          "name": "lit_dots",
+          "type": "std::size_t () const noexcept",
+          "namespace": "gui_forms::ProgressRing",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "[[nodiscard]] std::size_t lit_dots() const noexcept",
+          "comment": "",
+          "header": "gui_forms/controls/progress_ring/progress_ring.hpp",
+          "source": "include/gui_forms/controls/progress_ring/progress_ring.hpp",
+          "line": 47,
+          "page": "gui-forms-progressring-lit-dots-std-size-t-const-noexcept-e5c64576a5.html"
+        },
+        {
+          "id": "gui_forms::ProgressRing::phase|std::size_t () const noexcept",
+          "name": "phase",
+          "type": "std::size_t () const noexcept",
+          "namespace": "gui_forms::ProgressRing",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "[[nodiscard]] std::size_t phase() const noexcept",
+          "comment": "",
+          "header": "gui_forms/controls/progress_ring/progress_ring.hpp",
+          "source": "include/gui_forms/controls/progress_ring/progress_ring.hpp",
+          "line": 49,
+          "page": "gui-forms-progressring-phase-std-size-t-const-noexcept-7331af94c4.html"
+        },
+        {
+          "id": "gui_forms::ProgressRing::moving|bool () const noexcept",
+          "name": "moving",
+          "type": "bool () const noexcept",
+          "namespace": "gui_forms::ProgressRing",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "[[nodiscard]] bool moving() const noexcept",
+          "comment": "",
+          "header": "gui_forms/controls/progress_ring/progress_ring.hpp",
+          "source": "include/gui_forms/controls/progress_ring/progress_ring.hpp",
+          "line": 51,
+          "page": "gui-forms-progressring-moving-bool-const-noexcept-66fde0fe15.html"
+        },
+        {
+          "id": "gui_forms::ProgressRing::measure|Size (Size)",
+          "name": "measure",
+          "type": "Size (Size)",
+          "namespace": "gui_forms::ProgressRing",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [
+            {
+              "name": "available",
+              "type": "Size",
+              "declaration": "Size available"
+            }
+          ],
+          "declaration": "[[nodiscard]] Size measure(Size available) override",
+          "comment": "",
+          "header": "gui_forms/controls/progress_ring/progress_ring.hpp",
+          "source": "include/gui_forms/controls/progress_ring/progress_ring.hpp",
+          "line": 53,
+          "page": "gui-forms-progressring-measure-size-size-eadc639a60.html"
+        },
+        {
+          "id": "gui_forms::ProgressRing::on_paint|void (Painter &, Rect)",
+          "name": "on_paint",
+          "type": "void (Painter &, Rect)",
+          "namespace": "gui_forms::ProgressRing",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [
+            {
+              "name": "painter",
+              "type": "Painter &",
+              "declaration": "Painter& painter"
+            },
+            {
+              "name": "local_damage",
+              "type": "Rect",
+              "declaration": "Rect local_damage"
+            }
+          ],
+          "declaration": "void on_paint(Painter& painter, Rect local_damage) override",
+          "comment": "",
+          "header": "gui_forms/controls/progress_ring/progress_ring.hpp",
+          "source": "include/gui_forms/controls/progress_ring/progress_ring.hpp",
+          "line": 54,
+          "page": "gui-forms-progressring-on-paint-void-painter-rect-20e53f0fee.html"
+        },
+        {
+          "id": "gui_forms::ProgressRing::hit_test_local|bool (Point) const",
+          "name": "hit_test_local",
+          "type": "bool (Point) const",
+          "namespace": "gui_forms::ProgressRing",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [
+            {
+              "name": "local_point",
+              "type": "Point",
+              "declaration": "Point local_point"
+            }
+          ],
+          "declaration": "[[nodiscard]] bool hit_test_local(Point local_point) const override",
+          "comment": "",
+          "header": "gui_forms/controls/progress_ring/progress_ring.hpp",
+          "source": "include/gui_forms/controls/progress_ring/progress_ring.hpp",
+          "line": 55,
+          "page": "gui-forms-progressring-hit-test-local-bool-point-const-e583080b5c.html"
+        },
+        {
+          "id": "gui_forms::ProgressRing::semantic_descriptor|SemanticDescriptor () const",
+          "name": "semantic_descriptor",
+          "type": "SemanticDescriptor () const",
+          "namespace": "gui_forms::ProgressRing",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "[[nodiscard]] SemanticDescriptor semantic_descriptor() const override",
+          "comment": "",
+          "header": "gui_forms/controls/progress_ring/progress_ring.hpp",
+          "source": "include/gui_forms/controls/progress_ring/progress_ring.hpp",
+          "line": 56,
+          "page": "gui-forms-progressring-semantic-descriptor-semanticdescriptor-const-f6bcfcd14f.html"
+        },
+        {
+          "id": "gui_forms::ProgressRing::anatomy|const ControlAnatomy &() const noexcept",
+          "name": "anatomy",
+          "type": "const ControlAnatomy &() const noexcept",
+          "namespace": "gui_forms::ProgressRing",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "[[nodiscard]] const ControlAnatomy& anatomy() const noexcept override",
+          "comment": "",
+          "header": "gui_forms/controls/progress_ring/progress_ring.hpp",
+          "source": "include/gui_forms/controls/progress_ring/progress_ring.hpp",
+          "line": 57,
+          "page": "gui-forms-progressring-anatomy-const-controlanatomy-const-noexcept-fd7d27eff8.html"
+        },
+        {
+          "id": "gui_forms::ProgressRing::anatomy_states|AnatomyStateSet () const",
+          "name": "anatomy_states",
+          "type": "AnatomyStateSet () const",
+          "namespace": "gui_forms::ProgressRing",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "[[nodiscard]] AnatomyStateSet anatomy_states() const override",
+          "comment": "",
+          "header": "gui_forms/controls/progress_ring/progress_ring.hpp",
+          "source": "include/gui_forms/controls/progress_ring/progress_ring.hpp",
+          "line": 58,
+          "page": "gui-forms-progressring-anatomy-states-anatomystateset-const-a20804f8c9.html"
+        },
+        {
+          "id": "gui_forms::ProgressRing::parts|Parts () const",
+          "name": "parts",
+          "type": "Parts () const",
+          "namespace": "gui_forms::ProgressRing",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "[[nodiscard]] Parts parts() const",
+          "comment": "",
+          "header": "gui_forms/controls/progress_ring/progress_ring.hpp",
+          "source": "include/gui_forms/controls/progress_ring/progress_ring.hpp",
+          "line": 68,
+          "page": "gui-forms-progressring-parts-parts-const-1b1993d72d.html"
+        },
+        {
+          "id": "gui_forms::ProgressRing::publish_part_geometry|void (std::span<PartGeometry>) const",
+          "name": "publish_part_geometry",
+          "type": "void (std::span<PartGeometry>) const",
+          "namespace": "gui_forms::ProgressRing",
+          "kind": "CXXMethodDecl",
+          "access": "protected",
+          "parameters": [
+            {
+              "name": "geometry",
+              "type": "std::span<PartGeometry>",
+              "declaration": "std::span<PartGeometry> geometry"
+            }
+          ],
+          "declaration": "void publish_part_geometry(std::span<PartGeometry> geometry) const override",
+          "comment": "",
+          "header": "gui_forms/controls/progress_ring/progress_ring.hpp",
+          "source": "include/gui_forms/controls/progress_ring/progress_ring.hpp",
+          "line": 71,
+          "page": "gui-forms-progressring-publish-part-geometry-void-std-span-partgeometry-const-a1f6d3c53c.html"
+        },
+        {
+          "id": "gui_forms::ProgressRing::on_detached_from_window|void () noexcept",
+          "name": "on_detached_from_window",
+          "type": "void () noexcept",
+          "namespace": "gui_forms::ProgressRing",
+          "kind": "CXXMethodDecl",
+          "access": "protected",
+          "parameters": [],
+          "declaration": "void on_detached_from_window() noexcept override",
+          "comment": "",
+          "header": "gui_forms/controls/progress_ring/progress_ring.hpp",
+          "source": "include/gui_forms/controls/progress_ring/progress_ring.hpp",
+          "line": 72,
+          "page": "gui-forms-progressring-on-detached-from-window-void-noexcept-611999c271.html"
+        },
+        {
+          "id": "gui_forms::ProgressRing::on_ambient_frame|bool (FrameTime)",
+          "name": "on_ambient_frame",
+          "type": "bool (FrameTime)",
+          "namespace": "gui_forms::ProgressRing",
+          "kind": "CXXMethodDecl",
+          "access": "protected",
+          "parameters": [
+            {
+              "name": "now",
+              "type": "FrameTime",
+              "declaration": "FrameTime now"
+            }
+          ],
+          "declaration": "bool on_ambient_frame(FrameTime now) override",
+          "comment": "",
+          "header": "gui_forms/controls/progress_ring/progress_ring.hpp",
+          "source": "include/gui_forms/controls/progress_ring/progress_ring.hpp",
+          "line": 74,
+          "page": "gui-forms-progressring-on-ambient-frame-bool-frametime-4b7f93e052.html"
+        },
+        {
+          "id": "gui_forms::ProgressRing::progress_ring_property_count|const std::size_t",
+          "name": "progress_ring_property_count",
+          "type": "const std::size_t",
+          "namespace": "gui_forms::ProgressRing",
+          "kind": "VarDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "static constexpr std::size_t progress_ring_property_count = Control::control_property_count + 3U",
+          "comment": "",
+          "header": "gui_forms/controls/progress_ring/progress_ring.hpp",
+          "source": "include/gui_forms/controls/progress_ring/progress_ring.hpp",
+          "line": 97,
+          "page": "gui-forms-progressring-progress-ring-property-count-const-std-size-t-d4b45fd543.html"
+        },
+        {
+          "id": "gui_forms::ProgressRing::progress_ring_property_entries|const std::array<PropertyEntry, progress_ring_property_count> &() noexcept",
+          "name": "progress_ring_property_entries",
+          "type": "const std::array<PropertyEntry, progress_ring_property_count> &() noexcept",
+          "namespace": "gui_forms::ProgressRing",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "[[nodiscard]] static const std::array<PropertyEntry, progress_ring_property_count>& progress_ring_property_entries() noexcept",
+          "comment": "",
+          "header": "gui_forms/controls/progress_ring/progress_ring.hpp",
+          "source": "include/gui_forms/controls/progress_ring/progress_ring.hpp",
+          "line": 98,
+          "page": "gui-forms-progressring-progress-ring-property-entries-const-std-array-propertyentry-progress-ring-property-cou-af84322bfc.html"
+        },
+        {
+          "id": "gui_forms::ProgressRing::property_table|std::span<const PropertyEntry> () const noexcept",
+          "name": "property_table",
+          "type": "std::span<const PropertyEntry> () const noexcept",
+          "namespace": "gui_forms::ProgressRing",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "[[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override",
+          "comment": "",
+          "header": "gui_forms/controls/progress_ring/progress_ring.hpp",
+          "source": "include/gui_forms/controls/progress_ring/progress_ring.hpp",
+          "line": 99,
+          "page": "gui-forms-progressring-property-table-std-span-const-propertyentry-const-noexcept-cf7f35252b.html"
+        }
+      ],
+      "page": "gui-forms-progressring-035423bd21.html",
+      "enclosing_type": null
+    },
+    {
+      "id": "gui_forms::ProgressRing::Parts",
+      "name": "Parts",
+      "namespace": "gui_forms",
+      "kind": "struct",
+      "header": "gui_forms/controls/progress_ring/progress_ring.hpp",
+      "source": "include/gui_forms/controls/progress_ring/progress_ring.hpp",
+      "line": 62,
+      "declaration": "struct Parts final",
+      "comment": "",
+      "access": "public",
+      "bases": [],
+      "members": [
+        {
+          "id": "gui_forms::ProgressRing::Parts::region|PartGeometry",
+          "name": "region",
+          "type": "PartGeometry",
+          "namespace": "gui_forms::ProgressRing::Parts",
+          "kind": "FieldDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "PartGeometry region",
+          "comment": "",
+          "header": "gui_forms/controls/progress_ring/progress_ring.hpp",
+          "source": "include/gui_forms/controls/progress_ring/progress_ring.hpp",
+          "line": 63,
+          "page": "gui-forms-progressring-parts-region-partgeometry-6d988a3bb7.html"
+        },
+        {
+          "id": "gui_forms::ProgressRing::Parts::track|PartGeometry",
+          "name": "track",
+          "type": "PartGeometry",
+          "namespace": "gui_forms::ProgressRing::Parts",
+          "kind": "FieldDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "PartGeometry track",
+          "comment": "",
+          "header": "gui_forms/controls/progress_ring/progress_ring.hpp",
+          "source": "include/gui_forms/controls/progress_ring/progress_ring.hpp",
+          "line": 64,
+          "page": "gui-forms-progressring-parts-track-partgeometry-ee3a62790c.html"
+        },
+        {
+          "id": "gui_forms::ProgressRing::Parts::fill|PartGeometry",
+          "name": "fill",
+          "type": "PartGeometry",
+          "namespace": "gui_forms::ProgressRing::Parts",
+          "kind": "FieldDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "PartGeometry fill",
+          "comment": "",
+          "header": "gui_forms/controls/progress_ring/progress_ring.hpp",
+          "source": "include/gui_forms/controls/progress_ring/progress_ring.hpp",
+          "line": 65,
+          "page": "gui-forms-progressring-parts-fill-partgeometry-f448d47988.html"
+        },
+        {
+          "id": "gui_forms::ProgressRing::Parts::activity|PartGeometry",
+          "name": "activity",
+          "type": "PartGeometry",
+          "namespace": "gui_forms::ProgressRing::Parts",
+          "kind": "FieldDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "PartGeometry activity",
+          "comment": "",
+          "header": "gui_forms/controls/progress_ring/progress_ring.hpp",
+          "source": "include/gui_forms/controls/progress_ring/progress_ring.hpp",
+          "line": 66,
+          "page": "gui-forms-progressring-parts-activity-partgeometry-31e7f45246.html"
+        }
+      ],
+      "page": "gui-forms-progressring-parts-c2661e84e1.html",
+      "enclosing_type": "gui_forms::ProgressRing"
+    },
+    {
+      "id": "gui_forms::ProgressRingCapabilities",
+      "name": "ProgressRingCapabilities",
+      "namespace": "gui_forms",
+      "kind": "struct",
+      "header": "gui_forms/controls/progress_ring/progress_ring_capabilities/progress_ring_capabilities.hpp",
+      "source": "include/gui_forms/controls/progress_ring/progress_ring_capabilities/progress_ring_capabilities.hpp",
+      "line": 67,
+      "declaration": "template <typename Declaring> struct ProgressRingCapabilities : public ProgressRingValueCapability<Declaring>, public ProgressRingMaximumCapability<Declaring>, public ProgressRingIndeterminateCapability<Declaring>",
+      "comment": "",
+      "access": "public",
+      "bases": [
+        "ProgressRingValueCapability<Declaring>",
+        "ProgressRingMaximumCapability<Declaring>",
+        "ProgressRingIndeterminateCapability<Declaring>"
+      ],
+      "members": [],
+      "page": "gui-forms-progressringcapabilities-accfea01c7.html",
+      "enclosing_type": null
+    },
+    {
+      "id": "gui_forms::ProgressRingIndeterminateCapability",
+      "name": "ProgressRingIndeterminateCapability",
+      "namespace": "gui_forms",
+      "kind": "struct",
+      "header": "gui_forms/controls/progress_ring/progress_ring_capabilities/progress_ring_capabilities.hpp",
+      "source": "include/gui_forms/controls/progress_ring/progress_ring_capabilities/progress_ring_capabilities.hpp",
+      "line": 54,
+      "declaration": "template <typename Declaring> struct ProgressRingIndeterminateCapability",
+      "comment": "",
+      "access": "public",
+      "bases": [],
+      "members": [
+        {
+          "id": "gui_forms::ProgressRingIndeterminateCapability::indeterminate|PropertyCell<bool, ProgressRingIndeterminateCapability<Declaring>>",
+          "name": "indeterminate",
+          "type": "PropertyCell<bool, ProgressRingIndeterminateCapability<Declaring>>",
+          "namespace": "gui_forms::ProgressRingIndeterminateCapability",
+          "kind": "FieldDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "PropertyCell<bool, ProgressRingIndeterminateCapability<Declaring>> indeterminate{false}",
+          "comment": "",
+          "header": "gui_forms/controls/progress_ring/progress_ring_capabilities/progress_ring_capabilities.hpp",
+          "source": "include/gui_forms/controls/progress_ring/progress_ring_capabilities/progress_ring_capabilities.hpp",
+          "line": 55,
+          "page": "gui-forms-progressringindeterminatecapability-indeterminate-propertycell-bool-progressringindeterminatecapabil-52772c0338.html"
+        },
+        {
+          "id": "gui_forms::ProgressRingIndeterminateCapability::assign|void (ProgressRingIndeterminateCapability<Declaring> &, bool)",
+          "name": "assign",
+          "type": "void (ProgressRingIndeterminateCapability<Declaring> &, bool)",
+          "namespace": "gui_forms::ProgressRingIndeterminateCapability",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [
+            {
+              "name": "capability",
+              "type": "ProgressRingIndeterminateCapability<Declaring> &",
+              "declaration": "ProgressRingIndeterminateCapability& capability"
+            },
+            {
+              "name": "incoming",
+              "type": "bool",
+              "declaration": "bool incoming"
+            }
+          ],
+          "declaration": "static void assign(ProgressRingIndeterminateCapability& capability, bool incoming)",
+          "comment": "",
+          "header": "gui_forms/controls/progress_ring/progress_ring_capabilities/progress_ring_capabilities.hpp",
+          "source": "include/gui_forms/controls/progress_ring/progress_ring_capabilities/progress_ring_capabilities.hpp",
+          "line": 57,
+          "page": "gui-forms-progressringindeterminatecapability-assign-void-progressringindeterminatecapability-declaring-bool-bd9884c27a.html"
+        }
+      ],
+      "page": "gui-forms-progressringindeterminatecapability-1a4da377d6.html",
+      "enclosing_type": null
+    },
+    {
+      "id": "gui_forms::ProgressRingMaximumCapability",
+      "name": "ProgressRingMaximumCapability",
+      "namespace": "gui_forms",
+      "kind": "struct",
+      "header": "gui_forms/controls/progress_ring/progress_ring_capabilities/progress_ring_capabilities.hpp",
+      "source": "include/gui_forms/controls/progress_ring/progress_ring_capabilities/progress_ring_capabilities.hpp",
+      "line": 41,
+      "declaration": "template <typename Declaring> struct ProgressRingMaximumCapability",
+      "comment": "",
+      "access": "public",
+      "bases": [],
+      "members": [
+        {
+          "id": "gui_forms::ProgressRingMaximumCapability::maximum|PropertyCell<double, ProgressRingMaximumCapability<Declaring>>",
+          "name": "maximum",
+          "type": "PropertyCell<double, ProgressRingMaximumCapability<Declaring>>",
+          "namespace": "gui_forms::ProgressRingMaximumCapability",
+          "kind": "FieldDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "PropertyCell<double, ProgressRingMaximumCapability<Declaring>> maximum{100.0}",
+          "comment": "",
+          "header": "gui_forms/controls/progress_ring/progress_ring_capabilities/progress_ring_capabilities.hpp",
+          "source": "include/gui_forms/controls/progress_ring/progress_ring_capabilities/progress_ring_capabilities.hpp",
+          "line": 42,
+          "page": "gui-forms-progressringmaximumcapability-maximum-propertycell-double-progressringmaximumcapability-declaring-c04f2bd410.html"
+        },
+        {
+          "id": "gui_forms::ProgressRingMaximumCapability::assign|void (ProgressRingMaximumCapability<Declaring> &, double)",
+          "name": "assign",
+          "type": "void (ProgressRingMaximumCapability<Declaring> &, double)",
+          "namespace": "gui_forms::ProgressRingMaximumCapability",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [
+            {
+              "name": "capability",
+              "type": "ProgressRingMaximumCapability<Declaring> &",
+              "declaration": "ProgressRingMaximumCapability& capability"
+            },
+            {
+              "name": "incoming",
+              "type": "double",
+              "declaration": "double incoming"
+            }
+          ],
+          "declaration": "static void assign(ProgressRingMaximumCapability& capability, double incoming)",
+          "comment": "",
+          "header": "gui_forms/controls/progress_ring/progress_ring_capabilities/progress_ring_capabilities.hpp",
+          "source": "include/gui_forms/controls/progress_ring/progress_ring_capabilities/progress_ring_capabilities.hpp",
+          "line": 44,
+          "page": "gui-forms-progressringmaximumcapability-assign-void-progressringmaximumcapability-declaring-double-3b8de8604b.html"
+        }
+      ],
+      "page": "gui-forms-progressringmaximumcapability-163eed0476.html",
+      "enclosing_type": null
+    },
+    {
+      "id": "gui_forms::ProgressRingValueCapability",
+      "name": "ProgressRingValueCapability",
+      "namespace": "gui_forms",
+      "kind": "struct",
+      "header": "gui_forms/controls/progress_ring/progress_ring_capabilities/progress_ring_capabilities.hpp",
+      "source": "include/gui_forms/controls/progress_ring/progress_ring_capabilities/progress_ring_capabilities.hpp",
+      "line": 28,
+      "declaration": "template <typename Declaring> struct ProgressRingValueCapability",
+      "comment": "",
+      "access": "public",
+      "bases": [],
+      "members": [
+        {
+          "id": "gui_forms::ProgressRingValueCapability::value|PropertyCell<double, ProgressRingValueCapability<Declaring>>",
+          "name": "value",
+          "type": "PropertyCell<double, ProgressRingValueCapability<Declaring>>",
+          "namespace": "gui_forms::ProgressRingValueCapability",
+          "kind": "FieldDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "PropertyCell<double, ProgressRingValueCapability<Declaring>> value{0.0}",
+          "comment": "",
+          "header": "gui_forms/controls/progress_ring/progress_ring_capabilities/progress_ring_capabilities.hpp",
+          "source": "include/gui_forms/controls/progress_ring/progress_ring_capabilities/progress_ring_capabilities.hpp",
+          "line": 29,
+          "page": "gui-forms-progressringvaluecapability-value-propertycell-double-progressringvaluecapability-declaring-c57ef27f9b.html"
+        },
+        {
+          "id": "gui_forms::ProgressRingValueCapability::assign|void (ProgressRingValueCapability<Declaring> &, double)",
+          "name": "assign",
+          "type": "void (ProgressRingValueCapability<Declaring> &, double)",
+          "namespace": "gui_forms::ProgressRingValueCapability",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [
+            {
+              "name": "capability",
+              "type": "ProgressRingValueCapability<Declaring> &",
+              "declaration": "ProgressRingValueCapability& capability"
+            },
+            {
+              "name": "incoming",
+              "type": "double",
+              "declaration": "double incoming"
+            }
+          ],
+          "declaration": "static void assign(ProgressRingValueCapability& capability, double incoming)",
+          "comment": "",
+          "header": "gui_forms/controls/progress_ring/progress_ring_capabilities/progress_ring_capabilities.hpp",
+          "source": "include/gui_forms/controls/progress_ring/progress_ring_capabilities/progress_ring_capabilities.hpp",
+          "line": 31,
+          "page": "gui-forms-progressringvaluecapability-assign-void-progressringvaluecapability-declaring-double-3db3ecab47.html"
+        }
+      ],
+      "page": "gui-forms-progressringvaluecapability-48245954d3.html",
+      "enclosing_type": null
+    },
+    {
       "id": "gui_forms::ProgressStripes",
       "name": "ProgressStripes",
       "namespace": "gui_forms",
@@ -240617,6 +241306,475 @@
         }
       ],
       "page": "gui-forms-sourcemappingresult-8ad27a557c.html",
+      "enclosing_type": null
+    },
+    {
+      "id": "gui_forms::Spinner",
+      "name": "Spinner",
+      "namespace": "gui_forms",
+      "kind": "class",
+      "header": "gui_forms/controls/spinner/spinner.hpp",
+      "source": "include/gui_forms/controls/spinner/spinner.hpp",
+      "line": 31,
+      "declaration": "class Spinner final : public Control, public SpinnerCapabilities<Spinner>",
+      "comment": "",
+      "access": "public",
+      "bases": [
+        "Control",
+        "gui_forms::SpinnerCapabilities<gui_forms::Spinner>"
+      ],
+      "members": [
+        {
+          "id": "gui_forms::Spinner::Spinner|void (StableId)",
+          "name": "Spinner",
+          "type": "void (StableId)",
+          "namespace": "gui_forms::Spinner",
+          "kind": "CXXConstructorDecl",
+          "access": "public",
+          "parameters": [
+            {
+              "name": "stable_id",
+              "type": "StableId",
+              "declaration": "StableId stable_id"
+            }
+          ],
+          "declaration": "explicit Spinner(StableId stable_id)",
+          "comment": "",
+          "header": "gui_forms/controls/spinner/spinner.hpp",
+          "source": "include/gui_forms/controls/spinner/spinner.hpp",
+          "line": 33,
+          "page": "gui-forms-spinner-spinner-void-stableid-6f111b7b2a.html"
+        },
+        {
+          "id": "gui_forms::Spinner::dot_count|const std::size_t",
+          "name": "dot_count",
+          "type": "const std::size_t",
+          "namespace": "gui_forms::Spinner",
+          "kind": "VarDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "static constexpr std::size_t dot_count = 12U",
+          "comment": "",
+          "header": "gui_forms/controls/spinner/spinner.hpp",
+          "source": "include/gui_forms/controls/spinner/spinner.hpp",
+          "line": 36,
+          "page": "gui-forms-spinner-dot-count-const-std-size-t-0a160d8cbe.html"
+        },
+        {
+          "id": "gui_forms::Spinner::lit_count|const std::size_t",
+          "name": "lit_count",
+          "type": "const std::size_t",
+          "namespace": "gui_forms::Spinner",
+          "kind": "VarDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "static constexpr std::size_t lit_count = 3U",
+          "comment": "",
+          "header": "gui_forms/controls/spinner/spinner.hpp",
+          "source": "include/gui_forms/controls/spinner/spinner.hpp",
+          "line": 37,
+          "page": "gui-forms-spinner-lit-count-const-std-size-t-3f2b26a0ea.html"
+        },
+        {
+          "id": "gui_forms::Spinner::turn_period|const FrameInterval",
+          "name": "turn_period",
+          "type": "const FrameInterval",
+          "namespace": "gui_forms::Spinner",
+          "kind": "VarDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "static constexpr FrameInterval turn_period = std::chrono::milliseconds(1200)",
+          "comment": "",
+          "header": "gui_forms/controls/spinner/spinner.hpp",
+          "source": "include/gui_forms/controls/spinner/spinner.hpp",
+          "line": 39,
+          "page": "gui-forms-spinner-turn-period-const-frameinterval-a245dfb7b8.html"
+        },
+        {
+          "id": "gui_forms::Spinner::phase|std::size_t () const noexcept",
+          "name": "phase",
+          "type": "std::size_t () const noexcept",
+          "namespace": "gui_forms::Spinner",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "[[nodiscard]] std::size_t phase() const noexcept",
+          "comment": "",
+          "header": "gui_forms/controls/spinner/spinner.hpp",
+          "source": "include/gui_forms/controls/spinner/spinner.hpp",
+          "line": 42,
+          "page": "gui-forms-spinner-phase-std-size-t-const-noexcept-c440f17d6c.html"
+        },
+        {
+          "id": "gui_forms::Spinner::moving|bool () const noexcept",
+          "name": "moving",
+          "type": "bool () const noexcept",
+          "namespace": "gui_forms::Spinner",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "[[nodiscard]] bool moving() const noexcept",
+          "comment": "",
+          "header": "gui_forms/controls/spinner/spinner.hpp",
+          "source": "include/gui_forms/controls/spinner/spinner.hpp",
+          "line": 44,
+          "page": "gui-forms-spinner-moving-bool-const-noexcept-1a8a78d835.html"
+        },
+        {
+          "id": "gui_forms::Spinner::measure|Size (Size)",
+          "name": "measure",
+          "type": "Size (Size)",
+          "namespace": "gui_forms::Spinner",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [
+            {
+              "name": "available",
+              "type": "Size",
+              "declaration": "Size available"
+            }
+          ],
+          "declaration": "[[nodiscard]] Size measure(Size available) override",
+          "comment": "",
+          "header": "gui_forms/controls/spinner/spinner.hpp",
+          "source": "include/gui_forms/controls/spinner/spinner.hpp",
+          "line": 46,
+          "page": "gui-forms-spinner-measure-size-size-b92e166246.html"
+        },
+        {
+          "id": "gui_forms::Spinner::on_paint|void (Painter &, Rect)",
+          "name": "on_paint",
+          "type": "void (Painter &, Rect)",
+          "namespace": "gui_forms::Spinner",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [
+            {
+              "name": "painter",
+              "type": "Painter &",
+              "declaration": "Painter& painter"
+            },
+            {
+              "name": "local_damage",
+              "type": "Rect",
+              "declaration": "Rect local_damage"
+            }
+          ],
+          "declaration": "void on_paint(Painter& painter, Rect local_damage) override",
+          "comment": "",
+          "header": "gui_forms/controls/spinner/spinner.hpp",
+          "source": "include/gui_forms/controls/spinner/spinner.hpp",
+          "line": 47,
+          "page": "gui-forms-spinner-on-paint-void-painter-rect-a0e44d3899.html"
+        },
+        {
+          "id": "gui_forms::Spinner::hit_test_local|bool (Point) const",
+          "name": "hit_test_local",
+          "type": "bool (Point) const",
+          "namespace": "gui_forms::Spinner",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [
+            {
+              "name": "local_point",
+              "type": "Point",
+              "declaration": "Point local_point"
+            }
+          ],
+          "declaration": "[[nodiscard]] bool hit_test_local(Point local_point) const override",
+          "comment": "",
+          "header": "gui_forms/controls/spinner/spinner.hpp",
+          "source": "include/gui_forms/controls/spinner/spinner.hpp",
+          "line": 48,
+          "page": "gui-forms-spinner-hit-test-local-bool-point-const-22576efdf1.html"
+        },
+        {
+          "id": "gui_forms::Spinner::semantic_descriptor|SemanticDescriptor () const",
+          "name": "semantic_descriptor",
+          "type": "SemanticDescriptor () const",
+          "namespace": "gui_forms::Spinner",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "[[nodiscard]] SemanticDescriptor semantic_descriptor() const override",
+          "comment": "",
+          "header": "gui_forms/controls/spinner/spinner.hpp",
+          "source": "include/gui_forms/controls/spinner/spinner.hpp",
+          "line": 49,
+          "page": "gui-forms-spinner-semantic-descriptor-semanticdescriptor-const-3313e937bc.html"
+        },
+        {
+          "id": "gui_forms::Spinner::anatomy|const ControlAnatomy &() const noexcept",
+          "name": "anatomy",
+          "type": "const ControlAnatomy &() const noexcept",
+          "namespace": "gui_forms::Spinner",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "[[nodiscard]] const ControlAnatomy& anatomy() const noexcept override",
+          "comment": "",
+          "header": "gui_forms/controls/spinner/spinner.hpp",
+          "source": "include/gui_forms/controls/spinner/spinner.hpp",
+          "line": 50,
+          "page": "gui-forms-spinner-anatomy-const-controlanatomy-const-noexcept-88b3e78474.html"
+        },
+        {
+          "id": "gui_forms::Spinner::anatomy_states|AnatomyStateSet () const",
+          "name": "anatomy_states",
+          "type": "AnatomyStateSet () const",
+          "namespace": "gui_forms::Spinner",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "[[nodiscard]] AnatomyStateSet anatomy_states() const override",
+          "comment": "",
+          "header": "gui_forms/controls/spinner/spinner.hpp",
+          "source": "include/gui_forms/controls/spinner/spinner.hpp",
+          "line": 51,
+          "page": "gui-forms-spinner-anatomy-states-anatomystateset-const-6b119d9eaf.html"
+        },
+        {
+          "id": "gui_forms::Spinner::parts|Parts () const",
+          "name": "parts",
+          "type": "Parts () const",
+          "namespace": "gui_forms::Spinner",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "[[nodiscard]] Parts parts() const",
+          "comment": "",
+          "header": "gui_forms/controls/spinner/spinner.hpp",
+          "source": "include/gui_forms/controls/spinner/spinner.hpp",
+          "line": 58,
+          "page": "gui-forms-spinner-parts-parts-const-91b79a2b88.html"
+        },
+        {
+          "id": "gui_forms::Spinner::publish_part_geometry|void (std::span<PartGeometry>) const",
+          "name": "publish_part_geometry",
+          "type": "void (std::span<PartGeometry>) const",
+          "namespace": "gui_forms::Spinner",
+          "kind": "CXXMethodDecl",
+          "access": "protected",
+          "parameters": [
+            {
+              "name": "geometry",
+              "type": "std::span<PartGeometry>",
+              "declaration": "std::span<PartGeometry> geometry"
+            }
+          ],
+          "declaration": "void publish_part_geometry(std::span<PartGeometry> geometry) const override",
+          "comment": "",
+          "header": "gui_forms/controls/spinner/spinner.hpp",
+          "source": "include/gui_forms/controls/spinner/spinner.hpp",
+          "line": 61,
+          "page": "gui-forms-spinner-publish-part-geometry-void-std-span-partgeometry-const-ff9c1d6d65.html"
+        },
+        {
+          "id": "gui_forms::Spinner::on_detached_from_window|void () noexcept",
+          "name": "on_detached_from_window",
+          "type": "void () noexcept",
+          "namespace": "gui_forms::Spinner",
+          "kind": "CXXMethodDecl",
+          "access": "protected",
+          "parameters": [],
+          "declaration": "void on_detached_from_window() noexcept override",
+          "comment": "",
+          "header": "gui_forms/controls/spinner/spinner.hpp",
+          "source": "include/gui_forms/controls/spinner/spinner.hpp",
+          "line": 62,
+          "page": "gui-forms-spinner-on-detached-from-window-void-noexcept-3ace08ea8a.html"
+        },
+        {
+          "id": "gui_forms::Spinner::on_ambient_frame|bool (FrameTime)",
+          "name": "on_ambient_frame",
+          "type": "bool (FrameTime)",
+          "namespace": "gui_forms::Spinner",
+          "kind": "CXXMethodDecl",
+          "access": "protected",
+          "parameters": [
+            {
+              "name": "now",
+              "type": "FrameTime",
+              "declaration": "FrameTime now"
+            }
+          ],
+          "declaration": "bool on_ambient_frame(FrameTime now) override",
+          "comment": "",
+          "header": "gui_forms/controls/spinner/spinner.hpp",
+          "source": "include/gui_forms/controls/spinner/spinner.hpp",
+          "line": 64,
+          "page": "gui-forms-spinner-on-ambient-frame-bool-frametime-78850a8c74.html"
+        },
+        {
+          "id": "gui_forms::Spinner::spinner_property_count|const std::size_t",
+          "name": "spinner_property_count",
+          "type": "const std::size_t",
+          "namespace": "gui_forms::Spinner",
+          "kind": "VarDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "static constexpr std::size_t spinner_property_count = Control::control_property_count + 1U",
+          "comment": "",
+          "header": "gui_forms/controls/spinner/spinner.hpp",
+          "source": "include/gui_forms/controls/spinner/spinner.hpp",
+          "line": 87,
+          "page": "gui-forms-spinner-spinner-property-count-const-std-size-t-b0b44e5712.html"
+        },
+        {
+          "id": "gui_forms::Spinner::spinner_property_entries|const std::array<PropertyEntry, spinner_property_count> &() noexcept",
+          "name": "spinner_property_entries",
+          "type": "const std::array<PropertyEntry, spinner_property_count> &() noexcept",
+          "namespace": "gui_forms::Spinner",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "[[nodiscard]] static const std::array<PropertyEntry, spinner_property_count>& spinner_property_entries() noexcept",
+          "comment": "",
+          "header": "gui_forms/controls/spinner/spinner.hpp",
+          "source": "include/gui_forms/controls/spinner/spinner.hpp",
+          "line": 88,
+          "page": "gui-forms-spinner-spinner-property-entries-const-std-array-propertyentry-spinner-property-count-noexcept-13c770e3dc.html"
+        },
+        {
+          "id": "gui_forms::Spinner::property_table|std::span<const PropertyEntry> () const noexcept",
+          "name": "property_table",
+          "type": "std::span<const PropertyEntry> () const noexcept",
+          "namespace": "gui_forms::Spinner",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "[[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override",
+          "comment": "",
+          "header": "gui_forms/controls/spinner/spinner.hpp",
+          "source": "include/gui_forms/controls/spinner/spinner.hpp",
+          "line": 89,
+          "page": "gui-forms-spinner-property-table-std-span-const-propertyentry-const-noexcept-26cc8d7338.html"
+        }
+      ],
+      "page": "gui-forms-spinner-ade421a8e4.html",
+      "enclosing_type": null
+    },
+    {
+      "id": "gui_forms::Spinner::Parts",
+      "name": "Parts",
+      "namespace": "gui_forms",
+      "kind": "struct",
+      "header": "gui_forms/controls/spinner/spinner.hpp",
+      "source": "include/gui_forms/controls/spinner/spinner.hpp",
+      "line": 54,
+      "declaration": "struct Parts final",
+      "comment": "",
+      "access": "public",
+      "bases": [],
+      "members": [
+        {
+          "id": "gui_forms::Spinner::Parts::region|PartGeometry",
+          "name": "region",
+          "type": "PartGeometry",
+          "namespace": "gui_forms::Spinner::Parts",
+          "kind": "FieldDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "PartGeometry region",
+          "comment": "",
+          "header": "gui_forms/controls/spinner/spinner.hpp",
+          "source": "include/gui_forms/controls/spinner/spinner.hpp",
+          "line": 55,
+          "page": "gui-forms-spinner-parts-region-partgeometry-d33e650848.html"
+        },
+        {
+          "id": "gui_forms::Spinner::Parts::activity|PartGeometry",
+          "name": "activity",
+          "type": "PartGeometry",
+          "namespace": "gui_forms::Spinner::Parts",
+          "kind": "FieldDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "PartGeometry activity",
+          "comment": "",
+          "header": "gui_forms/controls/spinner/spinner.hpp",
+          "source": "include/gui_forms/controls/spinner/spinner.hpp",
+          "line": 56,
+          "page": "gui-forms-spinner-parts-activity-partgeometry-7f170731a1.html"
+        }
+      ],
+      "page": "gui-forms-spinner-parts-caa08a6ce0.html",
+      "enclosing_type": "gui_forms::Spinner"
+    },
+    {
+      "id": "gui_forms::SpinnerActiveCapability",
+      "name": "SpinnerActiveCapability",
+      "namespace": "gui_forms",
+      "kind": "struct",
+      "header": "gui_forms/controls/spinner/spinner_capabilities/spinner_capabilities.hpp",
+      "source": "include/gui_forms/controls/spinner/spinner_capabilities/spinner_capabilities.hpp",
+      "line": 28,
+      "declaration": "template <typename Declaring> struct SpinnerActiveCapability",
+      "comment": "",
+      "access": "public",
+      "bases": [],
+      "members": [
+        {
+          "id": "gui_forms::SpinnerActiveCapability::active|PropertyCell<bool, SpinnerActiveCapability<Declaring>>",
+          "name": "active",
+          "type": "PropertyCell<bool, SpinnerActiveCapability<Declaring>>",
+          "namespace": "gui_forms::SpinnerActiveCapability",
+          "kind": "FieldDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "PropertyCell<bool, SpinnerActiveCapability<Declaring>> active{true}",
+          "comment": "",
+          "header": "gui_forms/controls/spinner/spinner_capabilities/spinner_capabilities.hpp",
+          "source": "include/gui_forms/controls/spinner/spinner_capabilities/spinner_capabilities.hpp",
+          "line": 29,
+          "page": "gui-forms-spinneractivecapability-active-propertycell-bool-spinneractivecapability-declaring-16c717eea6.html"
+        },
+        {
+          "id": "gui_forms::SpinnerActiveCapability::assign|void (SpinnerActiveCapability<Declaring> &, bool)",
+          "name": "assign",
+          "type": "void (SpinnerActiveCapability<Declaring> &, bool)",
+          "namespace": "gui_forms::SpinnerActiveCapability",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [
+            {
+              "name": "capability",
+              "type": "SpinnerActiveCapability<Declaring> &",
+              "declaration": "SpinnerActiveCapability& capability"
+            },
+            {
+              "name": "incoming",
+              "type": "bool",
+              "declaration": "bool incoming"
+            }
+          ],
+          "declaration": "static void assign(SpinnerActiveCapability& capability, bool incoming)",
+          "comment": "",
+          "header": "gui_forms/controls/spinner/spinner_capabilities/spinner_capabilities.hpp",
+          "source": "include/gui_forms/controls/spinner/spinner_capabilities/spinner_capabilities.hpp",
+          "line": 31,
+          "page": "gui-forms-spinneractivecapability-assign-void-spinneractivecapability-declaring-bool-c09bf7cee7.html"
+        }
+      ],
+      "page": "gui-forms-spinneractivecapability-27204970ef.html",
+      "enclosing_type": null
+    },
+    {
+      "id": "gui_forms::SpinnerCapabilities",
+      "name": "SpinnerCapabilities",
+      "namespace": "gui_forms",
+      "kind": "struct",
+      "header": "gui_forms/controls/spinner/spinner_capabilities/spinner_capabilities.hpp",
+      "source": "include/gui_forms/controls/spinner/spinner_capabilities/spinner_capabilities.hpp",
+      "line": 41,
+      "declaration": "template <typename Declaring> struct SpinnerCapabilities : public SpinnerActiveCapability<Declaring>",
+      "comment": "",
+      "access": "public",
+      "bases": [
+        "SpinnerActiveCapability<Declaring>"
+      ],
+      "members": [],
+      "page": "gui-forms-spinnercapabilities-7f9a3b3dc0.html",
       "enclosing_type": null
     },
     {
@@ -308423,7 +309581,7 @@
       "comment": "",
       "header": "gui_forms/host/windowing/desktop_coordinates.hpp",
       "source": "include/gui_forms/host/windowing/desktop_coordinates.hpp",
-      "line": 100,
+      "line": 103,
       "page": "gui-forms-desktop-device-point-desktopdevicepoint-std-span-const-hostmonitor-desktoplogicalpoint-double-noexce-a24224fa4d.html"
     },
     {
@@ -308449,7 +309607,7 @@
       "comment": "",
       "header": "gui_forms/host/windowing/desktop_coordinates.hpp",
       "source": "include/gui_forms/host/windowing/desktop_coordinates.hpp",
-      "line": 92,
+      "line": 95,
       "page": "gui-forms-desktop-logical-point-desktoplogicalpoint-std-span-const-hostmonitor-desktopdevicepoint-noexcept-8c635e1abc.html"
     },
     {
@@ -311916,6 +313074,27 @@
       "page": "gui-forms-make-effect-entry-effectentry-noexcept-6792b46918.html"
     },
     {
+      "id": "gui_forms::make_logical_monitor|void (HostMonitor &) noexcept",
+      "name": "make_logical_monitor",
+      "type": "void (HostMonitor &) noexcept",
+      "namespace": "gui_forms",
+      "kind": "FunctionDecl",
+      "access": "public",
+      "parameters": [
+        {
+          "name": "monitor",
+          "type": "HostMonitor &",
+          "declaration": "HostMonitor& monitor"
+        }
+      ],
+      "declaration": "void make_logical_monitor(HostMonitor& monitor) noexcept",
+      "comment": "",
+      "header": "gui_forms/host/windowing/desktop_coordinates.hpp",
+      "source": "include/gui_forms/host/windowing/desktop_coordinates.hpp",
+      "line": 80,
+      "page": "gui-forms-make-logical-monitor-void-hostmonitor-noexcept-012c4526be.html"
+    },
+    {
       "id": "gui_forms::make_property_collection|PropertyCollectionValue (std::string, BindingValueKind, std::vector<BindingValue>)",
       "name": "make_property_collection",
       "type": "PropertyCollectionValue (std::string, BindingValueKind, std::vector<BindingValue>)",
@@ -312458,7 +313637,7 @@
       "comment": "",
       "header": "gui_forms/host/windowing/desktop_coordinates.hpp",
       "source": "include/gui_forms/host/windowing/desktop_coordinates.hpp",
-      "line": 84,
+      "line": 87,
       "page": "gui-forms-nearest-device-monitor-std-size-t-std-span-const-hostmonitor-desktopdevicepoint-noexcept-d9541b6322.html"
     },
     {
@@ -312484,7 +313663,7 @@
       "comment": "",
       "header": "gui_forms/host/windowing/desktop_coordinates.hpp",
       "source": "include/gui_forms/host/windowing/desktop_coordinates.hpp",
-      "line": 86,
+      "line": 89,
       "page": "gui-forms-nearest-logical-monitor-std-size-t-std-span-const-hostmonitor-desktoplogicalpoint-noexcept-6b71805211.html"
     },
     {

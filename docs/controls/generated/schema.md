@@ -507,7 +507,7 @@ Properties beyond every control's: `effect` (text), `effect_input` (enumeration)
 | `fill` | fill |  |  |
 | `activity` | activity |  |  |
 
-States: `normal`, `enabled`, `disabled`, `reduced_motion`. Application-defined: `indeterminate`.
+States: `normal`, `indeterminate`, `enabled`, `disabled`, `reduced_motion`.
 
 Properties beyond every control's: `indeterminate` (boolean), `maximum` (number), `value` (number).
 
