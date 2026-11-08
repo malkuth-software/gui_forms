@@ -7,6 +7,11 @@ state and [`Command`](../api/generated/gui_forms.Command.rst) for actions.
 Controls bind to them by reference, and propagation is synchronous on the UI
 thread. Record-and-field binding is described in [Data binding](data-binding).
 
+A form document binds the same sources in a property's own slot when it
+creates the control (`value: bind(volume);`); see [Forms](forms.md#bindings).
+The `bind` calls below are the C++ spelling, for controls a program makes
+itself.
+
 ```cpp
 #include <gui_forms/collection_controls.hpp>
 #include <gui_forms/range_controls.hpp>

@@ -24,12 +24,15 @@ update-scopes-and-dirtiness
 layout
 painting-and-damage
 text-engine
+properties
+forms
 input-and-focus
 mouse-events
 values-commands-and-binding
 rules
 data-binding
 controls
+themes
 theme-language
 ```
 
@@ -38,6 +41,7 @@ theme-language
 :maxdepth: 1
 
 for-windows-forms-developers
+converting-an-app
 ```
 
 ```{toctree}
