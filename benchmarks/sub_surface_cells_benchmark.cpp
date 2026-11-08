@@ -259,7 +259,7 @@ private:
         }
         rows.push_back(std::move(added));
     }
-    (*grid).set_rows(std::move(rows));
+    (*grid).rows = std::move(rows);
     (*grid).set_allow_user_to_add_rows(false);
     return grid;
 }

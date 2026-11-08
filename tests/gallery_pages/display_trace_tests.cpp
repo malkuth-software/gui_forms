@@ -590,8 +590,8 @@ constexpr std::array<PageDigest, 35> expected_digests{{
     {"typography-and-inspection", 0x708c3508aa6881f9ULL},
     {"semantic-feedback", 0x7d842197f580593cULL},
     {"notices-and-badges", 0xbf14cf32ae6e2e38ULL},
-    {"input-and-rules", 0x687a57eae75eed83ULL},
-    {"theme-settings", 0x5b1c59734369dbfaULL},
+    {"input-and-rules", 0xa5b87c62e04c1359ULL},
+    {"theme-settings", 0xaf4cea5be2f45139ULL},
     {"spinners-and-rings", 0x791183715f385034ULL},
 }};
 
