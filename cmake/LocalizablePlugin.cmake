@@ -32,6 +32,20 @@ option(GUI_FORMS_LOCALIZABLE_PLUGIN
 option(GUI_FORMS_EFFECT_VERIFY
        "Verify effect programs with the gui_forms Clang plugin's effect pass (OFF builds them unverified)"
        ON)
+# C-10 (owner, 2026-11-08): Linux CI installs LLVM's and Clang's development
+# headers and sets this, so a toolchain that cannot verify the effects fails
+# the configure there instead of building them labelled unverified.
+option(GUI_FORMS_EFFECT_VERIFY_REQUIRED
+       "Fail the configure when effect programs cannot be verified (Linux CI sets it)"
+       OFF)
+# C-12 (owner, 2026-11-08): with the MSVC command line the compiler must be
+# clang-cl, which takes the plugin's driver options behind /clang:. Plain
+# cl.exe cannot load the plugin and is refused for effect sources
+# (gui_forms_verify_effects).
+set(GUI_FORMS_CLANG_DRIVER_PREFIX "")
+if(CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+    set(GUI_FORMS_CLANG_DRIVER_PREFIX "/clang:")
+endif()
 set(GUI_FORMS_LLVM_ROOT "" CACHE PATH
     "The LLVM 22 prefix holding include/llvm and include/clang for the plugin (default: the compiler's ..)")
 
@@ -80,10 +94,18 @@ function(_gui_forms_probe_localizable_plugin plugin_dir plugin_path result reaso
          "void gui_forms_probe_set_text([[clang::annotate(\"gui_forms.localizable:text\")]] const char* text);\n"
          "void gui_forms_probe() { gui_forms_probe_set_text(\"GUIFormsLocalizableProbe\"); }\n")
     file(REMOVE "${_gf_probe_object}")
+    # clang-cl spells the standard, the compile and the output its own way.
+    if(GUI_FORMS_CLANG_DRIVER_PREFIX)
+        set(_gf_probe_command "${CMAKE_CXX_COMPILER}" /std:c++20 "/clang:-fplugin=${plugin_path}"
+            "/clang:-fplugin-arg-gui_forms_localizable-root=${plugin_dir}"
+            /c "${_gf_probe_source}" "/Fo${_gf_probe_object}")
+    else()
+        set(_gf_probe_command "${CMAKE_CXX_COMPILER}" -std=c++20 "-fplugin=${plugin_path}"
+            "-fplugin-arg-gui_forms_localizable-root=${plugin_dir}"
+            -c "${_gf_probe_source}" -o "${_gf_probe_object}")
+    endif()
     execute_process(
-        COMMAND "${CMAKE_CXX_COMPILER}" -std=c++20 "-fplugin=${plugin_path}"
-                "-fplugin-arg-gui_forms_localizable-root=${plugin_dir}"
-                -c "${_gf_probe_source}" -o "${_gf_probe_object}"
+        COMMAND ${_gf_probe_command}
         RESULT_VARIABLE _gf_status OUTPUT_VARIABLE _gf_output ERROR_VARIABLE _gf_output)
     file(APPEND "${_gf_log}" "probe compile (exit ${_gf_status}):\n${_gf_output}\n")
     if(NOT _gf_status EQUAL 0 OR NOT EXISTS "${_gf_probe_object}")
@@ -190,11 +212,12 @@ function(gui_forms_compile_with_localizable_plugin target)
     if(NOT GUI_FORMS_LOCALIZABLE_PLUGIN_PATH)
         return()
     endif()
+    set(_gf_prefix "${GUI_FORMS_CLANG_DRIVER_PREFIX}")
     set(_gf_flags
-        "-fplugin=${GUI_FORMS_LOCALIZABLE_PLUGIN_PATH}"
-        "-fplugin-arg-gui_forms_localizable-root=${CMAKE_SOURCE_DIR}")
+        "${_gf_prefix}-fplugin=${GUI_FORMS_LOCALIZABLE_PLUGIN_PATH}"
+        "${_gf_prefix}-fplugin-arg-gui_forms_localizable-root=${CMAKE_SOURCE_DIR}")
     if(NOT GUI_FORMS_EFFECT_VERIFY)
-        list(APPEND _gf_flags "-fplugin-arg-gui_forms_localizable-effects=off")
+        list(APPEND _gf_flags "${_gf_prefix}-fplugin-arg-gui_forms_localizable-effects=off")
     endif()
     add_dependencies(${target} gui_forms_localizable_plugin)
     if(_gf_SOURCES)
@@ -221,9 +244,18 @@ endif()
 # with the plugin's effect pass, which fails the compile on any effect that
 # breaks the rules or its budgets and records a verification for each that
 # passes. Without the pass the sources compile with GUI_FORMS_EFFECTS_UNVERIFIED
-# defined (each prints its #warning) and configure warns naming the target.
+# defined (each prints its #warning) and configure warns naming the target,
+# or fails when GUI_FORMS_EFFECT_VERIFY_REQUIRED is on. Plain cl.exe is
+# refused whatever the options (C-12): only clang-cl can load the pass.
 function(gui_forms_verify_effects target)
     cmake_parse_arguments(PARSE_ARGV 1 _gf "" "" "SOURCES")
+    string(JOIN ", " _gf_files ${_gf_SOURCES})
+    if(MSVC AND NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        message(FATAL_ERROR "GUI.Forms effects in ${target} (${_gf_files}) must be compiled with clang-cl "
+                            "(LLVM 22), not cl.exe: only Clang can load the effect pass that bounds them. "
+                            "Use the Visual Studio generator's ClangCL toolset (-T ClangCL) or set "
+                            "CMAKE_CXX_COMPILER to clang-cl (docs/user/effect-verification.md).")
+    endif()
     if(GUI_FORMS_EFFECTS_VERIFIED)
         gui_forms_compile_with_localizable_plugin(${target} SOURCES ${_gf_SOURCES})
         return()
@@ -233,7 +265,11 @@ function(gui_forms_verify_effects target)
     else()
         set(_gf_reason "the gui_forms Clang plugin is not usable with this toolchain")
     endif()
-    string(JOIN ", " _gf_files ${_gf_SOURCES})
+    if(GUI_FORMS_EFFECT_VERIFY_REQUIRED)
+        message(FATAL_ERROR "GUI.Forms effects in ${target} (${_gf_files}) cannot be verified: ${_gf_reason}, "
+                            "and GUI_FORMS_EFFECT_VERIFY_REQUIRED is on (see localizable_plugin/probe.log in "
+                            "the build tree; on Debian and Ubuntu install llvm-22-dev and libclang-22-dev).")
+    endif()
     message(WARNING "GUI.Forms effects in ${target} (${_gf_files}) are unverified: ${_gf_reason}, so their "
                     "bounds are not checked. They run, labelled unverified and counted by the effect registry.")
     set_property(SOURCE ${_gf_SOURCES} TARGET_DIRECTORY ${target} APPEND PROPERTY

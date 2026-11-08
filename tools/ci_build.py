@@ -145,6 +145,11 @@ def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = 
         options.append(f'-DFETCHCONTENT_SOURCE_DIR_GUI_FORMS_MINIAUDIO={miniaudio}')
     prepare_host(ROOT / 'gui_forms', True)
     options.extend(host_options(host))
+    if host == 'linux' and os.environ.get('GITHUB_ACTIONS') == 'true':
+        # C-10: the Linux CI image has LLVM's and Clang's development headers
+        # (template_harness projects/gui_forms.toml), so effects are verified
+        # there; a skipped plugin fails the configure.
+        options.append('-DGUI_FORMS_EFFECT_VERIFY_REQUIRED=ON')
     timeout: str = '120'
     if sanitize:
         sanitizer_cmake: list[str]
