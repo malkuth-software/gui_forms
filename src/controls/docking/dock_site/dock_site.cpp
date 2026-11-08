@@ -7,6 +7,7 @@
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
 #include <charconv>
@@ -42,7 +43,6 @@ constexpr double extent_tolerance = 1e-9;
 // shared drag curve (drag_gesture.hpp, 220 ms, D1 as corrected); the tiles
 // fade in over about 100 ms (T2-4).
 constexpr std::chrono::milliseconds tile_fade_duration{100};
-
 
 // In DockPositionCommand's order.
 constexpr std::array<std::string_view, 9> position_names{
@@ -185,14 +185,6 @@ void DockSite::release_workspace() noexcept {
         }
     } catch (...) {
     }
-}
-
-void DockSite::set_keyboard_increment(double increment) {
-    require_mutable();
-    if (!std::isfinite(increment) || increment < 1.0 || increment > 256.0) {
-        throw std::out_of_range("DockSite keyboard increment must lie in 1 to 256");
-    }
-    keyboard_increment_ = increment;
 }
 
 void DockSite::set_document_area_maximized(bool maximized) {
@@ -1683,10 +1675,10 @@ bool DockSite::handle_seam_key(KeyEvent& event) {
     if (!plain) return false;
     const bool horizontal = seams_[keyboard_seam_].axis == DockAxis::horizontal;
     double delta = 0.0;
-    if (horizontal && event.physical_key == PhysicalKey::left) delta = -keyboard_increment_;
-    if (horizontal && event.physical_key == PhysicalKey::right) delta = keyboard_increment_;
-    if (!horizontal && event.physical_key == PhysicalKey::up) delta = -keyboard_increment_;
-    if (!horizontal && event.physical_key == PhysicalKey::down) delta = keyboard_increment_;
+    if (horizontal && event.physical_key == PhysicalKey::left) delta = -keyboard_increment.read();
+    if (horizontal && event.physical_key == PhysicalKey::right) delta = keyboard_increment.read();
+    if (!horizontal && event.physical_key == PhysicalKey::up) delta = -keyboard_increment.read();
+    if (!horizontal && event.physical_key == PhysicalKey::down) delta = keyboard_increment.read();
     if (delta == 0.0) return false;
     static_cast<void>(move_seam(keyboard_seam_, delta));
     event.handled = true;
@@ -2207,7 +2199,7 @@ bool DockSite::open_navigator(DockNavigatorList list, int direction, Modifier re
     const std::size_t count = (*navigator_).entries(shown_list).size();
     const std::size_t row = direction >= 0 ? std::min<std::size_t>(1U, count - 1U) : count - 1U;
     static_cast<void>((*navigator_).select(shown_list, row));
-    (*navigator_).set_release_modifier(release);
+    (*navigator_).release_modifier = release;
     const Size wanted = (*navigator_).measure(Size{absolute_bounds().width, absolute_bounds().height});
     const Rect absolute = absolute_bounds();
     const Rect placed = centred(absolute, wanted.width, wanted.height);
@@ -2353,8 +2345,8 @@ bool DockSite::on_semantic_child_action(std::string_view stable_id, SemanticActi
     for (std::size_t seam = 0; seam < seams_.size(); ++seam) {
         if (seam_identity(seams_[seam].split) != stable_id) continue;
         if (action == SemanticAction::focus) return focus_seam(seam);
-        if (action == SemanticAction::increment) return move_seam(seam, keyboard_increment_);
-        if (action == SemanticAction::decrement) return move_seam(seam, -keyboard_increment_);
+        if (action == SemanticAction::increment) return move_seam(seam, keyboard_increment.read());
+        if (action == SemanticAction::decrement) return move_seam(seam, -keyboard_increment.read());
         if (action != SemanticAction::set_value) return false;
         double requested = 0.0;
         const char* const begin = value.data();
@@ -2827,5 +2819,27 @@ void DockSite::append_interactions(std::vector<InteractionDeclaration>& interact
     Control::append_interactions(interactions);
     interactions.insert(interactions.end(), site_interactions.begin(), site_interactions.end());
 }
+
+// property_codemod begin DockSite (tools/property_families/dock_site.json; generated, do not edit)
+
+void DockSite::prepare_write(const decltype(keyboard_increment)&, double& incoming) {
+    require_mutable();
+    if (!std::isfinite(incoming) || incoming < 1.0 || incoming > 256.0) {
+        throw std::out_of_range("DockSite keyboard increment must lie in 1 to 256");
+    }
+}
+
+void DockSite::written(const decltype(keyboard_increment)&) {}
+
+void DockSite::prepare_write(const decltype(drag_threshold)&, double& incoming) {
+    require_mutable();
+    if (!drag_gesture::valid_threshold(incoming)) {
+        throw std::out_of_range("DockSite drag threshold must lie in 1 to 64");
+    }
+}
+
+void DockSite::written(const decltype(drag_threshold)&) {}
+
+// property_codemod end DockSite
 
 } // namespace gui_forms

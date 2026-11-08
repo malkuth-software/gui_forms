@@ -1250,7 +1250,7 @@ void example() {
     (*navigator).set_entries(std::move(tools), std::move(files));
     static_cast<void>((*navigator).step(1));        // a.txt is current
     static_cast<void>((*navigator).switch_list());  // Output is current
-    (*navigator).set_release_modifier(gf::Modifier::control);
+    (*navigator).release_modifier = gf::Modifier::control;
 }
 }  // namespace doc_example_DockNavigator_1
 

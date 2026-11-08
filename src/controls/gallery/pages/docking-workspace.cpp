@@ -140,7 +140,7 @@ private:
     }
 
     void on_combined(bool combined) {
-        (*workspace_).set_close_prompt(combined ? DockClosePrompt::combined : DockClosePrompt::each);
+        (*workspace_).close_prompt = combined ? DockClosePrompt::combined : DockClosePrompt::each;
     }
 
     void on_close_all() { static_cast<void>((*workspace_).close_all_documents()); }

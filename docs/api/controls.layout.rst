@@ -89,10 +89,14 @@ Related types
      -  
    * - :cpp:class:`DockNavigator::Parts <gui_forms::DockNavigator::Parts>`
      - Stage T1 anatomy, as dot members; its states are Control's.
+   * - :cpp:class:`DockNavigatorCapabilities <gui_forms::DockNavigatorCapabilities>`
+     - Every DockNavigator capability, in the order the declaring class takes them.
    * - :cpp:class:`DockNavigatorChoice <gui_forms::DockNavigatorChoice>`
      - The row the user chose, raised by ``chosen``.
    * - :cpp:class:`DockNavigatorEntry <gui_forms::DockNavigatorEntry>`
      - One row: a panel and the title shown for it.
+   * - :cpp:class:`DockNavigatorReleaseModifierCapability <gui_forms::DockNavigatorReleaseModifierCapability>`
+     - The modifier whose release chooses the current row, as releasing Ctrl ends Ctrl+Tab; none (the default) leaves choosing to Enter or a click.
    * - :cpp:class:`DockSite::Parts <gui_forms::DockSite::Parts>`
      - Stage T1 anatomy, as dot members; its states are Control's.
    * - :cpp:class:`DockSite::Seam <gui_forms::DockSite::Seam>`
@@ -113,6 +117,12 @@ Related types
      - Item system drop_tile: a target tile and its dock-shape glyph, over the hovered pane (five) and at the window's edges (four), while dragging.
    * - :cpp:class:`DockSite::TileStates <gui_forms::DockSite::TileStates>`
      -  
+   * - :cpp:class:`DockSiteCapabilities <gui_forms::DockSiteCapabilities>`
+     - Every DockSite capability, in the order the declaring class takes them.
+   * - :cpp:class:`DockSiteDragThresholdCapability <gui_forms::DockSiteDragThresholdCapability>`
+     - The distance, in logical units along either axis, a caption press moves before it drags (owner decision DK-26, D5-1: 4, or a host's metric; no host reports one yet).
+   * - :cpp:class:`DockSiteKeyboardIncrementCapability <gui_forms::DockSiteKeyboardIncrementCapability>`
+     - The step of a keyboard seam move, in logical units; 8 by default.
    * - :cpp:class:`FlexItemLayout <gui_forms::FlexItemLayout>`
      - One child's flex item properties (CSS Flexbox's names; PLAN section 2.2).
    * - :cpp:class:`FlowBreakCapability <gui_forms::FlowBreakCapability>`
@@ -469,6 +479,21 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> DockNavigatorCapabilities : public DockNavigatorReleaseModifierCapability<Declaring>
+
+   ``#include <gui_forms/controls/docking/dock_navigator/dock_navigator_capabilities/dock_navigator_capabilities.hpp>``
+
+   Every DockNavigator capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: Modifier release_modifier
+
+      The modifier whose release chooses the current row, as releasing Ctrl ends Ctrl+Tab; none (the default) leaves choosing to Enter or a click. Anything but none, control, alt or meta throws std::invalid_argument and changes nothing.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: DockNavigatorChoice final
 
    ``#include <gui_forms/controls/docking/dock_navigator/dock_navigator.hpp>``
@@ -492,6 +517,23 @@ Related types
    .. cpp:member:: DockPanelId panel
 
    .. cpp:member:: std::string title
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DockNavigatorReleaseModifierCapability
+
+   ``#include <gui_forms/controls/docking/dock_navigator/dock_navigator_capabilities/dock_navigator_capabilities.hpp>``
+
+   The modifier whose release chooses the current row, as releasing Ctrl ends Ctrl+Tab; none (the default) leaves choosing to Enter or a click. Anything but none, control, alt or meta throws std::invalid_argument and changes nothing.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DockNavigatorReleaseModifierCapability& capability, Modifier incoming)
+
+   .. cpp:member:: PropertyCell<Modifier, DockNavigatorReleaseModifierCapability<Declaring>> release_modifier
+
+      Default: ``{Modifier::none}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -684,6 +726,59 @@ Related types
    .. cpp:member:: bool disabled
 
    .. cpp:member:: bool expanding
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DockSiteCapabilities : public DockSiteKeyboardIncrementCapability<Declaring>, public DockSiteDragThresholdCapability<Declaring>
+
+   ``#include <gui_forms/controls/docking/dock_site/dock_site_capabilities/dock_site_capabilities.hpp>``
+
+   Every DockSite capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: double keyboard_increment
+
+      The step of a keyboard seam move, in logical units; 8 by default. A value outside 1 to 256 throws std::out_of_range and changes nothing.
+
+   .. cpp:member:: double drag_threshold
+
+      The distance, in logical units along either axis, a caption press moves before it drags (owner decision DK-26, D5-1: 4, or a host's metric; no host reports one yet). A value outside 1 to 64 throws std::out_of_range and changes nothing.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DockSiteDragThresholdCapability
+
+   ``#include <gui_forms/controls/docking/dock_site/dock_site_capabilities/dock_site_capabilities.hpp>``
+
+   The distance, in logical units along either axis, a caption press moves before it drags (owner decision DK-26, D5-1: 4, or a host's metric; no host reports one yet). A value outside 1 to 64 throws std::out_of_range and changes nothing.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DockSiteDragThresholdCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, DockSiteDragThresholdCapability<Declaring>> drag_threshold
+
+      Default: ``{4.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DockSiteKeyboardIncrementCapability
+
+   ``#include <gui_forms/controls/docking/dock_site/dock_site_capabilities/dock_site_capabilities.hpp>``
+
+   The step of a keyboard seam move, in logical units; 8 by default. A value outside 1 to 256 throws std::out_of_range and changes nothing.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DockSiteKeyboardIncrementCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, DockSiteKeyboardIncrementCapability<Declaring>> keyboard_increment
+
+      Default: ``{8.0}``.
 
 .. cpp:namespace:: gui_forms
 

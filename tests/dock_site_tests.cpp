@@ -453,11 +453,11 @@ void seam_keyboard_and_pointer() {
     require(near((*left).client_rectangle().width, 200.0), "the seam stands at the value set");
     bool threw = false;
     try {
-        site.set_keyboard_increment(0.5);
+        site.keyboard_increment = 0.5;
     } catch (const std::out_of_range&) {
         threw = true;
     }
-    require(threw && near(site.keyboard_increment(), 8.0), "a keyboard increment below 1 is refused");
+    require(threw && near(site.keyboard_increment.read(), 8.0), "a keyboard increment below 1 is refused");
 }
 
 // -- minimums, collapse and the maximized document area ------------------------
@@ -742,7 +742,7 @@ void rebound_docking_keys() {
             "the rebound chord activates the next document");
     window.rebind_key_command(KeyCommand::cycle_forward, {{PhysicalKey::q, Modifier::alt}, {}});
     require(key(window, PhysicalKey::q, Modifier::alt) && site.navigator_open() &&
-                (*site.navigator()).release_modifier() == Modifier::alt,
+                (*site.navigator()).release_modifier.read() == Modifier::alt,
             "a rebound cycle_forward opens the navigator, committed by releasing Alt");
     require(key_up(window, PhysicalKey::q, Modifier::none) && !site.navigator_open() &&
                 active_is(workspace, "doc.second", "doc.second"),
@@ -922,7 +922,7 @@ void lifetime_and_refusals() {
             "an empty navigator chooses nothing");
     threw = false;
     try {
-        (*navigator).set_release_modifier(Modifier::shift);
+        (*navigator).release_modifier = Modifier::shift;
     } catch (const std::invalid_argument&) {
         threw = true;
     }
@@ -1024,7 +1024,7 @@ void close_each_and_combined() {
         ClosingJournal journal{};
         journal.workspace = &workspace;
         const SubscriptionToken token = workspace.document_closing().subscribe(RecordClosing{&journal});
-        require(workspace.close_prompt() == DockClosePrompt::each, "documents are asked about one by one by default");
+        require(workspace.close_prompt.read() == DockClosePrompt::each, "documents are asked about one by one by default");
         require(workspace.close_all_documents() == DockCloseOutcome::closed, "Close All Documents closes");
         require(journal.asked.size() == 2U && asked_is(journal, 0U, {"doc.first"}) &&
                     asked_is(journal, 1U, {"doc.second"}) && journal.causes[0] == DockCloseCause::all_documents,
@@ -1041,7 +1041,7 @@ void close_each_and_combined() {
         ClosingJournal journal{};
         journal.workspace = &workspace;
         const SubscriptionToken token = workspace.document_closing().subscribe(RecordClosing{&journal});
-        workspace.set_close_prompt(DockClosePrompt::combined);
+        workspace.close_prompt = DockClosePrompt::combined;
         require(workspace.close_all_documents() == DockCloseOutcome::closed && journal.asked.size() == 1U &&
                     asked_is(journal, 0U, {"doc.first", "doc.second"}),
                 "a combined prompt asks about every document at once");
@@ -1063,12 +1063,12 @@ void cancel_closes_nothing() {
     require(workspace.layout().generation() == before && docked(workspace, "doc.first") &&
                 docked(workspace, "doc.second") && !workspace.close_pending(),
             "nothing closed: the first document, already allowed, stays too");
-    workspace.set_close_prompt(DockClosePrompt::combined);
+    workspace.close_prompt = DockClosePrompt::combined;
     require(workspace.close_all_documents() == DockCloseOutcome::cancelled &&
                 workspace.layout().generation() == before,
             "a cancelled combined prompt leaves the layout unchanged");
     // The position menu's Close asks too, and a cancel counts as not run.
-    workspace.set_close_prompt(DockClosePrompt::each);
+    workspace.close_prompt = DockClosePrompt::each;
     require(!site.run_position_command(DockPanelId("doc.second"), DockPositionCommand::close) &&
                 docked(workspace, "doc.second") && journal.causes.back() == DockCloseCause::document,
             "Close on a document asks first and a cancel keeps it");

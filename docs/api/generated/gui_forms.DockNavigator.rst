@@ -7,7 +7,7 @@ gui_forms::DockNavigator
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: DockNavigator : public Control
+.. cpp:class:: DockNavigator : public Control, public DockNavigatorCapabilities<DockNavigator>
 
    ``#include <gui_forms/controls/docking/dock_navigator/dock_navigator.hpp>``
 
@@ -30,6 +30,11 @@ gui_forms::DockNavigator
 
    :Properties:
 
+      **release_modifier** : ``Modifier``, default ``Modifier::none``
+         The modifier whose release chooses the current row: ``control`` after
+         Ctrl+Tab, ``alt`` after Alt+F7, ``meta``, or none to choose only with
+         Enter or a press. Any other value throws ``std::invalid_argument``.
+
       **current_list** : ``DockNavigatorList``, default ``DockNavigatorList::documents``, read-only
          The list holding the current row.
 
@@ -39,11 +44,6 @@ gui_forms::DockNavigator
 
       **current_panel** : ``std::optional<DockPanelId>``, default none, read-only
          The current row's panel.
-
-      **release_modifier** : ``Modifier``, default ``Modifier::none``
-         The modifier whose release chooses the current row: ``control`` after
-         Ctrl+Tab, ``alt`` after Alt+F7, ``meta``, or none to choose only with
-         Enter or a press. Any other value throws ``std::invalid_argument``.
 
       **parts** : ``Parts``, read-only
 
@@ -133,7 +133,7 @@ gui_forms::DockNavigator
       (*navigator).set_entries(std::move(tools), std::move(files));
       static_cast<void>((*navigator).step(1));        // a.txt is current
       static_cast<void>((*navigator).switch_list());  // Output is current
-      (*navigator).set_release_modifier(gf::Modifier::control);
+      (*navigator).release_modifier = gf::Modifier::control;
 
 
    .. rubric:: Construction
@@ -142,6 +142,12 @@ gui_forms::DockNavigator
 
 
    .. rubric:: Properties
+
+   .. cpp:member:: Modifier release_modifier
+
+      The modifier whose release chooses the current row: ``control`` after
+      Ctrl+Tab, ``alt`` after Alt+F7, ``meta``, or none to choose only with
+      Enter or a press. Any other value throws ``std::invalid_argument``.
 
    .. cpp:function:: DockNavigatorList current_list() const noexcept
 
@@ -155,16 +161,6 @@ gui_forms::DockNavigator
    .. cpp:function:: std::optional<DockPanelId> current_panel() const
 
       The current row's panel.
-
-   .. cpp:function:: Modifier release_modifier() const noexcept
-
-      The modifier whose release chooses the current row: ``control`` after
-      Ctrl+Tab, ``alt`` after Alt+F7, ``meta``, or none to choose only with
-      Enter or a press. Any other value throws ``std::invalid_argument``.
-
-   .. cpp:function:: void set_release_modifier(Modifier modifier)
-
-      Sets :cpp:func:`release_modifier <gui_forms::DockNavigator::release_modifier>`; see the property's description above.
 
    .. cpp:function:: Parts parts() const
 

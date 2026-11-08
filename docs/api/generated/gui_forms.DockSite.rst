@@ -7,7 +7,7 @@ gui_forms::DockSite
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: DockSite : public Control
+.. cpp:class:: DockSite : public Control, public DockSiteCapabilities<DockSite>
 
    ``#include <gui_forms/controls/docking/dock_site/dock_site.hpp>``
 
@@ -42,6 +42,14 @@ gui_forms::DockSite
 
    :Properties:
 
+      **keyboard_increment** : ``double``, default ``8``
+         How far one arrow key moves a focused seam, in logical units, from 1 to
+         256; outside that range throws ``std::out_of_range``.
+
+      **drag_threshold** : ``double``, default ``4``
+         How far, in logical units along either axis, a caption press moves
+         before it drags; outside 1 to 64 throws ``std::out_of_range``.
+
       **workspace** : ``DockWorkspace*``, default the constructor's, read-only
          The bound workspace, or null after :cpp:func:`release_workspace <gui_forms::DockSite::release_workspace>`.
 
@@ -50,10 +58,6 @@ gui_forms::DockSite
 
       **floating_site** : ``DockSiteId``, default none, read-only
          The floating site shown, or none for the main site.
-
-      **keyboard_increment** : ``double``, default ``8``
-         How far one arrow key moves a focused seam, in logical units, from 1 to
-         256; outside that range throws ``std::out_of_range``.
 
       **document_area_maximized** : ``bool``, default ``false``
          Whether every tool stack is hidden so the documents fill the site
@@ -121,10 +125,6 @@ gui_forms::DockSite
          name of the site's last semantic child, a ``live_region`` with the ID
          ``<site>.announcements`` that UI Automation announces when its name
          changes.
-
-      **drag_threshold** : ``double``, default ``4``
-         How far, in logical units along either axis, a caption press moves
-         before it drags; outside 1 to 64 throws ``std::out_of_range``.
 
       **flyout_open** : ``bool``, read-only
          Whether a flyout is open.
@@ -497,6 +497,16 @@ gui_forms::DockSite
 
    .. rubric:: Properties
 
+   .. cpp:member:: double keyboard_increment
+
+      How far one arrow key moves a focused seam, in logical units, from 1 to
+      256; outside that range throws ``std::out_of_range``.
+
+   .. cpp:member:: double drag_threshold
+
+      How far, in logical units along either axis, a caption press moves
+      before it drags; outside 1 to 64 throws ``std::out_of_range``.
+
    .. cpp:function:: DockWorkspace* workspace() const noexcept
 
       The bound workspace, or null after :cpp:func:`release_workspace <gui_forms::DockSite::release_workspace>`.
@@ -508,15 +518,6 @@ gui_forms::DockSite
    .. cpp:function:: DockSiteId floating_site() const noexcept
 
       The floating site shown, or none for the main site.
-
-   .. cpp:function:: double keyboard_increment() const noexcept
-
-      How far one arrow key moves a focused seam, in logical units, from 1 to
-      256; outside that range throws ``std::out_of_range``.
-
-   .. cpp:function:: void set_keyboard_increment(double increment)
-
-      Sets :cpp:func:`keyboard_increment <gui_forms::DockSite::keyboard_increment>`; see the property's description above.
 
    .. cpp:function:: bool document_area_maximized() const noexcept
 
@@ -606,15 +607,6 @@ gui_forms::DockSite
       name of the site's last semantic child, a ``live_region`` with the ID
       ``<site>.announcements`` that UI Automation announces when its name
       changes.
-
-   .. cpp:function:: double drag_threshold() const noexcept
-
-      How far, in logical units along either axis, a caption press moves
-      before it drags; outside 1 to 64 throws ``std::out_of_range``.
-
-   .. cpp:function:: void set_drag_threshold(double threshold)
-
-      Sets :cpp:func:`drag_threshold <gui_forms::DockSite::drag_threshold>`; see the property's description above.
 
    .. cpp:function:: bool flyout_open() const noexcept
 

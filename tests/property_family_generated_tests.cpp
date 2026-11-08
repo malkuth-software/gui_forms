@@ -8,6 +8,8 @@
 #include "gui_forms/controls/button_base/toggle_switch/toggle_switch.hpp"
 #include "gui_forms/controls/collections/choice_group.hpp"
 #include "gui_forms/controls/data_grid_view/data_grid_view.hpp"
+#include "gui_forms/controls/docking/dock_navigator/dock_navigator.hpp"
+#include "gui_forms/controls/docking/dock_site/dock_site.hpp"
 #include "gui_forms/controls/empty_state/empty_state.hpp"
 #include "gui_forms/controls/info_banner/info_banner.hpp"
 #include "gui_forms/controls/label/label.hpp"
@@ -632,6 +634,30 @@ void test_date_time_picker_properties() {
         const FontSpec sample = FontSpec{FontRole::content, 14.0, 400, false};
         (*control).font = sample;
         expect((*control).font.read() == sample, "DateTimePicker.font: a write stores");
+    }
+}
+
+void test_dock_navigator_properties() {
+    std::shared_ptr<DockNavigator> control = make_control<DockNavigator>(StableId("generated.docknavigator"));
+    {
+        const Modifier sample = Modifier::alt;
+        (*control).release_modifier = sample;
+        expect((*control).release_modifier.read() == sample, "DockNavigator.release_modifier: a write stores");
+    }
+}
+
+void test_dock_site_properties() {
+    DockWorkspace workspace("generated.dock-workspace");
+    std::shared_ptr<DockSite> control = make_control<DockSite>(StableId("generated.docksite"), workspace);
+    {
+        const double sample = 16.0;
+        (*control).keyboard_increment = sample;
+        expect((*control).keyboard_increment.read() == sample, "DockSite.keyboard_increment: a write stores");
+    }
+    {
+        const double sample = 8.0;
+        (*control).drag_threshold = sample;
+        expect((*control).drag_threshold.read() == sample, "DockSite.drag_threshold: a write stores");
     }
 }
 
@@ -1591,6 +1617,8 @@ int main() {
     test_correspondence_view_properties();
     test_data_grid_view_properties();
     test_date_time_picker_properties();
+    test_dock_navigator_properties();
+    test_dock_site_properties();
     test_domain_up_down_properties();
     test_empty_state_properties();
     test_flags_value_editor_properties();

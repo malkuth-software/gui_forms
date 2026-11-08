@@ -2,6 +2,7 @@
 
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
 #include <array>
@@ -113,14 +114,6 @@ bool DockNavigator::switch_list() {
     const std::size_t index = std::min(current_.value_or(0U), count - 1U);
     const bool selected = select(other, index);
     return selected;
-}
-
-void DockNavigator::set_release_modifier(Modifier modifier) {
-    require_mutable();
-    const bool accepted = modifier == Modifier::none || modifier == Modifier::control || modifier == Modifier::alt ||
-                          modifier == Modifier::meta;
-    if (!accepted) throw std::invalid_argument("DockNavigator release modifier must be one of control, alt and meta");
-    release_modifier_ = modifier;
 }
 
 bool DockNavigator::choose() {
@@ -295,7 +288,7 @@ void DockNavigator::on_key(KeyEvent& event) {
     if (event.action == KeyAction::up) {
         // The release modifier was let go: every host reports a key-up whose
         // modifiers no longer hold it.
-        if (release_modifier_ == Modifier::none || has_modifier(event.modifiers, release_modifier_)) return;
+        if (release_modifier.read() == Modifier::none || has_modifier(event.modifiers, release_modifier.read())) return;
         event.handled = true;
         if (!choose()) cancel();
         return;
@@ -546,5 +539,18 @@ void DockNavigator::append_interactions(std::vector<InteractionDeclaration>& int
     Control::append_interactions(interactions);
     interactions.insert(interactions.end(), navigator_interactions.begin(), navigator_interactions.end());
 }
+
+// property_codemod begin DockNavigator (tools/property_families/dock_navigator.json; generated, do not edit)
+
+void DockNavigator::prepare_write(const decltype(release_modifier)&, Modifier& incoming) {
+    require_mutable();
+    const bool accepted = incoming == Modifier::none || incoming == Modifier::control ||
+                          incoming == Modifier::alt || incoming == Modifier::meta;
+    if (!accepted) throw std::invalid_argument("DockNavigator release modifier must be one of control, alt and meta");
+}
+
+void DockNavigator::written(const decltype(release_modifier)&) {}
+
+// property_codemod end DockNavigator
 
 } // namespace gui_forms

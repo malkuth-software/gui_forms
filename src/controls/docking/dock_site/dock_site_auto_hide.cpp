@@ -715,7 +715,7 @@ void DockSite::on_root_pointer(const PointerEvent& event) {
             leave_timer_.disconnect();
             return;
         }
-        if (tab && (*workspace_).flyout_opening() == DockFlyoutOpening::hover_or_click) {
+        if (tab && (*workspace_).flyout_opening.read() == DockFlyoutOpening::hover_or_click) {
             start_hover(*tab);
         } else {
             stop_hover();

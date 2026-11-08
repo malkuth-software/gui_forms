@@ -1,0 +1,54 @@
+{
+  "family": "DockNavigator",
+  "step": "M-S8",
+  "declaring": "DockNavigator",
+  "header": "include/gui_forms/controls/docking/dock_navigator/dock_navigator.hpp",
+  "source": "src/controls/docking/dock_navigator/dock_navigator.cpp",
+  "capabilities_header": "include/gui_forms/controls/docking/dock_navigator/dock_navigator_capabilities/dock_navigator_capabilities.hpp",
+  "base": "Control",
+  "shared": [],
+  "includes": [
+    "gui_forms/events/input_events/input_events.hpp"
+  ],
+  "test": {
+    "type": "DockNavigator",
+    "include": "gui_forms/controls/docking/dock_navigator/dock_navigator.hpp"
+  },
+  "properties": [
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hand": [],
+      "event": null,
+      "name": "release_modifier",
+      "capability": "DockNavigatorReleaseModifier",
+      "value": "Modifier",
+      "initial": "Modifier::none",
+      "comment": "The modifier whose release chooses the current row, as releasing Ctrl ends Ctrl+Tab; none (the default) leaves choosing to Enter or a click. Anything but none, control, alt or meta throws std::invalid_argument and changes nothing.",
+      "getter": "release_modifier",
+      "setter": "set_release_modifier",
+      "field": "release_modifier_",
+      "hooks": "generated",
+      "effects": null,
+      "prepare": [
+        "const bool accepted = incoming == Modifier::none || incoming == Modifier::control ||",
+        "                      incoming == Modifier::alt || incoming == Modifier::meta;",
+        "if (!accepted) throw std::invalid_argument(\"DockNavigator release modifier must be one of control, alt and meta\");"
+      ],
+      "sample": "Modifier::alt"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "entries",
+      "reason": "wholesale collection replacement (set_entries takes the tools and the documents)"
+    },
+    {
+      "name": "hot",
+      "reason": "run-time interaction state"
+    }
+  ]
+}

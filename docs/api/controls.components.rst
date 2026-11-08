@@ -75,6 +75,12 @@ Related types
      - A factory's request: build the content of ``panel`` and store it in ``content``.
    * - :cpp:class:`DockPanelRegistration <gui_forms::DockPanelRegistration>`
      -  
+   * - :cpp:class:`DockWorkspaceCapabilities <gui_forms::DockWorkspaceCapabilities>`
+     - Every DockWorkspace capability, in the order the declaring class takes them.
+   * - :cpp:class:`DockWorkspaceClosePromptCapability <gui_forms::DockWorkspaceClosePromptCapability>`
+     - How the program is asked before documents close at the user's request: one closing event per document (each, the default) or one for all (combined).
+   * - :cpp:class:`DockWorkspaceFlyoutOpeningCapability <gui_forms::DockWorkspaceFlyoutOpeningCapability>`
+     - The workspace setting for opening an auto-hidden panel's flyout from its side tab; hover_or_click by default.
    * - :cpp:class:`ErrorIconSnapshot <gui_forms::ErrorIconSnapshot>`
      - ErrorIconSnapshot is a read-only diagnostic record for one target: stable identity, message, exact glyph bounds, target availability, overlay presentation, blink activity, and current phase visibility.
    * - :cpp:class:`ErrorProviderChange <gui_forms::ErrorProviderChange>`
@@ -247,6 +253,59 @@ Related types
    .. cpp:member:: std::string title
 
    .. cpp:member:: Delegate<DockPanelCreation&> factory
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DockWorkspaceCapabilities : public DockWorkspaceClosePromptCapability<Declaring>, public DockWorkspaceFlyoutOpeningCapability<Declaring>
+
+   ``#include <gui_forms/controls/docking/dock_workspace/dock_workspace_capabilities/dock_workspace_capabilities.hpp>``
+
+   Every DockWorkspace capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: DockClosePrompt close_prompt
+
+      How the program is asked before documents close at the user's request: one closing event per document (each, the default) or one for all (combined).
+
+   .. cpp:member:: DockFlyoutOpening flyout_opening
+
+      The workspace setting for opening an auto-hidden panel's flyout from its side tab; hover_or_click by default.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DockWorkspaceClosePromptCapability
+
+   ``#include <gui_forms/controls/docking/dock_workspace/dock_workspace_capabilities/dock_workspace_capabilities.hpp>``
+
+   How the program is asked before documents close at the user's request: one closing event per document (each, the default) or one for all (combined).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DockWorkspaceClosePromptCapability& capability, DockClosePrompt incoming)
+
+   .. cpp:member:: PropertyCell<DockClosePrompt, DockWorkspaceClosePromptCapability<Declaring>> close_prompt
+
+      Default: ``{DockClosePrompt::each}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DockWorkspaceFlyoutOpeningCapability
+
+   ``#include <gui_forms/controls/docking/dock_workspace/dock_workspace_capabilities/dock_workspace_capabilities.hpp>``
+
+   The workspace setting for opening an auto-hidden panel's flyout from its side tab; hover_or_click by default.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DockWorkspaceFlyoutOpeningCapability& capability, DockFlyoutOpening incoming)
+
+   .. cpp:member:: PropertyCell<DockFlyoutOpening, DockWorkspaceFlyoutOpeningCapability<Declaring>> flyout_opening
+
+      Default: ``{DockFlyoutOpening::hover_or_click}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -668,7 +727,7 @@ Enumerations
 
 .. cpp:enum-class:: DockClosePrompt
 
-   ``#include <gui_forms/controls/docking/dock_workspace/dock_workspace.hpp>``
+   ``#include <gui_forms/controls/docking/dock_workspace/dock_workspace_values/dock_workspace_values.hpp>``
 
    .. cpp:enumerator:: each
 
@@ -678,7 +737,7 @@ Enumerations
 
 .. cpp:enum-class:: DockFlyoutOpening
 
-   ``#include <gui_forms/controls/docking/dock_workspace/dock_workspace.hpp>``
+   ``#include <gui_forms/controls/docking/dock_workspace/dock_workspace_values/dock_workspace_values.hpp>``
 
    .. cpp:enumerator:: hover_or_click
 

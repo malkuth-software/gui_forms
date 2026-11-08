@@ -102,4 +102,4 @@ A navigator on its own, stepping with the keys:
    (*navigator).set_entries(std::move(tools), std::move(files));
    static_cast<void>((*navigator).step(1));        // a.txt is current
    static_cast<void>((*navigator).switch_list());  // Output is current
-   (*navigator).set_release_modifier(gf::Modifier::control);
+   (*navigator).release_modifier = gf::Modifier::control;

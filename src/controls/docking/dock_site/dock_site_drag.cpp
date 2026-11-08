@@ -127,14 +127,6 @@ Rect DockSite::drag_stamp() const noexcept {
     return drag_.stamp;
 }
 
-void DockSite::set_drag_threshold(double threshold) {
-    require_mutable();
-    if (!drag_gesture::valid_threshold(threshold)) {
-        throw std::out_of_range("DockSite drag threshold must lie in 1 to 64");
-    }
-    drag_threshold_ = threshold;
-}
-
 void DockSite::reset_drag() noexcept {
     if (drag_.picture && !drag_.guest) {
         Window* const host = attached_window();
@@ -366,7 +358,7 @@ void DockSite::plan_drag_targets() {
 void DockSite::update_drag_pointer(Point local, Modifier modifiers) {
     if (drag_.phase == DockDragPhase::armed) {
         drag_.pointer = local;
-        if (!drag_gesture::past_threshold(drag_.press, local, drag_threshold_)) return;
+        if (!drag_gesture::past_threshold(drag_.press, local, drag_threshold.read())) return;
         const DockSubject subject = drag_.subject;
         const DockNodeId stack = drag_.source_stack;
         const Point press = drag_.press;
