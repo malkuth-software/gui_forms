@@ -836,8 +836,6 @@ void test_search_field_alone() {
             "a busy field is pending, and busy to assistive technology as a search_box");
     require(!(*field).on_semantic_action(SemanticAction::set_value, "trains") && (*field).text.read().empty(),
             "outside a window the set-value action is refused, as for any control not eligible for input");
-    require(!(*field).on_semantic_action(SemanticAction::set_value, "\xff") && (*field).text.read() == "trains",
-            "a set value that is not UTF-8 is refused");
 }
 
 void test_search_field_in_window() {
@@ -875,6 +873,8 @@ void test_search_field_in_window() {
     require((*field).on_semantic_action(SemanticAction::set_value, "trains") && (*field).text.read() == "trains" &&
                 (*field).semantic_descriptor().value == "trains",
             "the set-value action writes the query");
+    require(!(*field).on_semantic_action(SemanticAction::set_value, "\xff") && (*field).text.read() == "trains",
+            "a set value that is not UTF-8 is refused");
     (*field).text = std::string{"ri"};
 
     require(window.request_focus((*field).editor()) && (*field).anatomy_states().contains(AnatomyState::focused),
@@ -885,9 +885,13 @@ void test_search_field_in_window() {
             "Enter searches now");
     recorder.seen.clear();
     require(window.dispatch_key({KeyAction::down, PhysicalKey::escape}) && (*field).text.read().empty() &&
-                recorder.seen.size() == 3U && recorder.seen[1] == "cleared" && recorder.seen[2] == "search:" &&
-                !window.next_wake().has_value(),
-            "Escape clears the field and searches for everything, with no delay left armed");
+                recorder.seen.size() == 3U && recorder.seen[1] == "cleared" && recorder.seen[2] == "search:",
+            "Escape clears the field and searches for everything");
+    // The focused editor's caret keeps a wake of its own, so the dropped delay
+    // shows as no further search once the pause has passed.
+    static_cast<void>(
+        window.poll_frame_schedule(FrameClock::now() + (*field).search_delay.read() + std::chrono::seconds(1)));
+    require(recorder.seen.size() == 3U, "Escape leaves no search delay armed");
 
     (*field).text = std::string{"x"};
     window.perform_layout();
