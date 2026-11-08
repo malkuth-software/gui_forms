@@ -136,6 +136,8 @@ PropertyDescriptor nullable_child_track() {
                                   "The track the child occupies; none takes the next track no child names.",
                                   BindingValue{}, invalidation::bounds};
     descriptor.nullable = true;
+    // The write is the child view's assignment (generated forms assign it).
+    descriptor.assignable_member = true;
     return descriptor;
 }
 

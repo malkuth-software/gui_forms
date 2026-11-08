@@ -296,6 +296,13 @@ std::shared_ptr<const PropertyEnumDescriptor> cursor_kind_property_enum() {
     return value;
 }
 
+// `descriptor`, marked assignable (PropertyDescriptor::assignable_member)
+// when `assignable`.
+PropertyDescriptor assignable_descriptor(PropertyDescriptor descriptor, bool assignable) {
+    descriptor.assignable_member = assignable;
+    return descriptor;
+}
+
 } // namespace
 
 PropertyType PropertyValueTraits<DockStyle>::type() {
@@ -925,9 +932,16 @@ const PropertyDescriptor& Control::describe_registered() {
                                    Property == RegisteredProperty::auto_size ||
                                    Property == RegisteredProperty::causes_validation ||
                                    Property == RegisteredProperty::tool_tip_text;
-    static const PropertyDescriptor descriptor =
-        property_table_descriptor(registered_descriptor(Property), PropertyOperations{true, true, resettable,
-                                                                                      raises_change});
+    // Every table property but these four is a capability cell of its name
+    // whose setter (RegisteredPropertySetter) is the cell's assignment; these
+    // four convert through a named setter (presentation values and the cursor).
+    constexpr bool assignable = Property != RegisteredProperty::cursor &&
+                                Property != RegisteredProperty::classes &&
+                                Property != RegisteredProperty::back_color &&
+                                Property != RegisteredProperty::fore_color;
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        assignable_descriptor(registered_descriptor(Property), assignable),
+        PropertyOperations{true, true, resettable, raises_change});
     return descriptor;
 }
 

@@ -258,6 +258,7 @@ PropertyDescriptor empty_state_image_descriptor() {
     descriptor.description = "The picture above the title.";
     descriptor.default_value = BindingValue{ImageId{}};
     descriptor.invalidation_effects = Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::semantics;
+    descriptor.assignable_member = true;
     return descriptor;
 }
 
@@ -275,6 +276,7 @@ PropertyDescriptor empty_state_title_descriptor() {
     descriptor.description = "The heading that says what is empty.";
     descriptor.default_value = BindingValue{std::string{}};
     descriptor.invalidation_effects = Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::semantics;
+    descriptor.assignable_member = true;
     return descriptor;
 }
 
@@ -292,6 +294,7 @@ PropertyDescriptor empty_state_description_descriptor() {
     descriptor.description = "The line that says why it is empty or what to do next.";
     descriptor.default_value = BindingValue{std::string{}};
     descriptor.invalidation_effects = Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::semantics;
+    descriptor.assignable_member = true;
     return descriptor;
 }
 

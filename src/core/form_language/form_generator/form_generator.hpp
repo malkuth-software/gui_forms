@@ -25,9 +25,14 @@
 //   in document order: the loader's order (form_loader.hpp). It builds a
 //   fresh instance and moves it into this one only once everything
 //   succeeded, so a throw leaves the form as it was.
-// - Properties are set through Control::set_property_value with the
-//   model's normalized value, the path the loader takes, so both paths set
-//   the same values.
+// - A property on a capability (PropertyDescriptor::assignable_member) is
+//   assigned through its cell or view, `(*made.ok).text =
+//   gui_forms::assigned_property_value<decltype((*made.ok).text)>(value)`,
+//   and a child property through the parent's child view subscripted by
+//   the child (CLOSURE P-6). A property not yet migrated is set through
+//   Control::set_property_value (set_child_property_value), the loader's
+//   path. Both take the model's normalized value and convert it as the
+//   table write does, so both paths set the same values.
 // - A bound property is bound where a literal would be set, reading the
 //   owner's member: `gui_forms::bind_form_value<Kind>(..., owner.<source>,
 //   ...)` for a Value (one whose type does not carry the property's kind

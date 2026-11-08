@@ -228,6 +228,13 @@ struct PropertyDescriptor final {
     bool content_value{};
     // A form binding's default direction (PropertyBindingDirection).
     PropertyBindingDirection binding_direction{PropertyBindingDirection::one_way};
+    // Whether the declaring class has a public cell or view member named
+    // `name` whose assignment is the property's table write, given the value
+    // converted with PropertyValueTraits (assigned_property_value); for a
+    // child property, the container's child view subscripted by the child.
+    // The form generator assigns such a property (`(*control).text = ...`,
+    // CLOSURE P-6) and writes any other through set_property_value.
+    bool assignable_member{};
     std::shared_ptr<const PropertyEnumDescriptor> enumeration;
     // Static standard values are inert typed snapshots. Dynamic/contextual
     // providers remain named services rather than executable descriptor data.

@@ -917,6 +917,7 @@ PropertyDescriptor rich_text_box_text_descriptor() {
     descriptor.description = "The plain text of the document.";
     descriptor.default_value = BindingValue{std::string{}};
     descriptor.invalidation_effects = invalidation::text_content;
+    descriptor.assignable_member = true;
     return descriptor;
 }
 

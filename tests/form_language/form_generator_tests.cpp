@@ -20,6 +20,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -628,9 +629,10 @@ void test_attached_properties() {
     std::string generated{};
     require(generate(workspace, schema, options, generated) == FormGenerateOutcome::generated,
             "attached: the generator writes the document");
-    require(generated.find("(*made.app_root).set_child_property_value(*made.app_a, \"flow_break\", "
-                           "gui_forms::BindingValue{true});") != std::string::npos,
-            "attached: generated through the parent, after the child is added");
+    require(generated.find("(*made.app_root).flow_break[*made.app_a] = gui_forms::assigned_property_value<"
+                           "decltype((*made.app_root).flow_break)>(gui_forms::BindingValue{true});") !=
+                std::string::npos,
+            "attached: assigned through the parent's child view, after the child is added");
 
     const std::string_view stranger = "panel app.root {\n"
                                       "  button app.a { flow-break: true; }\n"
@@ -738,6 +740,81 @@ void test_binding_spelling() {
             "binding spelling: the generated header includes the binding calls");
 }
 
+// CLOSURE P-6: a property on a capability is assigned through its cell
+// (a child property through the parent's child view); one not yet migrated
+// is still written by name. The descriptors say which.
+void test_capability_assignment() {
+    const FormSchema schema = gui_forms::form_compiler::registry_form_schema();
+    const std::string_view document = "grid-panel app.root {\n"
+                                      "  check-box app.check { text: \"Wrap\"; tab-index: 2; area: \"side\"; }\n"
+                                      "  label app.note { text: \"Note\"; cell: 1 0; }\n"
+                                      "  span side { anchor: 0 0; }\n"
+                                      "}\n";
+    Workspace workspace{};
+    const bool read = read_document(workspace, "cells.form", document, schema);
+    if (!read) print_diagnostics(workspace);
+    require(read, "capabilities: the model builds");
+    if (!read) return;
+    FormGeneratorOptions options = sample_options();
+    options.class_name = "CellsForm";
+    options.source_name = "cells.form";
+    std::string generated{};
+    require(generate(workspace, schema, options, generated) == FormGenerateOutcome::generated,
+            "capabilities: the generator writes the document");
+    require(generated.find("(*made.app_check).text = gui_forms::assigned_property_value<"
+                           "decltype((*made.app_check).text)>(gui_forms::BindingValue{std::string(\"Wrap\")});") !=
+                std::string::npos,
+            "capabilities: a button's text is assigned through its cell");
+    require(generated.find("(*made.app_check).tab_index = gui_forms::assigned_property_value<"
+                           "decltype((*made.app_check).tab_index)>(gui_forms::BindingValue{std::uint64_t{2U}});") !=
+                std::string::npos,
+            "capabilities: Control's tab index is assigned through its cell");
+    require(generated.find("(*made.app_root).area[*made.app_check] = gui_forms::assigned_property_value<"
+                           "decltype((*made.app_root).area)>(gui_forms::BindingValue{std::string(\"side\")});") !=
+                std::string::npos,
+            "capabilities: a grid area is assigned through the parent's child view");
+    require(generated.find("(*made.app_note).set_property_value(\"text\", "
+                           "gui_forms::BindingValue{std::string(\"Note\")});") != std::string::npos,
+            "capabilities: a label's text, not yet on a capability, is written by name");
+    require(generated.find("(*made.app_root).set_child_property_value(*made.app_note, \"cell\"") !=
+                std::string::npos,
+            "capabilities: a grid cell, which converts through a named write, is written by name");
+    require(generated.find("#include \"gui_forms/binding/property_cell_entry/property_cell_entry.hpp\"") !=
+                std::string::npos,
+            "capabilities: the generated header includes assigned_property_value");
+
+    // The conversion the generated assignments use.
+    const std::shared_ptr<gui_forms::CheckBox> check = gui_forms::make_control<gui_forms::CheckBox>(
+        gui_forms::StableId("capabilities.check"));
+    const std::uint32_t index = gui_forms::assigned_property_value<decltype((*check).tab_index)>(
+        gui_forms::BindingValue{std::uint64_t{7U}});
+    require(index == 7U, "assigned value: an unsigned literal narrowed to the cell's uint32");
+    const gui_forms::AnchorStyles anchor = gui_forms::assigned_property_value<decltype((*check).anchor)>(
+        gui_forms::BindingValue{gui_forms::PropertyEnumValue{.type_name = std::string("anchor_styles"),
+                                                             .name = std::string("top, right"),
+                                                             .value = std::int64_t{9}}});
+    require(anchor == (gui_forms::AnchorStyles::top | gui_forms::AnchorStyles::right),
+            "assigned value: an enumeration literal as the cell's enum");
+    bool refused = false;
+    try {
+        const bool flag = gui_forms::assigned_property_value<decltype((*check).visible)>(
+            gui_forms::BindingValue{gui_forms::Point{.x = 1.0, .y = 2.0}});
+        static_cast<void>(flag);
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused, "assigned value: a value with no form of the cell's type is refused");
+    bool too_wide = false;
+    try {
+        const std::uint32_t wide = gui_forms::assigned_property_value<decltype((*check).tab_index)>(
+            gui_forms::BindingValue{std::uint64_t{1U} << 40U});
+        static_cast<void>(wide);
+    } catch (const std::invalid_argument&) {
+        too_wide = true;
+    }
+    require(too_wide, "assigned value: a value outside the cell's narrower type is refused");
+}
+
 void test_member_names() {
     require(gui_forms::form_language::form_member_name("settings.auto-save") == "settings_auto_save",
             "member names: '.' and '-' spelled '_'");
@@ -764,6 +841,7 @@ int main() {
     test_member_names();
     test_binding_spelling();
     test_string_escapes();
+    test_capability_assignment();
     if (failures != 0) {
         std::cerr << failures << " failure(s)\n";
         return 1;

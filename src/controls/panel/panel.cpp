@@ -291,6 +291,7 @@ PropertyDescriptor panel_border_style_descriptor() {
     descriptor.invalidation_effects = Dirty::paint;
     descriptor.bindable = false;
     descriptor.enumeration = border_style_enum();
+    descriptor.assignable_member = true;
     return descriptor;
 }
 

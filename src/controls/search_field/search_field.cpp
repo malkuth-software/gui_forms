@@ -514,6 +514,7 @@ PropertyDescriptor search_field_text_descriptor() {
     descriptor.description = "The query text.";
     descriptor.default_value = BindingValue{std::string{}};
     descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.assignable_member = true;
     return descriptor;
 }
 
@@ -532,6 +533,7 @@ PropertyDescriptor search_field_placeholder_text_descriptor() {
     descriptor.default_value = BindingValue{std::string{}};
     descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
     descriptor.bindable = false;
+    descriptor.assignable_member = true;
     return descriptor;
 }
 
@@ -550,6 +552,7 @@ PropertyDescriptor search_field_busy_descriptor() {
     descriptor.default_value = BindingValue{false};
     descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
     descriptor.bindable = false;
+    descriptor.assignable_member = true;
     return descriptor;
 }
 

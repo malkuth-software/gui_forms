@@ -92,6 +92,7 @@ PropertyDescriptor scaled_group_box_design_size_descriptor() {
     descriptor.default_value = BindingValue{Size{1.0, 1.0}};
     descriptor.invalidation_effects = Dirty::layout;
     descriptor.bindable = false;
+    descriptor.assignable_member = true;
     return descriptor;
 }
 

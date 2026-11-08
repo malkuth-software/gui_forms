@@ -416,6 +416,7 @@ PropertyDescriptor info_banner_severity_descriptor() {
     descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
     descriptor.bindable = false;
     descriptor.enumeration = notice_severity_enum();
+    descriptor.assignable_member = true;
     return descriptor;
 }
 
@@ -433,6 +434,7 @@ PropertyDescriptor info_banner_title_descriptor() {
     descriptor.description = "The banner's title.";
     descriptor.default_value = BindingValue{std::string{}};
     descriptor.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
+    descriptor.assignable_member = true;
     return descriptor;
 }
 
@@ -450,6 +452,7 @@ PropertyDescriptor info_banner_message_descriptor() {
     descriptor.description = "The banner's message.";
     descriptor.default_value = BindingValue{std::string{}};
     descriptor.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
+    descriptor.assignable_member = true;
     return descriptor;
 }
 
@@ -468,6 +471,7 @@ PropertyDescriptor info_banner_closable_descriptor() {
     descriptor.default_value = BindingValue{true};
     descriptor.invalidation_effects = Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics;
     descriptor.bindable = false;
+    descriptor.assignable_member = true;
     return descriptor;
 }
 

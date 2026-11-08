@@ -204,6 +204,7 @@ PropertyDescriptor picture_box_image_descriptor() {
     descriptor.description = "Generational image resource displayed by this control.";
     descriptor.default_value = BindingValue{ImageId{}};
     descriptor.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
+    descriptor.assignable_member = true;
     return descriptor;
 }
 
@@ -223,6 +224,7 @@ PropertyDescriptor picture_box_size_mode_descriptor() {
     descriptor.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
     descriptor.bindable = false;
     descriptor.enumeration = picture_box_size_mode_enum();
+    descriptor.assignable_member = true;
     return descriptor;
 }
 
@@ -241,6 +243,7 @@ PropertyDescriptor picture_box_image_opacity_descriptor() {
     descriptor.default_value = BindingValue{1.0};
     descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
     descriptor.bindable = false;
+    descriptor.assignable_member = true;
     return descriptor;
 }
 

@@ -940,6 +940,7 @@ PropertyDescriptor scrollable_control_auto_scroll_descriptor() {
     descriptor.default_value = BindingValue{false};
     descriptor.invalidation_effects = Dirty::measure | Dirty::arrange | Dirty::paint;
     descriptor.bindable = false;
+    descriptor.assignable_member = true;
     return descriptor;
 }
 
@@ -958,6 +959,7 @@ PropertyDescriptor scrollable_control_auto_scroll_margin_descriptor() {
     descriptor.default_value = BindingValue{Size{}};
     descriptor.invalidation_effects = Dirty::measure | Dirty::arrange | Dirty::paint;
     descriptor.bindable = false;
+    descriptor.assignable_member = true;
     return descriptor;
 }
 
@@ -976,6 +978,7 @@ PropertyDescriptor scrollable_control_auto_scroll_min_size_descriptor() {
     descriptor.default_value = BindingValue{Size{}};
     descriptor.invalidation_effects = Dirty::measure | Dirty::arrange | Dirty::paint;
     descriptor.bindable = false;
+    descriptor.assignable_member = true;
     return descriptor;
 }
 
@@ -994,6 +997,7 @@ PropertyDescriptor scrollable_control_auto_scroll_position_descriptor() {
     descriptor.default_value = BindingValue{Point{}};
     descriptor.invalidation_effects = Dirty::arrange | Dirty::paint;
     descriptor.bindable = false;
+    descriptor.assignable_member = true;
     return descriptor;
 }
 

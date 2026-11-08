@@ -271,6 +271,7 @@ PropertyDescriptor toggle_switch_checked_descriptor() {
     descriptor.description = "Whether the switch is on.";
     descriptor.default_value = BindingValue{false};
     descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.assignable_member = true;
     return descriptor;
 }
 
@@ -289,6 +290,7 @@ PropertyDescriptor toggle_switch_on_text_descriptor() {
     descriptor.default_value = BindingValue{std::string{}};
     descriptor.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
     descriptor.bindable = false;
+    descriptor.assignable_member = true;
     return descriptor;
 }
 
@@ -307,6 +309,7 @@ PropertyDescriptor toggle_switch_off_text_descriptor() {
     descriptor.default_value = BindingValue{std::string{}};
     descriptor.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
     descriptor.bindable = false;
+    descriptor.assignable_member = true;
     return descriptor;
 }
 

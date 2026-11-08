@@ -17,12 +17,18 @@ using namespace container_layout_detail;
 
 namespace {
 
+PropertyDescriptor flow_break_descriptor() {
+    PropertyDescriptor descriptor{"flow_break", BindingValueKind::boolean, "Layout",
+                                  "Whether the flow continues on a new line after this child.", BindingValue{false},
+                                  invalidation::bounds};
+    // The write is the child view's assignment (generated forms assign it).
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
 const PropertyDescriptor& describe_flow_break() {
-    static const PropertyDescriptor descriptor = property_table_descriptor(
-        PropertyDescriptor{"flow_break", BindingValueKind::boolean, "Layout",
-                           "Whether the flow continues on a new line after this child.", BindingValue{false},
-                           invalidation::bounds},
-        PropertyOperations{true, true, false, false});
+    static const PropertyDescriptor descriptor =
+        property_table_descriptor(flow_break_descriptor(), PropertyOperations{true, true, false, false});
     return descriptor;
 }
 

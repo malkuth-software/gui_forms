@@ -392,6 +392,7 @@ PropertyDescriptor numeric_up_down_value_descriptor() {
     descriptor.default_value = BindingValue{0.0};
     descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
     descriptor.binding_direction = PropertyBindingDirection::two_way;
+    descriptor.assignable_member = true;
     return descriptor;
 }
 

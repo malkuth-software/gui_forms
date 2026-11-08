@@ -1543,6 +1543,7 @@ PropertyDescriptor property_grid_property_sort_descriptor() {
     descriptor.invalidation_effects = Dirty::measure | Dirty::arrange | Dirty::paint;
     descriptor.bindable = false;
     descriptor.enumeration = property_sort_enum();
+    descriptor.assignable_member = true;
     return descriptor;
 }
 

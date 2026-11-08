@@ -1038,6 +1038,7 @@ PropertyDescriptor button_base_text_descriptor() {
     descriptor.description = "Text displayed by the button.";
     descriptor.default_value = BindingValue{std::string{}};
     descriptor.invalidation_effects = invalidation::text_content;
+    descriptor.assignable_member = true;
     return descriptor;
 }
 
@@ -1056,6 +1057,7 @@ PropertyDescriptor button_base_text_alignment_descriptor() {
     descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
     descriptor.bindable = false;
     descriptor.enumeration = content_alignment_enum();
+    descriptor.assignable_member = true;
     return descriptor;
 }
 
@@ -1074,6 +1076,7 @@ PropertyDescriptor button_base_font_descriptor() {
     descriptor.default_value = BindingValue{FontSpec{FontRole::control, 12.0, 400, false, 0.24}};
     descriptor.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
     descriptor.bindable = false;
+    descriptor.assignable_member = true;
     return descriptor;
 }
 
@@ -1092,6 +1095,7 @@ PropertyDescriptor button_base_content_padding_descriptor() {
     descriptor.default_value = BindingValue{Insets{6.0, 4.0, 6.0, 4.0}};
     descriptor.invalidation_effects = Dirty::measure | Dirty::paint;
     descriptor.bindable = false;
+    descriptor.assignable_member = true;
     return descriptor;
 }
 

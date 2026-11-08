@@ -1164,6 +1164,7 @@ PropertyDescriptor combo_box_text_descriptor() {
     descriptor.default_value = BindingValue{std::string{}};
     descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
     descriptor.binding_direction = PropertyBindingDirection::two_way;
+    descriptor.assignable_member = true;
     return descriptor;
 }
 
@@ -1182,6 +1183,7 @@ PropertyDescriptor combo_box_placeholder_text_descriptor() {
     descriptor.default_value = BindingValue{std::string{}};
     descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
     descriptor.bindable = false;
+    descriptor.assignable_member = true;
     return descriptor;
 }
 
@@ -1201,6 +1203,7 @@ PropertyDescriptor combo_box_drop_down_style_descriptor() {
     descriptor.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
     descriptor.bindable = false;
     descriptor.enumeration = combo_box_style_enum();
+    descriptor.assignable_member = true;
     return descriptor;
 }
 
@@ -1220,6 +1223,7 @@ PropertyDescriptor combo_box_drop_down_filter_descriptor() {
     descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
     descriptor.bindable = false;
     descriptor.enumeration = combo_box_filter_enum();
+    descriptor.assignable_member = true;
     return descriptor;
 }
 

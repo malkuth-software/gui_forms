@@ -183,6 +183,7 @@ PropertyDescriptor group_box_text_descriptor() {
     descriptor.description = "Caption shown in the group's frame.";
     descriptor.default_value = BindingValue{std::string{}};
     descriptor.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
+    descriptor.assignable_member = true;
     return descriptor;
 }
 
@@ -201,6 +202,7 @@ PropertyDescriptor group_box_font_descriptor() {
     descriptor.default_value = BindingValue{FontSpec{FontRole::control, 12.0, 600, false, 0.24}};
     descriptor.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
     descriptor.bindable = false;
+    descriptor.assignable_member = true;
     return descriptor;
 }
 

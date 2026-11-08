@@ -187,6 +187,7 @@ PropertyDescriptor badge_count_descriptor() {
     descriptor.description = "The number the badge shows.";
     descriptor.default_value = BindingValue{std::uint64_t{0U}};
     descriptor.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
+    descriptor.assignable_member = true;
     return descriptor;
 }
 
@@ -205,6 +206,7 @@ PropertyDescriptor badge_maximum_descriptor() {
     descriptor.default_value = BindingValue{std::uint64_t{99U}};
     descriptor.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
     descriptor.bindable = false;
+    descriptor.assignable_member = true;
     return descriptor;
 }
 
@@ -224,6 +226,7 @@ PropertyDescriptor badge_mode_descriptor() {
     descriptor.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
     descriptor.bindable = false;
     descriptor.enumeration = badge_mode_enum();
+    descriptor.assignable_member = true;
     return descriptor;
 }
 
@@ -242,6 +245,7 @@ PropertyDescriptor badge_show_zero_descriptor() {
     descriptor.default_value = BindingValue{false};
     descriptor.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
     descriptor.bindable = false;
+    descriptor.assignable_member = true;
     return descriptor;
 }
 

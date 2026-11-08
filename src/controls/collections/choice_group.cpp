@@ -490,6 +490,7 @@ PropertyDescriptor choice_group_presentation_descriptor() {
     descriptor.invalidation_effects = Dirty::layout | Dirty::paint | Dirty::semantics;
     descriptor.bindable = false;
     descriptor.enumeration = choice_group_presentation_enum();
+    descriptor.assignable_member = true;
     return descriptor;
 }
 

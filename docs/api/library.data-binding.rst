@@ -919,6 +919,10 @@ Types
 
       A form binding's default direction (PropertyBindingDirection). Default: ``{PropertyBindingDirection::one_way}``.
 
+   .. cpp:member:: bool assignable_member
+
+      Whether the declaring class has a public cell or view member named ``name`` whose assignment is the property's table write, given the value converted with PropertyValueTraits (assigned_property_value); for a child property, the container's child view subscripted by the child. The form generator assigns such a property (``(*control).text = ...``, CLOSURE P-6) and writes any other through set_property_value.
+
    .. cpp:member:: std::shared_ptr<const PropertyEnumDescriptor> enumeration
 
    .. cpp:member:: std::vector<BindingValue> standard_values
@@ -1449,6 +1453,10 @@ Functions, constants and aliases
 .. cpp:namespace:: gui_forms
 
 ``#include <gui_forms/binding/property_cell_entry/property_cell_entry.hpp>``
+
+.. cpp:function:: template <typename Member> typename AssignedMemberValue<std::remove_cvref_t<Member>>::Type assigned_property_value(const BindingValue& value)
+
+   ``value`` as the value of the cell, view or child view ``Member`` (its declared type, as ``decltype((*control).text)`` spells it): converted to the member's PropertyType with the property conversion rules, then through PropertyValueTraits, as write_cell_entry converts a table write. Generated forms assign a property with it (CLOSURE P-6): (*made.ok).text = gui_forms::assigned_property_value<decltype((*made.ok).text)>( gui_forms::BindingValue{std::string("OK")}); Throws std::invalid_argument when ``value`` has no form of the member's type, or what the traits throw for a value outside a narrower type.
 
 .. cpp:function:: template <typename Declaring, typename MemberPointer, MemberPointer Member> BindingValue read_cell_entry(const Component& owner)
 

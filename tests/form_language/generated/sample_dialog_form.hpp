@@ -4,6 +4,7 @@
 #pragma once
 
 #include "gui_forms/binding/form_binding/form_binding.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "gui_forms/binding/value/binding_value.hpp"
 #include "gui_forms/commands/command/command.hpp"
 #include "gui_forms/control.hpp"
@@ -80,25 +81,25 @@ public:
         made.sample_level = gui_forms::make_control<gui_forms::NumericUpDown>(gui_forms::StableId("sample.level"));
         (*made.sample_root).add_child(made.sample_level);
         made.sample_save = std::make_shared<gui_forms::Command>();
-        (*made.sample_root).set_property_value("padding", gui_forms::BindingValue{gui_forms::Insets{.left = 8.0, .top = 4.0, .right = 8.0, .bottom = 4.0}});
-        (*made.sample_general).set_property_value("tab_index", gui_forms::BindingValue{std::uint64_t{0U}});
-        (*made.sample_general_auto_save).set_property_value("text", gui_forms::BindingValue{std::string("Save automatically")});
+        (*made.sample_root).padding = gui_forms::assigned_property_value<decltype((*made.sample_root).padding)>(gui_forms::BindingValue{gui_forms::Insets{.left = 8.0, .top = 4.0, .right = 8.0, .bottom = 4.0}});
+        (*made.sample_general).tab_index = gui_forms::assigned_property_value<decltype((*made.sample_general).tab_index)>(gui_forms::BindingValue{std::uint64_t{0U}});
+        (*made.sample_general_auto_save).text = gui_forms::assigned_property_value<decltype((*made.sample_general_auto_save).text)>(gui_forms::BindingValue{std::string("Save automatically")});
         gui_forms::bind_form_value<gui_forms::BindingValueKind::boolean>(*made.sample_general_auto_save, "checked", owner.auto_save_, gui_forms::PropertyBindingDirection::two_way);
-        (*made.sample_general_auto_save).set_property_value("tab_index", gui_forms::BindingValue{std::uint64_t{0U}});
-        (*made.sample_ok).set_property_value("text", gui_forms::BindingValue{std::string("OK")});
-        (*made.sample_ok).set_property_value("tab_index", gui_forms::BindingValue{std::uint64_t{1U}});
-        (*made.sample_ok).set_property_value("anchor", gui_forms::BindingValue{gui_forms::PropertyEnumValue{.type_name = std::string("anchor_styles"), .name = std::string("top, right"), .value = std::int64_t{9}}});
+        (*made.sample_general_auto_save).tab_index = gui_forms::assigned_property_value<decltype((*made.sample_general_auto_save).tab_index)>(gui_forms::BindingValue{std::uint64_t{0U}});
+        (*made.sample_ok).text = gui_forms::assigned_property_value<decltype((*made.sample_ok).text)>(gui_forms::BindingValue{std::string("OK")});
+        (*made.sample_ok).tab_index = gui_forms::assigned_property_value<decltype((*made.sample_ok).tab_index)>(gui_forms::BindingValue{std::uint64_t{1U}});
+        (*made.sample_ok).anchor = gui_forms::assigned_property_value<decltype((*made.sample_ok).anchor)>(gui_forms::BindingValue{gui_forms::PropertyEnumValue{.type_name = std::string("anchor_styles"), .name = std::string("top, right"), .value = std::int64_t{9}}});
         (*made.sample_ok).bind(owner.accept_);
-        (*made.sample_cancel).set_property_value("text", gui_forms::BindingValue{std::string("Cancel")});
-        (*made.sample_cancel).set_property_value("tab_index", gui_forms::BindingValue{std::uint64_t{2U}});
+        (*made.sample_cancel).text = gui_forms::assigned_property_value<decltype((*made.sample_cancel).text)>(gui_forms::BindingValue{std::string("Cancel")});
+        (*made.sample_cancel).tab_index = gui_forms::assigned_property_value<decltype((*made.sample_cancel).tab_index)>(gui_forms::BindingValue{std::uint64_t{2U}});
         (*made.sample_cancel).bind(owner.dismiss_);
         (*made.sample_modes).set_property_value("items", gui_forms::BindingValue{gui_forms::make_property_collection(std::string("String"), gui_forms::BindingValueKind::text, std::vector<gui_forms::BindingValue>{gui_forms::BindingValue{std::string("AM")}, gui_forms::BindingValue{std::string("FM")}, gui_forms::BindingValue{std::string("Wide FM")}})});
-        (*made.sample_modes).set_property_value("tab_index", gui_forms::BindingValue{std::uint64_t{3U}});
+        (*made.sample_modes).tab_index = gui_forms::assigned_property_value<decltype((*made.sample_modes).tab_index)>(gui_forms::BindingValue{std::uint64_t{3U}});
         (*made.sample_band).set_property_value("items", gui_forms::BindingValue{gui_forms::make_property_collection(std::string("String"), gui_forms::BindingValueKind::text, std::vector<gui_forms::BindingValue>{gui_forms::BindingValue{std::string("HF")}, gui_forms::BindingValue{std::string("VHF")}, gui_forms::BindingValue{std::string("UHF")}})});
-        (*made.sample_band).set_property_value("tab_index", gui_forms::BindingValue{std::uint64_t{4U}});
+        (*made.sample_band).tab_index = gui_forms::assigned_property_value<decltype((*made.sample_band).tab_index)>(gui_forms::BindingValue{std::uint64_t{4U}});
         (*made.sample_heading).set_property_value("text", gui_forms::BindingValue{std::string("Bands")});
         gui_forms::bind_form_value<gui_forms::BindingValueKind::number>(*made.sample_level, "value", owner.level_, gui_forms::PropertyBindingDirection::one_way);
-        (*made.sample_level).set_property_value("tab_index", gui_forms::BindingValue{std::uint64_t{5U}});
+        (*made.sample_level).tab_index = gui_forms::assigned_property_value<decltype((*made.sample_level).tab_index)>(gui_forms::BindingValue{std::uint64_t{5U}});
         *this = std::move(made);
     }
 

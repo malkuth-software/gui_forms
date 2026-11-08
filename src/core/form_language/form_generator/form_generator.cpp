@@ -367,7 +367,14 @@ void FormGenerator::write_includes(std::string& out) const {
     headers.insert("gui_forms/binding/value/binding_value.hpp");
     headers.insert("gui_forms/control.hpp");
     for (const FormProperty& property : model_.properties) {
-        if (property.binding) headers.insert("gui_forms/binding/form_binding/form_binding.hpp");
+        if (property.binding) {
+            headers.insert("gui_forms/binding/form_binding/form_binding.hpp");
+            continue;
+        }
+        if (property.object.value == 0U && form_root_) continue;
+        if (form_property_descriptor(schema_, model_, property).assignable_member) {
+            headers.insert("gui_forms/binding/property_cell_entry/property_cell_entry.hpp");
+        }
     }
     if (form_root_) headers.insert("gui_forms/window.hpp");
     if (!model_.spans.empty()) headers.insert("gui_forms/layout/grid_span/grid_span.hpp");
@@ -455,22 +462,38 @@ void FormGenerator::write_initialize(std::string& out) const {
     for (std::size_t index = 0U; index < model_.properties.size(); ++index) {
         const FormProperty& property = model_.properties[index];
         if (property.object.value == 0U && form_root_) continue;
-        const std::string& property_name = form_property_descriptor(schema_, model_, property).name;
+        const PropertyDescriptor& descriptor = form_property_descriptor(schema_, model_, property);
+        const std::string& property_name = descriptor.name;
         const std::string& field = member(property.object.value);
+        const std::string value = "gui_forms::BindingValue{" + values_[index] + "}";
         if (property.provider == FormPropertyProvider::parent_type) {
-            // Name-keyed until the child-property capabilities exist (study
-            // section 10.8); they replace this call in the M-G step.
+            // The parent's child view, subscripted by the child, where the
+            // property is one (CLOSURE P-6); by name otherwise.
             const std::size_t parent = (*model_.objects[property.object.value].parent).value;
+            if (descriptor.assignable_member) {
+                const std::string view = "(*made." + member(parent) + ")." + property_name;
+                out += "        " + view + "[*made." + field + "] = gui_forms::assigned_property_value<decltype(" +
+                       view + ")>(" + value + ");\n";
+                continue;
+            }
             out += "        (*made." + member(parent) + ").set_child_property_value(*made." + field + ", \"" +
-                   property_name + "\", gui_forms::BindingValue{" + values_[index] + "});\n";
+                   property_name + "\", " + value + ");\n";
             continue;
         }
         if (property.binding) {
             write_binding(out, property, property_name);
             continue;
         }
-        out += "        (*made." + field + ").set_property_value(\"" + property_name +
-               "\", gui_forms::BindingValue{" + values_[index] + "});\n";
+        // A property on a capability is assigned through its cell or view,
+        // so its hooks run as for any write (CLOSURE P-6); one not yet
+        // migrated is written by name.
+        if (descriptor.assignable_member) {
+            const std::string cell = "(*made." + field + ")." + property_name;
+            out += "        " + cell + " = gui_forms::assigned_property_value<decltype(" + cell + ")>(" + value +
+                   ");\n";
+            continue;
+        }
+        out += "        (*made." + field + ").set_property_value(\"" + property_name + "\", " + value + ");\n";
     }
     bool binds = false;
     for (const FormProperty& property : model_.properties) {

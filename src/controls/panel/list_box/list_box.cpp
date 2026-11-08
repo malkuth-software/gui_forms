@@ -741,6 +741,7 @@ PropertyDescriptor list_box_selection_mode_descriptor() {
     descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
     descriptor.bindable = false;
     descriptor.enumeration = list_selection_mode_enum();
+    descriptor.assignable_member = true;
     return descriptor;
 }
 

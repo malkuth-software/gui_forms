@@ -1505,6 +1505,7 @@ PropertyDescriptor text_box_text_descriptor() {
     descriptor.default_value = BindingValue{std::string{}};
     descriptor.invalidation_effects = invalidation::text_content;
     descriptor.binding_direction = PropertyBindingDirection::two_way;
+    descriptor.assignable_member = true;
     return descriptor;
 }
 
@@ -1523,6 +1524,7 @@ PropertyDescriptor text_box_placeholder_text_descriptor() {
     descriptor.default_value = BindingValue{std::string{}};
     descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
     descriptor.bindable = false;
+    descriptor.assignable_member = true;
     return descriptor;
 }
 
@@ -1541,6 +1543,7 @@ PropertyDescriptor text_box_read_only_descriptor() {
     descriptor.default_value = BindingValue{false};
     descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
     descriptor.bindable = false;
+    descriptor.assignable_member = true;
     return descriptor;
 }
 
@@ -1559,6 +1562,7 @@ PropertyDescriptor text_box_multiline_descriptor() {
     descriptor.default_value = BindingValue{false};
     descriptor.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
     descriptor.bindable = false;
+    descriptor.assignable_member = true;
     return descriptor;
 }
 

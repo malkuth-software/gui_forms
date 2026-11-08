@@ -307,12 +307,18 @@ void set_number_line(GridLine& line, GridLineKind kind, std::uint32_t number) {
 
 // The child properties GridPanel provides (study 10.9): two views of one
 // placement.
+PropertyDescriptor area_descriptor() {
+    PropertyDescriptor descriptor{"area", BindingValueKind::text, "Layout",
+                                  "The span the child is placed into by name; empty when it is not placed by area.",
+                                  BindingValue{std::string{}}, invalidation::bounds};
+    // The write is the child view's assignment (generated forms assign it).
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
 const PropertyDescriptor& describe_area() {
-    static const PropertyDescriptor descriptor = property_table_descriptor(
-        PropertyDescriptor{"area", BindingValueKind::text, "Layout",
-                           "The span the child is placed into by name; empty when it is not placed by area.",
-                           BindingValue{std::string{}}, invalidation::bounds},
-        PropertyOperations{true, true, true, false});
+    static const PropertyDescriptor descriptor =
+        property_table_descriptor(area_descriptor(), PropertyOperations{true, true, true, false});
     return descriptor;
 }
 
