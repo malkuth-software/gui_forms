@@ -82,10 +82,11 @@ constexpr std::array<std::string_view, 24> nonvisual_entries{
 // whose subclasses (track bar, scroll bars) publish their own roles. The
 // test fails when this list and the published tree disagree in either
 // direction.
-constexpr std::array<std::string_view, 8> unexposed_entries{
+// A toast is listed because no page shows a transient toast during the walk.
+constexpr std::array<std::string_view, 9> unexposed_entries{
     "scaled_panel", "splitter_panel", "tool_strip_panel", "property_grid",
     "scrollable_control", "anchored_overlay_layer", "visual_inspector_overlay",
-    "range_control",
+    "range_control", "toast",
 };
 
 // The most overlays an action's clean-up closes with Escape (a menu inside a
