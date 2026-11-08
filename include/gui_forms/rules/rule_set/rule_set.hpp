@@ -213,6 +213,13 @@ private:
 // The one-condition spellings (Q-C3): one trigger, no conditions and one
 // action, armed in one call. gui_forms::on(event, owner, &Owner::member)
 // stays the spelling for events outside the rule vocabulary.
+// Owner rulings FD-6 Q2 and Q3 (a), 2026-11-08: the triggers on() and rules
+// take are one namespace, `trigger`, holding the control's WinForms mouse
+// events and its semantic events (trigger::interaction with the control's
+// own typed event: value_changed, checked_changed, selection_changed and the
+// rest). One action per interaction: a second on() for the same trigger on
+// the same control is refused (RuleRefusal::duplicate, nothing changes);
+// revoking the first token frees the interaction for a replacement.
 template <typename Context>
 RuleAddResult on(RuleSet& rules, const RuleTrigger& trigger, Context& context,
                  void (*function)(Context&, const RuleFiring&)) {

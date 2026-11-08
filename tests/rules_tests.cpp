@@ -2,7 +2,8 @@
 // trigger and condition, the built-in and program actions, evaluation
 // order, consume (later rules and the default route), duplicates,
 // refusals, stale and revoked rules, reentrancy (rules added or revoked
-// while firing, a throwing action) and the one-condition spellings.
+// while firing, a throwing action), the one-condition spellings and their
+// one action per interaction (FD-6 Q2 and Q3).
 
 #include "gui_forms/gui_forms.hpp"
 
@@ -275,6 +276,52 @@ void order_consume_and_duplicates() {
     other_trigger.actions.push_back(action(journal, &record_a));
     require(rules.add(other_trigger).refusal == RuleRefusal::none, "another trigger is no duplicate");
     require(rules.statistics().refused == 2U, "the refusals are counted");
+}
+
+// Owner rulings FD-6 Q2 and Q3 (a): on() takes a control's mouse events and
+// its semantic events from the one trigger namespace, and a second on() for
+// the same interaction on the same control is refused until the first is
+// revoked; the replacement then fires instead of the first.
+void one_action_per_interaction() {
+    Fixture fixture = make_fixture();
+    const std::shared_ptr<CheckBox> check = make_control<CheckBox>(StableId("root.check"));
+    (*check).set_requested_bounds({0.0, 90.0, 100.0, 24.0});
+    (*fixture.root).add_child(check);
+    Window window(fixture.root, {300.0, 120.0});
+    window.perform_layout();
+    Journal journal;
+    RuleSet& rules = window.rules();
+
+    RuleAddResult clicked = on(rules, trigger::click(*fixture.ok), journal, &record_a);
+    RuleAddResult checked = on(rules, trigger::interaction(*check, (*check).checked_changed()), journal, &record_a);
+    require(clicked.refusal == RuleRefusal::none && checked.refusal == RuleRefusal::none,
+            "on() takes a mouse event and a semantic event from one namespace");
+    const RuleAddResult second_click = on(rules, trigger::click(*fixture.ok), journal, &record_b);
+    const RuleAddResult second_check =
+        on(rules, trigger::interaction(*check, (*check).checked_changed()), journal, &record_b);
+    require(second_click.refusal == RuleRefusal::duplicate && second_check.refusal == RuleRefusal::duplicate &&
+                second_click.token.state() == RuleTokenState::empty &&
+                second_check.token.state() == RuleTokenState::empty && rules.armed_count() == 2U,
+            "a second on() for the same interaction is refused and changes nothing");
+    require(on(rules, trigger::click(*fixture.cancel), journal, &record_b).refusal == RuleRefusal::none,
+            "the same interaction on another control is no duplicate");
+    click_at(window, {50.0, 65.0});
+    (*check).checked = true;
+    require(journal.entries.size() == 2U && journal.entries[0] == "a" && journal.entries[1] == "a",
+            "the first actions alone fire");
+
+    clicked.token.revoke();
+    checked.token.revoke();
+    RuleAddResult replaced_click = on(rules, trigger::click(*fixture.ok), journal, &record_c);
+    RuleAddResult replaced_check =
+        on(rules, trigger::interaction(*check, (*check).checked_changed()), journal, &record_c);
+    require(replaced_click.refusal == RuleRefusal::none && replaced_check.refusal == RuleRefusal::none,
+            "revoking the first frees the interaction for a replacement");
+    click_at(window, {50.0, 65.0});
+    (*check).checked = false;
+    require(journal.entries.size() == 4U && journal.entries[2] == "c" && journal.entries[3] == "c" &&
+                journal.triggers[2] == RuleTriggerKind::click && journal.triggers[3] == RuleTriggerKind::interaction,
+            "the replacements fire instead of the revoked actions");
 }
 
 void refusals_and_limits() {
@@ -635,6 +682,7 @@ void mouse_rules_run_before_subscribers() {
 int main() {
     key_triggers_and_the_control_route();
     order_consume_and_duplicates();
+    one_action_per_interaction();
     refusals_and_limits();
     stale_revoked_and_dropped_tokens();
     builtins_and_model_conditions();
