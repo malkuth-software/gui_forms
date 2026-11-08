@@ -339,6 +339,27 @@ struct OtherThreadPresentation final {
     }
 };
 
+// At scale 2 the segment edges round to half units (device pixels): the
+// inner 298 units are 596 pixels, edges at 4, 203, 401 and 600 pixels.
+void test_segment_edges_at_scale() {
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("display.segments.scaled.root"));
+    std::shared_ptr<ChoiceGroup> group = make_control<ChoiceGroup>(StableId("display.segments.scaled"));
+    (*group).set_requested_bounds(Rect{0.0, 0.0, 302.0, 32.0});
+    (*group).set_items({ChoiceItem{.id = 1, .label = "Day"}, ChoiceItem{.id = 2, .label = "Week"},
+                        ChoiceItem{.id = 3, .label = "Month"}});
+    (*group).presentation = ChoiceGroupPresentation::segmented;
+    (*root).add_child(group);
+    Window window(root, Size{400.0, 100.0});
+    window.set_scale(2.0);
+    window.perform_layout();
+    const Rect first = (*group).item(0).committed_arranged_bounds();
+    const Rect second = (*group).item(1).committed_arranged_bounds();
+    const Rect third = (*group).item(2).committed_arranged_bounds();
+    require(first.x == 2.0 && first.width == 99.5 && second.x == 101.5 && second.width == 99.0 &&
+                third.x == 200.5 && third.width == 99.5,
+            "segment edges round to device pixels at the window's scale");
+}
+
 void test_segmented_choice_group() {
     const std::shared_ptr<Panel> root = make_control<Panel>(StableId("display.segments.root"));
     std::shared_ptr<ChoiceGroup> group = make_control<ChoiceGroup>(StableId("display.segments"));
@@ -362,6 +383,11 @@ void test_segmented_choice_group() {
     const Rect second = (*group).item(1).committed_arranged_bounds();
     require(first.x == 2.0 && first.y == 2.0 && first.width == 99.0 && first.height == 28.0 && second.x == 101.0,
             "segments share the track inside its inset");
+    // 298 / 3 is not whole: the edges round to 2, 101, 201 and 300, so the
+    // segments tile and differ by at most one pixel.
+    const Rect third = (*group).item(2).committed_arranged_bounds();
+    require(second.width == 100.0 && third.x == 201.0 && third.width == 99.0,
+            "segment edges are rounded to device pixels and tile the track");
     require((*group).parts().track.present && !(*group).parts().selection.present,
             "a segmented group with nothing selected publishes its track and no selection");
 
@@ -997,6 +1023,7 @@ int main() {
     test_info_banner_actuator_action_and_threads();
     test_empty_state();
     test_segmented_choice_group();
+    test_segment_edges_at_scale();
     test_toast_content_and_semantics();
     test_window_toasts();
     test_window_toast_refusals();

@@ -82,8 +82,10 @@ private:
     void validate_selection(int index) const;
     void validate_local_selection(int index) const;
     // The bounds of the segment at `index` of `count` in a segmented group
-    // of `size`, in local coordinates: equal shares of the track inside a
-    // small inset.
+    // of `size`, in local coordinates: shares of the track inside a small
+    // inset whose edges are rounded to device pixels at the window's scale
+    // (1 outside a window), so the segments tile with no gap or overlap and
+    // their widths differ by at most one device pixel.
     [[nodiscard]] Rect segment_bounds(std::size_t index, std::size_t count, Size size) const noexcept;
     [[nodiscard]] Rect selection_bounds() const;
     Value<int> selection_{-1};

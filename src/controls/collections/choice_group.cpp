@@ -7,6 +7,7 @@
 
 #include <array>
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <limits>
 #include <memory>
@@ -287,12 +288,21 @@ void ChoiceGroup::activate_item(const int id) {
         return;
     }
 }
+
 Rect ChoiceGroup::segment_bounds(std::size_t index, std::size_t count, Size size) const noexcept {
     if (count == 0U) return Rect{};
     const double inner_width = std::max(0.0, size.width - 2.0 * segment_inset);
     const double inner_height = std::max(0.0, size.height - 2.0 * segment_inset);
-    const double width = inner_width / static_cast<double>(count);
-    const Rect segment{segment_inset + static_cast<double>(index) * width, segment_inset, width, inner_height};
+    const double share = inner_width / static_cast<double>(count);
+    const Window* owner = window();
+    const double scale = owner != nullptr && (*owner).scale() > 0.0 ? (*owner).scale() : 1.0;
+    // Edge i at round((inset + i * share) * scale) / scale: cumulative, so
+    // one segment's right edge is the next one's left edge.
+    const double left_edge = segment_inset + static_cast<double>(index) * share;
+    const double right_edge = segment_inset + static_cast<double>(index + 1U) * share;
+    const double left = std::round(left_edge * scale) / scale;
+    const double right = std::round(right_edge * scale) / scale;
+    const Rect segment{left, segment_inset, right - left, inner_height};
     return segment;
 }
 
