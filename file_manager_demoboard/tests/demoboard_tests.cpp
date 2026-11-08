@@ -999,7 +999,7 @@ int main() {
             (*product).find("fm.status.authority"));
     if (context_overlay_after_enter || (*product).focus_scope_depth() != 0U ||
         context_focus_after_enter != property_list || !context_authority_after_enter ||
-        (*context_authority_after_enter).text().find("properties active") ==
+        (*context_authority_after_enter).text.read().find("properties active") ==
             std::string::npos) {
         throw std::runtime_error(
             "object context post-Enter mismatch: overlay=" +
@@ -1011,7 +1011,7 @@ int main() {
                  : std::string("<none>")) +
             " authority=" +
             (context_authority_after_enter
-                 ? (*context_authority_after_enter).text()
+                 ? (*context_authority_after_enter).text.read()
                  : std::string("<missing>")));
     }
 

@@ -16,7 +16,7 @@ void test_collections_and_overlays(gui_forms::Window& window) {
     require((*combo).dropped_down.read() && window.focus_scope_depth() == 1U &&
                 window.find("gallery.collections.combo.density.overlay.list"),
             "gallery ComboBox must open through the public overlay controller");
-    require(status && (*status).text().find("Density overlay: OPEN") == 0U,
+    require(status && (*status).text.read().find("Density overlay: OPEN") == 0U,
             "the page owner must observe drop_down_changed(true) by named handler");
     const Control::Ptr overlay =
         window.find("gallery.collections.combo.density.overlay.list");
@@ -28,7 +28,7 @@ void test_collections_and_overlays(gui_forms::Window& window) {
                 (*combo).selected_index.read() == 2U && !(*combo).dropped_down.read() &&
                 window.focus_scope_depth() == 0U,
             "gallery ComboBox overlay must commit and restore focus without residue");
-    require((*status).text().find("Density overlay: CLOSED") == 0U,
+    require((*status).text.read().find("Density overlay: CLOSED") == 0U,
             "the page owner must observe drop_down_changed(false) after commit");
     // A programmatic selection reaches the owner through the state event only;
     // item_activated stays reserved for user input.
@@ -36,7 +36,7 @@ void test_collections_and_overlays(gui_forms::Window& window) {
         window.find("gallery.collections.single.list"));
     require(single != nullptr, "gallery single-selection ListBox must resolve");
     (*single).select_index(5U);
-    require((*status).text().find("Location 6 selected") == 0U,
+    require((*status).text.read().find("Location 6 selected") == 0U,
             "ListBox selection_changed must drive the owner's status handler");
 
     // The searchable station field narrows its list as the user types.
@@ -45,7 +45,7 @@ void test_collections_and_overlays(gui_forms::Window& window) {
     require(search && (*search).editor() && window.request_focus((*search).editor()) &&
                 window.dispatch_text({"hb"}) && (*search).dropped_down.read() &&
                 (*search).drop_down_items().size() == 4U &&
-                (*status).text() == "Stations matching \"hb\": 4",
+                (*status).text.read() == "Stations matching \"hb\": 4",
             "typing in the station field filters its list by substring");
     require(window.dispatch_key({KeyAction::down, PhysicalKey::down}) &&
                 window.dispatch_key({KeyAction::down, PhysicalKey::enter}) &&

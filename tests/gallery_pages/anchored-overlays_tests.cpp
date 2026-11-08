@@ -36,7 +36,7 @@ void test_anchored_overlays(gui_forms::Window& window) {
                 window.focused_control() == window.find("gallery.overlays.field") &&
                 (*top_left).expanded_state.read() == std::optional<bool>(true) &&
                 !(*layer).resolved_placement().placed_above &&
-                (*status).text().find("Overlay open from gallery.overlays.anchor.0") == 0U,
+                (*status).text.read().find("Overlay open from gallery.overlays.anchor.0") == 0U,
             "an anchor click must open the layer as a focus-contained overlay placed below");
     const Rect anchor_bounds = (*top_left).absolute_bounds();
     const Rect content_bounds = (*window.find("gallery.overlays.content")).absolute_bounds();
@@ -50,7 +50,7 @@ void test_anchored_overlays(gui_forms::Window& window) {
     (*above).set_checked(true);
     window.perform_layout();
     require((*layer).resolved_placement().placed_above &&
-                (*status).text().find("Placement re-resolved while open · placed above") == 0U,
+                (*status).text.read().find("Placement re-resolved while open · placed above") == 0U,
             "the bound Prefer-above Value must re-place the open overlay above its anchor");
 
     // Click-away: the press is reported, the owner closes the overlay, and the
@@ -61,7 +61,7 @@ void test_anchored_overlays(gui_forms::Window& window) {
     static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, away}));
     require(window.find("gallery.overlays.layer") == nullptr && window.focus_scope_depth() == 0U &&
                 (*top_left).expanded_state.read() == std::optional<bool>(false) &&
-                (*status).text().find("Dismissed by click-away") == 0U,
+                (*status).text.read().find("Dismissed by click-away") == 0U,
             "click-away must close the overlay through the owner and restore the page");
 
     // Flipping: the bottom-right anchor cannot fit the overlay below.
@@ -74,7 +74,7 @@ void test_anchored_overlays(gui_forms::Window& window) {
     require(window.dispatch_key({KeyAction::down, PhysicalKey::escape}) &&
                 window.find("gallery.overlays.layer") == nullptr &&
                 window.focused_control() == bottom_right &&
-                (*status).text().find("Dismissed by Escape") == 0U,
+                (*status).text.read().find("Dismissed by Escape") == 0U,
             "Escape must be intercepted by the layer and close the overlay with focus restored");
 
     // Without flipping the overlay stays on the preferred side at its requested
@@ -93,7 +93,7 @@ void test_anchored_overlays(gui_forms::Window& window) {
     click(window, window.find("gallery.overlays.close"));
     require(window.find("gallery.overlays.layer") == nullptr && window.focus_scope_depth() == 0U &&
                 window.focused_control() == bottom_right &&
-                (*status).text().find("Closed by its button") == 0U,
+                (*status).text.read().find("Closed by its button") == 0U,
             "the content's Close button must end the scope and release the overlay");
     click(window, flip);
 }

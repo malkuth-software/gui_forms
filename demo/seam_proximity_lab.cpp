@@ -44,8 +44,8 @@ void add_at(const std::shared_ptr<Parent>& parent,
 std::shared_ptr<Label> make_label(std::string id, std::string text,
                                   FontSpec font, Color color = ink) {
     std::shared_ptr<Label> result = make_control<Label>(StableId(std::move(id)), std::move(text));
-    (*result).set_font(font);
-    (*result).set_foreground(color);
+    (*result).font = font;
+    (*result).fore_color = color;
     return result;
 }
 
@@ -89,13 +89,13 @@ struct RefreshReadout final {
         const std::shared_ptr<Label> output = label.lock();
         if (!owner || !output) return;
         const SplitSeamSnapshot snapshot = (*owner).splitter_seam_snapshot();
-        (*output).set_text(
+        (*output).text =
             std::string(seam_state_name(snapshot.state)) + " · visible " +
             std::to_string(snapshot.visible_bounds.width) + "L / " +
             std::to_string(snapshot.visible_device_pixels) + "px · hit " +
             std::to_string(snapshot.orientation == Orientation::vertical
                                ? snapshot.hit_bounds.width
-                               : snapshot.hit_bounds.height) + "L");
+                               : snapshot.hit_bounds.height) + "L";
     }
 
     template <typename... Arguments>

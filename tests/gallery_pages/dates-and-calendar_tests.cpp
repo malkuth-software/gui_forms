@@ -112,7 +112,7 @@ void test_dates_and_calendar(gui_forms::Window& window) {
             "the month calendar specimen shows August and September");
     require(window.perform_semantic_action("gallery.date.month.calendar.day.2026-09-07", SemanticAction::select) &&
                 (*month).selection_start() == DateTimeValue{2026, 9U, 7U} &&
-                (*month_status).text() == "Selected 9/7",
+                (*month_status).text.read() == "Selected 9/7",
             "selecting a day reports to the page");
 }
 

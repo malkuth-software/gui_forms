@@ -149,7 +149,7 @@ bool LiveSurfacesPage::ensure_timer() {
     if (timer_) return true;
     Window* const window = (*view_).attached_window();
     if (window == nullptr) {
-        (*status_).set_text("Producer needs an attached Window");
+        (*status_).text = "Producer needs an attached Window";
         return false;
     }
     timer_ = std::make_unique<Timer>(
@@ -162,14 +162,14 @@ bool LiveSurfacesPage::ensure_timer() {
 void LiveSurfacesPage::on_start() {
     if (!surface_ || !ensure_timer()) return;
     (*timer_).start();
-    (*status_).set_text("Producer running · " +
+    (*status_).text = "Producer running · " +
                         std::to_string((*timer_).interval().count()) +
-                        " ms deadline on the UI queue");
+                        " ms deadline on the UI queue";
 }
 
 void LiveSurfacesPage::on_stop() {
     if (timer_) (*timer_).stop();
-    (*status_).set_text("Producer stopped · zero idle wakeups");
+    (*status_).text = "Producer stopped · zero idle wakeups";
 }
 
 void LiveSurfacesPage::on_publish_once() {
@@ -183,7 +183,7 @@ void LiveSurfacesPage::on_reconfigure() {
     const bool reconfigured = (*surface_).reconfigure(description());
     if (!reconfigured) {
         large_ = !large_;
-        (*status_).set_text("Reconfigure refused · a write lease is active");
+        (*status_).text = "Reconfigure refused · a write lease is active";
         return;
     }
     needs_full_frame_ = true;
@@ -203,7 +203,7 @@ void LiveSurfacesPage::on_interval_changed(const double milliseconds) {
 void LiveSurfacesPage::on_tick() {
     if (!(*view_).effectively_visible()) {
         (*timer_).stop();
-        (*status_).set_text("Producer suspended · page hidden · zero wakeups");
+        (*status_).text = "Producer suspended · page hidden · zero wakeups";
         return;
     }
     publish_frame();
@@ -272,7 +272,7 @@ void LiveSurfacesPage::publish_frame() {
 
 void LiveSurfacesPage::refresh_status(const std::string_view event, const Rect damage) {
     if (!surface_) {
-        (*status_).set_text("LiveSurface::create refused the description");
+        (*status_).text = "LiveSurface::create refused the description";
         return;
     }
     const LiveSurfaceSnapshot snapshot = (*surface_).snapshot();
@@ -282,8 +282,8 @@ void LiveSurfacesPage::refresh_status(const std::string_view event, const Rect d
               std::to_string(static_cast<int>(damage.y)) + " " +
               std::to_string(static_cast<int>(damage.width)) + "×" +
               std::to_string(static_cast<int>(damage.height));
-    (*status_).set_text(std::string(event) + " · damage " + damage_text);
-    (*telemetry_).set_text(
+    (*status_).text = std::string(event) + " · damage " + damage_text;
+    (*telemetry_).text =
         std::to_string(snapshot.description.width) + "×" +
         std::to_string(snapshot.description.height) + " BGRA · " + std::to_string(snapshot.description.buffer_count) + " buffers" +
         "\nepoch " + std::to_string(snapshot.epoch) +
@@ -292,7 +292,7 @@ void LiveSurfacesPage::refresh_status(const std::string_view event, const Rect d
         "\ndropped acquires " + std::to_string(snapshot.dropped_acquires) +
         " · read acquires " + std::to_string(snapshot.read_acquires) +
         " · last read generation " + std::to_string(snapshot.last_read_generation) +
-        (snapshot.carries_previous_frame ? "\ncarrying the previous epoch's frame" : ""));
+        (snapshot.carries_previous_frame ? "\ncarrying the previous epoch's frame" : "");
 }
 
 void add_live_surfaces(const std::shared_ptr<Surface>& page,

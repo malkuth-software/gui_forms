@@ -41,9 +41,9 @@ struct TextScaleHandler final {
         (*product).set_text_scale(text_scales[*index]);
         const std::shared_ptr<gui_forms::Label> status = density.lock();
         if (status) {
-            (*status).set_text(
+            (*status).text =
                 "Display scale: host-derived · text scale: " +
-                std::to_string(static_cast<int>(text_scales[*index] * 100.0)) + "%");
+                std::to_string(static_cast<int>(text_scales[*index] * 100.0)) + "%";
         }
     }
 };
@@ -65,7 +65,7 @@ struct ResetHandler final {
         if (scale_choice) (*scale_choice).selected_index = 0U;
         const std::shared_ptr<gui_forms::Label> status = density.lock();
         if (status) {
-            (*status).set_text("Display scale: host-derived · text scale: 100%");
+            (*status).text = "Display scale: host-derived · text scale: 100%";
         }
         const std::shared_ptr<gui_forms::CheckBox> sound_toggle = sound.lock();
         if (sound_toggle) (*sound_toggle).set_checked(true);
@@ -106,7 +106,7 @@ std::unique_ptr<gui_forms::Window> make_controller_window(
     std::shared_ptr<gui_forms::Label> title = std::make_shared<Label>(StableId("demo.controller.title"),
                                          "DEMOboard controller · catalogue 001 / generation 86");
     (*title).set_requested_bounds({0,0,430,30});
-    (*title).set_font({FontRole::control,12,700,false,.25});
+    (*title).font = FontSpec{FontRole::control,12,700,false,.25};
     (*root).add_child(title);
 
     std::shared_ptr<gui_forms::ComboBox> surface = std::make_shared<ComboBox>(StableId("demo.surface.choice"));
@@ -126,7 +126,7 @@ std::unique_ptr<gui_forms::Window> make_controller_window(
         StableId("demo.accommodation.title"),
         "ACCOMMODATION · LOGICAL TEXT / HOST DENSITY SEPARATE");
     (*accommodation).set_requested_bounds({0,0,430,24});
-    (*accommodation).set_font({FontRole::control,9,700,false,.28});
+    (*accommodation).font = FontSpec{FontRole::control,9,700,false,.28};
     (*root).add_child(accommodation);
 
     std::shared_ptr<gui_forms::ComboBox> text_scale = std::make_shared<ComboBox>(
@@ -145,7 +145,7 @@ std::unique_ptr<gui_forms::Window> make_controller_window(
         StableId("demo.accommodation.display-scale"),
         "Display scale: host-derived · text scale: 100%");
     (*density).set_requested_bounds({0,0,430,24});
-    (*density).set_font({FontRole::content,10,400,false});
+    (*density).font = FontSpec{FontRole::content,10,400,false};
     (*density).accessible_name = "Presentation scale status";
     (*root).add_child(density);
 
@@ -202,7 +202,7 @@ std::unique_ptr<gui_forms::Window> make_controller_window(
         (*text_scale).enabled = false;
         (*text_scale).accessible_description =
             "Attach a product window to exercise text accommodation";
-        (*density).set_text("Display scale: host-derived · product not attached");
+        (*density).text = "Display scale: host-derived · product not attached";
         (*sound).enabled = false;
         (*reduced_motion).enabled = false;
     }

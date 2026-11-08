@@ -1486,6 +1486,10 @@ Functions, constants and aliases
 
    A declaring-class member function as an entry's should_serialize.
 
+.. cpp:function:: template <typename Declaring, typename MemberPointer, MemberPointer Origin> PropertyValueOrigin origin_member_entry(const Component& owner)
+
+   A declaring-class member function as an entry's origin (``PropertyValueOrigin f() const noexcept``).
+
 .. cpp:namespace:: gui_forms
 
 ``#include <gui_forms/binding/property_table/property_table.hpp>``

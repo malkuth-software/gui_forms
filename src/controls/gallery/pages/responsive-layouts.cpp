@@ -120,7 +120,7 @@ private:
         (*detail).margin = Insets{};
         detail_text_ = label("gallery.responsive.master-detail.detail.text",
                              "Inbox · 12 messages · detail pane", 11.0, 600, ink);
-        (*detail_text_).set_text_wrapping(TextWrapping::word);
+        (*detail_text_).text_wrapping = TextWrapping::word;
         (*detail_text_).padding = {8.0, 4.0, 8.0, 4.0};
         (*detail_text_).dock = DockStyle::fill;
         (*detail).add_child(detail_text_);

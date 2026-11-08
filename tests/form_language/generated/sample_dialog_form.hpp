@@ -97,7 +97,7 @@ public:
         (*made.sample_modes).tab_index = gui_forms::assigned_property_value<decltype((*made.sample_modes).tab_index)>(gui_forms::BindingValue{std::uint64_t{3U}});
         (*made.sample_band).set_property_value("items", gui_forms::BindingValue{gui_forms::make_property_collection(std::string("String"), gui_forms::BindingValueKind::text, std::vector<gui_forms::BindingValue>{gui_forms::BindingValue{std::string("HF")}, gui_forms::BindingValue{std::string("VHF")}, gui_forms::BindingValue{std::string("UHF")}})});
         (*made.sample_band).tab_index = gui_forms::assigned_property_value<decltype((*made.sample_band).tab_index)>(gui_forms::BindingValue{std::uint64_t{4U}});
-        (*made.sample_heading).set_property_value("text", gui_forms::BindingValue{std::string("Bands")});
+        (*made.sample_heading).text = gui_forms::assigned_property_value<decltype((*made.sample_heading).text)>(gui_forms::BindingValue{std::string("Bands")});
         gui_forms::bind_form_value<gui_forms::BindingValueKind::number>(*made.sample_level, "value", owner.level_, gui_forms::PropertyBindingDirection::one_way);
         (*made.sample_level).tab_index = gui_forms::assigned_property_value<decltype((*made.sample_level).tab_index)>(gui_forms::BindingValue{std::uint64_t{5U}});
         *this = std::move(made);

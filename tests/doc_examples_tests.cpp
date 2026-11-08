@@ -2065,9 +2065,9 @@ void example() {
     std::shared_ptr<gf::Label> note = gf::make_control<gf::Label>(
         gf::StableId("export.note"),
         "Exported files keep their names; existing files are never overwritten.");
-    (*note).set_text_style_role(gf::TextStyleRole::caption);
-    (*note).set_text_wrapping(gf::TextWrapping::word);
-    (*note).set_maximum_lines(2U);
+    (*note).text_style_role = gf::TextStyleRole::caption;
+    (*note).text_wrapping = gf::TextWrapping::word;
+    (*note).maximum_lines = 2U;
     (*note).set_requested_bounds({0.0, 0.0, 180.0, 0.0});   // fixed width, measured height
 }
 }  // namespace doc_example_Label_2

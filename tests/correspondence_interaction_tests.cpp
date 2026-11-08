@@ -202,8 +202,8 @@ int main()
     expect((*folders).items()[2].text == "Sent", "folders without unread mail show no count");
     expect((*messages).items().size() == 16U, "Inbox lists sixteen messages");
     expect((*messages).selected_id.read().empty(), "no message is selected at start");
-    expect((*subject).text() == "No message selected", "reading pane starts empty");
-    expect((*status).text().rfind("Inbox · 16 messages · 6 unread", 0) == 0,
+    expect((*subject).text.read() == "No message selected", "reading pane starts empty");
+    expect((*status).text.read().rfind("Inbox · 16 messages · 6 unread", 0) == 0,
            "status line reports folder, count and unread");
     for (const std::shared_ptr<gui_forms::Command>& command : (*shell).commands()) {
         if ((*command).stable_id() == "correspondence.command.reply" ||
@@ -223,15 +223,15 @@ int main()
     expect((*messages).selected_id.read() == correspondence::message_id(1U),
            "list selection follows the model");
     expect((*first_message).read, "selecting marks the message read");
-    expect((*subject).text() == "Dome shutter motor: replacement quote",
+    expect((*subject).text.read() == "Dome shutter motor: replacement quote",
            "reading pane shows the subject");
-    expect((*correspondent).text() == "From: Priya Raman <priya.raman@harbourlane.example>",
+    expect((*correspondent).text.read() == "From: Priya Raman <priya.raman@harbourlane.example>",
            "reading pane shows the sender");
-    expect((*date).text() == "2026-10-10 17:42 · Inbox · Flagged",
+    expect((*date).text.read() == "2026-10-10 17:42 · Inbox · Flagged",
            "reading pane shows date, folder and flag");
     expect((*body).text.read() == (*first_message).body, "reading pane shows the full body");
     expect((*folders).items()[0].text == "Inbox  (5)", "folder count follows the read mark");
-    expect((*status).text().rfind("Inbox · 16 messages · 5 unread", 0) == 0,
+    expect((*status).text.read().rfind("Inbox · 16 messages · 5 unread", 0) == 0,
            "status follows the read mark");
 
     CountingPainter painter;
@@ -248,7 +248,7 @@ int main()
     // Flag toggles through the command bar.
     click(view, correspondence::command_button_id(correspondence::command_flag));
     expect(!(*first_message).flagged, "Flag button toggles the flag off");
-    expect((*date).text() == "2026-10-10 17:42 · Inbox", "reading pane drops the flag note");
+    expect((*date).text.read() == "2026-10-10 17:42 · Inbox", "reading pane drops the flag note");
     click(view, correspondence::command_button_id(correspondence::command_flag));
     expect((*first_message).flagged, "Flag button toggles the flag back on");
 
@@ -259,9 +259,9 @@ int main()
     expect(model.selected_message() == std::optional<std::uint32_t>{2U} &&
                (*messages).selected_id.read() == correspondence::message_id(2U),
            "the next message becomes selected");
-    expect((*subject).text() == "Observing conditions, week 41",
+    expect((*subject).text.read() == "Observing conditions, week 41",
            "reading pane follows the new selection");
-    expect((*status).text().rfind("Inbox · 15 messages", 0) == 0, "status follows the archive");
+    expect((*status).text.read().rfind("Inbox · 15 messages", 0) == 0, "status follows the archive");
     expect((*folders).items()[3].text == "Archive", "Archive stays read-only in the tree");
 
     // Delete moves to Trash.
@@ -275,8 +275,8 @@ int main()
     click_at(view, folder_row_point(*folders, 5U), ids::folders);
     expect(model.selected_folder() == Folder::trash, "clicking the Trash row selects Trash");
     expect((*messages).items().size() == 3U, "Trash lists the fixture pair plus the deletion");
-    expect((*subject).text() == "No message selected", "folder change clears the reading pane");
-    expect((*status).text().rfind("Trash · 3 messages", 0) == 0, "status names the folder");
+    expect((*subject).text.read() == "No message selected", "folder change clears the reading pane");
+    expect((*status).text.read().rfind("Trash · 3 messages", 0) == 0, "status names the folder");
     click_at(view, folder_row_point(*folders, 0U), ids::folders);
     expect(model.selected_folder() == Folder::inbox && (*messages).items().size() == 14U,
            "clicking the Inbox row returns to the Inbox");
@@ -290,7 +290,7 @@ int main()
     expect((*messages).items().size() == 2U &&
                (*messages).items().size() == model.visible_messages().size(),
            "the list shows only the matches");
-    expect((*status).text().find("2 matches for \"photometry\"") != std::string::npos,
+    expect((*status).text.read().find("2 matches for \"photometry\"") != std::string::npos,
            "status reports the match count");
     (*(*shell).search_box()).text = "";
     expect(model.search().empty() && (*messages).items().size() == 14U,
@@ -302,17 +302,17 @@ int main()
     expect((*folders).selected_id.read() == correspondence::folder_id(Folder::drafts),
            "folder tree follows the compose switch");
     expect((*messages).items().size() == 4U, "Drafts gained the new draft");
-    expect((*subject).text() == "Untitled message", "reading pane shows the new draft");
-    expect((*correspondent).text() == "To: (no recipient)", "a new draft has no recipient yet");
+    expect((*subject).text.read() == "Untitled message", "reading pane shows the new draft");
+    expect((*correspondent).text.read() == "To: (no recipient)", "a new draft has no recipient yet");
 
     // Reply quotes the selected message into a new draft.
     click_at(view, folder_row_point(*folders, 0U), ids::folders);
     click_at(view, message_point(*messages, 3U), ids::messages);
     click(view, correspondence::command_button_id(correspondence::command_reply));
     expect(model.selected_folder() == Folder::drafts, "Reply switches to Drafts");
-    expect((*subject).text() == "Re: Rota for the October public nights",
+    expect((*subject).text.read() == "Re: Rota for the October public nights",
            "reply keeps an existing Re: prefix");
-    expect((*correspondent).text() == "To: Tomasz Wierzba <t.wierzba@harbourlane.example>",
+    expect((*correspondent).text.read() == "To: Tomasz Wierzba <t.wierzba@harbourlane.example>",
            "reply addresses the original sender");
     expect((*body).text.read().find("Tomasz Wierzba wrote:") != std::string::npos,
            "reply body quotes the original");
@@ -342,8 +342,8 @@ int main()
             expect((*command).execute("test"), "About command executes");
         }
     }
-    expect((*status).text().find("retained controls") != std::string::npos &&
-               (*status).text().find("model revision") != std::string::npos,
+    expect((*status).text.read().find("retained controls") != std::string::npos &&
+               (*status).text.read().find("model revision") != std::string::npos,
            "About reports instrumentation in the status line headlessly");
 
     // The layout survives the smallest supported window.

@@ -143,4 +143,13 @@ template <typename Declaring, typename MemberPointer, MemberPointer ShouldSerial
     return serialize;
 }
 
+// A declaring-class member function as an entry's origin
+// (`PropertyValueOrigin f() const noexcept`).
+template <typename Declaring, typename MemberPointer, MemberPointer Origin>
+[[nodiscard]] PropertyValueOrigin origin_member_entry(const Component& owner) {
+    const Declaring& declaring = static_cast<const Declaring&>(owner);
+    const PropertyValueOrigin origin = (declaring.*Origin)();
+    return origin;
+}
+
 } // namespace gui_forms

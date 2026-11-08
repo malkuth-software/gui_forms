@@ -377,13 +377,13 @@ void test_real_control_and_timer_signatures() {
     gf::on((*label).text_changed(), owner, &Recorder::text_changed);
     gf::on(timer.tick(), owner, &Recorder::tick);
     (*button).perform_click();
-    (*label).set_text("Changed");
+    (*label).text = "Changed";
     timer.tick().emit();
     require(total == 3 && !timer.enabled(),
             "control and timer handlers must wire without starting a timer");
     owner.dispose();
     (*button).perform_click();
-    (*label).set_text("Again");
+    (*label).text = "Again";
     timer.tick().emit();
     require(total == 3, "disposed owner must stop real control notifications");
 }

@@ -20,7 +20,7 @@ void test_checked_collections(gui_forms::Window& window) {
             "gallery CheckOnClick row must select and toggle immediately");
     std::shared_ptr<gui_forms::Label> status = std::dynamic_pointer_cast<Label>(
         window.find("gallery.checked.status"));
-    require(status && (*status).text().find("Immediate item 6 committed checked") == 0U,
+    require(status && (*status).text.read().find("Immediate item 6 committed checked") == 0U,
             "item_check_state_changed must reach the owner's bound-list handler");
     const std::string checked_semantics = window.semantic_snapshot().to_json();
     require(checked_semantics.find("\"role\":\"check_list_item\"") !=
@@ -65,10 +65,10 @@ void test_checked_collections(gui_forms::Window& window) {
     require((*list_view).label_edit.read() && (*list_view).begin_label_edit(0U) &&
                 window.dispatch_text({"Discarded"}) &&
                 window.dispatch_key({KeyAction::down, PhysicalKey::escape}) &&
-                (*status).text() == "ListView rename of task.anatomy cancelled",
+                (*status).text.read() == "ListView rename of task.anatomy cancelled",
             "Escape cancels the gallery ListView's rename and the page reports it");
     require((*list_view).begin_label_edit(0U) && window.dispatch_key({KeyAction::down, PhysicalKey::enter}) &&
-                (*status).text() == "ListView item task.anatomy renamed to Publish item anatomy" &&
+                (*status).text.read() == "ListView item task.anatomy renamed to Publish item anatomy" &&
                 (*list_view).items()[0].text == "Publish item anatomy",
             "Enter commits the gallery ListView's label and the page reports it");
 }

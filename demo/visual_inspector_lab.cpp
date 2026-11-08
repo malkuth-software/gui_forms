@@ -52,8 +52,8 @@ std::shared_ptr<Label> label(std::string id, std::string text,
                              FontSpec font, Color color) {
     std::shared_ptr<Label> result = make_control<Label>(
         StableId(std::move(id)), std::move(text));
-    (*result).set_font(font);
-    (*result).set_foreground(color);
+    (*result).font = font;
+    (*result).fore_color = color;
     return result;
 }
 

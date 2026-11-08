@@ -236,7 +236,7 @@ void refusals() {
     window.perform_layout();
     (*secret).text = "hunter";
     (*secret).password_character = U'*';
-    (*caption).set_text("Name");
+    (*caption).text = "Name";
     (*outside).text = "out";
     (*inside).text = "in";
     SemanticTextLayout layout;

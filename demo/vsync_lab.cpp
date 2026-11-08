@@ -720,17 +720,17 @@ struct LabValueChanged final {
             static_cast<std::uint32_t>(std::lround(value));
         if (kind == LabValueKind::producer_rate) {
             (*(*state).waterfall).set_producer_rate(rounded);
-            (*(*state).producer_value).set_text(std::to_string(rounded) + " Hz");
+            (*(*state).producer_value).text = std::to_string(rounded) + " Hz";
         } else if (kind == LabValueKind::rows_per_frame) {
             (*(*state).waterfall).set_rows_per_frame(rounded);
-            (*(*state).rows_value).set_text(
-                std::to_string(rounded) + (rounded == 1U ? " row" : " rows"));
+            (*(*state).rows_value).text =
+                std::to_string(rounded) + (rounded == 1U ? " row" : " rows");
         } else if (kind == LabValueKind::contrast) {
             (*(*state).waterfall).set_contrast(rounded);
-            (*(*state).contrast_value).set_text(std::to_string(rounded) + "%");
+            (*(*state).contrast_value).text = std::to_string(rounded) + "%";
         } else {
             (*(*state).waterfall).set_synthetic_load(rounded);
-            (*(*state).load_value).set_text(std::to_string(rounded) + "%");
+            (*(*state).load_value).text = std::to_string(rounded) + "%";
         }
     }
 };
@@ -754,9 +754,9 @@ struct ResponseClicked final {
         const std::shared_ptr<LabContext> state = context.lock();
         if (!state) return;
         ++(*state).response_count;
-        (*(*state).response).set_text(
+        (*(*state).response).text =
             "tap count " + std::to_string((*state).response_count) +
-            " · delivered on UI thread");
+            " · delivered on UI thread";
     }
 };
 
@@ -768,9 +768,9 @@ struct FullRepaintChanged final {
         if (!state) return;
         const bool enabled = checked == CheckState::checked;
         (*(*state).waterfall).set_full_window_repaint(enabled);
-        (*(*state).mode).set_text(enabled
+        (*(*state).mode).text = enabled
             ? "BAD PATH (A/B CONTROL)\nEvery video sample dirties the complete retained window. Input contention here is expected evidence."
-            : "GOOD PATH\nOnly the waterfall damage is sampled. Producer publication never waits for UI paint or input.");
+            : "GOOD PATH\nOnly the waterfall damage is sampled. Producer publication never waits for UI paint or input.";
     }
 };
 
@@ -787,8 +787,8 @@ std::shared_ptr<Label> label(std::string id, std::string text, Rect bounds,
                              TextStyleRole role = TextStyleRole::body) {
     std::shared_ptr<gui_forms::Label> result = make_control<Label>(StableId(std::move(id)), std::move(text));
     (*result).set_requested_bounds(bounds);
-    (*result).set_text_style_role(role);
-    (*result).set_vertical_alignment(VerticalAlignment::center);
+    (*result).text_style_role = role;
+    (*result).vertical_alignment = VerticalAlignment::center;
     return result;
 }
 
@@ -828,7 +828,7 @@ void refresh_telemetry(const std::shared_ptr<LabContext>& context) {
             current.surface.last_read_generation
         : 0U;
 
-    (*(*context).metrics).set_text(
+    (*(*context).metrics).text =
         "producer   " + std::to_string(static_cast<unsigned>(producer_fps + 0.5)) +
         " fps\npublished  " +
         std::to_string(static_cast<unsigned>(published_fps + 0.5)) +
@@ -838,7 +838,7 @@ void refresh_telemetry(const std::shared_ptr<LabContext>& context) {
         " generations\ndropped writes " +
         std::to_string(current.surface.dropped_acquires) +
         "\nUI wake posts " + std::to_string(current.wake_posts) +
-        (current.presentation_idle ? "\nproducer idle: not presented" : ""));
+        (current.presentation_idle ? "\nproducer idle: not presented" : "");
     (*context).previous = current;
     (*context).previous_time = now;
 }
@@ -859,12 +859,12 @@ std::unique_ptr<Window> make_vsync_lab() {
     (*header).set_background(Color::rgba(29, 47, 65));
     std::shared_ptr<Label> title = label("vsync.title", "GUI.Forms · live surface / input contention lab",
                        {22.0, 8.0, 760.0, 34.0}, TextStyleRole::title);
-    (*title).set_foreground(Color::rgba(244, 249, 252));
+    (*title).fore_color = Color::rgba(244, 249, 252);
     std::shared_ptr<Label> subtitle = label(
         "vsync.subtitle",
         "240 Hz producer · newest coherent frame · one outstanding UI paint · compositor-paced presentation",
         {24.0, 42.0, 920.0, 22.0}, TextStyleRole::caption);
-    (*subtitle).set_foreground(Color::rgba(169, 205, 228));
+    (*subtitle).fore_color = Color::rgba(169, 205, 228);
     (*header).add_child(title);
     (*header).add_child(subtitle);
 
@@ -944,7 +944,7 @@ std::unique_ptr<Window> make_vsync_lab() {
         "vsync.warning",
         "The bad-path switch intentionally couples every video sample to the complete retained window. It is an A/B control, not the design.",
         {18.0, 490.0, 252.0, 78.0}, TextStyleRole::caption);
-    (*warning).set_text_wrapping(TextWrapping::word);
+    (*warning).text_wrapping = TextWrapping::word;
     (*controls).add_child(warning);
 
     // Epistemic controls: these values are retained by the TrackBars but are
@@ -972,19 +972,19 @@ std::unique_ptr<Window> make_vsync_lab() {
     (*context).metrics = label("vsync.metrics", "warming up…",
                              {18.0, 52.0, 244.0, 184.0},
                              TextStyleRole::monospace);
-    (*(*context).metrics).set_text_wrapping(TextWrapping::word);
+    (*(*context).metrics).text_wrapping = TextWrapping::word;
     (*metrics_panel).add_child((*context).metrics);
     (*context).mode = label(
         "vsync.mode",
         "GOOD PATH\nOnly the waterfall damage is sampled. Producer publication never waits for UI paint or input.",
         {18.0, 252.0, 244.0, 110.0});
-    (*(*context).mode).set_text_wrapping(TextWrapping::word);
+    (*(*context).mode).text_wrapping = TextWrapping::word;
     (*metrics_panel).add_child((*context).mode);
     std::shared_ptr<Label> expectations = label(
         "vsync.expectations",
         "Acceptance\n• sliders track continuously\n• tap increments immediately\n• waterfall never stops at fill\n• yellow sweep never tears\n• generation lag stays bounded",
         {18.0, 388.0, 244.0, 168.0}, TextStyleRole::caption);
-    (*expectations).set_text_wrapping(TextWrapping::word);
+    (*expectations).text_wrapping = TextWrapping::word;
     (*metrics_panel).add_child(expectations);
 
     std::shared_ptr<gui_forms::Panel> center = make_control<Panel>(StableId("vsync.center"));

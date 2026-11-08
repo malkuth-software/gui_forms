@@ -395,11 +395,11 @@ void test_self_invalidation_and_clamps() {
 void test_label_intrinsic_sizes() {
     std::shared_ptr<CountingControl> root = counting_control("contract.label.root", 400.0, 300.0);
     std::shared_ptr<Label> label = std::make_shared<Label>(StableId("contract.label"), "alpha beta gamma");
-    (*label).set_text_wrapping(TextWrapping::word);
+    (*label).text_wrapping = TextWrapping::word;
     std::shared_ptr<Label> single = std::make_shared<Label>(StableId("contract.label.single"),
                                                             "alpha beta\ngamma");
     std::shared_ptr<Label> fixed = std::make_shared<Label>(StableId("contract.label.fixed"), "alpha beta gamma");
-    (*fixed).set_text_wrapping(TextWrapping::word);
+    (*fixed).text_wrapping = TextWrapping::word;
     (*fixed).set_requested_bounds({0.0, 0.0, 50.0, 0.0});
     (*root).add_child(label);
     (*root).add_child(single);
@@ -408,7 +408,7 @@ void test_label_intrinsic_sizes() {
     Window& window = *held_window;
     window.perform_layout();
 
-    const FontSpec font = (*label).effective_font((*label).font());
+    const FontSpec font = (*label).effective_font((*label).resolved_font());
     double widest_word = 0.0;
     for (const char* word : {"alpha", "beta", "gamma"}) {
         widest_word = std::max(widest_word,
@@ -432,7 +432,7 @@ void test_label_intrinsic_sizes() {
 
     const Size single_minimum = (*single).measure_for_layout(minimum);
     const Size single_maximum = (*single).measure_for_layout(maximum);
-    const FontSpec single_font = (*single).effective_font((*single).font());
+    const FontSpec single_font = (*single).effective_font((*single).resolved_font());
     const double paragraph = (*single).resolve_text_layout_utf8("alpha beta", single_font).logical_size.width;
     require(single_minimum == single_maximum && near(single_maximum.width, paragraph + 4.0),
             "a label that does not wrap answers both content queries with its widest paragraph");
@@ -494,7 +494,7 @@ void test_layout_direction_inheritance_and_invalidation() {
 
 std::shared_ptr<Label> wrapping_label(const char* id, const char* text) {
     std::shared_ptr<Label> label = std::make_shared<Label>(StableId(std::string(id)), text);
-    (*label).set_text_wrapping(TextWrapping::word);
+    (*label).text_wrapping = TextWrapping::word;
     return label;
 }
 

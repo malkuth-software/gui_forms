@@ -181,7 +181,7 @@ void test_rule_faces() {
     require((*group).background() == group_blue, "the group reports the stable-ID rule's background");
     // An application's own colour in code still stands over the theme
     // (truly inline code, the owner's last layer).
-    (*heading).set_foreground(Color::rgba(1, 2, 3));
+    (*heading).fore_color = Color::rgba(1, 2, 3);
     require((*heading).foreground() == Color::rgba(1, 2, 3), "code's own foreground stands over the rule");
 }
 

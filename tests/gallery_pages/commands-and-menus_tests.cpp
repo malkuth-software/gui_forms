@@ -26,15 +26,15 @@ void test_commands_and_menus(gui_forms::Window& window) {
     require((*save_button).effectively_enabled() && (*save_item).effectively_enabled(),
             "the modified Value must enable the Save Command on both buttons");
     click(window, save_item);
-    require((*status).text().find("Save #1 invoked from gallery.commands.bar.item.2") == 0U &&
-                (*saves).text() == "Saves: 1" && !(*save_button).effectively_enabled(),
+    require((*status).text.read().find("Save #1 invoked from gallery.commands.bar.item.2") == 0U &&
+                (*saves).text.read() == "Saves: 1" && !(*save_button).effectively_enabled(),
             "a CommandBar item must invoke the shared Command and name itself as the source");
 
     // Ctrl+S is the bar item's shortcut; it reaches the same Command.
     click(window, modified);
     require((*save_item).effectively_enabled(), "re-modifying must re-enable Save");
     require(window.dispatch_key({KeyAction::down, PhysicalKey::s, Modifier::control}) &&
-                (*saves).text() == "Saves: 2" && !(*save_item).effectively_enabled(),
+                (*saves).text.read() == "Saves: 2" && !(*save_item).effectively_enabled(),
             "the CommandBar shortcut must execute the shared Save Command");
 
     // MenuStrip: keyboard opening presents the File menu as a ContextMenu overlay
@@ -51,9 +51,9 @@ void test_commands_and_menus(gui_forms::Window& window) {
     require(menu_save && (*menu_save).effectively_enabled(),
             "the File menu must present the enabled Save Command as a row");
     click(window, menu_save);
-    require((*saves).text() == "Saves: 3" &&
-                (*status).text().find("Save #3 invoked from") == 0U &&
-                (*status).text().find("menu gallery.commands.menu.file") != std::string::npos &&
+    require((*saves).text.read() == "Saves: 3" &&
+                (*status).text.read().find("Save #3 invoked from") == 0U &&
+                (*status).text.read().find("menu gallery.commands.menu.file") != std::string::npos &&
                 window.find("gallery.commands.menu.menu.overlay.panel.0") == nullptr &&
                 window.focus_scope_depth() == 0U,
             "a MenuStrip row must execute the shared Command, report its menu and close");
@@ -103,7 +103,7 @@ void test_commands_and_menus(gui_forms::Window& window) {
             "clicking a menu-mode DropDownButton must open its menu and mark itself open");
     window.perform_layout();
     click(window, window.find("gallery.commands.export.menu.overlay.row.export.png"));
-    require((*status).text().find("Export PNG") == 0U && !(*export_button).drop_down_open() &&
+    require((*status).text.read().find("Export PNG") == 0U && !(*export_button).drop_down_open() &&
                 window.find("gallery.commands.export.menu.overlay.panel.0") == nullptr,
             "an export row must execute its Command and close the drop-down");
 
@@ -116,7 +116,7 @@ void test_commands_and_menus(gui_forms::Window& window) {
     const Point primary{run_bounds.x + 24.0, run_bounds.y + run_bounds.height * 0.5};
     require(window.dispatch_pointer({PointerAction::down, PointerButton::primary, primary}) &&
                 window.dispatch_pointer({PointerAction::up, PointerButton::primary, primary}) &&
-                (*status).text().find("Run · split button primary region") == 0U &&
+                (*status).text.read().find("Run · split button primary region") == 0U &&
                 !(*run_button).drop_down_open(),
             "the split button's primary region must invoke the bound Run Command");
     const Point disclosure{run_bounds.x + run_bounds.width - 6.0,

@@ -268,13 +268,13 @@ void test_review_card_owns_typed_theme_aware_projection() {
     require(changes == 1U && (*card).header() == (*card).title_label() &&
                 (*card).body() == (*card).summary_label() &&
                 (*card).footer() == (*card).verdict_label() &&
-                (*(*card).title_label()).text_style_role() ==
+                (*(*card).title_label()).text_style_role.read() ==
                     TextStyleRole::heading &&
-                (*(*card).summary_label()).text_style_role() ==
+                (*(*card).summary_label()).text_style_role.read() ==
                     TextStyleRole::body &&
-                (*(*card).verdict_label()).text_style_role() ==
+                (*(*card).verdict_label()).text_style_role.read() ==
                     TextStyleRole::caption &&
-                !(*(*card).title_label()).has_font_override(),
+                !(*(*card).title_label()).font.read().has_value(),
             "ReviewCard must own one typed theme-aware title/body/verdict projection");
     const SemanticDescriptor pending_semantics = (*card).semantic_descriptor();
     require(pending_semantics.name == pending.title &&

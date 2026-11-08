@@ -760,7 +760,7 @@ void test_property_origins_and_metadata_driven_property_grid() {
                 (*inherited).property_value_origin("ForeColor") ==
                     PropertyValueOrigin::inherited,
             "effective Label appearance must identify inherited rather than fabricated default authorship");
-    (*inherited).set_font({FontRole::content, 14.0, 600, false});
+    (*inherited).font = FontSpec{FontRole::content, 14.0, 600, false};
     require((*inherited).property_value_origin("Font") ==
                 PropertyValueOrigin::local &&
                 (*inherited).reset_property("Font") &&
@@ -781,7 +781,7 @@ void test_property_origins_and_metadata_driven_property_grid() {
                                         replacement_target));
     require((*switching_grid).try_set_property_value(
                 "Text", BindingValue{std::string("after")}) &&
-                (*switched_target).text() == "after" &&
+                (*switched_target).text.read() == "after" &&
                 (*switching_grid).selected_object() == replacement_target &&
                 (*switching_grid).editor("Checked") != nullptr,
             "a target callback may replace PropertyGrid selection without allowing the retiring edit to touch stale projection maps");
@@ -797,7 +797,7 @@ void test_property_origins_and_metadata_driven_property_grid() {
             DisposeWeakPropertyGrid(weak_callback_grid));
     require((*callback_grid).try_set_property_value(
                 "Text", BindingValue{std::string("after")}) &&
-                (*callback_target).text() == "after" &&
+                (*callback_target).text.read() == "after" &&
                 (*callback_grid).is_disposed(),
             "target change callbacks may dispose the PropertyGrid without stale editor access");
 

@@ -121,7 +121,7 @@ struct DialogState final {
     std::error_code error;
     destination = std::filesystem::absolute(destination, error);
     if (error || !std::filesystem::is_directory(destination, error)) {
-      (*status).set_text("Choose an existing folder.");
+      (*status).text = "Choose an existing folder.";
       return;
     }
     directory = destination.lexically_normal();
@@ -172,7 +172,7 @@ struct DialogState final {
       names.push_back(entries[i].path.filename().string() +
                       (entries[i].directory ? "/" : ""));
     (*list).items = std::move(names);
-    (*status).set_text(error ? error.message() : "");
+    (*status).text = error ? error.message() : "";
   }
   void activate(std::size_t index) {
     if (index >= entries.size())
@@ -190,8 +190,8 @@ struct DialogState final {
       if (!value.empty() && value.front() == '#')
         value.erase(0, 1);
       if (value.size() != 6 && !(allow_alpha && value.size() == 8)) {
-        (*status).set_text(
-            "Enter six hexadecimal color digits, or eight with alpha.");
+        (*status).text =
+            "Enter six hexadecimal color digits, or eight with alpha.";
         return;
       }
       std::uint32_t parsed{};
@@ -202,7 +202,7 @@ struct DialogState final {
                            : digit >= 'A' && digit <= 'F' ? digit - 'A' + 10
                                                           : -1;
         if (number < 0) {
-          (*status).set_text("Use hexadecimal digits 0–9 and A–F.");
+          (*status).text = "Use hexadecimal digits 0–9 and A–F.";
           return;
         }
         parsed = (parsed << 4U) | static_cast<std::uint32_t>(number);
@@ -229,14 +229,14 @@ struct DialogState final {
       }
       paths.push_back(candidate.string());
     } else if (folder) {
-      (*status).set_text("Choose an existing folder.");
+      (*status).text = "Choose an existing folder.";
       return;
     } else if (save) {
       if (candidate.extension().empty() && !default_extension.empty())
         candidate += default_extension.front() == '.' ? default_extension
                                                       : "." + default_extension;
       if (!std::filesystem::is_directory(candidate.parent_path(), error)) {
-        (*status).set_text("The destination folder does not exist.");
+        (*status).text = "The destination folder does not exist.";
         return;
       }
       if (confirm_overwrite && std::filesystem::exists(candidate, error)) {
@@ -264,7 +264,7 @@ struct DialogState final {
       } else if (std::filesystem::is_regular_file(candidate, error))
         paths.push_back(candidate.string());
       if (paths.empty()) {
-        (*status).set_text("Choose an existing file.");
+        (*status).text = "Choose an existing file.";
         return;
       }
     }
@@ -320,8 +320,8 @@ std::shared_ptr<Label> label(DialogState &state, const char *id,
                              std::string text, Rect bounds) {
   const std::shared_ptr<Label> control =
       make_control<Label>(StableId(std::string(id)), std::move(text));
-  (*control).set_font({FontRole::content, 15, 400, false});
-  (*control).set_text_wrapping(TextWrapping::word);
+  (*control).font = FontSpec{FontRole::content, 15, 400, false};
+  (*control).text_wrapping = TextWrapping::word;
   (*control).set_bounds(bounds);
   (*state.root).add_child(control);
   return control;
@@ -399,7 +399,7 @@ HostDialogResult retained_dialog(NativeWindow &owner,
     // Either option aligns the text to the right; the dialog's controls
     // have no right-to-left reading order of their own.
     if ((*message).right_align || (*message).rtl_reading)
-      (*message_label).set_alignment(HorizontalAlignment::far);
+      (*message_label).alignment = HorizontalAlignment::far;
     for (std::size_t i = 0; i < choices.size(); ++i) {
       const HostDialogChoice choice = choices[i];
       std::string name = host_dialog_choice_name(choice);

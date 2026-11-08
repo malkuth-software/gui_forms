@@ -74,8 +74,8 @@ private:
     [[nodiscard]] static std::shared_ptr<Label> section_body(std::string id, std::string text,
                                                              const double height) {
         std::shared_ptr<Label> body = label(std::move(id), std::move(text), 11.0, 400, ink);
-        (*body).set_text_wrapping(TextWrapping::word);
-        (*body).set_vertical_alignment(VerticalAlignment::near);
+        (*body).text_wrapping = TextWrapping::word;
+        (*body).vertical_alignment = VerticalAlignment::near;
         (*body).set_requested_bounds({0.0, 0.0, 0.0, height});
         return body;
     }
@@ -136,8 +136,8 @@ private:
         static_cast<void>((*card_).set_header(
             label("gallery.choices.card.title", "Rollout plan", 12.0, 700, shell_blue_dark)));
         card_body_ = label("gallery.choices.card.body", "", 11.0, 400, ink);
-        (*card_body_).set_text_wrapping(TextWrapping::word);
-        (*card_body_).set_vertical_alignment(VerticalAlignment::near);
+        (*card_body_).text_wrapping = TextWrapping::word;
+        (*card_body_).vertical_alignment = VerticalAlignment::near;
         static_cast<void>((*card_).set_body(card_body_));
         card_footer_ = label("gallery.choices.card.footer", "Click or press Space to select",
                              10.0, 600, muted);

@@ -63,7 +63,7 @@ void test_typography_and_inspection(gui_forms::Window& window) {
     click(window, window.find("gallery.typography.target.item.2"));
     require((*inspector).target_stable_id() == "gallery.typography.specimen.2" &&
                 (*overlay).target_stable_id() == "gallery.typography.specimen.2" &&
-                (*readout).text().find("gallery.typography.specimen.2") != std::string::npos,
+                (*readout).text.read().find("gallery.typography.specimen.2") != std::string::npos,
             "choosing a target must retarget the inspector view and overlay");
     const std::shared_ptr<gui_forms::ChoiceGroup> target =
         std::dynamic_pointer_cast<ChoiceGroup>(window.find("gallery.typography.target"));

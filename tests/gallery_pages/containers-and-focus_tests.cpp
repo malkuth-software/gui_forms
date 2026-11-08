@@ -17,7 +17,7 @@ void test_containers_and_focus(gui_forms::Window& window) {
     require(base_container && user_control && user_status && collapse &&
                 (*user_control).is_loaded() && (*user_control).is_attached() &&
                 (*user_control).attachment_count() == 1U &&
-                (*user_status).text().find("Loaded fired once") != std::string::npos,
+                (*user_status).text.read().find("Loaded fired once") != std::string::npos,
             "gallery must directly dogfood public ContainerControl and UserControl lifecycle");
     click(window, window.find("gallery.containers.base.focus"));
     require((*base_container).active_control() ==
@@ -62,7 +62,7 @@ void test_containers_and_focus(gui_forms::Window& window) {
                 !window.find("gallery.containers.dock.content.form.cs"),
             "only the selected panels of shown stacks are made");
     require(window.request_focus(window.find("gallery.containers.dock.field.properties")) &&
-                (*dock_status).text().find("Active: Properties") != std::string::npos,
+                (*dock_status).text.read().find("Active: Properties") != std::string::npos,
             "focus in a panel makes it the active panel");
     require(window.find("gallery.containers.navigator") &&
                 window.semantic_snapshot().to_json().find("Active Tool Windows") != std::string::npos,

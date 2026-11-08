@@ -89,7 +89,7 @@ void test_values_and_spinners_binding(gui_forms::Window& window) {
     require(editor && enabled && gain && status &&
                 (*editor).text.read() == "Local index" && (*enabled).checked() &&
                 (*gain).value() == 28.0 &&
-                (*status).text().find("profile.local") != std::string::npos,
+                (*status).text.read().find("profile.local") != std::string::npos,
             "gallery binding specimen must project the initial retained record");
     require(window.request_focus(editor),
             "gallery bound editor must focus before its retained edit");
@@ -97,7 +97,7 @@ void test_values_and_spinners_binding(gui_forms::Window& window) {
     click(window, window.find("gallery.values.binding.next"));
     require((*editor).text.read() == "Archive review" && !(*enabled).checked() &&
                 (*gain).value() == 61.0 &&
-                (*status).text().find("profile.archive") != std::string::npos,
+                (*status).text.read().find("profile.archive") != std::string::npos,
             "gallery binding currency command must update all three stock control families");
     click(window, window.find("gallery.values.binding.previous"));
     require((*editor).text.read() == "Local index edited",

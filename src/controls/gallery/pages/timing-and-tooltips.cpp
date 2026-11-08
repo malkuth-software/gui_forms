@@ -170,7 +170,7 @@ void TimingPage::on_run_work() {
     (*worker_).run_worker_async();
     run_work_.set_enabled(false);
     cancel_work_.set_enabled(true);
-    (*work_status_).set_text("Running on a worker thread");
+    (*work_status_).text = "Running on a worker thread";
 }
 
 void TimingPage::on_cancel_work() {
@@ -185,11 +185,11 @@ void TimingPage::on_work_completed(const BackgroundWorkerCompleted& completed) {
     run_work_.set_enabled(true);
     cancel_work_.set_enabled(false);
     if (completed.cancelled) {
-        (*work_status_).set_text("Cancelled");
+        (*work_status_).text = "Cancelled";
     } else if (completed.error) {
-        (*work_status_).set_text("Failed: " + completed.error_message);
+        (*work_status_).text = "Failed: " + completed.error_message;
     } else {
-        (*work_status_).set_text(binding_value_to_string(completed.result));
+        (*work_status_).text = binding_value_to_string(completed.result);
     }
 }
 
@@ -203,14 +203,14 @@ void TimingPage::on_start() {
     const std::shared_ptr<Timer> ui_timer = timer();
     if (!ui_timer) return;
     (*ui_timer).start();
-    (*status_).set_text("Running · deadline armed on the UI queue");
+    (*status_).text = "Running · deadline armed on the UI queue";
 }
 
 void TimingPage::on_stop() {
     const std::shared_ptr<Timer> ui_timer = timer();
     if (!ui_timer) return;
     (*ui_timer).stop();
-    (*status_).set_text("Stopped · zero idle wakeups");
+    (*status_).text = "Stopped · zero idle wakeups";
 }
 
 void TimingPage::on_interval_changed(const double milliseconds) {

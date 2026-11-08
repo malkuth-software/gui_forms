@@ -22,13 +22,13 @@ void test_semantic_feedback(gui_forms::Window& window) {
     require(semantics.find("\"role\":\"toolbar\"") != std::string::npos,
             "the transition CommandBar must publish toolbar semantics");
     require((*trace).text.read().empty() &&
-                (*accounting).text().find("Retained 0 of 6") != std::string::npos,
+                (*accounting).text.read().find("Retained 0 of 6") != std::string::npos,
             "no record may exist before a transition is announced");
 
     // Each bar item borrows a page-owned Command; invoking one emits a record.
     click(window, window.find("gallery.semantic.commands.item.4"));
-    require((*latest).text().find("feedback=operation_completed") != std::string::npos &&
-                (*latest).text().find("cue=operation_complete") != std::string::npos &&
+    require((*latest).text.read().find("feedback=operation_completed") != std::string::npos &&
+                (*latest).text.read().find("cue=operation_complete") != std::string::npos &&
                 (*trace).text.read().find("feedback=operation_completed sequence=1") !=
                     std::string::npos,
             "announcing a transition must publish its record and host cue");
@@ -40,7 +40,7 @@ void test_semantic_feedback(gui_forms::Window& window) {
             "the completion button must share the bar item's Command");
     click(window, complete);
     require((*trace).text.read().find("sequence=2") != std::string::npos &&
-                (*accounting).text().find("Retained 2 of 6") != std::string::npos,
+                (*accounting).text.read().find("Retained 2 of 6") != std::string::npos,
             "the shared Command must emit the second record");
 
     // The sound Value drives the window's presentation settings and the
@@ -51,8 +51,8 @@ void test_semantic_feedback(gui_forms::Window& window) {
     require(!window.presentation_settings().sound_enabled,
             "unchecking the bound Value must disable window sound cues");
     click(window, window.find("gallery.semantic.commands.item.5"));
-    require((*latest).text().find("feedback=operation_failed") != std::string::npos &&
-                (*latest).text().find("sound off") != std::string::npos &&
+    require((*latest).text.read().find("feedback=operation_failed") != std::string::npos &&
+                (*latest).text.read().find("sound off") != std::string::npos &&
                 (*trace).text.read().find("sound=off") != std::string::npos,
             "a transition announced with sound off must record sound=off");
     click(window, sound);
@@ -63,8 +63,8 @@ void test_semantic_feedback(gui_forms::Window& window) {
     for (int repeat = 0; repeat < 5; ++repeat) {
         click(window, window.find("gallery.semantic.commands.item.0"));
     }
-    require((*accounting).text().find("Retained 6 of 6") != std::string::npos &&
-                (*accounting).text().find("dropped 2") != std::string::npos &&
+    require((*accounting).text.read().find("Retained 6 of 6") != std::string::npos &&
+                (*accounting).text.read().find("dropped 2") != std::string::npos &&
                 (*trace).text.read().find("sequence=1 ") == std::string::npos &&
                 (*trace).text.read().find("feedback=location_changed sequence=8") !=
                     std::string::npos,
@@ -72,9 +72,9 @@ void test_semantic_feedback(gui_forms::Window& window) {
 
     click(window, window.find("gallery.semantic.clear"));
     require((*trace).text.read().empty() &&
-                (*accounting).text().find("Retained 0 of 6") != std::string::npos &&
-                (*accounting).text().find("dropped 0") != std::string::npos &&
-                (*latest).text().find("cleared") != std::string::npos,
+                (*accounting).text.read().find("Retained 0 of 6") != std::string::npos &&
+                (*accounting).text.read().find("dropped 0") != std::string::npos &&
+                (*latest).text.read().find("cleared") != std::string::npos,
             "the clear Command must empty the history and its eviction count");
 }
 

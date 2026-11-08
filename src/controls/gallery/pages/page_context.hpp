@@ -142,17 +142,17 @@ struct PageContext final {
         if (!status) return;
         const MotionPolicy policy = motion_policy();
         if (!policy.enabled) {
-            (*status).set_text("Motion disabled · zero animation wakeups");
+            (*status).text = "Motion disabled · zero animation wakeups";
         } else if (policy.paused && policy.reduced) {
-            (*status).set_text(
-                "Reduced motion + paused · phase retained · zero animation wakeups");
+            (*status).text =
+                "Reduced motion + paused · phase retained · zero animation wakeups";
         } else if (policy.paused) {
-            (*status).set_text("Motion paused · phase retained · zero animation wakeups");
+            (*status).text = "Motion paused · phase retained · zero animation wakeups";
         } else if (policy.reduced) {
-            (*status).set_text(
-                "Reduced motion · low cadence · limited excursion · animation active");
+            (*status).text =
+                "Reduced motion · low cadence · limited excursion · animation active";
         } else {
-            (*status).set_text("Full motion · continuous retained animation active");
+            (*status).text = "Full motion · continuous retained animation active";
         }
     }
 
@@ -190,8 +190,8 @@ struct PageContext final {
             if (selected_page == timing_page) (*ui_timer).start();
             else if ((*ui_timer).enabled()) (*ui_timer).stop();
         }
-        (*status).set_text(std::string(page_titles[index]) +
-                         "  ·  public GUI.Forms behavior  ·  CPU retained renderer");
+        (*status).text = std::string(page_titles[index]) +
+                         "  ·  public GUI.Forms behavior  ·  CPU retained renderer";
         if (compiled) {
             static_cast<void>((*compiled).model.select_page(page_ids[index]));
             (*compiled).synchronize(std::string(navigation_id_prefix) +
@@ -204,9 +204,9 @@ inline std::shared_ptr<Label> label(std::string id, std::string text,
                              double size = 12.0, int weight = 400,
                              Color color = ink) {
     std::shared_ptr<gui_forms::Label> control = make_control<Label>(StableId(std::move(id)), std::move(text));
-    (*control).set_font({FontRole::content, size,
-                       static_cast<std::uint16_t>(weight), false});
-    (*control).set_foreground(color);
+    (*control).font = FontSpec{FontRole::content, size,
+                       static_cast<std::uint16_t>(weight), false};
+    (*control).fore_color = color;
     return control;
 }
 

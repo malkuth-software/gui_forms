@@ -263,7 +263,7 @@ protected:
 void attempt_label_mutation(const std::shared_ptr<Label>& label,
                             bool& rejected) noexcept {
     try {
-        (*label).set_text("After");
+        (*label).text = "After";
     } catch (const std::logic_error&) {
         rejected = true;
     }
@@ -992,7 +992,7 @@ void test_wrong_thread_property_mutation_is_rejected() {
     std::thread worker(attempt_label_mutation, std::cref(label),
                        std::ref(rejected));
     worker.join();
-    require(rejected && (*label).text() == "Before",
+    require(rejected && (*label).text.read() == "Before",
             "reusable control properties must retain core UI-thread enforcement");
 }
 
@@ -1006,7 +1006,7 @@ void test_fixed_label_text_is_paint_only() {
     window.paint(painter, {0.0, 0.0, 120.0, 24.0});
     window.reset_activity_metrics();
 
-    (*label).set_text("999 kB/s");
+    (*label).text = "999 kB/s";
     const DamageRegion damage = window.take_damage();
     require(!damage.empty(), "fixed label text must request repaint");
     window.paint(painter, damage.bounds());
@@ -1046,8 +1046,8 @@ void test_fixed_label_measurement_does_not_resolve_unused_text() {
     const std::shared_ptr<Label> label = make_control<Label>(
         StableId("label.fixed-measurement"), source);
     (*label).set_requested_bounds({0.0, 0.0, 190.0, 108.0});
-    (*label).set_text_wrapping(TextWrapping::word);
-    (*label).set_maximum_lines(7U);
+    (*label).text_wrapping = TextWrapping::word;
+    (*label).maximum_lines = 7U;
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(label, Size{190.0, 108.0});
     Window& window = *held_window;
     window.set_text_metrics_provider(&provider);
@@ -1086,9 +1086,9 @@ void test_label_multiline_wrapping_and_alignment() {
     std::shared_ptr<gui_forms::Label> label = make_control<Label>(StableId("label.multiline"),
                                      "Retained labels wrap words\nand preserve breaks");
     (*label).set_requested_bounds({0.0, 0.0, 120.0, 80.0});
-    (*label).set_text_wrapping(TextWrapping::word);
-    (*label).set_vertical_alignment(VerticalAlignment::near);
-    (*label).set_alignment(HorizontalAlignment::far);
+    (*label).text_wrapping = TextWrapping::word;
+    (*label).vertical_alignment = VerticalAlignment::near;
+    (*label).alignment = HorizontalAlignment::far;
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(label, Size{120.0, 80.0});
     Window& window = *held_window;
     RecordingPainter painter{};
@@ -1102,24 +1102,24 @@ void test_label_multiline_wrapping_and_alignment() {
 
     bool rejected = false;
     try {
-        (*label).set_line_spacing(0.1);
+        (*label).line_spacing = 0.1;
     } catch (const std::invalid_argument&) {
         rejected = true;
     }
-    require(rejected && (*label).line_spacing() == 1.25,
+    require(rejected && (*label).line_spacing.read() == 1.25,
             "Label must reject invalid line spacing without mutation");
 
-    (*label).set_text("画布工具可以使用键盘调整坐标并绘制连续线条");
+    (*label).text = "画布工具可以使用键盘调整坐标并绘制连续线条";
     RecordingPainter cjk{};
     window.paint(cjk, {0.0, 0.0, 120.0, 80.0});
     require(cjk.texts.size() > 1, "unspaced CJK paragraphs wrap instead of overflowing");
     std::string joined{};
     for (const std::string& line : cjk.texts) { joined += line; }
-    require(joined == (*label).text(), "CJK wrapping preserves every UTF-8 character");
+    require(joined == (*label).text.read(), "CJK wrapping preserves every UTF-8 character");
 
-    (*label).set_text("Visual source");
-    (*label).set_text_wrapping(TextWrapping::no_wrap);
-    (*label).set_text_case_transform(TextCaseTransform::uppercase_ascii);
+    (*label).text = "Visual source";
+    (*label).text_wrapping = TextWrapping::no_wrap;
+    (*label).text_case_transform = TextCaseTransform::uppercase_ascii;
     RecordingPainter transformed_painter{};
     window.paint(transformed_painter, {0.0, 0.0, 120.0, 80.0});
     require(transformed_painter.texts.size() == 1U &&
@@ -1258,9 +1258,9 @@ void test_label_line_limit_bounds_hidden_wrapping_work() {
     for (std::size_t index = 0U; index < 4096U; ++index) source.append("one two three x ");
     const std::shared_ptr<Label> label = make_control<Label>(StableId("label.preview-cost"), source);
     (*label).set_requested_bounds({0.0, 0.0, 190.0, 108.0});
-    (*label).set_font({FontRole::content, 13.0, 400, false});
-    (*label).set_text_wrapping(TextWrapping::word);
-    (*label).set_maximum_lines(7U);
+    (*label).font = FontSpec{FontRole::content, 13.0, 400, false};
+    (*label).text_wrapping = TextWrapping::word;
+    (*label).maximum_lines = 7U;
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(label, Size{190.0, 108.0});
     Window& window = *held_window;
     window.perform_layout();
@@ -1352,11 +1352,11 @@ void test_owner_decoration_is_retained_and_owner_relative() {
 void test_basic_control_layout_customization_is_bounded_and_atomic() {
     std::shared_ptr<gui_forms::Label> label = make_control<Label>(StableId("label.maximum-lines"),
                                      "one two three four five six seven eight");
-    (*label).set_text_wrapping(TextWrapping::word);
+    (*label).text_wrapping = TextWrapping::word;
     const Size unrestricted = (*label).measure({72.0, 200.0});
-    (*label).set_maximum_lines(2U);
+    (*label).maximum_lines = 2U;
     const Size limited = (*label).measure({72.0, 200.0});
-    require((*label).maximum_lines() == 2U && limited.height < unrestricted.height,
+    require((*label).maximum_lines.read() == 2U && limited.height < unrestricted.height,
             "Label MaximumLines must bound content-sized desired height");
     (*label).set_requested_bounds({0.0, 0.0, 72.0, 80.0});
     const std::unique_ptr<Window> held_label_window = std::make_unique<Window>(label, Size{72.0, 80.0});
@@ -1368,18 +1368,18 @@ void test_basic_control_layout_customization_is_bounded_and_atomic() {
 
     bool rejected_lines{};
     try {
-        (*label).set_maximum_lines(4097U);
+        (*label).maximum_lines = 4097U;
     } catch (const std::out_of_range&) {
         rejected_lines = true;
     }
     bool rejected_alignment{};
     try {
-        (*label).set_alignment(static_cast<HorizontalAlignment>(255));
+        (*label).alignment = static_cast<HorizontalAlignment>(255);
     } catch (const std::invalid_argument&) {
         rejected_alignment = true;
     }
     require(rejected_lines && rejected_alignment &&
-                (*label).maximum_lines() == 2U &&
+                (*label).maximum_lines.read() == 2U &&
                 (*label).alignment() == HorizontalAlignment::near,
             "Label bounded and enum properties must reject invalid values atomically");
 
@@ -1425,30 +1425,30 @@ void test_label_inherits_theme_typography_until_explicitly_overridden() {
         themed_text;
     std::shared_ptr<gui_forms::Label> label = make_control<Label>(StableId("label.theme"), "Heading");
     (*label).set_theme_override(Theme::create(definition));
-    (*label).set_text_style_role(TextStyleRole::heading);
-    require(!(*label).has_font_override() &&
-                (*label).font() == FontSpec{FontRole::control, 17.0, 650, false,
+    (*label).text_style_role = TextStyleRole::heading;
+    require(!(*label).font.read().has_value() &&
+                (*label).resolved_font() == FontSpec{FontRole::control, 17.0, 650, false,
                                           0.31} &&
-                !(*label).has_foreground_override() &&
+                !(*label).fore_color.read().has_value() &&
                 (*label).foreground() == themed_text,
             "Label must resolve typography and text color from inherited theme roles");
 
     const FontSpec explicit_font{FontRole::content, 11.0, 500, true};
-    (*label).set_font(explicit_font);
-    (*label).set_text_style_role(TextStyleRole::title);
-    require((*label).has_font_override() && (*label).font() == explicit_font,
+    (*label).font = explicit_font;
+    (*label).text_style_role = TextStyleRole::title;
+    require((*label).font.read().has_value() && (*label).resolved_font() == explicit_font,
             "explicit Label font must remain authoritative across role changes");
-    (*label).clear_font();
-    require(!(*label).has_font_override() &&
-                (*label).font() == FontSpec{FontRole::control, 23.0, 700, false,
+    (*label).font = std::nullopt;
+    require(!(*label).font.read().has_value() &&
+                (*label).resolved_font() == FontSpec{FontRole::control, 23.0, 700, false,
                                           0.19},
             "clearing Label font must restore inherited role typography");
 
     constexpr Color explicit_text = Color::rgba(91, 37, 19);
-    (*label).set_foreground(explicit_text);
+    (*label).fore_color = explicit_text;
     require((*label).foreground() == explicit_text,
             "explicit Label foreground must override theme text");
-    (*label).clear_foreground();
+    (*label).fore_color = std::nullopt;
     require((*label).foreground() == themed_text,
             "clearing Label foreground must restore inherited theme text");
 }

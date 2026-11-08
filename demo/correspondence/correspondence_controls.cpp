@@ -49,11 +49,11 @@ constexpr double search_width = 220.0;
                                                 const FontSpec font, const Color color,
                                                 const double height) {
     std::shared_ptr<Label> label = make_control<Label>(StableId(std::string(id)));
-    (*label).set_font(font);
-    (*label).set_foreground(color);
+    (*label).font = font;
+    (*label).fore_color = color;
     (*label).dock = DockStyle::top;
     (*label).set_requested_bounds({0.0, 0.0, 0.0, height});
-    (*label).set_use_mnemonic(false);
+    (*label).use_mnemonic = false;
     return label;
 }
 
@@ -141,11 +141,11 @@ void CorrespondenceShell::initialize_control_tree() {
     build_menu();
     build_command_row();
     status_ = make_control<Label>(StableId(std::string(ids::status)));
-    (*status_).set_font(status_font);
-    (*status_).set_foreground(muted);
+    (*status_).font = status_font;
+    (*status_).fore_color = muted;
     (*status_).dock = DockStyle::bottom;
     (*status_).set_requested_bounds({0.0, 0.0, 0.0, status_height});
-    (*status_).set_use_mnemonic(false);
+    (*status_).use_mnemonic = false;
     (*status_).accessible_name = "Status";
     add_child(status_);
     build_panes();
@@ -462,7 +462,7 @@ void CorrespondenceShell::project_status() {
         text += " · " + plural(model_.visible_messages().size(), "match") + " for \"" +
                 model_.search() + "\"";
     }
-    (*status_).set_text(std::move(text));
+    (*status_).text = std::move(text);
 }
 
 void CorrespondenceShell::project_commands() {
@@ -532,7 +532,7 @@ void CorrespondenceShell::show_about() {
         if (result.status.accepted()) return;
     }
     // Headless or dialog-less hosts still surface the text in the status line.
-    (*status_).set_text(text);
+    (*status_).text = text;
 }
 
 void CorrespondenceShell::on_folder_selected(const TreeSelectionChange& change) {

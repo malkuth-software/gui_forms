@@ -384,7 +384,7 @@ void test_ten_thousand_children_counts() {
     for (std::size_t index = 0U; index < count; ++index) {
         std::shared_ptr<CountingLabel> label =
             make_control<CountingLabel>(StableId("block.many." + std::to_string(index)));
-        (*label).set_text("Item " + std::to_string(index));
+        (*label).text = "Item " + std::to_string(index);
         (*panel).add_child(label);
         labels.push_back(std::move(label));
     }
@@ -403,7 +403,7 @@ void test_ten_thousand_children_counts() {
     // One item's text: each block item is asked only its height at the
     // panel's width. The changed item's query misses, and so do the panel's
     // own measure and the plain root's above it.
-    (*labels[4'321]).set_text("A rather longer item text");
+    (*labels[4'321]).text = "A rather longer item text";
     window.perform_layout();
     std::uint64_t callbacks = 0U;
     for (const std::shared_ptr<CountingLabel>& label : labels) callbacks += (*label).callbacks;

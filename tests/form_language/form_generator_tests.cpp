@@ -696,7 +696,7 @@ void test_string_escapes() {
     if (outcome != FormLoadOutcome::loaded) return;
     const std::shared_ptr<gui_forms::Label> note =
         std::dynamic_pointer_cast<gui_forms::Label>(find_control(loaded.root, "app.note"));
-    require(note != nullptr && (*note).text() == "Two\nlines \"quoted\" \xCE\xA9",
+    require(note != nullptr && (*note).text.read() == "Two\nlines \"quoted\" \xCE\xA9",
             "escapes: the loader sets the decoded text");
 
     FormGeneratorOptions options = sample_options();

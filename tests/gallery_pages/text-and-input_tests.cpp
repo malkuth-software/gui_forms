@@ -65,10 +65,10 @@ void test_text_and_input(gui_forms::Window& window,
             "the masked specimen shows its prompts and literals");
     require(window.request_focus((*phone).editor()) && window.dispatch_text({"555"}) &&
                 (*phone).text() == "(555" &&
-                (*masked_status).text() == "Telephone (555 · incomplete",
+                (*masked_status).text.read() == "Telephone (555 · incomplete",
             "typed digits pass the mask and report to the page");
     require(!window.dispatch_text({"x"}) &&
-                (*masked_status).text().find("refused \"x\" at position 6") != std::string::npos,
+                (*masked_status).text.read().find("refused \"x\" at position 6") != std::string::npos,
             "a refused letter is reported with its position");
 
     const std::shared_ptr<gui_forms::TextBox> city = std::dynamic_pointer_cast<TextBox>(
@@ -82,7 +82,7 @@ void test_text_and_input(gui_forms::Window& window,
                 (*city).auto_complete_open() && (*city).auto_complete_suggestions().size() == 2U,
             "the city field appends the first match and suggests both");
     require(window.dispatch_key({KeyAction::down, PhysicalKey::tab}) && (*city).text.read() == "edinburgh" &&
-                (*complete_status).text() == "Accepted \"edinburgh\"",
+                (*complete_status).text.read() == "Accepted \"edinburgh\"",
             "Tab accepts the appended city and the page reports it");
     require(window.request_focus((*band).editor()) && window.dispatch_text({"m"}) &&
                 (*(*band).editor()).auto_complete_suggestions().size() == 2U &&
@@ -99,12 +99,12 @@ void test_text_and_input(gui_forms::Window& window,
             "the token box specimen starts with one recipient");
     require(window.request_focus((*recipients).editor()) && window.dispatch_text({"Alan Turing,"}) &&
                 (*recipients).tokens().size() == 2U &&
-                (*tokens_status).text() == "Added \"Alan Turing\" · recipients: 2",
+                (*tokens_status).text.read() == "Added \"Alan Turing\" · recipients: 2",
             "a comma turns the typed name into a token and the page reports it");
     require(window.dispatch_key({KeyAction::down, PhysicalKey::backspace}) &&
                 window.dispatch_key({KeyAction::down, PhysicalKey::backspace}) &&
                 (*recipients).tokens().size() == 1U &&
-                (*tokens_status).text() == "Removed \"Alan Turing\" · recipients: 1",
+                (*tokens_status).text.read() == "Removed \"Alan Turing\" · recipients: 1",
             "Backspace selects and then removes the last token");
 
     const std::shared_ptr<gui_forms::RichTextBox> note = std::dynamic_pointer_cast<RichTextBox>(
@@ -127,13 +127,13 @@ void test_text_and_input(gui_forms::Window& window,
             "the search field specimen shows its placeholder");
     require(window.request_focus((*search).editor()) && window.dispatch_text({"dock"}) &&
                 (*search).text.read() == "dock" &&
-                (*search_status).text() == "Type to search; Enter searches now and Escape clears",
+                (*search_status).text.read() == "Type to search; Enter searches now and Escape clears",
             "typing waits for the pause before searching");
     require(window.dispatch_key({KeyAction::down, PhysicalKey::enter}) &&
-                (*search_status).text() == "Searching for \"dock\"",
+                (*search_status).text.read() == "Searching for \"dock\"",
             "Enter searches now");
     require(window.dispatch_key({KeyAction::down, PhysicalKey::escape}) && (*search).text.read().empty() &&
-                (*search_status).text() == "Showing everything",
+                (*search_status).text.read() == "Showing everything",
             "Escape clears the field, then searches for everything");
 }
 

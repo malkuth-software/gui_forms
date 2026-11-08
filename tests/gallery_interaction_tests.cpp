@@ -199,7 +199,7 @@ int main()
         (*window).find("gallery.lifecycle-status"));
     expect(lifecycle != nullptr && (*lifecycle).is_loaded() &&
                (*lifecycle).attachment_count() == 1 && lifecycle_status != nullptr &&
-               (*lifecycle_status).text() == "Load 1 · attach 1 · init 1",
+               (*lifecycle_status).text.read() == "Load 1 · attach 1 · init 1",
            "Gallery visibly consumes composed UserControl load and initialization lifecycle");
     expect(gui_forms::gallery::select_gallery_page(*window, "instrument"),
            "instrument page selects by stable id");
@@ -385,7 +385,7 @@ int main()
            "Gallery collection handles a typed file drop");
     const std::shared_ptr<gui_forms::Label> status = std::dynamic_pointer_cast<gui_forms::Label>(
         (*window).find("gallery.command.status"));
-    expect((*status).text() == "Drop received · 1 file · 0 text · 0 data",
+    expect((*status).text.read() == "Drop received · 1 file · 0 text · 0 data",
            "Gallery exposes the accepted typed drop without platform payloads");
 
     click(*window, "gallery.command.diagnostics");
@@ -393,7 +393,7 @@ int main()
            "diagnostics command reveals structured metrics panel");
     const std::shared_ptr<gui_forms::Label> diagnostic = std::dynamic_pointer_cast<gui_forms::Label>(
         (*window).find("gallery.diagnostics.input"));
-    expect((*diagnostic).text().find("input ") == 0,
+    expect((*diagnostic).text.read().find("input ") == 0,
            "on-screen diagnostics consume the core MetricsSnapshot");
 
     std::shared_ptr<OverflowPaintProbe> clip_root =

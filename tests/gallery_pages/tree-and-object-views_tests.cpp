@@ -56,7 +56,7 @@ void test_tree_and_object_views(gui_forms::Window& window) {
     require((*tree).selected_id.read() == "docs" && (*trail).active_id.read() == "docs" &&
                 (*trail).segments().size() == 2U && (*objects).items().size() == 2U &&
                 (*objects).items()[0].stable_id == "atlas.md" &&
-                (*status).text().find("Folder Portsmouth Gallery / docs selected") == 0U,
+                (*status).text.read().find("Folder Portsmouth Gallery / docs selected") == 0U,
             "selecting a tree row must re-project the trail, the objects and the status");
 
     // BreadcrumbTrail: activating the root segment selects the root folder.
@@ -64,7 +64,7 @@ void test_tree_and_object_views(gui_forms::Window& window) {
              "a breadcrumb segment must accept a pointer press");
     require((*tree).selected_id.read() == "root" && (*trail).segments().size() == 1U &&
                 (*objects).items().size() == 4U && (*ledger).items().size() == 8U &&
-                (*status).text().find("Breadcrumb root activated") == 0U,
+                (*status).text.read().find("Breadcrumb root activated") == 0U,
             "a breadcrumb segment must drive the tree selection and the dependent views");
 
     // ObjectView: select the src folder row, then Enter activates it, which
@@ -93,7 +93,7 @@ void test_tree_and_object_views(gui_forms::Window& window) {
     click_at(window, ledger_point, "a ledger row must accept a pointer press");
     require((*ledger).selected_id.read() == "window.cpp" && (*ledger).pinned_id.read() == "window.cpp" &&
                 (*ledger).expanded("window.cpp") &&
-                (*status).text().find("Pinned entry: window.cpp · Portsmouth Gallery / src / core / window.cpp") == 0U,
+                (*status).text.read().find("Pinned entry: window.cpp · Portsmouth Gallery / src / core / window.cpp") == 0U,
             "clicking a ledger row must select it, pin it and report its fixture path");
 
     // ChoiceGroup bound to the page's Value<int> switches the ObjectView mode.
@@ -108,7 +108,7 @@ void test_tree_and_object_views(gui_forms::Window& window) {
     require(window.request_focus(tree) &&
                 window.dispatch_key({KeyAction::down, PhysicalKey::left}) &&
                 !(*tree).expanded("src") &&
-                (*status).text().find("Folder src collapsed") == 0U,
+                (*status).text.read().find("Folder src collapsed") == 0U,
             "Left on an expanded tree row must collapse it and publish expansion_changed");
 
     // TreeListView: the whole fixture with columns; pressing the Name header
@@ -120,7 +120,7 @@ void test_tree_and_object_views(gui_forms::Window& window) {
             "the TreeListView must show the fixture with root, src and controls expanded");
     require((*tree_list).on_semantic_child_action("gallery.tree.tree-list.column.name", SemanticAction::press, {}) &&
                 (*tree_list).sort_column() == 0U && (*tree_list).row_node_id(1U) == "assets" &&
-                (*status).text().find("TreeListView siblings sorted by Name ascending") == 0U,
+                (*status).text.read().find("TreeListView siblings sorted by Name ascending") == 0U,
             "pressing a TreeListView header must sort the siblings and report it");
 
     // DataGridView's image column: the Gallery's fixtures install the test
@@ -147,7 +147,7 @@ void test_tree_and_object_views(gui_forms::Window& window) {
                 (*grid).cell_text(*source, *history) == "Changes" && !(*grid).link_visited(*source, *history),
             "the grid must have a link column whose empty cells show its text");
     require((*grid).on_semantic_child_action("button.cpp.history", SemanticAction::press, {}) &&
-                (*status).text().find("History of button.cpp") == 0U &&
+                (*status).text.read().find("History of button.cpp") == 0U &&
                 (*grid).link_visited(*(*grid).row_position(DataGridViewRowId{"button.cpp"}), *history),
             "pressing a link cell must report the link and leave it visited");
 

@@ -120,8 +120,8 @@ std::shared_ptr<Label> label(std::string id, std::string text, Rect bounds,
                              FontSpec font = {FontRole::content, 11.0, 400, false}) {
     std::shared_ptr<gui_forms::Label> result = std::make_shared<Label>(StableId(std::move(id)), std::move(text));
     (*result).set_requested_bounds(bounds);
-    (*result).set_font(font);
-    (*result).set_foreground(ink);
+    (*result).font = font;
+    (*result).fore_color = ink;
     return result;
 }
 
@@ -236,13 +236,13 @@ std::shared_ptr<ScaledPanel> make_title(ProductRefs& refs) {
     (*panel).add_at(mark, {7.0, 5.0, 30.0, 30.0});
     std::shared_ptr<Label> title = label("fm.title.text", "File Manager  ·  Projects", {45.0, 4.0, 900.0, 32.0},
                        {FontRole::control, 16.0, 700, false, 0.32});
-    (*title).set_foreground(Color::rgba(255, 255, 255));
+    (*title).fore_color = Color::rgba(255, 255, 255);
     refs.title = title;
     (*panel).add_at(title, (*title).requested_bounds());
     std::shared_ptr<Label> state = label("fm.title.state", "LOCAL · GENERATION 86", {1160.0, 5.0, 274.0, 30.0},
                        {FontRole::control, 9.0, 600, false, 0.42});
-    (*state).set_alignment(HorizontalAlignment::far);
-    (*state).set_foreground(Color::rgba(245, 249, 255));
+    (*state).alignment = HorizontalAlignment::far;
+    (*state).fore_color = Color::rgba(245, 249, 255);
     (*panel).add_at(state, (*state).requested_bounds());
     return panel;
 }
@@ -701,7 +701,7 @@ std::shared_ptr<FlowLayoutPanelCompat> make_palette_surface(ProductRefs& refs) {
         std::shared_ptr<Label> footer = label(std::string("fm.palette.") + spec.id + ".state",
                             index == 8U ? "CURRENT · HOUSE" : "AVAILABLE",
                             {}, {FontRole::content, 8.5, 600, false, 0.28});
-        (*footer).set_foreground(muted);
+        (*footer).fore_color = muted;
         static_cast<void>((*card).set_footer(footer));
         (*surface).add_child(card);
         refs.palette_cards.push_back(card);
@@ -1009,7 +1009,7 @@ std::shared_ptr<ScaledPanel> make_status(ProductRefs& refs) {
     refs.status_summary = label("fm.status.summary", "1 selected · 2.8 MB · 14 objects", {8,1,590,22}, {FontRole::content,9.5,400,false});
     (*panel).add_at(refs.status_summary, {8,1,590,22});
     refs.status_authority = label("fm.status.authority", "Local navigation ready · index 86 current", {660,1,520,22}, {FontRole::content,9.5,600,false});
-    (*refs.status_authority).set_alignment(HorizontalAlignment::far);
+    (*refs.status_authority).alignment = HorizontalAlignment::far;
     (*panel).add_at(refs.status_authority,(*refs.status_authority).requested_bounds());
     refs.status_view = button("fm.status.view", "Icons ▼", {1235,2,205,20}, ButtonVisualStyle::flat);
     (*panel).add_at(refs.status_view, {1235,2,205,20});
@@ -1262,14 +1262,14 @@ private:
         }
         (*refs_.objects).accessible_name = location.title + " objects";
         (*refs_.tree).set_selected_id("fm.tree.node." + location.tree_id);
-        (*refs_.title).set_text("File Manager  ·  " + location.title);
+        (*refs_.title).text = "File Manager  ·  " + location.title;
         (*refs_.search).placeholder_text = "Search " + location.title + " and descendants";
-        (*refs_.status_authority).set_text("Local navigation · " + location.id +
-                                         " · index 86 current");
-        (*refs_.status_summary).set_text(location.selected_ids.empty()
+        (*refs_.status_authority).text = "Local navigation · " + location.id +
+                                         " · index 86 current";
+        (*refs_.status_summary).text = location.selected_ids.empty()
             ? std::to_string(location.items.size()) + " objects"
             : std::to_string(location.selected_ids.size()) + " selected · " +
-                std::to_string(location.items.size()) + " objects");
+                std::to_string(location.items.size()) + " objects";
         for (std::size_t slot = 0; slot < refs_.breadcrumbs.size(); ++slot) {
             const bool visible = slot < location.path.size();
             (*refs_.breadcrumbs[slot]).visible = visible;
@@ -1413,7 +1413,7 @@ private:
         std::shared_ptr<Label> heading = label("fm.path.matrix.heading", "COMPLETE PATH MATRIX",
                              {10.0, 5.0, 840.0, 34.0},
                              {FontRole::control, 12.0, 700, false, .45});
-        (*heading).set_foreground(Color::rgba(247, 250, 251));
+        (*heading).fore_color = Color::rgba(247, 250, 251);
         (*heading).accessible_description =
             "Browse a full drive-rooted stack or edit the current fixture path";
         std::shared_ptr<DrawingSurface> heading_back = material(
@@ -1449,7 +1449,7 @@ private:
                     "fm.path.matrix.current.separator." + std::to_string(index),
                     "›", {x, 13.0, 18.0, 33.0},
                     {FontRole::control, 11.0, 500, false});
-                (*separator).set_alignment(HorizontalAlignment::center);
+                (*separator).alignment = HorizontalAlignment::center;
                 (*current_).add_at(separator, (*separator).requested_bounds());
                 x += 18.0;
             }
@@ -1495,7 +1495,7 @@ private:
 
         resolution_ = label("fm.path.matrix.resolution", "", {12.0, 166.0, 836.0, 25.0},
                             {FontRole::content, 9.5, 600, false});
-        (*resolution_).set_text_wrapping(TextWrapping::no_wrap);
+        (*resolution_).text_wrapping = TextWrapping::no_wrap;
         (*resolution_).visible = false;
         (*content_).add_at(resolution_, (*resolution_).requested_bounds());
 
@@ -1539,7 +1539,7 @@ private:
                             std::to_string(index), "›",
                         {segment_x, 8.0, 15.0, 31.0},
                         {FontRole::control, 9.0, 500, false});
-                    (*separator).set_alignment(HorizontalAlignment::center);
+                    (*separator).alignment = HorizontalAlignment::center;
                     (*row).add_at(separator, (*separator).requested_bounds());
                     segment_x += 15.0;
                 }
@@ -1664,7 +1664,7 @@ private:
                 navigate_and_close(result.destination_id);
             } else {
                 (*resolution_).set_text("Path not resolved · " + result.explanation);
-                (*resolution_).set_foreground(Color::rgba(139, 43, 47));
+                (*resolution_).fore_color = Color::rgba(139, 43, 47);
                 (*resolution_).accessible_description =
                     "Error: " + result.explanation;
                 status_("Path rejected · " + result.explanation);
@@ -1959,10 +1959,10 @@ private:
         (*refs_.search_surface).visible = true;
         (*refs_.palette_surface).visible = false;
         (*refs_.dna_surface).visible = false;
-        (*refs_.title).set_text("File Manager  ·  Search");
-        (*refs_.status_summary).set_text(search_status());
-        (*refs_.status_authority).set_text(
-            "Local navigation ready · result generation 86");
+        (*refs_.title).text = "File Manager  ·  Search";
+        (*refs_.status_summary).text = search_status();
+        (*refs_.status_authority).text =
+            "Local navigation ready · result generation 86";
         if (Window* window = (*refs_.shell).attached_window()) {
             (*window).perform_layout();
             static_cast<void>((*window).request_focus(refs_.search_results));
@@ -2161,13 +2161,13 @@ public:
         (*refs_.criteria_surface).visible = true;
         (*refs_.palette_surface).visible = false;
         (*refs_.dna_surface).visible = false;
-        (*refs_.title).set_text("File Manager  ·  Criteria");
+        (*refs_.title).text = "File Manager  ·  Criteria";
         (*refs_.search).placeholder_text = "Search this virtual folder";
         update_actions();
         update_status();
-        (*refs_.status_authority).set_text(
+        (*refs_.status_authority).text =
             "Local navigation ready · index " + std::to_string(generation_) +
-            " current");
+            " current";
         project_selection();
         if (Window* window = (*refs_.shell).attached_window()) {
             (*window).perform_layout();
@@ -2349,47 +2349,47 @@ private:
         }
         ++generation_;
         update_status();
-        (*refs_.status_authority).set_text(
+        (*refs_.status_authority).text =
             "Local navigation ready · index " + std::to_string(generation_) +
-            " current");
+            " current";
     }
 
     void update_status() {
         const std::size_t staged = staged_count();
         const std::size_t shown = (*refs_.criteria_objects).items().size();
-        (*refs_.criteria_results_summary).set_text(
+        (*refs_.criteria_results_summary).text =
             std::to_string(shown) +
-            " OBJECTS   ·   FROM PROJECTS AND DESCENDANTS   ·   ONE INSPECTABLE VIRTUAL FOLDER");
-        (*refs_.status_summary).set_text(
+            " OBJECTS   ·   FROM PROJECTS AND DESCENDANTS   ·   ONE INSPECTABLE VIRTUAL FOLDER";
+        (*refs_.status_summary).text =
             std::to_string(shown) + " objects · " +
             std::to_string(live_count()) + " live criteria" +
             (staged == 0U ? std::string{}
                           : " · " + std::to_string(staged) +
                             (staged == 1U ? " expensive criterion staged"
-                                          : " expensive criteria staged")));
+                                          : " expensive criteria staged"));
     }
 
     void update_actions() {
         const std::size_t staged = staged_count();
         const std::size_t invalid = invalid_count();
-        (*refs_.criteria_title).set_text(
+        (*refs_.criteria_title).text =
             "PROJECTS   ·   VIRTUAL FOLDER   ·   " +
             std::to_string(live_count()) + " LIVE MODULES   ·   " +
             (pending_ ? std::string("APPLYING")
-                      : std::to_string(staged) + " STAGED"));
+                      : std::to_string(staged) + " STAGED");
         (*refs_.criteria_apply).enabled = !pending_ && staged > 0U && invalid == 0U;
         (*refs_.criteria_apply).text = staged == 0U ? std::string("Applied")
             : "Apply " + std::to_string(staged);
         if (pending_) {
-            (*refs_.criteria_action_state).set_text("Applying staged criteria");
+            (*refs_.criteria_action_state).text = "Applying staged criteria";
         } else if (invalid > 0U) {
-            (*refs_.criteria_action_state).set_text(
-                std::to_string(invalid) + " invalid criterion");
+            (*refs_.criteria_action_state).text =
+                std::to_string(invalid) + " invalid criterion";
         } else if (staged > 0U) {
-            (*refs_.criteria_action_state).set_text(
-                std::to_string(staged) + " expensive change staged");
+            (*refs_.criteria_action_state).text =
+                std::to_string(staged) + " expensive change staged";
         } else {
-            (*refs_.criteria_action_state).set_text("All criteria live");
+            (*refs_.criteria_action_state).text = "All criteria live";
         }
     }
 
@@ -2448,10 +2448,10 @@ private:
             }
         }
         if (fixture == nullptr) {
-            (*refs_.selection_name).set_text("No selection");
+            (*refs_.selection_name).text = "No selection";
             return;
         }
-        (*refs_.selection_name).set_text((*fixture).name);
+        (*refs_.selection_name).text = (*fixture).name;
         static_cast<void>((*refs_.properties).set_value(
             "fm.property.kind", (*fixture).kind));
         static_cast<void>((*refs_.properties).set_value(
@@ -2506,8 +2506,8 @@ private:
         (*refs_.criteria_progress).set_value(0.0);
         (*refs_.criteria_progress).set_animation_enabled(true);
         update_actions();
-        (*refs_.status_summary).set_text(
-            "Applying staged criteria · selection remains stable");
+        (*refs_.status_summary).text =
+            "Applying staged criteria · selection remains stable";
         status_("Criteria evaluation started · deterministic local fixture");
         feedback_(SemanticFeedbackKind::operation_started);
         Window* window = (*refs_.criteria_apply).attached_window();
@@ -2555,14 +2555,14 @@ private:
         (*refs_.criteria_progress).set_animation_enabled(false);
         update_actions();
         update_status();
-        (*refs_.status_summary).set_text(
+        (*refs_.status_summary).text =
             "5 objects · " + std::to_string(enabled_count()) +
-            " criteria applied");
+            " criteria applied";
         status_("Criteria evaluation complete · deterministic generation " +
                 std::to_string(generation_));
-        (*refs_.status_authority).set_text(
+        (*refs_.status_authority).text =
             "Local navigation ready · index " + std::to_string(generation_) +
-            " current");
+            " current";
         feedback_(SemanticFeedbackKind::operation_completed);
     }
 
@@ -2612,7 +2612,7 @@ public:
 
     void operator()(std::string text) const {
         const std::shared_ptr<Label> authority = authority_.lock();
-        if (authority) (*authority).set_text(std::move(text));
+        if (authority) (*authority).text = std::move(text);
     }
 
 private:
@@ -3034,12 +3034,12 @@ private:
 
     void set_name(std::string text) const {
         const std::shared_ptr<Label> name = name_.lock();
-        if (name) (*name).set_text(std::move(text));
+        if (name) (*name).text = std::move(text);
     }
 
     void set_status(std::string text) const {
         const std::shared_ptr<Label> status = status_.lock();
-        if (status) (*status).set_text(std::move(text));
+        if (status) (*status).text = std::move(text);
     }
 
     void set_properties(std::string kind,
@@ -3188,7 +3188,7 @@ private:
         field.selected_id = selected_id;
         static_cast<void>(properties.set_validation("fm.property.name", {}));
         const std::shared_ptr<Label> label = name_label_.lock();
-        if (label) (*label).set_text(candidate);
+        if (label) (*label).text = candidate;
         status_("Fixture renamed · " + candidate + " · session only");
     }
 
@@ -3258,7 +3258,7 @@ public:
 private:
     static void set_label(const std::weak_ptr<Label>& source, std::string text) {
         const std::shared_ptr<Label> label = source.lock();
-        if (label) (*label).set_text(std::move(text));
+        if (label) (*label).text = std::move(text);
     }
 
     std::weak_ptr<Control> palette_;
@@ -3288,8 +3288,8 @@ struct CardSelectionHandler final {
         }
         const std::shared_ptr<Label> label = summary.lock();
         if (label) {
-            (*label).set_text(std::string((*selected).accessible_name.read()) +
-                              " · selected for review");
+            (*label).text = std::string((*selected).accessible_name.read()) +
+                              " · selected for review";
         }
     }
 };
@@ -3311,7 +3311,7 @@ struct DnaSelectionHandler final {
         }
         const std::string name((*selected).accessible_name.read());
         const std::shared_ptr<Label> heading_label = heading.lock();
-        if (heading_label) (*heading_label).set_text(name);
+        if (heading_label) (*heading_label).text = name;
         const std::shared_ptr<ReviewCard> verdict_card = verdict.lock();
         if (verdict_card) {
             ReviewRecord record = (*verdict_card).record.read();
@@ -3319,7 +3319,7 @@ struct DnaSelectionHandler final {
             (*verdict_card).record = std::move(record);
         }
         const std::shared_ptr<Label> summary_label = summary.lock();
-        if (summary_label) (*summary_label).set_text(name + " · decision record selected");
+        if (summary_label) (*summary_label).text = name + " · decision record selected";
         const std::shared_ptr<MasterDetailView> view = browser.lock();
         if (view && (*view).effective_display_mode() !=
                         MasterDetailDisplayMode::side_by_side) {

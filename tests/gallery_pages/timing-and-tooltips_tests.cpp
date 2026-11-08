@@ -10,15 +10,15 @@ void test_timing_and_tooltips(gui_forms::Window& window) {
         window.find("gallery.timing.progress"));
     require(status && progress && window.next_wake().has_value(),
             "timing page must activate its public UI Timer without a hidden control");
-    const std::string before = (*status).text();
+    const std::string before = (*status).text.read();
     const FrameTime timer_deadline = *window.next_wake();
     const FramePollResult timer_tick = window.poll_frame_schedule(timer_deadline);
-    require(timer_tick.ui_timer_ticks == 1U && (*status).text() != before &&
+    require(timer_tick.ui_timer_ticks == 1U && (*status).text.read() != before &&
                 (*progress).value() > 0.0,
             "gallery Timer tick must update retained public controls on the UI queue");
     click(window, window.find("gallery.timing.stop"));
     require(!window.next_wake().has_value() &&
-                (*status).text().find("zero idle wakeups") != std::string::npos,
+                (*status).text.read().find("zero idle wakeups") != std::string::npos,
             "gallery Timer stop must make the window scheduler quiescent");
 
     // Start/stop bind page-owned Commands; the interval TrackBar binds a
@@ -37,11 +37,11 @@ void test_timing_and_tooltips(gui_forms::Window& window) {
     (*interval).set_value(400.0);
     click(window, start_button);
     require(window.next_wake().has_value() &&
-                (*status).text().find("deadline armed") != std::string::npos,
+                (*status).text.read().find("deadline armed") != std::string::npos,
             "the start Command must arm the UI Timer deadline");
     static_cast<void>(window.poll_frame_schedule(
         FrameClock::now() + std::chrono::seconds(1)));
-    require((*status).text().find("400 ms") != std::string::npos,
+    require((*status).text.read().find("400 ms") != std::string::npos,
             "the bound interval Value must reach the Timer before its next tick");
     click(window, stop_button);
     require(!window.next_wake().has_value(),

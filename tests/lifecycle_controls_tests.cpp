@@ -338,9 +338,9 @@ void test_nested_initialization_defers_and_coalesces_observers() {
             completions, completed_dirty, completed_subtree, trace));
 
     (*label).begin_init();
-    (*label).set_text("first");
+    (*label).text = "first";
     (*label).begin_init();
-    (*label).set_text("second");
+    (*label).text = "second";
     (*label).invalidate_subtree(Dirty::semantics);
     (*label).end_init();
     require(text_events == 0 && completions == 0 &&
@@ -390,7 +390,7 @@ void test_initialization_disposal_and_thread_guards() {
     SubscriptionToken complete = (*label).initialization_completed().subscribe(
         test_support::IncrementCounter<std::uint64_t, Dirty, bool>(completions));
     (*label).begin_init();
-    (*label).set_text("pending");
+    (*label).text = "pending";
     (*label).dispose();
     require((*label).is_disposed() && completions == 0,
             "disposal during initialization must discard pending completion work");

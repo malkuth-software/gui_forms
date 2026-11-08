@@ -134,14 +134,14 @@ void test_value_editors(gui_forms::Window& window) {
                 !(*binding_commands).item(1).enabled.read(),
             "register must start enabled and release disabled");
     click(window, window.find("gallery.value-editors.binding-commands.item.1"));
-    require((*binding_status).text().find("1 source") != std::string::npos &&
-                (*binding_status).text().find("lamp.profile") != std::string::npos &&
-                (*binding_status).text().find("added") != std::string::npos &&
+    require((*binding_status).text.read().find("1 source") != std::string::npos &&
+                (*binding_status).text.read().find("lamp.profile") != std::string::npos &&
+                (*binding_status).text.read().find("added") != std::string::npos &&
                 !(*binding_commands).item(0).enabled.read() && (*binding_commands).item(1).enabled.read(),
             "registering must add the record's BindingSource to the Window's BindingContext");
     click(window, window.find("gallery.value-editors.binding-commands.item.2"));
-    require((*binding_status).text().find("0 sources") != std::string::npos &&
-                (*binding_status).text().find("removed") != std::string::npos &&
+    require((*binding_status).text.read().find("0 sources") != std::string::npos &&
+                (*binding_status).text.read().find("removed") != std::string::npos &&
                 (*binding_commands).item(0).enabled.read() && !(*binding_commands).item(1).enabled.read(),
             "releasing must remove the BindingSource and re-enable register");
 }

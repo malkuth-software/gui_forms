@@ -405,7 +405,7 @@ void test_ten_thousand_children_counts() {
     for (std::size_t index = 0U; index < count; ++index) {
         std::shared_ptr<CountingLabel> label =
             make_control<CountingLabel>(StableId("grid.many." + std::to_string(index)));
-        (*label).set_text("Item " + std::to_string(index));
+        (*label).text = "Item " + std::to_string(index);
         (*panel).add_child(label);
         labels.push_back(std::move(label));
     }

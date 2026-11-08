@@ -467,8 +467,8 @@ struct InstrumentRack::Impl final {
         module.status = make_control<Label>(
             StableId(module.spec.stable_id + ".state"),
             module.spec.status_text);
-        (*module.status).set_font({FontRole::control, 9.5, 600, false, 0.30});
-        (*module.status).set_foreground(Color::rgba(92, 113, 128));
+        (*module.status).font = FontSpec{FontRole::control, 9.5, 600, false, 0.30};
+        (*module.status).fore_color = Color::rgba(92, 113, 128);
         (*module.status).margin = Insets{};
         (*module.status).accessible_name = "Application state";
         (*module.panel).add_child(module.status);
@@ -513,14 +513,14 @@ struct InstrumentRack::Impl final {
         (*module.remove).enabled = module.spec.removable && !pending;
         (*module.remove).visible = module.spec.removable;
         (*module.remove).set_style(style);
-        (*module.status).set_text(module.spec.status_text);
+        (*module.status).text = module.spec.status_text;
         (*module.status).accessible_description = module.spec.status_text;
-        (*module.status).set_foreground(
+        (*module.status).fore_color =
             module.spec.state == InstrumentModuleState::invalid
                 ? Color::rgba(130, 59, 57)
                 : module.spec.state == InstrumentModuleState::staged
                     ? Color::rgba(121, 93, 131)
-                    : Color::rgba(92, 113, 128));
+                    : Color::rgba(92, 113, 128);
         (*module.panel).accessible_description = module.spec.status_text +
             " · Alt+Left and Alt+Right request reordering";
         for (std::size_t index = 0; index < module.fields.size(); ++index) {

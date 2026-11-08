@@ -81,16 +81,16 @@ private:
         if (item.id == 2) run.set_enabled(!run.state().enabled);
         if (item.id == 3) { alternate_ = !alternate_; rebuild_commands(); }
         const std::string text = "Command item " + std::to_string(item.id);
-        (*status).set_text(text);
+        (*status).text = text;
     }
     void on_choice(const int index) {
         const std::string text = "Selected choice " + std::to_string(index);
-        (*status).set_text(text);
+        (*status).text = text;
     }
     void on_section(const int index, const bool expanded) {
         const std::string state = expanded ? " opened" : " closed";
         const std::string text = "Section " + std::to_string(index) + state;
-        (*status).set_text(text);
+        (*status).text = text;
     }
     bool alternate_{};
 };

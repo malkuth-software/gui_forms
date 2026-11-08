@@ -32,10 +32,10 @@ std::shared_ptr<Panel> band(std::string id, std::string text,
     (*value).dock = DockStyle::fill;
     std::shared_ptr<Label> label = make_control<Label>(
         StableId(label_id), std::move(text));
-    (*label).set_foreground(foreground);
-    (*label).set_font(font);
-    (*label).set_text_wrapping(wrapping);
-    (*label).set_vertical_alignment(VerticalAlignment::center);
+    (*label).fore_color = foreground;
+    (*label).font = font;
+    (*label).text_wrapping = wrapping;
+    (*label).vertical_alignment = VerticalAlignment::center;
     (*label).margin = Insets{};
     (*label).padding = {7.0, 3.0, 7.0, 3.0};
     (*label).dock = DockStyle::fill;

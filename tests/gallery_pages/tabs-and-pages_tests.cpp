@@ -16,7 +16,7 @@ void test_tabs_and_pages(gui_forms::Window& window) {
     // The Activity toggle binds a Value<bool>; the page observes the value.
     click(window, toggle);
     require(!(*toggle).checked() &&
-                (*status).text().find("keep visible off") != std::string::npos,
+                (*status).text.read().find("keep visible off") != std::string::npos,
             "a bound Value<bool> must carry the toggle's user change to the page owner");
     const Rect security = (*tabs).tab_bounds(2U);
     const Rect tabs_absolute = (*tabs).absolute_bounds();
@@ -29,16 +29,16 @@ void test_tabs_and_pages(gui_forms::Window& window) {
                 (*tabs).selected_index() == 2U &&
                 (*window.find("gallery.tabs.primary.security.radio")).effectively_visible() &&
                 !(*toggle).effectively_visible() &&
-                (*status).text().find("Security selected") != std::string::npos,
+                (*status).text.read().find("Security selected") != std::string::npos,
             "gallery tabs must select pages through public pointer behavior");
     require(window.perform_semantic_action(
                 "gallery.tabs.primary.diagnostics.tab", SemanticAction::select) &&
                 (*tabs).selected_index() == 3U &&
-                (*status).text().find("Diagnostics selected") != std::string::npos,
+                (*status).text.read().find("Diagnostics selected") != std::string::npos,
             "gallery tabs must share semantic and pointer selection behavior");
     (*tabs).set_selected_index(0U);
     require((*tabs).selected_index() == 0U &&
-                (*status).text().find("Overview selected") != std::string::npos,
+                (*status).text.read().find("Overview selected") != std::string::npos,
             "programmatic selection must reach the same state event as user input");
 
     std::shared_ptr<gui_forms::PageStrip> strip = std::dynamic_pointer_cast<PageStrip>(
@@ -50,7 +50,7 @@ void test_tabs_and_pages(gui_forms::Window& window) {
                 (*strip).parts().list_button.present,
             "the gallery's PageStrip overflows into scroll and list buttons");
     require(window.perform_semantic_action("gallery.tabs.strip.tab.strip.13", SemanticAction::select) &&
-                (*strip_status).text().find("About selected") != std::string::npos &&
+                (*strip_status).text.read().find("About selected") != std::string::npos &&
                 (*strip).visible_pages().back().value == "strip.13",
             "selecting the gallery strip's last page scrolls it into view and reports it");
 
@@ -65,7 +65,7 @@ void test_tabs_and_pages(gui_forms::Window& window) {
     require(window.perform_semantic_action("gallery.tabs.view.strip.tab.view.report", SemanticAction::select) &&
                 (*view).page_content(PageId{"view.report"}) &&
                 (*(*view).page_content(PageId{"view.report"})).effectively_visible() &&
-                (*view_status).text().find("Created view.report") != std::string::npos,
+                (*view_status).text.read().find("Created view.report") != std::string::npos,
             "selecting a late page in the gallery's PageView creates and shows its content");
 
     std::shared_ptr<gui_forms::PageView> documents = std::dynamic_pointer_cast<PageView>(
@@ -78,7 +78,7 @@ void test_tabs_and_pages(gui_forms::Window& window) {
             "the gallery's document view holds ten documents, one pinned, overflowing into the counted list");
     require(window.perform_semantic_action("gallery.tabs.documents.strip.tab.doc.1", SemanticAction::close) &&
                 !(*documents).pages().find(PageId{"doc.1"}) &&
-                (*documents_status).text().find("Closed page_view.cpp") != std::string::npos,
+                (*documents_status).text.read().find("Closed page_view.cpp") != std::string::npos,
             "closing a gallery document removes it and reports the cause");
     require((*(*documents).strip()).reorder_enabled(), "the gallery's documents reorder by dragging");
 
@@ -107,7 +107,7 @@ void test_tabs_and_pages(gui_forms::Window& window) {
             "selecting a navigation page shows its control");
     require(window.perform_semantic_action("gallery.tabs.navigation.collapse", SemanticAction::press) &&
                 (*navigation).collapsed() &&
-                (*navigation_status).text().find("Collapsed") != std::string::npos,
+                (*navigation_status).text.read().find("Collapsed") != std::string::npos,
             "collapsing the gallery's NavigationPane reports its state");
     require(window.perform_semantic_action("gallery.tabs.navigation.collapse", SemanticAction::press) &&
                 !(*navigation).collapsed(),

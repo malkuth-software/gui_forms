@@ -223,14 +223,14 @@ void test_text_scale_reflow_transactions_and_resize_stability() {
     });
     std::shared_ptr<Label> title = make_control<Label>(
         StableId("responsive.scale.title"), "Current location");
-    (*title).set_font({FontRole::control, 15.0, 700, false});
+    (*title).font = FontSpec{FontRole::control, 15.0, 700, false};
     (*title).dock = DockStyle::fill;
     std::shared_ptr<Panel> content =
         make_control<Panel>(StableId("responsive.scale.content"));
     (*content).dock = DockStyle::fill;
     std::shared_ptr<Label> status = make_control<Label>(
         StableId("responsive.scale.status"), "Local authority remains available");
-    (*status).set_font({FontRole::content, 10.0, 400, false});
+    (*status).font = FontSpec{FontRole::content, 10.0, 400, false};
     (*status).dock = DockStyle::fill;
     (*root).add_child(title);
     (*root).add_child(content);

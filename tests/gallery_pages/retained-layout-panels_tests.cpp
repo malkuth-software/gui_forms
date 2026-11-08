@@ -63,7 +63,7 @@ void test_retained_layout_panels(gui_forms::Window& window) {
             "the table slider and progress bar must start from the shared model value");
     (*slider).set_value(40.0);
     require((*progress).value() == 40.0 &&
-                (*note).text().find("Shared table value 40") != std::string::npos,
+                (*note).text.read().find("Shared table value 40") != std::string::npos,
             "a bound Value must project the slider's state change into the progress bar");
 
     const std::shared_ptr<CheckBox> percent_one =
@@ -72,7 +72,7 @@ void test_retained_layout_panels(gui_forms::Window& window) {
             "the table check box must start from its bound Value<bool>");
     click(window, percent_one);
     require(!(*percent_one).checked() &&
-                (*note).text().find("Percent · 1 share cleared") != std::string::npos,
+                (*note).text.read().find("Percent · 1 share cleared") != std::string::npos,
             "a user click must reach the page through the bound Value, not the control");
 
     const std::string semantics = window.semantic_snapshot().to_json();

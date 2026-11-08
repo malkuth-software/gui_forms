@@ -10,6 +10,7 @@
 #include "gui_forms/controls/data_grid_view/data_grid_view.hpp"
 #include "gui_forms/controls/empty_state/empty_state.hpp"
 #include "gui_forms/controls/info_banner/info_banner.hpp"
+#include "gui_forms/controls/label/label.hpp"
 #include "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp"
 #include "gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail.hpp"
 #include "gui_forms/controls/panel/card/card.hpp"
@@ -759,6 +760,84 @@ void test_instrument_rack_properties() {
     std::shared_ptr<InstrumentRack> control = make_control<InstrumentRack>(StableId("generated.instrumentrack"));
 }
 
+void test_label_properties() {
+    std::shared_ptr<Label> control = make_control<Label>(StableId("generated.label"));
+    {
+        const std::string sample = std::string{"Name"};
+        int raises = 0;
+        const SubscriptionToken token = (*control).text_changed().subscribe(RaiseCounter{&raises});
+        (*control).text = sample;
+        expect((*control).text.read() == sample, "Label.text: a write stores");
+        expect(raises == 1, "Label.text: a changed write raises once");
+        (*control).text = sample;
+        expect(raises == 1, "Label.text: an equal write raises nothing");
+        static_cast<void>(token);
+        const std::optional<BindingValue> by_name = (*control).property_value("text");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "Label.text: the table reads the cell");
+    }
+    {
+        const std::optional<FontSpec> sample = FontSpec{FontRole::content, 14.0, 400, false};
+        (*control).font = sample;
+        expect((*control).font.read() == sample, "Label.font: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("font");
+        expect(by_name && *by_name == PropertyValueTraits<std::optional<FontSpec>>::to_binding(sample),
+               "Label.font: the table reads the cell");
+    }
+    {
+        const HorizontalAlignment sample = HorizontalAlignment::center;
+        (*control).alignment = sample;
+        expect((*control).alignment.read() == sample, "Label.alignment: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("alignment");
+        expect(by_name && *by_name == PropertyValueTraits<HorizontalAlignment>::to_binding(sample),
+               "Label.alignment: the table reads the cell");
+    }
+    {
+        const VerticalAlignment sample = VerticalAlignment::far;
+        (*control).vertical_alignment = sample;
+        expect((*control).vertical_alignment.read() == sample, "Label.vertical_alignment: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("vertical_alignment");
+        expect(by_name && *by_name == PropertyValueTraits<VerticalAlignment>::to_binding(sample),
+               "Label.vertical_alignment: the table reads the cell");
+    }
+    {
+        const TextWrapping sample = TextWrapping::word;
+        (*control).text_wrapping = sample;
+        expect((*control).text_wrapping.read() == sample, "Label.text_wrapping: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("text_wrapping");
+        expect(by_name && *by_name == PropertyValueTraits<TextWrapping>::to_binding(sample),
+               "Label.text_wrapping: the table reads the cell");
+    }
+    {
+        const std::uint32_t sample = std::uint32_t{3U};
+        (*control).maximum_lines = sample;
+        expect((*control).maximum_lines.read() == sample, "Label.maximum_lines: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("maximum_lines");
+        expect(by_name && *by_name == PropertyValueTraits<std::uint32_t>::to_binding(sample),
+               "Label.maximum_lines: the table reads the cell");
+    }
+    {
+        const TextStyleRole sample = TextStyleRole::heading;
+        (*control).text_style_role = sample;
+        expect((*control).text_style_role.read() == sample, "Label.text_style_role: a write stores");
+    }
+    {
+        const double sample = 1.5;
+        (*control).line_spacing = sample;
+        expect((*control).line_spacing.read() == sample, "Label.line_spacing: a write stores");
+    }
+    {
+        const TextCaseTransform sample = TextCaseTransform::uppercase_ascii;
+        (*control).text_case_transform = sample;
+        expect((*control).text_case_transform.read() == sample, "Label.text_case_transform: a write stores");
+    }
+    {
+        const bool sample = false;
+        (*control).use_mnemonic = sample;
+        expect((*control).use_mnemonic.read() == sample, "Label.use_mnemonic: a write stores");
+    }
+}
+
 void test_list_box_properties() {
     std::shared_ptr<ListBox> control = make_control<ListBox>(StableId("generated.listbox"));
     {
@@ -1332,6 +1411,7 @@ int main() {
     test_group_box_properties();
     test_info_banner_properties();
     test_instrument_rack_properties();
+    test_label_properties();
     test_list_box_properties();
     test_list_view_properties();
     test_masked_text_box_properties();

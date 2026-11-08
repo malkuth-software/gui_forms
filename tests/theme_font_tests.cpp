@@ -144,7 +144,7 @@ void test_resolution() {
     const std::shared_ptr<Label> label = make_control<Label>(StableId("caption"), "Caption");
     (*root).add_child(label);
     Window window(root, Size{300.0, 100.0});
-    const FontSpec own = (*label).font();
+    const FontSpec own = (*label).resolved_font();
     require((*label).text_font(own) == (*label).effective_font(own), "no rule: the control's own font");
 
     window.set_theme(theme_of("label { font-family: monospace; font-size: 20px } "
@@ -171,12 +171,12 @@ void test_resolution() {
     require((*label).resolved_text_font(own).font.italic, "the class rule's style");
     require((*label).resolved_text_font(own).levels[style] == CascadeLevel::class_rule, "provenance: a class rule");
 
-    (*label).set_font(FontSpec{FontRole::content, 11.0, 400, false});
-    const ResolvedFont coded = (*label).resolved_text_font((*label).font());
+    (*label).font = FontSpec{FontRole::content, 11.0, 400, false};
+    const ResolvedFont coded = (*label).resolved_text_font((*label).resolved_font());
     require(coded.from_code && coded.font == FontSpec{FontRole::content, 11.0, 400, false},
             "a font set in code wins over the theme");
-    (*label).clear_font();
-    require(!(*label).resolved_text_font((*label).font()).from_code, "cleared, the theme's again");
+    (*label).font = std::nullopt;
+    require(!(*label).resolved_text_font((*label).resolved_font()).from_code, "cleared, the theme's again");
 }
 
 void test_scheme_and_em() {
@@ -188,7 +188,7 @@ void test_scheme_and_em() {
                               "#caption { font-size: 1.5em } "
                               "@media (prefers-color-scheme: dark) { #caption { font-weight: 600 } }",
                               "fonts-schemes"));
-    const FontSpec own = (*label).font();
+    const FontSpec own = (*label).resolved_font();
     const ResolvedFont light = (*label).resolved_text_font(own);
     require(light.font.size == own.size * 1.5 && light.font.weight == own.weight, "an em size is of the own size");
     window.perform_layout();

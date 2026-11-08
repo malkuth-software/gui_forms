@@ -71,8 +71,8 @@ void test_choices_and_sections(gui_forms::Window& window) {
             "the segmented row draws its indicator behind the chosen segment");
     require((*review).record.read().title == "Review: Staged" &&
                 (*review).record.read().disposition == ReviewDisposition::accepted &&
-                (*card_body).text().find("Staged") != std::string::npos &&
-                (*ring_status).text().find("user activations: 1") != std::string::npos,
+                (*card_body).text.read().find("Staged") != std::string::npos &&
+                (*ring_status).text.read().find("user activations: 1") != std::string::npos,
             "the ReviewCard and Card must project the chosen ring");
     // A programmatic change through the other view is a state change only.
     (*chips).set_selected_index(2);
@@ -124,11 +124,11 @@ void test_choices_and_sections(gui_forms::Window& window) {
     window.perform_layout();
     click(window, notify);
     require((*notify).checked.read() &&
-                (*switch_status).text() == "Automatic deployment is on · reviewers are notified",
+                (*switch_status).text.read() == "Automatic deployment is on · reviewers are notified",
             "clicking a switch turns it on and the page reports it");
     require(window.perform_semantic_action("gallery.choices.switches.auto-deploy", SemanticAction::press) &&
                 !(*deploy).checked.read() && (*deploy).state_text() == "Off" &&
-                (*switch_status).text().starts_with("Automatic deployment is off"),
+                (*switch_status).text.read().starts_with("Automatic deployment is off"),
             "the press action turns the other switch off");
 }
 

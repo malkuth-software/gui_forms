@@ -45,14 +45,14 @@ ReviewCard::ReviewCard(StableId stable_id)
           StableId(std::string((*this).stable_id().value()) + ".summary"))),
       verdict_label_(make_control<Label>(
           StableId(std::string((*this).stable_id().value()) + ".verdict"))) {
-    (*title_label_).set_text_style_role(TextStyleRole::heading);
-    (*title_label_).set_vertical_alignment(VerticalAlignment::center);
-    (*summary_label_).set_text_style_role(TextStyleRole::body);
-    (*summary_label_).set_text_wrapping(TextWrapping::word);
-    (*summary_label_).set_line_spacing(1.25);
-    (*summary_label_).set_vertical_alignment(VerticalAlignment::near);
-    (*verdict_label_).set_text_style_role(TextStyleRole::caption);
-    (*verdict_label_).set_vertical_alignment(VerticalAlignment::center);
+    (*title_label_).text_style_role = TextStyleRole::heading;
+    (*title_label_).vertical_alignment = VerticalAlignment::center;
+    (*summary_label_).text_style_role = TextStyleRole::body;
+    (*summary_label_).text_wrapping = TextWrapping::word;
+    (*summary_label_).line_spacing = 1.25;
+    (*summary_label_).vertical_alignment = VerticalAlignment::near;
+    (*verdict_label_).text_style_role = TextStyleRole::caption;
+    (*verdict_label_).vertical_alignment = VerticalAlignment::center;
 }
 
 void ReviewCard::initialize_control_tree() {

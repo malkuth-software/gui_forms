@@ -61,7 +61,7 @@ void outset_damage_beyond_the_window_does_not_pin_full_paints() {
     window.paint(painter, {0.0, 0.0, 200.0, 120.0});
     window.reset_activity_metrics();
 
-    (*label).set_text("Changed");
+    (*label).text = "Changed";
     window.paint(painter);
     const MetricsSnapshot metrics = window.metrics_snapshot();
     expect(metrics.paint_passes == 1U, "one paint follows the label mutation");

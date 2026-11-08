@@ -107,10 +107,10 @@ struct SelectScale final {
         if (owner == nullptr) return;
         (*owner).set_text_scale(scale);
         if (const std::shared_ptr<Label> value = status.lock()) {
-            (*value).set_text(
+            (*value).text =
                 "Text scale " + std::to_string(static_cast<int>(scale * 100.0)) +
                 "% · display " + std::to_string((*owner).scale()) +
-                "× · logical metrics reflow; only final baselines snap to device pixels");
+                "× · logical metrics reflow; only final baselines snap to device pixels";
         }
     }
 };
@@ -135,16 +135,16 @@ std::unique_ptr<Window> make_typography_scale_lab() {
     std::shared_ptr<Label> title = make_control<Label>(
         StableId("typography-scale.heading"),
         "Deterministic Typography + Scale");
-    (*title).set_font({FontRole::control, 20.0, 700, false, 0.20});
-    (*title).set_foreground(Color::rgba(24, 54, 78));
+    (*title).font = FontSpec{FontRole::control, 20.0, 700, false, 0.20};
+    (*title).fore_color = Color::rgba(24, 54, 78);
     (*root).add_child(title);
     (*root).set_title(title);
 
     std::shared_ptr<Label> status = make_control<Label>(
         StableId("typography-scale.status"),
         "Text scale 100% · display host-bound · effective FontSpec, exact face runs, logical metrics, and snapped baseline remain distinct");
-    (*status).set_font({FontRole::content, 10.0, 400, false});
-    (*status).set_foreground(Color::rgba(65, 83, 96));
+    (*status).font = FontSpec{FontRole::content, 10.0, 400, false};
+    (*status).fore_color = Color::rgba(65, 83, 96);
     (*root).add_child(status);
     (*root).set_status(status);
 

@@ -89,6 +89,26 @@ Related types
      - The banner's title, drawn in a heavier weight before the message; it names the banner to assistive technology.
    * - :cpp:class:`Label::Parts <gui_forms::Label::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts); its states are Control's.
+   * - :cpp:class:`LabelAlignmentCapability <gui_forms::LabelAlignmentCapability>`
+     - Horizontal placement of the text: near, center or far.
+   * - :cpp:class:`LabelCapabilities <gui_forms::LabelCapabilities>`
+     - Every Label capability, in the order the declaring class takes them.
+   * - :cpp:class:`LabelFontCapability <gui_forms::LabelFontCapability>`
+     - The label's own font; empty takes the theme typography of text_style_role (resolved_font).
+   * - :cpp:class:`LabelLineSpacingCapability <gui_forms::LabelLineSpacingCapability>`
+     - The line height as a multiple of the font's; from 0.75 to 3.0 (std::invalid_argument).
+   * - :cpp:class:`LabelMaximumLinesCapability <gui_forms::LabelMaximumLinesCapability>`
+     - The most lines measured and painted; zero keeps every line.
+   * - :cpp:class:`LabelTextCaseTransformCapability <gui_forms::LabelTextCaseTransformCapability>`
+     - How the shown text is cased: none, uppercase_ascii or lowercase_ascii; the text itself is unchanged.
+   * - :cpp:class:`LabelTextStyleRoleCapability <gui_forms::LabelTextStyleRoleCapability>`
+     - The theme typography role the label takes while it has no font of its own: body, control, caption, heading, title or monospace.
+   * - :cpp:class:`LabelTextWrappingCapability <gui_forms::LabelTextWrappingCapability>`
+     - Whether the text wraps at word boundaries: no_wrap or word.
+   * - :cpp:class:`LabelUseMnemonicCapability <gui_forms::LabelUseMnemonicCapability>`
+     - Whether an ampersand in the text marks the access key (UseMnemonic).
+   * - :cpp:class:`LabelVerticalAlignmentCapability <gui_forms::LabelVerticalAlignmentCapability>`
+     - Vertical placement of the text: near, center or far.
    * - :cpp:class:`PictureBox::Parts <gui_forms::PictureBox::Parts>`
      - Stage T1 anatomy, as dot members: Panel's parts and the image.
    * - :cpp:class:`PictureBoxCapabilities <gui_forms::PictureBoxCapabilities>`
@@ -457,6 +477,208 @@ Related types
    .. cpp:member:: PartGeometry region
 
    .. cpp:member:: PartGeometry label
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> LabelAlignmentCapability
+
+   ``#include <gui_forms/controls/label/label_capabilities/label_capabilities.hpp>``
+
+   Horizontal placement of the text: near, center or far.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(LabelAlignmentCapability& capability, HorizontalAlignment incoming)
+
+   .. cpp:member:: PropertyCell<HorizontalAlignment, LabelAlignmentCapability<Declaring>> alignment
+
+      Default: ``{HorizontalAlignment::near}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> LabelCapabilities : public TextCapability<Declaring>, public LabelFontCapability<Declaring>, public LabelAlignmentCapability<Declaring>, public LabelVerticalAlignmentCapability<Declaring>, public LabelTextWrappingCapability<Declaring>, public LabelMaximumLinesCapability<Declaring>, public LabelTextStyleRoleCapability<Declaring>, public LabelLineSpacingCapability<Declaring>, public LabelTextCaseTransformCapability<Declaring>, public LabelUseMnemonicCapability<Declaring>
+
+   ``#include <gui_forms/controls/label/label_capabilities/label_capabilities.hpp>``
+
+   Every Label capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string text
+
+      The text the control shows (Text).
+
+   .. cpp:member:: std::optional<FontSpec> font
+
+      The label's own font; empty takes the theme typography of text_style_role (resolved_font). Must be a valid font specification (std::invalid_argument).
+
+   .. cpp:member:: HorizontalAlignment alignment
+
+      Horizontal placement of the text: near, center or far.
+
+   .. cpp:member:: VerticalAlignment vertical_alignment
+
+      Vertical placement of the text: near, center or far.
+
+   .. cpp:member:: TextWrapping text_wrapping
+
+      Whether the text wraps at word boundaries: no_wrap or word.
+
+   .. cpp:member:: std::uint32_t maximum_lines
+
+      The most lines measured and painted; zero keeps every line. Semantics keep the complete text. At most 4096 (std::out_of_range).
+
+   .. cpp:member:: TextStyleRole text_style_role
+
+      The theme typography role the label takes while it has no font of its own: body, control, caption, heading, title or monospace.
+
+   .. cpp:member:: double line_spacing
+
+      The line height as a multiple of the font's; from 0.75 to 3.0 (std::invalid_argument).
+
+   .. cpp:member:: TextCaseTransform text_case_transform
+
+      How the shown text is cased: none, uppercase_ascii or lowercase_ascii; the text itself is unchanged.
+
+   .. cpp:member:: bool use_mnemonic
+
+      Whether an ampersand in the text marks the access key (UseMnemonic).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> LabelFontCapability
+
+   ``#include <gui_forms/controls/label/label_capabilities/label_capabilities.hpp>``
+
+   The label's own font; empty takes the theme typography of text_style_role (resolved_font). Must be a valid font specification (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(LabelFontCapability& capability, std::optional<FontSpec> incoming)
+
+   .. cpp:member:: PropertyCell<std::optional<FontSpec>, LabelFontCapability<Declaring>> font
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> LabelLineSpacingCapability
+
+   ``#include <gui_forms/controls/label/label_capabilities/label_capabilities.hpp>``
+
+   The line height as a multiple of the font's; from 0.75 to 3.0 (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(LabelLineSpacingCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, LabelLineSpacingCapability<Declaring>> line_spacing
+
+      Default: ``{1.25}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> LabelMaximumLinesCapability
+
+   ``#include <gui_forms/controls/label/label_capabilities/label_capabilities.hpp>``
+
+   The most lines measured and painted; zero keeps every line. Semantics keep the complete text. At most 4096 (std::out_of_range).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(LabelMaximumLinesCapability& capability, std::uint32_t incoming)
+
+   .. cpp:member:: PropertyCell<std::uint32_t, LabelMaximumLinesCapability<Declaring>> maximum_lines
+
+      Default: ``{0U}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> LabelTextCaseTransformCapability
+
+   ``#include <gui_forms/controls/label/label_capabilities/label_capabilities.hpp>``
+
+   How the shown text is cased: none, uppercase_ascii or lowercase_ascii; the text itself is unchanged.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(LabelTextCaseTransformCapability& capability, TextCaseTransform incoming)
+
+   .. cpp:member:: PropertyCell<TextCaseTransform, LabelTextCaseTransformCapability<Declaring>> text_case_transform
+
+      Default: ``{TextCaseTransform::none}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> LabelTextStyleRoleCapability
+
+   ``#include <gui_forms/controls/label/label_capabilities/label_capabilities.hpp>``
+
+   The theme typography role the label takes while it has no font of its own: body, control, caption, heading, title or monospace.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(LabelTextStyleRoleCapability& capability, TextStyleRole incoming)
+
+   .. cpp:member:: PropertyCell<TextStyleRole, LabelTextStyleRoleCapability<Declaring>> text_style_role
+
+      Default: ``{TextStyleRole::body}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> LabelTextWrappingCapability
+
+   ``#include <gui_forms/controls/label/label_capabilities/label_capabilities.hpp>``
+
+   Whether the text wraps at word boundaries: no_wrap or word.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(LabelTextWrappingCapability& capability, TextWrapping incoming)
+
+   .. cpp:member:: PropertyCell<TextWrapping, LabelTextWrappingCapability<Declaring>> text_wrapping
+
+      Default: ``{TextWrapping::no_wrap}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> LabelUseMnemonicCapability
+
+   ``#include <gui_forms/controls/label/label_capabilities/label_capabilities.hpp>``
+
+   Whether an ampersand in the text marks the access key (UseMnemonic).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(LabelUseMnemonicCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, LabelUseMnemonicCapability<Declaring>> use_mnemonic
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> LabelVerticalAlignmentCapability
+
+   ``#include <gui_forms/controls/label/label_capabilities/label_capabilities.hpp>``
+
+   Vertical placement of the text: near, center or far.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(LabelVerticalAlignmentCapability& capability, VerticalAlignment incoming)
+
+   .. cpp:member:: PropertyCell<VerticalAlignment, LabelVerticalAlignmentCapability<Declaring>> vertical_alignment
+
+      Default: ``{VerticalAlignment::center}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -939,7 +1161,7 @@ Enumerations
 
 .. cpp:enum-class:: HorizontalAlignment
 
-   ``#include <gui_forms/controls/label/label.hpp>``
+   ``#include <gui_forms/controls/label/label_values/label_values.hpp>``
 
    .. cpp:enumerator:: near
 
@@ -1031,7 +1253,7 @@ Enumerations
 
 .. cpp:enum-class:: TextCaseTransform
 
-   ``#include <gui_forms/controls/label/label.hpp>``
+   ``#include <gui_forms/controls/label/label_values/label_values.hpp>``
 
    .. cpp:enumerator:: none
 
@@ -1043,7 +1265,7 @@ Enumerations
 
 .. cpp:enum-class:: TextStyleRole
 
-   ``#include <gui_forms/controls/label/label.hpp>``
+   ``#include <gui_forms/controls/label/label_values/label_values.hpp>``
 
    .. cpp:enumerator:: body
 
@@ -1061,7 +1283,7 @@ Enumerations
 
 .. cpp:enum-class:: TextWrapping
 
-   ``#include <gui_forms/controls/label/label.hpp>``
+   ``#include <gui_forms/controls/label/label_values/label_values.hpp>``
 
    .. cpp:enumerator:: no_wrap
 
@@ -1071,7 +1293,7 @@ Enumerations
 
 .. cpp:enum-class:: VerticalAlignment
 
-   ``#include <gui_forms/controls/label/label.hpp>``
+   ``#include <gui_forms/controls/label/label_values/label_values.hpp>``
 
    .. cpp:enumerator:: near
 

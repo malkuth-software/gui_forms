@@ -188,7 +188,7 @@ void GalleryContext::synchronize(std::string_view cause)
         const std::shared_ptr<Label> label = std::dynamic_pointer_cast<Label>(child);
         if (!label) continue;
         const std::string metric = metric_text((*label).stable_id().value(), metrics);
-        if (!metric.empty()) (*label).set_text(metric);
+        if (!metric.empty()) (*label).text = metric;
     }
 }
 
@@ -365,10 +365,10 @@ GalleryTree build_gallery_tree()
     (*document.gallery_slider).set_small_change(1.0);
     (*document.gallery_slider).set_large_change(10.0);
     (*document.gallery_text_input).placeholder_text = "Type here";
-    (*document.gallery_diagnostics_about).set_text_wrapping(TextWrapping::word);
-    (*document.gallery_diagnostics_about).set_vertical_alignment(VerticalAlignment::near);
-    (*document.gallery_diagnostics_font).set_text_wrapping(TextWrapping::word);
-    (*document.gallery_diagnostics_font).set_vertical_alignment(VerticalAlignment::near);
+    (*document.gallery_diagnostics_about).text_wrapping = TextWrapping::word;
+    (*document.gallery_diagnostics_about).vertical_alignment = VerticalAlignment::near;
+    (*document.gallery_diagnostics_font).text_wrapping = TextWrapping::word;
+    (*document.gallery_diagnostics_font).vertical_alignment = VerticalAlignment::near;
     (*document.gallery_diagnostics).set_paint_plane(PaintPlane::overlay);
     std::vector<std::string> row_ids;
     row_ids.reserve(collection_row_ids.size());

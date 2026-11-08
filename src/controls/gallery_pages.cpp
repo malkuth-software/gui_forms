@@ -179,7 +179,7 @@ GalleryShell build_gallery_shell(const GalleryTree& compiled) {
             std::shared_ptr<Label> heading = label(
                 "gallery.sidebar.group." + std::to_string(group_index),
                 std::string(entry.group), 10.0, 700, shell_blue_dark);
-            (*heading).set_font({FontRole::control, 10.0, 700, false, 0.24});
+            (*heading).font = FontSpec{FontRole::control, 10.0, 700, false, 0.24};
             (*heading).set_bounds({18.0, navigation_y, 180.0, 16.0});
             (*sidebar).add_child(heading);
             navigation_y += 18.0;
@@ -241,7 +241,7 @@ GalleryShell build_gallery_shell(const GalleryTree& compiled) {
         (*viewport).add_child(page);
         std::shared_ptr<Label> title = label(surface_id + ".title", std::string(spec.title),
                                              15.0, 700, shell_blue_dark);
-        (*title).set_font({FontRole::control, 15.0, 700, false});
+        (*title).font = FontSpec{FontRole::control, 15.0, 700, false};
         (*page).add_at(title, {0.0, 4.0, 1000.0, 22.0});
         if (demonstrated.empty()) {
             std::shared_ptr<Label> summary = label(surface_id + ".summary",

@@ -39,6 +39,8 @@ Config keys are the study's (section 15.2) plus these, all optional:
              "Control"); its table is <Base>::<base_snake>_property_entries()
              with <base_snake>_property_count entries.
              "includes": headers the capabilities header includes.
+             "overrides": hand-written PropertyEntry initializers replacing
+             base entries of the same name (override_property_entries).
              "table_source": "hand" when the entries and descriptors are
              written by hand (only the capabilities header is generated).
              "test": {"type": concrete class, "include": its header}.
@@ -73,12 +75,13 @@ PROPERTY_KEYS = {
 TOP_KEYS = {
     "family", "declaring", "header", "source", "capabilities_header", "properties", "step", "shared",
     "not_properties", "base", "includes", "table_source", "test", "shared_header", "mutation_check",
+    "overrides",
 }
 TABLE_KEYS = {
     "kind", "category", "description", "default", "effects", "subtree", "bindable", "browsable", "nullable",
     "enumeration", "reset", "registry", "serialization", "binding_direction",
 }
-THUNK_KEYS = {"read", "write", "reset", "should_serialize"}
+THUNK_KEYS = {"read", "write", "reset", "should_serialize", "origin"}
 SHARED_HEADER = "include/gui_forms/control/shared_capabilities/shared_capabilities.hpp"
 BEGIN = "// property_codemod begin "
 END = "// property_codemod end "
@@ -803,12 +806,15 @@ def entry_text(config, prop):
     if thunks.get("should_serialize"):
         serialize = (f"&should_serialize_member_entry<{declaring}, "
                      f"{member_argument(declaring, thunks['should_serialize'])}>")
+    origin = "nullptr"
+    if thunks.get("origin"):
+        origin = f"&origin_member_entry<{declaring}, {member_argument(declaring, thunks['origin'])}>"
     connect = "nullptr"
     if prop.get("event"):
         connect = f"&connect_event_entry<{declaring}, {member_argument(declaring, prop['event'])}>"
     describe = f"&describe_{snake(declaring)}_{prop['name']}"
     return (f"        {{{cpp_string(prop['name'])}, {describe},\n"
-            f"         {read},\n         {write},\n         {reset}, {serialize}, nullptr,\n         {connect}}},")
+            f"         {read},\n         {write},\n         {reset}, {serialize}, {origin},\n         {connect}}},")
 
 
 def generated_hooks(config, prop):
@@ -901,13 +907,24 @@ def source_block(config):
     if config.get("table_source") != "hand" and own:
         count = f"{snake(declaring)}_property_count"
         entries = "\n".join(entry_text(config, prop) for prop in own)
+        base_entries = f"{base}::{snake(base)}_property_entries()"
+        overrides = config.get("overrides") or []
+        refined = ""
+        if overrides:
+            # Hand-written entries replacing base entries of the same name in
+            # their slots (override_property_entries); their operations and
+            # descriptors are the declaring class's own, written by hand.
+            listed = "\n".join("        " + entry + "," for entry in overrides)
+            refined = (f"    static constexpr std::array<PropertyEntry, {len(overrides)}U> overrides{{{{\n"
+                       f"{listed}\n    }}}};\n")
+            base_entries = f"override_property_entries({base_entries}, overrides)"
         out += f"""const std::array<PropertyEntry, {declaring}::{count}>& {declaring}::{snake(declaring)}_property_entries() noexcept {{
-    static constexpr std::array<PropertyEntry, {len(own)}U> own{{{{
+{refined}    static constexpr std::array<PropertyEntry, {len(own)}U> own{{{{
 {entries}
     }}}};
     static_assert(property_names_distinct(own), "{declaring}'s property table names a property twice");
     static const std::array<PropertyEntry, {count}> entries =
-        join_property_tables({base}::{snake(base)}_property_entries(), own);
+        join_property_tables({base_entries}, own);
     return entries;
 }}
 

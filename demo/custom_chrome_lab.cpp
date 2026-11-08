@@ -35,8 +35,8 @@ std::shared_ptr<Label> label(std::string id, std::string text,
                              FontSpec font, Color color) {
     std::shared_ptr<Label> result = make_control<Label>(
         StableId(std::move(id)), std::move(text));
-    (*result).set_font(font);
-    (*result).set_foreground(color);
+    (*result).font = font;
+    (*result).fore_color = color;
     return result;
 }
 
@@ -153,9 +153,9 @@ struct CountInteractiveClicks final {
         ++*count;
         const std::shared_ptr<Label> target = readout.lock();
         if (target) {
-            (*target).set_text("Interactive exclusion received " +
+            (*target).text = "Interactive exclusion received " +
                                std::to_string(*count) + " click" +
-                               (*count == 1U ? "" : "s"));
+                               (*count == 1U ? "" : "s");
         }
     }
 };

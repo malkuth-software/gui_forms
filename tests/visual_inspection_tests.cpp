@@ -71,7 +71,7 @@ struct Fixture final {
         (*root).add_child(clip);
 
         (*text).set_requested_bounds({-10.0, 12.0, 110.0, 32.0});
-        (*text).set_font({FontRole::content, 11.0, 600, true, 0.25});
+        (*text).font = FontSpec{FontRole::content, 11.0, 600, true, 0.25};
         (*clip).add_child(text);
 
         (*button).set_requested_bounds({8.0, 46.0, 90.0, 26.0});
@@ -181,7 +181,7 @@ void test_state_damage_staleness_bounds_and_json() {
                 (*button).state.pressed && (*button).state.pointer_captured,
             "inspection must expose focused, hovered, pressed, and capture state");
 
-    (*fixture.text).set_font({FontRole::content, 16.0, 400, false});
+    (*fixture.text).font = FontSpec{FontRole::content, 16.0, 400, false};
     const VisualInspectionSnapshot stale =
         (*fixture.window).visual_inspection_snapshot();
     const VisualControlInspection* stale_text = stale.find("inspection.text");

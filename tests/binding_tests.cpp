@@ -661,7 +661,7 @@ void test_property_mutation_initialization_thread_and_lifetime_guards() {
 
 void test_visual_property_values_drive_stock_controls() {
     std::shared_ptr<gui_forms::Label> label = make_control<Label>(StableId("property.label"), "Metadata");
-    const FontSpec inherited_font = (*label).font();
+    const FontSpec inherited_font = (*label).resolved_font();
     const Color inherited_color = (*label).foreground();
     require((*(*label).property_descriptor("Font")).kind ==
                 BindingValueKind::font &&
@@ -674,12 +674,12 @@ void test_visual_property_values_drive_stock_controls() {
     const Color authored_color = Color::rgba(12, 34, 56, 220);
     (*label).set_property_value("Font", authored);
     (*label).set_property_value("ForeColor", authored_color);
-    require((*label).font() == authored && (*label).foreground() == authored_color &&
+    require((*label).resolved_font() == authored && (*label).foreground() == authored_color &&
                 (*label).should_serialize_property("Font") &&
                 (*label).should_serialize_property("ForeColor") &&
                 (*label).reset_property("Font") &&
                 (*label).reset_property("ForeColor") &&
-                (*label).font() == inherited_font &&
+                (*label).resolved_font() == inherited_font &&
                 (*label).foreground() == inherited_color,
             "font and color overrides must reset to live theme inheritance rather than a copied fallback");
 

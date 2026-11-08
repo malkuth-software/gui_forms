@@ -266,7 +266,7 @@ public:
                 (*button).text = value;
             } else if (const std::shared_ptr<gui_forms::Label> label =
                            std::dynamic_pointer_cast<gui_forms::Label>((*record).control)) {
-                (*label).set_text(value);
+                (*label).text = value;
             } else if (const std::shared_ptr<gui_forms::GroupBox> group =
                            std::dynamic_pointer_cast<gui_forms::GroupBox>((*record).control)) {
                 (*group).text = value;
@@ -1032,7 +1032,7 @@ public:
             (*field).set_colors(foreground, background);
         } else if (const std::shared_ptr<gui_forms::Label> label =
                        std::dynamic_pointer_cast<gui_forms::Label>((*record).control)) {
-            (*label).set_foreground(foreground);
+            (*label).fore_color = foreground;
         } else if (const std::shared_ptr<gui_forms::ButtonBase> button =
                        std::dynamic_pointer_cast<gui_forms::ButtonBase>((*record).control)) {
             BasicControlStyle style = (*button).style();
@@ -1070,8 +1070,8 @@ public:
             content_alignment / 3U);
         if (const std::shared_ptr<gui_forms::Label> label =
                 std::dynamic_pointer_cast<gui_forms::Label>((*record).control)) {
-            (*label).set_alignment(horizontal);
-            (*label).set_vertical_alignment(vertical);
+            (*label).alignment = horizontal;
+            (*label).vertical_alignment = vertical;
             return GF_OK;
         }
         if (const std::shared_ptr<gui_forms::ButtonBase> button =

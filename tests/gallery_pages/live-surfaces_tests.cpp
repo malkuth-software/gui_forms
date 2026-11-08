@@ -39,8 +39,8 @@ void test_live_surfaces(gui_forms::Window& window) {
 
     // One explicit publish registers the surface with the window presenter.
     click(window, window.find("gallery.live-surfaces.publish"));
-    require((*status).text().find("Published generation 1") != std::string::npos &&
-                (*status).text().find("whole surface") != std::string::npos,
+    require((*status).text.read().find("Published generation 1") != std::string::npos &&
+                (*status).text.read().find("whole surface") != std::string::npos,
             "the first publication must cover the whole surface");
     const std::vector<LiveSurfacePresentation> presentations =
         window.take_live_surface_presentations();
@@ -64,13 +64,13 @@ void test_live_surfaces(gui_forms::Window& window) {
     const LiveSurfaceFrame second = (*surface).acquire_for_presentation(&presenter);
     require(second && second.generation() == 2U &&
                 (second.damage() == Rect{20.0, 0.0, 20.0, 100.0}) &&
-                (*status).text().find("damage 20,0 20×100") != std::string::npos,
+                (*status).text.read().find("damage 20,0 20×100") != std::string::npos,
             "a band publication must present damage-limited to that band");
 
     // The producer Timer ticks on the UI thread and publishes one band per tick.
     click(window, window.find("gallery.live-surfaces.start"));
     require(window.next_wake().has_value() &&
-                (*status).text().find("Producer running") != std::string::npos,
+                (*status).text.read().find("Producer running") != std::string::npos,
             "the start Command must arm the page Timer on the window queue");
     const FramePollResult tick = window.poll_frame_schedule(
         FrameClock::now() + std::chrono::seconds(1));
@@ -80,7 +80,7 @@ void test_live_surfaces(gui_forms::Window& window) {
             "a Timer tick must write and publish one frame through a write lease");
     click(window, window.find("gallery.live-surfaces.stop"));
     require(!window.next_wake().has_value() &&
-                (*status).text().find("stopped") != std::string::npos,
+                (*status).text.read().find("stopped") != std::string::npos,
             "the stop Command must leave the scheduler quiescent");
 
     // Reconfigure starts a new epoch and carries the previous frame until the
@@ -89,13 +89,13 @@ void test_live_surfaces(gui_forms::Window& window) {
     snapshot = (*surface).snapshot();
     require(snapshot.description.width == 240U && snapshot.description.height == 150U &&
                 snapshot.carries_previous_frame &&
-                (*telemetry).text().find("240×150") != std::string::npos &&
-                (*telemetry).text().find("previous epoch") != std::string::npos,
+                (*telemetry).text.read().find("240×150") != std::string::npos &&
+                (*telemetry).text.read().find("previous epoch") != std::string::npos,
             "reconfigure must replace the pool and carry the previous frame");
     click(window, window.find("gallery.live-surfaces.publish"));
     snapshot = (*surface).snapshot();
     require(!snapshot.carries_previous_frame && snapshot.published_generation == 1U &&
-                (*status).text().find("Published generation 1") != std::string::npos,
+                (*status).text.read().find("Published generation 1") != std::string::npos,
             "the first publication of a new epoch must replace the carried frame");
 
     // Hidden-page suspension: a tick on an invisible presenter stops the Timer.
@@ -114,7 +114,7 @@ void test_live_surfaces(gui_forms::Window& window) {
     const FramePollResult hidden_tick = window.poll_frame_schedule(
         FrameClock::now() + std::chrono::seconds(1));
     require(hidden_tick.ui_timer_ticks >= 1U &&
-                (*status).text().find("suspended") != std::string::npos,
+                (*status).text.read().find("suspended") != std::string::npos,
             "a tick on a hidden presenter must stop the producer Timer");
     // A queued presentation keeps a window wake armed until a host takes it,
     // so quiescence is proven by the Timer: a later poll ticks it no more.

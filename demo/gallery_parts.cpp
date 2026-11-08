@@ -78,7 +78,7 @@ void LifecycleCard::on_attached_to_window() {
         std::snprintf(value, sizeof(value), "Load 1 · attach %llu · init %llu",
                       static_cast<unsigned long long>(attachment_count() + 1),
                       static_cast<unsigned long long>(initialization_batches_));
-        (*status).set_text(value);
+        (*status).text = value;
     }
 }
 
