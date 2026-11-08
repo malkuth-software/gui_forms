@@ -94,9 +94,11 @@ bool native_popup_translucent(const std::weak_ptr<ApplicationWindowState>& owner
     return translucent;
 }
 
-std::optional<Rect> desktop_placement(const std::weak_ptr<ApplicationWindowState>& owner, const Rect bounds) {
+std::optional<Rect> desktop_placement(const std::weak_ptr<ApplicationWindowState>& owner, const Rect bounds,
+                                      HostMonitorResult& monitors) {
     const std::shared_ptr<ApplicationWindowState> state = owner.lock();
-    if (!owner_run(state)) return std::nullopt;
+    const std::shared_ptr<ApplicationRunState> run = owner_run(state);
+    if (!run) return std::nullopt;
     const ApplicationWindowHandle owner_handle = ApplicationHandleAccess::make(state);
     const HostWindowFrameResult owner_frame = owner_handle.frame();
     if (!owner_frame.status.accepted()) return std::nullopt;
@@ -104,8 +106,12 @@ std::optional<Rect> desktop_placement(const std::weak_ptr<ApplicationWindowState
     // inside the work area under the origin.
     const Rect client = owner_frame.frame.content;
     Rect placed{client.x + bounds.x, client.y + bounds.y, bounds.width, bounds.height};
-    const ApplicationWindows windows = owner_handle.windows();
-    const HostMonitorResult monitors = windows.monitors();
+    try {
+        static_cast<void>((*(*run).windowing).query_monitors(monitors));
+    } catch (...) {
+        monitors.status.error = HostServiceError::backend_failure;
+        monitors.monitors.clear();
+    }
     const std::optional<Rect> work_area = work_area_at(monitors, Point{placed.x, placed.y});
     if (work_area.has_value()) placed = clamp_to_work_area(placed, *work_area);
     return placed;
@@ -116,7 +122,8 @@ std::shared_ptr<NativePopupRecord> open_native_popup_window(const NativePopupOpe
     if (host_transient_is_splash(opening.kind) && opening.focus != HostPopupFocus::passive) return nullptr;
     const std::shared_ptr<ApplicationWindowState> owner = opening.owner.lock();
     const ApplicationWindowHandle owner_handle = ApplicationHandleAccess::make(owner);
-    const std::optional<Rect> placement = desktop_placement(opening.owner, opening.bounds);
+    HostMonitorResult monitors{};
+    const std::optional<Rect> placement = desktop_placement(opening.owner, opening.bounds, monitors);
     if (!placement.has_value()) return nullptr;
     const Rect placed = *placement;
     const ApplicationWindows windows = owner_handle.windows();

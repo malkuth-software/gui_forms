@@ -329,7 +329,7 @@ bool ToolTipPresenter::position(Showing& showing) {
         const double y = anchored ? anchor.y + anchor.height + 7.0 : pointer_.y + 19.0;
         const Rect window_bounds{x - outsets.left, y - outsets.top, face.width + outsets.left + outsets.right,
                                  face.height + outsets.top + outsets.bottom};
-        const std::optional<Rect> desktop = desktop_placement(window_.application_window_, window_bounds);
+        const std::optional<Rect> desktop = desktop_placement(window_.application_window_, window_bounds, placement_monitors_);
         if (!desktop.has_value()) return false;
         if (!transient_layer_) transient_layer_ = make_control<ToolTipLayer>(StableId("tooltip.splash.layer"));
         if ((*transient_bubble_).parent() != transient_layer_) (*transient_layer_).add_child(transient_bubble_);

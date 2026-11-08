@@ -109,6 +109,7 @@ protected:
     [[nodiscard]] HostServiceStatus bring_to_front_impl(HostWindowId window) override;
     [[nodiscard]] HostServiceStatus destroy_window_impl(HostWindowId window) override;
     [[nodiscard]] HostMonitorResult query_monitors_impl() override;
+    void query_monitors_into_impl(HostMonitorResult& result) override;
     [[nodiscard]] HostServiceStatus show_impl(HostWindowId window) override;
     [[nodiscard]] HostServiceStatus hide_impl(HostWindowId window) override;
 

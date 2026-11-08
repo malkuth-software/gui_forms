@@ -331,6 +331,26 @@ HostMonitorResult HostWindowing::query_monitors() {
     return result;
 }
 
+HostServiceStatus HostWindowing::query_monitors(HostMonitorResult& result) {
+    result.status = validate_request(HostCapability::monitor_geometry);
+    if (!result.status.accepted()) {
+        result.monitors.clear();
+        return result.status;
+    }
+    query_monitors_into_impl(result);
+    if (result.status.accepted() && result.monitors.empty()) {
+        result.status = reject(HostServiceError::backend_failure);
+    } else if (!result.status.accepted()) {
+        ++snapshot_.rejected_requests;
+        result.monitors.clear();
+    }
+    return result.status;
+}
+
+void HostWindowing::query_monitors_into_impl(HostMonitorResult& result) {
+    result = query_monitors_impl();
+}
+
 std::optional<HostWindowId> HostWindowing::find(std::string_view stable_id) const noexcept {
     for (std::size_t index = 0U; index < windows_.size(); ++index) {
         if (windows_[index].stable_id == stable_id) return windows_[index].id;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/host/types/host_types.hpp"
 #include "gui_forms/window.hpp"
 #include "tool_tip_bubble.hpp"
 #include "tool_tip_route.hpp"
@@ -200,6 +201,8 @@ private:
     std::shared_ptr<ToolTipLayer> transient_layer_{};
     std::shared_ptr<ToolTipBubble> transient_bubble_{};
     ToolTipLines transient_lines_{};
+    // The monitor table's storage for Splash placement, reused by every show.
+    HostMonitorResult placement_monitors_{};
     // The host refused a Splash window once; the overlay is used from then.
     bool transient_refused_{};
 };

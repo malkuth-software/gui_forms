@@ -303,6 +303,11 @@ public:
     [[nodiscard]] HostServiceStatus destroy_window(HostWindowId window);
     // Monitors in desktop logical units.
     [[nodiscard]] HostMonitorResult query_monitors();
+    // As query_monitors, filling `result` (its monitor storage reused, so a
+    // repeated query on an unchanged table allocates nothing where the
+    // adapter fills in place) and returning its status. On a refusal
+    // `result` holds the status and no monitors.
+    HostServiceStatus query_monitors(HostMonitorResult& result);
     // The program shows or hides a window. For a floating window this is
     // the window's wanted visibility; the policy shows it only while the
     // application is active (floating tools) and the primary window is not
@@ -403,6 +408,10 @@ protected:
     // retire() before returning accepted.
     [[nodiscard]] virtual HostServiceStatus destroy_window_impl(HostWindowId window) = 0;
     [[nodiscard]] virtual HostMonitorResult query_monitors_impl() = 0;
+    // Fills `result` with what query_monitors_impl returns. The default
+    // assigns a new table; an adapter that keeps its table overrides it to
+    // copy into `result`'s storage.
+    virtual void query_monitors_into_impl(HostMonitorResult& result);
     // Shows the native window without activating it; hides it. Called for
     // floating windows by the policy and for any window by set_visible.
     [[nodiscard]] virtual HostServiceStatus show_impl(HostWindowId window) = 0;

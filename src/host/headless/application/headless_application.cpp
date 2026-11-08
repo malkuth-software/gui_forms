@@ -379,6 +379,13 @@ HostMonitorResult HeadlessWindowing::query_monitors_impl() {
     return result;
 }
 
+// Copies into `result`'s storage: a warm Splash or Popup placement queries
+// the table on every show and allocates nothing.
+void HeadlessWindowing::query_monitors_into_impl(HostMonitorResult& result) {
+    result.status = {};
+    result.monitors = monitors_;
+}
+
 HostServiceStatus HeadlessWindowing::show_impl(HostWindowId window) {
     if (native(window) == nullptr) return {HostServiceError::invalid_argument};
     set_native_visible(window, true);

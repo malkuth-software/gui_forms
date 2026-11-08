@@ -45,6 +45,31 @@ std::shared_ptr<detail::ApplicationWindowState> ready_state(
     return state;
 }
 
+// One of a window state's operations, moved out of the state for its call
+// and moved back on every exit (an exception included) unless the state was
+// closed or given another operation meanwhile. While it is out, a nested
+// request for the same operation finds none and reports unsupported.
+class HeldOperation final {
+public:
+    HeldOperation(detail::ApplicationWindowState& state,
+                  std::function<void()> detail::ApplicationWindowState::* operation) noexcept
+        : state_(state), operation_(operation), action_(std::move(state.*operation)) {
+        state_.*operation_ = nullptr;
+    }
+    ~HeldOperation() {
+        if (!state_.closed && !(state_.*operation_)) state_.*operation_ = std::move(action_);
+    }
+    HeldOperation(const HeldOperation&) = delete;
+    HeldOperation& operator=(const HeldOperation&) = delete;
+
+    void invoke() const { action_(); }
+
+private:
+    detail::ApplicationWindowState& state_;
+    std::function<void()> detail::ApplicationWindowState::* operation_;
+    std::function<void()> action_;
+};
+
 HostServiceStatus request(const std::weak_ptr<detail::ApplicationWindowState>& weak,
                           std::function<void()> detail::ApplicationWindowState::* operation,
                           bool hiding) {
@@ -54,10 +79,12 @@ HostServiceStatus request(const std::weak_ptr<detail::ApplicationWindowState>& w
     if (hiding && !(*state).can_hide) return {HostServiceError::invalid_argument};
     if (!((*state).*operation)) return {HostServiceError::unsupported};
     try {
-        // A native request may synchronously close and clear its state. Keep
-        // the active callable alive until its invocation has returned.
-        const std::function<void()> action = (*state).*operation;
-        action();
+        // A native request may synchronously close and clear its state. The
+        // callable is moved out (never copied: a copy allocates) and kept
+        // alive until its invocation has returned, then put back unless the
+        // call closed the window or installed another.
+        HeldOperation held{*state, operation};
+        held.invoke();
     } catch (...) {
         return {HostServiceError::backend_failure};
     }

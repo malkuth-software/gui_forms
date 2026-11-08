@@ -100,9 +100,11 @@ struct NativePopupOpening final {
 // `bounds` in the owner's client area as a desktop rectangle in logical
 // units, moved the least distance that keeps it inside the work area of
 // the monitor under its origin. None when the owner is not a ready window
-// of a live run or the host does not report its frame.
+// of a live run or the host does not report its frame. `monitors` is the
+// caller's storage for the monitor table, reused so that a warm show
+// allocates nothing; it holds the last query's result after.
 [[nodiscard]] std::optional<Rect> desktop_placement(const std::weak_ptr<ApplicationWindowState>& owner,
-                                                    Rect bounds);
+                                                    Rect bounds, HostMonitorResult& monitors);
 
 // Opens `opening.content` in a native popup window owned by the owner
 // window: a Window model of the bounds' size, non-opaque, sharing the

@@ -38,7 +38,7 @@ TransientWindow* PopupStandby::slot_window(const std::size_t slot) {
 
 bool PopupStandby::show(const std::size_t slot, const Control::Ptr& content, const Rect bounds) {
     if (slot >= slots_.size()) return false;
-    const std::optional<Rect> desktop = desktop_placement(owner_.application_window_, bounds);
+    const std::optional<Rect> desktop = desktop_placement(owner_.application_window_, bounds, monitors_);
     if (!desktop.has_value()) return false;
     TransientWindow* window = slot_window(slot);
     if (window == nullptr) return false;
@@ -48,7 +48,7 @@ bool PopupStandby::show(const std::size_t slot, const Control::Ptr& content, con
 
 bool PopupStandby::move(const std::size_t slot, const Rect bounds) {
     if (slot >= slots_.size() || !slots_[slot].window) return false;
-    const std::optional<Rect> desktop = desktop_placement(owner_.application_window_, bounds);
+    const std::optional<Rect> desktop = desktop_placement(owner_.application_window_, bounds, monitors_);
     if (!desktop.has_value()) return false;
     const bool moved = (*slots_[slot].window).move(*desktop);
     return moved;

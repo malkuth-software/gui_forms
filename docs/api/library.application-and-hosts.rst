@@ -2047,6 +2047,10 @@ Related types
 
       Monitors in desktop logical units.
 
+   .. cpp:function:: HostServiceStatus query_monitors(HostMonitorResult& result)
+
+      As query_monitors, filling ``result`` (its monitor storage reused, so a repeated query on an unchanged table allocates nothing where the adapter fills in place) and returning its status. On a refusal ``result`` holds the status and no monitors.
+
    .. cpp:function:: std::optional<HostWindowId> find(std::string_view stable_id) const noexcept
 
       Table queries (no capability needed).
@@ -2151,6 +2155,12 @@ Related types
    .. cpp:function:: virtual HostMonitorResult query_monitors_impl() = 0
 
       *Protected.*
+
+   .. cpp:function:: virtual void query_monitors_into_impl(HostMonitorResult& result)
+
+      *Protected.*
+
+      Fills ``result`` with what query_monitors_impl returns. The default assigns a new table; an adapter that keeps its table overrides it to copy into ``result``'s storage.
 
    .. cpp:function:: virtual HostServiceStatus show_impl(HostWindowId window) = 0
 

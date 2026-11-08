@@ -2,6 +2,7 @@
 
 #include "../../application/transient_window.hpp"
 
+#include "gui_forms/host/types/host_types.hpp"
 #include "gui_forms/window.hpp"
 
 #include <array>
@@ -52,6 +53,8 @@ private:
     // Slot i is menu depth i; a slot's window lives from its first show.
     std::array<PopupSlot, Window::maximum_popup_windows> slots_{};
     std::uint64_t serial_{};
+    // The monitor table's storage, reused by every placement.
+    HostMonitorResult monitors_{};
     Event<std::size_t> closed_;
 };
 
