@@ -117,10 +117,11 @@ constexpr Color muted_ink = Color::rgba(74, 84, 95);
 constexpr Color action_muted_ink = Color::rgba(44, 58, 78);
 // Muted text on the accent blue.
 constexpr Color accent_muted_ink = Color::rgba(244, 247, 252);
-// Disabled text. Plan Paint's (98,121,151) reaches only 2.6:1 on its own
-// disabled face; this one keeps its hue and meets 3:1 on every disabled face
-// (the contrast gate; M104: reduced, still visible).
-constexpr Color disabled_ink = Color::rgba(82, 99, 122);
+// Disabled text: Plan Paint's own. The builders darkened it to (82,99,122)
+// for a 3:1 disabled-text gate, which the owner withdrew on 2026-11-08
+// (WCAG exempts inactive components); the reference follows the floor
+// sheet's restored value, and is otherwise verbatim.
+constexpr Color disabled_ink = Color::rgba(98, 121, 151);
 // The near-white stock (§5 of the rendering reference: "ivory" meaning
 // Windows' near-white, never a cream).
 constexpr Color stock = Color::rgba(244, 244, 245);

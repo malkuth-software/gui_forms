@@ -18,7 +18,6 @@ constexpr std::size_t sample_count = 17U;
 using FaceSamples = std::array<Color, sample_count>;
 
 constexpr double text_minimum = 4.5;
-constexpr double disabled_text_minimum = 3.0;
 constexpr double high_contrast_text_minimum = 7.0;
 constexpr double non_text_minimum = 3.0;
 
@@ -232,7 +231,8 @@ bool gates_focus(ControlVisualRole family, ControlSurfaceState state) noexcept {
 
 double text_minimum_for(ControlSurfaceState state, bool high_contrast) noexcept {
     if (high_contrast) return high_contrast_text_minimum;
-    if (state == ControlSurfaceState::disabled) return disabled_text_minimum;
+    // A disabled control's text is exempt (ContrastVerdict::exempt).
+    if (state == ControlSurfaceState::disabled) return 0.0;
     return text_minimum;
 }
 
@@ -244,6 +244,12 @@ ContrastRow measured_row(const ContrastRow& key, ContrastPair pair, const WorstP
     row.ratio = worst.ratio;
     row.minimum = minimum;
     row.verdict = worst.ratio >= minimum ? ContrastVerdict::pass : ContrastVerdict::fail;
+    return row;
+}
+
+// `row` as an exempt one (ContrastVerdict::exempt), its measurement kept.
+ContrastRow exempt_row(ContrastRow row) noexcept {
+    row.verdict = ContrastVerdict::exempt;
     return row;
 }
 
@@ -282,9 +288,13 @@ void measure_recipe(const ControlVisualRecipe& recipe, const ContrastRow& key, b
     FaceSamples face{};
     const bool face_known = surround_known && sample_material(recipe.material, surround, face);
     if (!face_known) {
+        if (disabled) {
+            rows.push_back(exempt_row(unmeasured_row(key, ContrastPair::text, text_floor)));
+            rows.push_back(exempt_row(unmeasured_row(key, ContrastPair::muted_text, text_floor)));
+            return;
+        }
         rows.push_back(unmeasured_row(key, ContrastPair::text, text_floor));
         rows.push_back(unmeasured_row(key, ContrastPair::muted_text, text_floor));
-        if (disabled) return;
         rows.push_back(unmeasured_row(key, ContrastPair::glyph, non_text_minimum));
         if (boundary) rows.push_back(unmeasured_row(key, ContrastPair::boundary, non_text_minimum));
         if (focus) {
@@ -293,9 +303,14 @@ void measure_recipe(const ControlVisualRecipe& recipe, const ContrastRow& key, b
         }
         return;
     }
+    if (disabled) {
+        rows.push_back(exempt_row(measured_row(key, ContrastPair::text, worst_over(recipe.text, face), text_floor)));
+        rows.push_back(
+            exempt_row(measured_row(key, ContrastPair::muted_text, worst_over(recipe.muted_text, face), text_floor)));
+        return;
+    }
     rows.push_back(measured_row(key, ContrastPair::text, worst_over(recipe.text, face), text_floor));
     rows.push_back(measured_row(key, ContrastPair::muted_text, worst_over(recipe.muted_text, face), text_floor));
-    if (disabled) return;
     rows.push_back(measured_row(key, ContrastPair::glyph, worst_over(recipe.glyph, face), non_text_minimum));
     if (boundary) {
         const std::optional<Color> edge = edge_colour(recipe.material);
@@ -398,6 +413,8 @@ ContrastCounts count_contrast_verdicts(std::span<const ContrastRow> rows) noexce
             ++counts.passed;
         } else if (row.verdict == ContrastVerdict::fail) {
             ++counts.failed;
+        } else if (row.verdict == ContrastVerdict::exempt) {
+            ++counts.exempt;
         } else {
             ++counts.not_measured;
         }
@@ -422,6 +439,7 @@ std::string_view contrast_verdict_name(ContrastVerdict verdict) noexcept {
     case ContrastVerdict::pass: return "pass";
     case ContrastVerdict::fail: return "fail";
     case ContrastVerdict::not_measured: return "not_measured";
+    case ContrastVerdict::exempt: return "exempt";
     }
     return "unknown";
 }

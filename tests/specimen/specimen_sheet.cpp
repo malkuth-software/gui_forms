@@ -521,11 +521,12 @@ const Control* control_under(const Control& control, Point point) {
     return &control;
 }
 
-// 7:1 in high contrast; otherwise 3:1 for text a disabled control paints
-// (the cell's state, or a disabled control inside the specimen), 4.5:1 else.
+// None for text a disabled control paints (the cell's state, or a disabled
+// control inside the specimen): WCAG exempts inactive components (owner,
+// 2026-11-08). Otherwise 7:1 in high contrast, 4.5:1 else.
 double threshold_for(Presentation presentation, bool disabled) noexcept {
+    if (disabled) return 0.0;
     if (presentation == Presentation::high_contrast) return 7.0;
-    if (disabled) return 3.0;
     return 4.5;
 }
 

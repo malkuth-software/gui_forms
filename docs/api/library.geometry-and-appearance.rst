@@ -16,6 +16,10 @@ Types
 
    * - :cpp:class:`AmbientEffect <gui_forms::AmbientEffect>`
      - An ambient effect (E7): its part repaints as time passes, at most ``frames_per_second``, and reads time_in_state within one ``period`` (it wraps), so that the effect cycles.
+   * - :cpp:class:`AncestorBloom <gui_forms::AncestorBloom>`
+     - The keys an ancestor chain holds, hashed into 256 bits: a rule whose ancestor keys are not all present cannot match, and is rejected without walking the chain (CSS engines' ancestor Bloom filter).
+   * - :cpp:class:`AncestorFacts <gui_forms::AncestorFacts>`
+     - One ancestor control as a selector's ancestor compounds read it: borrowed from the control for the resolution.
    * - :cpp:class:`AssembledPartMaterial <gui_forms::AssembledPartMaterial>`
      - A part's assembled material (T3 EC1): its recipe's material, the floor, with the winning material fields of the theme's rules in place, and what it was assembled from.
    * - :cpp:class:`AuthoredGradient <gui_forms::AuthoredGradient>`
@@ -150,6 +154,8 @@ Types
      - The position of a number parameter among a primitive's declared parameters (PrimitiveDescriptor::parameters).
    * - :cpp:class:`ExpressionResult <gui_forms::ExpressionResult>`
      -  
+   * - :cpp:class:`FamiliarThemeBuild <gui_forms::FamiliarThemeBuild>`
+     - A built theme and what building it measured.
    * - :cpp:class:`FontDeclaration <gui_forms::FontDeclaration>`
      - A part's font as the cascade resolved it: a text role, or, with ``inherit`` (D7), the parent control's, which the caller resolves at paint.
    * - :cpp:class:`FontSpec <gui_forms::FontSpec>`
@@ -296,14 +302,18 @@ Types
      -  
    * - :cpp:class:`RetainedDrawMemo <gui_forms::RetainedDrawMemo>`
      - Renderer-derived data for one retained draw command, such as shaped text.
+   * - :cpp:class:`RuleAncestor <gui_forms::RuleAncestor>`
+     - One ancestor compound of a selector (selector step 4): a control type, a stable ID and classes, each optional, matched against an ancestor control.
    * - :cpp:class:`RuleDeclaration <gui_forms::RuleDeclaration>`
      - One declaration: a property and its value.
    * - :cpp:class:`RuleDiagnostic <gui_forms::RuleDiagnostic>`
      -  
+   * - :cpp:class:`RuleExclusion <gui_forms::RuleExclusion>`
+     - One argument of a selector's ``:not()`` (selector step 2): a compound of a control type, a stable ID, classes, states and a family, each optional; it excludes the parts it matches.
    * - :cpp:class:`RuleSelector <gui_forms::RuleSelector>`
-     -  
+     - ``family``, when set, is a control visual family's registered name (the theme's ControlVisualRole, such as ``accent_button``): the selector matches only parts resolved for that family (PartFacts::family).
    * - :cpp:class:`RuleSpecificity <gui_forms::RuleSpecificity>`
-     - A selector's specificity, CSS's three columns compared in order: the stable ID; the classes and the states (pseudo-classes); the control type or surface and the part (its name or role, one each, as pseudo-elements).
+     - A selector's specificity, CSS's three columns compared in order: the stable ID; the classes, the states and the family (pseudo-classes); the control type or surface and the part (its name or role, one each, as pseudo-elements).
    * - :cpp:class:`ScopedCondition <gui_forms::ScopedCondition>`
      - A copy's condition: the part's winning definition of ``name`` is ``definition``, or, for custom_property_undefined, no definition matches.
    * - :cpp:class:`ScopedDefinition <gui_forms::ScopedDefinition>`
@@ -372,6 +382,39 @@ Types
    .. cpp:member:: double frames_per_second
 
    .. cpp:member:: FrameInterval pose
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: AncestorBloom final
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   The keys an ancestor chain holds, hashed into 256 bits: a rule whose ancestor keys are not all present cannot match, and is rejected without walking the chain (CSS engines' ancestor Bloom filter).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void add(std::string_view prefix, std::string_view key) noexcept
+
+      Adds ``key``, written as a selector writes it: ``type``, ``#id`` or ``.class``.
+
+   .. cpp:function:: bool holds(const AncestorBloom& needed) const noexcept
+
+   .. cpp:member:: std::array<std::uint64_t, 4> bits
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: AncestorFacts final
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   One ancestor control as a selector's ancestor compounds read it: borrowed from the control for the resolution.
+
+   .. cpp:member:: std::string_view control_type
+
+   .. cpp:member:: std::string_view stable_id
+
+   .. cpp:member:: std::span<const std::string> classes
 
 .. cpp:namespace:: gui_forms
 
@@ -723,6 +766,10 @@ Types
 
       How many of the rules are the engine's built-in rules.
 
+   .. cpp:function:: bool uses_ancestors() const noexcept
+
+      Whether a rule has ancestor compounds (selector step 4): its facts need the control's ancestors, and a change to an ancestor's type, ID or classes, or a move, re-resolves the control's subtree.
+
    .. cpp:function:: bool empty() const noexcept
 
    .. cpp:function:: std::size_t rule_count() const noexcept
@@ -867,6 +914,16 @@ Types
    .. cpp:member:: SurfaceKind surface
 
       The surface whose rules are resolved, or none for a control's part: a rule matches only facts of its own surface kind. Default: ``{SurfaceKind::none}``.
+
+   .. cpp:member:: std::string_view family
+
+      The control visual family the part is resolved for (RuleSelector:: family), or empty where none is known: a ``:family()`` rule then does not match.
+
+   .. cpp:member:: std::span<const AncestorFacts> ancestors
+
+      The part's control's ancestors, its parent first, and their keys (fill_ancestor_facts): read only by rules with ancestor compounds (uses_ancestors). Borrowed for the call.
+
+   .. cpp:member:: AncestorBloom ancestor_bloom
 
 .. cpp:namespace:: gui_forms
 
@@ -2254,6 +2311,26 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: FamiliarThemeBuild final
+
+   ``#include <gui_forms/theme/familiar_themes/familiar_themes.hpp>``
+
+   A built theme and what building it measured. When the floor sheet is refused, ``theme`` keeps windows-professional's recipes under the theme's id and ``diagnostics`` says why; the stock sheets compile with no diagnostics (tests/familiar_themes_tests).
+
+   .. cpp:member:: std::shared_ptr<const Theme> theme
+
+   .. cpp:member:: std::vector<ThemeCompileDiagnostic> diagnostics
+
+   .. cpp:member:: std::uint64_t compile_operations
+
+      The compiler's work for the floor sheet (ThemeCompileWork:: operations), a count independent of the machine.
+
+   .. cpp:member:: std::chrono::nanoseconds build_time
+
+      Wall time of the build, on the first call's thread.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: FontDeclaration final
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
@@ -2342,7 +2419,7 @@ Types
 
    ``#include <gui_forms/theme/gui_forms_theme/gui_forms_theme.hpp>``
 
-   The built theme and what building it measured. When the sheet is refused, ``theme`` is the floor alone and ``diagnostics`` says why; the stock sheet compiles with no diagnostics (tests/gui_forms_theme_tests).
+   The built theme and what building it measured. ``diagnostics`` holds the floor sheet's, then the light sheet's. When the light sheet is refused, ``theme`` is the floor alone; when the floor sheet is, the floor keeps windows-professional's recipes. The stock sheets compile with no diagnostics (tests/gui_forms_theme_tests).
 
    .. cpp:member:: std::shared_ptr<const Theme> theme
 
@@ -2351,6 +2428,10 @@ Types
    .. cpp:member:: std::uint64_t compile_operations
 
       The compiler's work for the sheet (ThemeCompileWork::operations), a count independent of the machine.
+
+   .. cpp:member:: std::uint64_t floor_compile_operations
+
+      The same for the floor sheet.
 
    .. cpp:member:: std::chrono::nanoseconds build_time
 
@@ -4172,7 +4253,7 @@ Types
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
 
-   One recipe field's declared value. ``initial`` is CSS's ``initial``: the floor's value, and the declaration still wins over those beneath it; its value members are not read. Otherwise, by field: - text and outline_colour: ``colour``; - outline_style: ``outline_style``; - outline_width (0 to maximum_recipe_outline_width) and outline_offset (within ±maximum_recipe_outline_offset): ``number``, in logical units; - text_shadow: ``shadowed``, false for none; its ``shadow_offset``, ``shadow_blur`` (the shadows' blur-radius convention) and ``colour``; - font_family: ``font_role``; font_style: ``italic``; - font_size (in logical units, with em_lengths in the control's own font size), font_weight and letter_spacing (logical units, with em_lengths in the resolved size): ``number``.
+   One recipe field's declared value. ``initial`` is CSS's ``initial``: the floor's value, and the declaration still wins over those beneath it; its value members are not read. Otherwise, by field: - text, outline_colour, muted_text, glyph and default_outline_colour: ``colour``; - outline_style: ``outline_style``; - outline_width and default_outline_width (0 to maximum_recipe_outline_width) and outline_offset (within ±maximum_recipe_outline_offset): ``number``, in logical units; - text_shadow: ``shadowed``, false for none; its ``shadow_offset``, ``shadow_blur`` (the shadows' blur-radius convention) and ``colour``; - font_family: ``font_role``; font_style: ``italic``; - font_size (in logical units, with em_lengths in the control's own font size), font_weight and letter_spacing (logical units, with em_lengths in the resolved size): ``number``.
 
    .. cpp:member:: RecipeField field
 
@@ -4322,6 +4403,24 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: RuleAncestor final
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   One ancestor compound of a selector (selector step 4): a control type, a stable ID and classes, each optional, matched against an ancestor control. ``combinator`` relates it to the compound on its right: the subject's for the nearest, else the next nearer ancestor compound's. Ancestor compounds name no state, family, part, role or surface, so a rule's ancestors change only when an ancestor's type, ID or classes do, or a control moves.
+
+   .. cpp:member:: std::string control_type
+
+   .. cpp:member:: std::string stable_id
+
+   .. cpp:member:: std::vector<std::string> classes
+
+   .. cpp:member:: AncestorCombinator combinator
+
+      Default: ``{AncestorCombinator::descendant}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: RuleDeclaration final
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
@@ -4391,9 +4490,29 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: RuleExclusion final
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   One argument of a selector's ``:not()`` (selector step 2): a compound of a control type, a stable ID, classes, states and a family, each optional; it excludes the parts it matches. It names no part, role or surface.
+
+   .. cpp:member:: std::string control_type
+
+   .. cpp:member:: std::string stable_id
+
+   .. cpp:member:: std::vector<std::string> classes
+
+   .. cpp:member:: std::vector<AnatomyState> states
+
+   .. cpp:member:: std::string family
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: RuleSelector final
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   ``family``, when set, is a control visual family's registered name (the theme's ControlVisualRole, such as ``accent_button``): the selector matches only parts resolved for that family (PartFacts::family). ``excluded`` holds the arguments of its `:not()`s: it matches no part any of them matches.
 
    .. cpp:member:: std::string control_type
 
@@ -4411,13 +4530,21 @@ Types
 
       Default: ``{SurfaceKind::none}``.
 
+   .. cpp:member:: std::string family
+
+   .. cpp:member:: std::vector<RuleExclusion> excluded
+
+   .. cpp:member:: std::vector<RuleAncestor> ancestors
+
+      The selector's ancestor compounds, nearest first (selector step 4).
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: RuleSpecificity final
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
 
-   A selector's specificity, CSS's three columns compared in order: the stable ID; the classes and the states (pseudo-classes); the control type or surface and the part (its name or role, one each, as pseudo-elements).
+   A selector's specificity, CSS's three columns compared in order: the stable ID; the classes, the states and the family (pseudo-classes); the control type or surface and the part (its name or role, one each, as pseudo-elements). A ``:not()`` adds its most specific argument's, and each ancestor compound its own.
 
    .. cpp:member:: std::uint32_t ids
 
@@ -5220,6 +5347,16 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: AncestorCombinator
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   .. cpp:enumerator:: descendant
+
+   .. cpp:enumerator:: child
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: BackdropStepKind
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
@@ -5699,6 +5836,22 @@ Enumerations
    .. cpp:enumerator:: smoothstep
 
    .. cpp:enumerator:: choose
+
+   .. cpp:enumerator:: count
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: FamiliarTheme
+
+   ``#include <gui_forms/theme/familiar_themes/familiar_themes.hpp>``
+
+   .. cpp:enumerator:: classic
+
+   .. cpp:enumerator:: modern_flat
+
+   .. cpp:enumerator:: xp_style
+
+   .. cpp:enumerator:: windows7_style
 
    .. cpp:enumerator:: count
 
@@ -6427,6 +6580,14 @@ Enumerations
    .. cpp:enumerator:: font_style
 
    .. cpp:enumerator:: letter_spacing
+
+   .. cpp:enumerator:: muted_text
+
+   .. cpp:enumerator:: glyph
+
+   .. cpp:enumerator:: default_outline_width
+
+   .. cpp:enumerator:: default_outline_colour
 
    .. cpp:enumerator:: count
 
@@ -7223,7 +7384,7 @@ Functions, constants and aliases
 
 .. cpp:function:: ColourPosition recipe_field_colour_position(RecipeField field) noexcept
 
-   Where the field's colour is drawn (EC4): the text colour is text and the outline colour an edge; every other field none.
+   Where the field's colour is drawn (EC4): the text, muted text and glyph colours are text, and the outline and default outline colours edges; every other field none.
 
 .. cpp:function:: void recipe_declaration_lengths(const RecipeDeclaration& declaration, std::vector<double>& lengths)
 
@@ -7252,6 +7413,14 @@ Functions, constants and aliases
 .. cpp:function:: const ThemeRuleSheet& built_in_theme_rules()
 
    The engine's built-in rules (E7), compiled below every theme's: the docking drop tiles' fade (T2 GIVEN C2-1) and the ribbon's dithered rise (D3-1, G4-1). Static storage, made once on first use.
+
+.. cpp:var:: constexpr std::size_t maximum_rule_ancestors
+
+   At most this many ancestor compounds in one selector, and ancestors are matched within this depth of the subject: a control nested deeper than maximum_ancestor_depth below an ancestor is not matched against it. Value: ``8U``.
+
+.. cpp:var:: constexpr std::size_t maximum_ancestor_depth
+
+   Value: ``256U``.
 
 .. cpp:var:: constexpr std::string_view primitive_property
 
@@ -7545,11 +7714,41 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
+``#include <gui_forms/theme/familiar_themes/familiar_themes.hpp>``
+
+.. cpp:function:: std::string_view familiar_theme_id(FamiliarTheme theme) noexcept
+
+   The theme's id (``classic``, ``modern-flat``, ``xp-style``, ``windows7-style``); empty for ``count``.
+
+.. cpp:function:: std::optional<FamiliarTheme> familiar_theme_named(std::string_view id) noexcept
+
+   The theme ``id`` names, or none.
+
+.. cpp:function:: std::string_view familiar_theme_floor_sheet(FamiliarTheme theme) noexcept
+
+   The theme's floor sheet (``<id>/floor.css`` in diagnostics). Static storage; empty for ``count``.
+
+.. cpp:function:: const FamiliarThemeBuild& familiar_theme_build(FamiliarTheme theme)
+
+   The theme, built on its first call (thread-safe; later calls return the same build) and kept for the life of the program. ``theme`` is below familiar_theme_count.
+
+.. cpp:function:: std::shared_ptr<const Theme> familiar_theme(FamiliarTheme theme)
+
+.. cpp:var:: constexpr std::size_t familiar_theme_count
+
+   Value: ``static_cast<std::size_t>(FamiliarTheme::count)``.
+
+.. cpp:namespace:: gui_forms
+
 ``#include <gui_forms/theme/gui_forms_theme/gui_forms_theme.hpp>``
 
 .. cpp:function:: ThemeDefinition gui_forms_theme_definition()
 
-   The floor: Plan Paint's action plate for push buttons, the gold active tool for selected ones, recessed wells for entry fields and choices, near-white stock (#F4F4F5) for windows and panels, flat command members at rest, and text colours that meet the contrast gate (4.5:1, 3:1 for disabled text) on every face. Id ``gui-forms``; its rules are empty.
+   The floor: Plan Paint's action plate for push buttons, the gold active tool for selected ones, recessed wells for entry fields and choices, near-white stock (#F4F4F5) for windows and panels, flat command members at rest, and enabled text colours that meet the contrast gate (4.5:1) on every face (disabled text is exempt). Its recipes are the floor sheet's (gui_forms_floor_sheet), evaluated once on the first call (thread-safe) over the C++ structure (owner option 1); a copy each call. Id ``gui-forms``; its rules are empty.
+
+.. cpp:function:: std::string_view gui_forms_floor_sheet() noexcept
+
+   The floor sheet's source text (``gui-forms/floor.css`` in diagnostics): every family's recipe in every surface state, as ``:family()`` rules. Static storage.
 
 .. cpp:function:: std::string_view gui_forms_light_sheet() noexcept
 

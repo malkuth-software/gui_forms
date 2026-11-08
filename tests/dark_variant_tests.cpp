@@ -160,8 +160,9 @@ void fixed_colours() {
     require(translucent.alpha == 89, "a surface keeps its alpha");
 }
 
-// Derived ink on derived faces meets the text gate (4.5:1), disabled ink
-// the disabled gate (3:1), over the light range the default's faces use.
+// Derived ink on derived faces meets the text gate (4.5:1) over the light
+// range the default's faces use. Disabled ink is exempt from the gate
+// (WCAG's inactive components, owner 2026-11-08); its ratio is printed.
 void contrast_kept() {
     const std::array<Color, 3> inks{Color::rgba(27, 39, 51), Color::rgba(21, 55, 101), Color::rgba(74, 84, 95)};
     const std::array<Color, 4> faces{Color::rgba(244, 244, 245), Color::rgba(255, 255, 255),
@@ -182,7 +183,8 @@ void contrast_kept() {
     require(worst >= 4.5, "derived ink meets 4.5:1 on derived faces");
     const Color disabled = detail::dark_colour(Color::rgba(82, 99, 122), DarkColourClass::disabled_ink);
     const Color disabled_face = detail::dark_colour(Color::rgba(238, 242, 247), DarkColourClass::stock_surface);
-    require(detail::contrast_ratio(disabled, disabled_face) >= 3.0, "derived disabled ink meets 3:1");
+    std::cout << "derived disabled ink on the derived stock: " << detail::contrast_ratio(disabled, disabled_face)
+              << ":1 (exempt)\n";
 }
 
 // A light material darkened as a whole (the rules' fields in place on the

@@ -129,9 +129,14 @@ void gated_pairs(const std::vector<ContrastRow>& rows) {
         double expected = 3.0;
         const bool text = row.pair == ContrastPair::text || row.pair == ContrastPair::muted_text;
         if (text && row.high_contrast) expected = 7.0;
-        if (text && !row.high_contrast && row.state != ControlSurfaceState::disabled) expected = 4.5;
+        if (text && !row.high_contrast) expected = 4.5;
+        // A disabled control's text is exempt (WCAG 2's inactive
+        // components; owner, 2026-11-08): measured, held to nothing.
+        const bool disabled_text = text && row.state == ControlSurfaceState::disabled;
+        if (disabled_text) expected = 0.0;
         require(row.minimum == expected, "each row carries its pair's minimum");
-        if (row.verdict == ContrastVerdict::not_measured) continue;
+        require(disabled_text == (row.verdict == ContrastVerdict::exempt), "exactly disabled text is exempt");
+        if (row.verdict == ContrastVerdict::not_measured || row.verdict == ContrastVerdict::exempt) continue;
         const bool verdict_agrees = (row.ratio >= row.minimum) == (row.verdict == ContrastVerdict::pass);
         require(verdict_agrees, "a measured row's verdict is its ratio against its minimum");
         require(row.foreground.alpha == 255 && row.background.alpha == 255, "measured pairs are opaque");
@@ -192,7 +197,8 @@ void built_in_report() {
     require(!rows.empty(), "the built-in theme has a report");
     gated_pairs(rows);
     const ContrastCounts counts = detail::count_contrast_verdicts(rows);
-    require(counts.passed + counts.failed + counts.not_measured == rows.size(), "every row has one verdict");
+    require(counts.passed + counts.failed + counts.not_measured + counts.exempt == rows.size(),
+            "every row has one verdict");
     std::array<std::size_t, 6> failures_by_pair{};
     for (const ContrastRow& row : rows) {
         if (row.verdict == ContrastVerdict::fail) ++failures_by_pair[static_cast<std::size_t>(row.pair)];

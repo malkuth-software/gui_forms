@@ -35,8 +35,9 @@ constexpr std::string_view floor_sheet = R"css(/* gui-forms: the default theme's
    5.4); #153765 Plan Paint's action ink; muted #4a545f, darker than
    windows-professional's #76808a, which fails 4.5:1 on its own plates,
    #2c3a4e on action plates and #f4f7fc on the accent blue; disabled
-   #52637a, which keeps Plan Paint's hue (its #627997 reaches only 2.6:1
-   on its own disabled face) and meets 3:1 on every disabled face (M104).
+   Plan Paint's own #627997 (disabled text is not held to the contrast
+   gate, as WCAG exempts inactive components; owner, 2026-11-08; M104:
+   reduced, still visible).
    The focus ring is dark ink, a non-colour cue, dotted (the structure);
    the default button's second perimeter (M105) is Plan Paint's. */
 
@@ -155,9 +156,9 @@ constexpr std::string_view floor_sheet = R"css(/* gui-forms: the default theme's
 /* A disabled action is the disabled plate: no contact shadow, softer
    lines, disabled ink. */
 :family(button):disabled, :family(command-button):disabled {
-  color: #52637a;
-  muted-color: #52637a;
-  glyph-color: #52637a;
+  color: #627997;
+  muted-color: #627997;
+  glyph-color: #627997;
 }
 :family(button):disabled {
   background: linear-gradient(to bottom, #becfe4, #b5c7de);
@@ -187,9 +188,9 @@ constexpr std::string_view floor_sheet = R"css(/* gui-forms: the default theme's
   border-color: #8fa6c464;
   border-radius: 3px;
   keylines: #ffffff64 #31568687 #31568687 #ffffff64;
-  color: #52637a;
-  muted-color: #52637a;
-  glyph-color: #52637a;
+  color: #627997;
+  muted-color: #627997;
+  glyph-color: #627997;
 }
 
 /* The accent button: Plan Paint's File-tab blue (#528be0 to #173f88),
@@ -226,9 +227,9 @@ constexpr std::string_view floor_sheet = R"css(/* gui-forms: the default theme's
   background: linear-gradient(to bottom, #becfe4, #b5c7de);
   border-color: #8fa6c464;
   box-shadow: none;
-  color: #52637a;
-  muted-color: #52637a;
-  glyph-color: #52637a;
+  color: #627997;
+  muted-color: #627997;
+  glyph-color: #627997;
 }
 
 /* A recessed well, radius 2, with an inner top shade (rendering reference
@@ -362,9 +363,9 @@ constexpr std::string_view floor_sheet = R"css(/* gui-forms: the default theme's
 :family(choice):disabled, :family(editor):disabled, :family(progress):disabled, :family(menu-item):disabled,
 :family(selection):disabled, :family(link):disabled, :family(visited-link):disabled, :family(notice):disabled,
 :family(badge):disabled {
-  color: #52637a;
-  muted-color: #52637a;
-  glyph-color: #52637a;
+  color: #627997;
+  muted-color: #627997;
+  glyph-color: #627997;
 }
 )css";
 
@@ -376,7 +377,7 @@ constexpr std::string_view floor_sheet_file = "gui-forms/floor.css";
 constexpr Color stock = Color::rgba(244, 244, 245);
 constexpr Color paper = Color::rgba(255, 255, 255);
 constexpr Color stock_ink = Color::rgba(27, 39, 51);
-constexpr Color disabled_ink = Color::rgba(82, 99, 122);
+constexpr Color disabled_ink = Color::rgba(98, 121, 151);
 
 // What the floor sheet cannot say: the house focus ring, one unit wide and
 // dotted (design language: the default theme's ring is dotted), and an
@@ -455,8 +456,8 @@ constexpr std::string_view light_sheet = R"css(/* gui-forms: the default theme's
   selection-ink-on-selection: #1b2733 on #cfe2fa;
   ink-on-gold: #153765 on #ffcf66;
   on-accent-on-accent: #ffffff on #2f69be;
-  disabled-ink-on-chrome: #52637a on #becfe4;
-  disabled-ink-on-paper: #52637a on #ffffff;
+  disabled-ink-on-chrome: #627997 on #becfe4;
+  disabled-ink-on-paper: #627997 on #ffffff;
   command-link-ink-on-paper: #19528b on #ffffff;
   chrome-highlight: #ffffff;
   chrome: #cadefb;
@@ -495,11 +496,6 @@ tab-control::part(tab):state(selected), page-strip::part(tab):state(selected) {
   background-color: #e8f2ff;
   background-image: linear-gradient(to bottom, #ffffff 1px, transparent 1px),
     linear-gradient(to bottom, rgb(255 255 255 / 57%), rgb(255 255 255 / 0%) 72%);
-}
-/* A disabled tab rests on the chrome face, the ground the disabled ink is
-   declared against (#52637A on #9BB6DA would read at 2.95:1). */
-tab-control::part(tab):disabled, page-strip::part(tab):disabled {
-  background: #becfe4;
 }
 
 /* The command plane: near-white deepening toward Plan Paint's royale blue

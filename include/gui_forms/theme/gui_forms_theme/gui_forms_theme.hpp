@@ -23,8 +23,8 @@ namespace gui_forms {
 // The floor: Plan Paint's action plate for push buttons, the gold active
 // tool for selected ones, recessed wells for entry fields and choices,
 // near-white stock (#F4F4F5) for windows and panels, flat command members
-// at rest, and text colours that meet the contrast gate (4.5:1, 3:1 for
-// disabled text) on every face. Its recipes are the floor sheet's
+// at rest, and enabled text colours that meet the contrast gate (4.5:1)
+// on every face (disabled text is exempt). Its recipes are the floor sheet's
 // (gui_forms_floor_sheet), evaluated once on the first call (thread-safe)
 // over the C++ structure (owner option 1); a copy each call. Id
 // `gui-forms`; its rules are empty.

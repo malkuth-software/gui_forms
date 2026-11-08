@@ -3,8 +3,9 @@
 // The contrast report (stage T4 phase 1; design language 5.7). For every
 // recipe family, surface state, selection and presentation (ordinary and
 // GUI.Forms' own high contrast) of a theme, it measures the pairs the
-// specification gates: text and muted text on their face (4.5:1; 3:1 when
-// disabled; 7:1 for all text in high contrast), a glyph on its face, the
+// specification gates: text and muted text on their face (4.5:1; 7:1 for
+// all text in high contrast; a disabled control's text is exempt, as
+// WCAG 2 exempts inactive components), a glyph on its face, the
 // control's boundary against the surface around it, and the focus ring
 // against both its neighbours (3:1 each).
 //
@@ -68,7 +69,10 @@ enum class ContrastPair : std::uint8_t {
     focus_outer,
 };
 
-enum class ContrastVerdict : std::uint8_t { pass, fail, not_measured };
+// `exempt`: a pair the gate does not hold, measured for the record: a
+// disabled control's text and muted text (WCAG 2's exemption of inactive
+// components; owner, 2026-11-08). Its minimum is 0.
+enum class ContrastVerdict : std::uint8_t { pass, fail, not_measured, exempt };
 
 // One measured pair. `foreground` and `background` are the pair at the
 // worst position, both opaque; `ratio` is theirs. A row not measured holds
@@ -93,13 +97,16 @@ struct ContrastCounts final {
     std::size_t passed{};
     std::size_t failed{};
     std::size_t not_measured{};
+    std::size_t exempt{};
 };
 
 // Clears `rows` and fills it with `theme`'s report: for each presentation
 // (ordinary, then dark when the theme derives a dark variant, then high
 // contrast), family, surface state and selection (not
 // selected, then selected), the pairs that apply to that family and state,
-// in ContrastPair order. Disabled controls measure their text only;
+// in ContrastPair order. Disabled controls measure their text only, as
+// exempt rows (held to no minimum; their boundaries and focus are not
+// gated either);
 // boundaries are gated for the families that draw a control's own edge
 // (button, accent button, choice, editor, card, tool tip) in every state,
 // for command buttons and menu items while hot or pressed (flat at rest,
