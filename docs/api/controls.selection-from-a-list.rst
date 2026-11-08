@@ -148,8 +148,6 @@ Related types
      - Raised when the grid needs a cell's text (Windows Forms' CellFormatting): to paint and lay it out, for its semantic value, and as the text an edit begins with.
    * - :cpp:class:`DataGridViewCellParsingEvent <gui_forms::DataGridViewCellParsingEvent>`
      - Raised when an edited text cell stores its text (Windows Forms' CellParsing), after cell_validating and before the text converts to the column's value kind.
-   * - :cpp:class:`DataGridViewCells <gui_forms::DataGridViewCells>`
-     - The sub-surface's root: paints the newest snapshot it was given, nothing else.
    * - :cpp:class:`DataGridViewCellsCell <gui_forms::DataGridViewCellsCell>`
      - One visible cell, resolved.
    * - :cpp:class:`DataGridViewCellsContent <gui_forms::DataGridViewCellsContent>`
@@ -1402,43 +1400,6 @@ Related types
    .. cpp:member:: BindingValue value
 
    .. cpp:member:: bool parsing_applied
-
-.. cpp:namespace:: gui_forms
-
-.. cpp:class:: DataGridViewCells final : public Control
-
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view_cells.hpp>``
-
-   The sub-surface's root: paints the newest snapshot it was given, nothing else. It takes no input and is not exposed to accessibility: the grid on the UI thread keeps the cells' events, focus and semantic nodes. It reports the grid's anatomy ID ("data_grid_view"), so the theme's rules for the grid's parts select its parts too. Sub-surface thread.
-
-
-   .. rubric:: Construction
-
-   .. cpp:function:: explicit DataGridViewCells(StableId stable_id)
-
-
-   .. rubric:: Properties
-
-   .. cpp:function:: const DataGridViewCellsSnapshot& snapshot() const noexcept
-
-   .. cpp:function:: bool set_snapshot(DataGridViewCellsSnapshot snapshot)
-
-      Shows :cpp:func:`snapshot <gui_forms::DataGridViewCells::snapshot>` from the next frame: repaints the region whole and takes over its look. An invalid snapshot is refused, false, and the previous one stays.
-
-   .. cpp:function:: std::uint64_t snapshots_taken() const noexcept
-
-      Snapshots shown and refused.
-
-   .. cpp:function:: std::uint64_t snapshots_refused() const noexcept
-
-
-   .. rubric:: Extension points
-
-   .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
-
-   .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
-
-   .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
 
 .. cpp:namespace:: gui_forms
 

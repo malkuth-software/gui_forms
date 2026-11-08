@@ -8,6 +8,7 @@
 
 #include "gui_forms/gui_forms.hpp"
 #include "gui_forms/controls/data_grid_view/data_grid_view_cells.hpp"
+#include "../src/controls/data_grid_view/data_grid_view_cells_control.hpp"
 #include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
 #include "gui_forms/paint_framebuffer.hpp"
 #include "headless_host.hpp"

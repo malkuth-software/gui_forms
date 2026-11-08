@@ -1,4 +1,4 @@
-#include "gui_forms/controls/data_grid_view/data_grid_view_cells.hpp"
+#include "data_grid_view_cells_control.hpp"
 
 #include "gui_forms/types/painter/painter.hpp"
 

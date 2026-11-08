@@ -156,35 +156,10 @@ struct DataGridViewCellsSnapshot final {
 void paint_data_grid_view_cell(Painter& painter, const Control& owner, const DataGridViewCellsSnapshot& snapshot,
                                const DataGridViewCellsCell& cell, Rect data);
 
-// The sub-surface's root: paints the newest snapshot it was given, nothing
-// else. It takes no input and is not exposed to accessibility: the grid on
-// the UI thread keeps the cells' events, focus and semantic nodes. It
-// reports the grid's anatomy ID ("data_grid_view"), so the theme's rules
-// for the grid's parts select its parts too. Sub-surface thread.
-class DataGridViewCells final : public Control {
-public:
-    explicit DataGridViewCells(StableId stable_id);
-
-    // Shows `snapshot` from the next frame: repaints the region whole and
-    // takes over its look. An invalid snapshot is refused, false, and the
-    // previous one stays.
-    bool set_snapshot(DataGridViewCellsSnapshot snapshot);
-    [[nodiscard]] const DataGridViewCellsSnapshot& snapshot() const noexcept { return snapshot_; }
-    // Snapshots shown and refused.
-    [[nodiscard]] std::uint64_t snapshots_taken() const noexcept { return snapshots_taken_; }
-    [[nodiscard]] std::uint64_t snapshots_refused() const noexcept { return snapshots_refused_; }
-
-    void on_paint(Painter& painter, Rect local_damage) override;
-    [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
-    [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
-
-private:
-    void take_look(const DataGridViewCellsLook& look);
-
-    DataGridViewCellsSnapshot snapshot_{};
-    std::uint64_t snapshots_taken_{};
-    std::uint64_t snapshots_refused_{};
-};
+// The sub-surface's root control, private to the library
+// (src/controls/data_grid_view/data_grid_view_cells_control.hpp): it paints
+// the newest snapshot DataGridViewCellsContent hands it.
+class DataGridViewCells;
 
 // One snapshot on its way to the sub-surface (SubSurfaceHost::redraw_all).
 class DataGridViewCellsUpdate final : public SubSurfaceContentUpdate {
