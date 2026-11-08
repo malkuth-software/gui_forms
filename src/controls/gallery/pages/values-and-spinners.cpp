@@ -152,9 +152,9 @@ private:
         }
         static_cast<void>((*inspector_).set_property_expanded("items", true));
         const bool added = (*inspector_).insert_collection_item(
-            "items", (*items_target_).items().size(), BindingValue{std::string("CW")});
+            "items", (*items_target_).items.read().size(), BindingValue{std::string("CW")});
         if (added) {
-            focus_editor("Items[" + std::to_string((*items_target_).items().size() - 1U) + "]");
+            focus_editor("Items[" + std::to_string((*items_target_).items.read().size() - 1U) + "]");
         }
         (*status_).set_text(added ? "PropertyGrid · inserted CW through ComboBox.Items setter"
                                   : "PropertyGrid · Items insertion rejected truthfully");
@@ -173,7 +173,7 @@ private:
     }
 
     void domain_changed(const std::optional<std::size_t> index) {
-        (*status_).set_text(index ? "Domain selected " + (*domain_).items()[*index]
+        (*status_).set_text(index ? "Domain selected " + (*domain_).items[*index]
                                   : std::string("Domain text matches no item"));
     }
 

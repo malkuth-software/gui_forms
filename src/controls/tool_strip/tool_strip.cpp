@@ -249,10 +249,10 @@ void ToolStrip::configure_hosted(const ToolStripItemSpec& item, Control& control
     control.enabled = item.enabled;
     if (item.kind == ToolStripItemKind::combo_box) {
         ComboBox& combo = static_cast<ComboBox&>(control);
-        const std::span<const std::string> current = combo.items();
+        const std::span<const std::string> current = combo.items.read();
         const bool same = current.size() == item.choices.size() &&
                           std::equal(current.begin(), current.end(), item.choices.begin());
-        if (!same) combo.set_items(item.choices);
+        if (!same) combo.items = item.choices;
     }
 }
 

@@ -997,7 +997,7 @@ void test_choice_numeric_defaults_manager_transfer_and_completion_order() {
     std::shared_ptr<gui_forms::ComboBox> combo = make_control<ComboBox>(StableId("advanced.combo"));
     std::shared_ptr<gui_forms::NumericUpDown> numeric = make_control<NumericUpDown>(StableId("advanced.numeric"));
     std::shared_ptr<gui_forms::TextBox> deferred = make_control<TextBox>(StableId("advanced.deferred"));
-    (*combo).set_items({"Local", "Archive", "Plugins"});
+    (*combo).items = {"Local", "Archive", "Plugins"};
     (*root).add_child(combo);
     (*root).add_child(numeric);
     (*root).add_child(deferred);

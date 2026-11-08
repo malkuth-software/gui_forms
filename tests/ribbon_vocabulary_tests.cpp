@@ -176,7 +176,7 @@ void roles_and_fields() {
     std::shared_ptr<DropDownButton> split =
         make_control<DropDownButton>(StableId("root.split"), "Save", DropDownButtonMode::split);
     std::shared_ptr<ListBox> list = make_control<ListBox>(StableId("root.list"));
-    (*list).set_items({"Red", "Green", "Blue"});
+    (*list).items = {"Red", "Green", "Blue"};
     (*menu).set_bounds({0.0, 0.0, 100.0, 28.0});
     (*split).set_bounds({110.0, 0.0, 100.0, 28.0});
     (*list).set_bounds({0.0, 40.0, 200.0, 100.0});

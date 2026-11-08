@@ -339,7 +339,7 @@ void test_clipboard_commands_and_protected_text() {
 
 void test_list_box_selection_navigation_and_mutation() {
     std::shared_ptr<gui_forms::ListBox> list = make_control<ListBox>(StableId("input.list"));
-    (*list).set_items({"Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"});
+    (*list).items = {"Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"};
     (*list).set_requested_bounds({0.0, 0.0, 180.0, 86.0});
     Window window(list, {180.0, 86.0});
     require(window.request_focus(list), "ListBox must accept retained focus");
@@ -373,7 +373,7 @@ void test_list_box_selection_navigation_and_mutation() {
                     (*list).selected_indices().end(),
             "command-toggle must remove one item from a multi-selection");
 
-    (*list).remove_item(0U);
+    (*list).items.erase(0U, 1U);
     require((*list).selected_indices().front() == 1U &&
                 (*list).selected_indices().back() == 3U,
             "ListBox collection mutation must remap retained selection indices");
@@ -388,7 +388,7 @@ void test_list_box_selection_navigation_and_mutation() {
 void test_combo_box_scrollbar_reaches_last_item() {
     const std::shared_ptr<Panel> root = make_control<Panel>(StableId("scroll.root"));
     const std::shared_ptr<ComboBox> combo = make_control<ComboBox>(StableId("scroll.combo"));
-    for (int i = 0; i < 24; ++i) (*combo).add_item("Language " + std::to_string(i));
+    for (int i = 0; i < 24; ++i) (*combo).items.append("Language " + std::to_string(i));
     (*combo).set_maximum_drop_down_items(64);
     (*combo).set_requested_bounds({20, 20, 240, 32});
     (*root).add_child(combo);
@@ -413,7 +413,7 @@ void test_combo_box_scrollbar_reaches_last_item() {
 void test_combo_box_overlay_commit_dismiss_and_owner_revocation() {
     std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("combo.root"));
     std::shared_ptr<gui_forms::ComboBox> combo = make_control<ComboBox>(StableId("combo.field"));
-    (*combo).set_items({"Low latency", "Balanced", "High fidelity", "Archive"});
+    (*combo).items = {"Low latency", "Balanced", "High fidelity", "Archive"};
     (*combo).set_drop_down_width(260.0);
     (*combo).set_placeholder_text("Choose a profile");
     (*combo).set_requested_bounds({20.0, 20.0, 220.0, 32.0});
@@ -435,12 +435,12 @@ void test_combo_box_overlay_commit_dismiss_and_owner_revocation() {
                     PropertySerializationVisibility::content &&
                 !(*items_descriptor).bindable && (*items_descriptor).resettable &&
                 (*items_descriptor).change_notifications &&
-                (*combo).items().size() == 2U && (*combo).items()[1] == "Two" &&
+                (*combo).items.read().size() == 2U && (*combo).items[1] == "Two" &&
                 items_changed.connected() && item_changes == 1U &&
-                (*combo).reset_property("Items") && (*combo).items().empty() &&
+                (*combo).reset_property("Items") && (*combo).items.read().empty() &&
                 item_changes == 2U,
             "ComboBox.Items must be a truthful content-serialized collection property with reset and change observation");
-    (*combo).set_items({"Low latency", "Balanced", "High fidelity", "Archive"});
+    (*combo).items = {"Low latency", "Balanced", "High fidelity", "Archive"};
     require(item_changes == 3U,
             "ordinary ComboBox collection mutation must use the same Items change contract as generic property access");
     RecordingPainter initial_painter;
@@ -568,7 +568,7 @@ void test_numeric_up_down_composite_edit_spinner_and_keys() {
 
 void test_list_box_model_stable_item_ids() {
     std::shared_ptr<gui_forms::ListBox> list = make_control<ListBox>(StableId("input.model.list"));
-    (*list).set_items({"Orchard Study", "North Shore", "Print Masters"});
+    (*list).items = {"Orchard Study", "North Shore", "Print Masters"};
     (*list).set_item_stable_ids({"completion.orchard", "completion.north",
                                "completion.print"});
     Window window(list, {240.0, 90.0});
@@ -589,7 +589,7 @@ void test_list_box_model_stable_item_ids() {
     }
     require(duplicate_rejected,
             "ListBox model identities must reject ambiguous duplicates");
-    (*list).add_item("Field Notes");
+    (*list).items.append("Field Notes");
     require((*list).item_stable_id(0) == "input.model.list.item.0" &&
                 (*list).item_stable_id(3) == "input.model.list.item.3",
             "legacy append must return the collection to index-derived IDs");

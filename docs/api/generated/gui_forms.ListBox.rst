@@ -7,7 +7,7 @@ gui_forms::ListBox
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: ListBox : public Panel
+.. cpp:class:: ListBox : public Panel, public TextItemsCapability<ListBox>
 
    ``#include <gui_forms/controls/panel/list_box/list_box.hpp>``
 
@@ -33,12 +33,24 @@ gui_forms::ListBox
 
    :Properties:
 
-      **items** : ``std::span<const std::string>``
-         The rows, in display order. Empty by default. :cpp:func:`set_items <gui_forms::ListBox::set_items>` replaces
-         them all; it keeps each selected index that still exists, drops the
-         others, raises :cpp:func:`selection_changed <gui_forms::ListBox::selection_changed>` if that changed the selection, and
-         discards IDs set with :cpp:func:`set_item_stable_ids <gui_forms::ListBox::set_item_stable_ids>`. Every item must be valid
-         UTF-8, or ``std::invalid_argument`` is thrown.
+      **items** : ``std::vector<std::string>``
+         The rows, in display order, edited in place. Empty by default. Read
+         them with ``items.read()`` (a span) or ``items[i]``; write them with
+         ``items = {...}`` (every row), ``items.insert(i, text)``,
+         ``items.append(text)`` or ``items.append(rows)`` (at the end),
+         ``items.erase(i, n)``, ``items.replace(i, text)`` and ``items.clear()``.
+         Each edit keeps the selection on its rows: an insertion or erasure
+         moves the selected, active and anchor indices after it, an erasure
+         drops those it removes, a replacement keeps them, and an assignment
+         keeps each selected index that still exists. :cpp:func:`selection_changed <gui_forms::ListBox::selection_changed>` is
+         raised when the selected indices changed. An assignment or insertion
+         discards IDs set with :cpp:func:`set_item_stable_ids <gui_forms::ListBox::set_item_stable_ids>`; an erasure removes the
+         erased rows' IDs and a replacement keeps the row's. Every item must be
+         valid UTF-8, or ``std::invalid_argument`` is thrown, and a position
+         outside the items throws ``std::out_of_range``; a refused edit changes
+         nothing. An edit repaints, at the next layout, only the rows in view
+         it reaches: a replaced row, or the rows from an insertion or erasure
+         down; an edit below the rows in view repaints nothing.
 
       **selection_mode** : ``ListSelectionMode``, default ``ListSelectionMode::one``
          :cpp:enumerator:`ListSelectionMode::one <gui_forms::ListSelectionMode::one>` allows at most one selected row;
@@ -76,8 +88,8 @@ gui_forms::ListBox
 
       **selection_changed** : ``Event<const ListSelectionChange&>``
          Raised after the set of selected rows or the active row changes,
-         whether by input, by a selection method, or by :cpp:func:`set_items <gui_forms::ListBox::set_items>` and
-         ``remove_item`` changing the selected indices. It carries a
+         whether by input, by a selection method, or by an edit of :cpp:member:`items <gui_forms::ListBox::items>`
+         changing the selected indices. It carries a
          :cpp:class:`ListSelectionChange <gui_forms::ListSelectionChange>` with the ``previous`` and ``current`` selected
          indices and the new ``active_index``.
 
@@ -139,8 +151,9 @@ gui_forms::ListBox
    :cpp:func:`item_activated <gui_forms::ListBox::item_activated>` for the active row. There is no type-ahead search, and
    Space does nothing.
 
-   Selection is by index, not by item. After :cpp:func:`set_items <gui_forms::ListBox::set_items>` a surviving selected
-   index refers to whichever new item now has that index.
+   Selection follows the rows through insertions, erasures and replacements.
+   After an assignment of every row a surviving selected index refers to
+   whichever new item now has that index.
 
    The control publishes the accessibility role ``list``; its rows are virtual
    ``list_item`` children rather than child controls.
@@ -153,7 +166,7 @@ gui_forms::ListBox
 
       std::shared_ptr<gf::ListBox> languages =
           gf::make_control<gf::ListBox>(gf::StableId("options.languages"));
-      (*languages).set_items({"English", "French", "German", "Italian"});
+      (*languages).items = {"English", "French", "German", "Italian"};
       (*languages).set_selection_mode(gf::ListSelectionMode::multiple_extended);
       (*languages).select_index(1U);         // French, which becomes the anchor
       (*languages).select_index(3U, true);   // French through Italian
@@ -171,14 +184,14 @@ gui_forms::ListBox
           std::size_t opened = 0;
 
           LocationPicker() {
-              (*list).set_items({"Desktop", "Documents", "Downloads"});
+              (*list).items = {"Desktop", "Documents", "Downloads"};
               (*list).set_item_stable_ids({"desktop", "documents", "downloads"});
               gf::on((*list).selection_changed(), *this, &LocationPicker::on_selection);
               gf::on((*list).item_activated(), *this, &LocationPicker::on_open);
           }
           void on_selection(const gf::ListSelectionChange& change) {
               status = change.current.empty() ? std::string("Nothing selected")
-                                              : (*list).items()[change.current.front()];
+                                              : (*list).items[change.current.front()];
           }
           void on_open(std::size_t index) { opened = index; }
       };
@@ -196,17 +209,25 @@ gui_forms::ListBox
 
    .. rubric:: Properties
 
-   .. cpp:function:: std::span<const std::string> items() const noexcept
+   .. cpp:member:: std::vector<std::string> items
 
-      The rows, in display order. Empty by default. :cpp:func:`set_items <gui_forms::ListBox::set_items>` replaces
-      them all; it keeps each selected index that still exists, drops the
-      others, raises :cpp:func:`selection_changed <gui_forms::ListBox::selection_changed>` if that changed the selection, and
-      discards IDs set with :cpp:func:`set_item_stable_ids <gui_forms::ListBox::set_item_stable_ids>`. Every item must be valid
-      UTF-8, or ``std::invalid_argument`` is thrown.
-
-   .. cpp:function:: virtual void set_items(std::vector<std::string> items)
-
-      Sets :cpp:func:`items <gui_forms::ListBox::items>`; see the property's description above.
+      The rows, in display order, edited in place. Empty by default. Read
+      them with ``items.read()`` (a span) or ``items[i]``; write them with
+      ``items = {...}`` (every row), ``items.insert(i, text)``,
+      ``items.append(text)`` or ``items.append(rows)`` (at the end),
+      ``items.erase(i, n)``, ``items.replace(i, text)`` and ``items.clear()``.
+      Each edit keeps the selection on its rows: an insertion or erasure
+      moves the selected, active and anchor indices after it, an erasure
+      drops those it removes, a replacement keeps them, and an assignment
+      keeps each selected index that still exists. :cpp:func:`selection_changed <gui_forms::ListBox::selection_changed>` is
+      raised when the selected indices changed. An assignment or insertion
+      discards IDs set with :cpp:func:`set_item_stable_ids <gui_forms::ListBox::set_item_stable_ids>`; an erasure removes the
+      erased rows' IDs and a replacement keeps the row's. Every item must be
+      valid UTF-8, or ``std::invalid_argument`` is thrown, and a position
+      outside the items throws ``std::out_of_range``; a refused edit changes
+      nothing. An edit repaints, at the next layout, only the rows in view
+      it reaches: a replaced row, or the rows from an insertion or erasure
+      down; an edit below the rows in view repaints nothing.
 
    .. cpp:function:: ListSelectionMode selection_mode() const noexcept
 
@@ -269,8 +290,8 @@ gui_forms::ListBox
    .. cpp:function:: Event<const ListSelectionChange&>& selection_changed() noexcept
 
       Raised after the set of selected rows or the active row changes,
-      whether by input, by a selection method, or by :cpp:func:`set_items <gui_forms::ListBox::set_items>` and
-      ``remove_item`` changing the selected indices. It carries a
+      whether by input, by a selection method, or by an edit of :cpp:member:`items <gui_forms::ListBox::items>`
+      changing the selected indices. It carries a
       :cpp:class:`ListSelectionChange <gui_forms::ListSelectionChange>` with the ``previous`` and ``current`` selected
       indices and the new ``active_index``.
 
@@ -309,28 +330,11 @@ gui_forms::ListBox
 
       Gives each row its own accessibility ID, in row order. There must be
       exactly one nonempty, unique, valid UTF-8 ID per item, or
-      ``std::invalid_argument`` is thrown. Call it after every :cpp:func:`set_items <gui_forms::ListBox::set_items>`.
+      ``std::invalid_argument`` is thrown. Call it after every assignment or
+      insertion of :cpp:member:`items <gui_forms::ListBox::items>`.
 
 
    .. rubric:: Extension points
-
-   .. cpp:function:: virtual void add_item(std::string item)
-
-      Appends one row. The selection is unchanged. Appending also discards
-      IDs set with :cpp:func:`set_item_stable_ids <gui_forms::ListBox::set_item_stable_ids>`, returning every row to its
-      index-derived ID.
-
-   .. cpp:function:: virtual void remove_item(std::size_t index)
-
-      Removes the row at an index, shifting later rows up. Selected and
-      active indices after it shift with their rows, and
-      :cpp:func:`selection_changed <gui_forms::ListBox::selection_changed>` is raised if the selected indices changed, even
-      when the same items stay selected. An index outside the items throws
-      ``std::out_of_range``.
-
-   .. cpp:function:: virtual void clear_items()
-
-      Removes every row, as :cpp:func:`set_items <gui_forms::ListBox::set_items>` with an empty list does.
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 
@@ -338,7 +342,8 @@ gui_forms::ListBox
 
    .. cpp:function:: void arrange(Rect final_bounds) override
 
-      Lays out the list and scrolls the active row into view.
+      Lays out the list, scrolls the active row into view and repaints the
+      rows in view that edits of :cpp:member:`items <gui_forms::ListBox::items>` reached since the last layout.
 
    .. cpp:function:: void on_pointer(PointerEvent& event) override
 
@@ -372,6 +377,18 @@ gui_forms::ListBox
    .. cpp:function:: std::string realized_item_stable_id(std::size_t item) const override
 
    .. cpp:function:: AnatomyStateSet realized_item_anatomy_states(std::size_t item) const override
+
+   .. cpp:function:: virtual void on_items_changing(const CollectionEdit& edit)
+
+      *Protected.*
+
+      Called by the items' prepare_edit after ListBox's own checks, before anything changes: a subclass readies its per-item state (reserving) or refuses the edit by throwing.
+
+   .. cpp:function:: virtual void on_items_changed(const CollectionEdit& edit) noexcept
+
+      *Protected.*
+
+      Called by the items' written hook after the items are stored and the selection remapped, before the selection change is raised: a subclass brings its per-item state to the edit. It must not throw; what it allocates it reserved in on_items_changing.
 
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 

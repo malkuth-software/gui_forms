@@ -171,7 +171,7 @@ private:
         if (!(*workspace_).save_named_layout(name)) return;
         std::vector<std::string> names{};
         for (const DockNamedLayout& layout : (*workspace_).named_layouts()) names.push_back(layout.name);
-        (*document_.gallery_docking_named).set_items(std::move(names));
+        (*document_.gallery_docking_named).items = std::move(names);
     }
 
     void on_apply_named() {

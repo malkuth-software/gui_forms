@@ -242,6 +242,8 @@ Related types
      - The sizes at which automatic row order switches between edit and window.
    * - :cpp:class:`DataGridViewRowPosition <gui_forms::DataGridViewRowPosition>`
      - A row's presentation position: its index in the grid's current row order, 0 at the top.
+   * - :cpp:class:`DataGridViewRowsCapability <gui_forms::DataGridViewRowsCapability>`
+     - A grid's unbound rows edited in place (in-place collections design, owner 2026-11-07; the DataGridView pilot): ``(*grid).rows.read()``, ``rows[i]``, ``rows = {...}``, ``rows.insert(i, row)``, ``rows.append(row)``, ``rows.append(rows)``, ``rows.erase(i, n)``, ``rows.replace(i, row)`` and ``rows.clear()``.
    * - :cpp:class:`DataGridViewRowsDefaultCellStyleCapability <gui_forms::DataGridViewRowsDefaultCellStyleCapability>`
      - A level of the cell style inheritance (RowsDefaultCellStyle).
    * - :cpp:class:`DataGridViewRowValuesEvent <gui_forms::DataGridViewRowValuesEvent>`
@@ -2020,7 +2022,7 @@ Related types
 
 .. cpp:struct:: DataGridViewRow final
 
-   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view_rows/data_grid_view_rows.hpp>``
 
    One unbound row. ``stable_id`` is unique within the grid; an empty ID is replaced by a generated one ("row.1", "row.2", ...). ``cells`` holds one value per column in column order; a shorter list is padded with empty values.
 
@@ -2454,6 +2456,54 @@ Related types
    A row's presentation position: its index in the grid's current row order, 0 at the top. A position is not an identity: inserting, removing or sorting rows changes which row holds it. row_id and row_position convert between the two.
 
    .. cpp:member:: std::size_t value
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DataGridViewRowsCapability
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view_rows/data_grid_view_rows.hpp>``
+
+   A grid's unbound rows edited in place (in-place collections design, owner 2026-11-07; the DataGridView pilot): ``(*grid).rows.read()``, ``rows[i]``, ``rows = {...}``, ``rows.insert(i, row)``, ``rows.append(row)``, ``rows.append(rows)``, ``rows.erase(i, n)``, ``rows.replace(i, row)`` and ``rows.clear()``. Positions are presentation positions of the unbound rows. A standard-layout struct whose only member is the cell, taken by the declaring class as a base. Each edit runs the declaring class's prepare_edit hook (it may refuse by throwing: nothing changes), the store, then its written hook. The declaring class takes the pending damage at its flush through take_dirty, and writes cell values and reorders through the owner operations.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void prepare_edit(DataGridViewRowsCapability& capability, const CollectionEdit& edit, std::span<DataGridViewRow> incoming)
+
+   .. cpp:function:: static void written(DataGridViewRowsCapability& capability, const CollectionEdit& edit)
+
+
+   .. rubric:: Extension points
+
+   .. cpp:function:: static std::optional<std::size_t> take_dirty(DataGridViewRowsCapability& capability, std::vector<std::uint32_t>& replaced)
+
+      *Protected.*
+
+      CollectionDirty::take, for the declaring class's flush.
+
+   .. cpp:function:: static std::uint64_t rows_revision(const DataGridViewRowsCapability& capability) noexcept
+
+      *Protected.*
+
+      The owner operations (CollectionCell): in-place field writes, marked first, and the store of a reordering.
+
+   .. cpp:function:: static std::span<DataGridViewRow> row_elements(DataGridViewRowsCapability& capability) noexcept
+
+      *Protected.*
+
+   .. cpp:function:: static void mark_row_replaced(DataGridViewRowsCapability& capability, std::size_t index)
+
+      *Protected.*
+
+   .. cpp:function:: static void mark_all_rows(DataGridViewRowsCapability& capability) noexcept
+
+      *Protected.*
+
+   .. cpp:function:: static void store_rows(DataGridViewRowsCapability& capability, std::vector<DataGridViewRow> rows) noexcept
+
+      *Protected.*
+
+   .. cpp:member:: CollectionCell<DataGridViewRow, DataGridViewRowsCapability<Declaring>> rows
 
 .. cpp:namespace:: gui_forms
 

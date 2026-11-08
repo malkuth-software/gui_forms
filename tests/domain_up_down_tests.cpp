@@ -29,7 +29,7 @@ struct RecordSelection final {
 std::shared_ptr<DomainUpDown> make_domain(const char* id) {
     std::shared_ptr<DomainUpDown> domain = make_control<DomainUpDown>(StableId(std::string(id)));
     (*domain).set_requested_bounds({0.0, 0.0, 180.0, 32.0});
-    (*domain).set_items({"AM", "FM", "WFM"});
+    (*domain).items = {"AM", "FM", "WFM"};
     return domain;
 }
 
@@ -90,13 +90,13 @@ void text_and_sorting() {
     require(window.dispatch_text({"x"}) && !(*domain).selected_index.read() && (*domain).text.read() == "fmx",
             "text that equals no item clears the selection and stays");
     (*domain).sorted = true;
-    (*domain).set_items({"lsb", "USB", "AM", "cw"});
-    require((*domain).items()[0] == "AM" && (*domain).items()[1] == "cw" &&
-                (*domain).items()[2] == "lsb" && (*domain).items()[3] == "USB",
+    (*domain).items = {"lsb", "USB", "AM", "cw"};
+    require((*domain).items[0] == "AM" && (*domain).items[1] == "cw" &&
+                (*domain).items[2] == "lsb" && (*domain).items[3] == "USB",
             "sorted items order by folded case");
     (*domain).text = "Usb";
     require((*domain).selected_index.read() == 3U, "set_text re-matches the selection");
-    (*domain).remove_item_at(3U);
+    (*domain).items.erase(3U, 1U);
     require(!(*domain).selected_index.read() && (*domain).text.read() == "Usb",
             "removing the selected item clears the selection and keeps the text");
     bool threw = false;
@@ -123,7 +123,7 @@ void read_only_and_semantics() {
     static_cast<void>(window.dispatch_text({"f"}));
     require((*domain).text.read() == "FM" && (*domain).selected_index.read() == 1U && seen.size() == 1U,
             "a typed first letter selects the item it starts, ignoring case");
-    (*domain).set_items({"AM", "FM", "WFM", "fax", "USB"});
+    (*domain).items = {"AM", "FM", "WFM", "fax", "USB"};
     static_cast<void>(window.dispatch_text({"F"}));
     require((*domain).text.read() == "fax" && (*domain).selected_index.read() == 3U,
             "the same letter again moves to the next item it starts");
@@ -138,7 +138,7 @@ void read_only_and_semantics() {
     require(window.dispatch_text({"x"}) && (*domain).text.read() == "FMx" && !(*domain).selected_index.read(),
             "an editable field takes text again");
     (*domain).read_only = true;
-    (*domain).set_items({"AM", "FM", "WFM"});
+    (*domain).items = {"AM", "FM", "WFM"};
     (*domain).text = "";
 
     const SemanticDescriptor descriptor = (*domain).semantic_descriptor();
@@ -156,7 +156,7 @@ void read_only_and_semantics() {
 
     // A typed character is its whole UTF-8 sequence: the two bytes of "É"
     // select the item they start, not the first item sharing the lead byte.
-    (*domain).set_items({"AM", "À la carte", "Éclair"});
+    (*domain).items = {"AM", "À la carte", "Éclair"};
     static_cast<void>(window.dispatch_text({"É"}));
     require((*domain).selected_index.read() == 2U && (*domain).text.read() == "Éclair",
             "a typed multi-byte character selects the item it starts");

@@ -57,7 +57,7 @@ void faces_and_styles() {
     Fixture fixture = make_fixture();
     FontDialog& dialog = *fixture.dialog;
     require(dialog.font() == FontSpec{FontRole::content, 9.0, 400, false} &&
-                (*dialog.face_list()).items().size() == 3U && (*dialog.style_list()).items().size() == 4U,
+                (*dialog.face_list()).items.read().size() == 3U && (*dialog.style_list()).items.read().size() == 4U,
             "the default is 9-unit Carlito, with four styles");
     dialog.set_font({FontRole::monospace, 14.0, 600, true});
     require(dialog.selection() == FontSpec{FontRole::monospace, 14.0, 700, true} &&
@@ -66,7 +66,7 @@ void faces_and_styles() {
             "a font is shown at the nearest weight the faces have");
     (*dialog.face_list()).select_index(0U);
     require(dialog.selection().role == FontRole::control && !dialog.selection().italic &&
-                dialog.selection().weight == 700U && (*dialog.style_list()).items().size() == 2U &&
+                dialog.selection().weight == 700U && (*dialog.style_list()).items.read().size() == 2U &&
                 (*dialog.style_list()).selected_index() == 1U,
             "Portsmouth Rapids has no italics: the style list shrinks and italic is dropped");
     (*dialog.style_list()).select_index(0U);

@@ -171,7 +171,7 @@ struct DialogState final {
     for (std::size_t i = 0; i < entries.size(); ++i)
       names.push_back(entries[i].path.filename().string() +
                       (entries[i].directory ? "/" : ""));
-    (*list).set_items(std::move(names));
+    (*list).items = std::move(names);
     (*status).set_text(error ? error.message() : "");
   }
   void activate(std::size_t index) {
@@ -501,7 +501,7 @@ HostDialogResult retained_dialog(NativeWindow &owner,
     for (std::size_t i = 0; i < state.filters.size(); ++i)
       names.push_back(state.filters[i].label);
     names.push_back("All files");
-    (*state.filter).set_items(std::move(names));
+    (*state.filter).items = std::move(names);
     // The request's starting filter; the added "All files" follows the
     // request's own.
     (*state.filter)

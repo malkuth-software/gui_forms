@@ -286,7 +286,7 @@ void test_combo_overlay_in_modal_scope() {
     FocusFixture fixture;
     std::shared_ptr<ComboBox> combo = make_control<ComboBox>(StableId("modal.combo"));
     (*combo).set_requested_bounds({4, 35, 100, 25});
-    (*combo).set_items({"RGB", "OKHSL"});
+    (*combo).items = {"RGB", "OKHSL"};
     (*fixture.overlay).add_child(combo);
     (*fixture.window).perform_layout();
     FocusScopeId modal = (*fixture.window).begin_focus_scope(fixture.overlay, combo);

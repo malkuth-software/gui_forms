@@ -151,7 +151,7 @@ void test_semantic_actions_use_control_behavior() {
     (*slider).set_value(25.0);
     std::shared_ptr<gui_forms::TextBox> field = make_control<TextBox>(StableId("actions.field"), "old");
     std::shared_ptr<gui_forms::ComboBox> combo = make_control<ComboBox>(StableId("actions.combo"));
-    (*combo).set_items({"Local", "Remote"});
+    (*combo).items = {"Local", "Remote"};
     (*root).add_child(button);
     (*root).add_child(check);
     (*root).add_child(slider);
@@ -219,7 +219,7 @@ void test_semantics_enforce_ui_thread() {
 void test_virtual_list_items_are_selectable() {
     std::shared_ptr<gui_forms::ListBox> list = make_control<ListBox>(StableId("virtual.list"));
     (*list).accessible_name = "Saved locations";
-    (*list).set_items({"Desktop", "Documents", "Downloads"});
+    (*list).items = {"Desktop", "Documents", "Downloads"};
     (*list).set_requested_bounds({10.0, 20.0, 180.0, 82.0});
     Window window(list, {220.0, 130.0});
     const SemanticSnapshot before = window.semantic_snapshot();

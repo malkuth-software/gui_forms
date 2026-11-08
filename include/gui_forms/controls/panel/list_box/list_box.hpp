@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/controls/panel/panel.hpp"
+#include "gui_forms/controls/panel/text_items_capability/text_items_capability.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
 
 #include <cstddef>
@@ -24,17 +25,14 @@ struct ListSelectionChange final {
     std::optional<std::size_t> active_index;
 };
 
-class ListBox : public Panel {
+class ListBox : public Panel, public TextItemsCapability<ListBox> {
 public:
     explicit ListBox(StableId stable_id);
 
-    [[nodiscard]] std::span<const std::string> items() const noexcept {
-        return items_;
-    }
-    virtual void set_items(GUI_FORMS_LOCALIZABLE(items) std::vector<std::string> items);
-    virtual void add_item(GUI_FORMS_LOCALIZABLE(items) std::string item);
-    virtual void remove_item(std::size_t index);
-    virtual void clear_items();
+    // The items are the `items` cell (TextItemsCapability): edits keep the
+    // selection on its items (remapped through each edit, or cleared from
+    // an item an edit removes) and repaint only the shown rows they reach,
+    // at the next flush.
     void set_item_stable_ids(std::vector<std::string> stable_ids);
     [[nodiscard]] std::string item_stable_id(std::size_t index) const;
     [[nodiscard]] ListSelectionMode selection_mode() const noexcept {
@@ -107,6 +105,15 @@ public:
     [[nodiscard]] std::vector<Item> realized_items() const;
 
 protected:
+    // Called by the items' prepare_edit after ListBox's own checks, before
+    // anything changes: a subclass readies its per-item state (reserving)
+    // or refuses the edit by throwing.
+    virtual void on_items_changing(const CollectionEdit& edit);
+    // Called by the items' written hook after the items are stored and the
+    // selection remapped, before the selection change is raised: a
+    // subclass brings its per-item state to the edit. It must not throw;
+    // what it allocates it reserved in on_items_changing.
+    virtual void on_items_changed(const CollectionEdit& edit) noexcept;
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     [[nodiscard]] virtual double row_text_left() const noexcept;
     virtual void paint_row_adornment(Painter& painter, std::size_t index,
@@ -129,6 +136,16 @@ protected:
     [[nodiscard]] AnatomyStateSet list_item_states(std::size_t index) const;
 
 private:
+    friend struct TextItemsCapability<ListBox>;
+
+    // The items' hooks: require_mutable, UTF-8 and the remapped selection
+    // first; then the stable identities, selection, window and damage.
+    void prepare_edit(const decltype(items)& cell, const CollectionEdit& edit, std::span<std::string> incoming);
+    void written(const decltype(items)& cell, const CollectionEdit& edit);
+    // Takes the items' pending damage (in arrange, at the flush) and
+    // repaints the shown rows it reaches; the whole list when the shown
+    // window moved.
+    void settle_items_damage(bool window_moved);
     // The `items` property (text_items_property.hpp).
     [[nodiscard]] BindingValue items_property_value() const;
     void set_items_property(const BindingValue& value);
@@ -139,9 +156,14 @@ private:
     void ensure_visible(std::size_t index);
     [[nodiscard]] std::size_t visible_row_count() const noexcept;
 
-    std::vector<std::string> items_;
     std::vector<std::string> item_stable_ids_;
     std::vector<std::size_t> selected_;
+    // The selection an edit leaves, made by prepare_edit before the edit
+    // is stored; after the written hook swaps it in, the selection before
+    // the edit, for the change event. Reused across edits.
+    std::vector<std::size_t> edit_selection_;
+    // The replaced rows taken at a settle; reused across flushes.
+    std::vector<std::uint32_t> settled_rows_;
     std::optional<std::size_t> active_index_;
     std::optional<std::size_t> anchor_index_;
     std::optional<std::size_t> hovered_index_;

@@ -17,53 +17,54 @@ namespace gui_forms {
 CheckedListBox::CheckedListBox(StableId stable_id)
     : ListBox(std::move(stable_id)) {}
 
-void CheckedListBox::set_items(std::vector<std::string> items) {
-    const std::vector<CheckState> previous = check_states_;
-    check_states_.assign(items.size(), CheckState::unchecked);
-    try {
-        ListBox::set_items(std::move(items));
-    } catch (...) {
-        // If ListBox rejected the new collection before mutation, restore the
-        // matching check model. If a user callback threw after mutation, the
-        // new sizes already match and are the only coherent retained state.
-        if ((*this).items().size() == previous.size()) check_states_ = previous;
-        throw;
-    }
-    invalidate(Dirty::paint | Dirty::semantics);
-}
-
-void CheckedListBox::add_item(std::string item) {
-    add_item(std::move(item), CheckState::unchecked);
-}
-
 void CheckedListBox::add_item(std::string item, CheckState state) {
     if (state != CheckState::unchecked && state != CheckState::checked &&
         state != CheckState::indeterminate) {
         throw std::invalid_argument("invalid CheckedListBox item state");
     }
-    ListBox::add_item(std::move(item));
-    try {
-        check_states_.push_back(state);
-    } catch (...) {
-        ListBox::remove_item(items().size() - 1U);
-        throw;
-    }
-    invalidate(Dirty::paint | Dirty::semantics);
+    items.append(std::move(item));
+    // The insertion gave the new item an unchecked state; its row repaints
+    // at the flush either way.
+    check_states_.back() = state;
 }
 
-void CheckedListBox::remove_item(std::size_t index) {
-    if (index >= check_states_.size()) {
-        throw std::out_of_range("CheckedListBox item index");
+// Reserves the check states an assignment or insertion needs, so
+// on_items_changed cannot fail.
+void CheckedListBox::on_items_changing(const CollectionEdit& edit) {
+    switch (edit.kind()) {
+    case CollectionEditKind::assign:
+        check_states_.reserve(edit.count());
+        break;
+    case CollectionEditKind::insert:
+        check_states_.reserve(check_states_.size() + edit.count());
+        break;
+    case CollectionEditKind::erase:
+    case CollectionEditKind::replace:
+    default:
+        break;
     }
-    check_states_.erase(check_states_.begin() + static_cast<std::ptrdiff_t>(index));
-    ListBox::remove_item(index);
-    invalidate(Dirty::paint | Dirty::semantics);
 }
 
-void CheckedListBox::clear_items() {
-    ListBox::clear_items();
-    check_states_.clear();
-    invalidate(Dirty::paint | Dirty::semantics);
+// New items are unchecked; a replaced item keeps its state.
+void CheckedListBox::on_items_changed(const CollectionEdit& edit) noexcept {
+    switch (edit.kind()) {
+    case CollectionEditKind::assign:
+        check_states_.assign(edit.count(), CheckState::unchecked);
+        break;
+    case CollectionEditKind::insert:
+        check_states_.insert(check_states_.begin() + static_cast<std::ptrdiff_t>(edit.index()),
+                             edit.count(), CheckState::unchecked);
+        break;
+    case CollectionEditKind::erase: {
+        const std::vector<CheckState>::iterator first =
+            check_states_.begin() + static_cast<std::ptrdiff_t>(edit.index());
+        check_states_.erase(first, first + static_cast<std::ptrdiff_t>(edit.count()));
+        break;
+    }
+    case CollectionEditKind::replace:
+    default:
+        break;
+    }
 }
 
 CheckState CheckedListBox::item_check_state(std::size_t index) const {
@@ -152,7 +153,7 @@ void CheckedListBox::on_pointer(PointerEvent& event) {
     const bool was_selected = index && detail::binary_search_contains(
         selected_indices(), *index);
     ListBox::on_pointer(event);
-    if (!is_alive() || !index || *index >= items().size()) return;
+    if (!is_alive() || !index || *index >= items.read().size()) return;
     if (check_on_click_ || was_selected) {
         toggle_item(*index);
         event.handled = true;
@@ -249,7 +250,7 @@ bool CheckedListBox::on_semantic_child_action(std::string_view stable_id,
     const std::from_chars_result parsed = std::from_chars(suffix.data(), suffix.data() + suffix.size(),
                                         index);
     if (parsed.ec != std::errc{} || parsed.ptr != suffix.data() + suffix.size() ||
-        index >= items().size()) return false;
+        index >= items.read().size()) return false;
     if (window() != nullptr) {
         static_cast<void>((*window()).request_focus(shared_from_this()));
     }

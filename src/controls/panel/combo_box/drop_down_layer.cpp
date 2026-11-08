@@ -24,7 +24,7 @@ void DropDownList::initialize_control_tree() {
 void DropDownList::synchronize_scroll() {
     const std::size_t visible = std::max<std::size_t>(1, static_cast<std::size_t>(
         std::floor(std::max(0.0, local_bounds().height - 4) / (item_height() * effective_text_scale()))));
-    const std::size_t maximum = items().size() > visible ? items().size() - visible : 0;
+    const std::size_t maximum = items.read().size() > visible ? items.read().size() - visible : 0;
     synchronizing_ = true;
     (*scrollbar_).visible = maximum != 0;
     (*scrollbar_).set_range(0, static_cast<double>(std::max<std::size_t>(1, maximum)));
@@ -72,9 +72,9 @@ void DropDownList::set_matches(std::vector<TextMatchRange> matches) {
 }
 
 Rect DropDownList::match_bounds(std::size_t index, Rect row) const {
-    if (index >= matches_.size() || index >= items().size()) return {};
+    if (index >= matches_.size() || index >= items.read().size()) return {};
     const TextMatchRange match = matches_[index];
-    const std::string_view text = items()[index];
+    const std::string_view text = items.read()[index];
     if (match.length == 0U || match.offset >= text.size()) return {};
     // ListBox keeps its selected indices sorted.
     const std::span<const std::size_t> chosen = selected_indices();

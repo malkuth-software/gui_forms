@@ -84,7 +84,7 @@ int main() {
         std::make_shared<gui_forms::ListBox>(
             gui_forms::StableId("installed.stable-list"));
     (*stable_list).set_requested_bounds({320, 244, 192, 82});
-    (*stable_list).set_items({"Alpha", "Beta"});
+    (*stable_list).items = {"Alpha", "Beta"};
     (*stable_list).set_item_stable_ids(
         {"installed.stable-list.alpha", "installed.stable-list.beta"});
     (*root).add_child(stable_list);

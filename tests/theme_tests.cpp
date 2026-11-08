@@ -340,11 +340,11 @@ void test_editor_selection_menu_and_progress_roles_reach_stock_controls() {
     (*editor).set_requested_bounds({8.0, 8.0, 140.0, 28.0});
     std::shared_ptr<gui_forms::ListBox> list = make_control<ListBox>(StableId("theme.stock.list"));
     (*list).set_requested_bounds({8.0, 42.0, 140.0, 58.0});
-    (*list).set_items({"one", "two"});
+    (*list).items = {"one", "two"};
     (*list).select_index(0U);
     std::shared_ptr<gui_forms::ComboBox> combo = make_control<ComboBox>(StableId("theme.stock.combo"));
     (*combo).set_requested_bounds({156.0, 8.0, 136.0, 28.0});
-    (*combo).set_items({"one", "two"});
+    (*combo).items = {"one", "two"};
     (*combo).set_selected_index(0U);
     std::shared_ptr<gui_forms::ProgressBar> progress = make_control<ProgressBar>(StableId("theme.stock.progress"));
     (*progress).set_requested_bounds({156.0, 46.0, 136.0, 20.0});

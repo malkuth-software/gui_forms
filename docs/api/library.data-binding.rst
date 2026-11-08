@@ -40,6 +40,12 @@ Types
      - One child's value, writable: borrows the capability and the child.
    * - :cpp:class:`ChildPropertyView::Reading <gui_forms::ChildPropertyView::Reading>`
      - One child's value through a const container: the reads only.
+   * - :cpp:class:`CollectionCell <gui_forms::CollectionCell>`
+     - A collection property's only storage, as the single member of its capability: PropertyCell's shape for a sequence edited in place (design accepted 2026-11-07).
+   * - :cpp:class:`CollectionDirty <gui_forms::CollectionDirty>`
+     - A collection's pending damage between two settles (design: settled at flush, like the control table's DirtyBitset): the replaced positions, as bits, and a structural watermark, the lowest position an insertion, erasure or assignment touched.
+   * - :cpp:class:`CollectionEdit <gui_forms::CollectionEdit>`
+     - One edit's description, made only by the named factories and read only through the queries, so an edit is always one of the four shapes.
    * - :cpp:class:`ControlBindingsCollection <gui_forms::ControlBindingsCollection>`
      - ControlBindingsCollection owns the unique active binding for each canonical target property and disposes the set deterministically.
    * - :cpp:class:`CurrencyManager <gui_forms::CurrencyManager>`
@@ -440,6 +446,133 @@ Types
    .. cpp:function:: template <typename Target> requires detail::total_property_conversion<Value, Target> Target as_type(TypeTag<Target>) const
 
    .. cpp:function:: std::optional<BindingValue> as_type(const PropertyType& target) const
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: template <typename Element, typename Capability> CollectionCell final
+
+   ``#include <gui_forms/binding/collection_cell/collection_cell.hpp>``
+
+   A collection property's only storage, as the single member of its capability: PropertyCell's shape for a sequence edited in place (design accepted 2026-11-07). The read is ``items.read()`` (a span) or ``items[i]``; the writes are ``items = elements``, ``items.insert(i, x)``, ``items.append(x)`` or ``items.append(elements)`` (an insertion at the end), ``items.erase(i, n)``, ``items.replace(i, x)`` and ``items.clear()``. Each write checks its positions (std::out_of_range), skips an edit that changes nothing (an equal assignment or replacement, an empty erasure), reserves what the store needs (capacity only: nothing observable changes), then calls ``Capability::prepare_edit(capability, edit, incoming)``, where the declaring control checks and may coerce the incoming elements and readies its own per-element state; a throw there refuses the edit and the elements have not changed. Nothing fails after prepare_edit returns: the cell stores (Element moves without throwing), records the edit in its dirty record, and calls ``Capability::written(capability, edit)``, so state the hook readied is always followed by its written. An edit of the same collection made while its prepare_edit runs (by a handler the hook raised) refuses the outer edit with std::logic_error. Writes to an element's fields and reorders the declaring control makes itself go through the capability's protected owner operations, which record their damage and raise no hooks. The declaring control takes the dirty record at its flush through the capability (``take_dirty``) and intersects it with what it shows. Element: copyable or movable, comparable with ==, nothrow movable. Capability: the standard-layout class whose only member this cell is.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: CollectionCell()
+
+      Starts empty. There is no constructor from elements, so a braced list on the right of ``items = {...}`` can only be the elements.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: std::span<const Element> read() const noexcept
+
+      The read.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void insert(std::size_t index, Element element)
+
+      Inserts ``element`` before the element at ``index`` (at the end when ``index`` is the length).
+
+   .. cpp:function:: void append(Element element)
+
+      Appends ``element``: the insertion at the end (Windows Forms' Items.Add).
+
+   .. cpp:function:: void append(std::vector<Element> elements)
+
+      Appends every element of ``elements``, in order, as one insertion at the end; an empty sequence changes nothing.
+
+   .. cpp:function:: void erase(std::size_t index, std::size_t count)
+
+      Erases ``count`` elements from ``index``; an empty erasure changes nothing.
+
+   .. cpp:function:: void replace(std::size_t index, Element element)
+
+      Replaces the element at ``index``; an equal value changes nothing.
+
+   .. cpp:function:: void clear()
+
+      Erases every element: an assignment of nothing.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: CollectionDirty final
+
+   ``#include <gui_forms/binding/collection_cell/collection_cell.hpp>``
+
+   A collection's pending damage between two settles (design: settled at flush, like the control table's DirtyBitset): the replaced positions, as bits, and a structural watermark, the lowest position an insertion, erasure or assignment touched. Every position at or past the watermark is dirty (its element moved or is new), so a bit there says nothing more and is dropped at the take. Edits between two takes coalesce: the lowest watermark wins and the bits unite. Used on its control's thread.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool any() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void reserve(std::size_t length)
+
+      Makes room for replacement bits below ``length``; existing bits keep. The only allocation; called before the edit is stored.
+
+   .. cpp:function:: void record(const CollectionEdit& edit) noexcept
+
+      Records an edit already stored. A replacement needs room reserved for its position; a position past the bitset's reach (2^32) lowers the watermark instead.
+
+   .. cpp:function:: std::optional<std::size_t> take(std::vector<std::uint32_t>& replaced)
+
+      Appends the replaced positions below the watermark to ``replaced``, in increasing order (the caller's storage, reused; not emptied first), clears the record and returns the watermark, or nullopt when no structural edit is pending. If appending fails, the record becomes "everything dirty" (watermark 0) for the next take, and the failure propagates.
+
+   .. cpp:function:: void clear() noexcept
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: CollectionEdit final
+
+   ``#include <gui_forms/binding/collection_cell/collection_cell.hpp>``
+
+   One edit's description, made only by the named factories and read only through the queries, so an edit is always one of the four shapes. The collection's hooks receive it: prepare_edit before anything changes, written after the elements are stored.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: CollectionEditKind kind() const noexcept
+
+   .. cpp:function:: std::size_t index() const noexcept
+
+      The first position the edit touched: 0 for an assignment.
+
+   .. cpp:function:: std::size_t count() const noexcept
+
+      The elements assigned, inserted or erased; 1 for a replacement.
+
+   .. cpp:function:: bool structural() const noexcept
+
+      Whether positions moved or the length changed: every kind but replace.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static CollectionEdit assigned(std::size_t count) noexcept
+
+      The whole sequence replaced by :cpp:func:`count <gui_forms::CollectionEdit::count>` elements (also clear(), with 0).
+
+   .. cpp:function:: static CollectionEdit inserted(std::size_t index, std::size_t count) noexcept
+
+      :cpp:func:`count <gui_forms::CollectionEdit::count>` elements inserted before the element at :cpp:func:`index <gui_forms::CollectionEdit::index>`.
+
+   .. cpp:function:: static CollectionEdit erased(std::size_t index, std::size_t count) noexcept
+
+      :cpp:func:`count <gui_forms::CollectionEdit::count>` elements erased from :cpp:func:`index <gui_forms::CollectionEdit::index>`.
+
+   .. cpp:function:: static CollectionEdit replaced(std::size_t index) noexcept
+
+      The element at :cpp:func:`index <gui_forms::CollectionEdit::index>` replaced by another value.
+
+   .. cpp:function:: std::optional<std::size_t> remap(std::size_t before) const noexcept
+
+      Where an element at position ``before`` is after the edit, or nullopt when the edit removed it. An assignment keeps the positions below its new length (the elements there are new; the position is what a selection without stable identities keeps); a replacement keeps every position.
 
 .. cpp:namespace:: gui_forms
 
@@ -1146,6 +1279,20 @@ Enumerations
    .. cpp:enumerator:: object
 
    .. cpp:enumerator:: collection
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: CollectionEditKind
+
+   ``#include <gui_forms/binding/collection_cell/collection_cell.hpp>``
+
+   .. cpp:enumerator:: assign
+
+   .. cpp:enumerator:: insert
+
+   .. cpp:enumerator:: erase
+
+   .. cpp:enumerator:: replace
 
 .. cpp:namespace:: gui_forms
 

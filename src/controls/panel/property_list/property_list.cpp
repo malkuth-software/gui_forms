@@ -267,7 +267,7 @@ struct PropertyList::Impl final {
                 } else if (row.editor == PropertyEditorKind::choice) {
                     std::shared_ptr<gui_forms::ComboBox> editor = make_control<ComboBox>(
                         StableId(row.stable_id + ".editor"));
-                    (*editor).set_items(row.choices);
+                    (*editor).items = row.choices;
                     const std::vector<std::string>::iterator selected =
                         std::find(row.choices.begin(),
                                                     row.choices.end(), row.value);

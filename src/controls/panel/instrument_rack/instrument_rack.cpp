@@ -393,7 +393,7 @@ struct InstrumentRack::Impl final {
         const FontSpec field_font{FontRole::content, 11.0, 400, false};
         if (field.editor == InstrumentFieldEditor::choice) {
             std::shared_ptr<gui_forms::ComboBox> choice = make_control<ComboBox>(StableId(id));
-            (*choice).set_items(field.choices);
+            (*choice).items = field.choices;
             const std::vector<std::string>::iterator selected =
                 std::find(field.choices.begin(),
                                             field.choices.end(), field.value);
@@ -562,7 +562,7 @@ struct InstrumentRack::Impl final {
             (*field_state.editor).accessible_name = field.name;
             if (const std::shared_ptr<gui_forms::ComboBox> choice = std::dynamic_pointer_cast<ComboBox>(
                     field_state.editor)) {
-                (*choice).set_items(field.choices);
+                (*choice).items = field.choices;
                 const std::vector<std::string>::iterator selected =
                     std::find(field.choices.begin(),
                                                 field.choices.end(), field.value);

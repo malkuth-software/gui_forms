@@ -235,7 +235,7 @@ void hosted_controls() {
     const std::shared_ptr<ProgressBar> load = (*strip).progress_bar("load");
     require(zoom && find && load && (*strip).children().size() == 3U,
             "each hosted item owns one child control of its kind");
-    require((*zoom).items().size() == 3U && (*zoom).accessible_name.read() == "Zoom" &&
+    require((*zoom).items.read().size() == 3U && (*zoom).accessible_name.read() == "Zoom" &&
                 (*zoom).stable_id().value() == "strip.zoom",
             "a combo box takes its choices and name from the item, and its ID from the strip and item");
     const std::vector<ToolStrip::Item> items = (*strip).realized_items();
@@ -269,7 +269,7 @@ void hosted_controls() {
     (*strip).set_items(std::move(next));
     require((*strip).text_box("find") == find && (*find).text.read() == "needle",
             "set_items keeps a hosted control of the same ID and kind, with its state");
-    require((*(*strip).combo_box("zoom")).items().size() == 1U, "set_items updates a combo box's choices");
+    require((*(*strip).combo_box("zoom")).items.read().size() == 1U, "set_items updates a combo box's choices");
     require((*strip).text_box("load") != nullptr && (*strip).children().size() == 3U,
             "an item that changes kind gets a new control and the old one is removed");
 

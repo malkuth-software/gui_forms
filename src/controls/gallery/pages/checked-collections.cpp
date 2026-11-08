@@ -170,13 +170,13 @@ private:
 
     void on_command(const CommandItem& item) {
         if (item.id == command_set_mixed) {
-            if (!(*immediate_).items().empty()) {
+            if (!(*immediate_).items.read().empty()) {
                 (*immediate_).set_item_check_state(3U, CheckState::indeterminate);
             }
             return;
         }
         const bool checked = item.id == command_check_all;
-        for (std::size_t index = 0U; index < (*immediate_).items().size(); ++index) {
+        for (std::size_t index = 0U; index < (*immediate_).items.read().size(); ++index) {
             (*immediate_).set_item_checked(index, checked);
         }
     }

@@ -62,8 +62,8 @@ void test_values_and_spinners_binding(gui_forms::Window& window) {
                     (*property_grid).editor("Items[1]"))).text.read() == "FM",
             "gallery must expose the stock ComboBox.Items collection through the same recursive PropertyGrid");
     click(window, window.find("gallery.values.inspector-commands.item.4"));
-    require((*items_target).items().size() == 4U &&
-                (*items_target).items().back() == "CW" &&
+    require((*items_target).items.read().size() == 4U &&
+                (*items_target).items.read().back() == "CW" &&
                 (*std::dynamic_pointer_cast<TextBox>(
                     (*property_grid).editor("Items[3]"))).text.read() == "CW",
             "gallery collection command must mutate the real stock Items property rather than a local display model");

@@ -7,13 +7,13 @@ gui_forms::DomainUpDown
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: DomainUpDown final : public Panel, public DomainUpDownCapabilities<DomainUpDown>
+.. cpp:class:: DomainUpDown final : public Panel, public TextItemsCapability<DomainUpDown>, public DomainUpDownCapabilities<DomainUpDown>
 
    ``#include <gui_forms/controls/panel/domain_up_down/domain_up_down.hpp>``
 
    A text field with up and down buttons that steps through a list of strings.
 
-   A domain up-down shows one of its :cpp:func:`items <gui_forms::DomainUpDown::items>` in an :cpp:func:`editor <gui_forms::DomainUpDown::editor>` text box beside a
+   A domain up-down shows one of its :cpp:member:`items <gui_forms::DomainUpDown::items>` in an :cpp:func:`editor <gui_forms::DomainUpDown::editor>` text box beside a
    pair of spin buttons. The items are a list read top to bottom: the upper
    button, the Up key and the wheel turned up move to the previous item, and the
    lower button, the Down key and the wheel turned down move to the next. Use it
@@ -29,6 +29,16 @@ gui_forms::DomainUpDown
          as ``<stable_id>.editor`` and the spin buttons as ``<stable_id>.spinner``.
 
    :Properties:
+
+      **items** : ``std::vector<std::string>``
+         The strings, in display order, edited in place. Read them with
+         ``items.read()`` (a span) or ``items[i]``; write them with ``items = {...}``,
+         ``items.insert(i, text)``, ``items.append(text)``, ``items.erase(i, n)``,
+         ``items.replace(i, text)`` and ``items.clear()``; a position outside the
+         items throws ``std::out_of_range`` and changes nothing. While :cpp:member:`sorted <gui_forms::DomainUpDown::sorted>` is
+         on, each edit is followed by sorting, so an inserted string need not
+         stay where it was put. After each edit the text is kept and the
+         selection re-matched to it.
 
       **selected_index** : ``std::optional<std::size_t>``, default none
          The item the text equals, or none. ``set_selected_index`` selects an item
@@ -55,11 +65,6 @@ gui_forms::DomainUpDown
 
       **button_width** : ``double``, default ``18``
          The width of the spin buttons, from 12 to 64; a width outside that range
-         throws ``std::out_of_range``.
-
-      **items** : ``std::span<const std::string>``
-         The strings, in display order. :cpp:func:`set_items <gui_forms::DomainUpDown::set_items>` replaces them, :cpp:func:`add_item <gui_forms::DomainUpDown::add_item>`
-         appends one and :cpp:func:`remove_item_at <gui_forms::DomainUpDown::remove_item_at>` removes one; an index past the end
          throws ``std::out_of_range``.
 
       **editor** : ``std::shared_ptr<TextBox>``, read-only
@@ -91,11 +96,9 @@ gui_forms::DomainUpDown
 
       * - :cpp:func:`initialize_control_tree <gui_forms::DomainUpDown::initialize_control_tree>`
         - Creates the editor and the spin buttons.
-      * - :cpp:func:`add_item <gui_forms::DomainUpDown::add_item>`
-        -  
-      * - :cpp:func:`remove_item_at <gui_forms::DomainUpDown::remove_item_at>`
-        - Throws std::out_of_range for an index past the end.
-      * - :cpp:func:`clear_items <gui_forms::DomainUpDown::clear_items>`
+      * - :cpp:func:`prepare_edit <gui_forms::DomainUpDown::prepare_edit>`
+        - The items in display order (:cpp:member:`items <gui_forms::DomainUpDown::items>`, TextItemsCapability, edited in place): while sorted is true, every edit is followed by sorting (ASCII case folded, then byte order), as Windows Forms' sorted DomainUpDown, so an inserted item need not stay at its position.
+      * - :cpp:func:`written <gui_forms::DomainUpDown::written>`
         -  
       * - :cpp:func:`up_button <gui_forms::DomainUpDown::up_button>`
         - Selects the previous item, or the last when nothing is selected.
@@ -144,7 +147,7 @@ gui_forms::DomainUpDown
 
       std::shared_ptr<gf::DomainUpDown> mode =
           gf::make_control<gf::DomainUpDown>(gf::StableId("radio.mode"));
-      (*mode).set_items({"AM", "FM", "USB", "LSB"});
+      (*mode).items = {"AM", "FM", "USB", "LSB"};
       (*mode).wrap = true;
       (*mode).selected_index = std::optional<std::size_t>{3U};   // the field shows "LSB"
       (*mode).down_button();            // wraps: the field shows "AM"
@@ -156,6 +159,17 @@ gui_forms::DomainUpDown
 
 
    .. rubric:: Properties
+
+   .. cpp:member:: std::vector<std::string> items
+
+      The strings, in display order, edited in place. Read them with
+      ``items.read()`` (a span) or ``items[i]``; write them with ``items = {...}``,
+      ``items.insert(i, text)``, ``items.append(text)``, ``items.erase(i, n)``,
+      ``items.replace(i, text)`` and ``items.clear()``; a position outside the
+      items throws ``std::out_of_range`` and changes nothing. While :cpp:member:`sorted <gui_forms::DomainUpDown::sorted>` is
+      on, each edit is followed by sorting, so an inserted string need not
+      stay where it was put. After each edit the text is kept and the
+      selection re-matched to it.
 
    .. cpp:member:: std::optional<std::size_t> selected_index
 
@@ -190,16 +204,6 @@ gui_forms::DomainUpDown
       The width of the spin buttons, from 12 to 64; a width outside that range
       throws ``std::out_of_range``.
 
-   .. cpp:function:: std::span<const std::string> items() const noexcept
-
-      The strings, in display order. :cpp:func:`set_items <gui_forms::DomainUpDown::set_items>` replaces them, :cpp:func:`add_item <gui_forms::DomainUpDown::add_item>`
-      appends one and :cpp:func:`remove_item_at <gui_forms::DomainUpDown::remove_item_at>` removes one; an index past the end
-      throws ``std::out_of_range``.
-
-   .. cpp:function:: void set_items(std::vector<std::string> items)
-
-      Sets :cpp:func:`items <gui_forms::DomainUpDown::items>`; see the property's description above.
-
    .. cpp:function:: std::shared_ptr<TextBox> editor() const noexcept
 
       The :cpp:class:`TextBox <gui_forms::TextBox>` that shows the text.
@@ -224,13 +228,11 @@ gui_forms::DomainUpDown
       Creates the editor and the spin buttons. ``make_control`` calls it; do not
       call it yourself.
 
-   .. cpp:function:: void add_item(std::string item)
+   .. cpp:function:: void prepare_edit(const decltype(items)& cell, const CollectionEdit& edit, std::span<std::string> incoming)
 
-   .. cpp:function:: void remove_item_at(std::size_t index)
+      The items in display order (:cpp:member:`items <gui_forms::DomainUpDown::items>`, TextItemsCapability, edited in place): while sorted is true, every edit is followed by sorting (ASCII case folded, then byte order), as Windows Forms' sorted DomainUpDown, so an inserted item need not stay at its position. After each edit the text is kept and the selection re-matched to it: erasing the selected item clears the selection unless another item equals the text. The TextItemsCapability hooks.
 
-      Throws std::out_of_range for an index past the end. Removing the selected item clears the selection and keeps the text.
-
-   .. cpp:function:: void clear_items()
+   .. cpp:function:: void written(const decltype(items)& cell, const CollectionEdit& edit)
 
    .. cpp:function:: void up_button()
 

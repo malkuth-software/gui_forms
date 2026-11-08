@@ -46,7 +46,7 @@ Fixture make_fixture(const char* id, ComboBoxFilter filter) {
     fixture.root = make_control<Panel>(StableId(std::string(id) + ".root"));
     fixture.combo = make_control<ComboBox>(StableId(std::string(id)));
     (*fixture.combo).set_requested_bounds({10.0, 10.0, 220.0, 30.0});
-    (*fixture.combo).set_items({"Calgary", "California", "Cambridge", "Dover", "Cape Town", "Arcadia"});
+    (*fixture.combo).items = {"Calgary", "California", "Cambridge", "Dover", "Cape Town", "Arcadia"};
     (*fixture.combo).set_drop_down_style(ComboBoxStyle::drop_down);
     (*fixture.combo).set_drop_down_filter(filter);
     (*fixture.root).add_child(fixture.combo);
@@ -171,7 +171,7 @@ void keyboard_and_identity() {
 
     // The items change under the open list: the rows and the selection
     // follow the item, not its old position.
-    combo.set_items({"Arcadia", "Cambridge", "Calgary", "Cape Town"});
+    combo.items = {"Arcadia", "Cambridge", "Calgary", "Cape Town"};
     require(combo.selected_index() == 1U && combo.text() == "Cambridge" && rows_are(combo, {1U, 2U, 3U}) &&
                 (*std::static_pointer_cast<ListBox>(window.find("filter.keys.overlay.list"))).selected_index() == 0U,
             "new items keep the filter and the chosen item's row");

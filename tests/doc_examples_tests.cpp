@@ -526,7 +526,7 @@ void example() {
     std::shared_ptr<gf::CheckedListBox> features =
         gf::make_control<gf::CheckedListBox>(gf::StableId("install.features"));
     (*features).add_item("Core files", gf::CheckState::checked);
-    (*features).add_item("Documentation");
+    (*features).add_item("Documentation", gf::CheckState::unchecked);
     (*features).add_item("Samples", gf::CheckState::indeterminate);
     (*features).toggle_item(1U);   // Documentation is now checked
     // (*features).checked_indices() is {0, 1}; Samples stays indeterminate
@@ -541,7 +541,7 @@ struct FeatureRules final : gf::Component {
 
     FeatureRules() {
         (*features).add_item("Core files", gf::CheckState::checked);
-        (*features).add_item("Samples");
+        (*features).add_item("Samples", gf::CheckState::unchecked);
         gf::on((*features).item_checking(), *this, &FeatureRules::on_checking);
         gf::on((*features).item_check_state_changed(), *this,
                &FeatureRules::on_checked);
@@ -672,7 +672,7 @@ namespace doc_example_ComboBox_1 {
 void example() {
     std::shared_ptr<gf::ComboBox> density =
         gf::make_control<gf::ComboBox>(gf::StableId("view.density"));
-    (*density).set_items({"Compact", "Comfortable", "Spacious"});
+    (*density).items = {"Compact", "Comfortable", "Spacious"};
     (*density).set_placeholder_text("Choose a density");
     (*density).set_selected_index(1U);
     // (*density).selected_text() is now "Comfortable"
@@ -686,7 +686,7 @@ struct DensityField final : gf::Component {
     std::string density;
 
     DensityField() {
-        (*combo).set_items({"Compact", "Comfortable", "Spacious"});
+        (*combo).items = {"Compact", "Comfortable", "Spacious"};
         gf::on((*combo).selected_index_changed(), *this, &DensityField::on_density);
     }
     void on_density(std::optional<std::size_t> index) {
@@ -697,7 +697,7 @@ struct DensityField final : gf::Component {
 void example() {
     DensityField field;
     (*field.combo).set_selected_index(2U);                 // field.density is "Spacious"
-    (*field.combo).set_items({"Compact", "Comfortable"});  // and now ""
+    (*field.combo).items = {"Compact", "Comfortable"};  // and now ""
 }
 }  // namespace doc_example_ComboBox_2
 
@@ -705,7 +705,7 @@ namespace doc_example_ComboBox_3 {
 void example() {
     std::shared_ptr<gf::ComboBox> band =
         gf::make_control<gf::ComboBox>(gf::StableId("radio.band"));
-    (*band).set_items({"Long wave", "Medium wave", "Short wave"});
+    (*band).items = {"Long wave", "Medium wave", "Short wave"};
     (*band).set_drop_down_style(gf::ComboBoxStyle::drop_down);
     (*band).set_auto_complete_source(gf::AutoCompleteSource::list_items);
     (*band).set_auto_complete_mode(gf::AutoCompleteMode::append);
@@ -721,7 +721,7 @@ namespace doc_example_ComboBox_4 {
 void example() {
     std::shared_ptr<gf::ComboBox> station =
         gf::make_control<gf::ComboBox>(gf::StableId("trip.station"));
-    (*station).set_items({"Hamburg Hbf", "Köln Hbf", "Paris Nord", "Zürich HB"});
+    (*station).items = {"Hamburg Hbf", "Köln Hbf", "Paris Nord", "Zürich HB"};
     (*station).set_drop_down_style(gf::ComboBoxStyle::drop_down);
     (*station).set_drop_down_filter(gf::ComboBoxFilter::substring);
     gf::Window window(station, gf::Size{240.0, 200.0});
@@ -1073,12 +1073,12 @@ void example() {
         {.name = "mode", .header_text = "Mode", .kind = gf::DataGridViewColumnKind::combo_box,
          .width = 90.0, .items = {"AM", "FM", "USB"}},
     });
-    (*grid).add_row({.stable_id = {"wqxr"}, .cells = {gf::BindingValue{std::string("WQXR")},
-                                                      gf::BindingValue{true},
-                                                      gf::BindingValue{std::string("FM")}}});
-    (*grid).add_row({.stable_id = {"bbc4"}, .cells = {gf::BindingValue{std::string("BBC Radio 4")},
-                                                      gf::BindingValue{false},
-                                                      gf::BindingValue{std::string("AM")}}});
+    (*grid).rows.append({.stable_id = {"wqxr"}, .cells = {gf::BindingValue{std::string("WQXR")},
+                                                           gf::BindingValue{true},
+                                                           gf::BindingValue{std::string("FM")}}});
+    (*grid).rows.append({.stable_id = {"bbc4"}, .cells = {gf::BindingValue{std::string("BBC Radio 4")},
+                                                           gf::BindingValue{false},
+                                                           gf::BindingValue{std::string("AM")}}});
     (*grid).sort(0U, gf::DataGridViewSortDirection::ascending);   // BBC Radio 4 first
     // row_position({"wqxr"}) is now position 1
 }
@@ -1339,7 +1339,7 @@ namespace doc_example_DomainUpDown_1 {
 void example() {
     std::shared_ptr<gf::DomainUpDown> mode =
         gf::make_control<gf::DomainUpDown>(gf::StableId("radio.mode"));
-    (*mode).set_items({"AM", "FM", "USB", "LSB"});
+    (*mode).items = {"AM", "FM", "USB", "LSB"};
     (*mode).wrap = true;
     (*mode).selected_index = std::optional<std::size_t>{3U};   // the field shows "LSB"
     (*mode).down_button();            // wraps: the field shows "AM"
@@ -2061,7 +2061,7 @@ namespace doc_example_ListBox_1 {
 void example() {
     std::shared_ptr<gf::ListBox> languages =
         gf::make_control<gf::ListBox>(gf::StableId("options.languages"));
-    (*languages).set_items({"English", "French", "German", "Italian"});
+    (*languages).items = {"English", "French", "German", "Italian"};
     (*languages).set_selection_mode(gf::ListSelectionMode::multiple_extended);
     (*languages).select_index(1U);         // French, which becomes the anchor
     (*languages).select_index(3U, true);   // French through Italian
@@ -2077,14 +2077,14 @@ struct LocationPicker final : gf::Component {
     std::size_t opened = 0;
 
     LocationPicker() {
-        (*list).set_items({"Desktop", "Documents", "Downloads"});
+        (*list).items = {"Desktop", "Documents", "Downloads"};
         (*list).set_item_stable_ids({"desktop", "documents", "downloads"});
         gf::on((*list).selection_changed(), *this, &LocationPicker::on_selection);
         gf::on((*list).item_activated(), *this, &LocationPicker::on_open);
     }
     void on_selection(const gf::ListSelectionChange& change) {
         status = change.current.empty() ? std::string("Nothing selected")
-                                        : (*list).items()[change.current.front()];
+                                        : (*list).items[change.current.front()];
     }
     void on_open(std::size_t index) { opened = index; }
 };

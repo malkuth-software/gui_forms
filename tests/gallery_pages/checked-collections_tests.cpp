@@ -32,13 +32,13 @@ void test_checked_collections(gui_forms::Window& window) {
             "gallery check-state commands must publish toolbar semantics");
     click(window, window.find("gallery.checked.command.item.2"));
     bool all_clear = true;
-    for (std::size_t index = 0U; index < (*checked).items().size(); ++index) {
+    for (std::size_t index = 0U; index < (*checked).items.read().size(); ++index) {
         all_clear = all_clear && !(*checked).item_checked(index);
     }
     require(all_clear, "Clear all must uncheck every row through the public check model");
     click(window, window.find("gallery.checked.command.item.1"));
     bool all_checked = true;
-    for (std::size_t index = 0U; index < (*checked).items().size(); ++index) {
+    for (std::size_t index = 0U; index < (*checked).items.read().size(); ++index) {
         all_checked = all_checked && (*checked).item_checked(index);
     }
     require(all_checked, "Check all must check every row through the public check model");

@@ -2,6 +2,7 @@
 
 // Compatibility umbrella. Prefer narrow binding hierarchy headers in new code.
 #include "gui_forms/binding/value/binding_value.hpp"
+#include "gui_forms/binding/collection_cell/collection_cell.hpp"
 #include "gui_forms/binding/property_cell/property_cell.hpp"
 #include "gui_forms/binding/property_table/property_table.hpp"
 #include "gui_forms/binding/number_format/number_format.hpp"

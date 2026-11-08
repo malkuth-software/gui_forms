@@ -47,17 +47,12 @@ item_check_state_changed
 
 Methods
 -------
-set_items
-    Replaces every row, as `ListBox` does, and sets every row to unchecked,
-    including rows whose text did not change.
 add_item
-    Appends a row, unchecked or in the given `CheckState`. A state that is
-    not a valid `CheckState` throws `std::invalid_argument`.
-remove_item
-    Removes a row together with its check state; later rows keep theirs.
-    An index outside the items throws `std::out_of_range`.
-clear_items
-    Removes every row and every check state.
+    Appends a row in the given `CheckState`. A state that is not a valid
+    `CheckState` throws `std::invalid_argument`. The `items` edits keep
+    the check states with their rows: an insertion adds unchecked rows, an
+    erasure removes the rows' states, a replacement keeps the row's state,
+    and an assignment of every row makes every row unchecked.
 item_check_state
     The check state of a row. An index outside the items throws
     `std::out_of_range`.
@@ -123,7 +118,7 @@ Build a list with initial check states and toggle a row:
    std::shared_ptr<gf::CheckedListBox> features =
        gf::make_control<gf::CheckedListBox>(gf::StableId("install.features"));
    (*features).add_item("Core files", gf::CheckState::checked);
-   (*features).add_item("Documentation");
+   (*features).add_item("Documentation", gf::CheckState::unchecked);
    (*features).add_item("Samples", gf::CheckState::indeterminate);
    (*features).toggle_item(1U);   // Documentation is now checked
    // (*features).checked_indices() is {0, 1}; Samples stays indeterminate
@@ -140,7 +135,7 @@ any attempt to uncheck the required first row:
 
        FeatureRules() {
            (*features).add_item("Core files", gf::CheckState::checked);
-           (*features).add_item("Samples");
+           (*features).add_item("Samples", gf::CheckState::unchecked);
            gf::on((*features).item_checking(), *this, &FeatureRules::on_checking);
            gf::on((*features).item_check_state_changed(), *this,
                   &FeatureRules::on_checked);

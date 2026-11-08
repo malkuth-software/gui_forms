@@ -210,8 +210,8 @@ void selection_drag_takes_escape() {
 
 void composites_pass_escape_on() {
     std::shared_ptr<ComboBox> combo = make_control<ComboBox>(StableId("esc.combo"));
-    (*combo).add_item("Alpha");
-    (*combo).add_item("Beta");
+    (*combo).items.append("Alpha");
+    (*combo).items.append("Beta");
     (*combo).set_drop_down_style(ComboBoxStyle::drop_down);
     Fixture combo_fixture = make_fixture("esc.combo", combo);
     require((*combo_fixture.window).request_focus((*combo).editor()), "the combo editor takes focus");

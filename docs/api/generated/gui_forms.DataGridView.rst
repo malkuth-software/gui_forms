@@ -7,7 +7,7 @@ gui_forms::DataGridView
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: DataGridView final : public Control, public DataGridViewCapabilities<DataGridView>
+.. cpp:class:: DataGridView final : public Control, public DataGridViewCapabilities<DataGridView>, public DataGridViewRowsCapability<DataGridView>
 
    ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
 
@@ -165,6 +165,23 @@ gui_forms::DataGridView
 
       **cells_on_sub_surface** : ``bool``
          Whether the cells are painted on a threaded sub-surface (stage S7): the grid resolves each frame's visible cells into a snapshot and its cell region shows them, off the UI thread. Owner drawing keeps the cells on the UI thread.
+
+      **rows** : ``std::vector<DataGridViewRow>``
+         The unbound rows, edited in place. Read them with ``rows.read()`` or
+         ``rows[i]``; write them with ``rows = {...}`` (every row, ending any edit
+         and clearing the selection), ``rows.insert(i, row)``, ``rows.append(row)``
+         or ``rows.append(rows)``, ``rows.erase(i, n)``, ``rows.replace(i, row)`` and
+         ``rows.clear()``. An empty stable ID is replaced by a generated one
+         (``row.1``, ``row.2``, ...), and a replacement keeps the row's ID unless
+         it names another; a repeated ID, one that breaks the :cpp:class:`StableId <gui_forms::StableId>` segment
+         rule, invalid UTF-8 or more values than columns throws
+         ``std::invalid_argument``, and a position past the unbound rows (the new
+         row included) ``std::out_of_range``. Virtual and bound rows refuse every
+         edit with ``std::logic_error``. The current cell and the selection stay
+         on their rows; an erased row leaves the selection, and when it held
+         the current cell, the row that takes its position, or the new last
+         row, becomes current. A refused edit changes nothing. An edit
+         repaints, at the next layout, only the rows shown that it reaches.
 
       **columns** : ``std::span<const DataGridViewColumn>``
          The columns, in display order. :cpp:func:`set_columns <gui_forms::DataGridView::set_columns>` replaces them, :cpp:func:`add_column <gui_forms::DataGridView::add_column>`
@@ -422,12 +439,6 @@ gui_forms::DataGridView
         - The width a cell asks for: its content, padding and grid line.
       * - :cpp:func:`preferred_column_header_width <gui_forms::DataGridView::preferred_column_header_width>`
         - The width a column header asks for, with a sortable column's glyph lane.
-      * - :cpp:func:`add_row <gui_forms::DataGridView::add_row>`
-        - Appends an unbound row and returns its position.
-      * - :cpp:func:`insert_row <gui_forms::DataGridView::insert_row>`
-        - Inserts an unbound row before a position.
-      * - :cpp:func:`remove_row_at <gui_forms::DataGridView::remove_row_at>`
-        - Removes an unbound row.
       * - :cpp:func:`clear_rows <gui_forms::DataGridView::clear_rows>`
         - Removes every row of any source and returns to unbound rows.
       * - :cpp:func:`row_id <gui_forms::DataGridView::row_id>`
@@ -514,8 +525,6 @@ gui_forms::DataGridView
         - Shows an ascending or descending sort glyph on a column header, or none.
       * - :cpp:func:`set_column_read_only <gui_forms::DataGridView::set_column_read_only>`
         - Makes a column's cells read-only, ending an edit in that column.
-      * - :cpp:func:`set_rows <gui_forms::DataGridView::set_rows>`
-        - Replaces the unbound rows, ending any edit and clearing the selection.
       * - :cpp:func:`set_link_visited <gui_forms::DataGridView::set_link_visited>`
         - Marks a link cell's link visited or not and repaints it; the same refusals as :cpp:func:`link_visited <gui_forms::DataGridView::link_visited>`.
       * - :cpp:func:`set_cell_value <gui_forms::DataGridView::set_cell_value>`
@@ -816,12 +825,12 @@ gui_forms::DataGridView
           {.name = "mode", .header_text = "Mode", .kind = gf::DataGridViewColumnKind::combo_box,
            .width = 90.0, .items = {"AM", "FM", "USB"}},
       });
-      (*grid).add_row({.stable_id = {"wqxr"}, .cells = {gf::BindingValue{std::string("WQXR")},
-                                                        gf::BindingValue{true},
-                                                        gf::BindingValue{std::string("FM")}}});
-      (*grid).add_row({.stable_id = {"bbc4"}, .cells = {gf::BindingValue{std::string("BBC Radio 4")},
-                                                        gf::BindingValue{false},
-                                                        gf::BindingValue{std::string("AM")}}});
+      (*grid).rows.append({.stable_id = {"wqxr"}, .cells = {gf::BindingValue{std::string("WQXR")},
+                                                             gf::BindingValue{true},
+                                                             gf::BindingValue{std::string("FM")}}});
+      (*grid).rows.append({.stable_id = {"bbc4"}, .cells = {gf::BindingValue{std::string("BBC Radio 4")},
+                                                             gf::BindingValue{false},
+                                                             gf::BindingValue{std::string("AM")}}});
       (*grid).sort(0U, gf::DataGridViewSortDirection::ascending);   // BBC Radio 4 first
       // row_position({"wqxr"}) is now position 1
 
@@ -1013,6 +1022,24 @@ gui_forms::DataGridView
    .. cpp:member:: bool cells_on_sub_surface
 
       Whether the cells are painted on a threaded sub-surface (stage S7): the grid resolves each frame's visible cells into a snapshot and its cell region shows them, off the UI thread. Owner drawing keeps the cells on the UI thread.
+
+   .. cpp:member:: std::vector<DataGridViewRow> rows
+
+      The unbound rows, edited in place. Read them with ``rows.read()`` or
+      ``rows[i]``; write them with ``rows = {...}`` (every row, ending any edit
+      and clearing the selection), ``rows.insert(i, row)``, ``rows.append(row)``
+      or ``rows.append(rows)``, ``rows.erase(i, n)``, ``rows.replace(i, row)`` and
+      ``rows.clear()``. An empty stable ID is replaced by a generated one
+      (``row.1``, ``row.2``, ...), and a replacement keeps the row's ID unless
+      it names another; a repeated ID, one that breaks the :cpp:class:`StableId <gui_forms::StableId>` segment
+      rule, invalid UTF-8 or more values than columns throws
+      ``std::invalid_argument``, and a position past the unbound rows (the new
+      row included) ``std::out_of_range``. Virtual and bound rows refuse every
+      edit with ``std::logic_error``. The current cell and the selection stay
+      on their rows; an erased row leaves the selection, and when it held
+      the current cell, the row that takes its position, or the new last
+      row, becomes current. A refused edit changes nothing. An edit
+      repaints, at the next layout, only the rows shown that it reaches.
 
    .. cpp:function:: std::span<const DataGridViewColumn> columns() const noexcept
 
@@ -1366,26 +1393,6 @@ gui_forms::DataGridView
 
       The width a column header asks for, with a sortable column's glyph lane.
 
-   .. cpp:function:: DataGridViewRowPosition add_row(DataGridViewRow row)
-
-      Appends an unbound row and returns its position. An empty stable ID is
-      replaced by a generated one (``row.1``, ``row.2``, ...); a repeated ID, one
-      that breaks the :cpp:class:`StableId <gui_forms::StableId>` segment rule, invalid UTF-8 or more values than
-      columns throws ``std::invalid_argument``. Virtual and bound rows refuse it
-      with ``std::logic_error``, as they do :cpp:func:`insert_row <gui_forms::DataGridView::insert_row>`, :cpp:func:`set_rows <gui_forms::DataGridView::set_rows>` and
-      :cpp:func:`remove_row_at <gui_forms::DataGridView::remove_row_at>`.
-
-   .. cpp:function:: void insert_row(DataGridViewRowPosition position, DataGridViewRow row)
-
-      Inserts an unbound row before a position. The current cell and the
-      selection stay on their rows.
-
-   .. cpp:function:: void remove_row_at(DataGridViewRowPosition position)
-
-      Removes an unbound row. A selected row leaves the selection; when it held
-      the current cell, the row that takes its position, or the new last row,
-      becomes current.
-
    .. cpp:function:: void clear_rows()
 
       Removes every row of any source and returns to unbound rows.
@@ -1598,10 +1605,6 @@ gui_forms::DataGridView
    .. cpp:function:: void set_column_read_only(std::size_t column, bool column_read_only)
 
       Makes a column's cells read-only, ending an edit in that column.
-
-   .. cpp:function:: void set_rows(std::vector<DataGridViewRow> rows)
-
-      Replaces the unbound rows, ending any edit and clearing the selection.
 
    .. cpp:function:: void set_link_visited(DataGridViewRowPosition row, std::size_t column, bool visited)
 

@@ -7,7 +7,7 @@ gui_forms::ComboBox
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: ComboBox final : public Panel
+.. cpp:class:: ComboBox final : public Panel, public TextItemsCapability<ComboBox>
 
    ``#include <gui_forms/controls/panel/combo_box/combo_box.hpp>``
 
@@ -17,7 +17,7 @@ gui_forms::ComboBox
    user clicks it or presses F4, Alt+Down or Space. Choosing a row in the
    list selects it and closes the list; Up, Down, Home and End change the
    selection without opening it. In the default ``drop_down_list`` style the
-   field cannot be typed into: it always shows an item from :cpp:func:`items <gui_forms::ComboBox::items>`, or
+   field cannot be typed into: it always shows an item from :cpp:member:`items <gui_forms::ComboBox::items>`, or
    :cpp:func:`placeholder_text <gui_forms::ComboBox::placeholder_text>` when nothing is selected. In the ``drop_down`` style the
    field is an :cpp:func:`editor <gui_forms::ComboBox::editor>` text box: the user types any text or chooses an item,
    and the field can complete what is typed (:cpp:func:`auto_complete_mode <gui_forms::ComboBox::auto_complete_mode>`). Use a
@@ -37,14 +37,22 @@ gui_forms::ComboBox
 
    :Properties:
 
-      **items** : ``std::span<const std::string>``
-         The choices, in display order. Empty by default. Replacing them with
-         :cpp:func:`set_items <gui_forms::ComboBox::set_items>` raises :cpp:func:`items_changed <gui_forms::ComboBox::items_changed>`, unless the new items are equal to
-         the current ones. A selected index that no longer exists is cleared
-         first, raising :cpp:func:`selected_index_changed <gui_forms::ComboBox::selected_index_changed>`; a selected index that still
-         exists is kept, even if a different item now has it. Every item must
-         be valid UTF-8, or ``std::invalid_argument`` is thrown. The same
-         collection is also available to bindings as the ``Items`` property.
+      **items** : ``std::vector<std::string>``
+         The choices, in display order, edited in place. Empty by default.
+         Read them with ``items.read()`` (a span) or ``items[i]``; write them with
+         ``items = {...}``, ``items.insert(i, text)``, ``items.append(text)`` or
+         ``items.append(choices)``, ``items.erase(i, n)``, ``items.replace(i, text)``
+         and ``items.clear()``. Each edit raises :cpp:func:`items_changed <gui_forms::ComboBox::items_changed>`; an assignment
+         equal to the current items changes nothing. In the drop_down style the
+         selection follows the editor's text. Otherwise the selected index
+         follows its item: an insertion or erasure before it moves it, erasing
+         it clears it, and an assignment keeps an index that still exists, even
+         if a different item now has it; :cpp:func:`selected_index_changed <gui_forms::ComboBox::selected_index_changed>` and then
+         :cpp:func:`text_changed <gui_forms::ComboBox::text_changed>` are raised first when the index or its text changed.
+         Every item must be valid UTF-8, or ``std::invalid_argument`` is thrown,
+         and a position outside the items throws ``std::out_of_range``; a refused
+         edit changes nothing. The same collection is also available to
+         bindings as the ``Items`` property.
 
       **selected_index** : ``std::optional<std::size_t>``, default ``std::nullopt``
          The index of the selected item, or no value when nothing is selected.
@@ -109,7 +117,7 @@ gui_forms::ComboBox
          nothing.
 
       **drop_down_items** : ``std::span<const std::size_t>``, read-only
-         The items the open list shows, as indices into :cpp:func:`items <gui_forms::ComboBox::items>`, in row order;
+         The items the open list shows, as indices into :cpp:member:`items <gui_forms::ComboBox::items>`, in row order;
          empty while the list is closed.
 
       **auto_complete_mode** : ``AutoCompleteMode``, default ``AutoCompleteMode::none``
@@ -119,7 +127,7 @@ gui_forms::ComboBox
          style is drop_down.
 
       **auto_complete_source** : ``AutoCompleteSource``, default ``AutoCompleteSource::none``
-         Where the candidates come from: ``list_items`` uses :cpp:func:`items <gui_forms::ComboBox::items>`,
+         Where the candidates come from: ``list_items`` uses :cpp:member:`items <gui_forms::ComboBox::items>`,
          ``custom_source`` uses :cpp:func:`auto_complete_custom_source <gui_forms::ComboBox::auto_complete_custom_source>`, and the host
          sources offer nothing yet, as for :cpp:class:`TextBox <gui_forms::TextBox>`.
 
@@ -136,7 +144,7 @@ gui_forms::ComboBox
 
       **selected_index_changed** : ``Event<std::optional<std::size_t>>``
          Raised after :cpp:func:`selected_index <gui_forms::ComboBox::selected_index>` changes, by input, by the setter, or by
-         :cpp:func:`set_items <gui_forms::ComboBox::set_items>` clearing an index that no longer exists. It carries the new
+         an edit of :cpp:member:`items <gui_forms::ComboBox::items>` moving or clearing it. It carries the new
          index, or no value. Setting the current index again raises nothing.
 
       **drop_down_changed** : ``Event<bool>``
@@ -144,8 +152,8 @@ gui_forms::ComboBox
          it closes, whichever way it closed.
 
       **items_changed** : ``Event<>``
-         Raised after :cpp:func:`set_items <gui_forms::ComboBox::set_items>` or :cpp:func:`add_item <gui_forms::ComboBox::add_item>` changes the items, after any
-         :cpp:func:`selected_index_changed <gui_forms::ComboBox::selected_index_changed>` the change caused.
+         Raised after each edit of :cpp:member:`items <gui_forms::ComboBox::items>`, after any :cpp:func:`selected_index_changed <gui_forms::ComboBox::selected_index_changed>`
+         and :cpp:func:`text_changed <gui_forms::ComboBox::text_changed>` the edit caused.
 
       **text_changed** : ``Event<const std::string&>``
          Raised after :cpp:func:`text <gui_forms::ComboBox::text>` changes, with the new text: in the drop_down style
@@ -166,8 +174,10 @@ gui_forms::ComboBox
       :class: autosummary longtable
       :widths: 35 65
 
-      * - :cpp:func:`add_item <gui_forms::ComboBox::add_item>`
-        - Appends one choice, raising :cpp:func:`items_changed <gui_forms::ComboBox::items_changed>`.
+      * - :cpp:func:`prepare_edit <gui_forms::ComboBox::prepare_edit>`
+        - The items (:cpp:member:`items <gui_forms::ComboBox::items>`, TextItemsCapability) are edited in place: ``(*combo).items = {...}``, ``items.append(x)``, ``items.erase(i, n)``.
+      * - :cpp:func:`written <gui_forms::ComboBox::written>`
+        -  
 
    .. seealso::
 
@@ -220,7 +230,7 @@ gui_forms::ComboBox
    when nothing matches; text set by the program (:cpp:func:`set_text <gui_forms::ComboBox::set_text>`, or the editor
    showing a chosen item) does not filter. Opening the list with the button,
    F4, Alt+Down or :cpp:func:`set_dropped_down <gui_forms::ComboBox::set_dropped_down>` shows every item. The rows keep their
-   items' identities: the selection is always an index into :cpp:func:`items <gui_forms::ComboBox::items>`, a row's
+   items' identities: the selection is always an index into :cpp:member:`items <gui_forms::ComboBox::items>`, a row's
    semantic ID ends in its item's index rather than its position, a row
    pressed or chosen with the keys selects its item, and when the items change
    under the open list the filter is applied again and the selection follows
@@ -243,7 +253,7 @@ gui_forms::ComboBox
 
       std::shared_ptr<gf::ComboBox> density =
           gf::make_control<gf::ComboBox>(gf::StableId("view.density"));
-      (*density).set_items({"Compact", "Comfortable", "Spacious"});
+      (*density).items = {"Compact", "Comfortable", "Spacious"};
       (*density).set_placeholder_text("Choose a density");
       (*density).set_selected_index(1U);
       // (*density).selected_text() is now "Comfortable"
@@ -259,7 +269,7 @@ gui_forms::ComboBox
           std::string density;
 
           DensityField() {
-              (*combo).set_items({"Compact", "Comfortable", "Spacious"});
+              (*combo).items = {"Compact", "Comfortable", "Spacious"};
               gf::on((*combo).selected_index_changed(), *this, &DensityField::on_density);
           }
           void on_density(std::optional<std::size_t> index) {
@@ -270,7 +280,7 @@ gui_forms::ComboBox
       void example() {
           DensityField field;
           (*field.combo).set_selected_index(2U);                 // field.density is "Spacious"
-          (*field.combo).set_items({"Compact", "Comfortable"});  // and now ""
+          (*field.combo).items = {"Compact", "Comfortable"};  // and now ""
       }
 
    An editable field that completes from its items:
@@ -279,7 +289,7 @@ gui_forms::ComboBox
 
       std::shared_ptr<gf::ComboBox> band =
           gf::make_control<gf::ComboBox>(gf::StableId("radio.band"));
-      (*band).set_items({"Long wave", "Medium wave", "Short wave"});
+      (*band).items = {"Long wave", "Medium wave", "Short wave"};
       (*band).set_drop_down_style(gf::ComboBoxStyle::drop_down);
       (*band).set_auto_complete_source(gf::AutoCompleteSource::list_items);
       (*band).set_auto_complete_mode(gf::AutoCompleteMode::append);
@@ -295,7 +305,7 @@ gui_forms::ComboBox
 
       std::shared_ptr<gf::ComboBox> station =
           gf::make_control<gf::ComboBox>(gf::StableId("trip.station"));
-      (*station).set_items({"Hamburg Hbf", "Köln Hbf", "Paris Nord", "Zürich HB"});
+      (*station).items = {"Hamburg Hbf", "Köln Hbf", "Paris Nord", "Zürich HB"};
       (*station).set_drop_down_style(gf::ComboBoxStyle::drop_down);
       (*station).set_drop_down_filter(gf::ComboBoxFilter::substring);
       gf::Window window(station, gf::Size{240.0, 200.0});
@@ -312,19 +322,23 @@ gui_forms::ComboBox
 
    .. rubric:: Properties
 
-   .. cpp:function:: std::span<const std::string> items() const noexcept
+   .. cpp:member:: std::vector<std::string> items
 
-      The choices, in display order. Empty by default. Replacing them with
-      :cpp:func:`set_items <gui_forms::ComboBox::set_items>` raises :cpp:func:`items_changed <gui_forms::ComboBox::items_changed>`, unless the new items are equal to
-      the current ones. A selected index that no longer exists is cleared
-      first, raising :cpp:func:`selected_index_changed <gui_forms::ComboBox::selected_index_changed>`; a selected index that still
-      exists is kept, even if a different item now has it. Every item must
-      be valid UTF-8, or ``std::invalid_argument`` is thrown. The same
-      collection is also available to bindings as the ``Items`` property.
-
-   .. cpp:function:: void set_items(std::vector<std::string> items)
-
-      Sets :cpp:func:`items <gui_forms::ComboBox::items>`; see the property's description above.
+      The choices, in display order, edited in place. Empty by default.
+      Read them with ``items.read()`` (a span) or ``items[i]``; write them with
+      ``items = {...}``, ``items.insert(i, text)``, ``items.append(text)`` or
+      ``items.append(choices)``, ``items.erase(i, n)``, ``items.replace(i, text)``
+      and ``items.clear()``. Each edit raises :cpp:func:`items_changed <gui_forms::ComboBox::items_changed>`; an assignment
+      equal to the current items changes nothing. In the drop_down style the
+      selection follows the editor's text. Otherwise the selected index
+      follows its item: an insertion or erasure before it moves it, erasing
+      it clears it, and an assignment keeps an index that still exists, even
+      if a different item now has it; :cpp:func:`selected_index_changed <gui_forms::ComboBox::selected_index_changed>` and then
+      :cpp:func:`text_changed <gui_forms::ComboBox::text_changed>` are raised first when the index or its text changed.
+      Every item must be valid UTF-8, or ``std::invalid_argument`` is thrown,
+      and a position outside the items throws ``std::out_of_range``; a refused
+      edit changes nothing. The same collection is also available to
+      bindings as the ``Items`` property.
 
    .. cpp:function:: std::optional<std::size_t> selected_index() const noexcept
 
@@ -437,7 +451,7 @@ gui_forms::ComboBox
 
    .. cpp:function:: std::span<const std::size_t> drop_down_items() const noexcept
 
-      The items the open list shows, as indices into :cpp:func:`items <gui_forms::ComboBox::items>`, in row order;
+      The items the open list shows, as indices into :cpp:member:`items <gui_forms::ComboBox::items>`, in row order;
       empty while the list is closed.
 
    .. cpp:function:: AutoCompleteMode auto_complete_mode() const noexcept
@@ -453,7 +467,7 @@ gui_forms::ComboBox
 
    .. cpp:function:: AutoCompleteSource auto_complete_source() const noexcept
 
-      Where the candidates come from: ``list_items`` uses :cpp:func:`items <gui_forms::ComboBox::items>`,
+      Where the candidates come from: ``list_items`` uses :cpp:member:`items <gui_forms::ComboBox::items>`,
       ``custom_source`` uses :cpp:func:`auto_complete_custom_source <gui_forms::ComboBox::auto_complete_custom_source>`, and the host
       sources offer nothing yet, as for :cpp:class:`TextBox <gui_forms::TextBox>`.
 
@@ -481,7 +495,7 @@ gui_forms::ComboBox
    .. cpp:function:: Event<std::optional<std::size_t>>& selected_index_changed() noexcept
 
       Raised after :cpp:func:`selected_index <gui_forms::ComboBox::selected_index>` changes, by input, by the setter, or by
-      :cpp:func:`set_items <gui_forms::ComboBox::set_items>` clearing an index that no longer exists. It carries the new
+      an edit of :cpp:member:`items <gui_forms::ComboBox::items>` moving or clearing it. It carries the new
       index, or no value. Setting the current index again raises nothing.
 
    .. cpp:function:: Event<bool>& drop_down_changed() noexcept
@@ -491,8 +505,8 @@ gui_forms::ComboBox
 
    .. cpp:function:: Event<>& items_changed() noexcept
 
-      Raised after :cpp:func:`set_items <gui_forms::ComboBox::set_items>` or :cpp:func:`add_item <gui_forms::ComboBox::add_item>` changes the items, after any
-      :cpp:func:`selected_index_changed <gui_forms::ComboBox::selected_index_changed>` the change caused.
+      Raised after each edit of :cpp:member:`items <gui_forms::ComboBox::items>`, after any :cpp:func:`selected_index_changed <gui_forms::ComboBox::selected_index_changed>`
+      and :cpp:func:`text_changed <gui_forms::ComboBox::text_changed>` the edit caused.
 
    .. cpp:function:: Event<const std::string&>& text_changed() noexcept
 
@@ -503,10 +517,11 @@ gui_forms::ComboBox
 
    .. rubric:: Methods
 
-   .. cpp:function:: void add_item(std::string item)
+   .. cpp:function:: void prepare_edit(const decltype(items)& cell, const CollectionEdit& edit, std::span<std::string> incoming)
 
-      Appends one choice, raising :cpp:func:`items_changed <gui_forms::ComboBox::items_changed>`. The item must be valid
-      UTF-8, or ``std::invalid_argument`` is thrown.
+      The items (:cpp:member:`items <gui_forms::ComboBox::items>`, TextItemsCapability) are edited in place: ``(*combo).items = {...}``, ``items.append(x)``, ``items.erase(i, n)``. Items must be valid UTF-8 (std::invalid_argument, nothing changes). The selection follows its item through an edit (the editor's text in the drop_down style); erasing the selected item clears it. The TextItemsCapability hooks: validate and remap the selection (prepare_edit), then refresh the list and raise the changes (written).
+
+   .. cpp:function:: void written(const decltype(items)& cell, const CollectionEdit& edit)
 
 
    .. rubric:: Extension points

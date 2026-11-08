@@ -389,7 +389,7 @@ void TextBox::open_auto_complete_list() {
     detail::TextBoxAutoCompleteSession& session = auto_complete_session();
     if (session.open) {
         session.synchronizing = true;
-        (*session.list).set_items(session.suggestions);
+        (*session.list).items = session.suggestions;
         (*session.list).set_matches(prefix_matches(session.suggestions.size(), session.typed.size()));
         (*session.list).clear_selection();
         (*session.list).set_top_index(0U);
@@ -410,7 +410,7 @@ void TextBox::open_auto_complete_list() {
     (*list).set_focusable(false);
     (*list).set_paint_plane(PaintPlane::overlay);
     (*list).set_font(font.read());
-    (*list).set_items(session.suggestions);
+    (*list).items = session.suggestions;
     (*list).set_matches(prefix_matches(session.suggestions.size(), session.typed.size()));
     (*layer).set_content(list);
     OverlayToken token = (*window()).open_overlay(shared_from_this(), layer);
@@ -530,7 +530,7 @@ void TextBox::auto_complete_collection_changed() {
         }
     }
     session.synchronizing = true;
-    (*session.list).set_items(session.suggestions);
+    (*session.list).items = session.suggestions;
     (*session.list).set_matches(prefix_matches(session.suggestions.size(), session.typed.size()));
     if (kept) {
         (*session.list).select_index(*kept);

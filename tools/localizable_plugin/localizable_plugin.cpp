@@ -166,6 +166,7 @@ public:
             const std::string property = parameter_property(callee, index - first_argument);
             if (!property.empty()) collect((*call).getArg(index), property, call, 0U);
         }
+        member_cell_call(call);
         return true;
     }
 
@@ -221,6 +222,23 @@ public:
     const std::vector<Record>& records() const noexcept { return records_; }
 
 private:
+    // `list.items.insert(0, "First")`: a member call on an annotated field
+    // (a collection cell's insert or replace) carries that field's
+    // property to every argument.
+    void member_cell_call(clang::CallExpr* call) {
+        const clang::CXXMemberCallExpr* member_call = llvm::dyn_cast<clang::CXXMemberCallExpr>(call);
+        if (member_call == nullptr) return;
+        const clang::Expr* object = (*member_call).getImplicitObjectArgument();
+        if (object == nullptr) return;
+        const clang::MemberExpr* member = llvm::dyn_cast<clang::MemberExpr>((*object).IgnoreParenImpCasts());
+        if (member == nullptr) return;
+        const std::string property = annotated_property((*member).getMemberDecl());
+        if (property.empty()) return;
+        for (unsigned index = 0U; index < (*call).getNumArgs(); ++index) {
+            collect((*call).getArg(index), property, call, 0U);
+        }
+    }
+
     // `spec.text = "Open"` for a std::string field: operator= on a member.
     void assignment(clang::CallExpr* call) {
         const clang::CXXOperatorCallExpr* operator_call = llvm::cast<clang::CXXOperatorCallExpr>(call);

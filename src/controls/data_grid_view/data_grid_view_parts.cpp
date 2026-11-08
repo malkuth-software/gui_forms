@@ -268,21 +268,39 @@ bool DataGridView::column_resizable(std::size_t column) const {
     return result;
 }
 
+bool DataGridView::sized_by_cells() const {
+    bool sized = auto_size_rows_mode.read() != DataGridViewAutoSizeRowsMode::none;
+    for (std::size_t column = 0U; column < columns_.size() && !sized; ++column) {
+        const DataGridViewAutoSizeColumnMode mode = column_auto_size_mode(column);
+        sized = measures(mode) && mode != DataGridViewAutoSizeColumnMode::column_header;
+    }
+    return sized;
+}
+
 void DataGridView::values_changed() {
     auto_size_stale_ = true;
     row_auto_size_stale_ = true;
     // A column sized by its cells may change width, and rows sized by
     // their cells height: lay the grid out again.
-    bool sized_by_cells = auto_size_rows_mode.read() != DataGridViewAutoSizeRowsMode::none;
-    for (std::size_t column = 0U; column < columns_.size() && !sized_by_cells; ++column) {
-        const DataGridViewAutoSizeColumnMode mode = column_auto_size_mode(column);
-        sized_by_cells = measures(mode) && mode != DataGridViewAutoSizeColumnMode::column_header;
-    }
-    if (sized_by_cells) {
+    if (sized_by_cells()) {
         invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
     } else {
         invalidate(Dirty::paint | Dirty::semantics);
     }
+}
+
+// A value stored into a field of an unbound row: store_value marked that
+// row replaced, so unless the cells size rows or columns the flush repaints
+// that row alone (settle_rows_damage). Values held elsewhere repaint the
+// cells.
+void DataGridView::row_values_changed() {
+    if (row_source_ != DataGridViewRowSource::unbound || sized_by_cells()) {
+        values_changed();
+        return;
+    }
+    auto_size_stale_ = true;
+    row_auto_size_stale_ = true;
+    invalidate(Dirty::arrange | Dirty::semantics);
 }
 
 double DataGridView::preferred_cell_width(DataGridViewRowPosition row, std::size_t column) const {
@@ -935,8 +953,8 @@ DataGridView::RowParts DataGridView::row_parts(DataGridViewRowPosition row, cons
                         header.height};
         record.row_error = visible_part(centred_square(lane, error_side), clip);
     }
-    if (row_source_ == DataGridViewRowSource::unbound && row.value < rows_.size() &&
-        !rows_[row.value].header_text.empty()) {
+    if (row_source_ == DataGridViewRowSource::unbound && row.value < rows.read().size() &&
+        !rows.read()[row.value].header_text.empty()) {
         const double start = glyph_margin * 2.0 + glyph_side;
         const Rect label{header.x + start, header.y, std::max(0.0, header.width - start - glyph_margin),
                          std::max(0.0, header.height - 1.0)};
@@ -1370,7 +1388,7 @@ void DataGridView::paint_row(Painter& painter, DataGridViewRowPosition row, cons
     if (parts.row_header_label.present) {
         part.role = PartRole::label;
         part.bounds = parts.row_header_label.bounds;
-        part.text = rows_[row.value].header_text;
+        part.text = rows.read()[row.value].header_text;
         part.alignment = text_alignment(style.alignment);
         part.authored_foreground = parts.row_header_label.authored_foreground;
         paint_part(painter, *this, part);

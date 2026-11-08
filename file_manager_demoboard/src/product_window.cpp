@@ -1611,19 +1611,19 @@ private:
             values.push_back(match.path);
             ids.push_back("fm.path.matrix.completion." + match.id);
         }
-        (*completions_).set_items(std::move(values));
+        (*completions_).items = std::move(values);
         (*completions_).set_item_stable_ids(std::move(ids));
-        if (!(*completions_).items().empty()) (*completions_).select_index(0U);
+        if (!(*completions_).items.read().empty()) (*completions_).select_index(0U);
         (*resolution_).set_text("Completion generation " +
                               std::to_string(generation) + " · " +
-                              std::to_string((*completions_).items().size()) +
+                              std::to_string((*completions_).items.read().size()) +
                               " fixture matches");
         (*resolution_).accessible_description = (*resolution_).text();
     }
 
     void accept_completion(std::size_t index) {
-        if (!editor_ || !completions_ || index >= (*completions_).items().size()) return;
-        const std::string value((*completions_).items()[index]);
+        if (!editor_ || !completions_ || index >= (*completions_).items.read().size()) return;
+        const std::string value((*completions_).items.read()[index]);
         (*editor_).text = value;
         (*editor_).select(Utf8Offset(value.size()), Utf8Offset(value.size()));
         if (Window* window = (*editor_).attached_window()) {
@@ -1637,12 +1637,12 @@ private:
             !completions_) return;
         if (event.physical_key == PhysicalKey::up ||
             event.physical_key == PhysicalKey::down) {
-            if (!(*completions_).items().empty()) {
+            if (!(*completions_).items.read().empty()) {
                 std::size_t index = (*completions_).selected_index().value_or(0U);
                 if (event.physical_key == PhysicalKey::up) {
                     index = index == 0U ? 0U : index - 1U;
                 } else {
-                    index = std::min(index + 1U, (*completions_).items().size() - 1U);
+                    index = std::min(index + 1U, (*completions_).items.read().size() - 1U);
                 }
                 (*completions_).select_index(index);
             }

@@ -109,8 +109,8 @@ private:
         folders_ = make_control<ListBox>(StableId("gallery.responsive.master-detail.master"));
         (*folders_).accessible_name = "Folders";
         (*folders_).set_item_height(22.0);
-        (*folders_).set_items({std::string(folder_names[0]), std::string(folder_names[1]),
-                               std::string(folder_names[2])});
+        (*folders_).items = {std::string(folder_names[0]), std::string(folder_names[1]),
+                            std::string(folder_names[2])};
         (*folders_).select_index(0U);
         static_cast<void>(view.set_master(folders_));
         std::shared_ptr<Panel> detail = make_control<Panel>(StableId("gallery.responsive.master-detail.detail"));

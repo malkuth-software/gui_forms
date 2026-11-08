@@ -155,14 +155,14 @@ void place_display(FixtureBuilder& builder) {
 void place_lists(FixtureBuilder& builder) {
     std::shared_ptr<ListBox> list = builder.place(make_control<ListBox>(StableId("list-box")), 80.0);
     (*list).accessible_name = "Colours";
-    (*list).set_items({"Red", "Green", "Blue"});
+    (*list).items = {"Red", "Green", "Blue"};
     std::shared_ptr<CheckedListBox> checks = builder.place(
         make_control<CheckedListBox>(StableId("checked-list-box")), 80.0);
     (*checks).accessible_name = "Options";
-    (*checks).set_items({"Wrap", "Spell"});
+    (*checks).items = {"Wrap", "Spell"};
     std::shared_ptr<ComboBox> combo = builder.place(make_control<ComboBox>(StableId("combo-box")), 28.0);
     (*combo).accessible_name = "Size";
-    (*combo).set_items({"Small", "Large"});
+    (*combo).items = {"Small", "Large"};
 
     std::shared_ptr<TreeView> tree = builder.place(make_control<TreeView>(StableId("tree-view")), 90.0);
     (*tree).accessible_name = "Folders";
@@ -265,7 +265,7 @@ void place_lists(FixtureBuilder& builder) {
     DataGridViewRow apple;
     apple.stable_id = DataGridViewRowId{"row1"};
     apple.cells = {BindingValue{std::string("Apple")}};
-    (*grid).set_rows({zebra, apple});
+    (*grid).rows = {zebra, apple};
 
     std::shared_ptr<ChoiceGroup> choices = builder.place(
         make_control<ChoiceGroup>(StableId("choice-group")), 32.0);
@@ -299,7 +299,7 @@ void place_values(FixtureBuilder& builder) {
     std::shared_ptr<DomainUpDown> domain = builder.place(
         make_control<DomainUpDown>(StableId("domain-up-down")), 28.0);
     (*domain).accessible_name = "Band";
-    (*domain).set_items({"AM", "FM", "WFM"});
+    (*domain).items = {"AM", "FM", "WFM"};
     std::shared_ptr<ColorValueEditor> colour = builder.place(
         make_control<ColorValueEditor>(StableId("color-value-editor"), Color{40, 80, 160, 255}), 30.0);
     (*colour).accessible_name = "Tint";

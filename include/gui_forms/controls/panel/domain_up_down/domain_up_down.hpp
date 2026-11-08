@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/controls/panel/text_box/text_box.hpp"
+#include "gui_forms/controls/panel/text_items_capability/text_items_capability.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/controls/panel/domain_up_down/domain_up_down_capabilities/domain_up_down_capabilities.hpp"
 
@@ -24,23 +25,25 @@ namespace gui_forms {
 // read-only field takes no text: a typed character selects the next item
 // that starts with it (ignoring ASCII case, wrapping past the end), and
 // otherwise the value changes only by stepping or set_selected_index.
-class DomainUpDown final : public Panel, public DomainUpDownCapabilities<DomainUpDown> {
+class DomainUpDown final : public Panel,
+                           public TextItemsCapability<DomainUpDown>,
+                           public DomainUpDownCapabilities<DomainUpDown> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
     explicit DomainUpDown(StableId stable_id);
     ~DomainUpDown() override;
     void initialize_control_tree();
 
-    // The items in display order: kept sorted (ASCII case folded, then byte
-    // order) while sorted() is true, in insertion order otherwise.
-    [[nodiscard]] std::span<const std::string> items() const noexcept { return items_; }
-    // Replaces the items. The text is kept and the selection re-matched to it.
-    void set_items(GUI_FORMS_LOCALIZABLE(items) std::vector<std::string> items);
-    void add_item(GUI_FORMS_LOCALIZABLE(items) std::string item);
-    // Throws std::out_of_range for an index past the end. Removing the
-    // selected item clears the selection and keeps the text.
-    void remove_item_at(std::size_t index);
-    void clear_items();
+    // The items in display order (`items`, TextItemsCapability, edited in
+    // place): while sorted is true, every edit is followed by sorting
+    // (ASCII case folded, then byte order), as Windows Forms' sorted
+    // DomainUpDown, so an inserted item need not stay at its position.
+    // After each edit the text is kept and the selection re-matched to it:
+    // erasing the selected item clears the selection unless another item
+    // equals the text.
+    // The TextItemsCapability hooks.
+    void prepare_edit(const decltype(items)& cell, const CollectionEdit& edit, std::span<std::string> incoming);
+    void written(const decltype(items)& cell, const CollectionEdit& edit);
 
     // The previous item (up) or the next (down). With no selection, up
     // selects the last item and down the first. No effect without items.
@@ -122,7 +125,6 @@ private:
     Control::Ptr spinner_;
     SubscriptionToken editor_change_;
     SubscriptionToken spinner_step_;
-    std::vector<std::string> items_;
     std::optional<std::size_t> selected_index_{};
     bool synchronizing_{};
     Event<std::optional<std::size_t>> selected_index_changed_;

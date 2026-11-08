@@ -163,8 +163,8 @@ ComboBox::ComboBox(StableId stable_id) : Panel(std::move(stable_id)) {
 
 BindingValue ComboBox::items_property_value() const {
     std::vector<BindingValue> values;
-    values.reserve(items_.size());
-    for (const std::string& item : items_) values.emplace_back(item);
+    values.reserve(items.read().size());
+    for (const std::string& item : items.read()) values.emplace_back(item);
     return BindingValue{make_property_collection(
         "String", BindingValueKind::text, std::move(values))};
 }
@@ -184,15 +184,15 @@ void ComboBox::set_items_property(const BindingValue& value) {
     for (const BindingValue& item : values) {
         items.push_back(std::get<std::string>(item));
     }
-    set_items(std::move(items));
+    (*this).items = std::move(items);
 }
 
 void ComboBox::reset_items_property() {
-    set_items({});
+    items.clear();
 }
 
 bool ComboBox::should_serialize_items_property() const noexcept {
-    return !items_.empty();
+    return !items.read().empty();
 }
 
 BindingValue ComboBox::selected_index_property_value() const {
@@ -274,12 +274,12 @@ void ComboBox::set_text(std::string text) {
         programmatic_text_ = false;
         return;
     }
-    const std::vector<std::string>::iterator found =
-        std::find(items_.begin(), items_.end(), text);
-    set_selected_index(found == items_.end()
+    const std::span<const std::string> listed = items.read();
+    const std::span<const std::string>::iterator found = std::find(listed.begin(), listed.end(), text);
+    set_selected_index(found == listed.end()
         ? std::optional<std::size_t>{}
         : std::optional<std::size_t>{static_cast<std::size_t>(
-              std::distance(items_.begin(), found))});
+              std::distance(listed.begin(), found))});
 }
 
 void ComboBox::set_drop_down_style(ComboBoxStyle style) {
@@ -362,16 +362,16 @@ void ComboBox::compute_rows(std::string_view pattern) {
     row_matches_.clear();
     filter_pattern_ = std::string(pattern);
     const bool filtering = editor_ && drop_down_filter_ != ComboBoxFilter::none && !pattern.empty();
-    rows_.reserve(items_.size());
+    rows_.reserve(items.read().size());
     if (!filtering) {
-        for (std::size_t index = 0U; index < items_.size(); ++index) rows_.push_back(index);
+        for (std::size_t index = 0U; index < items.read().size(); ++index) rows_.push_back(index);
         return;
     }
     const TextMatchMode mode = drop_down_filter_ == ComboBoxFilter::prefix
         ? TextMatchMode::prefix : TextMatchMode::substring;
-    row_matches_.reserve(items_.size());
-    for (std::size_t index = 0U; index < items_.size(); ++index) {
-        const std::optional<std::size_t> found = find_text_match(items_[index], pattern, mode, false);
+    row_matches_.reserve(items.read().size());
+    for (std::size_t index = 0U; index < items.read().size(); ++index) {
+        const std::optional<std::size_t> found = find_text_match(items[index], pattern, mode, false);
         if (!found) continue;
         rows_.push_back(index);
         row_matches_.push_back(TextMatchRange{.offset = *found, .length = pattern.size()});
@@ -399,9 +399,9 @@ void ComboBox::show_rows() {
     DropDownList& list = static_cast<DropDownList&>(*overlay_list_);
     std::vector<std::string> texts;
     texts.reserve(rows_.size());
-    for (const std::size_t item : rows_) texts.push_back(items_[item]);
+    for (const std::size_t item : rows_) texts.push_back(items[item]);
     synchronizing_list_ = true;
-    list.set_items(std::move(texts));
+    list.items = std::move(texts);
     if (!row_matches_.empty()) {
         // Filtered rows keep their items' identities.
         const std::string prefix = std::string(list.stable_id().value()) + ".item.";
@@ -453,7 +453,7 @@ bool ComboBox::step_row(std::uint32_t key) {
 void ComboBox::rebuild_list_items_source() {
     AutoCompleteStringCollection& source = *list_items_source_;
     source.clear();
-    std::vector<std::string> copy(items_.begin(), items_.end());
+    std::vector<std::string> copy(items.read().begin(), items.read().end());
     source.add_range(std::move(copy));
 }
 
@@ -506,10 +506,10 @@ void ComboBox::match_editor_text() {
     if (!editor_) return;
     const std::string typed = (*editor_).text.read();
     std::optional<std::size_t> found{};
-    for (std::size_t index = 0U; index < items_.size(); ++index) {
+    for (std::size_t index = 0U; index < items.read().size(); ++index) {
         // Equal ignoring ASCII case: as long as the text, and a prefix match.
-        const bool same_length = items_[index].size() == typed.size();
-        if (same_length && find_text_match(items_[index], typed, TextMatchMode::prefix, false)) {
+        const bool same_length = items[index].size() == typed.size();
+        if (same_length && find_text_match(items[index], typed, TextMatchMode::prefix, false)) {
             found = index;
             break;
         }
@@ -542,16 +542,16 @@ void ComboBox::on_anchored_dismissal(OverlayDismissReason) {
 }
 
 bool ComboBox::step_selection(std::uint32_t key) {
-    if (items_.empty()) return false;
+    if (items.read().empty()) return false;
     std::size_t next = selected_index_.value_or(0U);
     if (key == PhysicalKey::up) {
         next = next == 0U ? 0U : next - 1U;
     } else if (key == PhysicalKey::down) {
-        next = std::min(next + 1U, items_.size() - 1U);
+        next = std::min(next + 1U, items.read().size() - 1U);
     } else if (key == PhysicalKey::home) {
         next = 0U;
     } else if (key == PhysicalKey::end) {
-        next = items_.size() - 1U;
+        next = items.read().size() - 1U;
     } else {
         return false;
     }
@@ -559,19 +559,27 @@ bool ComboBox::step_selection(std::uint32_t key) {
     return true;
 }
 
-void ComboBox::set_items(std::vector<std::string> items) {
+void ComboBox::prepare_edit(const decltype(items)&, const CollectionEdit& edit, std::span<std::string> incoming) {
     require_mutable();
-    for (const std::string& item : items) {
+    for (const std::string& item : incoming) {
         if (!validate_utf8(item).valid()) {
             throw std::invalid_argument("ComboBox items must be valid UTF-8");
         }
     }
-    if (items_ == items) return;
-    items_ = std::move(items);
+    edit_selection_.reset();
+    if (selected_index_) edit_selection_ = edit.remap(*selected_index_);
+    edit_former_text_.assign(selected_text());
+}
+
+// The items are stored. Rebuilding the auto-complete source copies them:
+// should that allocation fail, the items stay stored and the source is left
+// empty. The change events run last, each after a liveness check.
+void ComboBox::written(const decltype(items)&, const CollectionEdit&) {
     rebuild_list_items_source();
     if (editor_) {
-        // The selection follows the text; an open list keeps its filter.
-        // The pattern is a copy: compute_rows replaces filter_pattern_.
+        // The selection follows the editor's text; an open list keeps its
+        // filter. The pattern is a copy: compute_rows replaces
+        // filter_pattern_.
         const std::string pattern = filter_pattern_;
         refresh_open_rows(pattern);
         if (!is_alive()) return;
@@ -581,46 +589,33 @@ void ComboBox::set_items(std::vector<std::string> items) {
         publish_change(items_changed_);
         return;
     }
-    if (selected_index_ && *selected_index_ >= items_.size()) {
-        selected_index_.reset();
-        publish_change(selected_index_changed_, selected_index_);
-        if (!is_alive()) return;
-        publish_change(text_changed_, std::string{});
-        if (!is_alive()) return;
-    }
+    const bool selection_moved = edit_selection_ != selected_index_;
+    selected_index_ = edit_selection_;
+    const bool text_changed = selected_text() != edit_former_text_;
     refresh_open_rows({});
     if (!is_alive()) return;
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
-    publish_change(items_changed_);
-}
-
-void ComboBox::add_item(std::string item) {
-    require_mutable();
-    if (!validate_utf8(item).valid()) {
-        throw std::invalid_argument("ComboBox item must be valid UTF-8");
+    if (selection_moved) {
+        publish_change(selected_index_changed_, selected_index_);
+        if (!is_alive()) return;
     }
-    items_.push_back(std::move(item));
-    rebuild_list_items_source();
-    // A copy: compute_rows replaces filter_pattern_.
-    const std::string pattern = filter_pattern_;
-    refresh_open_rows(pattern);
-    if (!is_alive()) return;
-    if (editor_ && !selected_index_) match_editor_text();
-    if (!is_alive()) return;
-    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
+    if (text_changed) {
+        publish_change(text_changed_, std::string(selected_text()));
+        if (!is_alive()) return;
+    }
     publish_change(items_changed_);
 }
 
 void ComboBox::set_selected_index(std::optional<std::size_t> index) {
     require_mutable();
-    if (index && *index >= items_.size()) {
+    if (index && *index >= items.read().size()) {
         throw std::out_of_range("ComboBox selection index is outside the collection");
     }
     if (editor_ && index) {
         // The editor shows the chosen item; the selection is set below
         // rather than matched from the text.
         synchronizing_text_ = true;
-        (*editor_).text = items_[*index];
+        (*editor_).text = items[*index];
         synchronizing_text_ = false;
         if (!is_alive()) return;
     }
@@ -640,7 +635,7 @@ void ComboBox::set_selected_index(std::optional<std::size_t> index) {
 }
 
 std::string_view ComboBox::selected_text() const noexcept {
-    return selected_index_ ? std::string_view(items_[*selected_index_])
+    return selected_index_ ? std::string_view(items[*selected_index_])
                            : std::string_view{};
 }
 
@@ -705,7 +700,7 @@ void ComboBox::set_dropped_down(bool dropped_down) {
 }
 
 void ComboBox::open_drop_down(std::string_view pattern) {
-    if (dropped_down_ || !attached() || window() == nullptr || items_.empty()) return;
+    if (dropped_down_ || !attached() || window() == nullptr || items.read().empty()) return;
     compute_rows(pattern);
     if (rows_.empty()) return;
     const Control::Ptr owner = (*window()).root();
@@ -732,7 +727,7 @@ void ComboBox::open_drop_down(std::string_view pattern) {
     (*layer).set_requested_bounds({0.0, 0.0, client.width, client.height});
     std::shared_ptr<gui_forms::ListBox> list = make_control<DropDownList>(StableId(prefix + ".overlay.list"));
     (*list).set_paint_plane(PaintPlane::overlay);
-    (*list).set_items(items_);
+    (*list).items = std::vector<std::string>(items.read().begin(), items.read().end());
     (*list).set_font(font_);
     (*list).set_requested_bounds(
         {overlay_x, overlay_y, overlay_width, overlay_height});

@@ -583,7 +583,7 @@ ComboFixture make_combo(const char* id) {
     fixture.root = make_control<Panel>(StableId(std::string(id) + ".root"));
     fixture.combo = make_control<ComboBox>(StableId(std::string(id)));
     (*fixture.combo).set_requested_bounds({10.0, 10.0, 220.0, 30.0});
-    (*fixture.combo).set_items({"Calgary", "California", "Cambridge", "Dover"});
+    (*fixture.combo).items = {"Calgary", "California", "Cambridge", "Dover"};
     fixture.other = make_control<TextBox>(StableId(std::string(id) + ".other"));
     (*fixture.other).set_requested_bounds({10.0, 260.0, 200.0, 28.0});
     (*fixture.root).add_child(fixture.combo);
@@ -679,7 +679,7 @@ void combo_drop_down_style() {
     require(window.perform_semantic_action("combo.edit", SemanticAction::set_value, "Somewhere") &&
                 combo.text() == "Somewhere" && !combo.selected_index(),
             "an assistive technology may set any text");
-    combo.set_items({"Somewhere", "Elsewhere"});
+    combo.items = {"Somewhere", "Elsewhere"};
     require(combo.selected_index() == 0U, "new items are matched against the text");
 
     combo.set_drop_down_style(ComboBoxStyle::drop_down_list);
@@ -726,7 +726,7 @@ void combo_auto_complete() {
             "opening the combo box's list closes the suggestions");
     require(press(window, PhysicalKey::escape) && !combo.dropped_down(), "the list closes");
 
-    combo.add_item("Canterbury");
+    combo.items.append("Canterbury");
     (*editor).select_all();
     require(type(window, "can") && combo.text() == "canterbury",
             "list_items follows the items");

@@ -16,9 +16,14 @@ stable_id
 Properties
 ----------
 items
-    The strings, in display order. `set_items` replaces them, `add_item`
-    appends one and `remove_item_at` removes one; an index past the end
-    throws `std::out_of_range`.
+    The strings, in display order, edited in place. Read them with
+    `items.read()` (a span) or `items[i]`; write them with `items = {...}`,
+    `items.insert(i, text)`, `items.append(text)`, `items.erase(i, n)`,
+    `items.replace(i, text)` and `items.clear()`; a position outside the
+    items throws `std::out_of_range` and changes nothing. While `sorted` is
+    on, each edit is followed by sorting, so an inserted string need not
+    stay where it was put. After each edit the text is kept and the
+    selection re-matched to it.
 selected_index : default none
     The item the text equals, or none. `set_selected_index` selects an item
     and shows its text, or clears the selection and keeps the text; an index
@@ -98,7 +103,7 @@ A mode field that wraps from the last mode back to the first:
 
    std::shared_ptr<gf::DomainUpDown> mode =
        gf::make_control<gf::DomainUpDown>(gf::StableId("radio.mode"));
-   (*mode).set_items({"AM", "FM", "USB", "LSB"});
+   (*mode).items = {"AM", "FM", "USB", "LSB"};
    (*mode).wrap = true;
    (*mode).selected_index = std::optional<std::size_t>{3U};   // the field shows "LSB"
    (*mode).down_button();            // wraps: the field shows "AM"

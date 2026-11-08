@@ -115,7 +115,7 @@ void FontDialog::initialize_control_tree() {
     for (const BundledFontFace& face : bundled_faces) {
         faces.push_back(std::string(face.family) + " (" + std::string(face.use) + ")");
     }
-    (*face_list_).set_items(std::move(faces));
+    (*face_list_).items = std::move(faces);
     (*size_box_).decimal_places = 1U;
     (*size_box_).increment = 1.0;
     (*size_box_).set_range(minimum_size_, maximum_size_);
@@ -180,7 +180,7 @@ void FontDialog::fill_styles() {
     for (const FontStyle style : styles_) {
         names.push_back(std::string(style_name(style)));
     }
-    (*style_list_).set_items(std::move(names));
+    (*style_list_).items = std::move(names);
 }
 
 void FontDialog::show_selection() {

@@ -115,18 +115,18 @@ void test_check_model_events_and_mutation() {
     require((*list).checked_indices() == std::vector<std::size_t>{0U, 2U},
             "checked indices must remain independent of selection");
 
-    (*list).remove_item(0U);
-    require((*list).items().size() == 3U && (*list).item_checked(1U) &&
+    (*list).items.erase(0U, 1U);
+    require((*list).items.read().size() == 3U && (*list).item_checked(1U) &&
                 (*list).item_check_state(2U) == CheckState::indeterminate,
             "item removal must remap check state with the item collection");
-    (*list).clear_items();
-    require((*list).items().empty() && (*list).checked_indices().empty(),
+    (*list).items.clear();
+    require((*list).items.read().empty() && (*list).checked_indices().empty(),
             "clearing items must atomically clear the check model");
 }
 
 void test_pointer_keyboard_and_disabled_policy() {
     std::shared_ptr<gui_forms::CheckedListBox> list = make_control<CheckedListBox>(StableId("checks.input"));
-    (*list).set_items({"First", "Second", "Third"});
+    (*list).items = {"First", "Second", "Third"};
     (*list).set_requested_bounds({0.0, 0.0, 240.0, 120.0});
     Window window(list, {240.0, 120.0});
     window.perform_layout();

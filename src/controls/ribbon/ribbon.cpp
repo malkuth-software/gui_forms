@@ -429,10 +429,10 @@ void Ribbon::configure_hosted(const RibbonCommandSpec& command, Control& control
     control.accessible_name = parse_mnemonic_text(command.text).display_text;
     if (command.kind == RibbonCommandKind::combo_box) {
         ComboBox& combo = static_cast<ComboBox&>(control);
-        const std::span<const std::string> current = combo.items();
+        const std::span<const std::string> current = combo.items.read();
         const bool same = current.size() == command.choices.size() &&
                           std::equal(current.begin(), current.end(), command.choices.begin());
-        if (!same) combo.set_items(command.choices);
+        if (!same) combo.items = command.choices;
     }
     if (command.kind == RibbonCommandKind::check_box) {
         CheckBox& box = static_cast<CheckBox&>(control);

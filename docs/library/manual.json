@@ -649,11 +649,6 @@
       "summary": "ListBox is a retained virtual-row selector with single, multi-simple, and multi-extended policies; stable item identities; scroll-window projection; keyboard/pointer range selection; activation; and virtual child semantics.",
       "methods": {
         "ListBox": "Constructs a focusable clipped row surface with vertical scrolling and collection semantics.",
-        "items": "Returns the authoritative ordered display strings.",
-        "set_items": "Replaces the collection, repairs identity/selection/scroll state, and publishes only real selection changes.",
-        "add_item": "Appends one display item with a deterministic identity and invalidates layout, paint, and semantics.",
-        "remove_item": "Removes a valid row, shifts selection and identity state, and reports whether removal occurred.",
-        "clear_items": "Clears rows, identities, selection, active anchor, and scroll position atomically.",
         "set_item_stable_ids": "Installs caller-provided unique nonzero row identities after exact cardinality validation.",
         "item_stable_id": "Returns the durable semantic identity for a valid row.",
         "selection_mode": "Returns the active none, single, multi-simple, or multi-extended policy.",
@@ -687,10 +682,7 @@
       "summary": "CheckedListBox extends ListBox with an independently retained three-state check model, cancellable pre-change events, committed change events, optional check-on-click, configurable indicator geometry, and checkable virtual semantics.",
       "methods": {
         "CheckedListBox": "Constructs a ListBox with parallel check-state storage and checkable semantics.",
-        "set_items": "Replaces rows while preserving inherited collection laws and resizes check state coherently.",
         "add_item": "Appends an item with unchecked or explicitly supplied state through one synchronized collection path.",
-        "remove_item": "Removes the row and its corresponding check state while preserving index alignment.",
-        "clear_items": "Clears inherited rows and all retained check states.",
         "item_check_state": "Returns the validated row's unchecked, checked, or indeterminate state.",
         "item_checked": "Reports whether the row is specifically in the checked state.",
         "set_item_check_state": "Validates state/index, permits cancellation, commits the real change, and publishes the completed transition.",
@@ -728,9 +720,6 @@
       "summary": "ComboBox is a retained noneditable choice field with authoritative item selection, placeholder projection, keyboard cycling, a source-private transient ListBox, bounded item count, independent overlay width, focus-safe lifetime handling, and option semantics.",
       "methods": {
         "ComboBox": "Constructs a focusable choice field with handoff-ready transient overlay ownership.",
-        "items": "Returns the authoritative ordered option strings.",
-        "set_items": "Replaces options, repairs selection, synchronizes any open overlay, and publishes coherent changes.",
-        "add_item": "Appends one option, synchronizes the open overlay, and invalidates retained state.",
         "selected_index": "Returns the selected option index or no value.",
         "set_selected_index": "Validates the optional index, commits selection, synchronizes overlay state, and publishes a real change.",
         "selected_text": "Returns selected option text or an empty view when nothing is selected.",

@@ -352,7 +352,7 @@ void FlagsValueEditor::open_drop_down() {
     std::shared_ptr<gui_forms::CheckedListBox> list = make_control<CheckedListBox>(
         StableId(prefix + ".overlay.list"));
     (*list).set_paint_plane(PaintPlane::overlay);
-    (*list).set_items(std::move(items));
+    (*list).items = std::move(items);
     (*list).set_check_on_click(true);
     const double overlay_width = std::min(overlay_width_, client.width);
     const double overlay_x = std::clamp(

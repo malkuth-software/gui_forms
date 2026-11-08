@@ -2,6 +2,7 @@
 
 #include "gui_forms/controls/panel/list_box/list_box.hpp"
 #include "gui_forms/controls/panel/text_box/text_box.hpp"
+#include "gui_forms/controls/panel/text_items_capability/text_items_capability.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/window.hpp"
 
@@ -30,16 +31,20 @@ enum class ComboBoxFilter : std::uint8_t {
     substring,  // the list shows the items that contain the typed text
 };
 
-class ComboBox final : public Panel {
+class ComboBox final : public Panel, public TextItemsCapability<ComboBox> {
 public:
     explicit ComboBox(StableId stable_id);
     ~ComboBox() override;
 
-    [[nodiscard]] std::span<const std::string> items() const noexcept {
-        return items_;
-    }
-    void set_items(GUI_FORMS_LOCALIZABLE(items) std::vector<std::string> items);
-    void add_item(GUI_FORMS_LOCALIZABLE(items) std::string item);
+    // The items (`items`, TextItemsCapability) are edited in place:
+    // `(*combo).items = {...}`, `items.append(x)`, `items.erase(i, n)`.
+    // Items must be valid UTF-8 (std::invalid_argument, nothing changes).
+    // The selection follows its item through an edit (the editor's text in
+    // the drop_down style); erasing the selected item clears it.
+    // The TextItemsCapability hooks: validate and remap the selection
+    // (prepare_edit), then refresh the list and raise the changes (written).
+    void prepare_edit(const decltype(items)& cell, const CollectionEdit& edit, std::span<std::string> incoming);
+    void written(const decltype(items)& cell, const CollectionEdit& edit);
     [[nodiscard]] std::optional<std::size_t> selected_index() const noexcept {
         return selected_index_;
     }
@@ -219,7 +224,10 @@ private:
     // for another key or without items.
     bool step_selection(std::uint32_t key);
 
-    std::vector<std::string> items_;
+    // An edit's selection and selected text before the store, taken by
+    // prepare_edit for written.
+    std::optional<std::size_t> edit_selection_{};
+    std::string edit_former_text_;
     std::optional<std::size_t> selected_index_;
     std::string placeholder_;
     FontSpec font_{FontRole::content, 12.0, 400, false};

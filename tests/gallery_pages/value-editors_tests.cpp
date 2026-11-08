@@ -57,7 +57,7 @@ void test_value_editors(gui_forms::Window& window) {
     (*flags).set_dropped_down(true);
     const std::shared_ptr<gui_forms::CheckedListBox> bits = std::dynamic_pointer_cast<CheckedListBox>(
         window.find("gallery.value-editors.flags.overlay.list"));
-    require(bits && (*bits).items().size() == 5U && (*bits).item_checked(1U) &&
+    require(bits && (*bits).items.read().size() == 5U && (*bits).item_checked(1U) &&
                 (*bits).item_checked(2U) && !(*bits).item_checked(3U),
             "the flags overlay must expose every edge bit with synchronized checks");
     (*bits).set_item_checked(3U, true);

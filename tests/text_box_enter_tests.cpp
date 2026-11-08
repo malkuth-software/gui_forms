@@ -194,7 +194,7 @@ void composition_takes_enter() {
 
 void composites_pass_enter_on() {
     std::shared_ptr<ComboBox> combo = make_control<ComboBox>(StableId("enter.combo"));
-    (*combo).add_item("Alpha");
+    (*combo).items.append("Alpha");
     (*combo).set_drop_down_style(ComboBoxStyle::drop_down);
     Fixture combo_fixture = make_fixture("enter.combo", combo);
     require((*combo_fixture.window).request_focus((*combo).editor()), "the combo editor takes focus");

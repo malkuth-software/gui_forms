@@ -79,21 +79,21 @@ DomainUpDown::DomainUpDown(StableId stable_id) : Panel(std::move(stable_id)) {
 }
 
 BindingValue DomainUpDown::items_property_value() const {
-    BindingValue value = text_items_property::value_of(items_);
+    BindingValue value = text_items_property::value_of(items.read());
     return value;
 }
 
 void DomainUpDown::set_items_property(const BindingValue& value) {
-    std::vector<std::string> items = text_items_property::items_of(value, "DomainUpDown");
-    set_items(std::move(items));
+    std::vector<std::string> incoming = text_items_property::items_of(value, "DomainUpDown");
+    items = std::move(incoming);
 }
 
 void DomainUpDown::reset_items_property() {
-    set_items({});
+    items.clear();
 }
 
 bool DomainUpDown::should_serialize_items_property() const noexcept {
-    return !items_.empty();
+    return !items.read().empty();
 }
 
 DomainUpDown::~DomainUpDown() {
@@ -152,12 +152,12 @@ void DomainUpDown::filter_edit(TextEdit& edit) {
 }
 
 std::optional<std::size_t> DomainUpDown::next_item_starting_with(std::string_view prefix) const {
-    const std::size_t count = items_.size();
+    const std::size_t count = items.read().size();
     if (count == 0U || prefix.empty()) return std::nullopt;
     const std::size_t start = selected_index_ ? *selected_index_ + 1U : 0U;
     for (std::size_t step = 0U; step < count; ++step) {
         const std::size_t index = (start + step) % count;
-        const std::string_view item = items_[index];
+        const std::string_view item = items[index];
         if (item.size() >= prefix.size() && equal_folded(item.substr(0U, prefix.size()), prefix)) {
             return index;
         }
@@ -166,8 +166,8 @@ std::optional<std::size_t> DomainUpDown::next_item_starting_with(std::string_vie
 }
 
 std::optional<std::size_t> DomainUpDown::matching_index(std::string_view candidate) const {
-    for (std::size_t index = 0; index < items_.size(); ++index) {
-        if (equal_folded(items_[index], candidate)) return index;
+    for (std::size_t index = 0; index < items.read().size(); ++index) {
+        if (equal_folded(items[index], candidate)) return index;
     }
     return std::nullopt;
 }
@@ -175,7 +175,7 @@ std::optional<std::size_t> DomainUpDown::matching_index(std::string_view candida
 void DomainUpDown::select(std::optional<std::size_t> index, bool show_text) {
     if (show_text && index && editor_) {
         synchronizing_ = true;
-        (*editor_).text = items_[*index];
+        (*editor_).text = items[*index];
         synchronizing_ = false;
     }
     if (selected_index_ == index) return;
@@ -190,41 +190,16 @@ void DomainUpDown::match_text() {
 
 void DomainUpDown::sort_items() {
     if (!sorted.read()) return;
-    std::stable_sort(items_.begin(), items_.end(), SortedItemOrder{});
+    TextItemsCapability<DomainUpDown>::sort_items(*this, SortedItemOrder{});
 }
 
-void DomainUpDown::set_items(std::vector<std::string> items) {
+void DomainUpDown::prepare_edit(const decltype(items)&, const CollectionEdit&, std::span<std::string>) {
     require_mutable();
-    items_ = std::move(items);
+}
+
+void DomainUpDown::written(const decltype(items)&, const CollectionEdit&) {
     sort_items();
     match_text();
-    invalidate(Dirty::semantics);
-}
-
-void DomainUpDown::add_item(std::string item) {
-    require_mutable();
-    items_.push_back(std::move(item));
-    sort_items();
-    match_text();
-    invalidate(Dirty::semantics);
-}
-
-void DomainUpDown::remove_item_at(std::size_t index) {
-    require_mutable();
-    if (index >= items_.size()) {
-        throw std::out_of_range("DomainUpDown item index is past the end");
-    }
-    items_.erase(items_.begin() + static_cast<std::ptrdiff_t>(index));
-    // The text stays; the selection follows it, so the removed item's text
-    // matches nothing unless another item equals it.
-    match_text();
-    invalidate(Dirty::semantics);
-}
-
-void DomainUpDown::clear_items() {
-    require_mutable();
-    items_.clear();
-    select(std::nullopt, false);
     invalidate(Dirty::semantics);
 }
 
@@ -235,7 +210,7 @@ std::optional<std::size_t> DomainUpDown::read_view(const decltype(selected_index
 
 void DomainUpDown::write_view(const decltype(selected_index)&, std::optional<std::size_t> incoming) {
     require_mutable();
-    if (incoming && *incoming >= items_.size()) {
+    if (incoming && *incoming >= items.read().size()) {
         throw std::out_of_range("DomainUpDown selected index is past the end");
     }
     select(incoming, true);
@@ -279,8 +254,8 @@ void DomainUpDown::written(const decltype(sorted)&) {
 }
 
 void DomainUpDown::step(std::ptrdiff_t offset) {
-    if (items_.empty()) return;
-    const std::ptrdiff_t count = static_cast<std::ptrdiff_t>(items_.size());
+    if (items.read().empty()) return;
+    const std::ptrdiff_t count = static_cast<std::ptrdiff_t>(items.read().size());
     std::ptrdiff_t next = 0;
     if (!selected_index_) {
         next = offset < 0 ? count - 1 : 0;

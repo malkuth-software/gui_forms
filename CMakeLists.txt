@@ -235,6 +235,7 @@ add_library(gui_forms_core STATIC
     src/core/application/workspace_transaction.cpp
     src/core/animation/animation_timeline/animation_timeline.cpp
     src/core/animation/animation_timer/animation_timer.cpp
+    src/core/binding/collection_cell/collection_cell.cpp
     src/core/binding/property_type/property_type.cpp
     src/core/binding/value/binding_value.cpp
     src/core/binding/property_table/property_table.cpp
@@ -803,6 +804,7 @@ add_library(gui_forms_controls STATIC
     src/controls/docking/dock_site/dock_site_auto_hide.cpp
     src/controls/data_grid_view/data_grid_view.cpp
     src/controls/data_grid_view/data_grid_view_parts.cpp
+    src/controls/data_grid_view/data_grid_view_rows.cpp
     src/controls/data_grid_view/data_grid_view_row_heights.cpp
     src/controls/data_grid_view/data_grid_view_row_order.cpp
     src/controls/data_grid_view/data_grid_view_cells.cpp
@@ -3405,6 +3407,10 @@ if(GUI_FORMS_BUILD_TESTS)
         gui_forms_controls)
     add_test(NAME gui_forms_instrument_controls_tests
              COMMAND gui_forms_instrument_controls_tests)
+
+    add_executable(gui_forms_collection_cell_tests tests/collection_cell_tests.cpp)
+    target_link_libraries(gui_forms_collection_cell_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_collection_cell_tests COMMAND gui_forms_collection_cell_tests)
 
     add_executable(gui_forms_checked_list_box_tests
         tests/checked_list_box_tests.cpp

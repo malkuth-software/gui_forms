@@ -795,7 +795,7 @@ void test_spin_combo_and_picker_parts() {
     (*spin).set_requested_bounds({10.0, 10.0, 120.0, 26.0});
     std::shared_ptr<ComboBox> combo = make_control<ComboBox>(StableId("anatomy.combo"));
     (*combo).set_requested_bounds({10.0, 50.0, 160.0, 26.0});
-    (*combo).set_items({"One", "Two"});
+    (*combo).items = {"One", "Two"};
     std::shared_ptr<DateTimePicker> picker = make_control<DateTimePicker>(StableId("anatomy.picker"));
     (*picker).set_requested_bounds({10.0, 90.0, 200.0, 26.0});
     (*root).add_child(spin);
@@ -868,10 +868,10 @@ void test_list_rows_are_item_records() {
     (*root).set_requested_bounds({0.0, 0.0, 400.0, 200.0});
     std::shared_ptr<ListBox> list = make_control<ListBox>(StableId("anatomy.list"));
     (*list).set_requested_bounds({10.0, 10.0, 160.0, 120.0});
-    (*list).set_items({"Alpha", "Beta", "Gamma", "Delta", "Epsilon", "Zeta", "Eta"});
+    (*list).items = {"Alpha", "Beta", "Gamma", "Delta", "Epsilon", "Zeta", "Eta"};
     std::shared_ptr<CheckedListBox> checks = make_control<CheckedListBox>(StableId("anatomy.checks"));
     (*checks).set_requested_bounds({200.0, 10.0, 160.0, 120.0});
-    (*checks).set_items({"Wrap", "Spell", "Grammar"});
+    (*checks).items = {"Wrap", "Spell", "Grammar"};
     (*root).add_child(list);
     (*root).add_child(checks);
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(root, Size{400.0, 200.0});

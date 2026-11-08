@@ -119,7 +119,7 @@ private:
             {"Calgary", "Cambridge", "Canberra", "Cardiff", "Edinburgh", "Edmonton", "London", "Los Angeles"});
         (*city_).auto_complete_source = AutoCompleteSource::custom_source;
         (*city_).auto_complete_mode = AutoCompleteMode::suggest_append;
-        (*band_).set_items({"Long wave", "Medium wave", "Short wave", "VHF FM", "UHF", "Microwave"});
+        (*band_).items = {"Long wave", "Medium wave", "Short wave", "VHF FM", "UHF", "Microwave"};
         (*band_).set_drop_down_style(ComboBoxStyle::drop_down);
         (*band_).set_auto_complete_source(AutoCompleteSource::list_items);
         (*band_).set_auto_complete_mode(AutoCompleteMode::suggest);

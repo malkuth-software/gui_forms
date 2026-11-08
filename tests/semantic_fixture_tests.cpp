@@ -132,7 +132,7 @@ std::unique_ptr<Window> make_provider_fixture(ProviderFixture& fixture) {
     (*fixture.number).set_requested_bounds({10.0, 130.0, 120.0, 26.0});
     (*fixture.number).set_range(0.0, 10.0);
     (*fixture.list).set_requested_bounds({240.0, 10.0, 160.0, 100.0});
-    (*fixture.list).set_items({"Alpha", "Beta", "Gamma"});
+    (*fixture.list).items = {"Alpha", "Beta", "Gamma"};
     (*fixture.tree).set_requested_bounds({240.0, 120.0, 160.0, 100.0});
     std::vector<TreeViewItem> nodes;
     nodes.push_back(TreeViewItem{"uia.tree.folder", "Folder", 0U, true, false, true, {}});

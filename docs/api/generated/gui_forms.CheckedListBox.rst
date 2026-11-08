@@ -67,7 +67,7 @@ gui_forms::CheckedListBox
 
    :Inherited:
 
-      From :cpp:class:`ListBox <gui_forms::ListBox>`: properties :cpp:func:`items <gui_forms::ListBox::items>`, :cpp:func:`selection_mode <gui_forms::ListBox::selection_mode>`, :cpp:func:`selected_indices <gui_forms::ListBox::selected_indices>`, :cpp:func:`selected_index <gui_forms::ListBox::selected_index>`, :cpp:func:`top_index <gui_forms::ListBox::top_index>`, :cpp:func:`item_height <gui_forms::ListBox::item_height>`, :cpp:func:`font <gui_forms::ListBox::font>`, :cpp:func:`parts <gui_forms::ListBox::parts>`; events :cpp:func:`selection_changed <gui_forms::ListBox::selection_changed>`, :cpp:func:`item_activated <gui_forms::ListBox::item_activated>`; methods :cpp:func:`clear_selection <gui_forms::ListBox::clear_selection>`, :cpp:func:`item_stable_id <gui_forms::ListBox::item_stable_id>`, :cpp:func:`select_index <gui_forms::ListBox::select_index>`, :cpp:func:`set_item_stable_ids <gui_forms::ListBox::set_item_stable_ids>`.
+      From :cpp:class:`ListBox <gui_forms::ListBox>`: properties :cpp:member:`items <gui_forms::ListBox::items>`, :cpp:func:`selection_mode <gui_forms::ListBox::selection_mode>`, :cpp:func:`selected_indices <gui_forms::ListBox::selected_indices>`, :cpp:func:`selected_index <gui_forms::ListBox::selected_index>`, :cpp:func:`top_index <gui_forms::ListBox::top_index>`, :cpp:func:`item_height <gui_forms::ListBox::item_height>`, :cpp:func:`font <gui_forms::ListBox::font>`, :cpp:func:`parts <gui_forms::ListBox::parts>`; events :cpp:func:`selection_changed <gui_forms::ListBox::selection_changed>`, :cpp:func:`item_activated <gui_forms::ListBox::item_activated>`; methods :cpp:func:`clear_selection <gui_forms::ListBox::clear_selection>`, :cpp:func:`item_stable_id <gui_forms::ListBox::item_stable_id>`, :cpp:func:`select_index <gui_forms::ListBox::select_index>`, :cpp:func:`set_item_stable_ids <gui_forms::ListBox::set_item_stable_ids>`.
 
       From :cpp:class:`Panel <gui_forms::Panel>`: properties :cpp:member:`border_style <gui_forms::Panel::border_style>`, :cpp:member:`visual_role <gui_forms::Panel::visual_role>`, :cpp:func:`background <gui_forms::Panel::background>`, :cpp:func:`has_background_override <gui_forms::Panel::has_background_override>`, :cpp:func:`style <gui_forms::Panel::style>`, :cpp:func:`has_style_override <gui_forms::Panel::has_style_override>`; methods :cpp:func:`clear_background <gui_forms::Panel::clear_background>`, :cpp:func:`clear_style <gui_forms::Panel::clear_style>`, :cpp:func:`panel_property_entries <gui_forms::Panel::panel_property_entries>`.
 
@@ -82,7 +82,7 @@ gui_forms::CheckedListBox
       :widths: 35 65
 
       * - :cpp:func:`add_item <gui_forms::CheckedListBox::add_item>`
-        - Appends a row, unchecked or in the given :cpp:enum:`CheckState <gui_forms::CheckState>`.
+        - Appends a row in the given :cpp:enum:`CheckState <gui_forms::CheckState>`.
       * - :cpp:func:`item_check_state <gui_forms::CheckedListBox::item_check_state>`
         - The check state of a row.
       * - :cpp:func:`item_checked <gui_forms::CheckedListBox::item_checked>`
@@ -132,7 +132,7 @@ gui_forms::CheckedListBox
       std::shared_ptr<gf::CheckedListBox> features =
           gf::make_control<gf::CheckedListBox>(gf::StableId("install.features"));
       (*features).add_item("Core files", gf::CheckState::checked);
-      (*features).add_item("Documentation");
+      (*features).add_item("Documentation", gf::CheckState::unchecked);
       (*features).add_item("Samples", gf::CheckState::indeterminate);
       (*features).toggle_item(1U);   // Documentation is now checked
       // (*features).checked_indices() is {0, 1}; Samples stays indeterminate
@@ -149,7 +149,7 @@ gui_forms::CheckedListBox
 
           FeatureRules() {
               (*features).add_item("Core files", gf::CheckState::checked);
-              (*features).add_item("Samples");
+              (*features).add_item("Samples", gf::CheckState::unchecked);
               gf::on((*features).item_checking(), *this, &FeatureRules::on_checking);
               gf::on((*features).item_check_state_changed(), *this,
                      &FeatureRules::on_checked);
@@ -228,8 +228,11 @@ gui_forms::CheckedListBox
 
    .. cpp:function:: void add_item(std::string item, CheckState state)
 
-      Appends a row, unchecked or in the given :cpp:enum:`CheckState <gui_forms::CheckState>`. A state that is
-      not a valid :cpp:enum:`CheckState <gui_forms::CheckState>` throws ``std::invalid_argument``.
+      Appends a row in the given :cpp:enum:`CheckState <gui_forms::CheckState>`. A state that is not a valid
+      :cpp:enum:`CheckState <gui_forms::CheckState>` throws ``std::invalid_argument``. The ``items`` edits keep
+      the check states with their rows: an insertion adds unchecked rows, an
+      erasure removes the rows' states, a replacement keeps the row's state,
+      and an assignment of every row makes every row unchecked.
 
    .. cpp:function:: CheckState item_check_state(std::size_t index) const
 
@@ -262,25 +265,6 @@ gui_forms::CheckedListBox
 
    .. rubric:: Extension points
 
-   .. cpp:function:: void set_items(std::vector<std::string> items) override
-
-      Replaces every row, as :cpp:class:`ListBox <gui_forms::ListBox>` does, and sets every row to unchecked,
-      including rows whose text did not change.
-
-   .. cpp:function:: void add_item(std::string item) override
-
-      Appends a row, unchecked or in the given :cpp:enum:`CheckState <gui_forms::CheckState>`. A state that is
-      not a valid :cpp:enum:`CheckState <gui_forms::CheckState>` throws ``std::invalid_argument``.
-
-   .. cpp:function:: void remove_item(std::size_t index) override
-
-      Removes a row together with its check state; later rows keep theirs.
-      An index outside the items throws ``std::out_of_range``.
-
-   .. cpp:function:: void clear_items() override
-
-      Removes every row and every check state.
-
    .. cpp:function:: void on_pointer(PointerEvent& event) override
 
       Handles the pointer input described under Notes. The window calls it.
@@ -305,6 +289,14 @@ gui_forms::CheckedListBox
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
 
    .. cpp:function:: AnatomyStateSet realized_item_anatomy_states(std::size_t item) const override
+
+   .. cpp:function:: void on_items_changing(const CollectionEdit& edit) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_items_changed(const CollectionEdit& edit) noexcept override
+
+      *Protected.*
 
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 

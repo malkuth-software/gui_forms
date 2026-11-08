@@ -25,7 +25,7 @@ A parameter or field is localizable when its declaration carries
 | `placeholder` | `set_placeholder_text` of TextBox and ComboBox |
 | `accessible_name`, `accessible_description` | the Control property cells, and the accessible names of choice and command bar items |
 | `header` | list view and tree list view column text, list view group headers, `DataGridViewColumn::header_text` |
-| `items` | `set_items` and `add_item` of ComboBox, ListBox, CheckedListBox and DomainUpDown |
+| `items` | the `items` collection cell of ComboBox, ListBox, CheckedListBox and DomainUpDown (assignment, `insert`, `append` and `replace`), and `CheckedListBox::add_item` |
 
 The text of a TextBox, ComboBox or DomainUpDown is the user's, so its
 `set_text` is not marked.

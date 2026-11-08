@@ -12,6 +12,7 @@
 #include "gui_forms/controls/data_grid_view/data_grid_view_cells.hpp"
 #include "gui_forms/controls/data_grid_view/data_grid_view_row_heights.hpp"
 #include "gui_forms/controls/data_grid_view/data_grid_view_row_order.hpp"
+#include "gui_forms/controls/data_grid_view/data_grid_view_rows/data_grid_view_rows.hpp"
 #include "gui_forms/controls/data_grid_view/data_grid_view_types/data_grid_view_types.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
@@ -79,16 +80,6 @@ struct DataGridViewColumn final {
     // A fill column's share of the width the other columns leave, against
     // the other fill columns' weights; finite and positive.
     double fill_weight{100.0};
-};
-
-// One unbound row. `stable_id` is unique within the grid; an empty ID is
-// replaced by a generated one ("row.1", "row.2", ...). `cells` holds one value
-// per column in column order; a shorter list is padded with empty values.
-struct DataGridViewRow final {
-    DataGridViewRowId stable_id{};
-    std::vector<BindingValue> cells{};
-    std::string header_text{};
-    bool read_only{};
 };
 
 // A column's place in the order the grid shows its columns (Windows Forms'
@@ -314,7 +305,9 @@ public:
 // every part is painted through the by-role paint path. A text cell edits in
 // a hosted TextBox placed over it; a combo box cell chooses from a
 // ContextMenu of its column's items.
-class DataGridView final : public Control, public DataGridViewCapabilities<DataGridView> {
+class DataGridView final : public Control,
+                           public DataGridViewCapabilities<DataGridView>,
+                           public DataGridViewRowsCapability<DataGridView> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
     explicit DataGridView(StableId stable_id);
@@ -374,18 +367,15 @@ public:
     // std::logic_error for virtual rows (counted by their order) and bound
     // rows (counted by their source).
     void set_row_count(std::size_t count);
-    // Unbound rows only (std::logic_error otherwise). Throws
-    // std::invalid_argument for a duplicate stable ID, invalid UTF-8 or more
-    // values than columns, and std::out_of_range for an insertion position
-    // past the end. add_row returns the new row's position.
-    DataGridViewRowPosition add_row(DataGridViewRow row);
-    void insert_row(DataGridViewRowPosition position, DataGridViewRow row);
-    void set_rows(std::vector<DataGridViewRow> rows);
-    // When the removed row held the current cell, the row that takes its
-    // position, or the new last row, becomes current. Throws
-    // std::invalid_argument for the new row, which is not a row of the grid's
-    // until a value is committed to it.
-    void remove_row_at(DataGridViewRowPosition position);
+    // The unbound rows are the `rows` cell (DataGridViewRowsCapability),
+    // edited only while the grid shows unbound rows (std::logic_error
+    // otherwise). An edit throws std::invalid_argument for a duplicate
+    // stable ID, invalid UTF-8 or more values than columns, and
+    // std::out_of_range for a position past the rows; a refused edit
+    // changes nothing. An erasure of the row holding the current cell makes
+    // the row that takes its position, or the new last row, current. The
+    // edits repaint, at the next layout, only the rows shown that they
+    // reach.
     // Removes every row of any source and returns to unbound rows.
     void clear_rows();
     // The ID of the row at a position. Throws std::out_of_range past the end.
@@ -1062,6 +1052,7 @@ private:
     [[nodiscard]] bool column_resizable(std::size_t column) const;
     [[nodiscard]] bool row_resizable() const noexcept;
     void values_changed();
+    void row_values_changed();
     // Sorting: the comparison sort_compare's handlers decide (a functor
     // over row indices), the mutation refusal while comparisons run, the
     // reorder both sorts end with, and the automatic sort of a header click.
@@ -1339,7 +1330,16 @@ private:
     std::vector<DataGridViewColumn> columns_{};
     DataGridViewRowSource row_source_{DataGridViewRowSource::unbound};
     // Unbound rows, in presentation order.
-    std::vector<DataGridViewRow> rows_{};
+    // What prepare_edit readied for written: an assignment's identity
+    // index, the current row's position before an erasure or replacement,
+    // and whether an insertion took the new row's ID.
+    RowPositions edit_index_{};
+    std::optional<std::size_t> edit_former_current_{};
+    bool edit_takes_new_row_id_{};
+    // The replaced rows taken at a settle; reused across layouts.
+    std::vector<std::uint32_t> settled_rows_{};
+    // The cell viewport at the last arrange: a change repaints everything.
+    Rect settled_data_{};
     std::uint64_t next_row_number_{1U};
     std::shared_ptr<DataGridViewCellValueProvider> provider_{};
     // Virtual rows: the application's order of row IDs (owner decision W-5),
@@ -1535,6 +1535,26 @@ private:
     mutable Event<DataGridViewRowErrorTextNeededEvent&> row_error_text_needed_{};
     // property_codemod begin DataGridView (tools/property_families/data_grid_view.json; generated, do not edit)
 private:
+    friend struct DataGridViewRowsCapability<DataGridView>;
+    // The rows' hooks (data_grid_view_rows.cpp): require_mutable, not
+    // sorting, unbound rows, the rows' checks and generated IDs, and the
+    // identity index readied first; then the index, the row state and
+    // the touch.
+    void prepare_edit(const decltype(rows)& cell, const CollectionEdit& edit, std::span<DataGridViewRow> incoming);
+    void written(const decltype(rows)& cell, const CollectionEdit& edit);
+    // Takes the rows' pending damage (in arrange) and repaints the shown
+    // rows it reaches; everything when `whole` (the window moved, the
+    // bounds changed, or cells size rows or columns).
+    void settle_rows_damage(bool whole, const GridLayout& layout);
+    // Whether a column or the rows are sized by the cells' contents.
+    [[nodiscard]] bool sized_by_cells() const;
+    // prepare_edit's parts, by edit kind, and the cell edit a row edit
+    // cancels first (std::logic_error when its handlers edited the rows).
+    void prepare_rows_assignment(std::span<DataGridViewRow> incoming);
+    void prepare_rows_insertion(const CollectionEdit& edit, std::span<DataGridViewRow> incoming);
+    void prepare_rows_erasure(const CollectionEdit& edit);
+    void prepare_rows_replacement(const CollectionEdit& edit, std::span<DataGridViewRow> incoming);
+    void cancel_edit_before_row_edit();
     friend struct DataGridViewAutoSizeColumnsModeCapability<DataGridView>;
     friend struct DataGridViewAutoSizeRowsModeCapability<DataGridView>;
     friend struct DataGridViewClipboardCopyModeCapability<DataGridView>;

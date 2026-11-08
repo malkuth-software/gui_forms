@@ -106,9 +106,9 @@ void exercise(Controls& controls, Window& window, bool never, int mode) {
     (*controls.box).placeholder_text = std::string{search_hint};
     (*controls.button).accessible_name = "Close window";
     (*controls.button).text = "OK";
-    (*controls.combo).set_items({"Small", "Medium"});
-    (*controls.combo).add_item("Large");
-    (*controls.list).add_item(std::string("Extra"));
+    (*controls.combo).items = {"Small", "Medium"};
+    (*controls.combo).items.append("Large");
+    (*controls.list).items.append(std::string("Extra"));
 
     // Not localizable: a text box's text is the user's.
     (*controls.box).text = "User content";

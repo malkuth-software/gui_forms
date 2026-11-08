@@ -347,11 +347,11 @@ void test_fonts_and_items() {
     SampleOwner owner{};
     form_generated::SampleDialogForm<SampleOwner> form{};
     form.initialize_component(owner);
-    require(form.sample_modes != nullptr && (*form.sample_modes).items().size() == 3U &&
-                (*form.sample_modes).items()[2] == "Wide FM",
+    require(form.sample_modes != nullptr && (*form.sample_modes).items.read().size() == 3U &&
+                (*form.sample_modes).items[2] == "Wide FM",
             "items: the list box's items");
-    require(form.sample_band != nullptr && (*form.sample_band).items().size() == 3U &&
-                (*form.sample_band).items()[0] == "HF",
+    require(form.sample_band != nullptr && (*form.sample_band).items.read().size() == 3U &&
+                (*form.sample_band).items[0] == "HF",
             "items: the domain's items");
     require(form.sample_heading != nullptr, "fonts: the heading, its font left to the theme");
 

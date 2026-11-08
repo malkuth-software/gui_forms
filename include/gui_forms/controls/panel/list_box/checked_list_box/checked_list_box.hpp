@@ -23,11 +23,9 @@ class CheckedListBox final : public ListBox {
 public:
     explicit CheckedListBox(StableId stable_id);
 
-    void set_items(std::vector<std::string> items) override;
-    void add_item(std::string item) override;
+    // Appends an item with its check state (the `items` cell's insertions
+    // add unchecked items).
     void add_item(GUI_FORMS_LOCALIZABLE(items) std::string item, CheckState state);
-    void remove_item(std::size_t index) override;
-    void clear_items() override;
     [[nodiscard]] CheckState item_check_state(std::size_t index) const;
     [[nodiscard]] bool item_checked(std::size_t index) const;
     void set_item_check_state(std::size_t index, CheckState state);
@@ -80,6 +78,8 @@ public:
     [[nodiscard]] std::vector<Item> realized_items() const;
 
 protected:
+    void on_items_changing(const CollectionEdit& edit) override;
+    void on_items_changed(const CollectionEdit& edit) noexcept override;
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     [[nodiscard]] double row_text_left() const noexcept override;
     void paint_row_adornment(Painter& painter, std::size_t index,

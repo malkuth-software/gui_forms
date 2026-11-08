@@ -289,8 +289,8 @@ int main() {
                 completion_dispatch.cancelled >= 1U,
             "a newer path query must cancel the prior deferred completion generation");
     static_cast<void>((*product).drain_posted_work());
-    require((*completions).items().size() == 1U &&
-                (*completions).items().front() ==
+    require((*completions).items.read().size() == 1U &&
+                (*completions).items.read().front() ==
                     "/Users/quentin/Work/Projects/North Shore/" &&
                 (*completions).item_stable_id(0U) ==
                     "fm.path.matrix.completion.north-shore" &&

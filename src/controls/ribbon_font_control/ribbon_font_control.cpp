@@ -53,7 +53,7 @@ void RibbonFontControl::initialize_control_tree() {
     size_ = make_control<ComboBox>(StableId(prefix + ".size"));
     (*family_).accessible_name = "Font";
     (*size_).accessible_name = "Font size";
-    (*size_).set_items(size_texts(sizes_));
+    (*size_).items = size_texts(sizes_);
     add_child(family_);
     add_child(size_);
     const std::weak_ptr<RibbonFontControl> weak =
@@ -85,7 +85,7 @@ void RibbonFontControl::set_families(std::vector<std::string> families) {
     }
     families_ = std::move(families);
     synchronizing_ = true;
-    (*family_).set_items(families_);
+    (*family_).items = families_;
     synchronizing_ = false;
     show(value());
 }
@@ -103,7 +103,7 @@ void RibbonFontControl::set_sizes(std::vector<double> sizes) {
     sizes_ = std::move(sizes);
     std::vector<std::string> texts = size_texts(sizes_);
     synchronizing_ = true;
-    (*size_).set_items(std::move(texts));
+    (*size_).items = std::move(texts);
     synchronizing_ = false;
     show(value());
 }

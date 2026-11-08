@@ -900,8 +900,8 @@ void test_nullable_standard_values_culture_and_nested_services() {
         (*grid).selected_descriptor("Settings.Threshold");
     std::shared_ptr<gui_forms::ComboBox> choice = std::dynamic_pointer_cast<ComboBox>((*grid).editor("Ratio"));
     require(ratio_descriptor && (*ratio_descriptor).nullable && choice &&
-                (*choice).items().size() == 3U &&
-                (*choice).items().front() == "(none)" &&
+                (*choice).items.read().size() == 3U &&
+                (*choice).items.read().front() == "(none)" &&
                 threshold_descriptor &&
                 (*threshold_descriptor).converter_name == "percent" &&
                 (*(*grid).property_list()).value(
@@ -975,7 +975,7 @@ void test_default_flags_and_color_property_editors() {
     (*flags).set_dropped_down(true);
     std::shared_ptr<gui_forms::CheckedListBox> choices = std::dynamic_pointer_cast<CheckedListBox>(window.find(
         std::string((*flags).stable_id().value()) + ".overlay.list"));
-    require(choices && (*choices).items().size() == 5U &&
+    require(choices && (*choices).items.read().size() == 5U &&
                 (*choices).item_checked(1U) && (*choices).item_checked(3U),
             "the flags overlay must expose zero and each independent bit with synchronized checks");
     (*choices).set_item_checked(4U, true);
