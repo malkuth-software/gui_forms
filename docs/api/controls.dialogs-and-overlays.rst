@@ -70,8 +70,16 @@ Related types
      - Raised by a file dialog after the user accepts and before the dialog takes the names (Windows Forms' FileOk).
    * - :cpp:class:`FontDialog::Parts <gui_forms::FontDialog::Parts>`
      - Stage T1 anatomy, as dot members; its states are Control's.
+   * - :cpp:class:`FontDialogCapabilities <gui_forms::FontDialogCapabilities>`
+     - Every FontDialog capability, in the order the declaring class takes them.
+   * - :cpp:class:`FontDialogFontCapability <gui_forms::FontDialogFontCapability>`
+     - The font OK or Apply last took (initially 9-unit Carlito, like Windows Forms' default); not the dialog's own text font (G1).
+   * - :cpp:class:`FontDialogPreviewTextCapability <gui_forms::FontDialogPreviewTextCapability>`
+     - The preview text; invalid UTF-8 throws std::invalid_argument.
    * - :cpp:class:`FontDialogResult <gui_forms::FontDialogResult>`
      - How a FontDialog closed, and the font it holds then.
+   * - :cpp:class:`FontDialogShowApplyCapability <gui_forms::FontDialogShowApplyCapability>`
+     - Whether the Apply button is shown.
    * - :cpp:class:`MessageBoxClosed <gui_forms::MessageBoxClosed>`
      - A message box that closed: the button the user chose, as Windows Forms' DialogResult (none for a Yes/No box the host closed without a choice).
    * - :cpp:class:`MessageBoxRefused <gui_forms::MessageBoxRefused>`
@@ -287,6 +295,63 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> FontDialogCapabilities : public FontDialogFontCapability<Declaring>, public FontDialogShowApplyCapability<Declaring>, public FontDialogPreviewTextCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/font_dialog/font_dialog_capabilities/font_dialog_capabilities.hpp>``
+
+   Every FontDialog capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: FontSpec font
+
+      The font OK or Apply last took (initially 9-unit Carlito, like Windows Forms' default); not the dialog's own text font (G1). A view, since OK and Apply move it. A write also resets the selection to it and marks the font as set from code; an invalid FontSpec throws std::invalid_argument.
+
+   .. cpp:member:: bool show_apply
+
+      Whether the Apply button is shown.
+
+   .. cpp:member:: std::string preview_text
+
+      The preview text; invalid UTF-8 throws std::invalid_argument.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> FontDialogFontCapability
+
+   ``#include <gui_forms/controls/panel/font_dialog/font_dialog_capabilities/font_dialog_capabilities.hpp>``
+
+   The font OK or Apply last took (initially 9-unit Carlito, like Windows Forms' default); not the dialog's own text font (G1). A view, since OK and Apply move it. A write also resets the selection to it and marks the font as set from code; an invalid FontSpec throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(FontDialogFontCapability& capability, FontSpec incoming)
+
+   .. cpp:function:: static FontSpec read(const FontDialogFontCapability& capability)
+
+   .. cpp:member:: PropertyView<FontSpec, FontDialogFontCapability<Declaring>> font
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> FontDialogPreviewTextCapability
+
+   ``#include <gui_forms/controls/panel/font_dialog/font_dialog_capabilities/font_dialog_capabilities.hpp>``
+
+   The preview text; invalid UTF-8 throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(FontDialogPreviewTextCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, FontDialogPreviewTextCapability<Declaring>> preview_text
+
+      Default: ``{"AaBbYyZz 0123"}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: FontDialogResult final
 
    ``#include <gui_forms/controls/panel/font_dialog/font_dialog.hpp>``
@@ -298,6 +363,23 @@ Related types
       Default: ``{DialogResult::none}``.
 
    .. cpp:member:: FontSpec font
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> FontDialogShowApplyCapability
+
+   ``#include <gui_forms/controls/panel/font_dialog/font_dialog_capabilities/font_dialog_capabilities.hpp>``
+
+   Whether the Apply button is shown.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(FontDialogShowApplyCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, FontDialogShowApplyCapability<Declaring>> show_apply
+
+      Default: ``{true}``.
 
 .. cpp:namespace:: gui_forms
 

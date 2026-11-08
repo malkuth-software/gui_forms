@@ -1756,7 +1756,7 @@ namespace doc_example_FontDialog_1 {
 void example() {
     std::shared_ptr<gf::FontDialog> dialog =
         gf::make_control<gf::FontDialog>(gf::StableId("log.font"));
-    (*dialog).set_font({gf::FontRole::monospace, 11.0, 400, false});
+    (*dialog).font = gf::FontSpec{gf::FontRole::monospace, 11.0, 400, false};
     (*dialog).set_size_range(8.0, 24.0);
     const gf::FontSpec chosen = (*dialog).selection();   // 11-unit Cousine
     // (*dialog).show(owner) opens it; its closed event carries the result.

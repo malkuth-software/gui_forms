@@ -244,7 +244,7 @@ void HostServicesPage::build_font_dialog() {
                          shell_blue_dark);
     (*document_.gallery_host_services).add_at(font_sample_, {650.0, 142.0, 246.0, 56.0});
     font_dialog_ = make_control<FontDialog>(StableId("gallery.host.font.dialog"));
-    (*font_dialog_).set_font((*font_sample_).font());
+    (*font_dialog_).font = (*font_sample_).font();
     on(choose_font_.invoked(), *this, &HostServicesPage::on_choose_font);
     on((*font_dialog_).closed(), *this, &HostServicesPage::on_font_closed);
     on((*font_dialog_).apply(), *this, &HostServicesPage::on_font_applied);

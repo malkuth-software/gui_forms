@@ -56,10 +56,10 @@ void faces_and_styles() {
             "the dialog offers the three bundled role faces");
     Fixture fixture = make_fixture();
     FontDialog& dialog = *fixture.dialog;
-    require(dialog.font() == FontSpec{FontRole::content, 9.0, 400, false} &&
+    require(dialog.font.read() == FontSpec{FontRole::content, 9.0, 400, false} &&
                 (*dialog.face_list()).items.read().size() == 3U && (*dialog.style_list()).items.read().size() == 4U,
             "the default is 9-unit Carlito, with four styles");
-    dialog.set_font({FontRole::monospace, 14.0, 600, true});
+    dialog.font = FontSpec{FontRole::monospace, 14.0, 600, true};
     require(dialog.selection() == FontSpec{FontRole::monospace, 14.0, 700, true} &&
                 (*dialog.face_list()).selected_index() == 2U && (*dialog.style_list()).selected_index() == 3U &&
                 (*dialog.size_box()).value.read() == 14.0,
@@ -83,7 +83,7 @@ void faces_and_styles() {
         threw = true;
     }
     require(threw, "a reversed size range is refused");
-    require(dialog.font() == FontSpec{FontRole::monospace, 14.0, 600, true},
+    require(dialog.font.read() == FontSpec{FontRole::monospace, 14.0, 600, true},
             "changing the selection leaves font() until OK or Apply");
 }
 
@@ -108,12 +108,12 @@ void overlay_ok_cancel_apply() {
 
     (*dialog.size_box()).value = 12.0;
     require((*dialog.apply_button()).perform_click() && applied.size() == 1U && applied[0].size == 12.0 &&
-                dialog.font().size == 12.0 && dialog.is_open(),
+                dialog.font.read().size == 12.0 && dialog.is_open(),
             "Apply takes the selection and keeps the dialog open");
     (*dialog.size_box()).value = 18.0;
     require(window.dispatch_key({KeyAction::down, PhysicalKey::escape}) && !dialog.is_open() &&
                 closed.size() == 1U && closed[0].result == DialogResult::cancel &&
-                dialog.font().size == 12.0 && window.focus_scope_depth() == 0U &&
+                dialog.font.read().size == 12.0 && window.focus_scope_depth() == 0U &&
                 window.find("font") == nullptr,
             "Escape cancels: the applied font stays and the overlay and its focus scope go");
 
@@ -122,7 +122,7 @@ void overlay_ok_cancel_apply() {
     (*dialog.face_list()).select_index(0U);
     require((*dialog.ok_button()).perform_click() && !dialog.is_open() && closed.size() == 2U &&
                 closed[1].result == DialogResult::ok && closed[1].font.role == FontRole::control &&
-                dialog.font().role == FontRole::control,
+                dialog.font.read().role == FontRole::control,
             "OK takes the selection and closes");
 
     require(dialog.show(fixture.owner), "the dialog opens a third time");
@@ -146,7 +146,7 @@ void embedded_semantics_and_anatomy() {
     require(!dialog.show(fixture.owner), "a dialog placed in a layout does not open as an overlay");
     (*dialog.style_list()).select_index(1U);
     require((*dialog.ok_button()).perform_click() && closed.size() == 1U && closed[0].result == DialogResult::ok &&
-                dialog.font().weight == 700U,
+                dialog.font.read().weight == 700U,
             "placed in a layout, OK reports and takes the selection");
     require((*fixture.window).request_focus(fixture.owner), "focus starts on the owner button");
     require((*fixture.window).perform_semantic_action("font", SemanticAction::focus) &&
@@ -167,12 +167,12 @@ void embedded_semantics_and_anatomy() {
             "the dialog is a named dialog valued with its selection, modal only while open");
     bool threw = false;
     try {
-        dialog.set_preview_text(std::string("\xFF"));
+        dialog.preview_text = std::string("\xFF");
     } catch (const std::invalid_argument&) {
         threw = true;
     }
     require(threw, "invalid preview text is refused");
-    dialog.set_show_apply(false);
+    dialog.show_apply = false;
     require(!(*dialog.apply_button()).visible.read(), "Apply can be hidden");
 }
 

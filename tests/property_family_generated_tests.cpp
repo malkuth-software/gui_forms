@@ -15,6 +15,7 @@
 #include "gui_forms/controls/panel/date_time_picker/date_time_picker.hpp"
 #include "gui_forms/controls/panel/domain_up_down/domain_up_down.hpp"
 #include "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp"
+#include "gui_forms/controls/panel/font_dialog/font_dialog.hpp"
 #include "gui_forms/controls/panel/group_box/group_box.hpp"
 #include "gui_forms/controls/panel/group_box/scaled_group_box/scaled_group_box.hpp"
 #include "gui_forms/controls/panel/instrument_rack/instrument_rack.hpp"
@@ -591,6 +592,20 @@ void test_flags_value_editor_properties() {
     }
 }
 
+void test_font_dialog_properties() {
+    std::shared_ptr<FontDialog> control = make_control<FontDialog>(StableId("generated.fontdialog"));
+    {
+        const bool sample = !(*control).show_apply.read();
+        (*control).show_apply = sample;
+        expect((*control).show_apply.read() == sample, "FontDialog.show_apply: a write stores");
+    }
+    {
+        const std::string sample = std::string{"Sample"};
+        (*control).preview_text = sample;
+        expect((*control).preview_text.read() == sample, "FontDialog.preview_text: a write stores");
+    }
+}
+
 void test_group_box_properties() {
     std::shared_ptr<GroupBox> control = make_control<GroupBox>(StableId("generated.groupbox"));
     {
@@ -1141,6 +1156,7 @@ int main() {
     test_date_time_picker_properties();
     test_domain_up_down_properties();
     test_flags_value_editor_properties();
+    test_font_dialog_properties();
     test_group_box_properties();
     test_instrument_rack_properties();
     test_list_box_properties();

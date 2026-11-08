@@ -164,12 +164,38 @@ void test_flags_value_editor() {
     require(!(*editor).dropped_down.read(), "a detached editor keeps its list closed");
 }
 
+void test_font_dialog() {
+    std::shared_ptr<FontDialog> dialog = make_control<FontDialog>(StableId("caps.font.dialog"));
+    const FontSpec chosen{FontRole::monospace, 14.0, 400, false};
+    (*dialog).font = chosen;
+    require((*dialog).font.read() == chosen && (*dialog).selection().size == 14.0,
+            "a font write resets the selection to it");
+    bool refused = false;
+    try {
+        (*dialog).font = FontSpec{FontRole::content, -1.0, 400, false};
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*dialog).font.read() == chosen, "an invalid font is refused");
+    (*dialog).show_apply = false;
+    require(!(*dialog).show_apply.read() && !(*(*dialog).apply_button()).visible.read(),
+            "hiding Apply hides its button");
+    refused = false;
+    try {
+        (*dialog).preview_text = std::string("\xff");
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*dialog).preview_text.read() == "AaBbYyZz 0123", "invalid UTF-8 preview text is refused");
+}
+
 } // namespace
 
 int main() {
     test_date_time_picker();
     test_color_value_editor();
     test_flags_value_editor();
+    test_font_dialog();
     std::cout << "gui_forms_picker_capabilities_tests: all tests passed\n";
     return 0;
 }
