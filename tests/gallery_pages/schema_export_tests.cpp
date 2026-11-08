@@ -1,5 +1,6 @@
 #include "support.hpp"
 
+#include "gui_forms/controls/toast/toast.hpp"
 #include "gui_forms/engine.hpp"
 #include "gui_forms/engine/effect_registry/effect_registry.hpp"
 #include "gui_forms/schema.hpp"
@@ -805,6 +806,11 @@ void test_schema_export() {
     const std::shared_ptr<FontDialog> font_dialog = make_control<FontDialog>(StableId("schema.font-dialog"));
     record_control(*font_dialog, records);
     record_control(*task_dialog, records);
+    // A toast shows on demand, in an overlay outside the root tree.
+    ToastContent toast_content{};
+    toast_content.message = "Sample";
+    const std::shared_ptr<Toast> toast = make_control<Toast>(StableId("schema.toast"), std::move(toast_content));
+    record_control(*toast, records);
 
     // Components, constructed directly.
     const std::shared_ptr<Command> command = std::make_shared<Command>();
