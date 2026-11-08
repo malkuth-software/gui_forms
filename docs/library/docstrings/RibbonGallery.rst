@@ -159,5 +159,5 @@ A styles gallery in the ribbon form with a shared value command:
                         {{"style.title", "Title", {}, "headings"},
                          {"style.heading", "Heading 1", {}, "headings"}});
    (*gallery).set_column_range(2U, 6U);
-   (*gallery).set_columns(4U);
-   (*gallery).set_command(command);
+   (*gallery).columns = 4U;
+   (*gallery).command = command;

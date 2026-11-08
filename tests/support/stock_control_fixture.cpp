@@ -559,7 +559,7 @@ void place_menus(FixtureBuilder& builder) {
     std::shared_ptr<RibbonGallery> gallery = builder.place(
         make_control<RibbonGallery>(StableId("ribbon-gallery")), 60.0);
     (*gallery).accessible_name = "Styles";
-    (*gallery).set_item_size({40.0, 24.0});
+    (*gallery).item_size = Size{40.0, 24.0};
     std::vector<RibbonGalleryItem> gallery_items;
     for (std::size_t index = 0U; index < 3U; ++index) {
         RibbonGalleryItem item;

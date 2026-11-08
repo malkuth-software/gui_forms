@@ -471,7 +471,7 @@ void refusals() {
 void gallery_columns() {
     FixedMetrics metrics;
     std::shared_ptr<RibbonGallery> gallery = make_control<RibbonGallery>(StableId("styles"));
-    (*gallery).set_item_size({40.0, 20.0});
+    (*gallery).item_size = Size{40.0, 20.0};
     (*gallery).set_column_range(3U, 6U);
     std::vector<RibbonGalleryItem> items;
     for (int index = 0; index < 12; ++index) {
@@ -503,7 +503,7 @@ void gallery_columns() {
     for (const RibbonLadderEntry& entry : ladder) {
         resize(fixture, {entry.width, 300.0});
         if (entry.groups[0].size == RibbonGroupSize::collapsed) continue;
-        require((*gallery).columns() == entry.groups[0].gallery_columns,
+        require((*gallery).columns.read() == entry.groups[0].gallery_columns,
                 "the ribbon sets the gallery's columns to its ladder entry's");
         const Ribbon::CommandItem* placed = nullptr;
         const std::vector<Ribbon::CommandItem> commands = ribbon.realized_commands();

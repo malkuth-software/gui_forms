@@ -3080,8 +3080,8 @@ void example() {
                          {{"style.title", "Title", {}, "headings"},
                           {"style.heading", "Heading 1", {}, "headings"}});
     (*gallery).set_column_range(2U, 6U);
-    (*gallery).set_columns(4U);
-    (*gallery).set_command(command);
+    (*gallery).columns = 4U;
+    (*gallery).command = command;
 }
 }  // namespace doc_example_RibbonGallery_1
 

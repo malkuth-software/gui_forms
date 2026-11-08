@@ -117,10 +117,10 @@ bool key(Window& window, std::uint32_t physical) {
 
 std::shared_ptr<RibbonGallery> in_ribbon_gallery(const char* id, std::size_t count) {
     std::shared_ptr<RibbonGallery> gallery = make_control<RibbonGallery>(StableId(std::string(id)));
-    (*gallery).set_item_size({40.0, 40.0});
-    (*gallery).set_visible_rows(2U);
+    (*gallery).item_size = Size{40.0, 40.0};
+    (*gallery).visible_rows = 2U;
     (*gallery).set_column_range(3U, 6U);
-    (*gallery).set_columns(6U);
+    (*gallery).columns = 6U;
     (*gallery).set_items({}, numbered_items(count));
     return gallery;
 }
@@ -172,19 +172,19 @@ void layout_and_columns() {
                 parts.more_glyph.present && parts.scroll_up.states.contains(AnatomyState::disabled) &&
                 !parts.scroll_down.states.contains(AnatomyState::disabled),
             "scroll up is disabled at the top; scroll down and more are present");
-    (*gallery).set_columns(5U);
+    (*gallery).columns = 5U;
     window.perform_layout();
     require((*gallery).realized_items().size() == 10U && (*gallery).line_count() == 6U,
             "giving up one column reflows the rows");
     bool refused = false;
     try {
-        (*gallery).set_columns(2U);
+        (*gallery).columns = 2U;
     } catch (const std::out_of_range&) {
         refused = true;
     }
     require(refused, "a column count below the authored minimum is refused");
     (*gallery).set_column_range(4U, 4U);
-    require((*gallery).columns() == 4U, "a narrower range clamps the column count");
+    require((*gallery).columns.read() == 4U, "a narrower range clamps the column count");
     (*gallery).scroll_to_line(1U);
     window.perform_layout();
     const std::vector<RibbonGallery::Item> items = (*gallery).realized_items();
@@ -193,7 +193,7 @@ void layout_and_columns() {
     const RibbonGallery::Item* first = find_item(items, "item.4");
     require((*first).parts.item_face.present && (*first).parts.item_icon.present && !(*first).parts.item_label.present,
             "an item without labels shows a face and an image area");
-    (*gallery).set_show_labels(true);
+    (*gallery).show_labels = true;
     window.perform_layout();
     const std::vector<RibbonGallery::Item> labelled = (*gallery).realized_items();
     require(item_named(labelled, labelled.front().stable_id).parts.item_label.present,
@@ -215,7 +215,7 @@ void virtualization() {
     std::vector<RibbonGalleryItem> items = numbered_items(7U, "warm");
     std::vector<RibbonGalleryItem> cool = numbered_items(500U, "cool");
     items.insert(items.end(), cool.begin(), cool.end());
-    (*full).set_item_size({40.0, 40.0});
+    (*full).item_size = Size{40.0, 40.0};
     (*full).set_drop_down_size(4U, 3U);
     (*full).set_items({{"warm", "Warm"}, {"cool", "Cool"}}, std::move(items));
     Window full_window(full, (*full).measure({1000.0, 1000.0}));
@@ -232,7 +232,7 @@ void hover_preview_order() {
     Fixture fixture;
     std::shared_ptr<Panel> root = make_control<Panel>(StableId("hover.root"));
     std::shared_ptr<RibbonGallery> gallery = in_ribbon_gallery("hover.gallery", 30U);
-    (*gallery).set_command(fixture.gallery_command);
+    (*gallery).command = fixture.gallery_command;
     (*root).add_child(gallery);
     (*gallery).set_requested_bounds({10.0, 10.0, 260.0, 84.0});
     Window window(root, {400.0, 200.0});
@@ -272,7 +272,7 @@ void keyboard() {
     Fixture fixture;
     std::shared_ptr<Panel> root = make_control<Panel>(StableId("keys.root"));
     std::shared_ptr<RibbonGallery> gallery = in_ribbon_gallery("keys.gallery", 30U);
-    (*gallery).set_command(fixture.gallery_command);
+    (*gallery).command = fixture.gallery_command;
     (*fixture.gallery_command).set_value(std::string("item.7"));
     fixture.log.entries.clear();
     std::shared_ptr<Button> other = make_control<Button>(StableId("keys.other"), "Other");
@@ -312,7 +312,7 @@ void overlays() {
     Log overlay_log;
     std::shared_ptr<Panel> root = make_control<Panel>(StableId("overlay.root"));
     std::shared_ptr<RibbonGallery> gallery = in_ribbon_gallery("overlay.gallery", 30U);
-    (*gallery).set_command(fixture.gallery_command);
+    (*gallery).command = fixture.gallery_command;
     (*gallery).set_drop_down_size(6U, 4U);
     (*root).add_child(gallery);
     (*gallery).set_requested_bounds({10.0, 10.0, 260.0, 84.0});

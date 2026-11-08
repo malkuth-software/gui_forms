@@ -732,7 +732,7 @@ void Ribbon::arrange(Rect final_bounds) {
                 RibbonGallery& gallery = *spec.gallery;
                 const std::size_t columns =
                     std::clamp(placed.gallery_columns[group], gallery.minimum_columns(), gallery.maximum_columns());
-                gallery.set_columns(columns);
+                gallery.columns = columns;
             }
         }
     }
@@ -1969,7 +1969,7 @@ void Ribbon::move_hosted_to_overlay(std::size_t group) {
         if (!moved) continue;
         (*group_overlay_).add_child(std::move(moved));
         const RibbonCommandSpec& spec = tabs_[tab].groups[group].commands[command];
-        if (spec.kind == RibbonCommandKind::gallery) (*spec.gallery).set_columns((*spec.gallery).maximum_columns());
+        if (spec.kind == RibbonCommandKind::gallery) (*spec.gallery).columns = (*spec.gallery).maximum_columns();
     }
 }
 

@@ -286,23 +286,23 @@ private:
         for (const char* name : body_names) items.push_back({style_id(name), name, {}, "body"});
         for (const char* name : quote_names) items.push_back({style_id(name), name, {}, "quotes"});
         const std::shared_ptr<RibbonGallery>& in_ribbon = document_.gallery_commands_styles;
-        (*in_ribbon).set_item_size({72.0, 24.0});
-        (*in_ribbon).set_show_labels(true);
-        (*in_ribbon).set_visible_rows(2U);
+        (*in_ribbon).item_size = {72.0, 24.0};
+        (*in_ribbon).show_labels = true;
+        (*in_ribbon).visible_rows = 2U;
         (*in_ribbon).set_column_range(2U, 4U);
-        (*in_ribbon).set_columns(4U);
+        (*in_ribbon).columns = 4U;
         (*in_ribbon).set_drop_down_size(4U, 4U);
         (*in_ribbon).set_items(categories, items);
-        (*in_ribbon).set_command(styles_);
+        (*in_ribbon).command = styles_;
         gallery_button_ = document_.gallery_commands_styles_button;
         drop_down_gallery_ = make_control<RibbonGallery>(StableId("gallery.commands.styles.drop-down"),
                                                         RibbonGalleryForm::drop_down);
         (*drop_down_gallery_).accessible_name = "Styles";
-        (*drop_down_gallery_).set_item_size({72.0, 24.0});
-        (*drop_down_gallery_).set_show_labels(true);
+        (*drop_down_gallery_).item_size = Size{72.0, 24.0};
+        (*drop_down_gallery_).show_labels = true;
         (*drop_down_gallery_).set_drop_down_size(3U, 5U);
         (*drop_down_gallery_).set_items(std::move(categories), std::move(items));
-        (*drop_down_gallery_).set_command(styles_);
+        (*drop_down_gallery_).command = styles_;
         gallery_status_ = document_.gallery_commands_gallery_status;
         on((*gallery_button_).clicked(), *this, &CommandsAndMenusPage::on_styles_button);
         on((*styles_).preview_requested(), *this, &CommandsAndMenusPage::on_style_preview);
@@ -352,16 +352,16 @@ private:
     [[nodiscard]] std::shared_ptr<RibbonGallery> scaling_gallery(const std::string& id) const {
         std::shared_ptr<RibbonGallery> gallery = make_control<RibbonGallery>(StableId(id));
         (*gallery).accessible_name = "Styles";
-        (*gallery).set_item_size({56.0, 26.0});
-        (*gallery).set_show_labels(true);
-        (*gallery).set_visible_rows(1U);
+        (*gallery).item_size = Size{56.0, 26.0};
+        (*gallery).show_labels = true;
+        (*gallery).visible_rows = 1U;
         (*gallery).set_column_range(2U, 5U);
-        (*gallery).set_columns(5U);
+        (*gallery).columns = 5U;
         std::vector<RibbonGalleryItem> items;
         const std::array<const char*, 6> names{"Title", "Heading", "Normal", "Compact", "Quote", "Strong"};
         for (const char* name : names) items.push_back({style_id(name), name, {}, {}});
         (*gallery).set_items({}, std::move(items));
-        (*gallery).set_command(styles_);
+        (*gallery).command = styles_;
         return gallery;
     }
 
@@ -392,11 +392,11 @@ private:
         std::shared_ptr<RibbonFontControl> font =
             make_control<RibbonFontControl>(StableId("gallery.commands.ribbon-file-area.font"));
         (*font).set_families({"Portsmouth Rapids", "Carlito", "Tahoma"});
-        (*font).set_command(font_command_);
+        (*font).command = font_command_;
         std::shared_ptr<RibbonColorPicker> colour =
             make_control<RibbonColorPicker>(StableId("gallery.commands.ribbon-file-area.colour"));
         (*colour).set_text("Font &colour");
-        (*colour).set_command(color_command_);
+        (*colour).command = color_command_;
         const std::shared_ptr<Ribbon>& ribbon = document_.gallery_commands_ribbon_file_area_bar;
         RibbonTabSpec home{.stable_id = "file-area.home", .text = "&Home"};
         RibbonGroupSpec font_group{.stable_id = "file-area.font", .caption = "Font", .dialog_launcher = true};

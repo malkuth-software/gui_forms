@@ -1,0 +1,141 @@
+{
+  "family": "RibbonGallery",
+  "step": "M-S8",
+  "declaring": "RibbonGallery",
+  "header": "include/gui_forms/controls/ribbon_gallery/ribbon_gallery.hpp",
+  "source": "src/controls/ribbon_gallery/ribbon_gallery.cpp",
+  "capabilities_header": "include/gui_forms/controls/ribbon_gallery/ribbon_gallery_capabilities/ribbon_gallery_capabilities.hpp",
+  "base": "Control",
+  "shared": [],
+  "includes": [
+    "gui_forms/commands/gallery_command/gallery_command.hpp",
+    "gui_forms/types.hpp"
+  ],
+  "test": {
+    "type": "RibbonGallery",
+    "include": "gui_forms/controls/ribbon_gallery/ribbon_gallery.hpp"
+  },
+  "properties": [
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "command",
+      "capability": "RibbonGalleryCommand",
+      "value": "std::shared_ptr<GalleryCommand>",
+      "hooks": "hand",
+      "hand": [
+        "prepare cancels a preview and drops the old subscriptions before a change",
+        "written subscribes to the new command, invalidates and hands it to the more gallery"
+      ],
+      "effects": "Dirty::paint | Dirty::semantics",
+      "comment": "The value command whose value the selection follows, which a click or Enter commits and which receives previews, or null. Without one the gallery keeps its own selection and offers no preview.",
+      "getter": "command",
+      "setter": "set_command",
+      "field": "command_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "item_size",
+      "capability": "RibbonGalleryItemSize",
+      "value": "Size",
+      "initial": "48.0, 48.0",
+      "hooks": "hand",
+      "hand": [
+        "written rebuilds the model and hands the size to the more gallery"
+      ],
+      "effects": null,
+      "comment": "Every item's image area, in logical units at text scale 1. A size outside 16 to 256 on either side throws std::out_of_range.",
+      "sample": "Size{48.0, 40.0}",
+      "getter": "item_size",
+      "setter": "set_item_size",
+      "field": "item_size_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "show_labels",
+      "capability": "RibbonGalleryShowLabels",
+      "value": "bool",
+      "hooks": "hand",
+      "hand": [
+        "written rebuilds the model and hands the choice to the more gallery"
+      ],
+      "effects": null,
+      "comment": "Whether labels show under the images.",
+      "sample": "true",
+      "getter": "show_labels",
+      "setter": "set_show_labels",
+      "field": "show_labels_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "visible_rows",
+      "capability": "RibbonGalleryVisibleRows",
+      "value": "std::size_t",
+      "initial": "3U",
+      "hooks": "hand",
+      "hand": [
+        "written rebuilds the model"
+      ],
+      "effects": null,
+      "comment": "In-ribbon form: the rows shown (1 to 8). A count outside that throws std::out_of_range.",
+      "sample": "std::size_t{2U}",
+      "getter": "visible_rows",
+      "setter": "set_visible_rows",
+      "field": "visible_rows_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "columns",
+      "capability": "RibbonGalleryColumns",
+      "value": "std::size_t",
+      "storage": "view",
+      "field": null,
+      "hooks": "hand",
+      "hand": [
+        "a view: set_column_range clamps the field directly"
+      ],
+      "effects": null,
+      "comment": "In-ribbon form: the current column count, kept inside the column range (owner decision RB-8: the ribbon's scaling gives up one column at a time within it). A count outside the range throws std::out_of_range.",
+      "getter": "columns",
+      "setter": "set_columns"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "items",
+      "reason": "wholesale collection replacement (section 4)"
+    },
+    {
+      "name": "column_range, drop_down_size",
+      "reason": "multi-value calls (section 4)"
+    },
+    {
+      "name": "selected_id",
+      "reason": "G14 selection"
+    }
+  ]
+}

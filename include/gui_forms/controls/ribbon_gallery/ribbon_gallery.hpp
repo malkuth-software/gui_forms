@@ -5,6 +5,7 @@
 #include "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/controls/ribbon_gallery/ribbon_gallery_capabilities/ribbon_gallery_capabilities.hpp"
 
 #include <chrono>
 #include <cstddef>
@@ -51,7 +52,7 @@ struct RibbonGalleryItem final {
 // selection follows the value of a GalleryCommand when one is set; a hover
 // of 300 ms, or keyboard focus resting on an item as long, asks the command
 // for a live preview, and leaving, Escape or closing the overlay cancels it.
-class RibbonGallery final : public Control {
+class RibbonGallery final : public Control, public RibbonGalleryCapabilities<RibbonGallery> {
 public:
     // How long the pointer or keyboard focus rests on an item before it is
     // previewed (owner decision RB-13, E1-1).
@@ -72,27 +73,12 @@ public:
     // the more button opens shows the same categories and items.
     void set_items(std::vector<RibbonGalleryCategory> categories, std::vector<RibbonGalleryItem> items);
 
-    // The value command whose value the selection follows, which a click or
-    // Enter commits and which receives previews. Without one the gallery
-    // keeps its own selection and offers no preview.
-    [[nodiscard]] std::shared_ptr<GalleryCommand> command() const noexcept { return command_; }
-    void set_command(std::shared_ptr<GalleryCommand> command);
     // The selected item's ID: the command's value, or the gallery's own.
     [[nodiscard]] std::optional<std::string> selected_id() const;
     // Selects an item without committing (the command's set_value). Throws
     // std::invalid_argument for an ID the gallery does not have.
     void set_selected_id(std::optional<std::string> item_id);
 
-    // -- layout ----------------------------------------------------------
-    // Every item's image area, in logical units at text scale 1.
-    [[nodiscard]] Size item_size() const noexcept { return item_size_; }
-    void set_item_size(Size size);
-    // Whether labels show under the images.
-    [[nodiscard]] bool show_labels() const noexcept { return show_labels_; }
-    void set_show_labels(bool show);
-    // In-ribbon form: the rows shown (1 to 8).
-    [[nodiscard]] std::size_t visible_rows() const noexcept { return visible_rows_; }
-    void set_visible_rows(std::size_t rows);
     // In-ribbon form: the authored column range (owner decision RB-8: the
     // ribbon's scaling gives up one column at a time within it) and the
     // current column count, kept inside the range. Throws std::out_of_range
@@ -100,8 +86,6 @@ public:
     [[nodiscard]] std::size_t minimum_columns() const noexcept { return minimum_columns_; }
     [[nodiscard]] std::size_t maximum_columns() const noexcept { return maximum_columns_; }
     void set_column_range(std::size_t minimum, std::size_t maximum);
-    [[nodiscard]] std::size_t columns() const noexcept { return columns_; }
-    void set_columns(std::size_t columns);
     // In-ribbon form: the width, in logical units at the current text scale,
     // the gallery measures at `columns` columns (the ribbon's scaling reads
     // it for each column step).
@@ -296,14 +280,10 @@ private:
     // Display order: indexes into items_.
     std::vector<std::size_t> order_{};
     std::vector<Line> lines_{};
-    std::shared_ptr<GalleryCommand> command_{};
     SubscriptionToken command_value_{};
     SubscriptionToken command_state_{};
     std::optional<std::string> own_selection_{};
 
-    Size item_size_{48.0, 48.0};
-    bool show_labels_{};
-    std::size_t visible_rows_{3U};
     std::size_t minimum_columns_{1U};
     std::size_t maximum_columns_{8U};
     std::size_t columns_{8U};
@@ -337,6 +317,25 @@ private:
 
     Event<const std::optional<std::string>&> selection_changed_{};
     Event<bool> overlay_open_changed_{};
+    // property_codemod begin RibbonGallery (tools/property_families/ribbon_gallery.json; generated, do not edit)
+private:
+    friend struct RibbonGalleryCommandCapability<RibbonGallery>;
+    friend struct RibbonGalleryItemSizeCapability<RibbonGallery>;
+    friend struct RibbonGalleryShowLabelsCapability<RibbonGallery>;
+    friend struct RibbonGalleryVisibleRowsCapability<RibbonGallery>;
+    friend struct RibbonGalleryColumnsCapability<RibbonGallery>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(command)& cell, std::shared_ptr<GalleryCommand>& incoming);
+    void written(const decltype(command)& cell);
+    void prepare_write(const decltype(item_size)& cell, Size& incoming);
+    void written(const decltype(item_size)& cell);
+    void prepare_write(const decltype(show_labels)& cell, bool& incoming);
+    void written(const decltype(show_labels)& cell);
+    void prepare_write(const decltype(visible_rows)& cell, std::size_t& incoming);
+    void written(const decltype(visible_rows)& cell);
+    void write_view(const decltype(columns)& cell, std::size_t incoming);
+    [[nodiscard]] std::size_t read_view(const decltype(columns)& cell) const;
+    // property_codemod end RibbonGallery
 };
 
 } // namespace gui_forms

@@ -196,10 +196,22 @@ Related types
      -  
    * - :cpp:class:`RibbonGallery::Parts <gui_forms::RibbonGallery::Parts>`
      - Stage T1 anatomy, as dot members; its states are Control's.
+   * - :cpp:class:`RibbonGalleryCapabilities <gui_forms::RibbonGalleryCapabilities>`
+     - Every RibbonGallery capability, in the order the declaring class takes them.
    * - :cpp:class:`RibbonGalleryCategory <gui_forms::RibbonGalleryCategory>`
      - One category: its items show together under the caption in the drop-down form.
+   * - :cpp:class:`RibbonGalleryColumnsCapability <gui_forms::RibbonGalleryColumnsCapability>`
+     - In-ribbon form: the current column count, kept inside the column range (owner decision RB-8: the ribbon's scaling gives up one column at a time within it).
+   * - :cpp:class:`RibbonGalleryCommandCapability <gui_forms::RibbonGalleryCommandCapability>`
+     - The value command whose value the selection follows, which a click or Enter commits and which receives previews, or null.
    * - :cpp:class:`RibbonGalleryItem <gui_forms::RibbonGalleryItem>`
      - One item: an image with an optional label shown under it.
+   * - :cpp:class:`RibbonGalleryItemSizeCapability <gui_forms::RibbonGalleryItemSizeCapability>`
+     - Every item's image area, in logical units at text scale 1.
+   * - :cpp:class:`RibbonGalleryShowLabelsCapability <gui_forms::RibbonGalleryShowLabelsCapability>`
+     - Whether labels show under the images.
+   * - :cpp:class:`RibbonGalleryVisibleRowsCapability <gui_forms::RibbonGalleryVisibleRowsCapability>`
+     - In-ribbon form: the rows shown (1 to 8).
    * - :cpp:class:`RibbonGroupLayout <gui_forms::RibbonGroupLayout>`
      - One layout of a group (the WPF/MFC model, owner decision 5): the image size of each command and how many small commands stack in a column.
    * - :cpp:class:`RibbonGroupSpec <gui_forms::RibbonGroupSpec>`
@@ -1400,6 +1412,37 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> RibbonGalleryCapabilities : public RibbonGalleryCommandCapability<Declaring>, public RibbonGalleryItemSizeCapability<Declaring>, public RibbonGalleryShowLabelsCapability<Declaring>, public RibbonGalleryVisibleRowsCapability<Declaring>, public RibbonGalleryColumnsCapability<Declaring>
+
+   ``#include <gui_forms/controls/ribbon_gallery/ribbon_gallery_capabilities/ribbon_gallery_capabilities.hpp>``
+
+   Every RibbonGallery capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::shared_ptr<GalleryCommand> command
+
+      The value command whose value the selection follows, which a click or Enter commits and which receives previews, or null. Without one the gallery keeps its own selection and offers no preview.
+
+   .. cpp:member:: Size item_size
+
+      Every item's image area, in logical units at text scale 1. A size outside 16 to 256 on either side throws std::out_of_range.
+
+   .. cpp:member:: bool show_labels
+
+      Whether labels show under the images.
+
+   .. cpp:member:: std::size_t visible_rows
+
+      In-ribbon form: the rows shown (1 to 8). A count outside that throws std::out_of_range.
+
+   .. cpp:member:: std::size_t columns
+
+      In-ribbon form: the current column count, kept inside the column range (owner decision RB-8: the ribbon's scaling gives up one column at a time within it). A count outside the range throws std::out_of_range.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: RibbonGalleryCategory final
 
    ``#include <gui_forms/controls/ribbon_gallery/ribbon_gallery.hpp>``
@@ -1409,6 +1452,38 @@ Related types
    .. cpp:member:: std::string stable_id
 
    .. cpp:member:: std::string caption
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RibbonGalleryColumnsCapability
+
+   ``#include <gui_forms/controls/ribbon_gallery/ribbon_gallery_capabilities/ribbon_gallery_capabilities.hpp>``
+
+   In-ribbon form: the current column count, kept inside the column range (owner decision RB-8: the ribbon's scaling gives up one column at a time within it). A count outside the range throws std::out_of_range.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonGalleryColumnsCapability& capability, std::size_t incoming)
+
+   .. cpp:function:: static std::size_t read(const RibbonGalleryColumnsCapability& capability)
+
+   .. cpp:member:: PropertyView<std::size_t, RibbonGalleryColumnsCapability<Declaring>> columns
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RibbonGalleryCommandCapability
+
+   ``#include <gui_forms/controls/ribbon_gallery/ribbon_gallery_capabilities/ribbon_gallery_capabilities.hpp>``
+
+   The value command whose value the selection follows, which a click or Enter commits and which receives previews, or null. Without one the gallery keeps its own selection and offers no preview.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonGalleryCommandCapability& capability, std::shared_ptr<GalleryCommand> incoming)
+
+   .. cpp:member:: PropertyCell<std::shared_ptr<GalleryCommand>, RibbonGalleryCommandCapability<Declaring>> command
 
 .. cpp:namespace:: gui_forms
 
@@ -1429,6 +1504,55 @@ Related types
    .. cpp:member:: bool enabled
 
       Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RibbonGalleryItemSizeCapability
+
+   ``#include <gui_forms/controls/ribbon_gallery/ribbon_gallery_capabilities/ribbon_gallery_capabilities.hpp>``
+
+   Every item's image area, in logical units at text scale 1. A size outside 16 to 256 on either side throws std::out_of_range.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonGalleryItemSizeCapability& capability, Size incoming)
+
+   .. cpp:member:: PropertyCell<Size, RibbonGalleryItemSizeCapability<Declaring>> item_size
+
+      Default: ``{48.0, 48.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RibbonGalleryShowLabelsCapability
+
+   ``#include <gui_forms/controls/ribbon_gallery/ribbon_gallery_capabilities/ribbon_gallery_capabilities.hpp>``
+
+   Whether labels show under the images.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonGalleryShowLabelsCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, RibbonGalleryShowLabelsCapability<Declaring>> show_labels
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RibbonGalleryVisibleRowsCapability
+
+   ``#include <gui_forms/controls/ribbon_gallery/ribbon_gallery_capabilities/ribbon_gallery_capabilities.hpp>``
+
+   In-ribbon form: the rows shown (1 to 8). A count outside that throws std::out_of_range.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonGalleryVisibleRowsCapability& capability, std::size_t incoming)
+
+   .. cpp:member:: PropertyCell<std::size_t, RibbonGalleryVisibleRowsCapability<Declaring>> visible_rows
+
+      Default: ``{3U}``.
 
 .. cpp:namespace:: gui_forms
 

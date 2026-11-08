@@ -59,6 +59,7 @@
 #include "gui_forms/controls/quick_access_toolbar/quick_access_toolbar.hpp"
 #include "gui_forms/controls/raster_canvas/raster_canvas.hpp"
 #include "gui_forms/controls/ribbon/ribbon.hpp"
+#include "gui_forms/controls/ribbon_gallery/ribbon_gallery.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/container_control.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/split_container/split_container.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/split_container/splitter_panel/splitter_panel.hpp"
@@ -1468,6 +1469,26 @@ void test_ribbon_properties() {
     }
 }
 
+void test_ribbon_gallery_properties() {
+    std::shared_ptr<RibbonGallery> control = make_control<RibbonGallery>(StableId("generated.ribbongallery"));
+    // command: no sample for std::shared_ptr<GalleryCommand>; give the property a "sample".
+    {
+        const Size sample = Size{48.0, 40.0};
+        (*control).item_size = sample;
+        expect((*control).item_size.read() == sample, "RibbonGallery.item_size: a write stores");
+    }
+    {
+        const bool sample = true;
+        (*control).show_labels = sample;
+        expect((*control).show_labels.read() == sample, "RibbonGallery.show_labels: a write stores");
+    }
+    {
+        const std::size_t sample = std::size_t{2U};
+        (*control).visible_rows = sample;
+        expect((*control).visible_rows.read() == sample, "RibbonGallery.visible_rows: a write stores");
+    }
+}
+
 void test_rich_text_box_properties() {
     std::shared_ptr<RichTextBox> control = make_control<RichTextBox>(StableId("generated.richtextbox"));
     {
@@ -2048,6 +2069,7 @@ int main() {
     test_raster_canvas_properties();
     test_review_card_properties();
     test_ribbon_properties();
+    test_ribbon_gallery_properties();
     test_rich_text_box_properties();
     test_scaled_group_box_properties();
     test_scaled_panel_properties();
