@@ -453,7 +453,7 @@ std::shared_ptr<Toast> make_toast(const char* id, const char* action_text, bool 
     content.action_text = action_text;
     content.severity = NoticeSeverity::warning;
     content.closable = closable;
-    std::shared_ptr<Toast> toast = make_control<Toast>(StableId(id), std::move(content));
+    std::shared_ptr<Toast> toast = make_control<Toast>(StableId(std::string(id)), std::move(content));
     return toast;
 }
 
@@ -506,7 +506,8 @@ void test_window_toasts() {
     window.perform_layout();
     DismissalRecorder recorder;
     recorder.window = &window;
-    on(window.toast_dismissed(), recorder, &DismissalRecorder::on_dismissed);
+    const SubscriptionToken dismissed_token = window.toast_dismissed().subscribe(
+        Delegate<const ToastDismissal&>::bind<DismissalRecorder, &DismissalRecorder::on_dismissed>(recorder));
     require(!window.toast_visible() && window.toast_id() == 0U && !window.toast_content(), "no toast shows at first");
 
     const std::shared_ptr<Toast> first = make_toast("display.toasts.first", "Undo", true);
@@ -546,7 +547,8 @@ void test_window_toasts() {
 
     // The detached first toast may be shown again; its action dismisses it.
     ActionRecorder actions;
-    on((*first).action_invoked(), actions, &ActionRecorder::on_invoked);
+    const SubscriptionToken invoked_token =
+        (*first).action_invoked().subscribe(Delegate<>::bind<ActionRecorder, &ActionRecorder::on_invoked>(actions));
     const std::uint64_t third_id = window.show_toast(owner, first, std::chrono::milliseconds{0});
     window.perform_layout();
     const std::shared_ptr<Button> undo = std::dynamic_pointer_cast<Button>((*first).action());
@@ -703,8 +705,10 @@ void test_toggle_switch() {
     window.motion_clock().set_time_source(&time);
     window.perform_layout();
     SwitchRecorder recorder;
-    on((*toggle).checked_changed(), recorder, &SwitchRecorder::on_checked);
-    on((*toggle).clicked(), recorder, &SwitchRecorder::on_clicked);
+    const SubscriptionToken checked_token =
+        (*toggle).checked_changed().subscribe(Delegate<bool>::bind<SwitchRecorder, &SwitchRecorder::on_checked>(recorder));
+    const SubscriptionToken clicked_token = (*toggle).clicked().subscribe(
+        Delegate<ButtonBase&>::bind<SwitchRecorder, &SwitchRecorder::on_clicked>(recorder));
 
     require(!(*toggle).checked.read() && (*toggle).state_text().empty(), "a new switch is off with no state text");
     const ToggleSwitch::Parts off_parts = (*toggle).parts();
@@ -772,9 +776,11 @@ struct SearchRecorder final {
 };
 
 void watch(SearchField& field, SearchRecorder& recorder) {
-    on(field.text_changed(), recorder, &SearchRecorder::on_text);
+    const SubscriptionToken text_token = field.text_changed().subscribe(
+        Delegate<const std::string&>::bind<SearchRecorder, &SearchRecorder::on_text>(recorder));
     on(field.search_requested(), recorder, &SearchRecorder::on_search);
-    on(field.cleared(), recorder, &SearchRecorder::on_cleared);
+    const SubscriptionToken cleared_token =
+        field.cleared().subscribe(Delegate<>::bind<SearchRecorder, &SearchRecorder::on_cleared>(recorder));
 }
 
 void test_search_field_alone() {
