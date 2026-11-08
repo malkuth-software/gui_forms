@@ -376,11 +376,11 @@ bool DomainUpDown::on_semantic_action(SemanticAction action, std::string_view va
     if (action == SemanticAction::set_value) {
         const std::optional<std::size_t> index = matching_index(value_text);
         if (index) {
-            set_selected_index(index);
+            selected_index = index;
             return true;
         }
         if (read_only.read()) return false;
-        set_text(std::string(value_text));
+        text = std::string(value_text);
         return true;
     }
     Window* const host = window();
