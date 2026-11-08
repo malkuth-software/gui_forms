@@ -177,7 +177,7 @@ void DropDownList::publish_realized_item_geometry(std::size_t item,
 
 DropDownLayer::DropDownLayer(StableId stable_id) : Panel(std::move(stable_id)) {
     set_paint_plane(PaintPlane::overlay);
-    set_border_style(BorderStyle::none);
+    border_style = BorderStyle::none;
     set_background(Color::rgba(0, 0, 0, 0));
 }
 

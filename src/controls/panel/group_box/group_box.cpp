@@ -18,7 +18,7 @@ namespace gui_forms {
 
 GroupBox::GroupBox(StableId stable_id, std::string text)
     : Panel(std::move(stable_id)), text_(std::move(text)) {
-    set_border_style(BorderStyle::none);
+    border_style = BorderStyle::none;
     // The caption (Windows Forms' GroupBox.Text); it raises no change event.
     define_bindable_property({
         {"text", BindingValueKind::text, "Appearance",

@@ -660,7 +660,7 @@ void test_panel_and_scrollable_parts() {
             "Panel must publish its own valid anatomy");
     require((*panel).parts().face.present && !(*panel).parts().edge.present,
             "a borderless panel publishes a face and no edge");
-    (*panel).set_border_style(BorderStyle::line);
+    (*panel).border_style = BorderStyle::line;
     require((*panel).parts().edge.present,
             "a bordered panel publishes its edge");
     require(!(*panel).parts().scrollable.vertical_thumb.present,
@@ -733,7 +733,7 @@ void test_base_record_follows_dynamic_type() {
     std::shared_ptr<MaterialPanel> material =
         make_control<MaterialPanel>(StableId("anatomy.material"));
     (*material).set_requested_bounds({0.0, 0.0, 120.0, 60.0});
-    (*material).set_border_style(BorderStyle::line);
+    (*material).border_style = BorderStyle::line;
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(material, Size{120.0, 60.0});
     Window& window = *held_window;
     window.perform_layout();

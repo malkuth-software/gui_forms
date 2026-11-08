@@ -36,7 +36,7 @@ CardLayout themed_card_layout(const Theme& theme) noexcept {
 } // namespace
 
 Card::Card(StableId stable_id) : Panel(std::move(stable_id)) {
-    set_visual_role(ControlVisualRole::card);
+    visual_role = ControlVisualRole::card;
 }
 
 Control::Ptr Card::replace_section(Control::Ptr& slot,

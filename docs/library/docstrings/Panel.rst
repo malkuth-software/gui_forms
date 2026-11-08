@@ -118,5 +118,5 @@ technology announces it as a group:
    std::shared_ptr<gf::Panel> swatch = gf::make_control<gf::Panel>(gf::StableId("swatch"));
    (*swatch).set_requested_bounds({12.0, 12.0, 120.0, 80.0});
    (*swatch).set_background(gf::Color::rgba(250, 240, 200));
-   (*swatch).set_border_style(gf::BorderStyle::line);
+   (*swatch).border_style = gf::BorderStyle::line;
    (*swatch).accessible_name = "Highlight colour";

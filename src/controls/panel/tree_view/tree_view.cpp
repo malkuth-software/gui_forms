@@ -24,7 +24,7 @@ TreeView::TreeView(StableId stable_id)
     : Panel(std::move(stable_id)), reveal_(std::make_unique<detail::CutOffTextRevealer>()) {
     set_paint_plane(PaintPlane::control);
     set_background(style().paper);
-    set_border_style(BorderStyle::sunken);
+    border_style = BorderStyle::sunken;
     set_focusable(true);
 }
 

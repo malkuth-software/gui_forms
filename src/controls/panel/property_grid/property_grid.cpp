@@ -1216,7 +1216,7 @@ std::shared_ptr<const PropertyEnumDescriptor> property_sort_enum() {
 PropertyGrid::PropertyGrid(StableId stable_id)
     : Panel(std::move(stable_id)), impl_(std::make_unique<Impl>(*this)) {
     set_background(Color::rgba(244, 247, 251));
-    set_border_style(BorderStyle::line);
+    border_style = BorderStyle::line;
     set_paint_plane(PaintPlane::control);
 
     PropertyDescriptor property_sort;

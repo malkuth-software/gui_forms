@@ -43,7 +43,7 @@ ComboBox::ComboBox(StableId stable_id) : Panel(std::move(stable_id)) {
     auto_complete_custom_source_ = std::make_shared<AutoCompleteStringCollection>();
     list_items_source_ = std::make_shared<AutoCompleteStringCollection>();
     set_paint_plane(PaintPlane::control);
-    set_border_style(BorderStyle::sunken);
+    border_style = BorderStyle::sunken;
     set_focusable(true);
     cursor = CursorKind::hand;
     PropertyDescriptor items_descriptor;
@@ -295,7 +295,7 @@ void ComboBox::create_editor() {
     const bool had_focus = focused_;
     const std::string prefix(stable_id().value());
     editor_ = make_control<TextBox>(StableId(prefix + ".editor"));
-    (*editor_).set_border_style(BorderStyle::none);
+    (*editor_).border_style = BorderStyle::none;
     (*editor_).set_font(font_);
     (*editor_).set_text(std::string(selected_text()));
     (*editor_).set_placeholder_text(placeholder_);

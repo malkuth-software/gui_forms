@@ -76,7 +76,7 @@ TokenBox::~TokenBox() {
 void TokenBox::initialize_control_tree() {
     const std::string prefix(stable_id().value());
     editor_ = make_control<TextBox>(StableId(prefix + ".editor"));
-    (*editor_).set_border_style(BorderStyle::none);
+    (*editor_).border_style = BorderStyle::none;
     (*editor_).set_font(font_);
     (*editor_).set_auto_complete_anchor(shared_from_this());
     // Enter turns the typed text into a token (editor_committed); with

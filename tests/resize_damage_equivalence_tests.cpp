@@ -107,7 +107,7 @@ std::unique_ptr<Scene> make_scene(Size size, double scale) {
     (*column_mark).set_requested_bounds(Rect{8.0, 8.0, 16.0, 16.0});
     (*column).add_child(column_mark);
     const std::shared_ptr<Panel> box = make_control<Panel>(StableId("column.box"));
-    (*box).set_border_style(BorderStyle::line);
+    (*box).border_style = BorderStyle::line;
     const double box_height = size.height - header_height - footer_height - 40.0;
     (*box).set_requested_bounds(Rect{8.0, 32.0, column_width - 16.0, box_height});
     (*box).anchor = AnchorStyles::top | AnchorStyles::bottom | AnchorStyles::left;

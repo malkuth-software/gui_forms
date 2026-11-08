@@ -20,7 +20,7 @@ using namespace date_time_detail;
 
 DateTimePicker::DateTimePicker(StableId stable_id) : Panel(std::move(stable_id)) {
     set_background(style_.paper);
-    set_border_style(BorderStyle::sunken);
+    border_style = BorderStyle::sunken;
     set_focusable(true);
 }
 

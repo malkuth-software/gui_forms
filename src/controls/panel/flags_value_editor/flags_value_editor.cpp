@@ -24,7 +24,7 @@ FlagsValueEditor::FlagsValueEditor(
     PropertyEnumValue value)
     : Panel(std::move(stable_id)) {
     set_paint_plane(PaintPlane::control);
-    set_border_style(BorderStyle::sunken);
+    border_style = BorderStyle::sunken;
     set_focusable(true);
     cursor = CursorKind::hand;
     set_descriptor(std::move(descriptor));

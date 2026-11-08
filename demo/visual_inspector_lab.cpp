@@ -176,12 +176,12 @@ std::unique_ptr<Window> make_visual_inspector_lab() {
     std::shared_ptr<ClippingPanel> clipping = make_control<ClippingPanel>(
         StableId("visual-inspector.clip-host"));
     (*clipping).set_background(Color::rgba(55, 68, 77));
-    (*clipping).set_border_style(BorderStyle::sunken);
+    (*clipping).border_style = BorderStyle::sunken;
     add_at(card, clipping, {280.0, 126.0, 202.0, 112.0});
     std::shared_ptr<Panel> clipped = make_control<Panel>(
         StableId("visual-inspector.clipped-child"));
     (*clipped).set_background(Color::rgba(238, 102, 184));
-    (*clipped).set_border_style(BorderStyle::raised);
+    (*clipped).border_style = BorderStyle::raised;
     add_at(clipping, clipped, {-18.0, 24.0, 178.0, 62.0});
     add_at(clipped,
         label("visual-inspector.clipped-label", "ancestor clipped",

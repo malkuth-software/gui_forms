@@ -98,7 +98,7 @@ private:
         content_ = make_control<Panel>(StableId("gallery.overlays.content"));
         (*content_).set_background(paper);
         (*content_).set_style(page_style());
-        (*content_).set_border_style(BorderStyle::raised);
+        (*content_).border_style = BorderStyle::raised;
         (*content_).accessible_name = "Anchored overlay";
         std::shared_ptr<Label> title = label("gallery.overlays.content.title",
                                              "Anchored overlay · focus contained", 12.0, 700,

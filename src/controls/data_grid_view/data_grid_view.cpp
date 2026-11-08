@@ -233,7 +233,7 @@ DataGridView::~DataGridView() {
 void DataGridView::initialize_control_tree() {
     const std::string prefix(stable_id().value());
     editor_ = make_control<TextBox>(StableId(prefix + ".editor"));
-    (*editor_).set_border_style(BorderStyle::none);
+    (*editor_).border_style = BorderStyle::none;
     (*editor_).set_font(font.read());
     vertical_bar_ = make_control<VScrollBar>(StableId(prefix + ".vertical-scroll"));
     horizontal_bar_ = make_control<HScrollBar>(StableId(prefix + ".horizontal-scroll"));

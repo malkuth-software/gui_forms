@@ -1,0 +1,83 @@
+{
+  "family": "Panel",
+  "step": "P-4",
+  "declaring": "Panel",
+  "header": "include/gui_forms/controls/panel/panel.hpp",
+  "source": "src/controls/panel/panel.cpp",
+  "capabilities_header": "include/gui_forms/controls/panel/panel_capabilities/panel_capabilities.hpp",
+  "shared": [],
+  "properties": [
+    {
+      "name": "border_style",
+      "capability": "BorderStyle",
+      "value": "BorderStyle",
+      "initial": "BorderStyle::none",
+      "comment": "The panel's border: none, a line, sunken or raised (BorderStyle).",
+      "getter": "border_style",
+      "setter": "set_border_style",
+      "clear": null,
+      "field": "border_style_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": {
+        "kind": "enumeration",
+        "category": "Appearance",
+        "description": "The panel's border: none, a line, sunken or raised.",
+        "default": null,
+        "effects": "Dirty::paint",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": "border_style_enum()",
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "written_effects": "Dirty::paint | Dirty::semantics",
+      "prepare": [
+        "if (incoming != BorderStyle::none && incoming != BorderStyle::line && incoming != BorderStyle::sunken && incoming != BorderStyle::raised) throw std::invalid_argument(\"Panel border style is invalid\");"
+      ],
+      "sample": "BorderStyle::sunken"
+    },
+    {
+      "name": "visual_role",
+      "capability": "VisualRole",
+      "value": "ControlVisualRole",
+      "initial": "ControlVisualRole::panel",
+      "comment": "The recipe family the panel paints with: window, panel or card.",
+      "getter": "visual_role",
+      "setter": "set_visual_role",
+      "clear": null,
+      "field": "visual_role_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "effects": "Dirty::style | Dirty::paint | Dirty::semantics",
+      "hooks": "generated",
+      "prepare": [
+        "if (incoming != ControlVisualRole::window && incoming != ControlVisualRole::panel && incoming != ControlVisualRole::card) throw std::invalid_argument(\"panel visual role must be window, panel, or card\");"
+      ],
+      "sample": "ControlVisualRole::card"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "background, style",
+      "reason": "optional overrides read through effective getters (background() returns the resolved face, style() the theme's when unset), as ButtonBase's style in M3; an override capability later"
+    }
+  ],
+  "test": {
+    "type": "Panel",
+    "include": "gui_forms/controls/panel/panel.hpp"
+  },
+  "base": "ScrollableControl",
+  "includes": [
+    "gui_forms/controls/panel/border_style/border_style.hpp",
+    "gui_forms/theme/types/theme_types.hpp"
+  ]
+}

@@ -90,7 +90,7 @@ private:
         std::shared_ptr<Panel> face = make_control<Panel>(
             StableId("gallery.containers.base.face"));
         (*face).set_background(Color::rgba(232, 239, 245));
-        (*face).set_border_style(BorderStyle::line);
+        (*face).border_style = BorderStyle::line;
         (*face).dock = DockStyle::fill;
         (*base_container_).add_child(face);
         std::shared_ptr<Label> copy = label(
@@ -113,7 +113,7 @@ private:
         std::shared_ptr<Panel> face = make_control<Panel>(
             StableId("gallery.containers.user.face"));
         (*face).set_background(Color::rgba(238, 244, 236));
-        (*face).set_border_style(BorderStyle::line);
+        (*face).border_style = BorderStyle::line;
         (*face).dock = DockStyle::fill;
         (*user_control_).add_child(face);
         user_status_ = label("gallery.containers.user.status",

@@ -300,7 +300,7 @@ std::shared_ptr<ScaledPanel> make_navigation(ProductRefs& refs) {
     (*panel).add_at(refs.nav_up, {77, 6, 30, 28});
     std::shared_ptr<gui_forms::Panel> well = std::make_shared<Panel>(StableId("fm.path.breadcrumb"));
     (*well).set_background(paper);
-    (*well).set_border_style(BorderStyle::sunken);
+    (*well).border_style = BorderStyle::sunken;
     (*panel).add_at(well, {112, 6, 860, 28});
     const char* crumbs[] = {"quentin", "›", "Work", "›", "Projects"};
     double x = 120;
@@ -877,7 +877,7 @@ std::shared_ptr<Panel> make_selection_pane(ProductRefs& refs) {
     (*pane).set_background(Color::rgba(235, 240, 246));
     std::shared_ptr<gui_forms::Panel> caption = std::make_shared<Panel>(StableId("fm.selection.caption.material"));
     (*caption).set_background(Color::rgba(201, 212, 229));
-    (*caption).set_border_style(BorderStyle::raised);
+    (*caption).border_style = BorderStyle::raised;
     (*caption).margin = Insets{};
     (*caption).set_requested_bounds({0, 0, 288, 27});
     (*caption).dock = DockStyle::top;
@@ -1005,7 +1005,7 @@ std::shared_ptr<SplitContainer> make_workspace(ProductRefs& refs) {
 std::shared_ptr<ScaledPanel> make_status(ProductRefs& refs) {
     std::shared_ptr<gui_forms::ScaledPanel> panel = std::make_shared<ScaledPanel>(StableId("fm.status"), Size{1450,24});
     (*panel).set_background(Color::rgba(231,237,246));
-    (*panel).set_border_style(BorderStyle::raised);
+    (*panel).border_style = BorderStyle::raised;
     refs.status_summary = label("fm.status.summary", "1 selected · 2.8 MB · 14 objects", {8,1,590,22}, {FontRole::content,9.5,400,false});
     (*panel).add_at(refs.status_summary, {8,1,590,22});
     refs.status_authority = label("fm.status.authority", "Local navigation ready · index 86 current", {660,1,520,22}, {FontRole::content,9.5,600,false});
@@ -1404,7 +1404,7 @@ private:
     void build_overlay() {
         content_ = make_control<PathMatrixContent>(StableId("fm.path.matrix"));
         (*content_).set_background(Color::rgba(229, 234, 235));
-        (*content_).set_border_style(BorderStyle::raised);
+        (*content_).border_style = BorderStyle::raised;
         (*content_).accessible_name = "Complete path matrix";
         (*content_).key_preview = detail::BoundMemberFunction<
             void (PathMatrixController::*)(KeyEvent&)>(
@@ -1424,7 +1424,7 @@ private:
         current_ = make_control<ScaledPanel>(
             StableId("fm.path.matrix.current"), Size{840.0, 60.0});
         (*current_).set_background(Color::rgba(251, 248, 237));
-        (*current_).set_border_style(BorderStyle::sunken);
+        (*current_).border_style = BorderStyle::sunken;
         (*current_).accessible_name = "Current full path";
         const FixturePath& current = FixtureCatalogue::instance().current_path_stack();
         double x = 8.0;
@@ -1513,7 +1513,7 @@ private:
                 StableId("fm.path.matrix.recent." + path.id), Size{830.0, 49.0});
             (*row).set_background(path.available ? Color::rgba(255, 255, 255)
                                                : Color::rgba(238, 238, 235));
-            (*row).set_border_style(BorderStyle::line);
+            (*row).border_style = BorderStyle::line;
             (*row).accessible_name = path.path;
             (*row).accessible_description = path.available
                 ? "Recent fixture path" : "Recent stored path · source volume offline";

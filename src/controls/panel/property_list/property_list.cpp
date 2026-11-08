@@ -531,7 +531,7 @@ struct PropertyList::Impl final {
 PropertyList::PropertyList(StableId stable_id)
     : Panel(std::move(stable_id)), impl_(std::make_unique<Impl>(*this)) {
     set_background(Color::rgba(244, 247, 251));
-    set_border_style(BorderStyle::none);
+    border_style = BorderStyle::none;
     set_focusable(true);
     set_paint_plane(PaintPlane::control);
 }

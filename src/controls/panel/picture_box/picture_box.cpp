@@ -142,7 +142,7 @@ void PictureBox::set_image_opacity(double opacity) {
 
 Rect PictureBox::content_bounds() const noexcept {
     const Rect bounds = local_bounds();
-    const double inset = border_style() == BorderStyle::none ? 0.0 : 1.0;
+    const double inset = border_style.read() == BorderStyle::none ? 0.0 : 1.0;
     return {inset, inset, std::max(0.0, bounds.width - inset * 2.0),
             std::max(0.0, bounds.height - inset * 2.0)};
 }
@@ -180,7 +180,7 @@ Size PictureBox::measure(Size available) {
     const Rect requested = requested_bounds();
     if (size_mode_ == PictureBoxSizeMode::auto_size) {
         const Size source = image_size();
-        const double border = border_style() == BorderStyle::none ? 0.0 : 2.0;
+        const double border = border_style.read() == BorderStyle::none ? 0.0 : 2.0;
         if (source.width > 0.0 && source.height > 0.0) {
             return {std::min(available.width, source.width + border),
                     std::min(available.height, source.height + border)};

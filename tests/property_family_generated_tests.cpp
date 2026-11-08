@@ -5,6 +5,7 @@
 #include "gui_forms/gui_forms.hpp"
 #include "gui_forms/controls/button_base/button/button.hpp"
 #include "gui_forms/controls/data_grid_view/data_grid_view.hpp"
+#include "gui_forms/controls/panel/panel.hpp"
 #include "gui_forms/controls/panel/tree_list_view/tree_list_view.hpp"
 #include "gui_forms/controls/scrollable_control/scrollable_control.hpp"
 
@@ -296,6 +297,23 @@ void test_data_grid_view_properties() {
     }
 }
 
+void test_panel_properties() {
+    std::shared_ptr<Panel> control = make_control<Panel>(StableId("generated.panel"));
+    {
+        const BorderStyle sample = BorderStyle::sunken;
+        (*control).border_style = sample;
+        expect((*control).border_style.read() == sample, "Panel.border_style: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("border_style");
+        expect(by_name && *by_name == PropertyValueTraits<BorderStyle>::to_binding(sample),
+               "Panel.border_style: the table reads the cell");
+    }
+    {
+        const ControlVisualRole sample = ControlVisualRole::card;
+        (*control).visual_role = sample;
+        expect((*control).visual_role.read() == sample, "Panel.visual_role: a write stores");
+    }
+}
+
 void test_scrollable_control_properties() {
     std::shared_ptr<ScrollableControl> control = make_control<ScrollableControl>(StableId("generated.scrollablecontrol"));
     {
@@ -344,6 +362,7 @@ void test_tree_list_view_properties() {
 int main() {
     test_button_base_properties();
     test_data_grid_view_properties();
+    test_panel_properties();
     test_scrollable_control_properties();
     test_tree_list_view_properties();
     std::cout << "generated property tests passed\n";

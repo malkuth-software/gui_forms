@@ -8,8 +8,6 @@
       "summary": "Panel is the reusable retained scroll-capable surface primitive with theme-role rendering, explicit background/style overrides, bounded border vocabulary, visual outsets, and optional named-group semantics.",
       "methods": {
         "Panel": "Constructs a backplane ScrollableControl whose ordinary appearance resolves through the panel theme role.",
-        "border_style": "Returns the retained none, line, sunken, or raised border policy.",
-        "set_border_style": "Validates the closed border vocabulary, commits a real change, and invalidates paint and semantics atomically.",
         "background": "Resolves the explicit background override or the leading color of the active theme material.",
         "has_background_override": "Reports whether a caller-owned background currently supersedes theme material fill.",
         "set_background": "Installs a caller-owned solid background and invalidates painting.",
@@ -18,8 +16,6 @@
         "has_style_override": "Reports whether legacy style colors override the role recipe.",
         "set_style": "Installs an explicit BasicControlStyle for compatibility painting and semantic appearance.",
         "clear_style": "Removes the explicit compatibility style and resumes theme recipes.",
-        "visual_role": "Returns the theme role used when no explicit style/background is authoritative.",
-        "set_visual_role": "Accepts only panel-compatible roles, then invalidates style, paint, and semantics.",
         "on_paint": "Records the resolved material or compatibility panel frame into the renderer-neutral Painter.",
         "visual_outsets": "Reports shadow/filter outsets from the active surface material, or none for legacy style painting.",
         "semantic_descriptor": "Projects a named Panel as an exposed group and leaves an unnamed structural Panel unexposed."
