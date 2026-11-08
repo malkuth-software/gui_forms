@@ -1,0 +1,47 @@
+{
+  "family": "ExpandableSections",
+  "step": "M-S8",
+  "declaring": "ExpandableSections",
+  "header": "include/gui_forms/controls/collections/expandable_sections.hpp",
+  "source": "src/controls/collections/expandable_sections.cpp",
+  "capabilities_header": "include/gui_forms/controls/collections/expandable_sections_capabilities/expandable_sections_capabilities.hpp",
+  "base": "Panel",
+  "shared": [],
+  "includes": [],
+  "test": {
+    "type": "ExpandableSections",
+    "include": "gui_forms/controls/collections/expandable_sections.hpp"
+  },
+  "properties": [
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hand": [
+        "written closes every open section after the first when turned on"
+      ],
+      "event": null,
+      "hooks": "hand",
+      "effects": null,
+      "name": "single_open",
+      "capability": "ExpandableSectionsSingleOpen",
+      "value": "bool",
+      "comment": "Whether at most one section is open (an accordion). Turning it on keeps the first open section and closes the others.",
+      "getter": "single_open",
+      "setter": "set_single_open",
+      "field": "single_open_"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "items",
+      "reason": "wholesale collection replacement"
+    },
+    {
+      "name": "expanded",
+      "reason": "indexed: set_expanded(index, expanded)"
+    }
+  ]
+}

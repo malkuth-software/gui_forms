@@ -107,7 +107,7 @@ Share one section's state with a setting and keep at most one section open:
    (*sharing).set_requested_bounds({0.0, 0.0, 0.0, 40.0});
 
    gf::Value<bool> general_open(true);
-   (*inspector).set_single_open(true);
+   (*inspector).single_open = true;
    (*inspector).set_items({
        {.id = 1, .label = "&General", .content = general, .expanded = &general_open},
        {.id = 2, .label = "&Sharing", .content = sharing},

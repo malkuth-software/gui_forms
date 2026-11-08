@@ -1,6 +1,7 @@
 #include "gui_forms/controls/collections/expandable_sections.hpp"
 #include "gui_forms/text.hpp"
 #include "../panel/panel_anatomy.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <array>
 #include <algorithm>
@@ -78,11 +79,14 @@ Control* ExpandableSections::part(const std::string_view name, const int index) 
     else if (name == "body") control = item.content.get();
     return control;
 }
-void ExpandableSections::set_single_open(const bool enabled) {
+void ExpandableSections::prepare_write(const decltype(single_open)&, bool&) {
     require_mutable();
-    if (single_open_ == enabled) return;
-    single_open_ = enabled;
-    if (!enabled || !revision_) return;
+}
+
+// Turning single_open on keeps the first open section and closes the rest;
+// a closing heading may replace the items, which ends the walk.
+void ExpandableSections::written(const decltype(single_open)&) {
+    if (!single_open.read() || !revision_) return;
     const Control::Ptr retained = shared_from_this();
     const std::shared_ptr<Revision> revision = revision_;
     bool found = false;
@@ -164,7 +168,7 @@ void ExpandableSections::set_items(std::vector<SectionItem> items) {
             heading.text = value.label;
             heading.tab_index = static_cast<std::uint32_t>(index * 2U);
             if (value.expanded != nullptr) heading.bind(*value.expanded);
-            if (single_open_ && opened && heading.checked()) heading.set_checked(false);
+            if (single_open.read() && opened && heading.checked()) heading.set_checked(false);
             opened = opened || heading.checked();
             heading.expanded_state = heading.checked();
             (*item.content).visible = heading.checked();
@@ -196,7 +200,7 @@ void ExpandableSections::on_toggled(const int id, const bool expanded) {
         if (!is_alive() || revision_ != revision) return;
         (*item.content).visible = expanded;
         if (!is_alive() || revision_ != revision) return;
-        if (expanded && single_open_) {
+        if (expanded && single_open.read()) {
             for (const std::shared_ptr<Entry>& other : (*revision).entries) {
                 if ((*other).id != id) (*(*other).heading).set_checked(false);
                 if (!is_alive() || revision_ != revision) return;
@@ -229,7 +233,6 @@ SemanticDescriptor ExpandableSections::semantic_descriptor() const {
     return descriptor;
 }
 
-
 namespace {
 
 // Its members are child controls, which publish their own anatomies.
@@ -259,5 +262,9 @@ void ExpandableSections::append_interactions(std::vector<InteractionDeclaration>
     Panel::append_interactions(interactions);
     interactions.insert(interactions.end(), expandable_sections_interactions.begin(), expandable_sections_interactions.end());
 }
+
+// property_codemod begin ExpandableSections (tools/property_families/expandable_sections.json; generated, do not edit)
+
+// property_codemod end ExpandableSections
 
 } // namespace gui_forms

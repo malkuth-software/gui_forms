@@ -127,7 +127,7 @@ void StatesPage::build_specimens() {
     for (std::size_t index = 0; index < panels.size(); ++index) {
         (*panels[index]).set_background(index % 2U == 0U ? paper : Color::rgba(230, 238, 245));
     }
-    (*document_.gallery_states_visited).set_visited(true);
+    (*document_.gallery_states_visited).visited = true;
 }
 
 void StatesPage::build_dispatcher() {

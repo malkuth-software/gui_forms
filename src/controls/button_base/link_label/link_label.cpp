@@ -3,6 +3,7 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
 #include <array>
@@ -17,15 +18,6 @@ namespace gui_forms {
 
 LinkLabel::LinkLabel(StableId stable_id, std::string text)
     : ButtonBase(std::move(stable_id), std::move(text)) {}
-
-void LinkLabel::set_visited(bool visited_value) {
-    require_mutable();
-    if (visited_ == visited_value) {
-        return;
-    }
-    visited_ = visited_value;
-    invalidate(Dirty::paint | Dirty::semantics);
-}
 
 namespace {
 
@@ -117,7 +109,7 @@ void LinkLabel::publish_part_geometry(std::span<PartGeometry> geometry) const {
 
 AnatomyStateSet LinkLabel::anatomy_states() const {
     AnatomyStateSet states = button_anatomy_states();
-    if (visited_) {
+    if (visited.read()) {
         states.insert(visited_state);
     }
     return states;
@@ -148,12 +140,12 @@ void LinkLabel::on_paint(Painter& painter, Rect) {
     const Rect bounds = local_bounds();
     const AnatomyStateSet states = anatomy_states();
     const ControlVisualContext context = part_visual_context(*this, states);
-    const ControlVisualRole family = visited_ ? ControlVisualRole::visited_link : ControlVisualRole::link;
+    const ControlVisualRole family = visited.read() ? ControlVisualRole::visited_link : ControlVisualRole::link;
     ControlVisualRecipe recipe = effective_theme().resolve(family, context);
     if (has_style_override() && !context.high_contrast) {
         const BasicControlStyle& colors = style();
         // A disabled link keeps the theme's disabled text (T4-1).
-        if (enabled.read()) recipe.text = visited_ ? colors.visited_link : colors.link;
+        if (enabled.read()) recipe.text = visited.read() ? colors.visited_link : colors.link;
     }
     const Color foreground = recipe.text;
     const double baseline = text_baseline();
@@ -195,7 +187,7 @@ void LinkLabel::on_paint(Painter& painter, Rect) {
 }
 
 void LinkLabel::on_activate() {
-    set_visited(true);
+    visited = true;
     if (is_alive()) {
         ButtonBase::on_activate();
     }
@@ -204,8 +196,20 @@ void LinkLabel::on_activate() {
 SemanticDescriptor LinkLabel::semantic_descriptor() const {
     SemanticDescriptor descriptor = ButtonBase::semantic_descriptor();
     descriptor.role = SemanticRole::link;
-    descriptor.value = visited_ ? "visited" : "unvisited";
+    descriptor.value = visited.read() ? "visited" : "unvisited";
     return descriptor;
 }
+
+// property_codemod begin LinkLabel (tools/property_families/link_label.json; generated, do not edit)
+
+void LinkLabel::prepare_write(const decltype(visited)&, bool&) {
+    require_mutable();
+}
+
+void LinkLabel::written(const decltype(visited)&) {
+    invalidate(Dirty::paint | Dirty::semantics);
+}
+
+// property_codemod end LinkLabel
 
 } // namespace gui_forms

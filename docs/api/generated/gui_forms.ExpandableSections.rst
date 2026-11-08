@@ -7,7 +7,7 @@ gui_forms::ExpandableSections
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: ExpandableSections final : public Panel
+.. cpp:class:: ExpandableSections final : public Panel, public ExpandableSectionsCapabilities<ExpandableSections>
 
    ``#include <gui_forms/controls/collections/expandable_sections.hpp>``
 
@@ -32,6 +32,11 @@ gui_forms::ExpandableSections
 
    :Properties:
 
+      **single_open** : ``bool``, default ``false``
+         Whether at most one section is open at a time. Turning it on closes
+         every open section after the first, raising :cpp:func:`toggled <gui_forms::ExpandableSections::toggled>` for each; at a
+         replacement the first open section wins.
+
       **items** : ``std::span<const SectionItem>``
          The sections as :cpp:class:`SectionItem <gui_forms::SectionItem>` records: a section ID, a label, the
          content control, and an optional borrowed :cpp:class:`Value <gui_forms::Value>` holding the expanded
@@ -45,11 +50,6 @@ gui_forms::ExpandableSections
          removed, and so is content that is no longer listed. A bound section
          takes its state from its :cpp:class:`Value <gui_forms::Value>`. No :cpp:func:`toggled <gui_forms::ExpandableSections::toggled>` events are raised during
          the replacement.
-
-      **single_open** : ``bool``, default ``false``
-         Whether at most one section is open at a time. Turning it on closes
-         every open section after the first, raising :cpp:func:`toggled <gui_forms::ExpandableSections::toggled>` for each; at a
-         replacement the first open section wins.
 
    :Events:
 
@@ -130,7 +130,7 @@ gui_forms::ExpandableSections
       (*sharing).set_requested_bounds({0.0, 0.0, 0.0, 40.0});
 
       gf::Value<bool> general_open(true);
-      (*inspector).set_single_open(true);
+      (*inspector).single_open = true;
       (*inspector).set_items({
           {.id = 1, .label = "&General", .content = general, .expanded = &general_open},
           {.id = 2, .label = "&Sharing", .content = sharing},
@@ -171,6 +171,12 @@ gui_forms::ExpandableSections
 
    .. rubric:: Properties
 
+   .. cpp:member:: bool single_open
+
+      Whether at most one section is open at a time. Turning it on closes
+      every open section after the first, raising :cpp:func:`toggled <gui_forms::ExpandableSections::toggled>` for each; at a
+      replacement the first open section wins.
+
    .. cpp:function:: std::span<const SectionItem> items() const noexcept
 
       The sections as :cpp:class:`SectionItem <gui_forms::SectionItem>` records: a section ID, a label, the
@@ -189,16 +195,6 @@ gui_forms::ExpandableSections
    .. cpp:function:: void set_items(std::vector<SectionItem> items)
 
       Sets :cpp:func:`items <gui_forms::ExpandableSections::items>`; see the property's description above.
-
-   .. cpp:function:: bool single_open() const noexcept
-
-      Whether at most one section is open at a time. Turning it on closes
-      every open section after the first, raising :cpp:func:`toggled <gui_forms::ExpandableSections::toggled>` for each; at a
-      replacement the first open section wins.
-
-   .. cpp:function:: void set_single_open(bool enabled)
-
-      Sets :cpp:func:`single_open <gui_forms::ExpandableSections::single_open>`; see the property's description above.
 
 
    .. rubric:: Events

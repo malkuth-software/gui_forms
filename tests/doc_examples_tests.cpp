@@ -1380,7 +1380,7 @@ struct Swatch final : gf::Component {
     int presses = 0;
 
     Swatch() {
-        (*surface).set_hit_test_visible(true);
+        (*surface).hit_test_visible = true;
         gf::on((*surface).pointer_observed(), *this, &Swatch::on_pointer);
     }
     void on_pointer(const gf::PointerEvent& event) {
@@ -1551,7 +1551,7 @@ void example() {
     (*sharing).set_requested_bounds({0.0, 0.0, 0.0, 40.0});
 
     gf::Value<bool> general_open(true);
-    (*inspector).set_single_open(true);
+    (*inspector).single_open = true;
     (*inspector).set_items({
         {.id = 1, .label = "&General", .content = general, .expanded = &general_open},
         {.id = 2, .label = "&Sharing", .content = sharing},
@@ -2084,7 +2084,7 @@ struct Report final : gf::Component {
 
 void example() {
     Report report;
-    (*report.details).perform_click();   // report.showing and visited() are now true
+    (*report.details).perform_click();   // report.showing and visited.read() are now true
 }
 }  // namespace doc_example_LinkLabel_1
 

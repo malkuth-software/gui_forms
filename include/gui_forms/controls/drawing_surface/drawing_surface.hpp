@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/basic_controls.hpp"
+#include "gui_forms/controls/drawing_surface/drawing_surface_capabilities/drawing_surface_capabilities.hpp"
 
 #include <functional>
 #include <span>
@@ -9,7 +10,7 @@ namespace gui_forms {
 
 // Public owner-render surface. Applications configure drawing through the
 // renderer-neutral Painter vocabulary without creating a Control subclass.
-class DrawingSurface final : public Control {
+class DrawingSurface final : public Control, public DrawingSurfaceCapabilities<DrawingSurface> {
 public:
     using PaintCallback = std::function<void(Painter&, Rect, Rect)>;
 
@@ -19,16 +20,6 @@ public:
     [[nodiscard]] bool has_paint_callback() const noexcept {
         return static_cast<bool>(paint_callback_);
     }
-    [[nodiscard]] bool hit_test_visible() const noexcept {
-        return hit_test_visible_;
-    }
-    void set_hit_test_visible(bool visible);
-    [[nodiscard]] SemanticRole semantic_role() const noexcept {
-        return semantic_role_;
-    }
-    void set_semantic_role(SemanticRole role);
-    [[nodiscard]] Color background() const noexcept { return background_; }
-    void set_background(Color color);
 
     void on_paint(Painter& painter, Rect local_damage) override;
     [[nodiscard]] bool hit_test_local(Point local_point) const override;
@@ -55,9 +46,19 @@ protected:
 
 private:
     PaintCallback paint_callback_;
-    SemanticRole semantic_role_{SemanticRole::image};
-    Color background_{Color::rgba(0, 0, 0, 0)};
-    bool hit_test_visible_{};
+    // property_codemod begin DrawingSurface (tools/property_families/drawing_surface.json; generated, do not edit)
+private:
+    friend struct DrawingSurfaceHitTestVisibleCapability<DrawingSurface>;
+    friend struct DrawingSurfaceSemanticRoleCapability<DrawingSurface>;
+    friend struct DrawingSurfaceBackgroundCapability<DrawingSurface>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(hit_test_visible)& cell, bool& incoming);
+    void written(const decltype(hit_test_visible)& cell);
+    void prepare_write(const decltype(semantic_role)& cell, SemanticRole& incoming);
+    void written(const decltype(semantic_role)& cell);
+    void prepare_write(const decltype(background)& cell, Color& incoming);
+    void written(const decltype(background)& cell);
+    // property_codemod end DrawingSurface
 };
 
 } // namespace gui_forms

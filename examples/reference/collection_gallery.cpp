@@ -50,7 +50,7 @@ public:
         const std::shared_ptr<gf::Label> second_body = gf::make_control<gf::Label>(gf::StableId("second.body"), "Rebuild replaces toolbar items without replacing its group subscription.");
         (*first_body).set_bounds({0.0, 0.0, 712.0, 64.0});
         (*second_body).set_bounds({0.0, 0.0, 712.0, 64.0});
-        (*sections).set_single_open(true);
+        (*sections).single_open = true;
         (*sections).set_items({{.id = 1, .label = "Shared scalar state", .content = first_body, .expanded = &first_open},
                               {.id = 2, .label = "Collection lifetime", .content = second_body, .expanded = &second_open}});
         gf::on((*commands).invoked(), *this, &Gallery::on_command);

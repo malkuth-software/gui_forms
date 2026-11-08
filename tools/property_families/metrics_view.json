@@ -1,0 +1,71 @@
+{
+  "family": "MetricsView",
+  "step": "M-S8",
+  "declaring": "MetricsView",
+  "header": "include/gui_forms/controls/metrics_view/metrics_view.hpp",
+  "source": "src/controls/metrics_view/metrics_view.cpp",
+  "capabilities_header": "include/gui_forms/controls/metrics_view/metrics_view_capabilities/metrics_view_capabilities.hpp",
+  "base": "Control",
+  "shared": [],
+  "includes": [
+    "<string>"
+  ],
+  "test": {
+    "type": "MetricsView",
+    "include": "gui_forms/controls/metrics_view/metrics_view.hpp"
+  },
+  "properties": [
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hand": [
+        "written copies the title into accessible_name before invalidating"
+      ],
+      "event": null,
+      "hooks": "hand",
+      "effects": "Dirty::paint | Dirty::semantics",
+      "name": "title",
+      "capability": "MetricsViewTitle",
+      "value": "std::string",
+      "comment": "The heading painted above the metrics; it is also the accessible name.",
+      "sample": "std::string(\"Frame budget\")",
+      "getter": "title",
+      "setter": "set_title",
+      "field": "title_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hand": [],
+      "event": null,
+      "hooks": "generated",
+      "effects": "Dirty::paint",
+      "name": "accent_width",
+      "capability": "MetricsViewAccentWidth",
+      "value": "double",
+      "initial": "5.0",
+      "comment": "The width of the accent bar at the leading edge, 1 to 32 (default 5). A value outside that range throws std::invalid_argument and changes nothing.",
+      "prepare": [
+        "if (!std::isfinite(incoming) || incoming < 1.0 || incoming > 32.0) {",
+        "    throw std::invalid_argument(\"metrics accent width must be within [1, 32]\");",
+        "}"
+      ],
+      "sample": "8.0",
+      "getter": "accent_width",
+      "setter": "set_accent_width",
+      "field": "accent_width_"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "style",
+      "reason": "theme plumbing (section 4)"
+    }
+  ]
+}

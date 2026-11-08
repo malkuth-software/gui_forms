@@ -7,7 +7,7 @@ gui_forms::LinkLabel
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: LinkLabel : public ButtonBase
+.. cpp:class:: LinkLabel : public ButtonBase, public LinkLabelCapabilities<LinkLabel>
 
    ``#include <gui_forms/controls/button_base/link_label/link_label.hpp>``
 
@@ -63,7 +63,7 @@ gui_forms::LinkLabel
 
    .. rubric:: Notes
 
-   When the user activates the link, :cpp:func:`visited <gui_forms::LinkLabel::visited>` becomes true first and ``clicked``
+   When the user activates the link, :cpp:member:`visited <gui_forms::LinkLabel::visited>` becomes true first and ``clicked``
    is raised afterwards, so a handler already sees the visited state.
 
    The link is drawn as one line of text at the left, vertically centred, with
@@ -83,7 +83,7 @@ gui_forms::LinkLabel
    and by ``perform_click``.
 
    The control publishes the accessibility role ``link``, with the value
-   :cpp:func:`visited <gui_forms::LinkLabel::visited>` or ``unvisited``. Its name is the accessible name, or else the caption
+   :cpp:member:`visited <gui_forms::LinkLabel::visited>` or ``unvisited``. Its name is the accessible name, or else the caption
    without the mnemonic marker.
 
    .. rubric:: Examples
@@ -103,7 +103,7 @@ gui_forms::LinkLabel
 
       void example() {
           Report report;
-          (*report.details).perform_click();   // report.showing and visited() are now true
+          (*report.details).perform_click();   // report.showing and visited.read() are now true
       }
 
 
@@ -114,15 +114,11 @@ gui_forms::LinkLabel
 
    .. rubric:: Properties
 
-   .. cpp:function:: bool visited() const noexcept
+   .. cpp:member:: bool visited
 
       Whether the link draws in the visited colour. Activation sets it to true;
       set it back to false yourself if the target can become new again. It
       raises no event.
-
-   .. cpp:function:: void set_visited(bool visited)
-
-      Sets :cpp:func:`visited <gui_forms::LinkLabel::visited>`; see the property's description above.
 
    .. cpp:function:: Parts parts() const
 

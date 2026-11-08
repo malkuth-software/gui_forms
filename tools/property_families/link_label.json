@@ -1,0 +1,36 @@
+{
+  "family": "LinkLabel",
+  "step": "M-S8",
+  "declaring": "LinkLabel",
+  "header": "include/gui_forms/controls/button_base/link_label/link_label.hpp",
+  "source": "src/controls/button_base/link_label/link_label.cpp",
+  "capabilities_header": "include/gui_forms/controls/button_base/link_label/link_label_capabilities/link_label_capabilities.hpp",
+  "base": "ButtonBase",
+  "shared": [],
+  "includes": [],
+  "test": {
+    "type": "LinkLabel",
+    "include": "gui_forms/controls/button_base/link_label/link_label.hpp"
+  },
+  "properties": [
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hand": [],
+      "event": null,
+      "hooks": "generated",
+      "effects": "Dirty::paint | Dirty::semantics",
+      "name": "visited",
+      "capability": "LinkLabelVisited",
+      "value": "bool",
+      "comment": "Whether the link paints in its visited colour (Windows Forms' LinkVisited). Activation sets it; set it back to false if the target can become new again.",
+      "getter": "visited",
+      "setter": "set_visited",
+      "field": "visited_"
+    }
+  ],
+  "not_properties": []
+}

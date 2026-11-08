@@ -7,7 +7,7 @@ gui_forms::DrawingSurface
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: DrawingSurface final : public Control
+.. cpp:class:: DrawingSurface final : public Control, public DrawingSurfaceCapabilities<DrawingSurface>
 
    ``#include <gui_forms/controls/drawing_surface/drawing_surface.hpp>``
 
@@ -16,7 +16,7 @@ gui_forms::DrawingSurface
    A drawing surface lets an application draw its own visuals, such as a chart, a
    status badge or the frames of a :cpp:class:`LiveSurface <gui_forms::LiveSurface>`, through the renderer-neutral
    :cpp:class:`Painter <gui_forms::Painter>` without deriving a new control. When it paints, it fills its bounds
-   with :cpp:func:`background <gui_forms::DrawingSurface::background>` and then calls the paint callback. By default it ignores the
+   with :cpp:member:`background <gui_forms::DrawingSurface::background>` and then calls the paint callback. By default it ignores the
    pointer and publishes the ``image`` accessibility role, which suits pictures.
    Derive from :cpp:class:`Control <gui_forms::Control>` instead when the drawing needs keyboard focus or input
    handling of its own, and use a :cpp:class:`RasterCanvas <gui_forms::RasterCanvas>` to show a bitmap the user edits.
@@ -29,9 +29,6 @@ gui_forms::DrawingSurface
          Identity of the control, unique within its window.
 
    :Properties:
-
-      **has_paint_callback** : ``bool``, read-only
-         Whether a paint callback is set.
 
       **hit_test_visible** : ``bool``, default ``false``
          Whether the surface receives pointer input. While false, the pointer
@@ -46,6 +43,9 @@ gui_forms::DrawingSurface
       **background** : ``Color``, default ``Color::rgba(0, 0, 0, 0)``
          Fill drawn over the whole surface before the paint callback runs. The
          default is fully transparent.
+
+      **has_paint_callback** : ``bool``, read-only
+         Whether a paint callback is set.
 
       **parts** : ``Parts``, read-only
 
@@ -115,7 +115,7 @@ gui_forms::DrawingSurface
           (*badge).set_paint_callback(StatusBadge{gf::Color::rgba(46, 160, 67)});
       }
 
-   Make the surface clickable by turning on :cpp:func:`hit_test_visible <gui_forms::DrawingSurface::hit_test_visible>`, and observe the
+   Make the surface clickable by turning on :cpp:member:`hit_test_visible <gui_forms::DrawingSurface::hit_test_visible>`, and observe the
    pointer with an owned handler:
 
    .. code-block:: cpp
@@ -126,7 +126,7 @@ gui_forms::DrawingSurface
           int presses = 0;
 
           Swatch() {
-              (*surface).set_hit_test_visible(true);
+              (*surface).hit_test_visible = true;
               gf::on((*surface).pointer_observed(), *this, &Swatch::on_pointer);
           }
           void on_pointer(const gf::PointerEvent& event) {
@@ -156,38 +156,26 @@ gui_forms::DrawingSurface
 
    .. rubric:: Properties
 
-   .. cpp:function:: bool has_paint_callback() const noexcept
-
-      Whether a paint callback is set.
-
-   .. cpp:function:: bool hit_test_visible() const noexcept
+   .. cpp:member:: bool hit_test_visible
 
       Whether the surface receives pointer input. While false, the pointer
       passes through to whatever lies beneath, so the surface never becomes the
       target of a press or hover. Turn it on to observe ``pointer_observed``.
 
-   .. cpp:function:: void set_hit_test_visible(bool visible)
-
-      Sets :cpp:func:`hit_test_visible <gui_forms::DrawingSurface::hit_test_visible>`; see the property's description above.
-
-   .. cpp:function:: SemanticRole semantic_role() const noexcept
+   .. cpp:member:: SemanticRole semantic_role
 
       The accessibility role the surface publishes. It is exposed to assistive
       technology only when it has an ``accessible_name`` or an
       ``accessible_description``.
 
-   .. cpp:function:: void set_semantic_role(SemanticRole role)
-
-      Sets :cpp:func:`semantic_role <gui_forms::DrawingSurface::semantic_role>`; see the property's description above.
-
-   .. cpp:function:: Color background() const noexcept
+   .. cpp:member:: Color background
 
       Fill drawn over the whole surface before the paint callback runs. The
       default is fully transparent.
 
-   .. cpp:function:: void set_background(Color color)
+   .. cpp:function:: bool has_paint_callback() const noexcept
 
-      Sets :cpp:func:`background <gui_forms::DrawingSurface::background>`; see the property's description above.
+      Whether a paint callback is set.
 
    .. cpp:function:: Parts parts() const
 

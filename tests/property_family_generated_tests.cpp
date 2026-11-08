@@ -5,14 +5,18 @@
 #include "gui_forms/gui_forms.hpp"
 #include "gui_forms/controls/badge/badge.hpp"
 #include "gui_forms/controls/button_base/button/button.hpp"
+#include "gui_forms/controls/button_base/link_label/link_label.hpp"
 #include "gui_forms/controls/button_base/toggle_switch/toggle_switch.hpp"
 #include "gui_forms/controls/collections/choice_group.hpp"
+#include "gui_forms/controls/collections/expandable_sections.hpp"
 #include "gui_forms/controls/data_grid_view/data_grid_view.hpp"
 #include "gui_forms/controls/docking/dock_navigator/dock_navigator.hpp"
 #include "gui_forms/controls/docking/dock_site/dock_site.hpp"
+#include "gui_forms/controls/drawing_surface/drawing_surface.hpp"
 #include "gui_forms/controls/empty_state/empty_state.hpp"
 #include "gui_forms/controls/info_banner/info_banner.hpp"
 #include "gui_forms/controls/label/label.hpp"
+#include "gui_forms/controls/metrics_view/metrics_view.hpp"
 #include "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp"
 #include "gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail.hpp"
 #include "gui_forms/controls/panel/card/card.hpp"
@@ -685,6 +689,25 @@ void test_domain_up_down_properties() {
     }
 }
 
+void test_drawing_surface_properties() {
+    std::shared_ptr<DrawingSurface> control = make_control<DrawingSurface>(StableId("generated.drawingsurface"));
+    {
+        const bool sample = !(*control).hit_test_visible.read();
+        (*control).hit_test_visible = sample;
+        expect((*control).hit_test_visible.read() == sample, "DrawingSurface.hit_test_visible: a write stores");
+    }
+    {
+        const SemanticRole sample = SemanticRole::group;
+        (*control).semantic_role = sample;
+        expect((*control).semantic_role.read() == sample, "DrawingSurface.semantic_role: a write stores");
+    }
+    {
+        const Color sample = Color::rgba(250, 240, 200);
+        (*control).background = sample;
+        expect((*control).background.read() == sample, "DrawingSurface.background: a write stores");
+    }
+}
+
 void test_empty_state_properties() {
     std::shared_ptr<EmptyState> control = make_control<EmptyState>(StableId("generated.emptystate"));
     {
@@ -710,6 +733,15 @@ void test_empty_state_properties() {
         const std::optional<BindingValue> by_name = (*control).property_value("description");
         expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
                "EmptyState.description: the table reads the cell");
+    }
+}
+
+void test_expandable_sections_properties() {
+    std::shared_ptr<ExpandableSections> control = make_control<ExpandableSections>(StableId("generated.expandablesections"));
+    {
+        const bool sample = !(*control).single_open.read();
+        (*control).single_open = sample;
+        expect((*control).single_open.read() == sample, "ExpandableSections.single_open: a write stores");
     }
 }
 
@@ -885,6 +917,15 @@ void test_label_properties() {
     }
 }
 
+void test_link_label_properties() {
+    std::shared_ptr<LinkLabel> control = make_control<LinkLabel>(StableId("generated.linklabel"));
+    {
+        const bool sample = !(*control).visited.read();
+        (*control).visited = sample;
+        expect((*control).visited.read() == sample, "LinkLabel.visited: a write stores");
+    }
+}
+
 void test_list_box_properties() {
     std::shared_ptr<ListBox> control = make_control<ListBox>(StableId("generated.listbox"));
     {
@@ -990,6 +1031,20 @@ void test_masked_text_box_properties() {
 void test_material_panel_properties() {
     std::shared_ptr<MaterialPanel> control = make_control<MaterialPanel>(StableId("generated.materialpanel"));
     // material: no sample for SurfaceMaterial; give the property a "sample".
+}
+
+void test_metrics_view_properties() {
+    std::shared_ptr<MetricsView> control = make_control<MetricsView>(StableId("generated.metricsview"));
+    {
+        const std::string sample = std::string("Frame budget");
+        (*control).title = sample;
+        expect((*control).title.read() == sample, "MetricsView.title: a write stores");
+    }
+    {
+        const double sample = 8.0;
+        (*control).accent_width = sample;
+        expect((*control).accent_width.read() == sample, "MetricsView.accent_width: a write stores");
+    }
 }
 
 void test_month_calendar_properties() {
@@ -1620,17 +1675,21 @@ int main() {
     test_dock_navigator_properties();
     test_dock_site_properties();
     test_domain_up_down_properties();
+    test_drawing_surface_properties();
     test_empty_state_properties();
+    test_expandable_sections_properties();
     test_flags_value_editor_properties();
     test_font_dialog_properties();
     test_group_box_properties();
     test_info_banner_properties();
     test_instrument_rack_properties();
     test_label_properties();
+    test_link_label_properties();
     test_list_box_properties();
     test_list_view_properties();
     test_masked_text_box_properties();
     test_material_panel_properties();
+    test_metrics_view_properties();
     test_month_calendar_properties();
     test_numeric_up_down_properties();
     test_object_view_properties();

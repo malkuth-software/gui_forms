@@ -1,6 +1,7 @@
 #include "gui_forms/controls/metrics_view/metrics_view.hpp"
 
 #include "gui_forms/window.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <array>
 #include <cmath>
@@ -10,16 +11,18 @@
 
 namespace gui_forms {
 
-MetricsView::MetricsView(StableId stable_id, std::string title)
-    : Control(std::move(stable_id)), title_(std::move(title)) {
-    accessible_name = title_;
+MetricsView::MetricsView(StableId stable_id, std::string initial_title)
+    : Control(std::move(stable_id)) {
+    title = std::move(initial_title);
 }
 
-void MetricsView::set_title(std::string title) {
+void MetricsView::prepare_write(const decltype(title)&, std::string&) {
     require_mutable();
-    if (title_ == title) return;
-    title_ = std::move(title);
-    accessible_name = title_;
+}
+
+// The title is also the accessible name.
+void MetricsView::written(const decltype(title)&) {
+    accessible_name = title.read();
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
@@ -27,16 +30,6 @@ void MetricsView::set_style(BasicControlStyle style) {
     require_mutable();
     if (style_ == style) return;
     style_ = style;
-    invalidate(Dirty::paint);
-}
-
-void MetricsView::set_accent_width(double width) {
-    require_mutable();
-    if (!std::isfinite(width) || width < 1.0 || width > 32.0) {
-        throw std::invalid_argument("metrics accent width must be within [1, 32]");
-    }
-    if (accent_width_ == width) return;
-    accent_width_ = width;
     invalidate(Dirty::paint);
 }
 
@@ -59,8 +52,8 @@ void MetricsView::on_paint(Painter& painter, Rect) {
                       committed_arranged_bounds().height};
     const double s = effective_text_scale();
     painter.fill_rect(bounds, style_.text);
-    painter.fill_rect({0.0, 0.0, accent_width_, bounds.height}, style_.accent);
-    painter.draw_text_utf8({16.0 * s, 24.0 * s}, title_,
+    painter.fill_rect({0.0, 0.0, accent_width.read(), bounds.height}, style_.accent);
+    painter.draw_text_utf8({16.0 * s, 24.0 * s}, title.read(),
                            effective_font({FontRole::control, 12.0, 700, false}),
                            style_.face_light);
     std::string metrics = metrics_text();
@@ -90,12 +83,11 @@ bool MetricsView::hit_test_local(Point) const { return false; }
 SemanticDescriptor MetricsView::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::group;
-    descriptor.name = title_;
+    descriptor.name = title.read();
     descriptor.value = painted_metrics_;
     descriptor.exposed = true;
     return descriptor;
 }
-
 
 namespace {
 
@@ -139,7 +131,7 @@ const ControlAnatomy& MetricsView::anatomy() const noexcept {
 void MetricsView::publish_part_geometry(std::span<PartGeometry> geometry) const {
 
     const Rect bounds = client_rectangle();
-    const Rect strip{0.0, 0.0, accent_width_, bounds.height};
+    const Rect strip{0.0, 0.0, accent_width.read(), bounds.height};
     Parts record;
     record.region = PartGeometry::from_bounds(bounds);
     record.face = PartGeometry::from_bounds(bounds);
@@ -160,5 +152,20 @@ MetricsView::States MetricsView::states() const {
     read_states(metrics_view_state_fields, anatomy_states(), record);
     return record;
 }
+
+// property_codemod begin MetricsView (tools/property_families/metrics_view.json; generated, do not edit)
+
+void MetricsView::prepare_write(const decltype(accent_width)&, double& incoming) {
+    require_mutable();
+    if (!std::isfinite(incoming) || incoming < 1.0 || incoming > 32.0) {
+        throw std::invalid_argument("metrics accent width must be within [1, 32]");
+    }
+}
+
+void MetricsView::written(const decltype(accent_width)&) {
+    invalidate(Dirty::paint);
+}
+
+// property_codemod end MetricsView
 
 } // namespace gui_forms

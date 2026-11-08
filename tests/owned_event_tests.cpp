@@ -896,7 +896,7 @@ void test_expandable_sections_state() {
     const gf::Control::Ptr second = gf::make_control<gf::Control>(gf::StableId("second-body"));
     gf::Value<bool> first_open(true);
     gf::Value<bool> second_open(false);
-    (*sections).set_single_open(true);
+    (*sections).single_open = true;
     (*sections).set_items({{.id = 1, .label = "First", .content = first, .expanded = &first_open},
                           {.id = 2, .label = "Second", .content = second, .expanded = &second_open}});
     CollectionObserver observer{};

@@ -165,7 +165,7 @@ void GalleryContext::synchronize(std::string_view cause)
     (*document.gallery_radio_quiet).set_checked(state.style_mode == StyleMode::quiet_relief);
     if (cause == "gallery.command.reset") {
         (*document.gallery_checkbox_indeterminate).set_check_state(CheckState::indeterminate);
-        (*document.gallery_link).set_visited(false);
+        (*document.gallery_link).visited = false;
     }
     if ((*document.gallery_text_input).text.read() != state.text) {
         (*document.gallery_text_input).text = state.text;

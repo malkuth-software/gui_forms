@@ -52,6 +52,12 @@ Related types
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`MetricsView::States <gui_forms::MetricsView::States>`
      -  
+   * - :cpp:class:`MetricsViewAccentWidthCapability <gui_forms::MetricsViewAccentWidthCapability>`
+     - The width of the accent bar at the leading edge, 1 to 32 (default 5).
+   * - :cpp:class:`MetricsViewCapabilities <gui_forms::MetricsViewCapabilities>`
+     - Every MetricsView capability, in the order the declaring class takes them.
+   * - :cpp:class:`MetricsViewTitleCapability <gui_forms::MetricsViewTitleCapability>`
+     - The heading painted above the metrics; it is also the accessible name.
    * - :cpp:class:`TypographySpecimen::Parts <gui_forms::TypographySpecimen::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`TypographySpecimen::States <gui_forms::TypographySpecimen::States>`
@@ -685,6 +691,57 @@ Related types
    .. cpp:member:: bool focused
 
    .. cpp:member:: bool focus_visible
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MetricsViewAccentWidthCapability
+
+   ``#include <gui_forms/controls/metrics_view/metrics_view_capabilities/metrics_view_capabilities.hpp>``
+
+   The width of the accent bar at the leading edge, 1 to 32 (default 5). A value outside that range throws std::invalid_argument and changes nothing.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MetricsViewAccentWidthCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, MetricsViewAccentWidthCapability<Declaring>> accent_width
+
+      Default: ``{5.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MetricsViewCapabilities : public MetricsViewTitleCapability<Declaring>, public MetricsViewAccentWidthCapability<Declaring>
+
+   ``#include <gui_forms/controls/metrics_view/metrics_view_capabilities/metrics_view_capabilities.hpp>``
+
+   Every MetricsView capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string title
+
+      The heading painted above the metrics; it is also the accessible name.
+
+   .. cpp:member:: double accent_width
+
+      The width of the accent bar at the leading edge, 1 to 32 (default 5). A value outside that range throws std::invalid_argument and changes nothing.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MetricsViewTitleCapability
+
+   ``#include <gui_forms/controls/metrics_view/metrics_view_capabilities/metrics_view_capabilities.hpp>``
+
+   The heading painted above the metrics; it is also the accessible name.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MetricsViewTitleCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, MetricsViewTitleCapability<Declaring>> title
 
 .. cpp:namespace:: gui_forms
 

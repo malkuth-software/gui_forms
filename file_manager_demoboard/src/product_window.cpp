@@ -139,8 +139,8 @@ std::shared_ptr<DrawingSurface> material(std::string id,
                                          DrawingSurface::PaintCallback paint) {
     std::shared_ptr<gui_forms::DrawingSurface> result = std::make_shared<DrawingSurface>(StableId(std::move(id)));
     (*result).set_paint_callback(std::move(paint));
-    (*result).set_hit_test_visible(false);
-    (*result).set_semantic_role(SemanticRole::generic);
+    (*result).hit_test_visible = false;
+    (*result).semantic_role = SemanticRole::generic;
     return result;
 }
 

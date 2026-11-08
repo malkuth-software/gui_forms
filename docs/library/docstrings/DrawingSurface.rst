@@ -95,7 +95,7 @@ pointer with an owned handler:
        int presses = 0;
 
        Swatch() {
-           (*surface).set_hit_test_visible(true);
+           (*surface).hit_test_visible = true;
            gf::on((*surface).pointer_observed(), *this, &Swatch::on_pointer);
        }
        void on_pointer(const gf::PointerEvent& event) {

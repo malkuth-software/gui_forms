@@ -918,7 +918,7 @@ void test_link_families() {
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(link, Size{120.0, 24.0});
     const BasicControlStyle defaults{};
     require(painted_link_color(*link) == defaults.link, "an unvisited link must keep the default link colour");
-    (*link).set_visited(true);
+    (*link).visited = true;
     require(painted_link_color(*link) == defaults.visited_link,
             "a visited link must keep the default visited colour");
     (*link).enabled = false;
@@ -943,7 +943,7 @@ void test_link_families() {
         themed_visited;
     (*link).set_theme_override(Theme::create(definition));
     require(painted_link_color(*link) == themed_visited, "a visited link must take the visited_link family's text");
-    (*link).set_visited(false);
+    (*link).visited = false;
     require(painted_link_color(*link) == themed_link, "an unvisited link must take the link family's text");
 
     BasicControlStyle compatibility;
@@ -962,7 +962,7 @@ void test_link_and_callback_disposal() {
     SubscriptionToken link_click = (*link).clicked().subscribe(
         callbacks::IncrementCounter<std::uint64_t, ButtonBase&>(clicks));
     click(link_window, link);
-    require((*link).visited() && clicks == 1,
+    require((*link).visited.read() && clicks == 1,
             "LinkLabel must mark visited before publishing activation");
 
     std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("dispose.root"));
@@ -1562,7 +1562,7 @@ void test_public_drawing_metrics_and_control_tag() {
         StableId("controls.diagnostics.drawing"));
     (*drawing).set_requested_bounds({0.0, 0.0, 120.0, 60.0});
     (*drawing).accessible_name = "Public owner drawing";
-    (*drawing).set_background(Color::rgba(8, 9, 10));
+    (*drawing).background = Color::rgba(8, 9, 10);
     std::uint64_t callback_count = 0U;
     Rect callback_bounds{};
     Rect callback_damage{};
@@ -1570,7 +1570,7 @@ void test_public_drawing_metrics_and_control_tag() {
         RecordDrawingPaint(callback_count, callback_bounds, callback_damage));
     std::shared_ptr<gui_forms::MetricsView> metrics = make_control<MetricsView>(
         StableId("controls.diagnostics.metrics"), "Runtime proof");
-    (*metrics).set_accent_width(9.0);
+    (*metrics).accent_width = 9.0;
     (*metrics).set_requested_bounds({0.0, 60.0, 240.0, 90.0});
     (*root).add_child(drawing);
     (*root).add_child(metrics);
@@ -1584,9 +1584,9 @@ void test_public_drawing_metrics_and_control_tag() {
                 !callback_damage.empty() &&
                 painter.fills + painter.gradients >= 4U,
             "DrawingSurface must invoke public owner paint with retained bounds and damage");
-    require(!(*drawing).hit_test_visible() &&
+    require(!(*drawing).hit_test_visible.read() &&
                 !(*drawing).hit_test_local({10.0, 10.0}) &&
-                (*drawing).background() == Color::rgba(8, 9, 10) &&
+                (*drawing).background.read() == Color::rgba(8, 9, 10) &&
                 (*drawing).semantic_descriptor().role == SemanticRole::image &&
                 (*drawing).semantic_descriptor().exposed,
             "DrawingSurface must default to input-transparent image semantics");
@@ -1594,7 +1594,7 @@ void test_public_drawing_metrics_and_control_tag() {
     require(metrics_semantics.role == SemanticRole::group &&
                 metrics_semantics.name == "Runtime proof" &&
                 metrics_semantics.value.find("controls") != std::string::npos &&
-                (*metrics).accent_width() == 9.0,
+                (*metrics).accent_width.read() == 9.0,
             "MetricsView must expose the structured runtime snapshot semantically");
 
     // The accessible value is the painted text, and a paint that changes it

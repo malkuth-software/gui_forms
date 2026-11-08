@@ -39,6 +39,14 @@ Related types
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`DrawingSurface::States <gui_forms::DrawingSurface::States>`
      -  
+   * - :cpp:class:`DrawingSurfaceBackgroundCapability <gui_forms::DrawingSurfaceBackgroundCapability>`
+     - The fill painted over the bounds before the paint callback (default transparent).
+   * - :cpp:class:`DrawingSurfaceCapabilities <gui_forms::DrawingSurfaceCapabilities>`
+     - Every DrawingSurface capability, in the order the declaring class takes them.
+   * - :cpp:class:`DrawingSurfaceHitTestVisibleCapability <gui_forms::DrawingSurfaceHitTestVisibleCapability>`
+     - Whether pointer input hits the surface (default false: it passes through to what lies beneath).
+   * - :cpp:class:`DrawingSurfaceSemanticRoleCapability <gui_forms::DrawingSurfaceSemanticRoleCapability>`
+     - The role the surface publishes to accessibility (default image).
    * - :cpp:class:`RasterCanvas::Parts <gui_forms::RasterCanvas::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`RasterCanvas::States <gui_forms::RasterCanvas::States>`
@@ -103,6 +111,78 @@ Related types
    .. cpp:member:: bool focused
 
    .. cpp:member:: bool focus_visible
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DrawingSurfaceBackgroundCapability
+
+   ``#include <gui_forms/controls/drawing_surface/drawing_surface_capabilities/drawing_surface_capabilities.hpp>``
+
+   The fill painted over the bounds before the paint callback (default transparent).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DrawingSurfaceBackgroundCapability& capability, Color incoming)
+
+   .. cpp:member:: PropertyCell<Color, DrawingSurfaceBackgroundCapability<Declaring>> background
+
+      Default: ``{Color::rgba(0, 0, 0, 0)}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DrawingSurfaceCapabilities : public DrawingSurfaceHitTestVisibleCapability<Declaring>, public DrawingSurfaceSemanticRoleCapability<Declaring>, public DrawingSurfaceBackgroundCapability<Declaring>
+
+   ``#include <gui_forms/controls/drawing_surface/drawing_surface_capabilities/drawing_surface_capabilities.hpp>``
+
+   Every DrawingSurface capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: bool hit_test_visible
+
+      Whether pointer input hits the surface (default false: it passes through to what lies beneath).
+
+   .. cpp:member:: SemanticRole semantic_role
+
+      The role the surface publishes to accessibility (default image).
+
+   .. cpp:member:: Color background
+
+      The fill painted over the bounds before the paint callback (default transparent).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DrawingSurfaceHitTestVisibleCapability
+
+   ``#include <gui_forms/controls/drawing_surface/drawing_surface_capabilities/drawing_surface_capabilities.hpp>``
+
+   Whether pointer input hits the surface (default false: it passes through to what lies beneath).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DrawingSurfaceHitTestVisibleCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, DrawingSurfaceHitTestVisibleCapability<Declaring>> hit_test_visible
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DrawingSurfaceSemanticRoleCapability
+
+   ``#include <gui_forms/controls/drawing_surface/drawing_surface_capabilities/drawing_surface_capabilities.hpp>``
+
+   The role the surface publishes to accessibility (default image).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DrawingSurfaceSemanticRoleCapability& capability, SemanticRole incoming)
+
+   .. cpp:member:: PropertyCell<SemanticRole, DrawingSurfaceSemanticRoleCapability<Declaring>> semantic_role
+
+      Default: ``{SemanticRole::image}``.
 
 .. cpp:namespace:: gui_forms
 

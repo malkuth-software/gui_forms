@@ -74,7 +74,7 @@
     {
       "path": "src/controls/collections/expandable_sections.cpp",
       "function": "gui_forms::on_toggled",
-      "condition": "expanded && single_open_",
+      "condition": "expanded && single_open.read()",
       "decision": "keep",
       "reason": "runs once, for the toggled section, then the other sections close"
     },

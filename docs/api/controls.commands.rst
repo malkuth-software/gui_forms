@@ -66,6 +66,10 @@ Related types
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`DropDownButton::States <gui_forms::DropDownButton::States>`
      -  
+   * - :cpp:class:`ExpandableSectionsCapabilities <gui_forms::ExpandableSectionsCapabilities>`
+     - Every ExpandableSections capability, in the order the declaring class takes them.
+   * - :cpp:class:`ExpandableSectionsSingleOpenCapability <gui_forms::ExpandableSectionsSingleOpenCapability>`
+     - Whether at most one section is open (an accordion).
    * - :cpp:class:`ExpandedStateCapability <gui_forms::ExpandedStateCapability>`
      - Optional disclosure state for a button that owns a popup or a retained disclosure region: empty is an ordinary push button; false and true expose collapsed and expanded semantics without conflating the pressed visual.
    * - :cpp:class:`ImageAlignmentCapability <gui_forms::ImageAlignmentCapability>`
@@ -76,6 +80,10 @@ Related types
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`LinkLabel::States <gui_forms::LinkLabel::States>`
      -  
+   * - :cpp:class:`LinkLabelCapabilities <gui_forms::LinkLabelCapabilities>`
+     - Every LinkLabel capability, in the order the declaring class takes them.
+   * - :cpp:class:`LinkLabelVisitedCapability <gui_forms::LinkLabelVisitedCapability>`
+     - Whether the link paints in its visited colour (Windows Forms' LinkVisited).
    * - :cpp:class:`SectionItem <gui_forms::SectionItem>`
      -  
    * - :cpp:class:`TextAlignmentCapability <gui_forms::TextAlignmentCapability>`
@@ -401,6 +409,36 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> ExpandableSectionsCapabilities : public ExpandableSectionsSingleOpenCapability<Declaring>
+
+   ``#include <gui_forms/controls/collections/expandable_sections_capabilities/expandable_sections_capabilities.hpp>``
+
+   Every ExpandableSections capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: bool single_open
+
+      Whether at most one section is open (an accordion). Turning it on keeps the first open section and closes the others.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ExpandableSectionsSingleOpenCapability
+
+   ``#include <gui_forms/controls/collections/expandable_sections_capabilities/expandable_sections_capabilities.hpp>``
+
+   Whether at most one section is open (an accordion). Turning it on keeps the first open section and closes the others.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ExpandableSectionsSingleOpenCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ExpandableSectionsSingleOpenCapability<Declaring>> single_open
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: template <typename Declaring> ExpandedStateCapability
 
    ``#include <gui_forms/controls/button_base/button_base_capabilities/button_base_capabilities.hpp>``
@@ -489,6 +527,36 @@ Related types
    .. cpp:member:: bool closed
 
    .. cpp:member:: bool visited
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> LinkLabelCapabilities : public LinkLabelVisitedCapability<Declaring>
+
+   ``#include <gui_forms/controls/button_base/link_label/link_label_capabilities/link_label_capabilities.hpp>``
+
+   Every LinkLabel capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: bool visited
+
+      Whether the link paints in its visited colour (Windows Forms' LinkVisited). Activation sets it; set it back to false if the target can become new again.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> LinkLabelVisitedCapability
+
+   ``#include <gui_forms/controls/button_base/link_label/link_label_capabilities/link_label_capabilities.hpp>``
+
+   Whether the link paints in its visited colour (Windows Forms' LinkVisited). Activation sets it; set it back to false if the target can become new again.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(LinkLabelVisitedCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, LinkLabelVisitedCapability<Declaring>> visited
 
 .. cpp:namespace:: gui_forms
 

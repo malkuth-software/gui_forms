@@ -177,8 +177,6 @@
       "summary": "LinkLabel is a ButtonBase command presented as underlined link text, with retained visited state committed before click publication and link semantics.",
       "methods": {
         "LinkLabel": "Constructs an ordinary ButtonBase command using link presentation.",
-        "visited": "Reports whether the link has completed activation.",
-        "set_visited": "Commits visited state and invalidates paint and semantics.",
         "on_paint": "Records resolved link text color, underline geometry, and focus cue without a button frame.",
         "on_activate": "Marks the link visited before publishing the inherited click event.",
         "semantic_descriptor": "Projects link role, visited state, displayed name, and press action."
@@ -1262,12 +1260,6 @@
         "DrawingSurface": "Constructs an owner-draw control with transparent background, image semantics, and input transparency by default.",
         "set_paint_callback": "Replaces the renderer-neutral callback and invalidates paint and semantics without creating a subclass.",
         "has_paint_callback": "Reports whether an owner paint callback is currently retained.",
-        "hit_test_visible": "Reports whether local bounds participate in pointer hit testing.",
-        "set_hit_test_visible": "Commits input participation and invalidates hit-test and semantic projections.",
-        "semantic_role": "Returns the caller-selected semantic role for the owner-drawn surface.",
-        "set_semantic_role": "Commits semantic role and invalidates accessibility projection.",
-        "background": "Returns the retained background color painted before the callback.",
-        "set_background": "Commits owner-selectable backplane color and invalidates paint.",
         "on_paint": "Paints the backplane and invokes the callback with exact local bounds and local damage.",
         "hit_test_local": "Combines explicit hit-test visibility with ordinary Control bounds testing.",
         "semantic_descriptor": "Projects caller role, accessible name, and description without inventing domain meaning."
@@ -1280,12 +1272,8 @@
       "summary": "MetricsView is an input-transparent diagnostic control over Window's structured metrics snapshot. It formats bounded live counters into a retained card with caller-owned title/style/accent width and group semantics; it does not replace the snapshot as instrumentation authority.",
       "methods": {
         "MetricsView": "Constructs a titled noninteractive diagnostic projection.",
-        "title": "Returns the retained diagnostic heading.",
-        "set_title": "Commits title, synchronizes accessible name, and invalidates paint and semantics.",
         "style": "Returns the compatibility color/style palette used by the card.",
         "set_style": "Commits palette and invalidates paint.",
-        "accent_width": "Returns the logical width of the leading diagnostic rail.",
-        "set_accent_width": "Validates a width within [1, 32] and refreshes paint.",
         "on_paint": "Records backplane, accent rail, title, and a bounded two-line Window metrics readout.",
         "hit_test_local": "Always rejects input because metrics are observational.",
         "semantic_descriptor": "Projects group role, title, and the current structured metrics readout."

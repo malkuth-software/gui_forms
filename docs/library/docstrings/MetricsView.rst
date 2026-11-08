@@ -12,13 +12,12 @@ Parameters
 ----------
 stable_id
     Identity of the control, unique within its window.
-title
-    Heading drawn on the card, "Runtime metrics" by default. It is also the
-    accessible name.
+initial_title
+    The first `title`, "Runtime metrics" by default.
 
 Properties
 ----------
-title
+title : default ``"Runtime metrics"``
     Heading drawn on the card and published as the accessible name.
 style
     The `BasicControlStyle` colours: the card is filled with `text`, the

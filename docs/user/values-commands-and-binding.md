@@ -150,7 +150,7 @@ items from a group handler is supported; recursive replacement throws.
   selection past its end to `-1`, and the group has radio-group semantics.
 - `ExpandableSections` stacks a 28-unit disclosure header over each content
   control, which keeps its requested height. Contents must be distinct and
-  have no other parent. `set_single_open(true)` closes the others when one
+  have no other parent. `single_open = true` closes the others when one
   opens.
 
 Item controls are named parts for styling: `part("item", index)` on

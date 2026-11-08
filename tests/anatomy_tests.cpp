@@ -604,7 +604,7 @@ void test_link_label_custom_visited_state() {
     const std::optional<CustomStateIndex> visited = find_custom_state(anatomy, "visited");
     require(visited.has_value(), "LinkLabel declares a visited state");
     require(!(*link).states().visited, "a new link is not visited");
-    (*link).set_visited(true);
+    (*link).visited = true;
     require((*link).states().visited && (*link).anatomy_states().contains(*visited),
             "a visited link publishes its visited state");
     const PartGeometry label = (*link).parts().label;
@@ -1090,7 +1090,7 @@ void test_value_editors_and_diagnostic_views() {
             "the colour editor's swatch sits before its text field");
     const MetricsView::Parts metric_parts = (*metrics).parts();
     require(metric_parts.accent_strip.present &&
-                near(metric_parts.accent_strip.bounds.width, (*metrics).accent_width()) &&
+                near(metric_parts.accent_strip.bounds.width, (*metrics).accent_width.read()) &&
                 near(metric_parts.accent_strip.bounds.x, 0.0),
             "the metrics view publishes its accent strip on the leading edge");
     const std::array<const Control*, 2> controls{color.get(), metrics.get()};
