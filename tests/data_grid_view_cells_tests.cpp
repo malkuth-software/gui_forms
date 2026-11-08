@@ -351,7 +351,7 @@ void grid_sends_its_cells_to_its_region() {
         DataGridViewRow added{};
         added.stable_id = DataGridViewRowId{"row" + std::to_string(index)};
         added.cells = {BindingValue{row + "c0"}, BindingValue{row + "c1"}, BindingValue{row + "c2"}};
-        static_cast<void>((*grid).add_row(std::move(added)));
+        static_cast<void>((*grid).rows.append(std::move(added)));
     }
     (*grid).set_allow_user_to_add_rows(false);
     (*grid).cells_on_sub_surface = true;
