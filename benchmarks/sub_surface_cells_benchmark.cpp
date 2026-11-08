@@ -262,7 +262,7 @@ private:
 // M1 and M4 for the real grid: scrolling three rows a step at 60 Hz, the
 // cells on the UI thread or on the grid's region.
 void grid_scrolling(bool on_region, std::size_t steps, Spread& ui_cost, std::uint64_t& waits,
-                    std::uint64_t& unpaired) {
+                    std::uint64_t& unpaired, std::uint64_t& behind) {
     render::SkiaRaster raster;
     std::shared_ptr<DataGridView> grid = make_grid();
     (*grid).cells_on_sub_surface = on_region;
@@ -282,6 +282,15 @@ void grid_scrolling(bool on_region, std::size_t steps, Spread& ui_cost, std::uin
         path.paint();
         samples.push_back(milliseconds(Clock::now() - start));
         std::this_thread::sleep_until(tick);
+        // Whether the region's newest frame is older than the epoch the
+        // UI frame just painted needs, as the present tick finds it.
+        if (on_region) {
+            const std::shared_ptr<SubSurfaceHost> host =
+                std::dynamic_pointer_cast<SubSurfaceHost>((*grid).children()[0]);
+            require(static_cast<bool>(host), "the grid's region is its first child");
+            const LiveSurfaceSnapshot shown = (*(*host).live_surface()).snapshot();
+            if (shown.content_tag < (*host).content_epoch()) ++behind;
+        }
         static_cast<void>(path.present(tick));
         tick += refresh;
     }
@@ -465,12 +474,15 @@ int main(int argc, char** argv) {
     Spread grid_region;
     std::uint64_t grid_waits = 0U;
     std::uint64_t grid_unpaired = 0U;
-    grid_scrolling(false, steps, grid_plain, grid_waits, grid_unpaired);
+    std::uint64_t grid_behind = 0U;
+    grid_scrolling(false, steps, grid_plain, grid_waits, grid_unpaired, grid_behind);
     report("M1 UI cost per step, grid, cells on UI", grid_plain);
-    grid_scrolling(true, steps, grid_region, grid_waits, grid_unpaired);
+    grid_scrolling(true, steps, grid_region, grid_waits, grid_unpaired, grid_behind);
     report("M1 UI cost per step, grid, cells on region", grid_region);
     std::printf("M4 grid pairing at %zu ticks: %llu waits, %llu unpaired\n", steps,
                 static_cast<unsigned long long>(grid_waits), static_cast<unsigned long long>(grid_unpaired));
+    std::printf("M4 grid region behind its epoch at the present tick: %llu of %zu\n",
+                static_cast<unsigned long long>(grid_behind), steps);
     std::printf("M4 pairing at %zu ticks: %llu presented, %llu waits, %llu unpaired\n", steps,
                 static_cast<unsigned long long>(presented), static_cast<unsigned long long>(waits),
                 static_cast<unsigned long long>(unpaired));

@@ -262,6 +262,10 @@ private:
     std::uint32_t surface_height_{};
     bool surface_opaque_{};
     bool configured_{};
+    // A configuration (a new content epoch) applied since the last frame:
+    // its frame is produced at once, not at the pacer's next tick, so the
+    // parent's frame painted with that epoch finds it at its present.
+    bool epoch_due_{};
     // The framebuffer pixels painted but not yet published.
     PixelRectangle unpublished_{};
     // The next publication copies the whole framebuffer (first frame of a
@@ -528,13 +532,18 @@ void SubSurfaceLoop::apply(SubSurface& root, SubSurfaceConfiguration& configurat
     const Control::Ptr top = root.root();
     if (top) (*top).invalidate(Dirty::paint);
     configured_ = true;
+    epoch_due_ = true;
 }
 
 void SubSurfaceLoop::produce(SubSurface& root) {
     if (!configured_ || !framebuffer_) return;
     if (root.needs_frame()) {
         const LivePacingResult pace = pacer_.plan(FrameClock::now());
-        if (pace.outcome == LivePacingOutcome::pending) {
+        // A new epoch's frame does not wait for pacing (pairing, design note
+        // section 6): the parent painted with it and presents at its next
+        // tick. One frame per configuration, so the parent's paint rate
+        // bounds it.
+        if (pace.outcome == LivePacingOutcome::pending && !epoch_due_) {
             // The dirt stays; a presentation report or the deadline wakes
             // the loop for it.
             pacing_wake_ = pace.wake_at;
@@ -547,6 +556,7 @@ void SubSurfaceLoop::produce(SubSurface& root) {
             return;
         }
         pacing_wake_.reset();
+        epoch_due_ = false;
         if (pace.outcome == LivePacingOutcome::deadline) {
             const std::lock_guard<std::mutex> lock((*channel_).mutex);
             ++(*channel_).statistics.deadline_wakes;
