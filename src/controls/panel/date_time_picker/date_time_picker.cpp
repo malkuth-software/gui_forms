@@ -7,6 +7,7 @@
 #include "gui_forms/text.hpp"
 #include "../panel_anatomy.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <array>
 #include <algorithm>
@@ -24,61 +25,106 @@ DateTimePicker::DateTimePicker(StableId stable_id) : Panel(std::move(stable_id))
     set_focusable(true);
 }
 
-void DateTimePicker::set_value(DateTimeValue value) {
+// Both bounds, earliest first: the crossing rule never moves the latest past
+// the earliest, so the range ends as given, and value clamps at most once.
+void DateTimePicker::set_range(DateTimeValue earliest, DateTimeValue latest) {
     require_mutable();
-    if (!valid_date_time(value) || value < minimum_ || value > maximum_) {
-        throw std::out_of_range("DateTimePicker value is invalid or outside its range");
-    }
-    if (value_ == value) return;
-    value_ = value;
-    invalidate(Dirty::paint | Dirty::semantics);
-    publish_change(value_changed_, value_);
-}
-
-void DateTimePicker::set_range(DateTimeValue minimum, DateTimeValue maximum) {
-    require_mutable();
-    if (!valid_date_time(minimum) || !valid_date_time(maximum) || minimum > maximum) {
+    if (!valid_date_time(earliest) || !valid_date_time(latest) || earliest > latest) {
         throw std::invalid_argument("DateTimePicker requires a valid ordered range");
     }
-    if (minimum_ == minimum && maximum_ == maximum) return;
-    minimum_ = minimum;
-    maximum_ = maximum;
-    const DateTimeValue clamped = std::clamp(value_, minimum_, maximum_);
-    const bool value_changes = clamped != value_;
-    value_ = clamped;
-    if (dropped_down_) {
-        close_drop_down();
-    }
+    minimum = earliest;
+    maximum = latest;
+}
+
+void DateTimePicker::prepare_write(const decltype(minimum)&, DateTimeValue& incoming) {
+    require_mutable();
+    if (!valid_date_time(incoming)) throw std::invalid_argument("DateTimePicker requires a valid ordered range");
+}
+
+// A minimum after maximum moves maximum to it; value then clamps.
+void DateTimePicker::written(const decltype(minimum)&) {
+    if (maximum.read() < minimum.read()) maximum = minimum.read();
+    apply_range();
+}
+
+void DateTimePicker::prepare_write(const decltype(maximum)&, DateTimeValue& incoming) {
+    require_mutable();
+    if (!valid_date_time(incoming)) throw std::invalid_argument("DateTimePicker requires a valid ordered range");
+}
+
+// A maximum before minimum moves minimum to it; value then clamps.
+void DateTimePicker::written(const decltype(maximum)&) {
+    if (minimum.read() > maximum.read()) minimum = maximum.read();
+    apply_range();
+}
+
+// Closes an open calendar, whose bounds were the old range's (raising
+// drop_down_changed), then clamps value into the range through its cell
+// (raising value_changed).
+void DateTimePicker::apply_range() {
+    if (dropped_down_) close_drop_down();
     invalidate(Dirty::paint | Dirty::semantics);
-    if (value_changes) publish_change(value_changed_, value_);
+    const DateTimeValue clamped = std::clamp(value.read(), minimum.read(), maximum.read());
+    if (clamped != value.read()) value = clamped;
 }
 
-void DateTimePicker::set_format(DateTimePickerFormat format) {
+void DateTimePicker::prepare_write(const decltype(custom_format)&, std::string& incoming) {
     require_mutable();
-    if (format_ == format) return;
-    format_ = format;
-    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
-}
-
-void DateTimePicker::set_custom_format(std::string format) {
-    require_mutable();
-    if (!validate_utf8(format).valid()) {
+    if (!validate_utf8(incoming).valid()) {
         throw std::invalid_argument("DateTimePicker custom format must be valid UTF-8");
     }
-    if (custom_format_ == format) return;
-    custom_format_ = std::move(format);
-    if (format_ == DateTimePickerFormat::custom) {
+}
+
+// The pattern shows only under the custom format.
+void DateTimePicker::written(const decltype(custom_format)&) {
+    if (format.read() == DateTimePickerFormat::custom) {
         invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
     }
 }
 
-void DateTimePicker::set_format_provider(DateTimeFormatProvider provider) {
+void DateTimePicker::prepare_write(const decltype(format_provider)&, DateTimeFormatProvider& incoming) {
     require_mutable();
-    validate_provider(provider);
-    format_provider_ = std::move(provider);
+    validate_provider(incoming);
+}
+
+void DateTimePicker::written(const decltype(format_provider)&) {
     if (dropped_down_) close_drop_down();
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
 }
+
+void DateTimePicker::prepare_write(const decltype(show_up_down)&, bool&) {
+    require_mutable();
+}
+
+// The arrows replace the calendar, so an open one closes.
+void DateTimePicker::written(const decltype(show_up_down)&) {
+    if (show_up_down.read() && dropped_down_) close_drop_down();
+    invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+bool DateTimePicker::read_view(const decltype(dropped_down)&) const {
+    return dropped_down_;
+}
+
+void DateTimePicker::write_view(const decltype(dropped_down)&, bool incoming) {
+    require_mutable();
+    if (incoming == dropped_down_) return;
+    if (incoming) open_drop_down(); else close_drop_down();
+}
+
+BasicControlStyle DateTimePicker::read_view(const decltype(style)&) const {
+    return style_;
+}
+
+void DateTimePicker::write_view(const decltype(style)&, BasicControlStyle incoming) {
+    require_mutable();
+    if (style_authored_ && style_ == incoming) return;
+    style_ = incoming;
+    style_authored_ = true;
+    set_background(style_.paper);
+    invalidate(Dirty::paint);
+}
+
 
 namespace {
 
@@ -99,80 +145,19 @@ std::string_view format_pattern(DateTimePickerFormat format, const DateTimeForma
 } // namespace
 
 std::string DateTimePicker::formatted_value() const {
-    const std::string_view pattern = format_pattern(format_, format_provider_, custom_format_);
-    return format_date_time(value_, pattern, format_provider_);
+    const std::string_view pattern = format_pattern(format.read(), format_provider.read(), custom_format.read());
+    return format_date_time(value.read(), pattern, format_provider.read());
 }
 
-void DateTimePicker::set_show_check_box(bool show) {
-    require_mutable();
-    if (show_check_box_ == show) return;
-    show_check_box_ = show;
-    invalidate(Dirty::measure | Dirty::paint | Dirty::hit_test | Dirty::semantics);
-}
-
-void DateTimePicker::set_checked(bool checked) {
-    require_mutable();
-    if (checked_ == checked) return;
-    checked_ = checked;
-    invalidate(Dirty::paint | Dirty::semantics);
-    publish_change(checked_changed_, checked_);
-}
-
-void DateTimePicker::set_show_up_down(bool show) {
-    require_mutable();
-    if (show_up_down_ == show) return;
-    show_up_down_ = show;
-    if (show && dropped_down_) close_drop_down();
-    invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
-}
-
-void DateTimePicker::set_dropped_down(bool dropped_down) {
-    require_mutable();
-    if (dropped_down == dropped_down_) return;
-    if (dropped_down) open_drop_down(); else close_drop_down();
-}
-
-void DateTimePicker::set_drop_down_alignment(
-    DateTimeDropDownAlignment alignment) {
-    require_mutable();
-    if (alignment != DateTimeDropDownAlignment::left &&
-        alignment != DateTimeDropDownAlignment::right) {
-        throw std::invalid_argument(
-            "DateTimePicker drop-down alignment is invalid");
-    }
-    if (drop_down_alignment_ == alignment) return;
-    drop_down_alignment_ = alignment;
-    invalidate(Dirty::paint | Dirty::semantics);
-}
-
-void DateTimePicker::set_font(FontSpec font) {
-    require_mutable();
-    if (!valid_font_spec(font)) {
-        throw std::invalid_argument("DateTimePicker font specification is invalid");
-    }
-    set_font_from_code(true);
-    if (font_ == font) return;
-    font_ = font;
-    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
-}
-
-void DateTimePicker::set_style(BasicControlStyle style) {
-    require_mutable();
-    if (style_authored_ && style_ == style) return;
-    style_ = style;
-    style_authored_ = true;
-    set_background(style_.paper);
-    invalidate(Dirty::paint);
-}
 
 DateTimePicker::HitPart DateTimePicker::part_at(Point absolute) const noexcept {
     const Rect bounds = absolute_bounds();
     if (!bounds.contains(absolute)) return HitPart::none;
     const double local_x = absolute.x - bounds.x;
     const double local_y = absolute.y - bounds.y;
-    if (show_check_box_ && local_x < 25.0) return HitPart::check;
+    if (show_check_box.read() && local_x < 25.0) return HitPart::check;
     if (local_x >= bounds.width - 24.0) {
-        if (!show_up_down_) return HitPart::arrow_down;
+        if (!show_up_down.read()) return HitPart::arrow_down;
         return local_y < bounds.height * 0.5 ? HitPart::arrow_up : HitPart::arrow_down;
     }
     return HitPart::body;
@@ -182,7 +167,7 @@ DateTimePicker::HitPart DateTimePicker::part_at(Point absolute) const noexcept {
 // its divider and arrow marks, the check box's well and mark, the value's
 // text and the focus ring are parts the theme's engine draws in the
 // control's anatomy states, a pressed arrow pressed. An unchecked value's
-// text is disabled text. A style set with set_style inks the text and the
+// text is disabled text. A style written to style inks the text and the
 // marks as authored colours (T4-1). The ring shows while the field has
 // focus or its calendar is open.
 void DateTimePicker::on_paint(Painter& painter, Rect damage) {
@@ -192,7 +177,7 @@ void DateTimePicker::on_paint(Painter& painter, Rect damage) {
     const AnatomyStateSet states = anatomy_states();
     std::optional<Color> ink{};
     if (style_authored_) ink = style_.text;
-    const FontSpec font = text_font(font_);
+    const FontSpec field_font = text_font(font.read());
     const double button_width = std::min(24.0, bounds.width);
     const double button_x = std::max(0.0, bounds.width - button_width);
     const double button_height = std::max(0.0, bounds.height - 2.0);
@@ -210,7 +195,7 @@ void DateTimePicker::on_paint(Painter& painter, Rect damage) {
     divider.role = PartRole::divider;
     divider.states = states;
     divider.bounds = {button_x - 0.5, 1.0, 1.0, button_height};
-    if (show_up_down_) {
+    if (show_up_down.read()) {
         const double middle = std::floor(bounds.height * 0.5);
         AnatomyStateSet up_states = states;
         AnatomyStateSet down_states = states;
@@ -254,7 +239,7 @@ void DateTimePicker::on_paint(Painter& painter, Rect damage) {
     }
     double text_left = 7.0;
     AnatomyStateSet text_states = states;
-    if (show_check_box_) {
+    if (show_check_box.read()) {
         const double check_y = std::max(3.0, (bounds.height - 14.0) * 0.5);
         PartPaint check;
         check.family = ControlVisualRole::choice;
@@ -262,7 +247,7 @@ void DateTimePicker::on_paint(Painter& painter, Rect damage) {
         check.states = states;
         check.bounds = {5.0, check_y, 14.0, 14.0};
         paint_part(painter, *this, check);
-        if (checked_) {
+        if (checked.read()) {
             check.role = PartRole::indicator;
             check.mark = PartMark::check;
             check.authored_foreground = ink;
@@ -276,14 +261,14 @@ void DateTimePicker::on_paint(Painter& painter, Rect damage) {
     content.family = ControlVisualRole::editor;
     content.role = PartRole::content;
     content.states = text_states;
-    content.font = font;
+    content.font = field_font;
     content.authored_foreground = ink;
     const std::string text = formatted_value();
     content.text = text;
-    const Size measured = painter.measure_text_utf8(text, font);
-    const double box_height = std::max(measured.height, font.size * 1.2);
-    const double box_ascent = std::max(font.size, box_height * 0.82);
-    const double baseline = std::max(font.size, (bounds.height + font.size) * 0.5 - 1.0);
+    const Size measured = painter.measure_text_utf8(text, field_font);
+    const double box_height = std::max(measured.height, field_font.size * 1.2);
+    const double box_ascent = std::max(field_font.size, box_height * 0.82);
+    const double baseline = std::max(field_font.size, (bounds.height + field_font.size) * 0.5 - 1.0);
     content.bounds = {text_left, baseline - box_ascent, std::max(0.0, button_x - text_left - 3.0), box_height};
     content.measured_text = measured;
     paint_part(painter, *this, content);
@@ -318,13 +303,13 @@ void DateTimePicker::on_activate() {
     HitPart part = std::exchange(activation_part_, HitPart::none);
     if (part == HitPart::none) part = HitPart::body;
     if (part == HitPart::check) {
-        set_checked(!checked_);
-    } else if (show_up_down_ && part == HitPart::arrow_up) {
+        checked = !checked.read();
+    } else if (show_up_down.read() && part == HitPart::arrow_up) {
         step_days(1);
-    } else if (show_up_down_ && part == HitPart::arrow_down) {
+    } else if (show_up_down.read() && part == HitPart::arrow_down) {
         step_days(-1);
-    } else if (!show_up_down_) {
-        set_dropped_down(!dropped_down_);
+    } else if (!show_up_down.read()) {
+        dropped_down = !dropped_down_;
     }
 }
 
@@ -332,8 +317,8 @@ void DateTimePicker::on_key(KeyEvent& event) {
     if (!focused_ || !enabled.read() || event.action != KeyAction::down) return;
     if ((event.physical_key == PhysicalKey::f4 ||
          (event.physical_key == PhysicalKey::down &&
-          includes(event.modifiers, Modifier::alt))) && !show_up_down_) {
-        set_dropped_down(!dropped_down_);
+          includes(event.modifiers, Modifier::alt))) && !show_up_down.read()) {
+        dropped_down = !dropped_down_;
         event.handled = true;
     } else if (event.physical_key == PhysicalKey::up ||
                event.physical_key == PhysicalKey::right) {
@@ -343,8 +328,8 @@ void DateTimePicker::on_key(KeyEvent& event) {
                event.physical_key == PhysicalKey::left) {
         step_days(-1);
         event.handled = true;
-    } else if (event.physical_key == PhysicalKey::space && show_check_box_) {
-        set_checked(!checked_);
+    } else if (event.physical_key == PhysicalKey::space && show_check_box.read()) {
+        checked = !checked.read();
         event.handled = true;
     }
 }
@@ -355,21 +340,21 @@ void DateTimePicker::on_focus_changed(bool focused) {
 }
 
 void DateTimePicker::step_days(int days) {
-    if (show_check_box_ && !checked_) set_checked(true);
-    const DateTimeValue candidate = add_days(value_, days);
-    if (!civil_in_range(candidate, minimum_, maximum_)) return;
-    set_value(std::clamp(candidate, minimum_, maximum_));
+    if (show_check_box.read() && !checked.read()) checked = true;
+    const DateTimeValue candidate = add_days(value.read(), days);
+    if (!civil_in_range(candidate, minimum.read(), maximum.read())) return;
+    value = std::clamp(candidate, minimum.read(), maximum.read());
 }
 
 void DateTimePicker::open_drop_down() {
-    if (dropped_down_ || show_up_down_ || !attached() || window() == nullptr) return;
+    if (dropped_down_ || show_up_down.read() || !attached() || window() == nullptr) return;
     const Control::Ptr owner = shared_from_this();
     const Size client = (*window()).client_size();
     const Rect picker = absolute_bounds();
     const double width = 286.0 * effective_text_scale();
     const double height = 260.0 * effective_text_scale();
     const double requested_x =
-        drop_down_alignment_ == DateTimeDropDownAlignment::right
+        drop_down_alignment.read() == DateTimeDropDownAlignment::right
         ? picker.x + picker.width - width : picker.x;
     const double x = std::clamp(
         requested_x, 0.0, std::max(0.0, client.width - width));
@@ -380,8 +365,8 @@ void DateTimePicker::open_drop_down() {
     std::shared_ptr<gui_forms::CalendarOverlayLayer> layer = make_control<CalendarOverlayLayer>(StableId(prefix + ".overlay.layer"));
     (*layer).set_requested_bounds({0.0, 0.0, client.width, client.height});
     std::shared_ptr<gui_forms::CalendarOverlay> calendar = make_control<CalendarOverlay>(
-        StableId(prefix + ".overlay.calendar"), value_, minimum_, maximum_,
-        format_provider_);
+        StableId(prefix + ".overlay.calendar"), value.read(), minimum.read(), maximum.read(),
+        format_provider.read());
     (*calendar).set_requested_bounds({x, y, width, height});
     (*layer).add_child(calendar);
     OverlayToken token = (*window()).open_overlay(owner, layer);
@@ -455,8 +440,8 @@ void DateTimePicker::on_overlay_revoked() {
     if (changed) publish_change(drop_down_changed_, false);
 }
 
-void DateTimePicker::commit_overlay_value(DateTimeValue value) {
-    set_value(value);
+void DateTimePicker::commit_overlay_value(DateTimeValue chosen) {
+    value = chosen;
     close_drop_down();
 }
 
@@ -466,15 +451,15 @@ SemanticDescriptor DateTimePicker::semantic_descriptor() const {
     descriptor.name = accessible_name.read();
     descriptor.description = accessible_description.read();
     descriptor.value = formatted_value();
-    if (show_check_box_) descriptor.states |= SemanticState::checkable;
-    if (show_check_box_ && checked_) descriptor.states |= SemanticState::checked;
+    if (show_check_box.read()) descriptor.states |= SemanticState::checkable;
+    if (show_check_box.read() && checked.read()) descriptor.states |= SemanticState::checked;
     if (dropped_down_) descriptor.states |= SemanticState::expanded;
     descriptor.actions = {SemanticAction::focus, SemanticAction::increment,
                           SemanticAction::decrement, SemanticAction::set_value};
-    if (show_check_box_) {
+    if (show_check_box.read()) {
         descriptor.actions.push_back(SemanticAction::press);
     }
-    if (!show_up_down_) {
+    if (!show_up_down.read()) {
         descriptor.actions.push_back(dropped_down_ ? SemanticAction::collapse
                                                    : SemanticAction::expand);
     }
@@ -483,9 +468,9 @@ SemanticDescriptor DateTimePicker::semantic_descriptor() const {
 }
 
 bool DateTimePicker::on_semantic_action(SemanticAction action,
-                                        std::string_view value) {
+                                        std::string_view action_value) {
     if (action == SemanticAction::focus) {
-        return Control::on_semantic_action(action, value);
+        return Control::on_semantic_action(action, action_value);
     }
     if (action == SemanticAction::increment) {
         step_days(1);
@@ -495,25 +480,25 @@ bool DateTimePicker::on_semantic_action(SemanticAction action,
         step_days(-1);
         return true;
     }
-    if (action == SemanticAction::press && show_check_box_) {
-        set_checked(!checked_);
+    if (action == SemanticAction::press && show_check_box.read()) {
+        checked = !checked.read();
         return true;
     }
-    if (action == SemanticAction::expand && !show_up_down_) {
-        set_dropped_down(true);
+    if (action == SemanticAction::expand && !show_up_down.read()) {
+        dropped_down = true;
         return dropped_down_;
     }
-    if (action == SemanticAction::collapse && !show_up_down_) {
-        set_dropped_down(false);
+    if (action == SemanticAction::collapse && !show_up_down.read()) {
+        dropped_down = false;
         return !dropped_down_;
     }
     if (action == SemanticAction::set_value) {
-        DateTimeValue parsed = value_;
-        if (!parse_iso_date(value, parsed) || parsed < minimum_ || parsed > maximum_) {
+        DateTimeValue parsed = value.read();
+        if (!parse_iso_date(action_value, parsed) || parsed < minimum.read() || parsed > maximum.read()) {
             return false;
         }
-        if (show_check_box_ && !checked_) set_checked(true);
-        set_value(parsed);
+        if (show_check_box.read() && !checked.read()) checked = true;
+        value = parsed;
         return true;
     }
     return false;
@@ -525,7 +510,6 @@ void DateTimePicker::on_detached_from_window() noexcept {
     } catch (...) {
     }
 }
-
 
 namespace {
 
@@ -615,7 +599,7 @@ void DateTimePicker::publish_part_geometry(std::span<PartGeometry> geometry) con
     const Rect button{button_x, 1.0, std::max(0.0, button_width - 1.0),
                       std::max(0.0, bounds.height - 2.0)};
     const double center_x = button_x + button_width * 0.5;
-    if (show_up_down_) {
+    if (show_up_down.read()) {
         // The up/down actuators are the button's halves at the divider row.
         const double middle = std::floor(bounds.height * 0.5);
         const Rect upper{button.x, button.y, button.width, std::max(0.0, middle - button.y)};
@@ -636,14 +620,14 @@ void DateTimePicker::publish_part_geometry(std::span<PartGeometry> geometry) con
         record.disclosure = PartGeometry::from_bounds(chevron);
     }
     double text_left = 7.0;
-    if (show_check_box_) {
+    if (show_check_box.read()) {
         const double check_y = std::max(3.0, (bounds.height - 14.0) * 0.5);
         const Rect box{5.0, check_y, 14.0, 14.0};
         record.well = PartGeometry::from_bounds(box);
         if (pressed_part_ == HitPart::check) {
             record.well.states.insert(AnatomyState::pressed);
         }
-        if (checked_) {
+        if (checked.read()) {
             // Two-unit strokes through (8, 7), (11, 10) and (17, 3.5) from the box top.
             const Rect mark{7.0, check_y + 2.5, 11.0, 8.5};
             record.indicator = PartGeometry::from_bounds(mark);
@@ -664,7 +648,7 @@ AnatomyStateSet DateTimePicker::anatomy_states() const {
     } else {
         states.insert(AnatomyState::closed);
     }
-    if (show_check_box_ && checked_) {
+    if (show_check_box.read() && checked.read()) {
         states.insert(AnatomyState::checked);
     }
     return states;
@@ -685,5 +669,76 @@ void DateTimePicker::append_interactions(std::vector<InteractionDeclaration>& in
     Panel::append_interactions(interactions);
     interactions.insert(interactions.end(), date_time_picker_interactions.begin(), date_time_picker_interactions.end());
 }
+
+// property_codemod begin DateTimePicker (tools/property_families/date_time_picker.json; generated, do not edit)
+
+void DateTimePicker::prepare_write(const decltype(value)&, DateTimeValue& incoming) {
+    require_mutable();
+    if (!valid_date_time(incoming) || incoming < minimum.read() || incoming > maximum.read()) {
+        throw std::out_of_range("DateTimePicker value is invalid or outside its range");
+    }
+}
+
+void DateTimePicker::written(const decltype(value)&) {
+    invalidate(Dirty::paint | Dirty::semantics);
+    publish_change(value_changed_, value.read());
+}
+
+void DateTimePicker::prepare_write(const decltype(format)&, DateTimePickerFormat& incoming) {
+    require_mutable();
+    switch (incoming) {
+    case DateTimePickerFormat::long_date:
+    case DateTimePickerFormat::short_date:
+    case DateTimePickerFormat::time:
+    case DateTimePickerFormat::custom:
+        break;
+    default:
+        throw std::invalid_argument("DateTimePicker format is invalid");
+    }
+}
+
+void DateTimePicker::written(const decltype(format)&) {
+    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
+}
+
+void DateTimePicker::prepare_write(const decltype(show_check_box)&, bool&) {
+    require_mutable();
+}
+
+void DateTimePicker::written(const decltype(show_check_box)&) {
+    invalidate(Dirty::measure | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+void DateTimePicker::prepare_write(const decltype(checked)&, bool&) {
+    require_mutable();
+}
+
+void DateTimePicker::written(const decltype(checked)&) {
+    invalidate(Dirty::paint | Dirty::semantics);
+    publish_change(checked_changed_, checked.read());
+}
+
+void DateTimePicker::prepare_write(const decltype(drop_down_alignment)&, DateTimeDropDownAlignment& incoming) {
+    require_mutable();
+    if (incoming != DateTimeDropDownAlignment::left && incoming != DateTimeDropDownAlignment::right) {
+        throw std::invalid_argument("DateTimePicker drop-down alignment is invalid");
+    }
+}
+
+void DateTimePicker::written(const decltype(drop_down_alignment)&) {
+    invalidate(Dirty::paint | Dirty::semantics);
+}
+
+void DateTimePicker::prepare_write(const decltype(font)&, FontSpec& incoming) {
+    require_mutable();
+    if (!valid_font_spec(incoming)) throw std::invalid_argument("DateTimePicker font specification is invalid");
+    set_font_from_code(true);
+}
+
+void DateTimePicker::written(const decltype(font)&) {
+    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
+}
+
+// property_codemod end DateTimePicker
 
 } // namespace gui_forms

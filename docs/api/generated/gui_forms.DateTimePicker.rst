@@ -7,17 +7,17 @@ gui_forms::DateTimePicker
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: DateTimePicker final : public Panel
+.. cpp:class:: DateTimePicker final : public Panel, public DateTimePickerCapabilities<DateTimePicker>
 
    ``#include <gui_forms/controls/panel/date_time_picker/date_time_picker.hpp>``
 
    A field that shows a date and time and lets the user pick a date from a drop-down calendar.
 
-   A date-time picker shows its :cpp:func:`value <gui_forms::DateTimePicker::value>` as text in one of four formats and
+   A date-time picker shows its :cpp:member:`value <gui_forms::DateTimePicker::value>` as text in one of four formats and
    opens a month calendar when the user clicks it or presses F4. The arrow keys
    step the date by one day, and an up-down mode replaces the calendar with a
-   pair of step buttons. With :cpp:func:`show_check_box <gui_forms::DateTimePicker::show_check_box>`, a check box lets the user
-   leave the date unset. The value stays within :cpp:func:`minimum <gui_forms::DateTimePicker::minimum>` and :cpp:func:`maximum <gui_forms::DateTimePicker::maximum>`. Month
+   pair of step buttons. With :cpp:member:`show_check_box <gui_forms::DateTimePicker::show_check_box>`, a check box lets the user
+   leave the date unset. The value stays within :cpp:member:`minimum <gui_forms::DateTimePicker::minimum>` and :cpp:member:`maximum <gui_forms::DateTimePicker::maximum>`. Month
    and day names and the format patterns come from a :cpp:class:`DateTimeFormatProvider <gui_forms::DateTimeFormatProvider>`,
    so the display does not depend on the host's locale.
 
@@ -33,22 +33,27 @@ gui_forms::DateTimePicker
    :Properties:
 
       **value** : ``DateTimeValue``, default ``DateTimeValue{2000, 1U, 1U}``
-         The date and time, to the millisecond. :cpp:func:`set_value <gui_forms::DateTimePicker::set_value>` throws
+         The date and time, to the millisecond. A write throws
          ``std::out_of_range`` for a date that does not exist, such as February 30,
          or one outside the range. Setting the current value again does nothing.
 
-      **minimum** : ``DateTimeValue``, default ``DateTimeValue{1753, 1U, 1U}``, read-only
-         The earliest value. Set it together with :cpp:func:`maximum <gui_forms::DateTimePicker::maximum>` through :cpp:func:`set_range <gui_forms::DateTimePicker::set_range>`.
+      **minimum** : ``DateTimeValue``, default ``DateTimeValue{1753, 1U, 1U}``
+         The earliest value. A minimum later than :cpp:member:`maximum <gui_forms::DateTimePicker::maximum>` moves :cpp:member:`maximum <gui_forms::DateTimePicker::maximum>` to
+         it; then an open calendar closes and a value outside the range is
+         clamped into it. An invalid date throws ``std::invalid_argument``.
+         :cpp:func:`set_range <gui_forms::DateTimePicker::set_range>` sets both.
 
-      **maximum** : ``DateTimeValue``, default ``DateTimeValue{9998, 12U, 31U, 23U, 59U, 59U, 999U}``, read-only
-         The latest value. Set it together with :cpp:func:`minimum <gui_forms::DateTimePicker::minimum>` through :cpp:func:`set_range <gui_forms::DateTimePicker::set_range>`.
+      **maximum** : ``DateTimeValue``, default ``DateTimeValue{9998, 12U, 31U, 23U, 59U, 59U, 999U}``
+         The latest value. A maximum earlier than :cpp:member:`minimum <gui_forms::DateTimePicker::minimum>` moves :cpp:member:`minimum <gui_forms::DateTimePicker::minimum>` to
+         it; then an open calendar closes and a value outside the range is
+         clamped into it. An invalid date throws ``std::invalid_argument``.
 
       **format** : ``DateTimePickerFormat``, default ``DateTimePickerFormat::long_date``
          Which pattern the field shows: the provider's long date, short date or
-         time pattern, or :cpp:func:`custom_format <gui_forms::DateTimePicker::custom_format>`.
+         time pattern, or :cpp:member:`custom_format <gui_forms::DateTimePicker::custom_format>`.
 
       **custom_format** : ``std::string``, default ``"MMMM d, yyyy"``
-         The pattern used when :cpp:func:`format <gui_forms::DateTimePicker::format>` is :cpp:enumerator:`DateTimePickerFormat::custom <gui_forms::DateTimePickerFormat::custom>`. It
+         The pattern used when :cpp:member:`format <gui_forms::DateTimePicker::format>` is :cpp:enumerator:`DateTimePickerFormat::custom <gui_forms::DateTimePickerFormat::custom>`. It
          must be valid UTF-8, or the setter throws ``std::invalid_argument``. See
          the notes for the pattern letters.
 
@@ -58,16 +63,13 @@ gui_forms::DateTimePicker
          the designators valid UTF-8, or the setter throws ``std::invalid_argument``
          and keeps the previous provider. Setting it closes an open calendar.
 
-      **formatted_value** : ``std::string``, read-only
-         The value as the field shows it, in the current format.
-
       **show_check_box** : ``bool``, default ``false``
          Whether a check box is drawn at the left of the field. While it is
          unchecked, the text is drawn dimmed.
 
       **checked** : ``bool``, default ``true``
          The state of the check box, which the application reads as "a date is
-         set". It does not change :cpp:func:`value <gui_forms::DateTimePicker::value>`, which keeps a date while unchecked.
+         set". It does not change :cpp:member:`value <gui_forms::DateTimePicker::value>`, which keeps a date while unchecked.
 
       **show_up_down** : ``bool``, default ``false``
          Whether a pair of up and down buttons replaces the drop-down arrow.
@@ -90,6 +92,9 @@ gui_forms::DateTimePicker
          The colours of the field and the calendar. The field's background is the
          style's paper colour.
 
+      **formatted_value** : ``std::string``, read-only
+         The value as the field shows it, in the current format.
+
       **parts** : ``Parts``, read-only
 
       **states** : ``States``, read-only
@@ -97,12 +102,12 @@ gui_forms::DateTimePicker
    :Events:
 
       **value_changed** : ``Event<DateTimeValue>``
-         Raised after :cpp:func:`value <gui_forms::DateTimePicker::value>` changes, whatever the cause: a setter, a range
+         Raised after :cpp:member:`value <gui_forms::DateTimePicker::value>` changes, whatever the cause: a setter, a range
          change that clamps the value, a step, the calendar or an accessibility
          action. It carries the new value.
 
       **checked_changed** : ``Event<bool>``
-         Raised after :cpp:func:`checked <gui_forms::DateTimePicker::checked>` changes, by :cpp:func:`set_checked <gui_forms::DateTimePicker::set_checked>`, by the user, or
+         Raised after :cpp:member:`checked <gui_forms::DateTimePicker::checked>` changes, by ``set_checked``, by the user, or
          because stepping or setting the date through input checks the box.
 
       **drop_down_changed** : ``Event<bool>``
@@ -124,7 +129,7 @@ gui_forms::DateTimePicker
       :widths: 35 65
 
       * - :cpp:func:`set_range <gui_forms::DateTimePicker::set_range>`
-        - Sets :cpp:func:`minimum <gui_forms::DateTimePicker::minimum>` and :cpp:func:`maximum <gui_forms::DateTimePicker::maximum>` together.
+        - Sets :cpp:member:`minimum <gui_forms::DateTimePicker::minimum>` and :cpp:member:`maximum <gui_forms::DateTimePicker::maximum>` together.
 
    .. seealso::
 
@@ -149,7 +154,7 @@ gui_forms::DateTimePicker
    shown. In up-down mode F4 does nothing and Alt+Down steps back like Down.
 
    Stepping changes only the date: the time of day is kept, and the arrow keys
-   step days even when :cpp:func:`format <gui_forms::DateTimePicker::format>` shows only the time. A step that would leave
+   step days even when :cpp:member:`format <gui_forms::DateTimePicker::format>` shows only the time. A step that would leave
    the range is ignored. If the check box is shown and unchecked, a step first
    checks it, so :cpp:func:`checked_changed <gui_forms::DateTimePicker::checked_changed>` comes before :cpp:func:`value_changed <gui_forms::DateTimePicker::value_changed>`.
 
@@ -194,8 +199,8 @@ gui_forms::DateTimePicker
       std::shared_ptr<gf::DateTimePicker> due =
           gf::make_control<gf::DateTimePicker>(gf::StableId("task.due"));
       (*due).set_range({2026, 1U, 1U}, {2026, 12U, 31U, 23U, 59U, 59U, 999U});
-      (*due).set_value({2026, 10U, 11U});
-      (*due).set_format(gf::DateTimePickerFormat::short_date);
+      (*due).value = gf::DateTimeValue{2026, 10U, 11U};
+      (*due).format = gf::DateTimePickerFormat::short_date;
       // formatted_value() is "10/11/2026"
 
    An optional date, held as one ``std::optional`` so that "no date" and a date
@@ -211,26 +216,26 @@ gui_forms::DateTimePicker
           std::optional<gf::DateTimeValue> date{};
 
           Reminder() {
-              (*when).set_show_check_box(true);
-              date = (*when).value();
+              (*when).show_check_box = true;
+              date = (*when).value.read();
               gf::on((*when).checked_changed(), *this, &Reminder::on_checked);
               gf::on((*when).value_changed(), *this, &Reminder::on_date);
           }
           void on_checked(bool checked) {
               if (checked) {
-                  date = (*when).value();
+                  date = (*when).value.read();
               } else {
                   date.reset();
               }
           }
           void on_date(gf::DateTimeValue value) {
-              if ((*when).checked()) date = value;
+              if ((*when).checked.read()) date = value;
           }
       };
 
       void example() {
           Reminder reminder;
-          (*reminder.when).set_checked(false);   // date is empty
+          (*reminder.when).checked = false;   // date is empty
           std::shared_ptr<gf::Panel> root =
               gf::make_control<gf::Panel>(gf::StableId("reminder.root"));
           (*reminder.when).set_requested_bounds({10.0, 10.0, 240.0, 29.0});
@@ -250,121 +255,82 @@ gui_forms::DateTimePicker
 
    .. rubric:: Properties
 
-   .. cpp:function:: DateTimeValue value() const noexcept
+   .. cpp:member:: DateTimeValue value
 
-      The date and time, to the millisecond. :cpp:func:`set_value <gui_forms::DateTimePicker::set_value>` throws
+      The date and time, to the millisecond. A write throws
       ``std::out_of_range`` for a date that does not exist, such as February 30,
       or one outside the range. Setting the current value again does nothing.
 
-   .. cpp:function:: void set_value(DateTimeValue value)
+   .. cpp:member:: DateTimeValue minimum
 
-      Sets :cpp:func:`value <gui_forms::DateTimePicker::value>`; see the property's description above.
+      The earliest value. A minimum later than :cpp:member:`maximum <gui_forms::DateTimePicker::maximum>` moves :cpp:member:`maximum <gui_forms::DateTimePicker::maximum>` to
+      it; then an open calendar closes and a value outside the range is
+      clamped into it. An invalid date throws ``std::invalid_argument``.
+      :cpp:func:`set_range <gui_forms::DateTimePicker::set_range>` sets both.
 
-   .. cpp:function:: DateTimeValue minimum() const noexcept
+   .. cpp:member:: DateTimeValue maximum
 
-      The earliest value. Set it together with :cpp:func:`maximum <gui_forms::DateTimePicker::maximum>` through :cpp:func:`set_range <gui_forms::DateTimePicker::set_range>`.
+      The latest value. A maximum earlier than :cpp:member:`minimum <gui_forms::DateTimePicker::minimum>` moves :cpp:member:`minimum <gui_forms::DateTimePicker::minimum>` to
+      it; then an open calendar closes and a value outside the range is
+      clamped into it. An invalid date throws ``std::invalid_argument``.
 
-   .. cpp:function:: DateTimeValue maximum() const noexcept
-
-      The latest value. Set it together with :cpp:func:`minimum <gui_forms::DateTimePicker::minimum>` through :cpp:func:`set_range <gui_forms::DateTimePicker::set_range>`.
-
-   .. cpp:function:: DateTimePickerFormat format() const noexcept
+   .. cpp:member:: DateTimePickerFormat format
 
       Which pattern the field shows: the provider's long date, short date or
-      time pattern, or :cpp:func:`custom_format <gui_forms::DateTimePicker::custom_format>`.
+      time pattern, or :cpp:member:`custom_format <gui_forms::DateTimePicker::custom_format>`.
 
-   .. cpp:function:: void set_format(DateTimePickerFormat format)
+   .. cpp:member:: std::string custom_format
 
-      Sets :cpp:func:`format <gui_forms::DateTimePicker::format>`; see the property's description above.
-
-   .. cpp:function:: const std::string& custom_format() const noexcept
-
-      The pattern used when :cpp:func:`format <gui_forms::DateTimePicker::format>` is :cpp:enumerator:`DateTimePickerFormat::custom <gui_forms::DateTimePickerFormat::custom>`. It
+      The pattern used when :cpp:member:`format <gui_forms::DateTimePicker::format>` is :cpp:enumerator:`DateTimePickerFormat::custom <gui_forms::DateTimePickerFormat::custom>`. It
       must be valid UTF-8, or the setter throws ``std::invalid_argument``. See
       the notes for the pattern letters.
 
-   .. cpp:function:: void set_custom_format(std::string format)
-
-      Sets :cpp:func:`custom_format <gui_forms::DateTimePicker::custom_format>`; see the property's description above.
-
-   .. cpp:function:: const DateTimeFormatProvider& format_provider() const noexcept
+   .. cpp:member:: DateTimeFormatProvider format_provider
 
       The month and day names, the three patterns and the AM and PM
       designators. Every name and pattern must be nonempty valid UTF-8, and
       the designators valid UTF-8, or the setter throws ``std::invalid_argument``
       and keeps the previous provider. Setting it closes an open calendar.
 
-   .. cpp:function:: void set_format_provider(DateTimeFormatProvider provider)
-
-      Sets :cpp:func:`format_provider <gui_forms::DateTimePicker::format_provider>`; see the property's description above.
-
-   .. cpp:function:: std::string formatted_value() const
-
-      The value as the field shows it, in the current format.
-
-   .. cpp:function:: bool show_check_box() const noexcept
+   .. cpp:member:: bool show_check_box
 
       Whether a check box is drawn at the left of the field. While it is
       unchecked, the text is drawn dimmed.
 
-   .. cpp:function:: void set_show_check_box(bool show)
-
-      Sets :cpp:func:`show_check_box <gui_forms::DateTimePicker::show_check_box>`; see the property's description above.
-
-   .. cpp:function:: bool checked() const noexcept
+   .. cpp:member:: bool checked
 
       The state of the check box, which the application reads as "a date is
-      set". It does not change :cpp:func:`value <gui_forms::DateTimePicker::value>`, which keeps a date while unchecked.
+      set". It does not change :cpp:member:`value <gui_forms::DateTimePicker::value>`, which keeps a date while unchecked.
 
-   .. cpp:function:: void set_checked(bool checked)
-
-      Sets :cpp:func:`checked <gui_forms::DateTimePicker::checked>`; see the property's description above.
-
-   .. cpp:function:: bool show_up_down() const noexcept
+   .. cpp:member:: bool show_up_down
 
       Whether a pair of up and down buttons replaces the drop-down arrow.
       There is no calendar in this mode; turning it on closes an open one.
 
-   .. cpp:function:: void set_show_up_down(bool show)
-
-      Sets :cpp:func:`show_up_down <gui_forms::DateTimePicker::show_up_down>`; see the property's description above.
-
-   .. cpp:function:: bool dropped_down() const noexcept
+   .. cpp:member:: bool dropped_down
 
       Whether the calendar is open. Opening it does nothing when the picker is
       not in a window or is in up-down mode; in a window, opening it while the
       picker is hidden or disabled throws ``std::logic_error``.
 
-   .. cpp:function:: void set_dropped_down(bool dropped_down)
-
-      Sets :cpp:func:`dropped_down <gui_forms::DateTimePicker::dropped_down>`; see the property's description above.
-
-   .. cpp:function:: DateTimeDropDownAlignment drop_down_alignment() const noexcept
+   .. cpp:member:: DateTimeDropDownAlignment drop_down_alignment
 
       Whether the calendar lines up with the left or the right edge of the
       field. Another value throws ``std::invalid_argument``.
 
-   .. cpp:function:: void set_drop_down_alignment(DateTimeDropDownAlignment alignment)
-
-      Sets :cpp:func:`drop_down_alignment <gui_forms::DateTimePicker::drop_down_alignment>`; see the property's description above.
-
-   .. cpp:function:: FontSpec font() const noexcept
+   .. cpp:member:: FontSpec font
 
       The font of the text. An invalid font specification throws
       ``std::invalid_argument``.
 
-   .. cpp:function:: void set_font(FontSpec font)
-
-      Sets :cpp:func:`font <gui_forms::DateTimePicker::font>`; see the property's description above.
-
-   .. cpp:function:: const BasicControlStyle& style() const noexcept
+   .. cpp:member:: BasicControlStyle style
 
       The colours of the field and the calendar. The field's background is the
       style's paper colour.
 
-   .. cpp:function:: void set_style(BasicControlStyle style)
+   .. cpp:function:: std::string formatted_value() const
 
-      Sets :cpp:func:`style <gui_forms::DateTimePicker::style>`; see the property's description above.
+      The value as the field shows it, in the current format.
 
    .. cpp:function:: Parts parts() const
 
@@ -375,13 +341,13 @@ gui_forms::DateTimePicker
 
    .. cpp:function:: Event<DateTimeValue>& value_changed() noexcept
 
-      Raised after :cpp:func:`value <gui_forms::DateTimePicker::value>` changes, whatever the cause: a setter, a range
+      Raised after :cpp:member:`value <gui_forms::DateTimePicker::value>` changes, whatever the cause: a setter, a range
       change that clamps the value, a step, the calendar or an accessibility
       action. It carries the new value.
 
    .. cpp:function:: Event<bool>& checked_changed() noexcept
 
-      Raised after :cpp:func:`checked <gui_forms::DateTimePicker::checked>` changes, by :cpp:func:`set_checked <gui_forms::DateTimePicker::set_checked>`, by the user, or
+      Raised after :cpp:member:`checked <gui_forms::DateTimePicker::checked>` changes, by ``set_checked``, by the user, or
       because stepping or setting the date through input checks the box.
 
    .. cpp:function:: Event<bool>& drop_down_changed() noexcept
@@ -392,10 +358,10 @@ gui_forms::DateTimePicker
 
    .. rubric:: Methods
 
-   .. cpp:function:: void set_range(DateTimeValue minimum, DateTimeValue maximum)
+   .. cpp:function:: void set_range(DateTimeValue earliest, DateTimeValue latest)
 
-      Sets :cpp:func:`minimum <gui_forms::DateTimePicker::minimum>` and :cpp:func:`maximum <gui_forms::DateTimePicker::maximum>` together. Both must be valid dates and
-      :cpp:func:`minimum <gui_forms::DateTimePicker::minimum>` may not be later than :cpp:func:`maximum <gui_forms::DateTimePicker::maximum>`, or it throws
+      Sets :cpp:member:`minimum <gui_forms::DateTimePicker::minimum>` and :cpp:member:`maximum <gui_forms::DateTimePicker::maximum>` together. Both must be valid dates and
+      :cpp:member:`minimum <gui_forms::DateTimePicker::minimum>` may not be later than :cpp:member:`maximum <gui_forms::DateTimePicker::maximum>`, or it throws
       ``std::invalid_argument``. A value outside the new range is clamped into
       it. An open calendar is closed, raising :cpp:func:`drop_down_changed <gui_forms::DateTimePicker::drop_down_changed>`, and then
       :cpp:func:`value_changed <gui_forms::DateTimePicker::value_changed>` is raised if the value was clamped.
@@ -415,7 +381,7 @@ gui_forms::DateTimePicker
 
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
 
-   .. cpp:function:: bool on_semantic_action(SemanticAction action, std::string_view value) override
+   .. cpp:function:: bool on_semantic_action(SemanticAction action, std::string_view action_value) override
 
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
 

@@ -65,43 +65,43 @@ private:
 
     // Every picker starts at the specimen value in the page style.
     static void prepare_picker(DateTimePicker& picker) {
-        picker.set_style(page_style());
-        picker.set_value(specimen);
+        picker.style = page_style();
+        picker.value = specimen;
     }
 
     void build_formats() {
         prepare_picker(*document_.gallery_date_format_0);
         DateTimePicker& short_date = *document_.gallery_date_format_1;
         prepare_picker(short_date);
-        short_date.set_format(DateTimePickerFormat::short_date);
+        short_date.format = DateTimePickerFormat::short_date;
         DateTimePicker& time = *document_.gallery_date_format_2;
         prepare_picker(time);
-        time.set_format(DateTimePickerFormat::time);
+        time.format = DateTimePickerFormat::time;
         DateTimePicker& custom = *document_.gallery_date_format_3;
         prepare_picker(custom);
-        custom.set_custom_format("yyyy-MM-dd '·' HH:mm");
-        custom.set_format(DateTimePickerFormat::custom);
+        custom.custom_format = "yyyy-MM-dd '·' HH:mm";
+        custom.format = DateTimePickerFormat::custom;
     }
 
     void build_modes() {
         prepare_picker(*optional_);
-        (*optional_).set_format(DateTimePickerFormat::short_date);
-        (*optional_).set_show_check_box(true);
-        (*optional_).set_checked(false);
+        (*optional_).format = DateTimePickerFormat::short_date;
+        (*optional_).show_check_box = true;
+        (*optional_).checked = false;
 
         DateTimePicker& spinner = *document_.gallery_date_spinner;
         prepare_picker(spinner);
-        spinner.set_format(DateTimePickerFormat::short_date);
-        spinner.set_show_up_down(true);
+        spinner.format = DateTimePickerFormat::short_date;
+        spinner.show_up_down = true;
 
         DateTimePicker& provider = *document_.gallery_date_provider;
         prepare_picker(provider);
-        provider.set_format_provider(french_date_provider());
+        provider.format_provider = french_date_provider();
 
         DateTimePicker& disabled = *document_.gallery_date_disabled;
         prepare_picker(disabled);
-        disabled.set_custom_format("MMM d, yyyy");
-        disabled.set_format(DateTimePickerFormat::custom);
+        disabled.custom_format = "MMM d, yyyy";
+        disabled.format = DateTimePickerFormat::custom;
     }
 
     void build_lifecycle() {
@@ -147,14 +147,14 @@ private:
 
     // The commands' enabled state is the single authority their buttons show.
     void project_commands() {
-        const DateTimeValue value = (*primary_).value();
-        const DateTimeValue minimum = (*primary_).minimum();
-        const DateTimeValue maximum = (*primary_).maximum();
+        const DateTimeValue value = (*primary_).value.read();
+        const DateTimeValue minimum = (*primary_).minimum.read();
+        const DateTimeValue maximum = (*primary_).maximum.read();
         previous_day_.set_enabled(!(value.year == minimum.year && value.month == minimum.month &&
                                     value.day == minimum.day));
         next_day_.set_enabled(!(value.year == maximum.year && value.month == maximum.month &&
                                 value.day == maximum.day));
-        open_calendar_.set_enabled(!(*primary_).dropped_down());
+        open_calendar_.set_enabled(!(*primary_).dropped_down.read());
     }
 
     void value_committed() {
@@ -175,9 +175,9 @@ private:
                                     : "Optional date unchecked · value retained but inactive");
     }
 
-    void previous_day() { (*primary_).set_value(add_days((*primary_).value(), -1)); }
-    void next_day() { (*primary_).set_value(add_days((*primary_).value(), 1)); }
-    void open_calendar() { (*primary_).set_dropped_down(true); }
+    void previous_day() { (*primary_).value = add_days((*primary_).value.read(), -1); }
+    void next_day() { (*primary_).value = add_days((*primary_).value.read(), 1); }
+    void open_calendar() { (*primary_).dropped_down = true; }
 
     Command previous_day_{};
     Command next_day_{};

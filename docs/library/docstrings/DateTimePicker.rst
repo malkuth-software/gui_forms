@@ -18,13 +18,18 @@ stable_id
 Properties
 ----------
 value : default ``DateTimeValue{2000, 1U, 1U}``
-    The date and time, to the millisecond. `set_value` throws
+    The date and time, to the millisecond. A write throws
     `std::out_of_range` for a date that does not exist, such as February 30,
     or one outside the range. Setting the current value again does nothing.
 minimum : default ``DateTimeValue{1753, 1U, 1U}``
-    The earliest value. Set it together with `maximum` through `set_range`.
+    The earliest value. A minimum later than `maximum` moves `maximum` to
+    it; then an open calendar closes and a value outside the range is
+    clamped into it. An invalid date throws `std::invalid_argument`.
+    `set_range` sets both.
 maximum : default ``DateTimeValue{9998, 12U, 31U, 23U, 59U, 59U, 999U}``
-    The latest value. Set it together with `minimum` through `set_range`.
+    The latest value. A maximum earlier than `minimum` moves `minimum` to
+    it; then an open calendar closes and a value outside the range is
+    clamped into it. An invalid date throws `std::invalid_argument`.
 format : default ``DateTimePickerFormat::long_date``
     Which pattern the field shows: the provider's long date, short date or
     time pattern, or `custom_format`.
@@ -147,8 +152,8 @@ Limit a due date to the current year and show it in the short format:
    std::shared_ptr<gf::DateTimePicker> due =
        gf::make_control<gf::DateTimePicker>(gf::StableId("task.due"));
    (*due).set_range({2026, 1U, 1U}, {2026, 12U, 31U, 23U, 59U, 59U, 999U});
-   (*due).set_value({2026, 10U, 11U});
-   (*due).set_format(gf::DateTimePickerFormat::short_date);
+   (*due).value = gf::DateTimeValue{2026, 10U, 11U};
+   (*due).format = gf::DateTimePickerFormat::short_date;
    // formatted_value() is "10/11/2026"
 
 An optional date, held as one `std::optional` so that "no date" and a date
@@ -164,26 +169,26 @@ stepping with the keyboard checks it again before changing the date:
        std::optional<gf::DateTimeValue> date{};
 
        Reminder() {
-           (*when).set_show_check_box(true);
-           date = (*when).value();
+           (*when).show_check_box = true;
+           date = (*when).value.read();
            gf::on((*when).checked_changed(), *this, &Reminder::on_checked);
            gf::on((*when).value_changed(), *this, &Reminder::on_date);
        }
        void on_checked(bool checked) {
            if (checked) {
-               date = (*when).value();
+               date = (*when).value.read();
            } else {
                date.reset();
            }
        }
        void on_date(gf::DateTimeValue value) {
-           if ((*when).checked()) date = value;
+           if ((*when).checked.read()) date = value;
        }
    };
 
    void example() {
        Reminder reminder;
-       (*reminder.when).set_checked(false);   // date is empty
+       (*reminder.when).checked = false;   // date is empty
        std::shared_ptr<gf::Panel> root =
            gf::make_control<gf::Panel>(gf::StableId("reminder.root"));
        (*reminder.when).set_requested_bounds({10.0, 10.0, 240.0, 29.0});

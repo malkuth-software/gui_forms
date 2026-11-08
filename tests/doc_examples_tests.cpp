@@ -1110,8 +1110,8 @@ void example() {
     std::shared_ptr<gf::DateTimePicker> due =
         gf::make_control<gf::DateTimePicker>(gf::StableId("task.due"));
     (*due).set_range({2026, 1U, 1U}, {2026, 12U, 31U, 23U, 59U, 59U, 999U});
-    (*due).set_value({2026, 10U, 11U});
-    (*due).set_format(gf::DateTimePickerFormat::short_date);
+    (*due).value = gf::DateTimeValue{2026, 10U, 11U};
+    (*due).format = gf::DateTimePickerFormat::short_date;
     // formatted_value() is "10/11/2026"
 }
 }  // namespace doc_example_DateTimePicker_1
@@ -1124,26 +1124,26 @@ struct Reminder final : gf::Component {
     std::optional<gf::DateTimeValue> date{};
 
     Reminder() {
-        (*when).set_show_check_box(true);
-        date = (*when).value();
+        (*when).show_check_box = true;
+        date = (*when).value.read();
         gf::on((*when).checked_changed(), *this, &Reminder::on_checked);
         gf::on((*when).value_changed(), *this, &Reminder::on_date);
     }
     void on_checked(bool checked) {
         if (checked) {
-            date = (*when).value();
+            date = (*when).value.read();
         } else {
             date.reset();
         }
     }
     void on_date(gf::DateTimeValue value) {
-        if ((*when).checked()) date = value;
+        if ((*when).checked.read()) date = value;
     }
 };
 
 void example() {
     Reminder reminder;
-    (*reminder.when).set_checked(false);   // date is empty
+    (*reminder.when).checked = false;   // date is empty
     std::shared_ptr<gf::Panel> root =
         gf::make_control<gf::Panel>(gf::StableId("reminder.root"));
     (*reminder.when).set_requested_bounds({10.0, 10.0, 240.0, 29.0});

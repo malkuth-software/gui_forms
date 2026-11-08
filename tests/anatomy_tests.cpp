@@ -840,15 +840,15 @@ void test_spin_combo_and_picker_parts() {
 
     require((*picker).parts().drop_down.present && !(*picker).parts().well.present,
             "a plain picker has a drop-down and no check box");
-    (*picker).set_show_check_box(true);
-    (*picker).set_checked(true);
+    (*picker).show_check_box = true;
+    (*picker).checked = true;
     const DateTimePicker::Parts checked = (*picker).parts();
     require(checked.well.present && checked.indicator.present &&
                 checked.well.bounds.contains(checked.indicator.bounds) &&
                 checked.content.bounds.x >= checked.well.bounds.right() &&
                 (*picker).states().checked,
             "a checked picker publishes its check well, mark and state");
-    (*picker).set_show_up_down(true);
+    (*picker).show_up_down = true;
     const DateTimePicker::Parts spinning = (*picker).parts();
     require(!spinning.drop_down.present && spinning.increment_arrow.present &&
                 spinning.decrement_arrow.present,

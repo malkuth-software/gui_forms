@@ -11,6 +11,7 @@
 #include "gui_forms/controls/panel/card/review_card/review_card.hpp"
 #include "gui_forms/controls/panel/combo_box/combo_box.hpp"
 #include "gui_forms/controls/panel/correspondence_view/correspondence_view.hpp"
+#include "gui_forms/controls/panel/date_time_picker/date_time_picker.hpp"
 #include "gui_forms/controls/panel/domain_up_down/domain_up_down.hpp"
 #include "gui_forms/controls/panel/group_box/group_box.hpp"
 #include "gui_forms/controls/panel/group_box/scaled_group_box/scaled_group_box.hpp"
@@ -476,6 +477,73 @@ void test_data_grid_view_properties() {
         const bool sample = true;
         (*control).cells_on_sub_surface = sample;
         expect((*control).cells_on_sub_surface.read() == sample, "DataGridView.cells_on_sub_surface: a write stores");
+    }
+}
+
+void test_date_time_picker_properties() {
+    std::shared_ptr<DateTimePicker> control = make_control<DateTimePicker>(StableId("generated.datetimepicker"));
+    {
+        const DateTimeValue sample = DateTimeValue{2001, 2U, 3U};
+        int raises = 0;
+        const SubscriptionToken token = (*control).value_changed().subscribe(RaiseCounter{&raises});
+        (*control).value = sample;
+        expect((*control).value.read() == sample, "DateTimePicker.value: a write stores");
+        expect(raises == 1, "DateTimePicker.value: a changed write raises once");
+        (*control).value = sample;
+        expect(raises == 1, "DateTimePicker.value: an equal write raises nothing");
+        static_cast<void>(token);
+    }
+    {
+        const DateTimeValue sample = DateTimeValue{1990, 1U, 1U};
+        (*control).minimum = sample;
+        expect((*control).minimum.read() == sample, "DateTimePicker.minimum: a write stores");
+    }
+    {
+        const DateTimeValue sample = DateTimeValue{2030, 12U, 31U};
+        (*control).maximum = sample;
+        expect((*control).maximum.read() == sample, "DateTimePicker.maximum: a write stores");
+    }
+    {
+        const DateTimePickerFormat sample = DateTimePickerFormat::short_date;
+        (*control).format = sample;
+        expect((*control).format.read() == sample, "DateTimePicker.format: a write stores");
+    }
+    {
+        const std::string sample = std::string{"yyyy-MM-dd"};
+        (*control).custom_format = sample;
+        expect((*control).custom_format.read() == sample, "DateTimePicker.custom_format: a write stores");
+    }
+    // format_provider: no sample for DateTimeFormatProvider; give the property a "sample".
+    {
+        const bool sample = !(*control).show_check_box.read();
+        (*control).show_check_box = sample;
+        expect((*control).show_check_box.read() == sample, "DateTimePicker.show_check_box: a write stores");
+    }
+    {
+        const bool sample = !(*control).checked.read();
+        int raises = 0;
+        const SubscriptionToken token = (*control).checked_changed().subscribe(RaiseCounter{&raises});
+        (*control).checked = sample;
+        expect((*control).checked.read() == sample, "DateTimePicker.checked: a write stores");
+        expect(raises == 1, "DateTimePicker.checked: a changed write raises once");
+        (*control).checked = sample;
+        expect(raises == 1, "DateTimePicker.checked: an equal write raises nothing");
+        static_cast<void>(token);
+    }
+    {
+        const bool sample = !(*control).show_up_down.read();
+        (*control).show_up_down = sample;
+        expect((*control).show_up_down.read() == sample, "DateTimePicker.show_up_down: a write stores");
+    }
+    {
+        const DateTimeDropDownAlignment sample = DateTimeDropDownAlignment::right;
+        (*control).drop_down_alignment = sample;
+        expect((*control).drop_down_alignment.read() == sample, "DateTimePicker.drop_down_alignment: a write stores");
+    }
+    {
+        const FontSpec sample = FontSpec{FontRole::content, 14.0, 400, false};
+        (*control).font = sample;
+        expect((*control).font.read() == sample, "DateTimePicker.font: a write stores");
     }
 }
 
@@ -1049,6 +1117,7 @@ int main() {
     test_combo_box_properties();
     test_correspondence_view_properties();
     test_data_grid_view_properties();
+    test_date_time_picker_properties();
     test_domain_up_down_properties();
     test_group_box_properties();
     test_instrument_rack_properties();
