@@ -3,6 +3,7 @@
 #include "../input_control_utilities.hpp"
 #include "../panel_anatomy.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <array>
 #include <stdexcept>
@@ -42,8 +43,8 @@ bool valid_format(MaskTextFormat format) noexcept {
 
 } // namespace
 
-MaskedTextBox::MaskedTextBox(StableId stable_id, std::string mask)
-    : Panel(std::move(stable_id)), provider_(std::move(mask)) {
+MaskedTextBox::MaskedTextBox(StableId stable_id, std::string initial_mask)
+    : Panel(std::move(stable_id)), provider_(std::move(initial_mask)) {
     set_tool_tip_presentation(ToolTipPresentation::field_hint);
     border_style = BorderStyle::none;
     published_text_ = text();
@@ -104,7 +105,7 @@ void MaskedTextBox::filter_typing(TextEdit& edit, MaskPosition start, MaskPositi
     MaskEditResult result;
     if (start != end) {
         result = candidate.replace_range(edit.replacement, start, end);
-    } else if (overwrite_mode_) {
+    } else if (overwrite_mode.read()) {
         result = candidate.replace_at(edit.replacement, start);
     } else {
         result = candidate.insert_at(edit.replacement, start);
@@ -147,7 +148,7 @@ void MaskedTextBox::filter_deletion(TextEdit& edit, MaskPosition start, MaskPosi
 
 void MaskedTextBox::filter_paste(TextEdit& edit, MaskPosition start, MaskPosition end) {
     MaskedTextProvider candidate = provider_;
-    if (reject_input_on_first_failure_) {
+    if (reject_input_on_first_failure.read()) {
         const MaskEditResult result = candidate.replace_range(edit.replacement, start, end);
         if (!result.succeeded()) {
             edit.verdict = TextEditVerdict::refuse;
@@ -172,7 +173,7 @@ void MaskedTextBox::filter_paste(TextEdit& edit, MaskPosition start, MaskPositio
     std::optional<MaskPosition> last{};
     for (const std::string_view piece : pieces) {
         MaskEditResult placed;
-        if (overwrite_mode_) {
+        if (overwrite_mode.read()) {
             placed = candidate.replace_at(piece, next);
         } else {
             placed = candidate.insert_at(piece, next);
@@ -292,8 +293,8 @@ void MaskedTextBox::publish_text_if_changed() {
 
 // -- properties ------------------------------------------------------------------
 
-MaskedTextProvider MaskedTextBox::configured_provider(std::string mask, MaskCulture culture) const {
-    MaskedTextProvider next(std::move(mask), std::move(culture));
+MaskedTextProvider MaskedTextBox::configured_provider(std::string next_mask, MaskCulture next_culture) const {
+    MaskedTextProvider next(std::move(next_mask), std::move(next_culture));
     next.set_prompt_character(provider_.prompt_character());
     next.set_allow_prompt_as_input(provider_.allow_prompt_as_input());
     next.set_reset_on_prompt(provider_.reset_on_prompt());
@@ -329,19 +330,29 @@ void MaskedTextBox::replace_provider(MaskedTextProvider next) {
     show_provider();
 }
 
-void MaskedTextBox::set_mask(std::string mask) {
+std::string MaskedTextBox::read_view(const decltype(mask)&) const {
+    std::string current(provider_.mask());
+    return current;
+}
+
+void MaskedTextBox::write_view(const decltype(mask)&, std::string incoming) {
     require_mutable();
-    if (mask == provider_.mask()) return;
-    MaskedTextProvider next = configured_provider(std::move(mask), provider_.culture());
+    if (incoming == provider_.mask()) return;
+    MaskedTextProvider next = configured_provider(std::move(incoming), provider_.culture());
     replace_provider(std::move(next));
     const std::string published(provider_.mask());
     publish_change(mask_changed_, published);
 }
 
-void MaskedTextBox::set_culture(MaskCulture culture) {
+MaskCulture MaskedTextBox::read_view(const decltype(culture)&) const {
+    MaskCulture current = provider_.culture();
+    return current;
+}
+
+void MaskedTextBox::write_view(const decltype(culture)&, MaskCulture incoming) {
     require_mutable();
-    if (culture == provider_.culture()) return;
-    MaskedTextProvider next = configured_provider(std::string(provider_.mask()), std::move(culture));
+    if (incoming == provider_.culture()) return;
+    MaskedTextProvider next = configured_provider(std::string(provider_.mask()), std::move(incoming));
     replace_provider(std::move(next));
 }
 
@@ -351,7 +362,7 @@ std::string MaskedTextBox::text() const {
         const std::string plain = editor_ ? std::string((*editor_).text.read()) : std::string{};
         return plain;
     }
-    return provider_.to_string(text_mask_format_);
+    return provider_.to_string(text_mask_format.read());
 }
 
 MaskEditResult MaskedTextBox::set_text(std::string_view text) {
@@ -388,63 +399,92 @@ void MaskedTextBox::clear() {
     show_provider();
 }
 
-void MaskedTextBox::set_text_mask_format(MaskTextFormat format) {
+void MaskedTextBox::prepare_write(const decltype(text_mask_format)&, MaskTextFormat& incoming) {
     require_mutable();
-    if (!valid_format(format)) throw std::invalid_argument("MaskedTextBox text mask format is invalid");
-    if (text_mask_format_ == format) return;
-    text_mask_format_ = format;
+    if (!valid_format(incoming)) throw std::invalid_argument("MaskedTextBox text mask format is invalid");
+}
+
+void MaskedTextBox::written(const decltype(text_mask_format)&) {
     publish_text_if_changed();
 }
 
-void MaskedTextBox::set_prompt_character(char32_t character) {
+char32_t MaskedTextBox::read_view(const decltype(prompt_character)&) const {
+    const char32_t result = provider_.prompt_character();
+    return result;
+}
+
+void MaskedTextBox::write_view(const decltype(prompt_character)&, char32_t incoming) {
     require_mutable();
-    if (character == provider_.prompt_character()) return;
-    provider_.set_prompt_character(character);
+    if (incoming == provider_.prompt_character()) return;
+    provider_.set_prompt_character(incoming);
     show_provider();
 }
 
-void MaskedTextBox::set_allow_prompt_as_input(bool allow) {
-    require_mutable();
-    provider_.set_allow_prompt_as_input(allow);
+// The provider's input settings: views; a change applies to the next input.
+bool MaskedTextBox::read_view(const decltype(allow_prompt_as_input)&) const {
+    const bool result = provider_.allow_prompt_as_input();
+    return result;
 }
 
-void MaskedTextBox::set_ascii_only(bool ascii_only) {
+void MaskedTextBox::write_view(const decltype(allow_prompt_as_input)&, bool incoming) {
     require_mutable();
-    provider_.set_ascii_only(ascii_only);
+    provider_.set_allow_prompt_as_input(incoming);
 }
 
-void MaskedTextBox::set_skip_literals(bool skip) {
-    require_mutable();
-    provider_.set_skip_literals(skip);
+bool MaskedTextBox::read_view(const decltype(ascii_only)&) const {
+    const bool result = provider_.ascii_only();
+    return result;
 }
 
-void MaskedTextBox::set_reset_on_prompt(bool reset) {
+void MaskedTextBox::write_view(const decltype(ascii_only)&, bool incoming) {
     require_mutable();
-    provider_.set_reset_on_prompt(reset);
+    provider_.set_ascii_only(incoming);
 }
 
-void MaskedTextBox::set_reset_on_space(bool reset) {
-    require_mutable();
-    provider_.set_reset_on_space(reset);
+bool MaskedTextBox::read_view(const decltype(skip_literals)&) const {
+    const bool result = provider_.skip_literals();
+    return result;
 }
 
-void MaskedTextBox::set_reject_input_on_first_failure(bool reject) {
+void MaskedTextBox::write_view(const decltype(skip_literals)&, bool incoming) {
     require_mutable();
-    reject_input_on_first_failure_ = reject;
+    provider_.set_skip_literals(incoming);
 }
 
-void MaskedTextBox::set_overwrite_mode(bool overwrite) {
-    require_mutable();
-    if (overwrite_mode_ == overwrite) return;
-    overwrite_mode_ = overwrite;
-    publish_change(overwrite_mode_changed_, overwrite_mode_);
+bool MaskedTextBox::read_view(const decltype(reset_on_prompt)&) const {
+    const bool result = provider_.reset_on_prompt();
+    return result;
 }
 
-void MaskedTextBox::set_read_only(bool read_only) {
+void MaskedTextBox::write_view(const decltype(reset_on_prompt)&, bool incoming) {
     require_mutable();
-    if (read_only_ == read_only) return;
-    read_only_ = read_only;
-    if (editor_) (*editor_).read_only = read_only_;
+    provider_.set_reset_on_prompt(incoming);
+}
+
+bool MaskedTextBox::read_view(const decltype(reset_on_space)&) const {
+    const bool result = provider_.reset_on_space();
+    return result;
+}
+
+void MaskedTextBox::write_view(const decltype(reset_on_space)&, bool incoming) {
+    require_mutable();
+    provider_.set_reset_on_space(incoming);
+}
+
+void MaskedTextBox::prepare_write(const decltype(overwrite_mode)&, bool&) {
+    require_mutable();
+}
+
+void MaskedTextBox::written(const decltype(overwrite_mode)&) {
+    publish_change(overwrite_mode_changed_, overwrite_mode.read());
+}
+
+void MaskedTextBox::prepare_write(const decltype(read_only)&, bool&) {
+    require_mutable();
+}
+
+void MaskedTextBox::written(const decltype(read_only)&) {
+    if (editor_) (*editor_).read_only = read_only.read();
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
@@ -481,7 +521,7 @@ void MaskedTextBox::arrange(Rect final_bounds) {
 void MaskedTextBox::on_key_preview(KeyEvent& event) {
     if (!enabled.read() || event.action != KeyAction::down) return;
     if (event.physical_key == PhysicalKey::insert && event.modifiers == Modifier::none) {
-        set_overwrite_mode(!overwrite_mode_);
+        overwrite_mode = !overwrite_mode.read();
         event.handled = true;
     }
 }
@@ -500,7 +540,7 @@ SemanticDescriptor MaskedTextBox::semantic_descriptor() const {
     }
     descriptor.description = accessible_description.read();
     descriptor.actions = {SemanticAction::focus};
-    if (read_only_) {
+    if (read_only.read()) {
         descriptor.states |= SemanticState::read_only;
     } else {
         descriptor.actions.push_back(SemanticAction::set_value);
@@ -512,7 +552,7 @@ SemanticDescriptor MaskedTextBox::semantic_descriptor() const {
 
 bool MaskedTextBox::on_semantic_action(SemanticAction action, std::string_view value) {
     if (action == SemanticAction::set_value) {
-        if (read_only_) return false;
+        if (read_only.read()) return false;
         const MaskEditResult result = set_text(value);
         return result.succeeded();
     }
@@ -615,7 +655,7 @@ void MaskedTextBox::publish_part_geometry(std::span<PartGeometry> geometry) cons
 
 AnatomyStateSet MaskedTextBox::anatomy_states() const {
     AnatomyStateSet states = ScrollableControl::anatomy_states();
-    if (read_only_) states.insert(AnatomyState::read_only);
+    if (read_only.read()) states.insert(AnatomyState::read_only);
     const ControlVisualStatus status = visual_status();
     if (status == ControlVisualStatus::invalid) {
         states.insert(AnatomyState::invalid);
@@ -643,5 +683,16 @@ void MaskedTextBox::append_interactions(std::vector<InteractionDeclaration>& int
     interactions.insert(interactions.end(), masked_text_box_interactions.begin(),
                         masked_text_box_interactions.end());
 }
+
+// property_codemod begin MaskedTextBox (tools/property_families/masked_text_box.json; generated, do not edit)
+
+void MaskedTextBox::prepare_write(const decltype(reject_input_on_first_failure)&, bool&) {
+    require_mutable();
+}
+
+void MaskedTextBox::written(const decltype(reject_input_on_first_failure)&) {
+}
+
+// property_codemod end MaskedTextBox
 
 } // namespace gui_forms

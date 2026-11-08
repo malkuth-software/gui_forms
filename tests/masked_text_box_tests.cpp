@@ -310,7 +310,7 @@ void masked_typing_and_refusal() {
     require(!window.dispatch_text({"8"}) && rejected.size() == 2U &&
                 rejected[1].hint == MaskResultHint::unavailable_edit_position,
             "input past the end is refused");
-    box.set_text_mask_format(MaskTextFormat::exclude_prompt_and_literals);
+    box.text_mask_format = MaskTextFormat::exclude_prompt_and_literals;
     require(box.text() == "5551234567" && texts.back() == "5551234567",
             "changing the text format republishes the text");
 }
@@ -337,14 +337,14 @@ void masked_deletion_overwrite_and_undo() {
 
     std::vector<bool> modes;
     SubscriptionToken mode_token = box.overwrite_mode_changed().subscribe(RecordBool{&modes});
-    require(window.dispatch_key({KeyAction::down, PhysicalKey::insert}) && box.overwrite_mode() &&
+    require(window.dispatch_key({KeyAction::down, PhysicalKey::insert}) && box.overwrite_mode.read() &&
                 modes.size() == 1U && modes[0],
             "the Insert key toggles overwrite mode");
     editor.select(Utf8Offset(0U), Utf8Offset(0U));
     require(window.dispatch_text({"9"}) && editor.text.read() == "924-56_" &&
                 editor.selection().caret == Utf8Offset(1U),
             "overwrite mode replaces the character at the caret");
-    box.set_overwrite_mode(false);
+    box.overwrite_mode = false;
     require(window.dispatch_text({"0"}) && editor.text.read() == "902-456",
             "insert mode moves the following characters on");
 }
@@ -364,7 +364,7 @@ void masked_paste_and_program_text() {
                 editor.text.read() == "123-___" && rejected.size() == 2U && rejected[0].text == "a" &&
                 rejected[0].hint == MaskResultHint::digit_expected,
             "a paste keeps the characters the mask takes and reports each one it drops");
-    box.set_reject_input_on_first_failure(true);
+    box.reject_input_on_first_failure = true;
     editor.select_all();
     require(services.write_clipboard_text("9x").accepted(), "the clipboard holds a bad character");
     static_cast<void>(window.dispatch_key({KeyAction::down, PhysicalKey::v, Modifier::control}));
@@ -377,17 +377,17 @@ void masked_paste_and_program_text() {
     require(box.set_text("123456").succeeded() && box.text() == "123-456", "program text placed");
     std::vector<std::string> masks;
     SubscriptionToken mask_token = box.mask_changed().subscribe(RecordText{&masks});
-    box.set_mask("00/00/00");
-    require(editor.text.read() == "12/34/56" && box.mask() == "00/00/00" && masks.size() == 1U,
+    box.mask = "00/00/00";
+    require(editor.text.read() == "12/34/56" && box.mask.read() == "00/00/00" && masks.size() == 1U,
             "a new mask keeps the characters it takes; / is the invariant date separator");
-    box.set_mask("LL");
+    box.mask = "LL";
     require(editor.text.read() == "__" && masks.size() == 2U, "a mask that refuses the old characters starts empty");
-    box.set_mask("");
+    box.mask = "";
     require(window.request_focus(box.editor()) && window.dispatch_text({"any text"}) &&
                 box.text() == "any text",
             "an empty mask takes any text");
-    box.set_prompt_character(U'#');
-    box.set_mask("00");
+    box.prompt_character = U'#';
+    box.mask = "00";
     require(editor.text.read() == "##", "the prompt character is shown in the field");
 }
 
@@ -422,13 +422,13 @@ void masked_validation_semantics_and_anatomy() {
                 anatomy.control_id == "masked_text_box",
             "MaskedTextBox publishes a valid anatomy");
     require(box.parts().field.present, "the field part is the editor");
-    box.set_read_only(true);
+    box.read_only = true;
     require(box.states().read_only && (*box.editor()).read_only.read() &&
                 !box.on_semantic_action(SemanticAction::set_value, "0101"),
             "a read-only box publishes read_only and refuses set_value");
     bool threw = false;
     try {
-        box.set_text_mask_format(static_cast<MaskTextFormat>(9));
+        box.text_mask_format = static_cast<MaskTextFormat>(9);
     } catch (const std::invalid_argument&) {
         threw = true;
     }
@@ -436,6 +436,70 @@ void masked_validation_semantics_and_anatomy() {
 }
 
 } // namespace
+
+// MaskedTextBox's properties are capabilities: the provider's settings are
+// views onto it, and the box's own settings are cells whose hooks keep the
+// old setters' effects.
+void masked_property_capabilities() {
+    Fixture fixture = make_fixture("00-00");
+    MaskedTextBox& box = *fixture.box;
+    std::vector<std::string> masks;
+    std::vector<bool> modes;
+    const SubscriptionToken mask_token = box.mask_changed().subscribe(box, RecordText{&masks});
+    const SubscriptionToken mode_token = box.overwrite_mode_changed().subscribe(box, RecordBool{&modes});
+    require(box.set_text("1234").succeeded() && box.text() == "12-34", "the box starts with a placed text");
+    box.mask = "0000";
+    require(box.mask.read() == "0000" && box.text() == "1234" && masks.size() == 1U && masks[0] == "0000",
+            "a new mask keeps the assigned characters and raises mask_changed");
+    box.mask = "0000";
+    require(masks.size() == 1U, "writing the current mask raises nothing");
+    bool refused = false;
+    try {
+        box.mask = "\\";
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && box.mask.read() == "0000", "an invalid mask is refused and the old one kept");
+
+    MaskCulture comma;
+    comma.decimal_separator = ",";
+    box.culture = comma;
+    require(box.culture.read() == comma && box.provider().culture() == comma, "culture is a view onto the provider");
+
+    box.prompt_character = U'#';
+    require(box.prompt_character.read() == U'#' && box.provider().prompt_character() == U'#' &&
+                (*box.editor()).text.read() == "1234",
+            "prompt_character is a view onto the provider");
+    box.ascii_only = true;
+    box.skip_literals = false;
+    box.allow_prompt_as_input = false;
+    box.reset_on_prompt = false;
+    box.reset_on_space = false;
+    require(box.ascii_only.read() && !box.skip_literals.read() && !box.allow_prompt_as_input.read() &&
+                !box.reset_on_prompt.read() && !box.reset_on_space.read() && box.provider().ascii_only(),
+            "the input settings are views onto the provider");
+    box.mask = "00-00";
+    require(box.ascii_only.read() && box.prompt_character.read() == U'#',
+            "a new mask keeps the provider's settings");
+
+    refused = false;
+    try {
+        box.text_mask_format = static_cast<MaskTextFormat>(9);
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && box.text_mask_format.read() == MaskTextFormat::include_literals,
+            "an unknown text mask format is refused");
+    box.overwrite_mode = true;
+    box.overwrite_mode = true;
+    require(box.overwrite_mode.read() && modes.size() == 1U && modes[0],
+            "overwrite_mode raises overwrite_mode_changed once per change");
+    box.read_only = true;
+    require(box.read_only.read() && (*box.editor()).read_only.read() && box.states().read_only,
+            "read_only reaches the editor");
+    static_cast<void>(mask_token);
+    static_cast<void>(mode_token);
+}
 
 int main() {
     provider_language_and_formats();
@@ -446,6 +510,7 @@ int main() {
     masked_deletion_overwrite_and_undo();
     masked_paste_and_program_text();
     masked_validation_semantics_and_anatomy();
+    masked_property_capabilities();
     std::cout << "MaskedTextBox: provider, edit filter, typing, refusals, deletion, overwrite, paste, "
                  "program text, masks, validation, semantics and anatomy passed\n";
     return 0;

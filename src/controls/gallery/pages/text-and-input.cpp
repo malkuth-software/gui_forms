@@ -105,8 +105,8 @@ private:
     // letters are shifted to upper and then lower case. The telephone
     // field's refusals and completion report to the status label.
     void build_masked() {
-        (*phone_).set_mask("(000) 000-0000");
-        (*document_.gallery_text_masked_code).set_mask(">LL-0000-<aa");
+        (*phone_).mask = "(000) 000-0000";
+        (*document_.gallery_text_masked_code).mask = ">LL-0000-<aa";
         on((*phone_).mask_input_rejected(), *this, &TextAndInputPage::masked_rejected);
         on((*phone_).text_changed(), *this, &TextAndInputPage::masked_changed);
     }

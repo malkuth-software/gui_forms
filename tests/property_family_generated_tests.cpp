@@ -8,6 +8,7 @@
 #include "gui_forms/controls/panel/group_box/group_box.hpp"
 #include "gui_forms/controls/panel/group_box/scaled_group_box/scaled_group_box.hpp"
 #include "gui_forms/controls/panel/list_view/list_view.hpp"
+#include "gui_forms/controls/panel/masked_text_box/masked_text_box.hpp"
 #include "gui_forms/controls/panel/month_calendar/month_calendar.hpp"
 #include "gui_forms/controls/panel/panel.hpp"
 #include "gui_forms/controls/panel/scaled_panel/scaled_panel.hpp"
@@ -391,6 +392,30 @@ void test_list_view_properties() {
     }
 }
 
+void test_masked_text_box_properties() {
+    std::shared_ptr<MaskedTextBox> control = make_control<MaskedTextBox>(StableId("generated.maskedtextbox"));
+    {
+        const MaskTextFormat sample = MaskTextFormat::exclude_prompt_and_literals;
+        (*control).text_mask_format = sample;
+        expect((*control).text_mask_format.read() == sample, "MaskedTextBox.text_mask_format: a write stores");
+    }
+    {
+        const bool sample = !(*control).reject_input_on_first_failure.read();
+        (*control).reject_input_on_first_failure = sample;
+        expect((*control).reject_input_on_first_failure.read() == sample, "MaskedTextBox.reject_input_on_first_failure: a write stores");
+    }
+    {
+        const bool sample = !(*control).overwrite_mode.read();
+        (*control).overwrite_mode = sample;
+        expect((*control).overwrite_mode.read() == sample, "MaskedTextBox.overwrite_mode: a write stores");
+    }
+    {
+        const bool sample = !(*control).read_only.read();
+        (*control).read_only = sample;
+        expect((*control).read_only.read() == sample, "MaskedTextBox.read_only: a write stores");
+    }
+}
+
 void test_month_calendar_properties() {
     std::shared_ptr<MonthCalendar> control = make_control<MonthCalendar>(StableId("generated.monthcalendar"));
     {
@@ -617,6 +642,7 @@ int main() {
     test_data_grid_view_properties();
     test_group_box_properties();
     test_list_view_properties();
+    test_masked_text_box_properties();
     test_month_calendar_properties();
     test_panel_properties();
     test_scaled_group_box_properties();

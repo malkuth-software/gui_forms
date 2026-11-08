@@ -3,6 +3,7 @@
 #include "gui_forms/controls/panel/masked_text_box/masked_text_provider/masked_text_provider.hpp"
 #include "gui_forms/controls/panel/text_box/text_box.hpp"
 #include "gui_forms/delegate.hpp"
+#include "gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp"
 
 #include <memory>
 #include <optional>
@@ -41,22 +42,13 @@ struct MaskValidation final {
 // provider: input that does not fit is refused and reported by
 // mask_input_rejected, and the caret passes over literals. An empty mask
 // takes any text, as a plain TextBox.
-class MaskedTextBox final : public Panel {
+class MaskedTextBox final : public Panel, public MaskedTextBoxCapabilities<MaskedTextBox> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
-    explicit MaskedTextBox(StableId stable_id, std::string mask = {});
+    explicit MaskedTextBox(StableId stable_id, std::string initial_mask = {});
     ~MaskedTextBox() override;
     void initialize_control_tree();
 
-    [[nodiscard]] std::string_view mask() const noexcept { return provider_.mask(); }
-    // Replaces the mask and keeps as much of the text as the new mask takes
-    // (the assigned characters, without prompts or literals, placed again
-    // from the first position); if the new mask refuses them, it starts
-    // empty. Throws std::invalid_argument for an invalid mask
-    // (MaskedTextProvider).
-    void set_mask(std::string mask);
-    [[nodiscard]] const MaskCulture& culture() const noexcept { return provider_.culture(); }
-    void set_culture(MaskCulture culture);
     // The mask and the assigned characters, for reading; edits go through
     // the box so that the field and its events follow.
     [[nodiscard]] const MaskedTextProvider& provider() const noexcept { return provider_; }
@@ -68,38 +60,10 @@ public:
     // unchanged and raises mask_input_rejected.
     MaskEditResult set_text(std::string_view text);
     void clear();
-    [[nodiscard]] MaskTextFormat text_mask_format() const noexcept { return text_mask_format_; }
-    void set_text_mask_format(MaskTextFormat format);
     // Every required position is assigned.
     [[nodiscard]] bool mask_completed() const noexcept { return provider_.mask_completed(); }
     // Every edit position is assigned.
     [[nodiscard]] bool mask_full() const noexcept { return provider_.mask_full(); }
-
-    [[nodiscard]] char32_t prompt_character() const noexcept { return provider_.prompt_character(); }
-    void set_prompt_character(char32_t character);
-    [[nodiscard]] bool allow_prompt_as_input() const noexcept { return provider_.allow_prompt_as_input(); }
-    void set_allow_prompt_as_input(bool allow);
-    [[nodiscard]] bool ascii_only() const noexcept { return provider_.ascii_only(); }
-    void set_ascii_only(bool ascii_only);
-    [[nodiscard]] bool skip_literals() const noexcept { return provider_.skip_literals(); }
-    void set_skip_literals(bool skip);
-    [[nodiscard]] bool reset_on_prompt() const noexcept { return provider_.reset_on_prompt(); }
-    void set_reset_on_prompt(bool reset);
-    [[nodiscard]] bool reset_on_space() const noexcept { return provider_.reset_on_space(); }
-    void set_reset_on_space(bool reset);
-    // With it off (the default), a paste keeps the characters the mask takes
-    // and reports each one it drops; with it on, one refused character
-    // refuses the whole paste.
-    [[nodiscard]] bool reject_input_on_first_failure() const noexcept {
-        return reject_input_on_first_failure_;
-    }
-    void set_reject_input_on_first_failure(bool reject);
-    // Typing overwrites the character at the caret instead of inserting
-    // before it. The Insert key toggles it.
-    [[nodiscard]] bool overwrite_mode() const noexcept { return overwrite_mode_; }
-    void set_overwrite_mode(bool overwrite);
-    [[nodiscard]] bool read_only() const noexcept { return read_only_; }
-    void set_read_only(bool read_only);
 
     // The validation hook, run by validate_text and when the focus leaves
     // the box. The delegate does not own its target; clear it (an empty
@@ -194,7 +158,7 @@ private:
     [[nodiscard]] bool editor_shows_published_value() const;
     void publish_text_if_changed();
     // A provider with the given mask and culture and this box's settings.
-    [[nodiscard]] MaskedTextProvider configured_provider(std::string mask, MaskCulture culture) const;
+    [[nodiscard]] MaskedTextProvider configured_provider(std::string next_mask, MaskCulture next_culture) const;
     void replace_provider(MaskedTextProvider next);
 
     MaskedTextProvider provider_;
@@ -204,10 +168,6 @@ private:
     SubscriptionToken editor_change_;
     SubscriptionToken validating_;
     Delegate<MaskValidation&> validator_{};
-    MaskTextFormat text_mask_format_{MaskTextFormat::include_literals};
-    bool reject_input_on_first_failure_{};
-    bool overwrite_mode_{};
-    bool read_only_{};
     bool synchronizing_{};
     // The text in text_mask_format as last published by text_changed.
     std::string published_text_;
@@ -216,6 +176,46 @@ private:
     Event<const std::string&> mask_changed_;
     Event<bool> overwrite_mode_changed_;
     Event<const MaskValidation&> type_validation_completed_;
+    // property_codemod begin MaskedTextBox (tools/property_families/masked_text_box.json; generated, do not edit)
+private:
+    friend struct MaskedTextBoxMaskCapability<MaskedTextBox>;
+    friend struct MaskedTextBoxCultureCapability<MaskedTextBox>;
+    friend struct MaskedTextBoxTextMaskFormatCapability<MaskedTextBox>;
+    friend struct MaskedTextBoxPromptCharacterCapability<MaskedTextBox>;
+    friend struct MaskedTextBoxAllowPromptAsInputCapability<MaskedTextBox>;
+    friend struct MaskedTextBoxAsciiOnlyCapability<MaskedTextBox>;
+    friend struct MaskedTextBoxSkipLiteralsCapability<MaskedTextBox>;
+    friend struct MaskedTextBoxResetOnPromptCapability<MaskedTextBox>;
+    friend struct MaskedTextBoxResetOnSpaceCapability<MaskedTextBox>;
+    friend struct MaskedTextBoxRejectInputOnFirstFailureCapability<MaskedTextBox>;
+    friend struct MaskedTextBoxOverwriteModeCapability<MaskedTextBox>;
+    friend struct MaskedTextBoxReadOnlyCapability<MaskedTextBox>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void write_view(const decltype(mask)& cell, std::string incoming);
+    [[nodiscard]] std::string read_view(const decltype(mask)& cell) const;
+    void write_view(const decltype(culture)& cell, MaskCulture incoming);
+    [[nodiscard]] MaskCulture read_view(const decltype(culture)& cell) const;
+    void prepare_write(const decltype(text_mask_format)& cell, MaskTextFormat& incoming);
+    void written(const decltype(text_mask_format)& cell);
+    void write_view(const decltype(prompt_character)& cell, char32_t incoming);
+    [[nodiscard]] char32_t read_view(const decltype(prompt_character)& cell) const;
+    void write_view(const decltype(allow_prompt_as_input)& cell, bool incoming);
+    [[nodiscard]] bool read_view(const decltype(allow_prompt_as_input)& cell) const;
+    void write_view(const decltype(ascii_only)& cell, bool incoming);
+    [[nodiscard]] bool read_view(const decltype(ascii_only)& cell) const;
+    void write_view(const decltype(skip_literals)& cell, bool incoming);
+    [[nodiscard]] bool read_view(const decltype(skip_literals)& cell) const;
+    void write_view(const decltype(reset_on_prompt)& cell, bool incoming);
+    [[nodiscard]] bool read_view(const decltype(reset_on_prompt)& cell) const;
+    void write_view(const decltype(reset_on_space)& cell, bool incoming);
+    [[nodiscard]] bool read_view(const decltype(reset_on_space)& cell) const;
+    void prepare_write(const decltype(reject_input_on_first_failure)& cell, bool& incoming);
+    void written(const decltype(reject_input_on_first_failure)& cell);
+    void prepare_write(const decltype(overwrite_mode)& cell, bool& incoming);
+    void written(const decltype(overwrite_mode)& cell);
+    void prepare_write(const decltype(read_only)& cell, bool& incoming);
+    void written(const decltype(read_only)& cell);
+    // property_codemod end MaskedTextBox
 };
 
 } // namespace gui_forms

@@ -51,6 +51,32 @@ Related types
      - Stage T1 anatomy, as dot members.
    * - :cpp:class:`MaskedTextBox::States <gui_forms::MaskedTextBox::States>`
      -  
+   * - :cpp:class:`MaskedTextBoxAllowPromptAsInputCapability <gui_forms::MaskedTextBoxAllowPromptAsInputCapability>`
+     - Whether the prompt character is accepted as input (AllowPromptAsInput); a view onto the provider.
+   * - :cpp:class:`MaskedTextBoxAsciiOnlyCapability <gui_forms::MaskedTextBoxAsciiOnlyCapability>`
+     - Whether letter positions take only ASCII letters (AsciiOnly); a view onto the provider.
+   * - :cpp:class:`MaskedTextBoxCapabilities <gui_forms::MaskedTextBoxCapabilities>`
+     - Every MaskedTextBox capability, in the order the declaring class takes them.
+   * - :cpp:class:`MaskedTextBoxCultureCapability <gui_forms::MaskedTextBoxCultureCapability>`
+     - The culture whose separators and currency symbol the mask's placeholders show (Culture); a view onto the provider.
+   * - :cpp:class:`MaskedTextBoxMaskCapability <gui_forms::MaskedTextBoxMaskCapability>`
+     - The mask (Mask); a view onto the provider.
+   * - :cpp:class:`MaskedTextBoxOverwriteModeCapability <gui_forms::MaskedTextBoxOverwriteModeCapability>`
+     - Typing overwrites the character at the caret instead of inserting before it (IsOverwriteMode).
+   * - :cpp:class:`MaskedTextBoxPromptCharacterCapability <gui_forms::MaskedTextBoxPromptCharacterCapability>`
+     - The character shown in each unassigned position (PromptChar); a view onto the provider, which refuses an unusable character (std::invalid_argument).
+   * - :cpp:class:`MaskedTextBoxReadOnlyCapability <gui_forms::MaskedTextBoxReadOnlyCapability>`
+     - Whether the user may select and copy the text but not change it (ReadOnly); the editor follows.
+   * - :cpp:class:`MaskedTextBoxRejectInputOnFirstFailureCapability <gui_forms::MaskedTextBoxRejectInputOnFirstFailureCapability>`
+     - With it off (the default), a paste keeps the characters the mask takes and reports each one it drops; with it on, one refused character refuses the whole paste (RejectInputOnFirstFailure).
+   * - :cpp:class:`MaskedTextBoxResetOnPromptCapability <gui_forms::MaskedTextBoxResetOnPromptCapability>`
+     - Whether typing the prompt character clears the position (ResetOnPrompt); a view onto the provider.
+   * - :cpp:class:`MaskedTextBoxResetOnSpaceCapability <gui_forms::MaskedTextBoxResetOnSpaceCapability>`
+     - Whether typing a space clears the position (ResetOnSpace); a view onto the provider.
+   * - :cpp:class:`MaskedTextBoxSkipLiteralsCapability <gui_forms::MaskedTextBoxSkipLiteralsCapability>`
+     - Whether input matching a literal passes over it (SkipLiterals); a view onto the provider.
+   * - :cpp:class:`MaskedTextBoxTextMaskFormatCapability <gui_forms::MaskedTextBoxTextMaskFormatCapability>`
+     - What text includes (TextMaskFormat): literals, prompts, both or neither.
    * - :cpp:class:`MaskInputRejection <gui_forms::MaskInputRejection>`
      - Input the mask refused: the position the character was tested at, why, and the refused text (one character typed, or the whole value offered).
    * - :cpp:class:`MaskValidation <gui_forms::MaskValidation>`
@@ -239,6 +265,263 @@ Related types
    .. cpp:member:: bool invalid
 
    .. cpp:member:: bool pending
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MaskedTextBoxAllowPromptAsInputCapability
+
+   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp>``
+
+   Whether the prompt character is accepted as input (AllowPromptAsInput); a view onto the provider.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MaskedTextBoxAllowPromptAsInputCapability& capability, bool incoming)
+
+   .. cpp:function:: static bool read(const MaskedTextBoxAllowPromptAsInputCapability& capability)
+
+   .. cpp:member:: PropertyView<bool, MaskedTextBoxAllowPromptAsInputCapability<Declaring>> allow_prompt_as_input
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MaskedTextBoxAsciiOnlyCapability
+
+   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp>``
+
+   Whether letter positions take only ASCII letters (AsciiOnly); a view onto the provider.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MaskedTextBoxAsciiOnlyCapability& capability, bool incoming)
+
+   .. cpp:function:: static bool read(const MaskedTextBoxAsciiOnlyCapability& capability)
+
+   .. cpp:member:: PropertyView<bool, MaskedTextBoxAsciiOnlyCapability<Declaring>> ascii_only
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MaskedTextBoxCapabilities : public MaskedTextBoxMaskCapability<Declaring>, public MaskedTextBoxCultureCapability<Declaring>, public MaskedTextBoxTextMaskFormatCapability<Declaring>, public MaskedTextBoxPromptCharacterCapability<Declaring>, public MaskedTextBoxAllowPromptAsInputCapability<Declaring>, public MaskedTextBoxAsciiOnlyCapability<Declaring>, public MaskedTextBoxSkipLiteralsCapability<Declaring>, public MaskedTextBoxResetOnPromptCapability<Declaring>, public MaskedTextBoxResetOnSpaceCapability<Declaring>, public MaskedTextBoxRejectInputOnFirstFailureCapability<Declaring>, public MaskedTextBoxOverwriteModeCapability<Declaring>, public MaskedTextBoxReadOnlyCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp>``
+
+   Every MaskedTextBox capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string mask
+
+      The mask (Mask); a view onto the provider. A new mask keeps as much of the text as it takes (the assigned characters, without prompts or literals, placed again from the first position), or starts empty, and raises mask_changed. Throws std::invalid_argument for an invalid mask (MaskedTextProvider).
+
+   .. cpp:member:: MaskCulture culture
+
+      The culture whose separators and currency symbol the mask's placeholders show (Culture); a view onto the provider. A change keeps as much of the text as the mask takes.
+
+   .. cpp:member:: MaskTextFormat text_mask_format
+
+      What text includes (TextMaskFormat): literals, prompts, both or neither. A change raises text_changed when text changes; an unknown format throws std::invalid_argument.
+
+   .. cpp:member:: char32_t prompt_character
+
+      The character shown in each unassigned position (PromptChar); a view onto the provider, which refuses an unusable character (std::invalid_argument).
+
+   .. cpp:member:: bool allow_prompt_as_input
+
+      Whether the prompt character is accepted as input (AllowPromptAsInput); a view onto the provider.
+
+   .. cpp:member:: bool ascii_only
+
+      Whether letter positions take only ASCII letters (AsciiOnly); a view onto the provider.
+
+   .. cpp:member:: bool skip_literals
+
+      Whether input matching a literal passes over it (SkipLiterals); a view onto the provider.
+
+   .. cpp:member:: bool reset_on_prompt
+
+      Whether typing the prompt character clears the position (ResetOnPrompt); a view onto the provider.
+
+   .. cpp:member:: bool reset_on_space
+
+      Whether typing a space clears the position (ResetOnSpace); a view onto the provider.
+
+   .. cpp:member:: bool reject_input_on_first_failure
+
+      With it off (the default), a paste keeps the characters the mask takes and reports each one it drops; with it on, one refused character refuses the whole paste (RejectInputOnFirstFailure).
+
+   .. cpp:member:: bool overwrite_mode
+
+      Typing overwrites the character at the caret instead of inserting before it (IsOverwriteMode). The Insert key toggles it. A change raises overwrite_mode_changed.
+
+   .. cpp:member:: bool read_only
+
+      Whether the user may select and copy the text but not change it (ReadOnly); the editor follows.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MaskedTextBoxCultureCapability
+
+   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp>``
+
+   The culture whose separators and currency symbol the mask's placeholders show (Culture); a view onto the provider. A change keeps as much of the text as the mask takes.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MaskedTextBoxCultureCapability& capability, MaskCulture incoming)
+
+   .. cpp:function:: static MaskCulture read(const MaskedTextBoxCultureCapability& capability)
+
+   .. cpp:member:: PropertyView<MaskCulture, MaskedTextBoxCultureCapability<Declaring>> culture
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MaskedTextBoxMaskCapability
+
+   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp>``
+
+   The mask (Mask); a view onto the provider. A new mask keeps as much of the text as it takes (the assigned characters, without prompts or literals, placed again from the first position), or starts empty, and raises mask_changed. Throws std::invalid_argument for an invalid mask (MaskedTextProvider).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MaskedTextBoxMaskCapability& capability, std::string incoming)
+
+   .. cpp:function:: static std::string read(const MaskedTextBoxMaskCapability& capability)
+
+   .. cpp:member:: PropertyView<std::string, MaskedTextBoxMaskCapability<Declaring>> mask
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MaskedTextBoxOverwriteModeCapability
+
+   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp>``
+
+   Typing overwrites the character at the caret instead of inserting before it (IsOverwriteMode). The Insert key toggles it. A change raises overwrite_mode_changed.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MaskedTextBoxOverwriteModeCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, MaskedTextBoxOverwriteModeCapability<Declaring>> overwrite_mode
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MaskedTextBoxPromptCharacterCapability
+
+   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp>``
+
+   The character shown in each unassigned position (PromptChar); a view onto the provider, which refuses an unusable character (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MaskedTextBoxPromptCharacterCapability& capability, char32_t incoming)
+
+   .. cpp:function:: static char32_t read(const MaskedTextBoxPromptCharacterCapability& capability)
+
+   .. cpp:member:: PropertyView<char32_t, MaskedTextBoxPromptCharacterCapability<Declaring>> prompt_character
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MaskedTextBoxReadOnlyCapability
+
+   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp>``
+
+   Whether the user may select and copy the text but not change it (ReadOnly); the editor follows.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MaskedTextBoxReadOnlyCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, MaskedTextBoxReadOnlyCapability<Declaring>> read_only
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MaskedTextBoxRejectInputOnFirstFailureCapability
+
+   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp>``
+
+   With it off (the default), a paste keeps the characters the mask takes and reports each one it drops; with it on, one refused character refuses the whole paste (RejectInputOnFirstFailure).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MaskedTextBoxRejectInputOnFirstFailureCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, MaskedTextBoxRejectInputOnFirstFailureCapability<Declaring>> reject_input_on_first_failure
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MaskedTextBoxResetOnPromptCapability
+
+   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp>``
+
+   Whether typing the prompt character clears the position (ResetOnPrompt); a view onto the provider.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MaskedTextBoxResetOnPromptCapability& capability, bool incoming)
+
+   .. cpp:function:: static bool read(const MaskedTextBoxResetOnPromptCapability& capability)
+
+   .. cpp:member:: PropertyView<bool, MaskedTextBoxResetOnPromptCapability<Declaring>> reset_on_prompt
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MaskedTextBoxResetOnSpaceCapability
+
+   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp>``
+
+   Whether typing a space clears the position (ResetOnSpace); a view onto the provider.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MaskedTextBoxResetOnSpaceCapability& capability, bool incoming)
+
+   .. cpp:function:: static bool read(const MaskedTextBoxResetOnSpaceCapability& capability)
+
+   .. cpp:member:: PropertyView<bool, MaskedTextBoxResetOnSpaceCapability<Declaring>> reset_on_space
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MaskedTextBoxSkipLiteralsCapability
+
+   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp>``
+
+   Whether input matching a literal passes over it (SkipLiterals); a view onto the provider.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MaskedTextBoxSkipLiteralsCapability& capability, bool incoming)
+
+   .. cpp:function:: static bool read(const MaskedTextBoxSkipLiteralsCapability& capability)
+
+   .. cpp:member:: PropertyView<bool, MaskedTextBoxSkipLiteralsCapability<Declaring>> skip_literals
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MaskedTextBoxTextMaskFormatCapability
+
+   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp>``
+
+   What text includes (TextMaskFormat): literals, prompts, both or neither. A change raises text_changed when text changes; an unknown format throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MaskedTextBoxTextMaskFormatCapability& capability, MaskTextFormat incoming)
+
+   .. cpp:member:: PropertyCell<MaskTextFormat, MaskedTextBoxTextMaskFormatCapability<Declaring>> text_mask_format
+
+      Default: ``{MaskTextFormat::include_literals}``.
 
 .. cpp:namespace:: gui_forms
 
