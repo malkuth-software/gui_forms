@@ -121,12 +121,57 @@ void test_cards() {
     require(refused && (*panel).material.read() == before, "an invalid material is refused");
 }
 
+void test_breadcrumb_trail() {
+    std::shared_ptr<BreadcrumbTrail> trail = make_control<BreadcrumbTrail>(StableId("caps.trail"));
+    (*trail).set_segments({{"root", "Home", ""}, {"docs", "Documents", ""}});
+    bool refused = false;
+    try {
+        (*trail).appearance = static_cast<BreadcrumbAppearance>(9);
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*trail).appearance.read() == BreadcrumbAppearance::plain,
+            "an undeclared appearance is refused");
+    (*trail).appearance = BreadcrumbAppearance::raised;
+    require((*trail).appearance.read() == BreadcrumbAppearance::raised, "appearance stores a declared value");
+
+    refused = false;
+    try {
+        (*trail).active_id = std::string("missing");
+    } catch (const std::out_of_range&) {
+        refused = true;
+    }
+    require(refused, "an active ID outside the model is refused");
+
+    (*trail).tab_completion_available = true;
+    require(!(*trail).tab_completion_available.read(), "completion stays off outside an edit");
+    (*trail).editing = true;
+    require((*(*trail).editor()).visible.read(), "editing shows the path editor");
+    (*trail).tab_completion_available = true;
+    require((*trail).tab_completion_available.read(), "completion holds while editing");
+    (*trail).editing = false;
+    require(!(*trail).tab_completion_available.read() && !(*(*trail).editor()).visible.read(),
+            "ending the edit withdraws completion and hides the editor");
+
+    const FontSpec larger{FontRole::control, 13.0, 400, false};
+    (*trail).font = larger;
+    require((*(*trail).editor()).font.read() == larger, "the editor follows the trail's font");
+    refused = false;
+    try {
+        (*trail).font = FontSpec{FontRole::control, -1.0, 400, false};
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*trail).font.read() == larger, "an invalid font is refused");
+}
+
 } // namespace
 
 int main() {
     test_property_grid();
     test_property_list();
     test_cards();
+    test_breadcrumb_trail();
     std::cout << "gui_forms_editor_composite_capabilities_tests: all tests passed\n";
     return EXIT_SUCCESS;
 }

@@ -42,7 +42,7 @@ void test_tree_and_object_views(gui_forms::Window& window) {
             "the page must publish all four views and its status by stable id");
 
     // One fixture, projected: the initial folder is src/controls.
-    require((*tree).selected_id() == "controls" && (*trail).active_id() == "controls" &&
+    require((*tree).selected_id() == "controls" && (*trail).active_id.read() == "controls" &&
                 (*trail).segments().size() == 3U && (*objects).items().size() == 2U &&
                 (*ledger).items().size() == 2U && (*ledger).pinned_id() == "button.cpp" &&
                 (*objects).view_mode() == ObjectViewMode::details,
@@ -53,7 +53,7 @@ void test_tree_and_object_views(gui_forms::Window& window) {
     const Rect tree_bounds = (*tree).absolute_bounds();
     click_at(window, {tree_bounds.x + 40.0, tree_bounds.y + 2.0 + 4.5 * (*tree).item_height()},
              "the TreeView must accept a pointer press on a visible row");
-    require((*tree).selected_id() == "docs" && (*trail).active_id() == "docs" &&
+    require((*tree).selected_id() == "docs" && (*trail).active_id.read() == "docs" &&
                 (*trail).segments().size() == 2U && (*objects).items().size() == 2U &&
                 (*objects).items()[0].stable_id == "atlas.md" &&
                 (*status).text().find("Folder Portsmouth Gallery / docs selected") == 0U,

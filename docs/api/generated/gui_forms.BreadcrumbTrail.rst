@@ -7,7 +7,7 @@ gui_forms::BreadcrumbTrail
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: BreadcrumbTrail final : public Panel
+.. cpp:class:: BreadcrumbTrail final : public Panel, public BreadcrumbTrailCapabilities<BreadcrumbTrail>
 
    ``#include <gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail.hpp>``
 
@@ -49,6 +49,22 @@ gui_forms::BreadcrumbTrail
          :cpp:enumerator:`BreadcrumbAppearance::raised <gui_forms::BreadcrumbAppearance::raised>` draws raised, pointed faces whose hit
          areas follow the points.
 
+      **active_id** : ``std::string``
+         The ID of the item with the keyboard focus rectangle: a segment, the
+         overflow item or the edit button. When it is not on screen it moves to
+         the last visible segment; before the trail has been laid out it is
+         empty. Setting an ID that is none of these throws ``std::out_of_range``.
+
+      **editing** : ``bool``, default ``false``
+         Whether the editor replaces the segments. Setting it only shows or
+         hides the editor; :cpp:func:`begin_edit <gui_forms::BreadcrumbTrail::begin_edit>` also fills it and gives it the focus.
+         Ending the edit also clears :cpp:member:`tab_completion_available <gui_forms::BreadcrumbTrail::tab_completion_available>`.
+
+      **tab_completion_available** : ``bool``, default ``false``
+         Whether Tab in the editor raises :cpp:func:`edit_completion_requested <gui_forms::BreadcrumbTrail::edit_completion_requested>` instead of
+         moving the focus. It can only be true while :cpp:member:`editing <gui_forms::BreadcrumbTrail::editing>`; setting it at
+         other times keeps it false.
+
       **segments** : ``std::span<const BreadcrumbSegment>``
          The path, from the root to the current location. Empty by default. Each
          :cpp:class:`BreadcrumbSegment <gui_forms::BreadcrumbSegment>` has an ID, text, a description of at most 4096
@@ -61,25 +77,9 @@ gui_forms::BreadcrumbTrail
          order; empty when every segment fits. Show them, for example in a menu,
          when :cpp:func:`overflow_activated <gui_forms::BreadcrumbTrail::overflow_activated>` is raised.
 
-      **active_id** : ``std::string_view``
-         The ID of the item with the keyboard focus rectangle: a segment, the
-         overflow item or the edit button. When it is not on screen it moves to
-         the last visible segment; before the trail has been laid out it is
-         empty. Setting an ID that is none of these throws ``std::out_of_range``.
-
-      **editing** : ``bool``, default ``false``
-         Whether the editor replaces the segments. Setting it only shows or
-         hides the editor; :cpp:func:`begin_edit <gui_forms::BreadcrumbTrail::begin_edit>` also fills it and gives it the focus.
-         Ending the edit also clears :cpp:func:`tab_completion_available <gui_forms::BreadcrumbTrail::tab_completion_available>`.
-
       **editor** : ``std::shared_ptr<TextBox>``, read-only
          The :cpp:class:`TextBox <gui_forms::TextBox>` used for editing. It has no border, the placeholder
          "Enter an exact path" and the accessible name "Exact location path".
-
-      **tab_completion_available** : ``bool``, default ``false``
-         Whether Tab in the editor raises :cpp:func:`edit_completion_requested <gui_forms::BreadcrumbTrail::edit_completion_requested>` instead of
-         moving the focus. It can only be true while :cpp:func:`editing <gui_forms::BreadcrumbTrail::editing>`; setting it at
-         other times keeps it false.
 
       **overflow_stable_id** : ``std::string_view``, read-only
          The ID of the overflow item, ``<stable_id>.overflow``.
@@ -97,7 +97,7 @@ gui_forms::BreadcrumbTrail
       **segment_activated** : ``Event<const std::string&>``
          Raised when the user activates an enabled segment by a click, Enter or
          Space, or a semantic press. It carries the segment ID. Activating a
-         disabled segment moves :cpp:func:`active_id <gui_forms::BreadcrumbTrail::active_id>` to it but raises nothing.
+         disabled segment moves :cpp:member:`active_id <gui_forms::BreadcrumbTrail::active_id>` to it but raises nothing.
 
       **overflow_activated** : ``Event<>``
          Raised when the user activates the overflow item, including by the
@@ -106,7 +106,7 @@ gui_forms::BreadcrumbTrail
       **edit_committed** : ``Event<const std::string&>``
          Raised when the user presses Enter in the editor. It carries the
          editor's text. The trail stays in editing mode: validate the path, and
-         call :cpp:func:`set_editing <gui_forms::BreadcrumbTrail::set_editing>` with false when you accept it.
+         write false to :cpp:member:`editing <gui_forms::BreadcrumbTrail::editing>` when you accept it.
 
       **edit_started** : ``Event<const std::string&>``
          Raised by :cpp:func:`begin_edit <gui_forms::BreadcrumbTrail::begin_edit>`, after the editor is shown and focused. It
@@ -118,7 +118,7 @@ gui_forms::BreadcrumbTrail
 
       **edit_completion_requested** : ``Event<>``
          Raised when the user presses Tab in the editor while
-         :cpp:func:`tab_completion_available <gui_forms::BreadcrumbTrail::tab_completion_available>` is true. The Tab key is consumed.
+         :cpp:member:`tab_completion_available <gui_forms::BreadcrumbTrail::tab_completion_available>` is true. The Tab key is consumed.
 
    :Inherited:
 
@@ -153,7 +153,7 @@ gui_forms::BreadcrumbTrail
    .. rubric:: Notes
 
    A primary press focuses the trail; releasing it over the item it pressed
-   activates that item. With focus, Left and Right move :cpp:func:`active_id <gui_forms::BreadcrumbTrail::active_id>` along the
+   activates that item. With focus, Left and Right move :cpp:member:`active_id <gui_forms::BreadcrumbTrail::active_id>` along the
    visible items, Home and End to the first item and the edit button, and
    Enter or Space activates the active item. While editing, the trail ignores
    the pointer and its own keys, and the editor handles them: Enter commits,
@@ -180,7 +180,7 @@ gui_forms::BreadcrumbTrail
       (*trail).set_segments({{"root", "Home", "Go to Home"},
                              {"projects", "Projects", "Go to Projects"},
                              {"site", "Site", "Current folder"}});
-      (*trail).set_appearance(gf::BreadcrumbAppearance::raised);
+      (*trail).appearance = gf::BreadcrumbAppearance::raised;
 
    Navigate when the user activates a segment, and accept a typed path. In a
    window, Home moves to the first segment and Enter activates it:
@@ -200,7 +200,7 @@ gui_forms::BreadcrumbTrail
           void on_segment(const std::string& id) { target = id; }
           void on_path(const std::string& path) {
               target = path;
-              (*trail).set_editing(false);   // a commit does not end editing by itself
+              (*trail).editing = false;   // a commit does not end editing by itself
           }
       };
 
@@ -223,24 +223,35 @@ gui_forms::BreadcrumbTrail
 
    .. rubric:: Properties
 
-   .. cpp:function:: FontSpec font() const noexcept
+   .. cpp:member:: FontSpec font
 
       The font of the segments and of the editor. An invalid specification
       throws ``std::invalid_argument``.
 
-   .. cpp:function:: void set_font(FontSpec font)
-
-      Sets :cpp:func:`font <gui_forms::BreadcrumbTrail::font>`; see the property's description above.
-
-   .. cpp:function:: BreadcrumbAppearance appearance() const noexcept
+   .. cpp:member:: BreadcrumbAppearance appearance
 
       :cpp:enumerator:`BreadcrumbAppearance::plain <gui_forms::BreadcrumbAppearance::plain>` draws flat faces joined by chevron edges;
       :cpp:enumerator:`BreadcrumbAppearance::raised <gui_forms::BreadcrumbAppearance::raised>` draws raised, pointed faces whose hit
       areas follow the points.
 
-   .. cpp:function:: void set_appearance(BreadcrumbAppearance appearance)
+   .. cpp:member:: std::string active_id
 
-      Sets :cpp:func:`appearance <gui_forms::BreadcrumbTrail::appearance>`; see the property's description above.
+      The ID of the item with the keyboard focus rectangle: a segment, the
+      overflow item or the edit button. When it is not on screen it moves to
+      the last visible segment; before the trail has been laid out it is
+      empty. Setting an ID that is none of these throws ``std::out_of_range``.
+
+   .. cpp:member:: bool editing
+
+      Whether the editor replaces the segments. Setting it only shows or
+      hides the editor; :cpp:func:`begin_edit <gui_forms::BreadcrumbTrail::begin_edit>` also fills it and gives it the focus.
+      Ending the edit also clears :cpp:member:`tab_completion_available <gui_forms::BreadcrumbTrail::tab_completion_available>`.
+
+   .. cpp:member:: bool tab_completion_available
+
+      Whether Tab in the editor raises :cpp:func:`edit_completion_requested <gui_forms::BreadcrumbTrail::edit_completion_requested>` instead of
+      moving the focus. It can only be true while :cpp:member:`editing <gui_forms::BreadcrumbTrail::editing>`; setting it at
+      other times keeps it false.
 
    .. cpp:function:: std::span<const BreadcrumbSegment> segments() const noexcept
 
@@ -260,41 +271,10 @@ gui_forms::BreadcrumbTrail
       order; empty when every segment fits. Show them, for example in a menu,
       when :cpp:func:`overflow_activated <gui_forms::BreadcrumbTrail::overflow_activated>` is raised.
 
-   .. cpp:function:: std::string_view active_id() const noexcept
-
-      The ID of the item with the keyboard focus rectangle: a segment, the
-      overflow item or the edit button. When it is not on screen it moves to
-      the last visible segment; before the trail has been laid out it is
-      empty. Setting an ID that is none of these throws ``std::out_of_range``.
-
-   .. cpp:function:: void set_active_id(std::string_view stable_id)
-
-      Sets :cpp:func:`active_id <gui_forms::BreadcrumbTrail::active_id>`; see the property's description above.
-
-   .. cpp:function:: bool editing() const noexcept
-
-      Whether the editor replaces the segments. Setting it only shows or
-      hides the editor; :cpp:func:`begin_edit <gui_forms::BreadcrumbTrail::begin_edit>` also fills it and gives it the focus.
-      Ending the edit also clears :cpp:func:`tab_completion_available <gui_forms::BreadcrumbTrail::tab_completion_available>`.
-
-   .. cpp:function:: void set_editing(bool editing)
-
-      Sets :cpp:func:`editing <gui_forms::BreadcrumbTrail::editing>`; see the property's description above.
-
    .. cpp:function:: std::shared_ptr<TextBox> editor() const noexcept
 
       The :cpp:class:`TextBox <gui_forms::TextBox>` used for editing. It has no border, the placeholder
       "Enter an exact path" and the accessible name "Exact location path".
-
-   .. cpp:function:: bool tab_completion_available() const noexcept
-
-      Whether Tab in the editor raises :cpp:func:`edit_completion_requested <gui_forms::BreadcrumbTrail::edit_completion_requested>` instead of
-      moving the focus. It can only be true while :cpp:func:`editing <gui_forms::BreadcrumbTrail::editing>`; setting it at
-      other times keeps it false.
-
-   .. cpp:function:: void set_tab_completion_available(bool available)
-
-      Sets :cpp:func:`tab_completion_available <gui_forms::BreadcrumbTrail::tab_completion_available>`; see the property's description above.
 
    .. cpp:function:: std::string_view overflow_stable_id() const noexcept
 
@@ -317,7 +297,7 @@ gui_forms::BreadcrumbTrail
 
       Raised when the user activates an enabled segment by a click, Enter or
       Space, or a semantic press. It carries the segment ID. Activating a
-      disabled segment moves :cpp:func:`active_id <gui_forms::BreadcrumbTrail::active_id>` to it but raises nothing.
+      disabled segment moves :cpp:member:`active_id <gui_forms::BreadcrumbTrail::active_id>` to it but raises nothing.
 
    .. cpp:function:: Event<>& overflow_activated() noexcept
 
@@ -328,7 +308,7 @@ gui_forms::BreadcrumbTrail
 
       Raised when the user presses Enter in the editor. It carries the
       editor's text. The trail stays in editing mode: validate the path, and
-      call :cpp:func:`set_editing <gui_forms::BreadcrumbTrail::set_editing>` with false when you accept it.
+      write false to :cpp:member:`editing <gui_forms::BreadcrumbTrail::editing>` when you accept it.
 
    .. cpp:function:: Event<const std::string&>& edit_started() noexcept
 
@@ -343,7 +323,7 @@ gui_forms::BreadcrumbTrail
    .. cpp:function:: Event<>& edit_completion_requested() noexcept
 
       Raised when the user presses Tab in the editor while
-      :cpp:func:`tab_completion_available <gui_forms::BreadcrumbTrail::tab_completion_available>` is true. The Tab key is consumed.
+      :cpp:member:`tab_completion_available <gui_forms::BreadcrumbTrail::tab_completion_available>` is true. The Tab key is consumed.
 
 
    .. rubric:: Methods

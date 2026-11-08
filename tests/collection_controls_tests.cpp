@@ -241,7 +241,7 @@ void test_breadcrumb_identity_overflow_edit_and_input() {
     require(operation_check_9, "End and Enter must replace the trail presentation with its owned editor");
     const bool operation_check_10 = window.dispatch_key({KeyAction::down, PhysicalKey::enter});
     require(operation_check_10, "End and Enter must replace the trail presentation with its owned editor");
-    const bool operation_check_11 = (*trail).editing();
+    const bool operation_check_11 = (*trail).editing.read();
     require(operation_check_11, "End and Enter must replace the trail presentation with its owned editor");
     const bool operation_check_12 = (*(*trail).editor()).visible.read();
     require(operation_check_12, "End and Enter must replace the trail presentation with its owned editor");
@@ -255,22 +255,22 @@ void test_breadcrumb_identity_overflow_edit_and_input() {
                 editor_bounds.height == trail_bounds.height - 2.0,
             "breadcrumb editing must preserve outer identity and row geometry");
     (*(*trail).editor()).text = "/Users/example/Projects";
-    (*trail).set_tab_completion_available(true);
+    (*trail).tab_completion_available = true;
     const bool operation_check_14 = window.dispatch_key({KeyAction::down, PhysicalKey::tab});
     require(operation_check_14, "Tab must enter the typed completion route without traversing focus when a suggestion is available");
     const bool operation_check_15 = completions == 1U;
     require(operation_check_15, "Tab must enter the typed completion route without traversing focus when a suggestion is available");
-    const bool operation_check_16 = (*trail).editing();
+    const bool operation_check_16 = (*trail).editing.read();
     require(operation_check_16, "Tab must enter the typed completion route without traversing focus when a suggestion is available");
     const bool operation_check_17 = window.dispatch_key({KeyAction::down, PhysicalKey::enter});
     require(operation_check_17, "path commit must publish exact editor text while the caller decides admissibility");
     const bool operation_check_18 = committed == "/Users/example/Projects";
     require(operation_check_18, "path commit must publish exact editor text while the caller decides admissibility");
-    const bool operation_check_19 = (*trail).editing();
+    const bool operation_check_19 = (*trail).editing.read();
     require(operation_check_19, "path commit must publish exact editor text while the caller decides admissibility");
     const bool operation_check_20 = window.dispatch_key({KeyAction::down, PhysicalKey::escape});
     require(operation_check_20, "Escape must roll back presentation and restore the breadcrumb row");
-    const bool operation_check_21 = !(*trail).editing();
+    const bool operation_check_21 = !(*trail).editing.read();
     require(operation_check_21, "Escape must roll back presentation and restore the breadcrumb row");
     const bool operation_check_22 = cancelled == 1U;
     require(operation_check_22, "Escape must roll back presentation and restore the breadcrumb row");
@@ -308,8 +308,8 @@ void test_breadcrumb_readable_raised_geometry() {
     window.perform_layout();
     const double original_width = (*trail).semantic_virtual_children().front().bounds.width;
     (*(*trail).editor()).text = "draft path";
-    (*trail).set_font({FontRole::content, 13, 400, false});
-    (*trail).set_appearance(BreadcrumbAppearance::raised);
+    (*trail).font = FontSpec{FontRole::content, 13, 400, false};
+    (*trail).appearance = BreadcrumbAppearance::raised;
     window.perform_layout();
     const std::vector<SemanticNode> nodes = (*trail).semantic_virtual_children();
     require(nodes.front().bounds.width > original_width &&
@@ -332,9 +332,9 @@ void test_breadcrumb_readable_raised_geometry() {
             std::count(painter.paint_order.begin(), painter.paint_order.end(), 'G') > 3,
             "raised segments must render authored type and depth rather than flat separator text");
     bool rejected{};
-    try { (*trail).set_font({FontRole::content, -1, 400, false}); }
+    try { (*trail).font = FontSpec{FontRole::content, -1, 400, false}; }
     catch (const std::invalid_argument&) { rejected = true; }
-    require(rejected && (*trail).font().size == 13, "invalid breadcrumb font must leave the last valid metrics intact");
+    require(rejected && (*trail).font.read().size == 13, "invalid breadcrumb font must leave the last valid metrics intact");
 }
 
 void test_tree_visibility_identity_and_navigation() {

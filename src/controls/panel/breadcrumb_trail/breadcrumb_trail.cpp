@@ -4,6 +4,7 @@
 #include "gui_forms/window.hpp"
 #include "../panel_anatomy.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <vector>
 #include <string>
@@ -60,7 +61,7 @@ void BreadcrumbTrail::initialize_control_tree() {
     (*editor_).accepts_enter = true;
     (*editor_).accepts_escape = true;
     (*editor_).visible = false;
-    (*editor_).font = font_;
+    (*editor_).font = font.read();
     add_child(editor_);
     const std::weak_ptr<BreadcrumbTrail> weak =
         std::static_pointer_cast<BreadcrumbTrail>(shared_from_this());
@@ -70,31 +71,6 @@ void BreadcrumbTrail::initialize_control_tree() {
         *this, EditorCommitCallback{weak});
     editor_cancel_ = (*editor_).cancelled().subscribe(
         *this, EditorCancelCallback{weak});
-}
-
-void BreadcrumbTrail::set_font(FontSpec font) {
-    require_mutable();
-    if (!valid_font_spec(font)) throw std::invalid_argument("BreadcrumbTrail font is invalid");
-    set_font_from_code(true);
-    if (font_ == font) return;
-    font_ = font;
-    if (editor_) (*editor_).font = font;
-    rebuild_layout(committed_arranged_bounds().width, committed_arranged_bounds().height);
-    normalize_active();
-    invalidate(Dirty::measure | Dirty::layout | Dirty::paint | Dirty::hit_test |
-               Dirty::semantics | Dirty::accessibility);
-}
-
-void BreadcrumbTrail::set_appearance(BreadcrumbAppearance appearance) {
-    require_mutable();
-    if (appearance != BreadcrumbAppearance::plain && appearance != BreadcrumbAppearance::raised) {
-        throw std::invalid_argument("BreadcrumbTrail appearance is invalid");
-    }
-    if (appearance_ == appearance) return;
-    appearance_ = appearance;
-    rebuild_layout(committed_arranged_bounds().width, committed_arranged_bounds().height);
-    normalize_active();
-    invalidate(Dirty::measure | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
 void BreadcrumbTrail::EditorCommitCallback::operator()(
@@ -115,7 +91,7 @@ void BreadcrumbTrail::editor_committed(std::string text) {
 }
 
 void BreadcrumbTrail::editor_cancelled() {
-    set_editing(false);
+    editing = false;
     if (window()) {
         static_cast<void>((*window()).request_focus(shared_from_this()));
     }
@@ -160,36 +136,6 @@ std::optional<std::size_t> BreadcrumbTrail::segment_index(
     return {};
 }
 
-void BreadcrumbTrail::set_active_id(std::string_view stable_id) {
-    require_mutable();
-    if (!stable_id.empty() && stable_id != overflow_stable_id_ &&
-        stable_id != edit_stable_id_ && !segment_index(stable_id)) {
-        throw std::out_of_range("BreadcrumbTrail active ID is not in its model");
-    }
-    if (active_id_ == stable_id) return;
-    active_id_ = stable_id;
-    normalize_active();
-    invalidate(Dirty::paint | Dirty::semantics | Dirty::accessibility);
-}
-
-void BreadcrumbTrail::set_editing(bool editing) {
-    require_mutable();
-    if (editing_ == editing) return;
-    editing_ = editing;
-    if (!editing_) tab_completion_available_ = false;
-    if (editor_) (*editor_).visible = editing_;
-    invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics |
-               Dirty::accessibility);
-}
-
-void BreadcrumbTrail::set_tab_completion_available(bool available) {
-    require_mutable();
-    available = available && editing_;
-    if (tab_completion_available_ == available) return;
-    tab_completion_available_ = available;
-    invalidate(Dirty::semantics | Dirty::accessibility);
-}
-
 void BreadcrumbTrail::begin_edit(std::string text, bool select_all) {
     require_mutable();
     if (!editor_) {
@@ -197,7 +143,7 @@ void BreadcrumbTrail::begin_edit(std::string text, bool select_all) {
             "BreadcrumbTrail must be created through make_control before editing");
     }
     (*editor_).text = std::move(text);
-    set_editing(true);
+    editing = true;
     if (select_all) (*editor_).select_all();
     if (window()) static_cast<void>((*window()).request_focus(editor_));
     publish_change(edit_started_, std::string((*editor_).text.read()));
@@ -205,13 +151,13 @@ void BreadcrumbTrail::begin_edit(std::string text, bool select_all) {
 
 double BreadcrumbTrail::natural_width(
     const BreadcrumbSegment& segment) const {
-    FontSpec font = text_font(font_);
+    FontSpec segment_font = text_font(font.read());
     if (!segments_.empty() && &segment == &segments_.back()) {
-        font.weight = 700;
+        segment_font.weight = 700;
     }
     const double text_width =
-        resolve_text_layout_utf8(segment.text, font).logical_size.width;
-    const double padding = appearance_ == BreadcrumbAppearance::raised ? 33.0 : 23.0;
+        resolve_text_layout_utf8(segment.text, segment_font).logical_size.width;
+    const double padding = appearance.read() == BreadcrumbAppearance::raised ? 33.0 : 23.0;
     const double result = std::clamp(padding + text_width, 38.0, 220.0);
     return result;
 }
@@ -343,14 +289,14 @@ std::string_view BreadcrumbTrail::visible_stable_id(
 
 void BreadcrumbTrail::on_paint(Painter& painter, Rect damage) {
     Panel::on_paint(painter, damage);
-    if (editing_) return;
-    if (appearance_ == BreadcrumbAppearance::raised) {
+    if (editing.read()) return;
+    if (appearance.read() == BreadcrumbAppearance::raised) {
         paint_raised(painter);
         return;
     }
-    const FontSpec font = text_font(font_);
+    const FontSpec segment_font = text_font(font.read());
     const double baseline = snap_text_baseline(std::max(
-        font.size, committed_arranged_bounds().height * 0.5 + font.size * 0.34));
+        segment_font.size, committed_arranged_bounds().height * 0.5 + segment_font.size * 0.34));
     painter.save();
     painter.clip_rect(local_bounds());
     // Each segment's face and label, the chevrons between segments and the
@@ -388,7 +334,7 @@ void BreadcrumbTrail::on_paint(Painter& painter, Rect damage) {
         face.states = item_states;
         face.corner_radius = 0.0;
         paint_part(painter, *this, face);
-        FontSpec item_font = font;
+        FontSpec item_font = segment_font;
         if (item.kind == VisibleKind::edit ||
             (item.kind == VisibleKind::segment &&
              item.segment_index + 1U == segments_.size())) {
@@ -450,9 +396,9 @@ void BreadcrumbTrail::on_paint(Painter& painter, Rect damage) {
 // and the active segment's focus ring are parts too. Faces are painted
 // back to front, so each nose lies whole over its successor.
 void BreadcrumbTrail::paint_raised(Painter& painter) {
-    const FontSpec font = text_font(font_);
+    const FontSpec segment_font = text_font(font.read());
     const double baseline = snap_text_baseline(std::max(
-        font.size, committed_arranged_bounds().height * 0.5 + font.size * 0.34));
+        segment_font.size, committed_arranged_bounds().height * 0.5 + segment_font.size * 0.34));
     AnatomyStateSet states = anatomy_states();
     states.erase(AnatomyState::hot);
     painter.save();
@@ -486,7 +432,7 @@ void BreadcrumbTrail::paint_raised(Painter& painter) {
         face.corner_radius = 0.0;
         if (tip > 0.0) face.point = tip;
         paint_part(painter, *this, face);
-        FontSpec item_font = font;
+        FontSpec item_font = segment_font;
         if (current || terminal) item_font.weight = 700;
         const double left_padding = index == 0U || terminal ? 9.0 : edge_overlap_ + 5.0;
         const double text_x = bounds.x + left_padding;
@@ -532,7 +478,7 @@ std::optional<std::size_t> BreadcrumbTrail::visible_index_at(
         if (!item.bounds.contains(local)) continue;
         // A raised segment is hit in its pointed face (the shape it is
         // painted in), less the preceding segment's nose over it.
-        if (appearance_ == BreadcrumbAppearance::raised && item.kind != VisibleKind::edit) {
+        if (appearance.read() == BreadcrumbAppearance::raised && item.kind != VisibleKind::edit) {
             if (!pointed_face_contains(item.bounds, raised_point(item.bounds), local)) continue;
             if (index > 1U) {
                 const Rect previous = visible_items_[index - 2U].bounds;
@@ -561,7 +507,7 @@ void BreadcrumbTrail::activate_visible(std::size_t index) {
 }
 
 void BreadcrumbTrail::on_pointer(PointerEvent& event) {
-    if (!eligible_for_input() || editing_) return;
+    if (!eligible_for_input() || editing.read()) return;
     if (event.action == PointerAction::move) {
         const std::optional<std::size_t> hovered = visible_index_at(event.position);
         if (hovered != hovered_visible_) {
@@ -589,7 +535,7 @@ void BreadcrumbTrail::on_pointer(PointerEvent& event) {
 }
 
 void BreadcrumbTrail::on_key_preview(KeyEvent& event) {
-    if (!editing_ || !tab_completion_available_ || !enabled.read() ||
+    if (!editing.read() || !tab_completion_available.read() || !enabled.read() ||
         event.action != KeyAction::down ||
         event.physical_key != PhysicalKey::tab) {
         return;
@@ -599,7 +545,7 @@ void BreadcrumbTrail::on_key_preview(KeyEvent& event) {
 }
 
 void BreadcrumbTrail::on_key(KeyEvent& event) {
-    if (!focused_ || !enabled.read() || editing_ ||
+    if (!focused_ || !enabled.read() || editing.read() ||
         event.action != KeyAction::down || visible_items_.empty()) return;
     std::size_t active{};
     for (std::size_t index = 0U; index < visible_items_.size(); ++index) {
@@ -647,7 +593,7 @@ SemanticDescriptor BreadcrumbTrail::semantic_descriptor() const {
 
 std::vector<SemanticNode> BreadcrumbTrail::semantic_virtual_children() const {
     std::vector<SemanticNode> nodes{};
-    if (editing_) return nodes;
+    if (editing.read()) return nodes;
     nodes.reserve(visible_items_.size());
     const Rect trail = absolute_bounds();
     for (const VisibleItem& item : visible_items_) {
@@ -687,7 +633,7 @@ std::vector<SemanticNode> BreadcrumbTrail::semantic_virtual_children() const {
 
 bool BreadcrumbTrail::on_semantic_child_action(
     std::string_view stable_id, SemanticAction action, std::string_view) {
-    if (editing_) return false;
+    if (editing.read()) return false;
     std::size_t index = 0U;
     while (index < visible_items_.size()) {
         const std::string_view identity = visible_stable_id(visible_items_[index]);
@@ -706,7 +652,6 @@ bool BreadcrumbTrail::on_semantic_child_action(
     }
     return true;
 }
-
 
 namespace {
 
@@ -783,7 +728,7 @@ BreadcrumbTrail::Parts BreadcrumbTrail::parts() const {
 }
 
 std::size_t BreadcrumbTrail::realized_item_count() const {
-    if (editing_) return 0U;
+    if (editing.read()) return 0U;
     return visible_items_.size();
 }
 
@@ -798,7 +743,7 @@ void BreadcrumbTrail::publish_realized_item_geometry(std::size_t item,
 
     const VisibleItem& visible = visible_items_[item];
     const Rect bounds = visible.bounds;
-    FontSpec item_font = text_font(font_);
+    FontSpec item_font = text_font(font.read());
     std::string_view text{};
     if (visible.kind == VisibleKind::edit) {
         text = "./";
@@ -879,5 +824,74 @@ void BreadcrumbTrail::append_interactions(std::vector<InteractionDeclaration>& i
     Panel::append_interactions(interactions);
     interactions.insert(interactions.end(), breadcrumb_trail_interactions.begin(), breadcrumb_trail_interactions.end());
 }
+
+// property_codemod begin BreadcrumbTrail (tools/property_families/breadcrumb_trail.json; generated, do not edit)
+
+void BreadcrumbTrail::prepare_write(const decltype(font)&, FontSpec& incoming) {
+    require_mutable();
+    if (!valid_font_spec(incoming)) throw std::invalid_argument("BreadcrumbTrail font is invalid");
+    set_font_from_code(true);
+}
+
+void BreadcrumbTrail::written(const decltype(font)&) {
+    if (editor_) (*editor_).font = font.read();
+    rebuild_layout(committed_arranged_bounds().width, committed_arranged_bounds().height);
+    normalize_active();
+    invalidate(Dirty::measure | Dirty::layout | Dirty::paint | Dirty::hit_test |
+               Dirty::semantics | Dirty::accessibility);
+}
+
+void BreadcrumbTrail::prepare_write(const decltype(appearance)&, BreadcrumbAppearance& incoming) {
+    require_mutable();
+    if (incoming != BreadcrumbAppearance::plain && incoming != BreadcrumbAppearance::raised) {
+        throw std::invalid_argument("BreadcrumbTrail appearance is invalid");
+    }
+}
+
+void BreadcrumbTrail::written(const decltype(appearance)&) {
+    rebuild_layout(committed_arranged_bounds().width, committed_arranged_bounds().height);
+    normalize_active();
+    invalidate(Dirty::measure | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+std::string BreadcrumbTrail::read_view(const decltype(active_id)&) const {
+    return active_id_;
+}
+
+void BreadcrumbTrail::write_view(const decltype(active_id)&, std::string incoming) {
+    require_mutable();
+    if (!incoming.empty() && incoming != overflow_stable_id_ &&
+        incoming != edit_stable_id_ && !segment_index(incoming)) {
+        throw std::out_of_range("BreadcrumbTrail active ID is not in its model");
+    }
+    if (active_id_ == incoming) return;
+    active_id_ = std::move(incoming);
+    normalize_active();
+    invalidate(Dirty::paint | Dirty::semantics | Dirty::accessibility);
+}
+
+void BreadcrumbTrail::prepare_write(const decltype(editing)&, bool&) {
+    require_mutable();
+}
+
+// Ending an edit withdraws tab completion before the editor hides.
+void BreadcrumbTrail::written(const decltype(editing)&) {
+    if (!editing.read()) tab_completion_available = false;
+    if (editor_) (*editor_).visible = editing.read();
+    invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics |
+               Dirty::accessibility);
+}
+
+// Completion holds only while editing; outside an edit a write stores false.
+void BreadcrumbTrail::prepare_write(const decltype(tab_completion_available)&, bool& incoming) {
+    require_mutable();
+    incoming = incoming && editing.read();
+}
+
+void BreadcrumbTrail::written(const decltype(tab_completion_available)&) {
+    invalidate(Dirty::semantics | Dirty::accessibility);
+}
+
+// property_codemod end BreadcrumbTrail
 
 } // namespace gui_forms

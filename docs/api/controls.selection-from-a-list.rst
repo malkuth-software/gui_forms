@@ -66,6 +66,16 @@ Related types
      -  
    * - :cpp:class:`BreadcrumbTrail::Parts <gui_forms::BreadcrumbTrail::Parts>`
      - Stage T1 anatomy, as dot members.
+   * - :cpp:class:`BreadcrumbTrailActiveIdCapability <gui_forms::BreadcrumbTrailActiveIdCapability>`
+     - The stable ID of the keyboard-active segment, the overflow or the edit button, or empty; a view, since keyboard, pointer and semantic actions move it.
+   * - :cpp:class:`BreadcrumbTrailAppearanceCapability <gui_forms::BreadcrumbTrailAppearanceCapability>`
+     - Whether the segments are drawn plain or as raised arrows.
+   * - :cpp:class:`BreadcrumbTrailCapabilities <gui_forms::BreadcrumbTrailCapabilities>`
+     - Every BreadcrumbTrail capability, in the order the declaring class takes them.
+   * - :cpp:class:`BreadcrumbTrailEditingCapability <gui_forms::BreadcrumbTrailEditingCapability>`
+     - Whether the exact-path editor replaces the segments.
+   * - :cpp:class:`BreadcrumbTrailTabCompletionAvailableCapability <gui_forms::BreadcrumbTrailTabCompletionAvailableCapability>`
+     - Whether Tab in the path editor requests completion (edit_completion_requested).
    * - :cpp:class:`CheckedListBox::Item <gui_forms::CheckedListBox::Item>`
      -  
    * - :cpp:class:`CheckedListBox::ItemParts <gui_forms::CheckedListBox::ItemParts>`
@@ -475,7 +485,7 @@ Related types
 
 .. cpp:struct:: BreadcrumbSegment final
 
-   ``#include <gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail.hpp>``
+   ``#include <gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail_values/breadcrumb_trail_values.hpp>``
 
    .. cpp:member:: std::string stable_id
 
@@ -540,6 +550,106 @@ Related types
    .. cpp:member:: PartGeometry face
 
    .. cpp:member:: PartGeometry edge
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> BreadcrumbTrailActiveIdCapability
+
+   ``#include <gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail_capabilities/breadcrumb_trail_capabilities.hpp>``
+
+   The stable ID of the keyboard-active segment, the overflow or the edit button, or empty; a view, since keyboard, pointer and semantic actions move it. An ID not in the model throws std::out_of_range.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(BreadcrumbTrailActiveIdCapability& capability, std::string incoming)
+
+   .. cpp:function:: static std::string read(const BreadcrumbTrailActiveIdCapability& capability)
+
+   .. cpp:member:: PropertyView<std::string, BreadcrumbTrailActiveIdCapability<Declaring>> active_id
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> BreadcrumbTrailAppearanceCapability
+
+   ``#include <gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail_capabilities/breadcrumb_trail_capabilities.hpp>``
+
+   Whether the segments are drawn plain or as raised arrows. An undeclared value throws std::invalid_argument; a change re-lays out the segments.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(BreadcrumbTrailAppearanceCapability& capability, BreadcrumbAppearance incoming)
+
+   .. cpp:member:: PropertyCell<BreadcrumbAppearance, BreadcrumbTrailAppearanceCapability<Declaring>> appearance
+
+      Default: ``{BreadcrumbAppearance::plain}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> BreadcrumbTrailCapabilities : public FontCapability<Declaring>, public BreadcrumbTrailAppearanceCapability<Declaring>, public BreadcrumbTrailActiveIdCapability<Declaring>, public BreadcrumbTrailEditingCapability<Declaring>, public BreadcrumbTrailTabCompletionAvailableCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail_capabilities/breadcrumb_trail_capabilities.hpp>``
+
+   Every BreadcrumbTrail capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: BreadcrumbTrailCapabilities()
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: FontSpec font
+
+      The font of the control's text (Font).
+
+   .. cpp:member:: BreadcrumbAppearance appearance
+
+      Whether the segments are drawn plain or as raised arrows. An undeclared value throws std::invalid_argument; a change re-lays out the segments.
+
+   .. cpp:member:: std::string active_id
+
+      The stable ID of the keyboard-active segment, the overflow or the edit button, or empty; a view, since keyboard, pointer and semantic actions move it. An ID not in the model throws std::out_of_range.
+
+   .. cpp:member:: bool editing
+
+      Whether the exact-path editor replaces the segments. Ending an edit withdraws tab completion. begin_edit fills the editor and turns it on.
+
+   .. cpp:member:: bool tab_completion_available
+
+      Whether Tab in the path editor requests completion (edit_completion_requested). It holds only while editing; a write outside an edit stores false.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> BreadcrumbTrailEditingCapability
+
+   ``#include <gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail_capabilities/breadcrumb_trail_capabilities.hpp>``
+
+   Whether the exact-path editor replaces the segments. Ending an edit withdraws tab completion. begin_edit fills the editor and turns it on.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(BreadcrumbTrailEditingCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, BreadcrumbTrailEditingCapability<Declaring>> editing
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> BreadcrumbTrailTabCompletionAvailableCapability
+
+   ``#include <gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail_capabilities/breadcrumb_trail_capabilities.hpp>``
+
+   Whether Tab in the path editor requests completion (edit_completion_requested). It holds only while editing; a write outside an edit stores false.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(BreadcrumbTrailTabCompletionAvailableCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, BreadcrumbTrailTabCompletionAvailableCapability<Declaring>> tab_completion_available
 
 .. cpp:namespace:: gui_forms
 
@@ -4526,7 +4636,7 @@ Enumerations
 
 .. cpp:enum-class:: BreadcrumbAppearance
 
-   ``#include <gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail.hpp>``
+   ``#include <gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail_values/breadcrumb_trail_values.hpp>``
 
    .. cpp:enumerator:: plain
 

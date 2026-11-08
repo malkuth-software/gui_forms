@@ -5,6 +5,7 @@
 #include "gui_forms/gui_forms.hpp"
 #include "gui_forms/controls/button_base/button/button.hpp"
 #include "gui_forms/controls/data_grid_view/data_grid_view.hpp"
+#include "gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail.hpp"
 #include "gui_forms/controls/panel/card/card.hpp"
 #include "gui_forms/controls/panel/card/review_card/review_card.hpp"
 #include "gui_forms/controls/panel/combo_box/combo_box.hpp"
@@ -54,6 +55,30 @@ struct RaiseCounter final {
         ++(*count);
     }
 };
+
+void test_breadcrumb_trail_properties() {
+    std::shared_ptr<BreadcrumbTrail> control = make_control<BreadcrumbTrail>(StableId("generated.breadcrumbtrail"));
+    {
+        const FontSpec sample = FontSpec{FontRole::control, 12.0, 400, false};
+        (*control).font = sample;
+        expect((*control).font.read() == sample, "BreadcrumbTrail.font: a write stores");
+    }
+    {
+        const BreadcrumbAppearance sample = BreadcrumbAppearance::raised;
+        (*control).appearance = sample;
+        expect((*control).appearance.read() == sample, "BreadcrumbTrail.appearance: a write stores");
+    }
+    {
+        const bool sample = !(*control).editing.read();
+        (*control).editing = sample;
+        expect((*control).editing.read() == sample, "BreadcrumbTrail.editing: a write stores");
+    }
+    {
+        const bool sample = !(*control).tab_completion_available.read();
+        (*control).tab_completion_available = sample;
+        expect((*control).tab_completion_available.read() == sample, "BreadcrumbTrail.tab_completion_available: a write stores");
+    }
+}
 
 void test_button_base_properties() {
     std::shared_ptr<Button> control = make_control<Button>(StableId("generated.buttonbase"));
@@ -913,6 +938,7 @@ void test_tree_list_view_properties() {
 } // namespace
 
 int main() {
+    test_breadcrumb_trail_properties();
     test_button_base_properties();
     test_card_properties();
     test_checked_list_box_properties();

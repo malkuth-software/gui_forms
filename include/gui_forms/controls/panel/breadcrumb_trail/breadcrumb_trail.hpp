@@ -1,6 +1,8 @@
 #pragma once
 
+#include "gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail_values/breadcrumb_trail_values.hpp"
 #include "gui_forms/controls/panel/text_box/text_box.hpp"
+#include "gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail_capabilities/breadcrumb_trail_capabilities.hpp"
 
 #include <cstddef>
 #include <memory>
@@ -12,30 +14,16 @@
 
 namespace gui_forms {
 
-enum class BreadcrumbAppearance : std::uint8_t { plain, raised };
-
-struct BreadcrumbSegment final {
-    std::string stable_id{};
-    std::string text{};
-    std::string description{};
-    bool enabled{true};
-};
-
 // One retained location instrument. Logical segments are virtual semantic
 // children; the exact-path TextBox is the sole retained child and occupies the
 // same row only while editing.
-class BreadcrumbTrail final : public Panel {
+class BreadcrumbTrail final : public Panel, public BreadcrumbTrailCapabilities<BreadcrumbTrail> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
 
     explicit BreadcrumbTrail(StableId stable_id,
                              std::string editor_stable_id = {});
     void initialize_control_tree();
-
-    [[nodiscard]] FontSpec font() const noexcept { return font_; }
-    void set_font(FontSpec font);
-    [[nodiscard]] BreadcrumbAppearance appearance() const noexcept { return appearance_; }
-    void set_appearance(BreadcrumbAppearance appearance);
 
     [[nodiscard]] std::span<const BreadcrumbSegment> segments() const noexcept {
         return segments_;
@@ -44,21 +32,11 @@ public:
     [[nodiscard]] std::span<const std::string> hidden_segment_ids() const noexcept {
         return hidden_segment_ids_;
     }
-    [[nodiscard]] std::string_view active_id() const noexcept {
-        return active_id_;
-    }
-    void set_active_id(std::string_view stable_id);
 
-    [[nodiscard]] bool editing() const noexcept { return editing_; }
-    void set_editing(bool editing);
     void begin_edit(std::string text, bool select_all = true);
     [[nodiscard]] std::shared_ptr<TextBox> editor() const noexcept {
         return editor_;
     }
-    [[nodiscard]] bool tab_completion_available() const noexcept {
-        return tab_completion_available_;
-    }
-    void set_tab_completion_available(bool available);
     [[nodiscard]] std::string_view overflow_stable_id() const noexcept {
         return overflow_stable_id_;
     }
@@ -176,10 +154,6 @@ private:
     SubscriptionToken editor_cancel_{};
     std::optional<std::size_t> hovered_visible_{};
     std::optional<std::size_t> pressed_visible_{};
-    FontSpec font_{FontRole::control, 10.5, 400, false};
-    BreadcrumbAppearance appearance_{BreadcrumbAppearance::plain};
-    bool editing_{};
-    bool tab_completion_available_{};
     bool focused_{};
     Event<const std::string&> segment_activated_{};
     Event<> overflow_activated_{};
@@ -190,6 +164,25 @@ private:
 
     static constexpr double edge_overlap_ = 9.0;
     static constexpr double edit_width_ = 30.0;
+    // property_codemod begin BreadcrumbTrail (tools/property_families/breadcrumb_trail.json; generated, do not edit)
+private:
+    friend struct FontCapability<BreadcrumbTrail>;
+    friend struct BreadcrumbTrailAppearanceCapability<BreadcrumbTrail>;
+    friend struct BreadcrumbTrailActiveIdCapability<BreadcrumbTrail>;
+    friend struct BreadcrumbTrailEditingCapability<BreadcrumbTrail>;
+    friend struct BreadcrumbTrailTabCompletionAvailableCapability<BreadcrumbTrail>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(font)& cell, FontSpec& incoming);
+    void written(const decltype(font)& cell);
+    void prepare_write(const decltype(appearance)& cell, BreadcrumbAppearance& incoming);
+    void written(const decltype(appearance)& cell);
+    void write_view(const decltype(active_id)& cell, std::string incoming);
+    [[nodiscard]] std::string read_view(const decltype(active_id)& cell) const;
+    void prepare_write(const decltype(editing)& cell, bool& incoming);
+    void written(const decltype(editing)& cell);
+    void prepare_write(const decltype(tab_completion_available)& cell, bool& incoming);
+    void written(const decltype(tab_completion_available)& cell);
+    // property_codemod end BreadcrumbTrail
 };
 
 } // namespace gui_forms

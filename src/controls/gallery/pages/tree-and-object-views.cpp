@@ -197,7 +197,7 @@ private:
     }
 
     void build_location() {
-        (*trail_).set_appearance(BreadcrumbAppearance::raised);
+        (*trail_).appearance = BreadcrumbAppearance::raised;
         on((*trail_).segment_activated(), *this, &TreeAndObjectViewsPage::on_segment_activated);
         on((*trail_).edit_started(), *this, &TreeAndObjectViewsPage::on_edit_started);
         on((*trail_).edit_committed(), *this, &TreeAndObjectViewsPage::on_edit_committed);
@@ -334,7 +334,7 @@ private:
                              "Open " + std::string(project[index].name)});
         }
         (*trail_).set_segments(std::move(segments));
-        (*trail_).set_active_id(project[folder].id);
+        (*trail_).active_id = project[folder].id;
         project_objects();
         project_ledger();
     }
