@@ -13,7 +13,7 @@ Parameters
 ----------
 stable_id
     Identity of the control, unique within its window.
-text
+initial_text
     The text to draw, empty by default.
 
 Properties
@@ -69,9 +69,9 @@ Review a body text run with wrapping, and check how it resolved:
    gf::FontSpec body;
    body.role = gf::FontRole::content;
    body.size = 14.0;
-   (*specimen).set_font(body);
-   (*specimen).set_caption("Body: content, 14 / 400");
-   (*specimen).set_wrap_text(true);
+   (*specimen).font = body;
+   (*specimen).caption = "Body: content, 14 / 400";
+   (*specimen).wrap_text = true;
    gf::Window window(specimen, gf::Size{240.0, 120.0});
 
    gf::ResolvedTextLayout layout = (*specimen).resolved_layout();

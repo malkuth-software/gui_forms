@@ -789,9 +789,9 @@ private:
                 fault(where, "a text-block takes a font in rem and a unitless line-height, which scale with the text");
             }
             TextBlock& leaf = static_cast<TextBlock&>(control);
-            leaf.set_font(own.font);
-            leaf.set_text_align(own.text_align);
-            if (own.line_height_number >= 0.0) leaf.set_line_height(own.line_height_number * own.font.size);
+            leaf.font = own.font;
+            leaf.text_align = own.text_align;
+            if (own.line_height_number >= 0.0) leaf.line_height = own.line_height_number * own.font.size;
         }
         const std::vector<StyleDeclaration> declarations =
             style_text == nullptr || reader_context ? std::vector<StyleDeclaration>{}

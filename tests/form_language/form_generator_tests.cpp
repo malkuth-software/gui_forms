@@ -495,7 +495,7 @@ void test_page_descriptors() {
     require((*root).design_size.read() == gui_forms::Size{200.0, 100.0}, "page descriptors: the panel's design size");
     require((*group).design_size.read() == gui_forms::Size{50.0, 50.0}, "page descriptors: the group's design size");
     const gui_forms::FontSpec body{gui_forms::FontRole::content, 13.0, 400, true, 0.5};
-    require((*italic).font() == body, "page descriptors: italic, then spacing");
+    require((*italic).font.read() == body, "page descriptors: italic, then spacing");
     require((*check).indicator_style() == gui_forms::ChoiceIndicatorStyle::toggle,
             "page descriptors: the check box's indicator style");
     require((*radio).indicator_style() == gui_forms::ChoiceIndicatorStyle::modern,

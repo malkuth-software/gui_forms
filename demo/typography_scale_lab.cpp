@@ -120,8 +120,8 @@ std::shared_ptr<TypographySpecimen> specimen(
     std::shared_ptr<TypographySpecimen> result =
         make_control<TypographySpecimen>(StableId(std::move(id)),
                                          std::move(text));
-    (*result).set_caption(std::move(caption));
-    (*result).set_font(font);
+    (*result).caption = std::move(caption);
+    (*result).font = font;
     return result;
 }
 
@@ -180,8 +180,8 @@ std::unique_ptr<Window> make_typography_scale_lab() {
                  "Complete menu command vocabulary remains reachable while long names and larger text remeasure the retained surface.",
                  {FontRole::content, 10.0, 400, false}),
     };
-    (*specimens[4]).set_wrap_text(true);
-    (*specimens.back()).set_wrap_text(true);
+    (*specimens[4]).wrap_text = true;
+    (*specimens.back()).wrap_text = true;
     for (const std::shared_ptr<TypographySpecimen>& value : specimens) {
         (*root).add_child(value);
         (*root).add_specimen(value);

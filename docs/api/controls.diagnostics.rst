@@ -56,6 +56,16 @@ Related types
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`TypographySpecimen::States <gui_forms::TypographySpecimen::States>`
      -  
+   * - :cpp:class:`TypographySpecimenCapabilities <gui_forms::TypographySpecimenCapabilities>`
+     - Every TypographySpecimen capability, in the order the declaring class takes them.
+   * - :cpp:class:`TypographySpecimenCaptionCapability <gui_forms::TypographySpecimenCaptionCapability>`
+     - The line under the run that names its font.
+   * - :cpp:class:`TypographySpecimenDiagnosticsVisibleCapability <gui_forms::TypographySpecimenDiagnosticsVisibleCapability>`
+     - Whether the line box, baseline and provider status are drawn.
+   * - :cpp:class:`TypographySpecimenFontCapability <gui_forms::TypographySpecimenFontCapability>`
+     - The FontSpec the run is committed with; must be valid (std::invalid_argument).
+   * - :cpp:class:`TypographySpecimenWrapTextCapability <gui_forms::TypographySpecimenWrapTextCapability>`
+     - Whether the run wraps at the specimen's width.
    * - :cpp:class:`VisualControlInspection <gui_forms::VisualControlInspection>`
      -  
    * - :cpp:class:`VisualControlLayoutSnapshot <gui_forms::VisualControlLayoutSnapshot>`
@@ -707,6 +717,103 @@ Related types
    .. cpp:member:: bool focused
 
    .. cpp:member:: bool focus_visible
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TypographySpecimenCapabilities : public TextCapability<Declaring>, public TypographySpecimenFontCapability<Declaring>, public TypographySpecimenCaptionCapability<Declaring>, public TypographySpecimenDiagnosticsVisibleCapability<Declaring>, public TypographySpecimenWrapTextCapability<Declaring>
+
+   ``#include <gui_forms/controls/typography_specimen/typography_specimen_capabilities/typography_specimen_capabilities.hpp>``
+
+   Every TypographySpecimen capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string text
+
+      The text the control shows (Text).
+
+   .. cpp:member:: FontSpec font
+
+      The FontSpec the run is committed with; must be valid (std::invalid_argument).
+
+   .. cpp:member:: std::string caption
+
+      The line under the run that names its font.
+
+   .. cpp:member:: bool diagnostics_visible
+
+      Whether the line box, baseline and provider status are drawn.
+
+   .. cpp:member:: bool wrap_text
+
+      Whether the run wraps at the specimen's width.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TypographySpecimenCaptionCapability
+
+   ``#include <gui_forms/controls/typography_specimen/typography_specimen_capabilities/typography_specimen_capabilities.hpp>``
+
+   The line under the run that names its font.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TypographySpecimenCaptionCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, TypographySpecimenCaptionCapability<Declaring>> caption
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TypographySpecimenDiagnosticsVisibleCapability
+
+   ``#include <gui_forms/controls/typography_specimen/typography_specimen_capabilities/typography_specimen_capabilities.hpp>``
+
+   Whether the line box, baseline and provider status are drawn.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TypographySpecimenDiagnosticsVisibleCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, TypographySpecimenDiagnosticsVisibleCapability<Declaring>> diagnostics_visible
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TypographySpecimenFontCapability
+
+   ``#include <gui_forms/controls/typography_specimen/typography_specimen_capabilities/typography_specimen_capabilities.hpp>``
+
+   The FontSpec the run is committed with; must be valid (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TypographySpecimenFontCapability& capability, FontSpec incoming)
+
+   .. cpp:member:: PropertyCell<FontSpec, TypographySpecimenFontCapability<Declaring>> font
+
+      Default: ``{FontSpec{FontRole::content, 12.0, 400, false}}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TypographySpecimenWrapTextCapability
+
+   ``#include <gui_forms/controls/typography_specimen/typography_specimen_capabilities/typography_specimen_capabilities.hpp>``
+
+   Whether the run wraps at the specimen's width.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TypographySpecimenWrapTextCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, TypographySpecimenWrapTextCapability<Declaring>> wrap_text
+
+      Default: ``{false}``.
 
 .. cpp:namespace:: gui_forms
 

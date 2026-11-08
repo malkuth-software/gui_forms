@@ -30,9 +30,9 @@ void test_typography_and_inspection(gui_forms::Window& window) {
     require(heading && wrapped && inspector && overlay && overlay_box && overlay_toggle &&
                 readout,
             "typography page must retain its specimens, inspector, overlay and policy");
-    require((*heading).text() == "CONTROL FACE · GALLERY HEADING" &&
-                (*heading).font().weight == 700 && (*heading).diagnostics_visible() &&
-                (*wrapped).wrap_text(),
+    require((*heading).text.read() == "CONTROL FACE · GALLERY HEADING" &&
+                (*heading).font.read().weight == 700 && (*heading).diagnostics_visible.read() &&
+                (*wrapped).wrap_text.read(),
             "specimens must carry their authored runs, fonts and wrapping");
     require((*inspector).target_stable_id() == "gallery.typography.specimen.0" &&
                 (*overlay).target_stable_id() == "gallery.typography.specimen.0" &&
@@ -73,13 +73,13 @@ void test_typography_and_inspection(gui_forms::Window& window) {
     // Bound Values: the diagnostics check box and the size TrackBar change
     // specimen state through state events, with no input event required.
     click(window, window.find("gallery.typography.diagnostics"));
-    require(!(*heading).diagnostics_visible() && !(*wrapped).diagnostics_visible(),
+    require(!(*heading).diagnostics_visible.read() && !(*wrapped).diagnostics_visible.read(),
             "the diagnostics Value must hide every specimen's adornments");
     const std::shared_ptr<gui_forms::TrackBar> size =
         std::dynamic_pointer_cast<TrackBar>(window.find("gallery.typography.size"));
     require(size && (*size).value() == 14.0, "the size TrackBar must start at the Value");
     (*size).set_value(22.0);
-    require((*wrapped).font().size == 22.0,
+    require((*wrapped).font.read().size == 22.0,
             "a size state change must rewrite the wrapped specimen's FontSpec");
 }
 

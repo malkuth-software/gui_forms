@@ -7,7 +7,7 @@ gui_forms::TextBlock
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: TextBlock final : public Control
+.. cpp:class:: TextBlock final : public Control, public TextBlockCapabilities<TextBlock>
 
    ``#include <gui_forms/controls/text_block/text_block.hpp>``
 
@@ -34,7 +34,7 @@ gui_forms::TextBlock
       **stable_id** : ``StableId``
          Identity of the control, unique within its window.
 
-      **text** : ``std::string``, default ``{}``
+      **initial_text** : ``std::string``, default ``{}``
          Text to display, as UTF-8. Line ends are white space, not breaks.
 
    :Properties:
@@ -42,19 +42,12 @@ gui_forms::TextBlock
       **text** : ``std::string``, default ``""``
          The text. Setting a different value raises :cpp:func:`text_changed <gui_forms::TextBlock::text_changed>`.
 
-      **font** : ``FontSpec``
-         The font in use: the one given to :cpp:func:`set_font <gui_forms::TextBlock::set_font>`, or else the theme's field
-         typography. It is scaled by the window's text scale. An invalid
-         specification throws ``std::invalid_argument``; :cpp:func:`clear_font <gui_forms::TextBlock::clear_font>` returns to
-         the theme's font.
-
-      **has_font_override** : ``bool``, read-only
-
-      **foreground** : ``Color``
-         The text colour: the one given to :cpp:func:`set_foreground <gui_forms::TextBlock::set_foreground>`, or else the theme's
-         text colour. :cpp:func:`clear_foreground <gui_forms::TextBlock::clear_foreground>` returns to the theme's colour.
-
-      **has_foreground_override** : ``bool``, read-only
+      **font** : ``std::optional<FontSpec>``, default empty
+         The block's own font. While empty, the block uses the theme's field
+         typography; :cpp:func:`resolved_font <gui_forms::TextBlock::resolved_font>` reports the font in use. It is scaled by the
+         window's text scale. An invalid specification throws
+         ``std::invalid_argument``; writing ``std::nullopt`` returns to the theme's
+         font.
 
       **text_align** : ``TextAlignment``, default ``TextAlignment::start``
          How each line sits across the block, as CSS's ``text-align``: ``start``,
@@ -68,15 +61,24 @@ gui_forms::TextBlock
          ``line-height: normal``: the font's ascent, descent and line gap, each
          rounded to a whole pixel. The extra space (or the shortfall) goes half
          above the text, rounded down, and the rest below. A value that is not
-         finite and positive throws ``std::invalid_argument``; :cpp:func:`clear_line_height <gui_forms::TextBlock::clear_line_height>`
-         returns to normal.
+         finite and positive throws ``std::invalid_argument``; writing
+         ``std::nullopt`` returns to normal.
+
+      **resolved_font** : ``FontSpec``, read-only
+         The font in use: :cpp:member:`font <gui_forms::TextBlock::font>` when set, or else the theme's field typography,
+         before the window's text scale.
+
+      **foreground** : ``Color``, read-only
+         The text colour in use: :cpp:class:`Control <gui_forms::Control>`'s ``fore_color`` cell when set, or else
+         the theme's text colour. Writing ``std::nullopt`` to ``fore_color`` returns
+         to the theme's colour.
 
       **parts** : ``Parts``, read-only
 
    :Events:
 
       **text_changed** : ``Event<const std::string&>``
-         Raised after :cpp:func:`text <gui_forms::TextBlock::text>` changes. It carries the new text.
+         Raised after :cpp:member:`text <gui_forms::TextBlock::text>` changes. It carries the new text.
 
    :Inherited:
 
@@ -88,12 +90,12 @@ gui_forms::TextBlock
       :class: autosummary longtable
       :widths: 35 65
 
-      * - :cpp:func:`clear_font <gui_forms::TextBlock::clear_font>`
-        - Removes the font given to :cpp:func:`set_font <gui_forms::TextBlock::set_font>`, so the block follows the theme.
-      * - :cpp:func:`clear_foreground <gui_forms::TextBlock::clear_foreground>`
-        - Removes the colour given to :cpp:func:`set_foreground <gui_forms::TextBlock::set_foreground>`.
-      * - :cpp:func:`clear_line_height <gui_forms::TextBlock::clear_line_height>`
-        - Returns to ``line-height: normal``.
+      * - :cpp:func:`text_block_property_entries <gui_forms::TextBlock::text_block_property_entries>`
+        -  
+      * - :cpp:func:`set_text <gui_forms::TextBlock::set_text>`
+        - M-S transient forwarders: the integrator's rewrite replaces every call with an assignment of the cell and deletes them in the same batch.
+      * - :cpp:func:`set_font <gui_forms::TextBlock::set_font>`
+        - M-S transient forwarder
 
    .. seealso::
 
@@ -133,7 +135,7 @@ gui_forms::TextBlock
       (*column).set_flex_direction(gf::FlexDirection::column);
       std::shared_ptr<gf::TextBlock> heading = gf::make_control<gf::TextBlock>(
           gf::StableId("article.heading"), "Export settings");
-      (*heading).set_font(gf::FontSpec{gf::FontRole::content, 19.5, 700, false, 0.0});
+      (*heading).font = gf::FontSpec{gf::FontRole::content, 19.5, 700, false, 0.0};
       std::shared_ptr<gf::TextBlock> body = gf::make_control<gf::TextBlock>(
           gf::StableId("article.body"),
           "Exported files keep their names; existing files are never overwritten.");
@@ -155,7 +157,7 @@ gui_forms::TextBlock
           gf::make_control<gf::TextBlock>(gf::StableId("rate.caption"), "Rate");
       std::shared_ptr<gf::TextBlock> value =
           gf::make_control<gf::TextBlock>(gf::StableId("rate.value"), "42 MB/s");
-      (*value).set_font(gf::FontSpec{gf::FontRole::content, 26.0, 400, false, 0.0});
+      (*value).font = gf::FontSpec{gf::FontRole::content, 26.0, 400, false, 0.0};
       (*row).add_child(caption);
       (*row).add_child(value);
 
@@ -166,67 +168,50 @@ gui_forms::TextBlock
 
    .. rubric:: Construction
 
-   .. cpp:function:: explicit TextBlock(StableId stable_id, std::string text = {})
+   .. cpp:function:: explicit TextBlock(StableId stable_id, std::string initial_text = {})
 
 
    .. rubric:: Properties
 
-   .. cpp:function:: const std::string& text() const noexcept
+   .. cpp:member:: std::string text
 
       The text. Setting a different value raises :cpp:func:`text_changed <gui_forms::TextBlock::text_changed>`.
 
-   .. cpp:function:: void set_text(std::string text)
+   .. cpp:member:: std::optional<FontSpec> font
 
-      Sets :cpp:func:`text <gui_forms::TextBlock::text>`; see the property's description above.
+      The block's own font. While empty, the block uses the theme's field
+      typography; :cpp:func:`resolved_font <gui_forms::TextBlock::resolved_font>` reports the font in use. It is scaled by the
+      window's text scale. An invalid specification throws
+      ``std::invalid_argument``; writing ``std::nullopt`` returns to the theme's
+      font.
 
-   .. cpp:function:: FontSpec font() const noexcept
-
-      The font in use: the one given to :cpp:func:`set_font <gui_forms::TextBlock::set_font>`, or else the theme's field
-      typography. It is scaled by the window's text scale. An invalid
-      specification throws ``std::invalid_argument``; :cpp:func:`clear_font <gui_forms::TextBlock::clear_font>` returns to
-      the theme's font.
-
-   .. cpp:function:: void set_font(FontSpec font)
-
-      Sets :cpp:func:`font <gui_forms::TextBlock::font>`; see the property's description above.
-
-   .. cpp:function:: bool has_font_override() const noexcept
-
-   .. cpp:function:: Color foreground() const noexcept
-
-      The text colour: the one given to :cpp:func:`set_foreground <gui_forms::TextBlock::set_foreground>`, or else the theme's
-      text colour. :cpp:func:`clear_foreground <gui_forms::TextBlock::clear_foreground>` returns to the theme's colour.
-
-   .. cpp:function:: void set_foreground(Color color)
-
-      Sets :cpp:func:`foreground <gui_forms::TextBlock::foreground>`; see the property's description above.
-
-   .. cpp:function:: bool has_foreground_override() const noexcept
-
-   .. cpp:function:: TextAlignment text_align() const noexcept
+   .. cpp:member:: TextAlignment text_align
 
       How each line sits across the block, as CSS's ``text-align``: ``start``,
       ``end``, ``left``, ``right`` or ``center``. ``start`` and ``end`` follow the
       layout direction, so ``start`` is right in a right-to-left window. A value
       outside the enumeration throws ``std::invalid_argument``.
 
-   .. cpp:function:: void set_text_align(TextAlignment alignment)
-
-      Sets :cpp:func:`text_align <gui_forms::TextBlock::text_align>`; see the property's description above.
-
-   .. cpp:function:: std::optional<double> line_height() const noexcept
+   .. cpp:member:: std::optional<double> line_height
 
       Each line's height in logical pixels at a text scale of 1, as CSS's
       ``line-height: <length>``; it scales with the text. None is
       ``line-height: normal``: the font's ascent, descent and line gap, each
       rounded to a whole pixel. The extra space (or the shortfall) goes half
       above the text, rounded down, and the rest below. A value that is not
-      finite and positive throws ``std::invalid_argument``; :cpp:func:`clear_line_height <gui_forms::TextBlock::clear_line_height>`
-      returns to normal.
+      finite and positive throws ``std::invalid_argument``; writing
+      ``std::nullopt`` returns to normal.
 
-   .. cpp:function:: void set_line_height(double line_height)
+   .. cpp:function:: FontSpec resolved_font() const noexcept
 
-      Sets :cpp:func:`line_height <gui_forms::TextBlock::line_height>`; see the property's description above.
+      The font in use: :cpp:member:`font <gui_forms::TextBlock::font>` when set, or else the theme's field typography,
+      before the window's text scale.
+
+   .. cpp:function:: Color foreground() const noexcept
+
+      The text colour in use: :cpp:class:`Control <gui_forms::Control>`'s ``fore_color`` cell when set, or else
+      the theme's text colour. Writing ``std::nullopt`` to ``fore_color`` returns
+      to the theme's colour.
 
    .. cpp:function:: Parts parts() const
 
@@ -235,22 +220,20 @@ gui_forms::TextBlock
 
    .. cpp:function:: Event<const std::string&>& text_changed() noexcept
 
-      Raised after :cpp:func:`text <gui_forms::TextBlock::text>` changes. It carries the new text.
+      Raised after :cpp:member:`text <gui_forms::TextBlock::text>` changes. It carries the new text.
 
 
    .. rubric:: Methods
 
-   .. cpp:function:: void clear_font()
+   .. cpp:function:: static const std::array<PropertyEntry, text_block_property_count>& text_block_property_entries() noexcept
 
-      Removes the font given to :cpp:func:`set_font <gui_forms::TextBlock::set_font>`, so the block follows the theme.
+   .. cpp:function:: void set_text(std::string value)
 
-   .. cpp:function:: void clear_foreground()
+      M-S transient forwarders: the integrator's rewrite replaces every call with an assignment of the cell and deletes them in the same batch.
 
-      Removes the colour given to :cpp:func:`set_foreground <gui_forms::TextBlock::set_foreground>`.
+   .. cpp:function:: void set_font(FontSpec value)
 
-   .. cpp:function:: void clear_line_height()
-
-      Returns to ``line-height: normal``.
+      M-S transient forwarder
 
 
    .. rubric:: Extension points
@@ -288,3 +271,9 @@ gui_forms::TextBlock
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 
       *Protected.*
+
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
+   .. cpp:member:: constexpr std::size_t text_block_property_count
+
+      TextBlock's property table: Control's entries, then its own. Default: ``Control::control_property_count + 4U``.

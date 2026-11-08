@@ -151,6 +151,14 @@ Related types
      -  
    * - :cpp:class:`TextBlock::Parts <gui_forms::TextBlock::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts); its states are Control's.
+   * - :cpp:class:`TextBlockCapabilities <gui_forms::TextBlockCapabilities>`
+     - Every TextBlock capability, in the order the declaring class takes them.
+   * - :cpp:class:`TextBlockFontCapability <gui_forms::TextBlockFontCapability>`
+     - The block's own font; empty takes the theme's field typography (resolved_font).
+   * - :cpp:class:`TextBlockLineHeightCapability <gui_forms::TextBlockLineHeightCapability>`
+     - CSS line-height as a length in logical pixels at text scale 1; empty is normal.
+   * - :cpp:class:`TextBlockTextAlignCapability <gui_forms::TextBlockTextAlignCapability>`
+     - CSS text-align; start and end follow the effective layout direction (std::invalid_argument outside the enumeration).
    * - :cpp:class:`Toast::Parts <gui_forms::Toast::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`ToastContent <gui_forms::ToastContent>`
@@ -1085,6 +1093,80 @@ Related types
    .. cpp:member:: PartGeometry region
 
    .. cpp:member:: PartGeometry text
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TextBlockCapabilities : public TextCapability<Declaring>, public TextBlockFontCapability<Declaring>, public TextBlockTextAlignCapability<Declaring>, public TextBlockLineHeightCapability<Declaring>
+
+   ``#include <gui_forms/controls/text_block/text_block_capabilities/text_block_capabilities.hpp>``
+
+   Every TextBlock capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string text
+
+      The text the control shows (Text).
+
+   .. cpp:member:: std::optional<FontSpec> font
+
+      The block's own font; empty takes the theme's field typography (resolved_font). Must be a valid font specification (std::invalid_argument).
+
+   .. cpp:member:: TextAlignment text_align
+
+      CSS text-align; start and end follow the effective layout direction (std::invalid_argument outside the enumeration).
+
+   .. cpp:member:: std::optional<double> line_height
+
+      CSS line-height as a length in logical pixels at text scale 1; empty is normal. A present value must be finite and positive (std::invalid_argument).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TextBlockFontCapability
+
+   ``#include <gui_forms/controls/text_block/text_block_capabilities/text_block_capabilities.hpp>``
+
+   The block's own font; empty takes the theme's field typography (resolved_font). Must be a valid font specification (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TextBlockFontCapability& capability, std::optional<FontSpec> incoming)
+
+   .. cpp:member:: PropertyCell<std::optional<FontSpec>, TextBlockFontCapability<Declaring>> font
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TextBlockLineHeightCapability
+
+   ``#include <gui_forms/controls/text_block/text_block_capabilities/text_block_capabilities.hpp>``
+
+   CSS line-height as a length in logical pixels at text scale 1; empty is normal. A present value must be finite and positive (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TextBlockLineHeightCapability& capability, std::optional<double> incoming)
+
+   .. cpp:member:: PropertyCell<std::optional<double>, TextBlockLineHeightCapability<Declaring>> line_height
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TextBlockTextAlignCapability
+
+   ``#include <gui_forms/controls/text_block/text_block_capabilities/text_block_capabilities.hpp>``
+
+   CSS text-align; start and end follow the effective layout direction (std::invalid_argument outside the enumeration).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TextBlockTextAlignCapability& capability, TextAlignment incoming)
+
+   .. cpp:member:: PropertyCell<TextAlignment, TextBlockTextAlignCapability<Declaring>> text_align
+
+      Default: ``{TextAlignment::start}``.
 
 .. cpp:namespace:: gui_forms
 

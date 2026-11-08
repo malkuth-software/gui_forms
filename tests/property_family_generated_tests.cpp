@@ -45,6 +45,8 @@
 #include "gui_forms/controls/panel/tree_view/tree_view.hpp"
 #include "gui_forms/controls/scrollable_control/scrollable_control.hpp"
 #include "gui_forms/controls/search_field/search_field.hpp"
+#include "gui_forms/controls/text_block/text_block.hpp"
+#include "gui_forms/controls/typography_specimen/typography_specimen.hpp"
 
 #include <cstdlib>
 #include <iostream>
@@ -1225,6 +1227,48 @@ void test_search_field_properties() {
     }
 }
 
+void test_text_block_properties() {
+    std::shared_ptr<TextBlock> control = make_control<TextBlock>(StableId("generated.textblock"));
+    {
+        const std::string sample = std::string{"Name"};
+        int raises = 0;
+        const SubscriptionToken token = (*control).text_changed().subscribe(RaiseCounter{&raises});
+        (*control).text = sample;
+        expect((*control).text.read() == sample, "TextBlock.text: a write stores");
+        expect(raises == 1, "TextBlock.text: a changed write raises once");
+        (*control).text = sample;
+        expect(raises == 1, "TextBlock.text: an equal write raises nothing");
+        static_cast<void>(token);
+        const std::optional<BindingValue> by_name = (*control).property_value("text");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "TextBlock.text: the table reads the cell");
+    }
+    {
+        const std::optional<FontSpec> sample = FontSpec{FontRole::content, 14.0, 400, false};
+        (*control).font = sample;
+        expect((*control).font.read() == sample, "TextBlock.font: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("font");
+        expect(by_name && *by_name == PropertyValueTraits<std::optional<FontSpec>>::to_binding(sample),
+               "TextBlock.font: the table reads the cell");
+    }
+    {
+        const TextAlignment sample = TextAlignment::center;
+        (*control).text_align = sample;
+        expect((*control).text_align.read() == sample, "TextBlock.text_align: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("text_align");
+        expect(by_name && *by_name == PropertyValueTraits<TextAlignment>::to_binding(sample),
+               "TextBlock.text_align: the table reads the cell");
+    }
+    {
+        const std::optional<double> sample = 18.0;
+        (*control).line_height = sample;
+        expect((*control).line_height.read() == sample, "TextBlock.line_height: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("line_height");
+        expect(by_name && *by_name == PropertyValueTraits<std::optional<double>>::to_binding(sample),
+               "TextBlock.line_height: the table reads the cell");
+    }
+}
+
 void test_text_box_properties() {
     std::shared_ptr<TextBox> control = make_control<TextBox>(StableId("generated.textbox"));
     {
@@ -1389,6 +1433,47 @@ void test_tree_view_properties() {
     // image_list: no sample for std::shared_ptr<ImageList>; give the property a "sample".
 }
 
+void test_typography_specimen_properties() {
+    std::shared_ptr<TypographySpecimen> control = make_control<TypographySpecimen>(StableId("generated.typographyspecimen"));
+    {
+        const std::string sample = std::string{"Name"};
+        (*control).text = sample;
+        expect((*control).text.read() == sample, "TypographySpecimen.text: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("text");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "TypographySpecimen.text: the table reads the cell");
+    }
+    {
+        const FontSpec sample = FontSpec{FontRole::content, 14.0, 400, false};
+        (*control).font = sample;
+        expect((*control).font.read() == sample, "TypographySpecimen.font: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("font");
+        expect(by_name && *by_name == PropertyValueTraits<FontSpec>::to_binding(sample),
+               "TypographySpecimen.font: the table reads the cell");
+    }
+    {
+        const std::string sample = std::string{"Body"};
+        (*control).caption = sample;
+        expect((*control).caption.read() == sample, "TypographySpecimen.caption: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("caption");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "TypographySpecimen.caption: the table reads the cell");
+    }
+    {
+        const bool sample = !(*control).diagnostics_visible.read();
+        (*control).diagnostics_visible = sample;
+        expect((*control).diagnostics_visible.read() == sample, "TypographySpecimen.diagnostics_visible: a write stores");
+    }
+    {
+        const bool sample = true;
+        (*control).wrap_text = sample;
+        expect((*control).wrap_text.read() == sample, "TypographySpecimen.wrap_text: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("wrap_text");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "TypographySpecimen.wrap_text: the table reads the cell");
+    }
+}
+
 } // namespace
 
 int main() {
@@ -1429,11 +1514,13 @@ int main() {
     test_scaled_panel_properties();
     test_scrollable_control_properties();
     test_search_field_properties();
+    test_text_block_properties();
     test_text_box_properties();
     test_toggle_switch_properties();
     test_token_box_properties();
     test_tree_list_view_properties();
     test_tree_view_properties();
+    test_typography_specimen_properties();
     std::cout << "generated property tests passed\n";
     return EXIT_SUCCESS;
 }

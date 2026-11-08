@@ -3597,7 +3597,7 @@ void example() {
     (*column).set_flex_direction(gf::FlexDirection::column);
     std::shared_ptr<gf::TextBlock> heading = gf::make_control<gf::TextBlock>(
         gf::StableId("article.heading"), "Export settings");
-    (*heading).set_font(gf::FontSpec{gf::FontRole::content, 19.5, 700, false, 0.0});
+    (*heading).font = gf::FontSpec{gf::FontRole::content, 19.5, 700, false, 0.0};
     std::shared_ptr<gf::TextBlock> body = gf::make_control<gf::TextBlock>(
         gf::StableId("article.body"),
         "Exported files keep their names; existing files are never overwritten.");
@@ -3619,7 +3619,7 @@ void example() {
         gf::make_control<gf::TextBlock>(gf::StableId("rate.caption"), "Rate");
     std::shared_ptr<gf::TextBlock> value =
         gf::make_control<gf::TextBlock>(gf::StableId("rate.value"), "42 MB/s");
-    (*value).set_font(gf::FontSpec{gf::FontRole::content, 26.0, 400, false, 0.0});
+    (*value).font = gf::FontSpec{gf::FontRole::content, 26.0, 400, false, 0.0};
     (*row).add_child(caption);
     (*row).add_child(value);
 
@@ -3992,9 +3992,9 @@ void example() {
     gf::FontSpec body;
     body.role = gf::FontRole::content;
     body.size = 14.0;
-    (*specimen).set_font(body);
-    (*specimen).set_caption("Body: content, 14 / 400");
-    (*specimen).set_wrap_text(true);
+    (*specimen).font = body;
+    (*specimen).caption = "Body: content, 14 / 400";
+    (*specimen).wrap_text = true;
     gf::Window window(specimen, gf::Size{240.0, 120.0});
 
     gf::ResolvedTextLayout layout = (*specimen).resolved_layout();

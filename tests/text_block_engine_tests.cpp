@@ -177,7 +177,7 @@ void test_design_metrics_and_line_boxes(const std::filesystem::path& fonts) {
     // px line box, and as wide as the engine shapes it.
     EngineMetrics metrics(carlito);
     std::shared_ptr<TextBlock> block = make_control<TextBlock>(StableId("engine.text"), "Settings");
-    (*block).set_font(content(13.0));
+    (*block).font = content(13.0);
     const std::unique_ptr<Window> held = std::make_unique<Window>(block, Size{400.0, 300.0});
     (*held).set_text_metrics_provider(&metrics);
     const LayoutConstraint widest{max_content_extent(), max_content_extent()};

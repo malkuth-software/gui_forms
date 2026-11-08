@@ -79,7 +79,7 @@ TOP_KEYS = {
 }
 TABLE_KEYS = {
     "kind", "category", "description", "default", "effects", "subtree", "bindable", "browsable", "nullable",
-    "enumeration", "reset", "registry", "serialization", "binding_direction",
+    "enumeration", "reset", "registry", "serialization", "binding_direction", "content_value",
 }
 THUNK_KEYS = {"read", "write", "reset", "should_serialize", "origin"}
 SHARED_HEADER = "include/gui_forms/control/shared_capabilities/shared_capabilities.hpp"
@@ -768,6 +768,9 @@ def descriptor_function(config, prop):
         if "::" not in visibility:
             visibility = "PropertySerializationVisibility::" + visibility
         lines.append(f"    descriptor.serialization_visibility = {visibility};")
+    if table.get("content_value"):
+        # Content a form document may set, not presentation a theme gives.
+        lines.append("    descriptor.content_value = true;")
     if not thunks.get("write"):
         # The entry's write is the cell's assignment (write_cell_entry), so
         # the form generator may assign the cell (CLOSURE P-6).

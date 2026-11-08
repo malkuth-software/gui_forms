@@ -1,8 +1,8 @@
 #include "gui_forms/controls/typography_specimen/typography_specimen.hpp"
 
 #include "gui_forms/visual_inspection.hpp"
-#include "gui_forms/detail/property_binding_adapters.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <array>
 #include <algorithm>
@@ -73,119 +73,23 @@ struct PainterLineResolver final {
 
 } // namespace
 
-TypographySpecimen::TypographySpecimen(StableId stable_id, std::string text)
-    : Control(std::move(stable_id)), text_(std::move(text)) {
-    // The run-time schema of a specimen (stage FD6.3): what a form document
-    // sets on it. None raises a change event.
-    PropertyDescriptor text_property;
-    text_property.name = "text";
-    text_property.kind = BindingValueKind::text;
-    text_property.category = "Appearance";
-    text_property.description = "The run of text the specimen commits and measures.";
-    text_property.default_value = BindingValue{std::string{}};
-    text_property.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
-    text_property.bindable = false;
-    define_bindable_property({
-        std::move(text_property),
-        detail::BindingMemberGetter<TypographySpecimen, std::string>(*this, &TypographySpecimen::text_),
-        detail::DirectPropertySetter<TypographySpecimen, std::string>(*this, &TypographySpecimen::set_text),
-        {}, {}, {}});
-
-    PropertyDescriptor font;
-    font.name = "font";
-    font.kind = BindingValueKind::font;
-    font.category = "Appearance";
-    font.description = "The FontSpec the run is committed with.";
-    // The specimen shows this font: it is content, which a form document
-    // may set, not presentation the project theme gives.
-    font.content_value = true;
-    font.default_value = BindingValue{FontSpec{}};
-    font.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
-    font.bindable = false;
-    define_bindable_property({
-        std::move(font),
-        detail::BindingMemberGetter<TypographySpecimen, FontSpec>(*this, &TypographySpecimen::font_),
-        detail::DirectPropertySetter<TypographySpecimen, FontSpec>(*this, &TypographySpecimen::set_font),
-        {}, {}, {}});
-
-    PropertyDescriptor caption;
-    caption.name = "caption";
-    caption.kind = BindingValueKind::text;
-    caption.category = "Appearance";
-    caption.description = "The line under the run that names its font.";
-    caption.default_value = BindingValue{std::string{}};
-    caption.invalidation_effects = Dirty::paint | Dirty::semantics;
-    caption.bindable = false;
-    define_bindable_property({
-        std::move(caption),
-        detail::BindingMemberGetter<TypographySpecimen, std::string>(*this, &TypographySpecimen::caption_),
-        detail::DirectPropertySetter<TypographySpecimen, std::string>(*this, &TypographySpecimen::set_caption),
-        {}, {}, {}});
-
-    PropertyDescriptor wrap_text;
-    wrap_text.name = "wrap_text";
-    wrap_text.kind = BindingValueKind::boolean;
-    wrap_text.category = "Layout";
-    wrap_text.description = "Whether the run wraps at the specimen's width.";
-    wrap_text.default_value = BindingValue{false};
-    wrap_text.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
-    wrap_text.bindable = false;
-    define_bindable_property({
-        std::move(wrap_text),
-        detail::BindingMemberGetter<TypographySpecimen, bool>(*this, &TypographySpecimen::wrap_text_),
-        detail::DirectPropertySetter<TypographySpecimen, bool>(*this, &TypographySpecimen::set_wrap_text),
-        {}, {}, {}});
-}
-
-void TypographySpecimen::set_text(std::string text) {
-    require_mutable();
-    if (text_ == text) return;
-    text_ = std::move(text);
-    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics |
-               Dirty::accessibility);
-}
-
-void TypographySpecimen::set_font(FontSpec font) {
-    require_mutable();
-    if (!valid_font_spec(font)) {
-        throw std::invalid_argument("TypographySpecimen font is invalid");
-    }
-    set_font_from_code(true);
-    if (font_ == font) return;
-    font_ = font;
-    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
-}
-
-void TypographySpecimen::set_caption(std::string caption) {
-    require_mutable();
-    if (caption_ == caption) return;
-    caption_ = std::move(caption);
-    invalidate(Dirty::paint | Dirty::semantics);
-}
-
-void TypographySpecimen::set_diagnostics_visible(bool visible) {
-    require_mutable();
-    if (diagnostics_visible_ == visible) return;
-    diagnostics_visible_ = visible;
-    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
-}
-
-void TypographySpecimen::set_wrap_text(bool wrap) {
-    require_mutable();
-    if (wrap_text_ == wrap) return;
-    wrap_text_ = wrap;
-    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
+// The run-time schema of a specimen (stage FD6.3), what a form document
+// sets on it, is the generated table below; no property raises a change
+// event.
+TypographySpecimen::TypographySpecimen(StableId stable_id, std::string initial_text)
+    : Control(std::move(stable_id)) {
+    text = std::move(initial_text);
 }
 
 ResolvedTextLayout TypographySpecimen::resolved_layout() const {
-    return resolve_text_layout_utf8(text_, text_font(font_));
+    return resolve_text_layout_utf8(text.read(), text_font(font.read()));
 }
 
 Size TypographySpecimen::measure(Size available) {
-    const FontSpec effective = text_font(font_);
+    const FontSpec effective = text_font(font.read());
     const ControlLineResolver resolve{*this, effective};
     const std::vector<std::string> lines = wrap_lines(
-        text_, std::max(0.0, available.width - 20.0), wrap_text_, resolve);
+        text.read(), std::max(0.0, available.width - 20.0), wrap_text.read(), resolve);
     double content_width{};
     double content_height{};
     for (const std::string& line : lines) {
@@ -194,8 +98,8 @@ Size TypographySpecimen::measure(Size available) {
         content_height += std::max(effective.size, resolved.logical_size.height);
     }
     const double scale = effective_text_scale();
-    const double caption_height = caption_.empty() ? 0.0 : 8.0 * scale * 1.2 + 6.0;
-    const double diagnostics = diagnostics_visible_
+    const double caption_height = caption.read().empty() ? 0.0 : 8.0 * scale * 1.2 + 6.0;
+    const double diagnostics = diagnostics_visible.read()
         ? 8.0 * scale * 1.2 + 8.0 : 0.0;
     return {std::min(available.width,
                      std::max(160.0, content_width + 24.0)),
@@ -206,10 +110,10 @@ Size TypographySpecimen::measure(Size available) {
 
 void TypographySpecimen::on_paint(Painter& painter, Rect) {
     const Rect bounds = client_rectangle();
-    const FontSpec effective = text_font(font_);
+    const FontSpec effective = text_font(font.read());
     const PainterLineResolver resolve{painter, effective};
     const std::vector<std::string> lines = wrap_lines(
-        text_, std::max(0.0, bounds.width - 20.0), wrap_text_, resolve);
+        text.read(), std::max(0.0, bounds.width - 20.0), wrap_text.read(), resolve);
     std::vector<ResolvedTextLayout> resolved_lines;
     resolved_lines.reserve(lines.size());
     for (const std::string& line : lines) resolved_lines.push_back(resolve(line));
@@ -225,9 +129,9 @@ void TypographySpecimen::on_paint(Painter& painter, Rect) {
     painter.stroke_rect({0.0, 0.0, std::max(0.0, bounds.width - 1.0),
                          std::max(0.0, bounds.height - 1.0)},
                         Color::rgba(172, 184, 191), 1.0);
-    if (!caption_.empty()) {
+    if (!caption.read().empty()) {
         painter.draw_text_utf8(
-            {10.0, snap_text_baseline(caption_font.size + 3.0)}, caption_,
+            {10.0, snap_text_baseline(caption_font.size + 3.0)}, caption.read(),
             caption_font, muted);
     }
     // The first line's baselines, which the footer reports for every run
@@ -246,7 +150,7 @@ void TypographySpecimen::on_paint(Painter& painter, Rect) {
         // The adornments the diagnostics switch shows (D22: the line box
         // was promised but never drawn, and the baseline was always on):
         // the line box from ascent to descent, and the baseline.
-        if (diagnostics_visible_) {
+        if (diagnostics_visible.read()) {
             const ResolvedTextLayout& line = resolved_lines[index];
             const Rect line_box{8.5, baseline - line.ascent + 0.5, std::max(0.0, bounds.width - 17.0),
                                 std::max(0.0, line.ascent + line.descent - 1.0)};
@@ -259,7 +163,7 @@ void TypographySpecimen::on_paint(Painter& painter, Rect) {
                 ? ink : fault);
     }
 
-    if (diagnostics_visible_) {
+    if (diagnostics_visible.read()) {
         std::ostringstream details;
         details << text_resolution_status_name(resolved.status) << ' ';
         if (resolved.primary_family.empty()) details << "no resolved face";
@@ -286,14 +190,13 @@ SemanticDescriptor TypographySpecimen::semantic_descriptor() const {
     const ResolvedTextLayout resolved = resolved_layout();
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::static_text;
-    descriptor.name = caption_.empty() ? text_ : caption_ + ": " + text_;
+    descriptor.name = caption.read().empty() ? text.read() : caption.read() + ": " + text.read();
     descriptor.value = std::string(text_resolution_status_name(resolved.status)) +
         "; " + (resolved.primary_family.empty() ? "no resolved face"
                                                   : resolved.primary_family);
     descriptor.exposed = true;
     return descriptor;
 }
-
 
 namespace {
 
@@ -356,5 +259,166 @@ TypographySpecimen::States TypographySpecimen::states() const {
     read_states(typography_specimen_state_fields, anatomy_states(), record);
     return record;
 }
+
+// property_codemod begin TypographySpecimen (tools/property_families/typography_specimen.json; generated, do not edit)
+
+namespace {
+
+PropertyDescriptor typography_specimen_text_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "text";
+    descriptor.kind = BindingValueKind::text;
+    descriptor.category = "Appearance";
+    descriptor.description = "The run of text the specimen commits and measures.";
+    descriptor.default_value = BindingValue{std::string{}};
+    descriptor.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_typography_specimen_text() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        typography_specimen_text_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor typography_specimen_font_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "font";
+    descriptor.kind = BindingValueKind::font;
+    descriptor.category = "Appearance";
+    descriptor.description = "The FontSpec the run is committed with.";
+    descriptor.default_value = BindingValue{FontSpec{}};
+    descriptor.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.content_value = true;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_typography_specimen_font() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        typography_specimen_font_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor typography_specimen_caption_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "caption";
+    descriptor.kind = BindingValueKind::text;
+    descriptor.category = "Appearance";
+    descriptor.description = "The line under the run that names its font.";
+    descriptor.default_value = BindingValue{std::string{}};
+    descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_typography_specimen_caption() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        typography_specimen_caption_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor typography_specimen_wrap_text_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "wrap_text";
+    descriptor.kind = BindingValueKind::boolean;
+    descriptor.category = "Layout";
+    descriptor.description = "Whether the run wraps at the specimen's width.";
+    descriptor.default_value = BindingValue{false};
+    descriptor.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_typography_specimen_wrap_text() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        typography_specimen_wrap_text_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+} // namespace
+
+const std::array<PropertyEntry, TypographySpecimen::typography_specimen_property_count>& TypographySpecimen::typography_specimen_property_entries() noexcept {
+    static constexpr std::array<PropertyEntry, 4U> own{{
+        {"text", &describe_typography_specimen_text,
+         &read_cell_entry<TypographySpecimen, decltype(&TypographySpecimen::text), &TypographySpecimen::text>,
+         &write_cell_entry<TypographySpecimen, decltype(&TypographySpecimen::text), &TypographySpecimen::text>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"font", &describe_typography_specimen_font,
+         &read_cell_entry<TypographySpecimen, decltype(&TypographySpecimen::font), &TypographySpecimen::font>,
+         &write_cell_entry<TypographySpecimen, decltype(&TypographySpecimen::font), &TypographySpecimen::font>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"caption", &describe_typography_specimen_caption,
+         &read_cell_entry<TypographySpecimen, decltype(&TypographySpecimen::caption), &TypographySpecimen::caption>,
+         &write_cell_entry<TypographySpecimen, decltype(&TypographySpecimen::caption), &TypographySpecimen::caption>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"wrap_text", &describe_typography_specimen_wrap_text,
+         &read_cell_entry<TypographySpecimen, decltype(&TypographySpecimen::wrap_text), &TypographySpecimen::wrap_text>,
+         &write_cell_entry<TypographySpecimen, decltype(&TypographySpecimen::wrap_text), &TypographySpecimen::wrap_text>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+    }};
+    static_assert(property_names_distinct(own), "TypographySpecimen's property table names a property twice");
+    static const std::array<PropertyEntry, typography_specimen_property_count> entries =
+        join_property_tables(Control::control_property_entries(), own);
+    return entries;
+}
+
+std::span<const PropertyEntry> TypographySpecimen::property_table() const noexcept {
+    const std::array<PropertyEntry, typography_specimen_property_count>& entries = typography_specimen_property_entries();
+    return std::span<const PropertyEntry>(entries);
+}
+
+void TypographySpecimen::prepare_write(const decltype(text)&, std::string&) {
+    require_mutable();
+}
+
+void TypographySpecimen::written(const decltype(text)&) {
+    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics | Dirty::accessibility);
+}
+
+void TypographySpecimen::prepare_write(const decltype(font)&, FontSpec& incoming) {
+    require_mutable();
+    if (!valid_font_spec(incoming)) throw std::invalid_argument("TypographySpecimen font is invalid");
+    set_font_from_code(true);
+}
+
+void TypographySpecimen::written(const decltype(font)&) {
+    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
+}
+
+void TypographySpecimen::prepare_write(const decltype(caption)&, std::string&) {
+    require_mutable();
+}
+
+void TypographySpecimen::written(const decltype(caption)&) {
+    invalidate(Dirty::paint | Dirty::semantics);
+}
+
+void TypographySpecimen::prepare_write(const decltype(diagnostics_visible)&, bool&) {
+    require_mutable();
+}
+
+void TypographySpecimen::written(const decltype(diagnostics_visible)&) {
+    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
+}
+
+void TypographySpecimen::prepare_write(const decltype(wrap_text)&, bool&) {
+    require_mutable();
+}
+
+void TypographySpecimen::written(const decltype(wrap_text)&) {
+    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
+}
+
+// property_codemod end TypographySpecimen
 
 } // namespace gui_forms

@@ -7,7 +7,7 @@ gui_forms::TypographySpecimen
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: TypographySpecimen final : public Control
+.. cpp:class:: TypographySpecimen final : public Control, public TypographySpecimenCapabilities<TypographySpecimen>
 
    ``#include <gui_forms/controls/typography_specimen/typography_specimen.hpp>``
 
@@ -29,7 +29,7 @@ gui_forms::TypographySpecimen
       **stable_id** : ``StableId``
          Identity of the control, unique within its window.
 
-      **text** : ``std::string``, default ``{}``
+      **initial_text** : ``std::string``, default ``{}``
          The text to draw, empty by default.
 
    :Properties:
@@ -68,6 +68,19 @@ gui_forms::TypographySpecimen
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
 
+   .. rubric:: Methods
+
+   .. list-table::
+      :class: autosummary longtable
+      :widths: 35 65
+
+      * - :cpp:func:`typography_specimen_property_entries <gui_forms::TypographySpecimen::typography_specimen_property_entries>`
+        -  
+      * - :cpp:func:`set_text <gui_forms::TypographySpecimen::set_text>`
+        - M-S transient forwarders: the integrator's rewrite replaces every call with an assignment of the cell and deletes them in the same batch.
+      * - :cpp:func:`set_font <gui_forms::TypographySpecimen::set_font>`
+        - M-S transient forwarder
+
    .. seealso::
 
       :cpp:class:`Label <gui_forms::Label>`
@@ -103,9 +116,9 @@ gui_forms::TypographySpecimen
       gf::FontSpec body;
       body.role = gf::FontRole::content;
       body.size = 14.0;
-      (*specimen).set_font(body);
-      (*specimen).set_caption("Body: content, 14 / 400");
-      (*specimen).set_wrap_text(true);
+      (*specimen).font = body;
+      (*specimen).caption = "Body: content, 14 / 400";
+      (*specimen).wrap_text = true;
       gf::Window window(specimen, gf::Size{240.0, 120.0});
 
       gf::ResolvedTextLayout layout = (*specimen).resolved_layout();
@@ -114,54 +127,34 @@ gui_forms::TypographySpecimen
 
    .. rubric:: Construction
 
-   .. cpp:function:: explicit TypographySpecimen(StableId stable_id, std::string text = {})
+   .. cpp:function:: explicit TypographySpecimen(StableId stable_id, std::string initial_text = {})
 
 
    .. rubric:: Properties
 
-   .. cpp:function:: const std::string& text() const noexcept
+   .. cpp:member:: std::string text
 
       The text drawn. Changing it remeasures the specimen.
 
-   .. cpp:function:: void set_text(std::string text)
-
-      Sets :cpp:func:`text <gui_forms::TypographySpecimen::text>`; see the property's description above.
-
-   .. cpp:function:: FontSpec font() const noexcept
+   .. cpp:member:: FontSpec font
 
       The font requested for the text, before the window's text scale is
       applied. An invalid font, such as one with a size that is not positive,
       throws ``std::invalid_argument``.
 
-   .. cpp:function:: void set_font(FontSpec font)
-
-      Sets :cpp:func:`font <gui_forms::TypographySpecimen::font>`; see the property's description above.
-
-   .. cpp:function:: const std::string& caption() const noexcept
+   .. cpp:member:: std::string caption
 
       A small heading drawn above the text, such as the font's description.
       When set, it also prefixes the accessible name.
 
-   .. cpp:function:: void set_caption(std::string caption)
-
-      Sets :cpp:func:`caption <gui_forms::TypographySpecimen::caption>`; see the property's description above.
-
-   .. cpp:function:: bool diagnostics_visible() const noexcept
+   .. cpp:member:: bool diagnostics_visible
 
       Whether the diagnostics line is drawn at the bottom.
 
-   .. cpp:function:: void set_diagnostics_visible(bool visible)
-
-      Sets :cpp:func:`diagnostics_visible <gui_forms::TypographySpecimen::diagnostics_visible>`; see the property's description above.
-
-   .. cpp:function:: bool wrap_text() const noexcept
+   .. cpp:member:: bool wrap_text
 
       Whether the text wraps at spaces to fit the width. While wrapping, runs of
       white space, line breaks included, are drawn as single spaces.
-
-   .. cpp:function:: void set_wrap_text(bool wrap)
-
-      Sets :cpp:func:`wrap_text <gui_forms::TypographySpecimen::wrap_text>`; see the property's description above.
 
    .. cpp:function:: ResolvedTextLayout resolved_layout() const
 
@@ -174,6 +167,19 @@ gui_forms::TypographySpecimen
    .. cpp:function:: Parts parts() const
 
    .. cpp:function:: States states() const
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static const std::array<PropertyEntry, typography_specimen_property_count>& typography_specimen_property_entries() noexcept
+
+   .. cpp:function:: void set_text(std::string value)
+
+      M-S transient forwarders: the integrator's rewrite replaces every call with an assignment of the cell and deletes them in the same batch.
+
+   .. cpp:function:: void set_font(FontSpec value)
+
+      M-S transient forwarder
 
 
    .. rubric:: Extension points
@@ -191,3 +197,9 @@ gui_forms::TypographySpecimen
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 
       *Protected.*
+
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
+   .. cpp:member:: constexpr std::size_t typography_specimen_property_count
+
+      TypographySpecimen's property table: Control's entries, then its own. Default: ``Control::control_property_count + 4U``.
