@@ -75,6 +75,9 @@ struct DesktopLogicalPoint final {
 // offset from the monitor origin divided by the scale, so it stays inside
 // the logical frame.
 [[nodiscard]] HostMonitor logical_monitor(const HostMonitor& device) noexcept;
+// As logical_monitor, converting `monitor` from device to logical units in
+// place (its id untouched, so nothing is allocated).
+void make_logical_monitor(HostMonitor& monitor) noexcept;
 
 // Index of the monitor whose frame contains `point`, else of the monitor
 // whose frame is nearest to it (squared distance to the rectangle; the

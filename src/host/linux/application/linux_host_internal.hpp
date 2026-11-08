@@ -53,6 +53,7 @@ protected:
   HostServiceStatus bring_to_front_impl(HostWindowId window) override;
   HostServiceStatus destroy_window_impl(HostWindowId window) override;
   HostMonitorResult query_monitors_impl() override;
+  void query_monitors_into_impl(HostMonitorResult &result) override;
   HostServiceStatus show_impl(HostWindowId window) override;
   HostServiceStatus hide_impl(HostWindowId window) override;
 

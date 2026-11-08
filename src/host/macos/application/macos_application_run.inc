@@ -123,6 +123,7 @@ protected:
     HostServiceStatus bring_to_front_impl(gui_forms::HostWindowId window) override;
     HostServiceStatus destroy_window_impl(gui_forms::HostWindowId window) override;
     HostMonitorResult query_monitors_impl() override;
+    void query_monitors_into_impl(HostMonitorResult& result) override;
     HostServiceStatus show_impl(gui_forms::HostWindowId window) override;
     HostServiceStatus hide_impl(gui_forms::HostWindowId window) override;
 
@@ -569,25 +570,36 @@ HostServiceStatus MacApplicationRun::hide_impl(gui_forms::HostWindowId window) {
 
 HostMonitorResult MacApplicationRun::query_monitors_impl() {
     HostMonitorResult result;
+    query_monitors_into_impl(result);
+    return result;
+}
+
+// Writes the screens into `result`'s records in place: a repeated query on
+// an unchanged set of screens allocates nothing (a warm Splash or Popup
+// placement queries on every show).
+void MacApplicationRun::query_monitors_into_impl(HostMonitorResult& result) {
+    result.status = {};
     const double top = desktop_top();
     NSArray<NSScreen*>* screens = [NSScreen screens];
     NSScreen* primaryScreen = screens.firstObject;
-    std::size_t index = 0U;
+    std::size_t count = 0U;
     for (NSScreen* screen in screens) {
+        if (count == result.monitors.size()) result.monitors.emplace_back();
+        HostMonitor& monitor = result.monitors[count];
         NSNumber* number = screen.deviceDescription[@"NSScreenNumber"];
-        std::string identifier = "appkit.screen." + std::to_string(index);
-        if (number != nil) identifier = "appkit.display." + std::to_string(number.unsignedIntValue);
-        HostMonitor monitor;
-        monitor.id = std::move(identifier);
+        char identifier[48]{};
+        const int length = number != nil
+            ? std::snprintf(identifier, sizeof(identifier), "appkit.display.%u", number.unsignedIntValue)
+            : std::snprintf(identifier, sizeof(identifier), "appkit.screen.%zu", count);
+        monitor.id.assign(identifier, length > 0 ? static_cast<std::size_t>(length) : 0U);
         monitor.frame = desktop_rect(screen.frame, top);
         monitor.work_area = desktop_rect(screen.visibleFrame, top);
         monitor.scale = screen.backingScaleFactor;
         monitor.primary = screen == primaryScreen;
-        result.monitors.push_back(std::move(monitor));
-        ++index;
+        ++count;
     }
+    result.monitors.resize(count);
     if (result.monitors.empty()) result.status.error = HostServiceError::backend_failure;
-    return result;
 }
 
 void mac_run_report_frame(MacApplicationRun* run, gui_forms::HostWindowId window) {

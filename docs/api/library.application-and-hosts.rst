@@ -3828,6 +3828,10 @@ Functions, constants and aliases
 
    The monitor ``device`` in logical units: same id, origin and scale; frame and work area extents divided by the scale. The work area keeps its offset from the monitor origin divided by the scale, so it stays inside the logical frame.
 
+.. cpp:function:: void make_logical_monitor(HostMonitor& monitor) noexcept
+
+   As logical_monitor, converting ``monitor`` from device to logical units in place (its id untouched, so nothing is allocated).
+
 .. cpp:function:: std::size_t nearest_device_monitor(std::span<const HostMonitor> device_monitors, DesktopDevicePoint point) noexcept
 
    Index of the monitor whose frame contains ``point``, else of the monitor whose frame is nearest to it (squared distance to the rectangle; the first such monitor on a tie). ``monitors`` must not be empty. The device form reads device monitor records (HostServices::query_monitors), the logical form logical ones (HostWindowing::query_monitors).

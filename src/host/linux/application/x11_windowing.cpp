@@ -329,6 +329,14 @@ HostServiceStatus X11Windowing::destroy_window_impl(HostWindowId window) {
 
 HostMonitorResult X11Windowing::query_monitors_impl() {
   HostMonitorResult result;
+  query_monitors_into_impl(result);
+  return result;
+}
+
+// One record, the default screen, written into `result` in place: a
+// repeated query allocates nothing.
+void X11Windowing::query_monitors_into_impl(HostMonitorResult &result) {
+  result.status = {};
   Display *display = runtime_.display;
   const int screen = DefaultScreen(display);
   const Rect frame{0.0, 0.0, static_cast<double>(DisplayWidth(display, screen)),
@@ -355,8 +363,13 @@ HostMonitorResult X11Windowing::query_monitors_impl() {
   }
   if (data != nullptr)
     XFree(data);
-  result.monitors.push_back({"x11-screen", frame, work_area, 1.0, true});
-  return result;
+  result.monitors.resize(1U);
+  HostMonitor &monitor = result.monitors.front();
+  monitor.id.assign("x11-screen");
+  monitor.frame = frame;
+  monitor.work_area = work_area;
+  monitor.scale = 1.0;
+  monitor.primary = true;
 }
 
 HostWindowAdmission RunOpen::operator()(LinuxApplicationWindow entry) const {

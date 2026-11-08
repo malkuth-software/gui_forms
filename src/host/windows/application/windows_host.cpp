@@ -47,6 +47,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
+#include <cwchar>
 #include <exception>
 #include <filesystem>
 #include <fstream>
