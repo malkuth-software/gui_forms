@@ -116,6 +116,7 @@
 #include "gui_forms/dirty.hpp"
 #include "gui_forms/docking/types/dock_types.hpp"
 #include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/events/mouse_events/mouse_events.hpp"
 #include "gui_forms/feedback/semantic_feedback/semantic_feedback.hpp"
 #include "gui_forms/feedback/types/feedback_types.hpp"
 #include "gui_forms/host/compositor/window_backdrop.hpp"
@@ -228,6 +229,15 @@ struct EnumerationChoices<ColourScheme> {
     static constexpr std::array<EnumerationChoice, 2> choices{{
         {"light", static_cast<std::int64_t>(ColourScheme::light)},
         {"dark", static_cast<std::int64_t>(ColourScheme::dark)},
+    }};
+};
+
+template <>
+struct EnumerationChoices<ContextRequestOrigin> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 2> choices{{
+        {"pointer", static_cast<std::int64_t>(ContextRequestOrigin::pointer)},
+        {"keyboard", static_cast<std::int64_t>(ContextRequestOrigin::keyboard)},
     }};
 };
 
@@ -881,6 +891,8 @@ void append_field(EventFields& fields, std::string_view name, const CommandInvoc
 void append_field(EventFields& fields, std::string_view name, const CommandItem& value);
 void append_field(EventFields& fields, std::string_view name, const CommandState& value);
 void append_field(EventFields& fields, std::string_view name, const CompositorGeneration& value);
+void append_field(EventFields& fields, std::string_view name, const ContextMenuRequest& value);
+void read_field(EventFields& fields, std::string_view name, ContextMenuRequest& value);
 void append_field(EventFields& fields, std::string_view name, const ControlValidationEvent& value);
 void read_field(EventFields& fields, std::string_view name, ControlValidationEvent& value);
 void append_field(EventFields& fields, std::string_view name, const CorrespondenceExpansionChange& value);
@@ -969,6 +981,7 @@ void append_field(EventFields& fields, std::string_view name, const MaterialRefl
 void append_field(EventFields& fields, std::string_view name, const MaterialShadow& value);
 void append_field(EventFields& fields, std::string_view name, const MenuItemInvocation& value);
 void append_field(EventFields& fields, std::string_view name, const MenuStripInvocation& value);
+void append_field(EventFields& fields, std::string_view name, const MouseEventArgs& value);
 void append_field(EventFields& fields, std::string_view name, const NavigationPaneOptionsRequest& value);
 void append_field(EventFields& fields, std::string_view name, const NavigationPaneState& value);
 void append_field(EventFields& fields, std::string_view name, const NotifyIconClick& value);
@@ -1194,6 +1207,24 @@ inline void append_field(EventFields& fields, std::string_view name, const Comma
 inline void append_field(EventFields& fields, std::string_view name, const CompositorGeneration& value) {
     // An identity: the field is its one value.
     append_field(fields, name, value.value);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const ContextMenuRequest& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "origin", value.origin);
+    append_field(fields, "location", value.location);
+    append_field(fields, "window_position", value.window_position);
+    append_field(fields, "handled", value.handled);
+    fields.leave(prefix);
+}
+
+inline void read_field(EventFields& fields, std::string_view name, ContextMenuRequest& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    read_field(fields, "origin", value.origin);
+    read_field(fields, "location", value.location);
+    read_field(fields, "window_position", value.window_position);
+    read_field(fields, "handled", value.handled);
+    fields.leave(prefix);
 }
 
 inline void append_field(EventFields& fields, std::string_view name, const ControlValidationEvent& value) {
@@ -1995,6 +2026,17 @@ inline void append_field(EventFields& fields, std::string_view name, const MenuS
     append_field(fields, "menu_strip_id", value.menu_strip_id);
     append_field(fields, "top_level_id", value.top_level_id);
     append_field(fields, "item", value.item);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const MouseEventArgs& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "button", value.button);
+    append_field(fields, "clicks", value.clicks);
+    append_field(fields, "location", value.location);
+    append_field(fields, "window_position", value.window_position);
+    append_field(fields, "wheel_delta", value.wheel_delta);
+    append_field(fields, "modifiers", value.modifiers);
     fields.leave(prefix);
 }
 
@@ -3054,6 +3096,15 @@ inline SubscriptionToken connect_notify_icon_click(Component& source, const Even
     return token;
 }
 
+inline SubscriptionToken connect_control_click(Component& source, const EventSink& sink) {
+    Control* typed = dynamic_cast<Control*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).click(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_button_base_clicked(Component& source, const EventSink& sink) {
     ButtonBase* typed = dynamic_cast<ButtonBase*>(&source);
     if (typed == nullptr) {
@@ -3213,6 +3264,15 @@ inline SubscriptionToken connect_page_view_content_requested(Component& source, 
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).content_requested(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_control_context_menu_requested(Component& source, const EventSink& sink) {
+    Control* typed = dynamic_cast<Control*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).context_menu_requested(), sink);
     return token;
 }
 
@@ -3438,6 +3498,15 @@ inline SubscriptionToken connect_dock_workspace_document_closing(Component& sour
 
 inline SubscriptionToken connect_notify_icon_double_click(Component& source, const EventSink& sink) {
     NotifyIcon* typed = dynamic_cast<NotifyIcon*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).double_click(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_control_double_click(Component& source, const EventSink& sink) {
+    Control* typed = dynamic_cast<Control*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -4053,6 +4122,96 @@ inline SubscriptionToken connect_instrument_rack_module_toggled(Component& sourc
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).module_toggled(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_control_mouse_capture_changed(Component& source, const EventSink& sink) {
+    Control* typed = dynamic_cast<Control*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).mouse_capture_changed(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_control_mouse_click(Component& source, const EventSink& sink) {
+    Control* typed = dynamic_cast<Control*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).mouse_click(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_control_mouse_double_click(Component& source, const EventSink& sink) {
+    Control* typed = dynamic_cast<Control*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).mouse_double_click(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_control_mouse_down(Component& source, const EventSink& sink) {
+    Control* typed = dynamic_cast<Control*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).mouse_down(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_control_mouse_enter(Component& source, const EventSink& sink) {
+    Control* typed = dynamic_cast<Control*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).mouse_enter(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_control_mouse_hover(Component& source, const EventSink& sink) {
+    Control* typed = dynamic_cast<Control*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).mouse_hover(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_control_mouse_leave(Component& source, const EventSink& sink) {
+    Control* typed = dynamic_cast<Control*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).mouse_leave(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_control_mouse_move(Component& source, const EventSink& sink) {
+    Control* typed = dynamic_cast<Control*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).mouse_move(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_control_mouse_up(Component& source, const EventSink& sink) {
+    Control* typed = dynamic_cast<Control*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).mouse_up(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_control_mouse_wheel(Component& source, const EventSink& sink) {
+    Control* typed = dynamic_cast<Control*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).mouse_wheel(), sink);
     return token;
 }
 
@@ -5154,7 +5313,7 @@ inline SubscriptionToken connect_control_visible_changed(Component& source, cons
 }
 
 // By interaction name, then the most derived declaring type first.
-inline constexpr std::array<EventConnector, 278> event_connectors{{
+inline constexpr std::array<EventConnector, 291> event_connectors{{
     {"action_invoked", "Toast", &connect_toast_action_invoked},
     {"activated", "Card", &connect_card_activated},
     {"activated", "ChoiceGroup", &connect_choice_group_activated},
@@ -5202,6 +5361,7 @@ inline constexpr std::array<EventConnector, 278> event_connectors{{
     {"chosen", "DockNavigator", &connect_dock_navigator_chosen},
     {"cleared", "SearchField", &connect_search_field_cleared},
     {"click", "NotifyIcon", &connect_notify_icon_click},
+    {"click", "Control", &connect_control_click},
     {"clicked", "ButtonBase", &connect_button_base_clicked},
     {"close_requested", "BackstageView", &connect_backstage_view_close_requested},
     {"closed", "FontDialog", &connect_font_dialog_closed},
@@ -5220,6 +5380,7 @@ inline constexpr std::array<EventConnector, 278> event_connectors{{
     {"committed", "TextBox", &connect_text_box_committed},
     {"content_changed", "RichTextBox", &connect_rich_text_box_content_changed},
     {"content_requested", "PageView", &connect_page_view_content_requested},
+    {"context_menu_requested", "Control", &connect_control_context_menu_requested},
     {"context_requested", "CorrespondenceView", &connect_correspondence_view_context_requested},
     {"context_requested", "ObjectView", &connect_object_view_context_requested},
     {"current_cell_changed", "DataGridView", &connect_data_grid_view_current_cell_changed},
@@ -5245,6 +5406,7 @@ inline constexpr std::array<EventConnector, 278> event_connectors{{
     {"disposed_event", "BindingSource", &connect_binding_source_disposed_event},
     {"document_closing", "DockWorkspace", &connect_dock_workspace_document_closing},
     {"double_click", "NotifyIcon", &connect_notify_icon_double_click},
+    {"double_click", "Control", &connect_control_double_click},
     {"drag_ended", "DockSite", &connect_dock_site_drag_ended},
     {"draw_item_content", "TabControl", &connect_tab_control_draw_item_content},
     {"draw_item_content", "DataGridView", &connect_data_grid_view_draw_item_content},
@@ -5312,6 +5474,16 @@ inline constexpr std::array<EventConnector, 278> event_connectors{{
     {"menu_item_invoked", "NotifyIcon", &connect_notify_icon_menu_item_invoked},
     {"minimized_changed", "Ribbon", &connect_ribbon_minimized_changed},
     {"module_toggled", "InstrumentRack", &connect_instrument_rack_module_toggled},
+    {"mouse_capture_changed", "Control", &connect_control_mouse_capture_changed},
+    {"mouse_click", "Control", &connect_control_mouse_click},
+    {"mouse_double_click", "Control", &connect_control_mouse_double_click},
+    {"mouse_down", "Control", &connect_control_mouse_down},
+    {"mouse_enter", "Control", &connect_control_mouse_enter},
+    {"mouse_hover", "Control", &connect_control_mouse_hover},
+    {"mouse_leave", "Control", &connect_control_mouse_leave},
+    {"mouse_move", "Control", &connect_control_mouse_move},
+    {"mouse_up", "Control", &connect_control_mouse_up},
+    {"mouse_wheel", "Control", &connect_control_mouse_wheel},
     {"move_requested", "InstrumentRack", &connect_instrument_rack_move_requested},
     {"name_changed", "Control", &connect_control_name_changed},
     {"navigated", "TaskDialog", &connect_task_dialog_navigated},

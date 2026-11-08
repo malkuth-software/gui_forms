@@ -187,6 +187,8 @@ private:
             return;
         }
         default:
+            // Key, interaction and command triggers are not control events:
+            // the rule set routes them itself, so their taps connect nothing.
             break;
         }
     }

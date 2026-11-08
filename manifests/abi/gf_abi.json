@@ -194,6 +194,11 @@
       "type": "uint32"
     },
     {
+      "name": "GF_TABLE_RULES",
+      "value": 19,
+      "type": "uint32"
+    },
+    {
       "name": "GF_TABLE_WINDOWS_PAINT_ENDPOINT",
       "value": 256,
       "type": "uint32"
@@ -1149,6 +1154,206 @@
       "type": "uint32"
     },
     {
+      "name": "GF_RULE_TRIGGER_KEY_PRESSED",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_TRIGGER_KEY_RELEASED",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_TRIGGER_KEY_REPEAT",
+      "value": 3,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_TRIGGER_MOUSE_DOWN",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_TRIGGER_MOUSE_UP",
+      "value": 5,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_TRIGGER_CLICK",
+      "value": 6,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_TRIGGER_MOUSE_CLICK",
+      "value": 7,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_TRIGGER_DOUBLE_CLICK",
+      "value": 8,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_TRIGGER_MOUSE_DOUBLE_CLICK",
+      "value": 9,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_TRIGGER_CONTEXT_MENU_REQUESTED",
+      "value": 10,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_TRIGGER_MOUSE_ENTER",
+      "value": 11,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_TRIGGER_MOUSE_HOVER",
+      "value": 12,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_TRIGGER_MOUSE_LEAVE",
+      "value": 13,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_TRIGGER_MOUSE_CAPTURE_CHANGED",
+      "value": 14,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_TRIGGER_FOCUS_GAINED",
+      "value": 15,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_TRIGGER_FOCUS_LOST",
+      "value": 16,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_TRIGGER_INTERACTION",
+      "value": 17,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_TRIGGER_COMMAND_EXECUTED",
+      "value": 18,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_CONDITION_KEY_DOWN",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_CONDITION_MODIFIERS",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_CONDITION_HOVERING",
+      "value": 3,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_CONDITION_PRESSED",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_CONDITION_FOCUSED",
+      "value": 5,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_CONDITION_FOCUS_WITHIN",
+      "value": 6,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_CONDITION_ENABLED",
+      "value": 7,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_CONDITION_VISIBLE",
+      "value": 8,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_CONDITION_WINDOW_ACTIVE",
+      "value": 9,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_MODIFIER_SHIFT",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_MODIFIER_CONTROL",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_MODIFIER_ALT",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_MODIFIER_META",
+      "value": 8,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_ACTION_CALLBACK",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_ACTION_INVOKE",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_ACTION_SET",
+      "value": 3,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_ACTION_TOGGLE",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_ACTION_FOCUS",
+      "value": 5,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_FLAGS_CONSUME",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_STATE_ARMED",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_STATE_REVOKED",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RULE_STATE_STALE",
+      "value": 3,
+      "type": "uint32"
+    },
+    {
       "name": "GF_PAINT_ENDPOINT_MAXIMUM_SIDE",
       "value": 32768,
       "type": "uint32"
@@ -1322,6 +1527,30 @@
     {
       "name": "gf_application_state",
       "type": "uint32_t"
+    },
+    {
+      "name": "gf_rule_trigger_kind",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_rule_condition_kind",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_rule_action_kind",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_rule_flags",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_rule_state",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_rule_token",
+      "type": "uint64_t"
     },
     {
       "name": "gf_paint_endpoint",
@@ -6769,6 +6998,248 @@
               {
                 "name": "state",
                 "type": "gf_application_state*"
+              }
+            ]
+          },
+          "since": "1.1"
+        }
+      ]
+    },
+    {
+      "name": "gf_rule_condition",
+      "kind": "extensible",
+      "size": 32,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "kind",
+          "type": "gf_rule_condition_kind",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "object",
+          "type": "gf_object",
+          "offset": 8,
+          "size": 8
+        },
+        {
+          "name": "physical_key",
+          "type": "uint32_t",
+          "offset": 16,
+          "size": 4
+        },
+        {
+          "name": "modifiers",
+          "type": "uint32_t",
+          "offset": 20,
+          "size": 4
+        },
+        {
+          "name": "negated",
+          "type": "uint32_t",
+          "offset": 24,
+          "size": 4
+        },
+        {
+          "name": "reserved",
+          "type": "uint32_t",
+          "offset": 28,
+          "size": 4
+        }
+      ]
+    },
+    {
+      "name": "gf_rule_action",
+      "kind": "extensible",
+      "size": 48,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "kind",
+          "type": "gf_rule_action_kind",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "target",
+          "type": "gf_object",
+          "offset": 8,
+          "size": 8
+        },
+        {
+          "name": "property",
+          "type": "gf_utf8_view",
+          "offset": 16,
+          "size": 16
+        },
+        {
+          "name": "value",
+          "type": "const gf_value*",
+          "offset": 32,
+          "size": 8
+        },
+        {
+          "name": "callback",
+          "type": "const gf_callback*",
+          "offset": 40,
+          "size": 8
+        }
+      ]
+    },
+    {
+      "name": "gf_rule",
+      "kind": "extensible",
+      "size": 72,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "flags",
+          "type": "gf_rule_flags",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "trigger",
+          "type": "gf_rule_trigger_kind",
+          "offset": 8,
+          "size": 4
+        },
+        {
+          "name": "physical_key",
+          "type": "uint32_t",
+          "offset": 12,
+          "size": 4
+        },
+        {
+          "name": "source",
+          "type": "gf_object",
+          "offset": 16,
+          "size": 8
+        },
+        {
+          "name": "interaction",
+          "type": "gf_utf8_view",
+          "offset": 24,
+          "size": 16
+        },
+        {
+          "name": "condition_count",
+          "type": "uint64_t",
+          "offset": 40,
+          "size": 8
+        },
+        {
+          "name": "conditions",
+          "type": "const gf_rule_condition*",
+          "offset": 48,
+          "size": 8
+        },
+        {
+          "name": "action_count",
+          "type": "uint64_t",
+          "offset": 56,
+          "size": 8
+        },
+        {
+          "name": "actions",
+          "type": "const gf_rule_action*",
+          "offset": 64,
+          "size": 8
+        }
+      ]
+    },
+    {
+      "name": "gf_rules_table",
+      "kind": "table",
+      "size": 32,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "abi_minor",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "add",
+          "type": "function",
+          "offset": 8,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "window",
+                "type": "gf_object"
+              },
+              {
+                "name": "rule",
+                "type": "const gf_rule*"
+              },
+              {
+                "name": "token",
+                "type": "gf_rule_token*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "remove",
+          "type": "function",
+          "offset": 16,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "token",
+                "type": "gf_rule_token"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "state",
+          "type": "function",
+          "offset": 24,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "token",
+                "type": "gf_rule_token"
+              },
+              {
+                "name": "state",
+                "type": "gf_rule_state*"
               }
             ]
           },
