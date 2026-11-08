@@ -21,6 +21,8 @@ scaled-panel gallery.input-and-rules.document {
   label gallery.input-and-rules.lead {
     text: "Every mouse event the window raises on the target, in order, and the rules that run before the target's subscribers.";
     classes: "muted" "body";
+    text-wrapping: word;
+    vertical-alignment: near;
     bounds: 26 52 920 24;
   }
 
@@ -30,8 +32,10 @@ scaled-panel gallery.input-and-rules.document {
     design-size: 450 300;
     bounds: 24 92 450 300;
     label gallery.input.target.caption {
-      text: "The target logs each event it raises; the log shows them in WinForms' order.";
+      text: "Each event the target raises is logged, in order.";
       classes: "muted" "body";
+      text-wrapping: word;
+      vertical-alignment: near;
       bounds: 22 36 406 22;
     }
     panel gallery.input.target {
@@ -40,7 +44,7 @@ scaled-panel gallery.input-and-rules.document {
       bounds: 22 64 406 126;
     }
     button gallery.input.press {
-      text: "Click me (Shift+click is ruled)";
+      text: "Click me";
       visual-style: command;
       bounds: 22 202 260 32;
       command: bind(press_);
@@ -71,13 +75,13 @@ scaled-panel gallery.input-and-rules.document {
       checked: bind(rules_armed_);
     }
     check-box gallery.input.rules.consume {
-      text: "A Shift+click on the button is consumed (its command does not run)";
+      text: "Consume a Shift+click on Click me";
       indicator-style: modern;
       bounds: 22 76 406 26;
       checked: bind(consume_shift_clicks_);
     }
     check-box gallery.input.marked {
-      text: "Marked: H while hovering the target toggles this, by a rule";
+      text: "Marked (H over the target toggles it)";
       indicator-style: modern;
       bounds: 22 112 406 26;
       checked: bind(marked_);
@@ -90,6 +94,8 @@ scaled-panel gallery.input-and-rules.document {
     label gallery.input.rules.note {
       text: "A third rule notes each MouseDoubleClick on the target before its subscribers see it.";
       classes: "muted" "body";
+      text-wrapping: word;
+      vertical-alignment: near;
       bounds: 22 180 406 38;
     }
   }

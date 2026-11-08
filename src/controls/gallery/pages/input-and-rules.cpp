@@ -73,6 +73,7 @@ private:
     void subscribe_target();
     void log(std::string line);
     void refresh_statistics();
+    [[nodiscard]] std::size_t log_rows() const;
     void arm_rules();
     void disarm_rules();
 
@@ -199,24 +200,34 @@ void InputAndRulesPage::subscribe_target() {
     on(target.context_menu_requested(), *this, &InputAndRulesPage::on_context_requested);
 }
 
-// Appends one line, drops the oldest past maximum_log_lines, keeps the
-// newest line in view and refreshes the count and the rules' statistics.
+// Appends one line, drops the oldest past maximum_log_lines, scrolls so
+// the newest line is the bottom row of a full view (the history above it
+// stays in view and scrolls back) and refreshes the count and the rules'
+// statistics. Showing the newest line at the top left one row in view.
 void InputAndRulesPage::log(std::string line) {
     ++lines_logged_;
     (*log_).items.append(std::move(line));
     if ((*log_).items.read().size() > maximum_log_lines) (*log_).items.erase(0U, 1U);
     const std::size_t count = (*log_).items.read().size();
-    // The newest line at the bottom of a full view. A top index of the last
-    // line showed that line alone, so a double-click's DoubleClick and
-    // MouseDoubleClick had scrolled out of sight under its MouseUp.
-    const double row_height = (*log_).item_height.read();
-    const double view_height = std::max(0.0, (*log_).requested_bounds().height - 4.0);
-    const std::size_t rows = std::max<std::size_t>(1U, static_cast<std::size_t>(std::floor(view_height / row_height)));
-    const std::size_t top = count > rows ? count - rows : 0U;
-    (*log_).top_index = top;
+    const std::size_t rows = log_rows();
+    (*log_).top_index = count > rows ? count - rows : 0U;
     (*log_count_).text = std::to_string(lines_logged_) + " events logged · " + std::to_string(count) +
                            " shown";
     refresh_statistics();
+}
+
+// The rows the log shows at once, as ListBox counts them: its height less
+// the 2-pixel frame each side, over the scaled row height; at least one.
+// Before the first layout the log's height is its requested one.
+std::size_t InputAndRulesPage::log_rows() const {
+    const ListBox& list = *log_;
+    double height = list.arranged_bounds().height;
+    if (height <= 4.0) height = list.requested_bounds().height;
+    const double row_height = list.item_height.read() * list.effective_text_scale();
+    if (!(row_height > 0.0)) return 1U;
+    const double rows = std::floor(std::max(0.0, height - 4.0) / row_height);
+    const std::size_t count = rows < 1.0 ? 1U : static_cast<std::size_t>(rows);
+    return count;
 }
 
 void InputAndRulesPage::refresh_statistics() {
