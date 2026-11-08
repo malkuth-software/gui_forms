@@ -69,7 +69,7 @@ private:
 
     void build_overlay() {
         content_ = document_.gallery_overlays_content;
-        (*content_).set_background(paper);
+        static_cast<void>((*content_).add_class("paper"));
         (*content_).set_style(page_style());
         (*document_.gallery_overlays_close).set_style(page_style());
         field_ = document_.gallery_overlays_field;

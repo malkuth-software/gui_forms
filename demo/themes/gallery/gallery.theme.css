@@ -56,3 +56,15 @@
 .control-title { font-family: control; font-size: 19px; font-weight: 700; }
 .control-body { font-family: control; font-size: 12px; font-weight: 400; }
 .card-title { font-family: control; font-size: 10px; font-weight: 600; }
+
+/* Canvas grounds of the Gallery pages, moved from page code. The controls are
+   made in C++ or declared in forms; both carry these classes. */
+.canvas-cool::part(face) { background: #eef3f7; }
+.canvas-mist::part(face) { background: #f7f9fb; }
+.container-face::part(face) { background: #e8eff5; }
+.lifecycle-face::part(face) { background: #eef4ec; }
+.picture-light::part(face) { background: #f4f7f9; }
+.picture-dark::part(face) { background: #e2eaf0; }
+.picture-ground::part(face) { background: #e6ecf1; }
+.border-tint::part(face) { background: #e6eef5; }
+.rule-line::part(face) { background: #a6b3bf; }

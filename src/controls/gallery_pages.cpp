@@ -227,7 +227,7 @@ GalleryShell build_gallery_shell(const GalleryTree& compiled) {
     (*root).add_child(status_surface);
     std::shared_ptr<gui_forms::Panel> status_rule =
         make_control<Panel>(StableId("gallery.status.rule"));
-    (*status_rule).set_background(rule);
+    static_cast<void>((*status_rule).add_class("rule-line"));
     (*status_rule).set_requested_bounds({0.0, 0.0, 1042.0, 1.0});
     (*status_rule).dock = DockStyle::top;
     (*status_surface).add_child(status_rule);

@@ -214,7 +214,7 @@ inline std::shared_ptr<LayoutGroup> group(std::string id, std::string title,
                                    Size design_size) {
     std::shared_ptr<gui_forms::ScaledGroupBox> control = make_control<LayoutGroup>(StableId(std::move(id)),
                                              std::move(title), design_size);
-    (*control).set_background(paper);
+    static_cast<void>((*control).add_class("paper"));
     (*control).set_style(page_style());
     (*control).font = FontSpec{FontRole::control, 12.0, 700, false, 0.24};
     return control;

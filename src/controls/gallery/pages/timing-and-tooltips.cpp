@@ -114,8 +114,6 @@ void TimingPage::build_timer(PageContext& context) {
     context.timer_progress = progress;
 
     const std::shared_ptr<ScaledPanel>& motion = document_.gallery_timing_motion;
-    (*motion).set_background(Color::rgba(247, 249, 251));
-    (*document_.gallery_timing_motion_rule).set_background(rule);
     const std::shared_ptr<Button>& motion_target = document_.gallery_timing_motion_target;
     (*motion_target).set_style(page_style());
     context.timer_motion = motion;

@@ -16,7 +16,6 @@ public:
 
 private:
     void mount_document(const std::shared_ptr<Surface>& body);
-    void fill_pictures();
     void fill_primitives();
 
     // Owns the document's controls; the shell's page body holds them too once
@@ -27,7 +26,6 @@ private:
 ImagesPage::ImagesPage(const std::shared_ptr<Surface>& body) {
     document_.initialize_component(*this);
     mount_document(body);
-    fill_pictures();
     fill_primitives();
 }
 
@@ -46,21 +44,6 @@ void ImagesPage::mount_document(const std::shared_ptr<Surface>& body) {
         document_.gallery_images_modes, document_.gallery_images_opacity, document_.gallery_images_primitives};
     for (const std::shared_ptr<ScaledGroupBox>& group : groups) {
         (*group).set_style(page_style());
-    }
-}
-
-void ImagesPage::fill_pictures() {
-    // The test cards' grounds alternate across the sizing modes.
-    const std::array<std::shared_ptr<PictureBox>, 5> modes{
-        document_.gallery_images_picture_0, document_.gallery_images_picture_1, document_.gallery_images_picture_2,
-        document_.gallery_images_picture_3, document_.gallery_images_picture_4};
-    for (std::size_t index = 0; index < modes.size(); ++index) {
-        (*modes[index]).set_background(index % 2U == 0U ? Color::rgba(244, 247, 249) : Color::rgba(226, 234, 240));
-    }
-    const std::array<std::shared_ptr<PictureBox>, 3> opacities{
-        document_.gallery_images_opacity_0, document_.gallery_images_opacity_1, document_.gallery_images_opacity_2};
-    for (const std::shared_ptr<PictureBox>& picture : opacities) {
-        (*picture).set_background(Color::rgba(230, 236, 241));
     }
 }
 

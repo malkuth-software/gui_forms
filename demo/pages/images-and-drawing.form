@@ -30,6 +30,7 @@ scaled-panel gallery.images.document {
     bounds: 24 92 930 290;
     classes: "paper" "group-caption";
     picture-box gallery.images.picture.0 {
+      classes: "picture-light";
       size-mode: normal;
       border-style: sunken;
       accessible-name: "Normal PictureBox test card";
@@ -48,6 +49,7 @@ scaled-panel gallery.images.document {
       bounds: 22 242 158 22;
     }
     picture-box gallery.images.picture.1 {
+      classes: "picture-dark";
       size-mode: stretch-image;
       border-style: sunken;
       accessible-name: "StretchImage PictureBox test card";
@@ -66,6 +68,7 @@ scaled-panel gallery.images.document {
       bounds: 202 242 158 22;
     }
     picture-box gallery.images.picture.2 {
+      classes: "picture-light";
       size-mode: auto-size;
       border-style: sunken;
       accessible-name: "AutoSize PictureBox test card";
@@ -84,6 +87,7 @@ scaled-panel gallery.images.document {
       bounds: 382 242 158 22;
     }
     picture-box gallery.images.picture.3 {
+      classes: "picture-dark";
       size-mode: center-image;
       border-style: sunken;
       accessible-name: "CenterImage PictureBox test card";
@@ -102,6 +106,7 @@ scaled-panel gallery.images.document {
       bounds: 562 242 158 22;
     }
     picture-box gallery.images.picture.4 {
+      classes: "picture-light";
       size-mode: zoom;
       border-style: sunken;
       accessible-name: "Zoom PictureBox test card";
@@ -127,6 +132,7 @@ scaled-panel gallery.images.document {
     bounds: 24 404 450 220;
     classes: "paper" "group-caption";
     picture-box gallery.images.opacity.0 {
+      classes: "picture-ground";
       size-mode: zoom;
       image-opacity: 1;
       border-style: line;
@@ -140,6 +146,7 @@ scaled-panel gallery.images.document {
       bounds: 22 164 120 22;
     }
     picture-box gallery.images.opacity.1 {
+      classes: "picture-ground";
       size-mode: zoom;
       image-opacity: 0.6;
       border-style: line;
@@ -153,6 +160,7 @@ scaled-panel gallery.images.document {
       bounds: 158 164 120 22;
     }
     picture-box gallery.images.opacity.2 {
+      classes: "picture-ground";
       size-mode: zoom;
       image-opacity: 0.25;
       border-style: line;

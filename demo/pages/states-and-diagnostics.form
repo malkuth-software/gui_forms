@@ -24,6 +24,8 @@ scaled-panel gallery.states.document {
   }
 
   panel gallery.states.border.0 {
+
+    classes: "paper";
     border-style: none;
     bounds: 24 98 210 104;
     label gallery.states.border.caption.0 {
@@ -38,6 +40,7 @@ scaled-panel gallery.states.document {
     }
   }
   panel gallery.states.border.1 {
+    classes: "border-tint";
     border-style: line;
     bounds: 256 98 210 104;
     label gallery.states.border.caption.1 {
@@ -52,6 +55,7 @@ scaled-panel gallery.states.document {
     }
   }
   panel gallery.states.border.2 {
+    classes: "paper";
     border-style: sunken;
     bounds: 488 98 210 104;
     label gallery.states.border.caption.2 {
@@ -66,6 +70,7 @@ scaled-panel gallery.states.document {
     }
   }
   panel gallery.states.border.3 {
+    classes: "border-tint";
     border-style: raised;
     bounds: 720 98 210 104;
     label gallery.states.border.caption.3 {

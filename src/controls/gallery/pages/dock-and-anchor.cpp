@@ -25,11 +25,11 @@ public:
         (*document_.gallery_dock_group).set_style(page_style());
         (*document_.gallery_anchor_group).set_style(page_style());
         (*document_.gallery_splitter_group).set_style(page_style());
-        (*document_.gallery_dock_canvas).set_background(Color::rgba(238, 243, 247));
-        (*document_.gallery_anchor_canvas).set_background(Color::rgba(247, 249, 251));
-        (*document_.gallery_splitter_canvas).set_background(Color::rgba(247, 249, 251));
+        static_cast<void>((*document_.gallery_dock_canvas).add_class("canvas-cool"));
+        static_cast<void>((*document_.gallery_anchor_canvas).add_class("canvas-mist"));
+        static_cast<void>((*document_.gallery_splitter_canvas).add_class("canvas-mist"));
         (*document_.gallery_splitter_folders).set_background(Color::rgba(225, 235, 243));
-        (*document_.gallery_splitter_files).set_background(paper);
+        static_cast<void>((*document_.gallery_splitter_files).add_class("paper"));
         (*document_.gallery_splitter).min_size = 80.0;
         (*document_.gallery_splitter).min_extra = 120.0;
         on((*document_.gallery_dock_toggle_left).clicked(), *this, &DockAndAnchorPage::on_toggle_left);

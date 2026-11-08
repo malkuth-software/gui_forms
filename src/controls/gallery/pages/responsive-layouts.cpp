@@ -114,7 +114,7 @@ private:
         (*folders_).select_index(0U);
         static_cast<void>(view.set_master(folders_));
         std::shared_ptr<Panel> detail = make_control<Panel>(StableId("gallery.responsive.master-detail.detail"));
-        (*detail).set_background(paper);
+        static_cast<void>((*detail).add_class("paper"));
         (*detail).border_style = BorderStyle::line;
         (*detail).dock = DockStyle::fill;
         (*detail).margin = Insets{};

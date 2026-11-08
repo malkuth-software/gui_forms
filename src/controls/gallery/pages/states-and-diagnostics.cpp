@@ -121,12 +121,6 @@ void StatesPage::build_diagnostics() {
 // The panels' border styles are in the document; their alternating
 // backgrounds are the page's.
 void StatesPage::build_specimens() {
-    const std::array<std::shared_ptr<Panel>, 4> panels{
-        document_.gallery_states_border_0, document_.gallery_states_border_1,
-        document_.gallery_states_border_2, document_.gallery_states_border_3};
-    for (std::size_t index = 0; index < panels.size(); ++index) {
-        (*panels[index]).set_background(index % 2U == 0U ? paper : Color::rgba(230, 238, 245));
-    }
     (*document_.gallery_states_visited).visited = true;
 }
 

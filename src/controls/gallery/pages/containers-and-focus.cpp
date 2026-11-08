@@ -21,8 +21,8 @@ public:
         document_.initialize_component(*this);
         mount_form_children(*document_.gallery_containers_document, *body);
         (*document_.gallery_containers_docking_group).set_style(page_style());
-        (*document_.gallery_containers_base_face).set_background(Color::rgba(232, 239, 245));
-        (*document_.gallery_containers_user_face).set_background(Color::rgba(238, 244, 236));
+        static_cast<void>((*document_.gallery_containers_base_face).add_class("container-face"));
+        static_cast<void>((*document_.gallery_containers_user_face).add_class("lifecycle-face"));
         build_split();
         build_docking(*document_.gallery_containers_docking_group);
         on((*collapse_).clicked(), *this, &ContainersPage::on_collapse);
