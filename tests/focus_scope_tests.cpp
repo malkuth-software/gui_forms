@@ -291,13 +291,13 @@ void test_combo_overlay_in_modal_scope() {
     (*fixture.window).perform_layout();
     FocusScopeId modal = (*fixture.window).begin_focus_scope(fixture.overlay, combo);
     for (int iteration = 0; iteration < 3; ++iteration) {
-        (*combo).set_dropped_down(true);
+        (*combo).dropped_down = true;
         (*fixture.window).perform_layout();
-        require((*fixture.window).focus_scope_depth() == 2 && (*combo).dropped_down(),
+        require((*fixture.window).focus_scope_depth() == 2 && (*combo).dropped_down.read(),
                 "owned combo overlay may enter a nested dialog focus scope");
         require(!(*fixture.window).request_focus(fixture.outside),
                 "open combo still contains focus away from unrelated controls");
-        (*combo).set_dropped_down(false);
+        (*combo).dropped_down = false;
         require((*fixture.window).focus_scope_depth() == 1 && (*fixture.window).focused_control() == combo,
                 "closing a nested combo restores its dialog owner");
     }
@@ -309,9 +309,9 @@ void test_combo_overlay_in_modal_scope() {
     require(rejected && (*fixture.window).focus_scope_depth() == 1,
             "an overlay owned outside the modal scope cannot enter it");
     token.disconnect();
-    (*combo).set_dropped_down(true);
+    (*combo).dropped_down = true;
     (*fixture.overlay).visible = false;
-    require(!(*combo).dropped_down() && (*fixture.window).focus_scope_depth() == 0,
+    require(!(*combo).dropped_down.read() && (*fixture.window).focus_scope_depth() == 0,
             "hiding a modal owner revokes its nested combo and both focus scopes");
     static_cast<void>((*fixture.window).end_focus_scope(modal));
 }

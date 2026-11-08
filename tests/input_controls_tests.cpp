@@ -407,12 +407,12 @@ void test_combo_box_scrollbar_reaches_last_item() {
     const std::shared_ptr<Panel> root = make_control<Panel>(StableId("scroll.root"));
     const std::shared_ptr<ComboBox> combo = make_control<ComboBox>(StableId("scroll.combo"));
     for (int i = 0; i < 24; ++i) (*combo).items.append("Language " + std::to_string(i));
-    (*combo).set_maximum_drop_down_items(64);
+    (*combo).maximum_drop_down_items = 64;
     (*combo).set_requested_bounds({20, 20, 240, 32});
     (*root).add_child(combo);
     Window window(root, {300, 220});
     window.perform_layout();
-    (*combo).set_dropped_down(true);
+    (*combo).dropped_down = true;
     window.perform_layout();
     const std::shared_ptr<ListBox> list = std::dynamic_pointer_cast<ListBox>(window.find("scroll.combo.overlay.list"));
     const std::shared_ptr<ScrollBar> bar = std::dynamic_pointer_cast<ScrollBar>(window.find("scroll.combo.overlay.list.scrollbar"));
@@ -424,7 +424,7 @@ void test_combo_box_scrollbar_reaches_last_item() {
     const Point last{bounds.x + 15, bounds.y + 2 + (23 - (*list).top_index.read()) * 26.0 + 13};
     window.dispatch_pointer({PointerAction::down, PointerButton::primary, last});
     window.dispatch_pointer({PointerAction::up, PointerButton::primary, last});
-    require((*combo).selected_index() == 23 && !(*combo).dropped_down(),
+    require((*combo).selected_index.read() == 23 && !(*combo).dropped_down.read(),
             "the last language is reachable without a mouse wheel");
 }
 
@@ -432,8 +432,8 @@ void test_combo_box_overlay_commit_dismiss_and_owner_revocation() {
     std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("combo.root"));
     std::shared_ptr<gui_forms::ComboBox> combo = make_control<ComboBox>(StableId("combo.field"));
     (*combo).items = {"Low latency", "Balanced", "High fidelity", "Archive"};
-    (*combo).set_drop_down_width(260.0);
-    (*combo).set_placeholder_text("Choose a profile");
+    (*combo).drop_down_width = 260.0;
+    (*combo).placeholder_text = "Choose a profile";
     (*combo).set_requested_bounds({20.0, 20.0, 220.0, 32.0});
     (*root).add_child(combo);
     Window window(root, {300.0, 220.0});
@@ -473,14 +473,14 @@ void test_combo_box_overlay_commit_dismiss_and_owner_revocation() {
     SubscriptionToken dropdown = (*combo).drop_down_changed().subscribe(
         AppendDropDownState(order));
 
-    (*combo).set_dropped_down(true);
-    require((*combo).dropped_down() && window.focus_scope_depth() == 1U &&
+    (*combo).dropped_down = true;
+    require((*combo).dropped_down.read() && window.focus_scope_depth() == 1U &&
                 window.find("combo.field.overlay.list"),
             "ComboBox must publish a retained overlay and contained focus scope");
     const Control::Ptr overlay = window.find("combo.field.overlay.list");
     window.perform_layout();
     const Rect bounds = (*overlay).absolute_bounds();
-    require(bounds.width == 260.0 && (*combo).drop_down_width() == 260.0,
+    require(bounds.width == 260.0 && (*combo).drop_down_width.read() == 260.0,
             "ComboBox must honor an explicit bounded overlay width independently of its field width");
     const DamageRegion opening_damage = window.take_damage();
     RecordingPainter opening_painter;
@@ -489,7 +489,7 @@ void test_combo_box_overlay_commit_dismiss_and_owner_revocation() {
     const Point third{bounds.x + 20.0, bounds.y + 2.0 + 2.0 * 26.0 + 13.0};
     require(window.dispatch_pointer({PointerAction::down, PointerButton::primary, third}) &&
                 window.dispatch_pointer({PointerAction::up, PointerButton::primary, third}) &&
-                (*combo).selected_index() == 2U && !(*combo).dropped_down() &&
+                (*combo).selected_index.read() == 2U && !(*combo).dropped_down.read() &&
                 window.focus_scope_depth() == 0U &&
                 !window.find("combo.field.overlay.layer") &&
                 order == "open\nselection\nclose\n",
@@ -498,7 +498,7 @@ void test_combo_box_overlay_commit_dismiss_and_owner_revocation() {
     require(Rect::intersection(close_damage, bounds) == bounds,
             "detaching a ComboBox overlay must damage every formerly painted overlay pixel");
 
-    (*combo).set_dropped_down(true);
+    (*combo).dropped_down = true;
     window.perform_layout();
     const Rect semantic_overlay_bounds =
         (*window.find("combo.field.overlay.list")).absolute_bounds();
@@ -508,7 +508,7 @@ void test_combo_box_overlay_commit_dismiss_and_owner_revocation() {
     window.notify_presented();
     require(window.perform_semantic_action(
                 "combo.field.overlay.list.item.1", SemanticAction::press) &&
-                !(*combo).dropped_down(),
+                !(*combo).dropped_down.read(),
             "semantic ComboBox row press must commit and close its overlay");
     const DamageRegion semantic_close_region = window.take_damage();
     const Rect semantic_close_damage = semantic_close_region.bounds();
@@ -520,20 +520,20 @@ void test_combo_box_overlay_commit_dismiss_and_owner_revocation() {
     require(semantic_close_painter.saw_window_backplane,
             "overlay removal repaint must restore an opaque themed Window backplane");
 
-    (*combo).set_dropped_down(true);
+    (*combo).dropped_down = true;
     const Point outside{5.0, 5.0};
     require(window.dispatch_pointer({PointerAction::down, PointerButton::primary, outside}) &&
-                !(*combo).dropped_down(),
+                !(*combo).dropped_down.read(),
             "ComboBox overlay layer must dismiss an outside pointer press");
 
-    (*combo).set_dropped_down(true);
+    (*combo).dropped_down = true;
     require(window.dispatch_key({KeyAction::down, PhysicalKey::escape}) &&
-                !(*combo).dropped_down() && window.focus_scope_depth() == 0U,
+                !(*combo).dropped_down.read() && window.focus_scope_depth() == 0U,
             "Escape inside the overlay focus scope must close ComboBox and restore focus");
 
-    (*combo).set_dropped_down(true);
+    (*combo).dropped_down = true;
     (*combo).visible = false;
-    require(!(*combo).dropped_down() && !window.find("combo.field.overlay.layer") &&
+    require(!(*combo).dropped_down.read() && !window.find("combo.field.overlay.layer") &&
                 window.focus_scope_depth() == 0U,
             "overlay controller must revoke a ComboBox overlay when its owner becomes ineligible");
 }
@@ -834,6 +834,74 @@ void test_list_box_property_capabilities() {
     static_cast<void>(changed);
 }
 
+void test_combo_box_property_capabilities() {
+    std::shared_ptr<gui_forms::ComboBox> combo = make_control<ComboBox>(StableId("input.combo.caps"));
+    (*combo).items = {"Compact", "Comfortable", "Spacious"};
+    std::string order;
+    const SubscriptionToken index_token = (*combo).selected_index_changed().subscribe(
+        test_support::AppendLiteral<std::optional<std::size_t>>(order, "index\n"));
+    const SubscriptionToken text_token = (*combo).text_changed().subscribe(
+        test_support::AppendLiteral<const std::string&>(order, "text\n"));
+    (*combo).selected_index = 1U;
+    require(order == "index\ntext\n" && (*combo).text.read() == "Comfortable",
+            "a selected_index write raises selected_index_changed, then text_changed");
+    (*combo).selected_index = 1U;
+    require(order == "index\ntext\n", "writing the current index raises nothing");
+    bool refused = false;
+    try {
+        (*combo).selected_index = 3U;
+    } catch (const std::out_of_range&) {
+        refused = true;
+    }
+    require(refused && (*combo).selected_index.read() == 1U, "an index past the end is refused");
+    (*combo).text = "Spacious";
+    require((*combo).selected_index.read() == 2U, "a text write selects the equal item");
+    require((*combo).should_serialize_property("text") && (*combo).reset_property("text") &&
+                !(*combo).selected_index.read() && !(*combo).should_serialize_property("text"),
+            "the table reset clears the selection; should_serialize follows it");
+    (*combo).set_property_value("text", BindingValue{std::string("Compact")});
+    require((*combo).selected_index.read() == 0U, "a table text write runs the same hooks");
+
+    (*combo).placeholder_text = "Choose";
+    (*combo).drop_down_style = ComboBoxStyle::drop_down;
+    const std::shared_ptr<TextBox> editor = (*combo).editor();
+    require(editor && (*editor).placeholder_text.read() == "Choose" && (*editor).text.read() == "Compact",
+            "the drop_down style creates an editor with the hint and the selected item");
+    (*combo).placeholder_text = "Pick one";
+    const FontSpec larger{FontRole::content, 14.0, 400, false};
+    (*combo).font = larger;
+    require((*editor).placeholder_text.read() == "Pick one" && (*editor).font.read() == larger,
+            "hint and font writes reach the editor");
+    (*combo).drop_down_style = ComboBoxStyle::drop_down_list;
+    require(!(*combo).editor(), "the drop_down_list style removes the editor");
+
+    refused = false;
+    try {
+        (*combo).maximum_drop_down_items = 0U;
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*combo).maximum_drop_down_items.read() == 8U, "zero drop-down rows are refused");
+    refused = false;
+    try {
+        (*combo).drop_down_width = -1.0;
+    } catch (const std::out_of_range&) {
+        refused = true;
+    }
+    require(refused && (*combo).drop_down_width.read() == 0.0, "a negative drop-down width is refused");
+    refused = false;
+    try {
+        (*combo).auto_complete_custom_source = std::shared_ptr<AutoCompleteStringCollection>{};
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*combo).auto_complete_custom_source.read(), "a null custom source is refused");
+    (*combo).dropped_down = true;
+    require(!(*combo).dropped_down.read(), "a detached combo box does not open its list");
+    static_cast<void>(index_token);
+    static_cast<void>(text_token);
+}
+
 int main() {
     try {
         test_unicode_editing_selection_and_history();
@@ -851,6 +919,7 @@ int main() {
         test_text_box_property_capabilities();
         test_numeric_up_down_property_capabilities();
         test_list_box_property_capabilities();
+        test_combo_box_property_capabilities();
         std::cout << "gui_forms_input_controls_tests: all tests passed\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {

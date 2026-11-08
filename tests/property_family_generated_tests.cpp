@@ -5,6 +5,7 @@
 #include "gui_forms/gui_forms.hpp"
 #include "gui_forms/controls/button_base/button/button.hpp"
 #include "gui_forms/controls/data_grid_view/data_grid_view.hpp"
+#include "gui_forms/controls/panel/combo_box/combo_box.hpp"
 #include "gui_forms/controls/panel/domain_up_down/domain_up_down.hpp"
 #include "gui_forms/controls/panel/group_box/group_box.hpp"
 #include "gui_forms/controls/panel/group_box/scaled_group_box/scaled_group_box.hpp"
@@ -139,6 +140,60 @@ void test_checked_list_box_properties() {
         (*control).indicator_size = sample;
         expect((*control).indicator_size.read() == sample, "CheckedListBox.indicator_size: a write stores");
     }
+}
+
+void test_combo_box_properties() {
+    std::shared_ptr<ComboBox> control = make_control<ComboBox>(StableId("generated.combobox"));
+    {
+        const std::string sample = std::string{"Choose"};
+        (*control).placeholder_text = sample;
+        expect((*control).placeholder_text.read() == sample, "ComboBox.placeholder_text: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("placeholder_text");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "ComboBox.placeholder_text: the table reads the cell");
+    }
+    {
+        const std::size_t sample = 4U;
+        (*control).maximum_drop_down_items = sample;
+        expect((*control).maximum_drop_down_items.read() == sample, "ComboBox.maximum_drop_down_items: a write stores");
+    }
+    {
+        const double sample = 240.0;
+        (*control).drop_down_width = sample;
+        expect((*control).drop_down_width.read() == sample, "ComboBox.drop_down_width: a write stores");
+    }
+    {
+        const FontSpec sample = FontSpec{FontRole::content, 14.0, 400, false};
+        (*control).font = sample;
+        expect((*control).font.read() == sample, "ComboBox.font: a write stores");
+    }
+    {
+        const ComboBoxStyle sample = ComboBoxStyle::drop_down;
+        (*control).drop_down_style = sample;
+        expect((*control).drop_down_style.read() == sample, "ComboBox.drop_down_style: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("drop_down_style");
+        expect(by_name && *by_name == PropertyValueTraits<ComboBoxStyle>::to_binding(sample),
+               "ComboBox.drop_down_style: the table reads the cell");
+    }
+    {
+        const ComboBoxFilter sample = ComboBoxFilter::prefix;
+        (*control).drop_down_filter = sample;
+        expect((*control).drop_down_filter.read() == sample, "ComboBox.drop_down_filter: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("drop_down_filter");
+        expect(by_name && *by_name == PropertyValueTraits<ComboBoxFilter>::to_binding(sample),
+               "ComboBox.drop_down_filter: the table reads the cell");
+    }
+    {
+        const AutoCompleteMode sample = AutoCompleteMode::append;
+        (*control).auto_complete_mode = sample;
+        expect((*control).auto_complete_mode.read() == sample, "ComboBox.auto_complete_mode: a write stores");
+    }
+    {
+        const AutoCompleteSource sample = AutoCompleteSource::list_items;
+        (*control).auto_complete_source = sample;
+        expect((*control).auto_complete_source.read() == sample, "ComboBox.auto_complete_source: a write stores");
+    }
+    // auto_complete_custom_source: no sample for std::shared_ptr<AutoCompleteStringCollection>; give the property a "sample".
 }
 
 void test_data_grid_view_properties() {
@@ -812,6 +867,7 @@ void test_tree_list_view_properties() {
 int main() {
     test_button_base_properties();
     test_checked_list_box_properties();
+    test_combo_box_properties();
     test_data_grid_view_properties();
     test_domain_up_down_properties();
     test_group_box_properties();

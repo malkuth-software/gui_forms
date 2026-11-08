@@ -161,20 +161,20 @@ void font_control() {
     window.perform_layout();
     const std::shared_ptr<ComboBox> family = (*control).family_box();
     const std::shared_ptr<ComboBox> size = (*control).size_box();
-    require((*family).selected_index() == std::size_t{0U} && (*size).selected_text() == "12",
+    require((*family).selected_index.read() == std::size_t{0U} && (*size).selected_text() == "12",
             "the fields show the command's value");
     require((*control).parts().family_field.bounds == (*family).committed_arranged_bounds() &&
                 (*control).parts().size_field.present,
             "the fields sit where the control's parts say");
     int runs = 0;
     SubscriptionToken counted = (*(*command).command()).invoked().subscribe(CountInvocation{&runs});
-    (*family).set_selected_index(std::size_t{2U});
+    (*family).selected_index = std::size_t{2U};
     require(runs == 1 && (*command).value().family == "Tahoma" && (*command).value().size == 12.0,
             "choosing a family commits it with the shown size");
-    (*size).set_selected_index(std::size_t{0U});
+    (*size).selected_index = std::size_t{0U};
     require(runs == 2 && (*command).value().size == 8.0, "choosing a size commits it with the shown family");
     (*command).set_value({"Unknown face", 10.5});
-    require(!(*family).selected_index() && (*size).selected_text() == "10.5" && runs == 2,
+    require(!(*family).selected_index.read() && (*size).selected_text() == "10.5" && runs == 2,
             "a value outside the lists shows that field empty; the program's change runs nothing");
     (*(*command).command()).set_enabled(false);
     require(!(*family).enabled.read() && !(*size).enabled.read(), "a disabled command disables both fields");

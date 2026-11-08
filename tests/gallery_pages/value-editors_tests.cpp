@@ -37,7 +37,7 @@ void test_value_editors(gui_forms::Window& window) {
     const std::shared_ptr<gui_forms::TextBox> rack_tint = std::dynamic_pointer_cast<TextBox>(
         (*rack).field_editor("gallery.value-editors.rack.lamp", "tint"));
     require(rack_name && rack_channel && rack_tint && (*rack_name).text.read() == "Signal lamp" &&
-                (*rack_channel).selected_index() == std::optional<std::size_t>{1U} &&
+                (*rack_channel).selected_index.read() == std::optional<std::size_t>{1U} &&
                 (*rack_tint).text.read() == "#2774B8FF" &&
                 (*properties).value("gallery.value-editors.properties.tint") == "#2774B8FF",
             "the rack module and the PropertyList must start from the same record");
@@ -87,7 +87,7 @@ void test_value_editors(gui_forms::Window& window) {
             "Reset must restore the fixture name in both views");
 
     // Rack commits reach the list; an unparseable tint is reported, not applied.
-    (*rack_channel).set_selected_index(2U);
+    (*rack_channel).selected_index = 2U;
     require((*properties).value("gallery.value-editors.properties.channel") == "WFM",
             "a rack choice commit must project into the PropertyList row");
     require(window.request_focus(rack_tint), "the rack tint field must focus");
@@ -126,7 +126,7 @@ void test_value_editors(gui_forms::Window& window) {
     require((*color).value() == Color::rgba(39, 116, 184, 255) &&
                 (*flags).value().name == "Top, Left" &&
                 (*properties).value("gallery.value-editors.properties.channel") == "FM" &&
-                (*rack_channel).selected_index() == std::optional<std::size_t>{1U},
+                (*rack_channel).selected_index.read() == std::optional<std::size_t>{1U},
             "the reset Command must restore the fixture in every view");
 
     // BindingContext membership through two Commands shown by one CommandBar.

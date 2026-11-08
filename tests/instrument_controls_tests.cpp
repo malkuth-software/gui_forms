@@ -207,7 +207,7 @@ void test_field_toggle_validation_move_and_focus_safe_remove() {
 
     const std::shared_ptr<gui_forms::ComboBox> kind_value = std::dynamic_pointer_cast<ComboBox>(
         (*rack).field_editor("criteria.kind", "value"));
-    (*kind_value).set_selected_index(1U);
+    (*kind_value).selected_index = 1U;
     require(trace.ends_with("criteria.kind.value=Documents;"),
             "choice fields must commit through the rack's typed field event");
 

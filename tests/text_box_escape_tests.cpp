@@ -212,14 +212,14 @@ void composites_pass_escape_on() {
     std::shared_ptr<ComboBox> combo = make_control<ComboBox>(StableId("esc.combo"));
     (*combo).items.append("Alpha");
     (*combo).items.append("Beta");
-    (*combo).set_drop_down_style(ComboBoxStyle::drop_down);
+    (*combo).drop_down_style = ComboBoxStyle::drop_down;
     Fixture combo_fixture = make_fixture("esc.combo", combo);
     require((*combo_fixture.window).request_focus((*combo).editor()), "the combo editor takes focus");
     require(press(*combo_fixture.window, PhysicalKey::escape) &&
                 (*combo_fixture.watcher).seen.size() == 1U,
             "Escape in a closed ComboBox editor bubbles");
-    (*combo).set_dropped_down(true);
-    require(press(*combo_fixture.window, PhysicalKey::escape) && !(*combo).dropped_down() &&
+    (*combo).dropped_down = true;
+    require(press(*combo_fixture.window, PhysicalKey::escape) && !(*combo).dropped_down.read() &&
                 (*combo_fixture.watcher).seen.size() == 1U,
             "Escape with the ComboBox list open closes it and is consumed");
 

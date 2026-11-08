@@ -188,7 +188,7 @@ struct PropertyList::Impl final {
             if (text) (*text).font = font;
         } else if (const std::shared_ptr<ComboBox> choice =
                        std::dynamic_pointer_cast<ComboBox>(editor)) {
-            (*choice).set_font(font);
+            (*choice).font = font;
         } else if (const std::shared_ptr<ButtonBase> button =
                        std::dynamic_pointer_cast<ButtonBase>(editor)) {
             (*button).font = font;
@@ -272,10 +272,10 @@ struct PropertyList::Impl final {
                         std::find(row.choices.begin(),
                                                     row.choices.end(), row.value);
                     if (selected != row.choices.end()) {
-                        (*editor).set_selected_index(static_cast<std::size_t>(
-                            std::distance(row.choices.begin(), selected)));
+                        (*editor).selected_index = static_cast<std::size_t>(
+                            std::distance(row.choices.begin(), selected));
                     }
-                    (*editor).set_font({FontRole::content, 10.0, 400, false});
+                    (*editor).font = FontSpec{FontRole::content, 10.0, 400, false};
                     (*editor).accessible_name = row.name;
                     (*editor).accessible_description = row.description;
                     (*editor).enabled = row.enabled;
@@ -642,10 +642,10 @@ bool PropertyList::set_value(std::string_view row_id, std::string value) {
     } else if (const std::shared_ptr<gui_forms::ComboBox> choice = std::dynamic_pointer_cast<ComboBox>((*row).editor)) {
         const std::vector<std::string>::iterator found =
             std::find(model.choices.begin(), model.choices.end(), value);
-        (*choice).set_selected_index(found == model.choices.end()
+        (*choice).selected_index = found == model.choices.end()
             ? std::optional<std::size_t>{}
             : std::optional<std::size_t>{static_cast<std::size_t>(
-                std::distance(model.choices.begin(), found))});
+                std::distance(model.choices.begin(), found))};
     } else if (const std::shared_ptr<gui_forms::CheckBox> check =
                    std::dynamic_pointer_cast<CheckBox>((*row).editor)) {
         const bool checked = binding_value_to_bool(

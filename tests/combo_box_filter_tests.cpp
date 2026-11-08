@@ -47,8 +47,8 @@ Fixture make_fixture(const char* id, ComboBoxFilter filter) {
     fixture.combo = make_control<ComboBox>(StableId(std::string(id)));
     (*fixture.combo).set_requested_bounds({10.0, 10.0, 220.0, 30.0});
     (*fixture.combo).items = {"Calgary", "California", "Cambridge", "Dover", "Cape Town", "Arcadia"};
-    (*fixture.combo).set_drop_down_style(ComboBoxStyle::drop_down);
-    (*fixture.combo).set_drop_down_filter(filter);
+    (*fixture.combo).drop_down_style = ComboBoxStyle::drop_down;
+    (*fixture.combo).drop_down_filter = filter;
     (*fixture.root).add_child(fixture.combo);
     fixture.window = std::make_unique<Window>(fixture.root, Size{320.0, 320.0});
     (*fixture.window).perform_layout();
@@ -95,9 +95,9 @@ void prefix_filter_narrows_and_widens() {
     ComboBox& combo = *fixture.combo;
     std::vector<std::string> trace;
     SubscriptionToken drops = combo.drop_down_changed().subscribe(TraceDropDown{&trace});
-    require(combo.drop_down_filter() == ComboBoxFilter::prefix && combo.drop_down_items().empty(),
+    require(combo.drop_down_filter.read() == ComboBoxFilter::prefix && combo.drop_down_items().empty(),
             "a closed list shows no rows");
-    require(type(window, "ca") && combo.dropped_down() && rows_are(combo, {0U, 1U, 2U, 4U}),
+    require(type(window, "ca") && combo.dropped_down.read() && rows_are(combo, {0U, 1U, 2U, 4U}),
             "typing opens the list on the items that start with the text, ignoring case");
     require(trace.size() == 1U && trace[0] == "drop" && window.focus_scope_depth() == 0U &&
                 window.focused_control() == combo.editor(),
@@ -114,17 +114,17 @@ void prefix_filter_narrows_and_widens() {
                 match.bounds.x >= label.bounds.x && match.bounds.width > 0.0 &&
                 match.bounds.width < label.bounds.width,
             "the matched text is a hot match part inside the row's label");
-    require(type(window, "m") && rows_are(combo, {2U}) && combo.dropped_down(), "more text narrows the rows");
+    require(type(window, "m") && rows_are(combo, {2U}) && combo.dropped_down.read(), "more text narrows the rows");
     require(press(window, PhysicalKey::backspace) && rows_are(combo, {0U, 1U, 2U, 4U}),
             "deleting widens them again");
-    require(type(window, "x") && !combo.dropped_down() && combo.drop_down_items().empty() &&
+    require(type(window, "x") && !combo.dropped_down.read() && combo.drop_down_items().empty() &&
                 trace.size() == 2U && trace[1] == "fold",
             "text that matches nothing closes the list");
-    require(press(window, PhysicalKey::backspace) && combo.dropped_down() && rows_are(combo, {0U, 1U, 2U, 4U}),
+    require(press(window, PhysicalKey::backspace) && combo.dropped_down.read() && rows_are(combo, {0U, 1U, 2U, 4U}),
             "text that matches again reopens it");
-    require(press(window, PhysicalKey::escape) && !combo.dropped_down() && combo.text() == "ca",
+    require(press(window, PhysicalKey::escape) && !combo.dropped_down.read() && combo.text.read() == "ca",
             "Escape closes the list and keeps the text");
-    require(press(window, PhysicalKey::f4) && combo.dropped_down() && combo.drop_down_items().size() == 6U,
+    require(press(window, PhysicalKey::f4) && combo.dropped_down.read() && combo.drop_down_items().size() == 6U,
             "F4 opens the list on every item");
     const Control::Ptr full = window.find("filter.prefix.overlay.list");
     window.perform_layout();
@@ -154,14 +154,14 @@ void keyboard_and_identity() {
     std::vector<std::string> trace;
     SubscriptionToken indices = combo.selected_index_changed().subscribe(TraceIndex{&trace});
     require(type(window, "ca") && rows_are(combo, {0U, 1U, 2U, 4U}), "filtered");
-    require(press(window, PhysicalKey::down) && combo.selected_index() == 0U && combo.text() == "Calgary" &&
+    require(press(window, PhysicalKey::down) && combo.selected_index.read() == 0U && combo.text.read() == "Calgary" &&
                 rows_are(combo, {0U, 1U, 2U, 4U}),
             "Down chooses the first row; showing its text does not filter again");
     require(press(window, PhysicalKey::down) && press(window, PhysicalKey::down) && press(window, PhysicalKey::down) &&
-                combo.selected_index() == 4U && combo.text() == "Cape Town",
+                combo.selected_index.read() == 4U && combo.text.read() == "Cape Town",
             "Down moves through the filtered rows only, skipping Dover");
-    require(press(window, PhysicalKey::down) && combo.selected_index() == 4U, "the last row stays chosen");
-    require(press(window, PhysicalKey::up) && combo.selected_index() == 2U, "Up moves back one row");
+    require(press(window, PhysicalKey::down) && combo.selected_index.read() == 4U, "the last row stays chosen");
+    require(press(window, PhysicalKey::up) && combo.selected_index.read() == 2U, "Up moves back one row");
     const Control::Ptr list = window.find("filter.keys.overlay.list");
     require((*std::static_pointer_cast<ListBox>(list)).selected_index() == 2U,
             "the list highlights the chosen item's row");
@@ -172,10 +172,10 @@ void keyboard_and_identity() {
     // The items change under the open list: the rows and the selection
     // follow the item, not its old position.
     combo.items = {"Arcadia", "Cambridge", "Calgary", "Cape Town"};
-    require(combo.selected_index() == 1U && combo.text() == "Cambridge" && rows_are(combo, {1U, 2U, 3U}) &&
+    require(combo.selected_index.read() == 1U && combo.text.read() == "Cambridge" && rows_are(combo, {1U, 2U, 3U}) &&
                 (*std::static_pointer_cast<ListBox>(window.find("filter.keys.overlay.list"))).selected_index() == 0U,
             "new items keep the filter and the chosen item's row");
-    require(press(window, PhysicalKey::enter) && !combo.dropped_down() && combo.selected_index() == 1U,
+    require(press(window, PhysicalKey::enter) && !combo.dropped_down.read() && combo.selected_index.read() == 1U,
             "Enter keeps the chosen item and closes the list");
     require(trace.back() == "index 1", "the selection is reported by item index");
 }
@@ -184,18 +184,18 @@ void pointer_and_semantic_rows() {
     Fixture fixture = make_fixture("filter.rows", ComboBoxFilter::prefix);
     Window& window = *fixture.window;
     ComboBox& combo = *fixture.combo;
-    require(type(window, "ca") && combo.dropped_down(), "filtered");
+    require(type(window, "ca") && combo.dropped_down.read(), "filtered");
     window.perform_layout();
     const Rect list = (*window.find("filter.rows.overlay.list")).absolute_bounds();
     const Point fourth{list.x + 20.0, list.y + 2.0 + 3.0 * 26.0 + 13.0};
     require(window.dispatch_pointer({PointerAction::down, PointerButton::primary, fourth}) &&
                 window.dispatch_pointer({PointerAction::up, PointerButton::primary, fourth}) &&
-                !combo.dropped_down() && combo.selected_index() == 4U && combo.text() == "Cape Town",
+                !combo.dropped_down.read() && combo.selected_index.read() == 4U && combo.text.read() == "Cape Town",
             "clicking the fourth filtered row chooses its item");
     (*combo.editor()).select_all();
     require(type(window, "cam") && rows_are(combo, {2U}), "filtered again");
     require(window.perform_semantic_action("filter.rows.overlay.list.item.2", SemanticAction::press) &&
-                !combo.dropped_down() && combo.selected_index() == 2U && combo.text() == "Cambridge",
+                !combo.dropped_down.read() && combo.selected_index.read() == 2U && combo.text.read() == "Cambridge",
             "a semantic press on a row addresses it by its item's identity");
 }
 
@@ -203,25 +203,25 @@ void filter_replaces_auto_complete() {
     Fixture fixture = make_fixture("filter.complete", ComboBoxFilter::prefix);
     Window& window = *fixture.window;
     ComboBox& combo = *fixture.combo;
-    combo.set_auto_complete_source(AutoCompleteSource::list_items);
-    combo.set_auto_complete_mode(AutoCompleteMode::suggest_append);
+    combo.auto_complete_source = AutoCompleteSource::list_items;
+    combo.auto_complete_mode = AutoCompleteMode::suggest_append;
     require((*combo.editor()).auto_complete_mode.read() == AutoCompleteMode::none,
             "while a filter is set the editor does not auto-complete");
-    require(type(window, "c") && combo.text() == "c" && !(*combo.editor()).auto_complete_open() &&
-                combo.dropped_down(),
+    require(type(window, "c") && combo.text.read() == "c" && !(*combo.editor()).auto_complete_open() &&
+                combo.dropped_down.read(),
             "the filtered list shows the matches; nothing is appended");
-    combo.set_drop_down_filter(ComboBoxFilter::none);
-    require(!combo.dropped_down() && (*combo.editor()).auto_complete_mode.read() == AutoCompleteMode::suggest_append,
+    combo.drop_down_filter = ComboBoxFilter::none;
+    require(!combo.dropped_down.read() && (*combo.editor()).auto_complete_mode.read() == AutoCompleteMode::suggest_append,
             "clearing the filter closes the list and restores auto-complete");
-    require(type(window, "a") && combo.text() == "calgary", "auto-complete acts again");
+    require(type(window, "a") && combo.text.read() == "calgary", "auto-complete acts again");
 
-    combo.set_drop_down_style(ComboBoxStyle::drop_down_list);
-    combo.set_drop_down_filter(ComboBoxFilter::substring);
-    require(combo.drop_down_filter() == ComboBoxFilter::substring && !combo.editor(),
+    combo.drop_down_style = ComboBoxStyle::drop_down_list;
+    combo.drop_down_filter = ComboBoxFilter::substring;
+    require(combo.drop_down_filter.read() == ComboBoxFilter::substring && !combo.editor(),
             "the filter is kept in the drop_down_list style");
-    combo.set_dropped_down(true);
+    combo.dropped_down = true;
     require(combo.drop_down_items().size() == 6U, "a drop-down list always shows every item");
-    combo.set_dropped_down(false);
+    combo.dropped_down = false;
 }
 
 void suggestions_highlight_the_typed_prefix() {

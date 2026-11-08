@@ -60,9 +60,9 @@ struct ResetHandler final {
         (*product).set_presentation_settings({});
         static_cast<void>(set_product_surface(*product, "folder"));
         const std::shared_ptr<gui_forms::ComboBox> surface_choice = surface.lock();
-        if (surface_choice) (*surface_choice).set_selected_index(0U);
+        if (surface_choice) (*surface_choice).selected_index = 0U;
         const std::shared_ptr<gui_forms::ComboBox> scale_choice = text_scale.lock();
-        if (scale_choice) (*scale_choice).set_selected_index(0U);
+        if (scale_choice) (*scale_choice).selected_index = 0U;
         const std::shared_ptr<gui_forms::Label> status = density.lock();
         if (status) {
             (*status).set_text("Display scale: host-derived · text scale: 100%");
@@ -112,14 +112,14 @@ std::unique_ptr<gui_forms::Window> make_controller_window(
     std::shared_ptr<gui_forms::ComboBox> surface = std::make_shared<ComboBox>(StableId("demo.surface.choice"));
     (*surface).set_requested_bounds({0,0,430,30});
     (*surface).items = {"Folder", "Search", "Criteria", "Palettes", "Icons", "Styles", "DNA"};
-    (*surface).set_selected_index(0);
+    (*surface).selected_index = 0;
     (*root).add_child(surface);
 
     std::shared_ptr<gui_forms::ComboBox> condition = std::make_shared<ComboBox>(StableId("demo.fixture.condition"));
     (*condition).set_requested_bounds({0,0,430,30});
     (*condition).items = {"Normal", "Offline volume", "Stale index", "Preview unavailable",
                           "Transfer running", "Conflict", "Empty folder", "Million items"};
-    (*condition).set_selected_index(0);
+    (*condition).selected_index = 0;
     (*root).add_child(condition);
 
     std::shared_ptr<gui_forms::Label> accommodation = std::make_shared<Label>(
@@ -138,7 +138,7 @@ std::unique_ptr<gui_forms::Window> make_controller_window(
         "changing the host display scale";
     (*text_scale).items = {"100% text", "125% text", "150% text",
                            "200% text", "225% text"};
-    (*text_scale).set_selected_index(0);
+    (*text_scale).selected_index = 0;
     (*root).add_child(text_scale);
 
     std::shared_ptr<gui_forms::Label> density = std::make_shared<Label>(

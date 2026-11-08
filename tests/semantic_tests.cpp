@@ -182,21 +182,21 @@ void test_semantic_actions_use_control_behavior() {
                                              "blocked") && (*field).text.read() == "new value",
             "semantic actions must preserve TextBox read-only state");
     require(window.perform_semantic_action("actions.combo", SemanticAction::expand) &&
-                (*combo).dropped_down() && window.focus_scope_depth() == 1U,
+                (*combo).dropped_down.read() && window.focus_scope_depth() == 1U,
             "semantic combo expansion must enter the real overlay focus scope");
     const bool chosen = window.perform_semantic_action("actions.combo.overlay.list.item.1", SemanticAction::press);
     const SemanticSnapshot closed = window.semantic_snapshot();
     require(chosen &&
-                (*combo).selected_index() == 1U && !(*combo).dropped_down() &&
+                (*combo).selected_index.read() == 1U && !(*combo).dropped_down.read() &&
                 window.focus_scope_depth() == 0U &&
                 !find_node(closed.roots,
                            "actions.combo.overlay.list"),
             "semantic overlay row press must commit, detach, and restore focus safely");
     require(window.perform_semantic_action("actions.combo", SemanticAction::expand) &&
-                (*combo).dropped_down(),
+                (*combo).dropped_down.read(),
             "ComboBox must reopen after semantic row activation");
     require(window.perform_semantic_action("actions.combo", SemanticAction::collapse) &&
-                !(*combo).dropped_down() && window.focus_scope_depth() == 0U,
+                !(*combo).dropped_down.read() && window.focus_scope_depth() == 0U,
             "semantic combo collapse must revoke the real overlay scope");
     const SemanticSnapshot after_close = window.semantic_snapshot();
     require(!find_node(after_close.roots,

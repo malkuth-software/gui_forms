@@ -498,7 +498,7 @@ void test_grouped_editors_commit_cancel_validation_and_semantics() {
                 (*properties).value("inspection.name") == "Facade Final.png",
             "Escape must restore the last committed text property value");
 
-    (*handler).set_selected_index(1U);
+    (*handler).selected_index = 1U;
     require((*properties).value("inspection.handler") == "Image Laboratory" &&
                 commit_trace.ends_with(
                     "inspection.handler=Image Laboratory;"),
@@ -908,7 +908,7 @@ void test_nullable_standard_values_culture_and_nested_services() {
                     "inspection.nullable.grid.property.settings.threshold") ==
                     "50.000000%",
             "PropertyGrid must retain payload schema for null values and project member-specific converter identities");
-    (*choice).set_selected_index(1U);
+    (*choice).selected_index = 1U;
     require((*target).ratio() == BindingValue{1.5} &&
                 (*grid).try_set_property_value(
                     "Ratio", BindingValue{std::monostate{}}) &&

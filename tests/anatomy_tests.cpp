@@ -824,10 +824,10 @@ void test_spin_combo_and_picker_parts() {
                 closed.content.bounds.right() <= closed.divider.bounds.x,
             "a combo box publishes its field, divider, drop-down and arrow");
     require((*combo).states().closed, "a shut combo box is closed");
-    (*combo).set_dropped_down(true);
+    (*combo).dropped_down = true;
     require((*combo).states().open && !(*combo).states().closed,
             "an open combo box publishes open");
-    (*combo).set_dropped_down(false);
+    (*combo).dropped_down = false;
     // Hot under the pointer (stage T4, hot states): the anatomy declares it.
     PointerEvent over{};
     over.action = PointerAction::move;

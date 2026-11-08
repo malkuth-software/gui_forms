@@ -59,7 +59,7 @@ private:
     }
 
     void on_search_overlay(const bool open) {
-        (*status_).set_text(open ? "Stations matching \"" + std::string((*search_).text()) + "\": " +
+        (*status_).set_text(open ? "Stations matching \"" + std::string((*search_).text.read()) + "\": " +
                                        std::to_string((*search_).drop_down_items().size())
                                  : "Station search closed · the editor kept the focus");
     }

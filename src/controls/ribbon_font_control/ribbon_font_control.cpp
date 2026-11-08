@@ -211,8 +211,8 @@ void RibbonFontControl::show(const FontChoice& value) {
         if (sizes_[index] == value.size) size = index;
     }
     synchronizing_ = true;
-    if ((*family_).selected_index() != family) (*family_).set_selected_index(family);
-    if ((*size_).selected_index() != size) (*size_).set_selected_index(size);
+    if ((*family_).selected_index.read() != family) (*family_).selected_index = family;
+    if ((*size_).selected_index.read() != size) (*size_).selected_index = size;
     synchronizing_ = false;
 }
 

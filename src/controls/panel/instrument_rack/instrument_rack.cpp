@@ -398,10 +398,10 @@ struct InstrumentRack::Impl final {
                 std::find(field.choices.begin(),
                                             field.choices.end(), field.value);
             if (selected != field.choices.end()) {
-                (*choice).set_selected_index(static_cast<std::size_t>(
-                    std::distance(field.choices.begin(), selected)));
+                (*choice).selected_index = static_cast<std::size_t>(
+                    std::distance(field.choices.begin(), selected));
             }
-            (*choice).set_font(field_font);
+            (*choice).font = field_font;
             editor = choice;
         } else {
             std::shared_ptr<gui_forms::TextBox> text = make_control<TextBox>(StableId(id), field.value);
@@ -566,10 +566,10 @@ struct InstrumentRack::Impl final {
                 const std::vector<std::string>::iterator selected =
                     std::find(field.choices.begin(),
                                                 field.choices.end(), field.value);
-                (*choice).set_selected_index(selected == field.choices.end()
+                (*choice).selected_index = selected == field.choices.end()
                     ? std::optional<std::size_t>{}
                     : std::optional<std::size_t>{static_cast<std::size_t>(
-                        std::distance(field.choices.begin(), selected))});
+                        std::distance(field.choices.begin(), selected))};
             } else if (const std::shared_ptr<gui_forms::TextBox> text = std::dynamic_pointer_cast<TextBox>(
                            field_state.editor)) {
                 (*text).text = field.value;
@@ -888,10 +888,10 @@ bool InstrumentRack::set_field_value(std::string_view module_id,
         const std::vector<std::string>::iterator selected =
             std::find((*field).choices.begin(),
                                         (*field).choices.end(), (*field).value);
-        (*choice).set_selected_index(selected == (*field).choices.end()
+        (*choice).selected_index = selected == (*field).choices.end()
             ? std::optional<std::size_t>{}
             : std::optional<std::size_t>{static_cast<std::size_t>(
-                std::distance((*field).choices.begin(), selected))});
+                std::distance((*field).choices.begin(), selected))};
     }
     (*impl_).synchronizing = false;
     for (InstrumentModuleSpec& public_module : (*impl_).public_modules) {

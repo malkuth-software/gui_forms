@@ -613,7 +613,7 @@ int main() {
     const std::shared_ptr<gui_forms::ComboBox> kind_value = std::dynamic_pointer_cast<gui_forms::ComboBox>(
         (*criteria_edit).find("fm.criteria.module.criteria-kind-images.value"));
     require(edit_rack && kind_value, "Criteria live editor projection is absent");
-    (*kind_value).set_selected_index(1U);
+    (*kind_value).selected_index = 1U;
     require((*edit_rack).modules()[0].state ==
                 gui_forms::InstrumentModuleState::live &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
@@ -882,7 +882,7 @@ int main() {
                     (*product).find("fm.selection.object-name"))).text() ==
                     "Facade Final.png",
             "valid session rename must update one coherent object/property projection");
-    (*property_handler).set_selected_index(1U);
+    (*property_handler).selected_index = 1U;
     require((*property_list).value("fm.property.handler") == "Image Laboratory" &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
                     (*product).find("fm.status.authority"))).text().find(
@@ -1242,36 +1242,36 @@ int main() {
             "controller semantic-sound policy toggle is absent");
     require(reduced_motion && !(*reduced_motion).checked(),
             "controller reduced-motion policy toggle is absent");
-    (*surface_choice).set_selected_index(1U);
+    (*surface_choice).selected_index = 1U;
     require((*(*responsive).find("fm.search.surface")).visible.read() &&
                 !(*(*responsive).find("fm.workspace.content-selection")).visible.read(),
             "controller Search choice must reach the public product-surface transition");
-    (*surface_choice).set_selected_index(2U);
+    (*surface_choice).selected_index = 2U;
     require((*(*responsive).find("fm.criteria.surface")).visible.read() &&
                 (*(*responsive).find("fm.workspace.content-selection")).visible.read() &&
                 !(*(*responsive).find("fm.folder.objects")).visible.read(),
             "controller Criteria choice must reach the public retained surface transition");
-    (*surface_choice).set_selected_index(3U);
+    (*surface_choice).selected_index = 3U;
     require((*(*responsive).find("fm.review.palettes")).visible.read() &&
                 !(*(*responsive).find("fm.workspace.content-selection")).visible.read() &&
                 !(*(*responsive).find("fm.search.surface")).visible.read() &&
                 !(*(*responsive).find("fm.criteria.surface")).visible.read(),
             "controller Palettes choice must reach the public Card laboratory");
-    (*surface_choice).set_selected_index(6U);
+    (*surface_choice).selected_index = 6U;
     require((*(*responsive).find("fm.review.dna")).visible.read() &&
                 !(*(*responsive).find("fm.review.palettes")).visible.read() &&
                 !(*(*responsive).find("fm.workspace.content-selection")).visible.read(),
             "controller DNA choice must reach the public MasterDetail laboratory");
-    (*surface_choice).set_selected_index(0U);
+    (*surface_choice).selected_index = 0U;
     require(!(*(*responsive).find("fm.search.surface")).visible.read() &&
                 !(*(*responsive).find("fm.review.palettes")).visible.read() &&
                 !(*(*responsive).find("fm.review.dna")).visible.read() &&
                 (*(*responsive).find("fm.workspace.content-selection")).visible.read(),
             "controller Folder choice must restore the retained Folder projection");
-    (*text_scale).set_selected_index(4U);
+    (*text_scale).selected_index = 4U;
     require((*responsive).presentation_settings().text_scale == 2.25,
             "controller text-scale selector did not reach the product presentation contract");
-    (*text_scale).set_selected_index(0U);
+    (*text_scale).selected_index = 0U;
     require((*responsive).presentation_settings().text_scale == 1.0,
             "controller did not restore the product to 100% text");
     const gui_forms::SemanticSnapshot semantic_before_sound_toggle =

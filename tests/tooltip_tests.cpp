@@ -629,7 +629,7 @@ void test_typed_text_fields_show_hints() {
     // An editable combo box: its hint shows in the empty edit field, and a
     // placeholder set on the combo box wins there too.
     std::shared_ptr<ComboBox> city = make_control<ComboBox>(StableId("hint.city"));
-    (*city).set_drop_down_style(ComboBoxStyle::drop_down);
+    (*city).drop_down_style = ComboBoxStyle::drop_down;
     (*city).set_requested_bounds({240.0, 20.0, 160.0, 28.0});
     (*city).tool_tip_text = "The city you live in";
     (*root).add_child(city);
@@ -641,7 +641,7 @@ void test_typed_text_fields_show_hints() {
     run_due(window);
     require(!window.tool_tip_visible() && painted_text(window, city_editor_id, "The city you live in"),
             "an editable combo box shows its hint in the edit field");
-    (*city).set_placeholder_text("City");
+    (*city).placeholder_text = "City";
     require(painted_text(window, city_editor_id, "City") &&
                 !painted_text(window, city_editor_id, "The city you live in"),
             "the combo box's placeholder wins in its edit field");

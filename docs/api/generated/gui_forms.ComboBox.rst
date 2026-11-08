@@ -7,7 +7,7 @@ gui_forms::ComboBox
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: ComboBox final : public Panel, public TextItemsCapability<ComboBox>
+.. cpp:class:: ComboBox final : public Panel, public TextItemsCapability<ComboBox>, public ComboBoxCapabilities<ComboBox>
 
    ``#include <gui_forms/controls/panel/combo_box/combo_box.hpp>``
 
@@ -18,9 +18,9 @@ gui_forms::ComboBox
    list selects it and closes the list; Up, Down, Home and End change the
    selection without opening it. In the default ``drop_down_list`` style the
    field cannot be typed into: it always shows an item from :cpp:member:`items <gui_forms::ComboBox::items>`, or
-   :cpp:func:`placeholder_text <gui_forms::ComboBox::placeholder_text>` when nothing is selected. In the ``drop_down`` style the
+   :cpp:member:`placeholder_text <gui_forms::ComboBox::placeholder_text>` when nothing is selected. In the ``drop_down`` style the
    field is an :cpp:func:`editor <gui_forms::ComboBox::editor>` text box: the user types any text or chooses an item,
-   and the field can complete what is typed (:cpp:func:`auto_complete_mode <gui_forms::ComboBox::auto_complete_mode>`). Use a
+   and the field can complete what is typed (:cpp:member:`auto_complete_mode <gui_forms::ComboBox::auto_complete_mode>`). Use a
    :cpp:class:`ListBox <gui_forms::ListBox>` to show all choices at once or to allow several, and a
    :cpp:class:`ChoiceGroup <gui_forms::ChoiceGroup>` for a few choices that should all stay visible.
 
@@ -59,11 +59,15 @@ gui_forms::ComboBox
          Setting an index outside the items throws ``std::out_of_range``. Also
          available to bindings as ``SelectedIndex``, with -1 for no selection.
 
-      **selected_text** : ``std::string_view``, read-only
-         The text of the selected item, or an empty view when nothing is
-         selected.
+      **text** : ``std::string``
+         The field's text: the editor's in the drop_down style, otherwise the
+         selected item's. Writing :cpp:member:`text <gui_forms::ComboBox::text>` in the drop_down style sets the editor's
+         text and selects the item it equals, ignoring ASCII case, or clears the
+         selection; in the drop_down_list style it selects the first item equal
+         to the text, or clears the selection. Invalid UTF-8 throws
+         ``std::invalid_argument``. Also available to bindings as ``Text``.
 
-      **placeholder_text** : ``std::string_view``, default ``""``
+      **placeholder_text** : ``std::string``, default ``""``
          Text shown in a muted colour when nothing is selected; in the
          ``drop_down`` style, the edit field shows it while empty, and it then
          takes precedence over the field hint. It is also the
@@ -97,17 +101,6 @@ gui_forms::ComboBox
          Either switch closes an open list. Windows Forms' third style, a list
          always shown under the field, is not offered.
 
-      **text** : ``std::string``
-         The field's text: the editor's in the drop_down style, otherwise the
-         selected item's. :cpp:func:`set_text <gui_forms::ComboBox::set_text>` in the drop_down style sets the editor's
-         text and selects the item it equals, ignoring ASCII case, or clears the
-         selection; in the drop_down_list style it selects the first item equal
-         to the text, or clears the selection. Invalid UTF-8 throws
-         ``std::invalid_argument``. Also available to bindings as ``Text``.
-
-      **editor** : ``std::shared_ptr<TextBox>``, read-only
-         The drop_down style's :cpp:class:`TextBox <gui_forms::TextBox>`, or null in the drop_down_list style.
-
       **drop_down_filter** : ``ComboBoxFilter``, default ``ComboBoxFilter::none``
          Whether typing searches the list, in the drop_down style: ``prefix``
          shows the items that start with the typed text and ``substring`` the items
@@ -115,10 +108,6 @@ gui_forms::ComboBox
          While a filter is set the editor does not auto-complete. Changing it
          closes the list; it is kept in the drop_down_list style, where it does
          nothing.
-
-      **drop_down_items** : ``std::span<const std::size_t>``, read-only
-         The items the open list shows, as indices into :cpp:member:`items <gui_forms::ComboBox::items>`, in row order;
-         empty while the list is closed.
 
       **auto_complete_mode** : ``AutoCompleteMode``, default ``AutoCompleteMode::none``
          How the drop_down style's editor completes what is typed, as
@@ -128,13 +117,24 @@ gui_forms::ComboBox
 
       **auto_complete_source** : ``AutoCompleteSource``, default ``AutoCompleteSource::none``
          Where the candidates come from: ``list_items`` uses :cpp:member:`items <gui_forms::ComboBox::items>`,
-         ``custom_source`` uses :cpp:func:`auto_complete_custom_source <gui_forms::ComboBox::auto_complete_custom_source>`, and the host
+         ``custom_source`` uses :cpp:member:`auto_complete_custom_source <gui_forms::ComboBox::auto_complete_custom_source>`, and the host
          sources offer nothing yet, as for :cpp:class:`TextBox <gui_forms::TextBox>`.
 
       **auto_complete_custom_source** : ``std::shared_ptr<AutoCompleteStringCollection>``
          The collection the ``custom_source`` source reads; a new combo box owns an
          empty one, and an assigned one is shared. A null collection throws
          ``std::invalid_argument``.
+
+      **selected_text** : ``std::string_view``, read-only
+         The text of the selected item, or an empty view when nothing is
+         selected.
+
+      **editor** : ``std::shared_ptr<TextBox>``, read-only
+         The drop_down style's :cpp:class:`TextBox <gui_forms::TextBox>`, or null in the drop_down_list style.
+
+      **drop_down_items** : ``std::span<const std::size_t>``, read-only
+         The items the open list shows, as indices into :cpp:member:`items <gui_forms::ComboBox::items>`, in row order;
+         empty while the list is closed.
 
       **parts** : ``Parts``, read-only
 
@@ -143,7 +143,7 @@ gui_forms::ComboBox
    :Events:
 
       **selected_index_changed** : ``Event<std::optional<std::size_t>>``
-         Raised after :cpp:func:`selected_index <gui_forms::ComboBox::selected_index>` changes, by input, by the setter, or by
+         Raised after :cpp:member:`selected_index <gui_forms::ComboBox::selected_index>` changes, by input, by the setter, or by
          an edit of :cpp:member:`items <gui_forms::ComboBox::items>` moving or clearing it. It carries the new
          index, or no value. Setting the current index again raises nothing.
 
@@ -156,7 +156,7 @@ gui_forms::ComboBox
          and :cpp:func:`text_changed <gui_forms::ComboBox::text_changed>` the edit caused.
 
       **text_changed** : ``Event<const std::string&>``
-         Raised after :cpp:func:`text <gui_forms::ComboBox::text>` changes, with the new text: in the drop_down style
+         Raised after :cpp:member:`text <gui_forms::ComboBox::text>` changes, with the new text: in the drop_down style
          for every change of the editor's text, before any selection change it
          causes; in the drop_down_list style after :cpp:func:`selected_index_changed <gui_forms::ComboBox::selected_index_changed>`.
 
@@ -178,6 +178,8 @@ gui_forms::ComboBox
         - The items (:cpp:member:`items <gui_forms::ComboBox::items>`, TextItemsCapability) are edited in place: ``(*combo).items = {...}``, ``items.append(x)``, ``items.erase(i, n)``.
       * - :cpp:func:`written <gui_forms::ComboBox::written>`
         -  
+      * - :cpp:func:`combo_box_property_entries <gui_forms::ComboBox::combo_box_property_entries>`
+        -  
 
    .. seealso::
 
@@ -191,7 +193,7 @@ gui_forms::ComboBox
 
    In the ``drop_down`` style, the combo box's ``tool_tip_text`` shows as grey
    hint text in the empty edit field while it has focus, in place of a
-   tooltip bubble, unless :cpp:func:`placeholder_text <gui_forms::ComboBox::placeholder_text>` is set. Resting the pointer on it still shows the bubble.
+   tooltip bubble, unless :cpp:member:`placeholder_text <gui_forms::ComboBox::placeholder_text>` is set. Resting the pointer on it still shows the bubble.
 
    A primary press on the field opens the list. With the field focused, F4,
    Alt+Down and Space open the list, and Up, Down, Home and End select the
@@ -220,16 +222,16 @@ gui_forms::ComboBox
    the editor places the caret. The selection follows the text: typed text
    that equals an item, ignoring ASCII case, selects it (the text stays as
    typed), and other text clears the selection. While the editor's suggestion
-   list is open (:cpp:func:`auto_complete_mode <gui_forms::ComboBox::auto_complete_mode>`), Up, Down, Enter and Escape are the
+   list is open (:cpp:member:`auto_complete_mode <gui_forms::ComboBox::auto_complete_mode>`), Up, Down, Enter and Escape are the
    suggestion list's; F4 and Alt+Down still open the field's own list, which
    closes the suggestions.
 
-   With a :cpp:func:`drop_down_filter <gui_forms::ComboBox::drop_down_filter>`, the combo box is searchable. Each edit the user
+   With a :cpp:member:`drop_down_filter <gui_forms::ComboBox::drop_down_filter>`, the combo box is searchable. Each edit the user
    makes opens the list on the items that match the typed text, in their own
    order, narrows or widens the rows as the text changes, and closes the list
-   when nothing matches; text set by the program (:cpp:func:`set_text <gui_forms::ComboBox::set_text>`, or the editor
+   when nothing matches; text set by the program (a :cpp:member:`text <gui_forms::ComboBox::text>` write, or the editor
    showing a chosen item) does not filter. Opening the list with the button,
-   F4, Alt+Down or :cpp:func:`set_dropped_down <gui_forms::ComboBox::set_dropped_down>` shows every item. The rows keep their
+   F4, Alt+Down or writing :cpp:member:`dropped_down <gui_forms::ComboBox::dropped_down>` shows every item. The rows keep their
    items' identities: the selection is always an index into :cpp:member:`items <gui_forms::ComboBox::items>`, a row's
    semantic ID ends in its item's index rather than its position, a row
    pressed or chosen with the keys selects its item, and when the items change
@@ -254,8 +256,8 @@ gui_forms::ComboBox
       std::shared_ptr<gf::ComboBox> density =
           gf::make_control<gf::ComboBox>(gf::StableId("view.density"));
       (*density).items = {"Compact", "Comfortable", "Spacious"};
-      (*density).set_placeholder_text("Choose a density");
-      (*density).set_selected_index(1U);
+      (*density).placeholder_text = "Choose a density";
+      (*density).selected_index = 1U;
       // (*density).selected_text() is now "Comfortable"
 
    React to the selection with an owned handler. Shrinking the items clears a
@@ -279,7 +281,7 @@ gui_forms::ComboBox
 
       void example() {
           DensityField field;
-          (*field.combo).set_selected_index(2U);                 // field.density is "Spacious"
+          (*field.combo).selected_index = 2U;                 // field.density is "Spacious"
           (*field.combo).items = {"Compact", "Comfortable"};  // and now ""
       }
 
@@ -290,14 +292,14 @@ gui_forms::ComboBox
       std::shared_ptr<gf::ComboBox> band =
           gf::make_control<gf::ComboBox>(gf::StableId("radio.band"));
       (*band).items = {"Long wave", "Medium wave", "Short wave"};
-      (*band).set_drop_down_style(gf::ComboBoxStyle::drop_down);
-      (*band).set_auto_complete_source(gf::AutoCompleteSource::list_items);
-      (*band).set_auto_complete_mode(gf::AutoCompleteMode::append);
+      (*band).drop_down_style = gf::ComboBoxStyle::drop_down;
+      (*band).auto_complete_source = gf::AutoCompleteSource::list_items;
+      (*band).auto_complete_mode = gf::AutoCompleteMode::append;
       gf::Window window(band, gf::Size{220.0, 30.0});
       window.request_focus((*band).editor());
       window.dispatch_text(gf::TextInputEvent{"m"});
       // The field shows "medium wave" with "edium wave" selected, and the
-      // text equals the second item, so (*band).selected_index() is 1.
+      // text equals the second item, so (*band).selected_index.read() is 1.
 
    A searchable field that lists the stations containing what is typed:
 
@@ -306,8 +308,8 @@ gui_forms::ComboBox
       std::shared_ptr<gf::ComboBox> station =
           gf::make_control<gf::ComboBox>(gf::StableId("trip.station"));
       (*station).items = {"Hamburg Hbf", "Köln Hbf", "Paris Nord", "Zürich HB"};
-      (*station).set_drop_down_style(gf::ComboBoxStyle::drop_down);
-      (*station).set_drop_down_filter(gf::ComboBoxFilter::substring);
+      (*station).drop_down_style = gf::ComboBoxStyle::drop_down;
+      (*station).drop_down_filter = gf::ComboBoxFilter::substring;
       gf::Window window(station, gf::Size{240.0, 200.0});
       window.request_focus((*station).editor());
       window.dispatch_text(gf::TextInputEvent{"hb"});
@@ -340,22 +342,22 @@ gui_forms::ComboBox
       edit changes nothing. The same collection is also available to
       bindings as the ``Items`` property.
 
-   .. cpp:function:: std::optional<std::size_t> selected_index() const noexcept
+   .. cpp:member:: std::optional<std::size_t> selected_index
 
       The index of the selected item, or no value when nothing is selected.
       Setting an index outside the items throws ``std::out_of_range``. Also
       available to bindings as ``SelectedIndex``, with -1 for no selection.
 
-   .. cpp:function:: void set_selected_index(std::optional<std::size_t> index)
+   .. cpp:member:: std::string text
 
-      Sets :cpp:func:`selected_index <gui_forms::ComboBox::selected_index>`; see the property's description above.
+      The field's text: the editor's in the drop_down style, otherwise the
+      selected item's. Writing :cpp:member:`text <gui_forms::ComboBox::text>` in the drop_down style sets the editor's
+      text and selects the item it equals, ignoring ASCII case, or clears the
+      selection; in the drop_down_list style it selects the first item equal
+      to the text, or clears the selection. Invalid UTF-8 throws
+      ``std::invalid_argument``. Also available to bindings as ``Text``.
 
-   .. cpp:function:: std::string_view selected_text() const noexcept
-
-      The text of the selected item, or an empty view when nothing is
-      selected.
-
-   .. cpp:function:: std::string_view placeholder_text() const noexcept
+   .. cpp:member:: std::string placeholder_text
 
       Text shown in a muted colour when nothing is selected; in the
       ``drop_down`` style, the edit field shows it while empty, and it then
@@ -363,51 +365,31 @@ gui_forms::ComboBox
       accessible description when the control has none of its own. It must
       be valid UTF-8, or ``std::invalid_argument`` is thrown.
 
-   .. cpp:function:: void set_placeholder_text(std::string text)
-
-      Sets :cpp:func:`placeholder_text <gui_forms::ComboBox::placeholder_text>`; see the property's description above.
-
-   .. cpp:function:: bool dropped_down() const noexcept
+   .. cpp:member:: bool dropped_down
 
       Whether the overlay list is open. Opening has no effect, and leaves the
       property false, while the control is not attached to a window or has
       no items.
 
-   .. cpp:function:: void set_dropped_down(bool dropped_down)
-
-      Sets :cpp:func:`dropped_down <gui_forms::ComboBox::dropped_down>`; see the property's description above.
-
-   .. cpp:function:: std::size_t maximum_drop_down_items() const noexcept
+   .. cpp:member:: std::size_t maximum_drop_down_items
 
       The most rows the open list shows before it scrolls and shows a scroll
       bar; a short window can make the list shorter still. Values outside 1
       to 64 throw ``std::invalid_argument``.
       Changing it while the list is open closes and reopens the list.
 
-   .. cpp:function:: void set_maximum_drop_down_items(std::size_t count)
-
-      Sets :cpp:func:`maximum_drop_down_items <gui_forms::ComboBox::maximum_drop_down_items>`; see the property's description above.
-
-   .. cpp:function:: double drop_down_width() const noexcept
+   .. cpp:member:: double drop_down_width
 
       Width of the overlay list in logical pixels. Zero makes the list as wide
       as the field. The list never exceeds the window width. Values outside 0
       to 4096, or not finite, throw ``std::out_of_range``.
 
-   .. cpp:function:: void set_drop_down_width(double width)
-
-      Sets :cpp:func:`drop_down_width <gui_forms::ComboBox::drop_down_width>`; see the property's description above.
-
-   .. cpp:function:: FontSpec font() const noexcept
+   .. cpp:member:: FontSpec font
 
       The font of the field and of the overlay rows. An invalid specification
       throws ``std::invalid_argument``.
 
-   .. cpp:function:: void set_font(FontSpec font)
-
-      Sets :cpp:func:`font <gui_forms::ComboBox::font>`; see the property's description above.
-
-   .. cpp:function:: ComboBoxStyle drop_down_style() const noexcept
+   .. cpp:member:: ComboBoxStyle drop_down_style
 
       Whether the field takes text. Switching to ``drop_down`` adds the
       :cpp:func:`editor <gui_forms::ComboBox::editor>` showing the selected item's text and makes the editor take the
@@ -415,28 +397,7 @@ gui_forms::ComboBox
       Either switch closes an open list. Windows Forms' third style, a list
       always shown under the field, is not offered.
 
-   .. cpp:function:: void set_drop_down_style(ComboBoxStyle style)
-
-      Sets :cpp:func:`drop_down_style <gui_forms::ComboBox::drop_down_style>`; see the property's description above.
-
-   .. cpp:function:: std::string text() const
-
-      The field's text: the editor's in the drop_down style, otherwise the
-      selected item's. :cpp:func:`set_text <gui_forms::ComboBox::set_text>` in the drop_down style sets the editor's
-      text and selects the item it equals, ignoring ASCII case, or clears the
-      selection; in the drop_down_list style it selects the first item equal
-      to the text, or clears the selection. Invalid UTF-8 throws
-      ``std::invalid_argument``. Also available to bindings as ``Text``.
-
-   .. cpp:function:: void set_text(std::string text)
-
-      Sets :cpp:func:`text <gui_forms::ComboBox::text>`; see the property's description above.
-
-   .. cpp:function:: std::shared_ptr<TextBox> editor() const noexcept
-
-      The drop_down style's :cpp:class:`TextBox <gui_forms::TextBox>`, or null in the drop_down_list style.
-
-   .. cpp:function:: ComboBoxFilter drop_down_filter() const noexcept
+   .. cpp:member:: ComboBoxFilter drop_down_filter
 
       Whether typing searches the list, in the drop_down style: ``prefix``
       shows the items that start with the typed text and ``substring`` the items
@@ -445,45 +406,38 @@ gui_forms::ComboBox
       closes the list; it is kept in the drop_down_list style, where it does
       nothing.
 
-   .. cpp:function:: void set_drop_down_filter(ComboBoxFilter filter)
-
-      Sets :cpp:func:`drop_down_filter <gui_forms::ComboBox::drop_down_filter>`; see the property's description above.
-
-   .. cpp:function:: std::span<const std::size_t> drop_down_items() const noexcept
-
-      The items the open list shows, as indices into :cpp:member:`items <gui_forms::ComboBox::items>`, in row order;
-      empty while the list is closed.
-
-   .. cpp:function:: AutoCompleteMode auto_complete_mode() const noexcept
+   .. cpp:member:: AutoCompleteMode auto_complete_mode
 
       How the drop_down style's editor completes what is typed, as
       ``TextBox::auto_complete_mode``. The setting is kept in the
       drop_down_list style, where nothing can be typed, and acts once the
       style is drop_down.
 
-   .. cpp:function:: void set_auto_complete_mode(AutoCompleteMode mode)
-
-      Sets :cpp:func:`auto_complete_mode <gui_forms::ComboBox::auto_complete_mode>`; see the property's description above.
-
-   .. cpp:function:: AutoCompleteSource auto_complete_source() const noexcept
+   .. cpp:member:: AutoCompleteSource auto_complete_source
 
       Where the candidates come from: ``list_items`` uses :cpp:member:`items <gui_forms::ComboBox::items>`,
-      ``custom_source`` uses :cpp:func:`auto_complete_custom_source <gui_forms::ComboBox::auto_complete_custom_source>`, and the host
+      ``custom_source`` uses :cpp:member:`auto_complete_custom_source <gui_forms::ComboBox::auto_complete_custom_source>`, and the host
       sources offer nothing yet, as for :cpp:class:`TextBox <gui_forms::TextBox>`.
 
-   .. cpp:function:: void set_auto_complete_source(AutoCompleteSource source)
-
-      Sets :cpp:func:`auto_complete_source <gui_forms::ComboBox::auto_complete_source>`; see the property's description above.
-
-   .. cpp:function:: const std::shared_ptr<AutoCompleteStringCollection>& auto_complete_custom_source() const noexcept
+   .. cpp:member:: std::shared_ptr<AutoCompleteStringCollection> auto_complete_custom_source
 
       The collection the ``custom_source`` source reads; a new combo box owns an
       empty one, and an assigned one is shared. A null collection throws
       ``std::invalid_argument``.
 
-   .. cpp:function:: void set_auto_complete_custom_source(std::shared_ptr<AutoCompleteStringCollection> source)
+   .. cpp:function:: std::string_view selected_text() const noexcept
 
-      Sets :cpp:func:`auto_complete_custom_source <gui_forms::ComboBox::auto_complete_custom_source>`; see the property's description above.
+      The text of the selected item, or an empty view when nothing is
+      selected.
+
+   .. cpp:function:: std::shared_ptr<TextBox> editor() const noexcept
+
+      The drop_down style's :cpp:class:`TextBox <gui_forms::TextBox>`, or null in the drop_down_list style.
+
+   .. cpp:function:: std::span<const std::size_t> drop_down_items() const noexcept
+
+      The items the open list shows, as indices into :cpp:member:`items <gui_forms::ComboBox::items>`, in row order;
+      empty while the list is closed.
 
    .. cpp:function:: Parts parts() const
 
@@ -494,7 +448,7 @@ gui_forms::ComboBox
 
    .. cpp:function:: Event<std::optional<std::size_t>>& selected_index_changed() noexcept
 
-      Raised after :cpp:func:`selected_index <gui_forms::ComboBox::selected_index>` changes, by input, by the setter, or by
+      Raised after :cpp:member:`selected_index <gui_forms::ComboBox::selected_index>` changes, by input, by the setter, or by
       an edit of :cpp:member:`items <gui_forms::ComboBox::items>` moving or clearing it. It carries the new
       index, or no value. Setting the current index again raises nothing.
 
@@ -510,7 +464,7 @@ gui_forms::ComboBox
 
    .. cpp:function:: Event<const std::string&>& text_changed() noexcept
 
-      Raised after :cpp:func:`text <gui_forms::ComboBox::text>` changes, with the new text: in the drop_down style
+      Raised after :cpp:member:`text <gui_forms::ComboBox::text>` changes, with the new text: in the drop_down style
       for every change of the editor's text, before any selection change it
       causes; in the drop_down_list style after :cpp:func:`selected_index_changed <gui_forms::ComboBox::selected_index_changed>`.
 
@@ -522,6 +476,8 @@ gui_forms::ComboBox
       The items (:cpp:member:`items <gui_forms::ComboBox::items>`, TextItemsCapability) are edited in place: ``(*combo).items = {...}``, ``items.append(x)``, ``items.erase(i, n)``. Items must be valid UTF-8 (std::invalid_argument, nothing changes). The selection follows its item through an edit (the editor's text in the drop_down style); erasing the selected item clears it. The TextItemsCapability hooks: validate and remap the selection (prepare_edit), then refresh the list and raise the changes (written).
 
    .. cpp:function:: void written(const decltype(items)& cell, const CollectionEdit& edit)
+
+   .. cpp:function:: static const std::array<PropertyEntry, combo_box_property_count>& combo_box_property_entries() noexcept
 
 
    .. rubric:: Extension points
@@ -550,7 +506,7 @@ gui_forms::ComboBox
 
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
 
-      Publishes the role ``combo_box``, with :cpp:func:`text <gui_forms::ComboBox::text>` as value, the ``expanded``
+      Publishes the role ``combo_box``, with :cpp:member:`text <gui_forms::ComboBox::text>` as value, the ``expanded``
       state while the list is open, and the action ``expand`` or ``collapse``; in
       the drop_down style also ``set_value``, with the editor published through
       the field rather than as a node of its own.
@@ -576,3 +532,9 @@ gui_forms::ComboBox
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 
       *Protected.*
+
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
+   .. cpp:member:: constexpr std::size_t combo_box_property_count
+
+      ComboBox's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 4U``.

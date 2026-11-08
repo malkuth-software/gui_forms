@@ -673,8 +673,8 @@ void example() {
     std::shared_ptr<gf::ComboBox> density =
         gf::make_control<gf::ComboBox>(gf::StableId("view.density"));
     (*density).items = {"Compact", "Comfortable", "Spacious"};
-    (*density).set_placeholder_text("Choose a density");
-    (*density).set_selected_index(1U);
+    (*density).placeholder_text = "Choose a density";
+    (*density).selected_index = 1U;
     // (*density).selected_text() is now "Comfortable"
 }
 }  // namespace doc_example_ComboBox_1
@@ -696,7 +696,7 @@ struct DensityField final : gf::Component {
 
 void example() {
     DensityField field;
-    (*field.combo).set_selected_index(2U);                 // field.density is "Spacious"
+    (*field.combo).selected_index = 2U;                 // field.density is "Spacious"
     (*field.combo).items = {"Compact", "Comfortable"};  // and now ""
 }
 }  // namespace doc_example_ComboBox_2
@@ -706,14 +706,14 @@ void example() {
     std::shared_ptr<gf::ComboBox> band =
         gf::make_control<gf::ComboBox>(gf::StableId("radio.band"));
     (*band).items = {"Long wave", "Medium wave", "Short wave"};
-    (*band).set_drop_down_style(gf::ComboBoxStyle::drop_down);
-    (*band).set_auto_complete_source(gf::AutoCompleteSource::list_items);
-    (*band).set_auto_complete_mode(gf::AutoCompleteMode::append);
+    (*band).drop_down_style = gf::ComboBoxStyle::drop_down;
+    (*band).auto_complete_source = gf::AutoCompleteSource::list_items;
+    (*band).auto_complete_mode = gf::AutoCompleteMode::append;
     gf::Window window(band, gf::Size{220.0, 30.0});
     window.request_focus((*band).editor());
     window.dispatch_text(gf::TextInputEvent{"m"});
     // The field shows "medium wave" with "edium wave" selected, and the
-    // text equals the second item, so (*band).selected_index() is 1.
+    // text equals the second item, so (*band).selected_index.read() is 1.
 }
 }  // namespace doc_example_ComboBox_3
 
@@ -722,8 +722,8 @@ void example() {
     std::shared_ptr<gf::ComboBox> station =
         gf::make_control<gf::ComboBox>(gf::StableId("trip.station"));
     (*station).items = {"Hamburg Hbf", "Köln Hbf", "Paris Nord", "Zürich HB"};
-    (*station).set_drop_down_style(gf::ComboBoxStyle::drop_down);
-    (*station).set_drop_down_filter(gf::ComboBoxFilter::substring);
+    (*station).drop_down_style = gf::ComboBoxStyle::drop_down;
+    (*station).drop_down_filter = gf::ComboBoxFilter::substring;
     gf::Window window(station, gf::Size{240.0, 200.0});
     window.request_focus((*station).editor());
     window.dispatch_text(gf::TextInputEvent{"hb"});

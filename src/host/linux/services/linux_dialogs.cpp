@@ -139,10 +139,10 @@ struct DialogState final {
         continue;
       }
       bool show = is_directory || !folder;
-      if (show && !is_directory && filter && (*filter).selected_index() &&
-          *(*filter).selected_index() < filters.size()) {
+      if (show && !is_directory && filter && (*filter).selected_index.read() &&
+          *(*filter).selected_index.read() < filters.size()) {
         const HostFileDialogFilter &selected =
-            filters[*(*filter).selected_index()];
+            filters[*(*filter).selected_index.read()];
         std::string extension = item.path().extension().string();
         if (!extension.empty())
           extension.erase(0, 1);
@@ -271,9 +271,9 @@ struct DialogState final {
     HostPathDialogResult accepted{HostDialogOutcome::accepted,
                                   std::move(paths)};
     // The added "All files" is no filter of the request.
-    if (!folder && filter && (*filter).selected_index() &&
-        *(*filter).selected_index() < filters.size())
-      accepted.chosen_filter = *(*filter).selected_index();
+    if (!folder && filter && (*filter).selected_index.read() &&
+        *(*filter).selected_index.read() < filters.size())
+      accepted.chosen_filter = *(*filter).selected_index.read();
     result.payload = std::move(accepted);
     done = true;
   }
@@ -504,10 +504,9 @@ HostDialogResult retained_dialog(NativeWindow &owner,
     (*state.filter).items = std::move(names);
     // The request's starting filter; the added "All files" follows the
     // request's own.
-    (*state.filter)
-        .set_selected_index(state.initial_filter < state.filters.size()
-                                ? state.initial_filter
-                                : 0U);
+    (*state.filter).selected_index = state.initial_filter < state.filters.size()
+                                         ? state.initial_filter
+                                         : std::size_t{0U};
     (*state.root).add_child(state.filter);
     state.status = label(state, "host.dialog.status", "", {16, 492, 450, 40});
     state.accept_button = state.button("host.dialog.accept",

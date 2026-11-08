@@ -120,9 +120,9 @@ private:
         (*city_).auto_complete_source = AutoCompleteSource::custom_source;
         (*city_).auto_complete_mode = AutoCompleteMode::suggest_append;
         (*band_).items = {"Long wave", "Medium wave", "Short wave", "VHF FM", "UHF", "Microwave"};
-        (*band_).set_drop_down_style(ComboBoxStyle::drop_down);
-        (*band_).set_auto_complete_source(AutoCompleteSource::list_items);
-        (*band_).set_auto_complete_mode(AutoCompleteMode::suggest);
+        (*band_).drop_down_style = ComboBoxStyle::drop_down;
+        (*band_).auto_complete_source = AutoCompleteSource::list_items;
+        (*band_).auto_complete_mode = AutoCompleteMode::suggest;
         on((*city_).auto_complete_accepted(), *this, &TextAndInputPage::completion_accepted);
         on((*(*band_).editor()).auto_complete_accepted(), *this, &TextAndInputPage::completion_accepted);
     }

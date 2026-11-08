@@ -88,7 +88,7 @@ void test_text_and_input(gui_forms::Window& window,
                 (*(*band).editor()).auto_complete_suggestions().size() == 2U &&
                 window.dispatch_key({KeyAction::down, PhysicalKey::down}) &&
                 window.dispatch_key({KeyAction::down, PhysicalKey::enter}) &&
-                (*band).text() == "Medium wave" && (*band).selected_index() == 1U,
+                (*band).text.read() == "Medium wave" && (*band).selected_index.read() == 1U,
             "the band field suggests from its items and the accepted item is selected");
 
     const std::shared_ptr<gui_forms::TokenBox> recipients = std::dynamic_pointer_cast<TokenBox>(

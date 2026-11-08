@@ -53,7 +53,7 @@ drop_down_style : default ``ComboBoxStyle::drop_down_list``
     always shown under the field, is not offered.
 text
     The field's text: the editor's in the drop_down style, otherwise the
-    selected item's. `set_text` in the drop_down style sets the editor's
+    selected item's. Writing `text` in the drop_down style sets the editor's
     text and selects the item it equals, ignoring ASCII case, or clears the
     selection; in the drop_down_list style it selects the first item equal
     to the text, or clears the selection. Invalid UTF-8 throws
@@ -190,9 +190,9 @@ closes the suggestions.
 With a `drop_down_filter`, the combo box is searchable. Each edit the user
 makes opens the list on the items that match the typed text, in their own
 order, narrows or widens the rows as the text changes, and closes the list
-when nothing matches; text set by the program (`set_text`, or the editor
+when nothing matches; text set by the program (a `text` write, or the editor
 showing a chosen item) does not filter. Opening the list with the button,
-F4, Alt+Down or `set_dropped_down` shows every item. The rows keep their
+F4, Alt+Down or writing `dropped_down` shows every item. The rows keep their
 items' identities: the selection is always an index into `items`, a row's
 semantic ID ends in its item's index rather than its position, a row
 pressed or chosen with the keys selects its item, and when the items change
@@ -217,8 +217,8 @@ Offer three choices with a placeholder, and select one:
    std::shared_ptr<gf::ComboBox> density =
        gf::make_control<gf::ComboBox>(gf::StableId("view.density"));
    (*density).items = {"Compact", "Comfortable", "Spacious"};
-   (*density).set_placeholder_text("Choose a density");
-   (*density).set_selected_index(1U);
+   (*density).placeholder_text = "Choose a density";
+   (*density).selected_index = 1U;
    // (*density).selected_text() is now "Comfortable"
 
 React to the selection with an owned handler. Shrinking the items clears a
@@ -242,7 +242,7 @@ selection that no longer exists, and the handler sees that too:
 
    void example() {
        DensityField field;
-       (*field.combo).set_selected_index(2U);                 // field.density is "Spacious"
+       (*field.combo).selected_index = 2U;                 // field.density is "Spacious"
        (*field.combo).items = {"Compact", "Comfortable"};  // and now ""
    }
 
@@ -253,14 +253,14 @@ An editable field that completes from its items:
    std::shared_ptr<gf::ComboBox> band =
        gf::make_control<gf::ComboBox>(gf::StableId("radio.band"));
    (*band).items = {"Long wave", "Medium wave", "Short wave"};
-   (*band).set_drop_down_style(gf::ComboBoxStyle::drop_down);
-   (*band).set_auto_complete_source(gf::AutoCompleteSource::list_items);
-   (*band).set_auto_complete_mode(gf::AutoCompleteMode::append);
+   (*band).drop_down_style = gf::ComboBoxStyle::drop_down;
+   (*band).auto_complete_source = gf::AutoCompleteSource::list_items;
+   (*band).auto_complete_mode = gf::AutoCompleteMode::append;
    gf::Window window(band, gf::Size{220.0, 30.0});
    window.request_focus((*band).editor());
    window.dispatch_text(gf::TextInputEvent{"m"});
    // The field shows "medium wave" with "edium wave" selected, and the
-   // text equals the second item, so (*band).selected_index() is 1.
+   // text equals the second item, so (*band).selected_index.read() is 1.
 
 A searchable field that lists the stations containing what is typed:
 
@@ -269,8 +269,8 @@ A searchable field that lists the stations containing what is typed:
    std::shared_ptr<gf::ComboBox> station =
        gf::make_control<gf::ComboBox>(gf::StableId("trip.station"));
    (*station).items = {"Hamburg Hbf", "Köln Hbf", "Paris Nord", "Zürich HB"};
-   (*station).set_drop_down_style(gf::ComboBoxStyle::drop_down);
-   (*station).set_drop_down_filter(gf::ComboBoxFilter::substring);
+   (*station).drop_down_style = gf::ComboBoxStyle::drop_down;
+   (*station).drop_down_filter = gf::ComboBoxFilter::substring;
    gf::Window window(station, gf::Size{240.0, 200.0});
    window.request_focus((*station).editor());
    window.dispatch_text(gf::TextInputEvent{"hb"});

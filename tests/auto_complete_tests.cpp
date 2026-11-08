@@ -597,12 +597,12 @@ void combo_drop_down_style() {
     ComboFixture fixture = make_combo("combo.edit");
     Window& window = *fixture.window;
     ComboBox& combo = *fixture.combo;
-    combo.set_selected_index(1U);
-    require(!combo.editor() && combo.text() == "California" && combo.focusable(),
+    combo.selected_index = 1U;
+    require(!combo.editor() && combo.text.read() == "California" && combo.focusable(),
             "a new combo box is a drop-down list with no editor");
-    combo.set_drop_down_style(ComboBoxStyle::drop_down);
+    combo.drop_down_style = ComboBoxStyle::drop_down;
     const std::shared_ptr<TextBox> editor = combo.editor();
-    require(editor && (*editor).text.read() == "California" && combo.selected_index() == 1U &&
+    require(editor && (*editor).text.read() == "California" && combo.selected_index.read() == 1U &&
                 !combo.focusable() && window.find("combo.edit.editor") == editor,
             "the drop_down style adds an editor showing the selected item");
     window.perform_layout();
@@ -620,71 +620,71 @@ void combo_drop_down_style() {
     SubscriptionToken drops = combo.drop_down_changed().subscribe(TraceDropDown{&trace});
     require(window.request_focus(editor), "the editor takes the focus");
     (*editor).select_all();
-    require(type(window, "d") && combo.text() == "d" && !combo.selected_index(),
+    require(type(window, "d") && combo.text.read() == "d" && !combo.selected_index.read(),
             "typed text that equals no item clears the selection");
-    require(type(window, "OVER") && combo.text() == "dOVER" && combo.selected_index() == 3U,
+    require(type(window, "OVER") && combo.text.read() == "dOVER" && combo.selected_index.read() == 3U,
             "typed text equal to an item, ignoring ASCII case, selects it and stays as typed");
     require(trace.size() == 4U && trace[0] == "text d" && trace[1] == "index none" &&
                 trace[2] == "text dOVER" && trace[3] == "index 3",
             "each edit raises text_changed, then any selection change");
     trace.clear();
-    require(press(window, PhysicalKey::up) && combo.selected_index() == 2U && combo.text() == "Cambridge",
+    require(press(window, PhysicalKey::up) && combo.selected_index.read() == 2U && combo.text.read() == "Cambridge",
             "Up selects the previous item and shows it");
     require(trace.size() == 2U && trace[0] == "text Cambridge" && trace[1] == "index 2",
             "choosing an item shows its text, then raises the selection");
-    require(press(window, PhysicalKey::down) && combo.text() == "Dover", "Down selects the next item");
+    require(press(window, PhysicalKey::down) && combo.text.read() == "Dover", "Down selects the next item");
 
     trace.clear();
-    require(press(window, PhysicalKey::f4) && combo.dropped_down() && window.focus_scope_depth() == 0U &&
+    require(press(window, PhysicalKey::f4) && combo.dropped_down.read() && window.focus_scope_depth() == 0U &&
                 window.focused_control() == editor,
             "F4 opens the list without taking the focus from the editor");
     require(!(*window.find("combo.edit.overlay.list")).focusable(), "the open list never takes the focus");
-    require(press(window, PhysicalKey::up) && combo.selected_index() == 2U && combo.dropped_down() &&
+    require(press(window, PhysicalKey::up) && combo.selected_index.read() == 2U && combo.dropped_down.read() &&
                 (*std::static_pointer_cast<ListBox>(window.find("combo.edit.overlay.list"))).selected_index() == 2U,
             "Up moves through the open list and the field shows each item");
-    require(type(window, "s") && combo.text() == "Cambridges" && combo.dropped_down() && !combo.selected_index(),
+    require(type(window, "s") && combo.text.read() == "Cambridges" && combo.dropped_down.read() && !combo.selected_index.read(),
             "typing goes on in the editor while the list is open");
-    require(press(window, PhysicalKey::enter) && !combo.dropped_down() && combo.text() == "Cambridges",
+    require(press(window, PhysicalKey::enter) && !combo.dropped_down.read() && combo.text.read() == "Cambridges",
             "Enter closes the list");
-    require(press(window, PhysicalKey::down, Modifier::alt) && combo.dropped_down(), "Alt+Down opens the list");
-    require(press(window, PhysicalKey::escape) && !combo.dropped_down(), "Escape closes the list");
+    require(press(window, PhysicalKey::down, Modifier::alt) && combo.dropped_down.read(), "Alt+Down opens the list");
+    require(press(window, PhysicalKey::escape) && !combo.dropped_down.read(), "Escape closes the list");
 
-    require(press(window, PhysicalKey::f4) && combo.dropped_down(), "the list opens again");
+    require(press(window, PhysicalKey::f4) && combo.dropped_down.read(), "the list opens again");
     window.perform_layout();
     const Rect list = (*window.find("combo.edit.overlay.list")).absolute_bounds();
     require(list.y >= 40.0 && list.width == 220.0, "the list opens under the field, as wide as it");
     const Point first{list.x + 20.0, list.y + 2.0 + 13.0};
     require(window.dispatch_pointer({PointerAction::down, PointerButton::primary, first}) &&
                 window.dispatch_pointer({PointerAction::up, PointerButton::primary, first}) &&
-                !combo.dropped_down() && combo.selected_index() == 0U && combo.text() == "Calgary" &&
+                !combo.dropped_down.read() && combo.selected_index.read() == 0U && combo.text.read() == "Calgary" &&
                 window.focused_control() == editor,
             "clicking a row chooses it, closes the list and keeps the focus in the editor");
     const Point button{10.0 + 220.0 - 10.0, 25.0};
     require(window.dispatch_pointer({PointerAction::down, PointerButton::primary, button}) &&
-                combo.dropped_down(),
+                combo.dropped_down.read(),
             "a press on the button opens the list");
     static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, button}));
     require(window.dispatch_pointer({PointerAction::down, PointerButton::primary, button}) &&
-                !combo.dropped_down(),
+                !combo.dropped_down.read(),
             "a press on the button of an open list reaches the field and closes it");
     static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, button}));
-    require(press(window, PhysicalKey::f4) && window.request_focus(fixture.other) && !combo.dropped_down(),
+    require(press(window, PhysicalKey::f4) && window.request_focus(fixture.other) && !combo.dropped_down.read(),
             "the list closes when the field loses the focus");
 
-    combo.set_text("CAMBRIDGE");
-    require(combo.text() == "CAMBRIDGE" && combo.selected_index() == 2U,
+    combo.text = "CAMBRIDGE";
+    require(combo.text.read() == "CAMBRIDGE" && combo.selected_index.read() == 2U,
             "set_text sets the editor's text and the selection follows it");
     require(combo.property_value("Text") == BindingValue{std::string("CAMBRIDGE")},
             "the Text property is the field's text");
     require(window.perform_semantic_action("combo.edit", SemanticAction::set_value, "Somewhere") &&
-                combo.text() == "Somewhere" && !combo.selected_index(),
+                combo.text.read() == "Somewhere" && !combo.selected_index.read(),
             "an assistive technology may set any text");
     combo.items = {"Somewhere", "Elsewhere"};
-    require(combo.selected_index() == 0U, "new items are matched against the text");
+    require(combo.selected_index.read() == 0U, "new items are matched against the text");
 
-    combo.set_drop_down_style(ComboBoxStyle::drop_down_list);
+    combo.drop_down_style = ComboBoxStyle::drop_down_list;
     require(!combo.editor() && !window.find("combo.edit.editor") && combo.focusable() &&
-                combo.selected_index() == 0U && combo.text() == "Somewhere",
+                combo.selected_index.read() == 0U && combo.text.read() == "Somewhere",
             "back in the drop_down_list style the editor is gone and the selection kept");
 }
 
@@ -692,59 +692,59 @@ void combo_auto_complete() {
     ComboFixture fixture = make_combo("combo.ac");
     Window& window = *fixture.window;
     ComboBox& combo = *fixture.combo;
-    combo.set_auto_complete_source(AutoCompleteSource::list_items);
-    combo.set_auto_complete_mode(AutoCompleteMode::suggest_append);
-    require(combo.auto_complete_source() == AutoCompleteSource::list_items &&
-                combo.auto_complete_mode() == AutoCompleteMode::suggest_append,
+    combo.auto_complete_source = AutoCompleteSource::list_items;
+    combo.auto_complete_mode = AutoCompleteMode::suggest_append;
+    require(combo.auto_complete_source.read() == AutoCompleteSource::list_items &&
+                combo.auto_complete_mode.read() == AutoCompleteMode::suggest_append,
             "the settings are kept in the drop_down_list style");
-    combo.set_drop_down_style(ComboBoxStyle::drop_down);
+    combo.drop_down_style = ComboBoxStyle::drop_down;
     const std::shared_ptr<TextBox> editor = combo.editor();
     require((*editor).auto_complete_mode.read() == AutoCompleteMode::suggest_append,
             "the editor takes the combo box's auto-complete settings");
     require(window.request_focus(editor), "the editor takes the focus");
     std::vector<std::string> trace;
     SubscriptionToken accepts = (*editor).auto_complete_accepted().subscribe(TraceAccepted{&trace});
-    require(type(window, "c") && combo.text() == "calgary" && (*editor).auto_complete_open() &&
-                (*editor).auto_complete_suggestions().size() == 3U && !combo.dropped_down(),
+    require(type(window, "c") && combo.text.read() == "calgary" && (*editor).auto_complete_open() &&
+                (*editor).auto_complete_suggestions().size() == 3U && !combo.dropped_down.read(),
             "list_items completes from the items: the first is appended and the matches suggested");
-    require(combo.selected_index() == 0U, "the appended completion equals an item, so it is selected");
+    require(combo.selected_index.read() == 0U, "the appended completion equals an item, so it is selected");
     window.perform_layout();
     const Rect list = (*window.find("combo.ac.editor.auto-complete.list")).absolute_bounds();
     require(list.width == 220.0 && list.y >= 40.0, "the suggestion list opens under the whole field");
     require(press(window, PhysicalKey::down) && press(window, PhysicalKey::down) &&
-                combo.text() == "California" && combo.selected_index() == 1U && !combo.dropped_down(),
+                combo.text.read() == "California" && combo.selected_index.read() == 1U && !combo.dropped_down.read(),
             "Down moves through the suggestions, not the combo box's own list");
     require(press(window, PhysicalKey::enter) && !(*editor).auto_complete_open() &&
-                combo.text() == "California" && trace.size() == 1U,
+                combo.text.read() == "California" && trace.size() == 1U,
             "Enter accepts the suggestion");
-    require(press(window, PhysicalKey::down) && combo.text() == "Cambridge",
+    require(press(window, PhysicalKey::down) && combo.text.read() == "Cambridge",
             "with the suggestions closed, Down chooses the next item");
 
     (*editor).select_all();
     require(type(window, "c") && (*editor).auto_complete_open() && press(window, PhysicalKey::f4) &&
-                combo.dropped_down() && !(*editor).auto_complete_open(),
+                combo.dropped_down.read() && !(*editor).auto_complete_open(),
             "opening the combo box's list closes the suggestions");
-    require(press(window, PhysicalKey::escape) && !combo.dropped_down(), "the list closes");
+    require(press(window, PhysicalKey::escape) && !combo.dropped_down.read(), "the list closes");
 
     combo.items.append("Canterbury");
     (*editor).select_all();
-    require(type(window, "can") && combo.text() == "canterbury",
+    require(type(window, "can") && combo.text.read() == "canterbury",
             "list_items follows the items");
     std::shared_ptr<AutoCompleteStringCollection> towns = std::make_shared<AutoCompleteStringCollection>();
     (*towns).add("Dartmouth");
-    combo.set_auto_complete_custom_source(towns);
-    combo.set_auto_complete_source(AutoCompleteSource::custom_source);
+    combo.auto_complete_custom_source = towns;
+    combo.auto_complete_source = AutoCompleteSource::custom_source;
     require((*editor).auto_complete_custom_source.read() == towns, "custom_source hands the collection to the editor");
     (*editor).select_all();
-    require(type(window, "d") && combo.text() == "dartmouth" && !combo.selected_index(),
+    require(type(window, "d") && combo.text.read() == "dartmouth" && !combo.selected_index.read(),
             "custom_source completes from the collection, not the items");
-    combo.set_auto_complete_source(AutoCompleteSource::history_list);
+    combo.auto_complete_source = AutoCompleteSource::history_list;
     (*editor).select_all();
-    require(type(window, "d") && combo.text() == "d" && !(*editor).auto_complete_open(),
+    require(type(window, "d") && combo.text.read() == "d" && !(*editor).auto_complete_open(),
             "a host source offers nothing");
     bool threw = false;
     try {
-        combo.set_auto_complete_custom_source(nullptr);
+        combo.auto_complete_custom_source = nullptr;
     } catch (const std::invalid_argument&) {
         threw = true;
     }

@@ -82,6 +82,30 @@ Related types
      - Stage T1 anatomy, as dot members.
    * - :cpp:class:`ComboBox::States <gui_forms::ComboBox::States>`
      -  
+   * - :cpp:class:`ComboBoxAutoCompleteCustomSourceCapability <gui_forms::ComboBoxAutoCompleteCustomSourceCapability>`
+     - The candidates for AutoCompleteSource::custom_source (AutoCompleteCustomSource).
+   * - :cpp:class:`ComboBoxAutoCompleteModeCapability <gui_forms::ComboBoxAutoCompleteModeCapability>`
+     - How the drop_down editor offers completions (AutoCompleteMode); a filtered list turns the editor's own completion off.
+   * - :cpp:class:`ComboBoxAutoCompleteSourceCapability <gui_forms::ComboBoxAutoCompleteSourceCapability>`
+     - Where the editor's completions come from (AutoCompleteSource); list_items offers the items.
+   * - :cpp:class:`ComboBoxCapabilities <gui_forms::ComboBoxCapabilities>`
+     - Every ComboBox capability, in the order the declaring class takes them.
+   * - :cpp:class:`ComboBoxDropDownFilterCapability <gui_forms::ComboBoxDropDownFilterCapability>`
+     - Which items a drop_down field's list shows as the user types: every item, those starting with the text, or those containing it.
+   * - :cpp:class:`ComboBoxDropDownStyleCapability <gui_forms::ComboBoxDropDownStyleCapability>`
+     - Whether the field takes text (drop_down, a TextBox editor) or shows the selected item (drop_down_list, the default) (DropDownStyle).
+   * - :cpp:class:`ComboBoxDropDownWidthCapability <gui_forms::ComboBoxDropDownWidthCapability>`
+     - The open list's width (DropDownWidth); zero follows the field's width.
+   * - :cpp:class:`ComboBoxDroppedDownCapability <gui_forms::ComboBoxDroppedDownCapability>`
+     - Whether the list is open (DroppedDown); a view.
+   * - :cpp:class:`ComboBoxMaximumDropDownItemsCapability <gui_forms::ComboBoxMaximumDropDownItemsCapability>`
+     - The most rows the open list shows before it scrolls (MaxDropDownItems), 1 to 64 (std::invalid_argument otherwise).
+   * - :cpp:class:`ComboBoxPlaceholderTextCapability <gui_forms::ComboBoxPlaceholderTextCapability>`
+     - The hint the field shows while no item is selected and no text is typed; the editor shows it in the drop_down style.
+   * - :cpp:class:`ComboBoxSelectedIndexCapability <gui_forms::ComboBoxSelectedIndexCapability>`
+     - The selected item (SelectedIndex), or none; a view onto the selection.
+   * - :cpp:class:`ComboBoxTextCapability <gui_forms::ComboBoxTextCapability>`
+     - The field's text (Text): the editor's in the drop_down style, otherwise the selected item's; a view.
    * - :cpp:class:`CorrespondenceExpansionChange <gui_forms::CorrespondenceExpansionChange>`
      - CorrespondenceExpansionChange reports the exact hierarchical row and resulting expanded state.
    * - :cpp:class:`CorrespondenceItem <gui_forms::CorrespondenceItem>`
@@ -665,6 +689,255 @@ Related types
    .. cpp:member:: bool open
 
    .. cpp:member:: bool closed
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ComboBoxAutoCompleteCustomSourceCapability
+
+   ``#include <gui_forms/controls/panel/combo_box/combo_box_capabilities/combo_box_capabilities.hpp>``
+
+   The candidates for AutoCompleteSource::custom_source (AutoCompleteCustomSource). Never null: a new box owns an empty collection; null throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ComboBoxAutoCompleteCustomSourceCapability& capability, std::shared_ptr<AutoCompleteStringCollection> incoming)
+
+   .. cpp:member:: PropertyCell<std::shared_ptr<AutoCompleteStringCollection>, ComboBoxAutoCompleteCustomSourceCapability<Declaring>> auto_complete_custom_source
+
+      Default: ``{std::make_shared<AutoCompleteStringCollection>()}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ComboBoxAutoCompleteModeCapability
+
+   ``#include <gui_forms/controls/panel/combo_box/combo_box_capabilities/combo_box_capabilities.hpp>``
+
+   How the drop_down editor offers completions (AutoCompleteMode); a filtered list turns the editor's own completion off.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ComboBoxAutoCompleteModeCapability& capability, AutoCompleteMode incoming)
+
+   .. cpp:member:: PropertyCell<AutoCompleteMode, ComboBoxAutoCompleteModeCapability<Declaring>> auto_complete_mode
+
+      Default: ``{AutoCompleteMode::none}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ComboBoxAutoCompleteSourceCapability
+
+   ``#include <gui_forms/controls/panel/combo_box/combo_box_capabilities/combo_box_capabilities.hpp>``
+
+   Where the editor's completions come from (AutoCompleteSource); list_items offers the items.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ComboBoxAutoCompleteSourceCapability& capability, AutoCompleteSource incoming)
+
+   .. cpp:member:: PropertyCell<AutoCompleteSource, ComboBoxAutoCompleteSourceCapability<Declaring>> auto_complete_source
+
+      Default: ``{AutoCompleteSource::none}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ComboBoxCapabilities : public ComboBoxSelectedIndexCapability<Declaring>, public ComboBoxTextCapability<Declaring>, public ComboBoxPlaceholderTextCapability<Declaring>, public ComboBoxDroppedDownCapability<Declaring>, public ComboBoxMaximumDropDownItemsCapability<Declaring>, public ComboBoxDropDownWidthCapability<Declaring>, public FontCapability<Declaring>, public ComboBoxDropDownStyleCapability<Declaring>, public ComboBoxDropDownFilterCapability<Declaring>, public ComboBoxAutoCompleteModeCapability<Declaring>, public ComboBoxAutoCompleteSourceCapability<Declaring>, public ComboBoxAutoCompleteCustomSourceCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/combo_box/combo_box_capabilities/combo_box_capabilities.hpp>``
+
+   Every ComboBox capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: ComboBoxCapabilities()
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::optional<std::size_t> selected_index
+
+      The selected item (SelectedIndex), or none; a view onto the selection. A write shows the item in the editor, moves the open list's row and raises selected_index_changed, then (drop_down_list) text_changed. An index past the end throws std::out_of_range.
+
+   .. cpp:member:: std::string text
+
+      The field's text (Text): the editor's in the drop_down style, otherwise the selected item's; a view. A write sets the editor's text (the selection follows it), or in the drop_down_list style selects the item equal to it, or none. Invalid UTF-8 throws std::invalid_argument.
+
+   .. cpp:member:: std::string placeholder_text
+
+      The hint the field shows while no item is selected and no text is typed; the editor shows it in the drop_down style. Throws std::invalid_argument for invalid UTF-8.
+
+   .. cpp:member:: bool dropped_down
+
+      Whether the list is open (DroppedDown); a view. Writing true opens it on every item (when attached and not empty), false closes it; either raises drop_down_changed when the state changes.
+
+   .. cpp:member:: std::size_t maximum_drop_down_items
+
+      The most rows the open list shows before it scrolls (MaxDropDownItems), 1 to 64 (std::invalid_argument otherwise). An open list reopens at the new height.
+
+   .. cpp:member:: double drop_down_width
+
+      The open list's width (DropDownWidth); zero follows the field's width. 0 to 4096 (std::out_of_range otherwise).
+
+   .. cpp:member:: FontSpec font
+
+      The font of the control's text (Font).
+
+   .. cpp:member:: ComboBoxStyle drop_down_style
+
+      Whether the field takes text (drop_down, a TextBox editor) or shows the selected item (drop_down_list, the default) (DropDownStyle). A change closes the list and creates or removes the editor.
+
+   .. cpp:member:: ComboBoxFilter drop_down_filter
+
+      Which items a drop_down field's list shows as the user types: every item, those starting with the text, or those containing it. A change closes the list.
+
+   .. cpp:member:: AutoCompleteMode auto_complete_mode
+
+      How the drop_down editor offers completions (AutoCompleteMode); a filtered list turns the editor's own completion off.
+
+   .. cpp:member:: AutoCompleteSource auto_complete_source
+
+      Where the editor's completions come from (AutoCompleteSource); list_items offers the items.
+
+   .. cpp:member:: std::shared_ptr<AutoCompleteStringCollection> auto_complete_custom_source
+
+      The candidates for AutoCompleteSource::custom_source (AutoCompleteCustomSource). Never null: a new box owns an empty collection; null throws std::invalid_argument.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ComboBoxDropDownFilterCapability
+
+   ``#include <gui_forms/controls/panel/combo_box/combo_box_capabilities/combo_box_capabilities.hpp>``
+
+   Which items a drop_down field's list shows as the user types: every item, those starting with the text, or those containing it. A change closes the list.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ComboBoxDropDownFilterCapability& capability, ComboBoxFilter incoming)
+
+   .. cpp:member:: PropertyCell<ComboBoxFilter, ComboBoxDropDownFilterCapability<Declaring>> drop_down_filter
+
+      Default: ``{ComboBoxFilter::none}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ComboBoxDropDownStyleCapability
+
+   ``#include <gui_forms/controls/panel/combo_box/combo_box_capabilities/combo_box_capabilities.hpp>``
+
+   Whether the field takes text (drop_down, a TextBox editor) or shows the selected item (drop_down_list, the default) (DropDownStyle). A change closes the list and creates or removes the editor.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ComboBoxDropDownStyleCapability& capability, ComboBoxStyle incoming)
+
+   .. cpp:member:: PropertyCell<ComboBoxStyle, ComboBoxDropDownStyleCapability<Declaring>> drop_down_style
+
+      Default: ``{ComboBoxStyle::drop_down_list}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ComboBoxDropDownWidthCapability
+
+   ``#include <gui_forms/controls/panel/combo_box/combo_box_capabilities/combo_box_capabilities.hpp>``
+
+   The open list's width (DropDownWidth); zero follows the field's width. 0 to 4096 (std::out_of_range otherwise).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ComboBoxDropDownWidthCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, ComboBoxDropDownWidthCapability<Declaring>> drop_down_width
+
+      Default: ``{0.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ComboBoxDroppedDownCapability
+
+   ``#include <gui_forms/controls/panel/combo_box/combo_box_capabilities/combo_box_capabilities.hpp>``
+
+   Whether the list is open (DroppedDown); a view. Writing true opens it on every item (when attached and not empty), false closes it; either raises drop_down_changed when the state changes.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ComboBoxDroppedDownCapability& capability, bool incoming)
+
+   .. cpp:function:: static bool read(const ComboBoxDroppedDownCapability& capability)
+
+   .. cpp:member:: PropertyView<bool, ComboBoxDroppedDownCapability<Declaring>> dropped_down
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ComboBoxMaximumDropDownItemsCapability
+
+   ``#include <gui_forms/controls/panel/combo_box/combo_box_capabilities/combo_box_capabilities.hpp>``
+
+   The most rows the open list shows before it scrolls (MaxDropDownItems), 1 to 64 (std::invalid_argument otherwise). An open list reopens at the new height.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ComboBoxMaximumDropDownItemsCapability& capability, std::size_t incoming)
+
+   .. cpp:member:: PropertyCell<std::size_t, ComboBoxMaximumDropDownItemsCapability<Declaring>> maximum_drop_down_items
+
+      Default: ``{8U}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ComboBoxPlaceholderTextCapability
+
+   ``#include <gui_forms/controls/panel/combo_box/combo_box_capabilities/combo_box_capabilities.hpp>``
+
+   The hint the field shows while no item is selected and no text is typed; the editor shows it in the drop_down style. Throws std::invalid_argument for invalid UTF-8.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ComboBoxPlaceholderTextCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, ComboBoxPlaceholderTextCapability<Declaring>> placeholder_text
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ComboBoxSelectedIndexCapability
+
+   ``#include <gui_forms/controls/panel/combo_box/combo_box_capabilities/combo_box_capabilities.hpp>``
+
+   The selected item (SelectedIndex), or none; a view onto the selection. A write shows the item in the editor, moves the open list's row and raises selected_index_changed, then (drop_down_list) text_changed. An index past the end throws std::out_of_range.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ComboBoxSelectedIndexCapability& capability, std::optional<std::size_t> incoming)
+
+   .. cpp:function:: static std::optional<std::size_t> read(const ComboBoxSelectedIndexCapability& capability)
+
+   .. cpp:member:: PropertyView<std::optional<std::size_t>, ComboBoxSelectedIndexCapability<Declaring>> selected_index
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ComboBoxTextCapability
+
+   ``#include <gui_forms/controls/panel/combo_box/combo_box_capabilities/combo_box_capabilities.hpp>``
+
+   The field's text (Text): the editor's in the drop_down style, otherwise the selected item's; a view. A write sets the editor's text (the selection follows it), or in the drop_down_list style selects the item equal to it, or none. Invalid UTF-8 throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ComboBoxTextCapability& capability, std::string incoming)
+
+   .. cpp:function:: static std::string read(const ComboBoxTextCapability& capability)
+
+   .. cpp:member:: PropertyView<std::string, ComboBoxTextCapability<Declaring>> text
 
 .. cpp:namespace:: gui_forms
 
@@ -4263,7 +4536,7 @@ Enumerations
 
 .. cpp:enum-class:: ComboBoxFilter
 
-   ``#include <gui_forms/controls/panel/combo_box/combo_box.hpp>``
+   ``#include <gui_forms/controls/panel/combo_box/combo_box_values/combo_box_values.hpp>``
 
    .. cpp:enumerator:: none
 
@@ -4275,7 +4548,7 @@ Enumerations
 
 .. cpp:enum-class:: ComboBoxStyle
 
-   ``#include <gui_forms/controls/panel/combo_box/combo_box.hpp>``
+   ``#include <gui_forms/controls/panel/combo_box/combo_box_values/combo_box_values.hpp>``
 
    .. cpp:enumerator:: drop_down_list
 

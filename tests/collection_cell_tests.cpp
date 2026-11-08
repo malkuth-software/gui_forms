@@ -360,7 +360,7 @@ void test_grid_rows_refuse_and_keep_identity() {
 void test_choice_items_follow_edits() {
     std::shared_ptr<ComboBox> combo = make_control<ComboBox>(StableId("collection.combo"));
     (*combo).items = {"Alpha", "Bravo", "Charlie"};
-    (*combo).set_selected_index(1U);
+    (*combo).selected_index = 1U;
     std::vector<std::string_view> raised;
     SubscriptionToken index_changed = (*combo).selected_index_changed().subscribe(
         test_support::PushConstant<std::vector<std::string_view>, std::string_view, std::optional<std::size_t>>(
@@ -371,17 +371,17 @@ void test_choice_items_follow_edits() {
     SubscriptionToken items_changed = (*combo).items_changed().subscribe(
         test_support::PushConstant<std::vector<std::string_view>, std::string_view>(raised, "items"));
     (*combo).items.insert(0U, "Zero");
-    require((*combo).selected_index() == std::optional<std::size_t>{2U} && (*combo).selected_text() == "Bravo" &&
+    require((*combo).selected_index.read() == std::optional<std::size_t>{2U} && (*combo).selected_text() == "Bravo" &&
                 raised == std::vector<std::string_view>{"index", "items"},
             "an insertion before the selection moves it to its item");
     raised.clear();
     (*combo).items.replace(2U, "Beta");
-    require((*combo).selected_index() == std::optional<std::size_t>{2U} &&
+    require((*combo).selected_index.read() == std::optional<std::size_t>{2U} &&
                 raised == std::vector<std::string_view>{"text", "items"},
             "replacing the selected item keeps the index and changes the text");
     raised.clear();
     (*combo).items.erase(2U, 1U);
-    require(!(*combo).selected_index() && raised == std::vector<std::string_view>{"index", "text", "items"},
+    require(!(*combo).selected_index.read() && raised == std::vector<std::string_view>{"index", "text", "items"},
             "erasing the selected item clears the selection");
     raised.clear();
     bool refused = false;
