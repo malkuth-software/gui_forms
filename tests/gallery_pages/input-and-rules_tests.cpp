@@ -1,5 +1,7 @@
 #include "page_tests.hpp"
 
+#include <span>
+#include <string>
 #include <string_view>
 
 namespace gallery_pages_tests {
@@ -100,6 +102,17 @@ void test_input_and_rules(gui_forms::Window& window) {
     const std::size_t subscribed = find_line(*log, "MouseDoubleClick · primary ×2");
     require(noted != no_line && subscribed != no_line && noted < subscribed,
             "the double-click rule runs before the target's MouseDoubleClick subscribers");
+    // DoubleClick itself is logged, and the view still shows it under the
+    // release that followed (the newest line at the bottom of a full view).
+    const std::span<const std::string> lines = (*log).items.read();
+    std::size_t double_click = no_line;
+    for (std::size_t index = 0U; index < lines.size(); ++index) {
+        if (lines[index] == "DoubleClick") double_click = index;
+    }
+    require(double_click != no_line && double_click < noted,
+            "the second press's release raises DoubleClick before MouseDoubleClick");
+    require((*log).top_index.read() <= double_click && (*log).top_index.read() + 1U < lines.size(),
+            "the log view keeps the double-click's lines in sight, not the last line alone");
 
     // Revoked, the rules stop.
     click(window, armed);

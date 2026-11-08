@@ -2,6 +2,9 @@
 
 #include "input-and-rules_form.hpp"
 
+#include <algorithm>
+#include <cmath>
+
 namespace gui_forms::gallery::pages {
 
 namespace {
@@ -203,7 +206,14 @@ void InputAndRulesPage::log(std::string line) {
     (*log_).items.append(std::move(line));
     if ((*log_).items.read().size() > maximum_log_lines) (*log_).items.erase(0U, 1U);
     const std::size_t count = (*log_).items.read().size();
-    (*log_).top_index = count - 1U;
+    // The newest line at the bottom of a full view. A top index of the last
+    // line showed that line alone, so a double-click's DoubleClick and
+    // MouseDoubleClick had scrolled out of sight under its MouseUp.
+    const double row_height = (*log_).item_height.read();
+    const double view_height = std::max(0.0, (*log_).requested_bounds().height - 4.0);
+    const std::size_t rows = std::max<std::size_t>(1U, static_cast<std::size_t>(std::floor(view_height / row_height)));
+    const std::size_t top = count > rows ? count - rows : 0U;
+    (*log_).top_index = top;
     (*log_count_).text = std::to_string(lines_logged_) + " events logged · " + std::to_string(count) +
                            " shown";
     refresh_statistics();
