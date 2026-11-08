@@ -17,7 +17,6 @@ namespace gui_forms {
 // renderer-neutral operations together avoids duplicating text approximation,
 // content alignment, and legacy relief geometry across per-control files.
 std::shared_ptr<const PropertyEnumDescriptor> picture_box_size_mode_enum();
-BindingValue picture_box_size_mode_value(PictureBoxSizeMode mode);
 [[nodiscard]] double estimated_text_width(std::string_view text,
                                           FontSpec font) noexcept;
 [[nodiscard]] bool valid_content_alignment(

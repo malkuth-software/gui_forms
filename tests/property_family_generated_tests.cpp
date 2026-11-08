@@ -13,6 +13,7 @@
 #include "gui_forms/controls/panel/month_calendar/month_calendar.hpp"
 #include "gui_forms/controls/panel/numeric_up_down/numeric_up_down.hpp"
 #include "gui_forms/controls/panel/panel.hpp"
+#include "gui_forms/controls/panel/picture_box/picture_box.hpp"
 #include "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp"
 #include "gui_forms/controls/panel/scaled_panel/scaled_panel.hpp"
 #include "gui_forms/controls/panel/text_box/text_box.hpp"
@@ -553,6 +554,40 @@ void test_panel_properties() {
     }
 }
 
+void test_picture_box_properties() {
+    std::shared_ptr<PictureBox> control = make_control<PictureBox>(StableId("generated.picturebox"));
+    {
+        const ImageId sample = ImageId{3U};
+        int raises = 0;
+        const SubscriptionToken token = (*control).image_changed().subscribe(RaiseCounter{&raises});
+        (*control).image = sample;
+        expect((*control).image.read() == sample, "PictureBox.image: a write stores");
+        expect(raises == 1, "PictureBox.image: a changed write raises once");
+        (*control).image = sample;
+        expect(raises == 1, "PictureBox.image: an equal write raises nothing");
+        static_cast<void>(token);
+        const std::optional<BindingValue> by_name = (*control).property_value("image");
+        expect(by_name && *by_name == PropertyValueTraits<ImageId>::to_binding(sample),
+               "PictureBox.image: the table reads the cell");
+    }
+    {
+        const PictureBoxSizeMode sample = PictureBoxSizeMode::zoom;
+        (*control).size_mode = sample;
+        expect((*control).size_mode.read() == sample, "PictureBox.size_mode: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("size_mode");
+        expect(by_name && *by_name == PropertyValueTraits<PictureBoxSizeMode>::to_binding(sample),
+               "PictureBox.size_mode: the table reads the cell");
+    }
+    {
+        const double sample = 0.5;
+        (*control).image_opacity = sample;
+        expect((*control).image_opacity.read() == sample, "PictureBox.image_opacity: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("image_opacity");
+        expect(by_name && *by_name == PropertyValueTraits<double>::to_binding(sample),
+               "PictureBox.image_opacity: the table reads the cell");
+    }
+}
+
 void test_rich_text_box_properties() {
     std::shared_ptr<RichTextBox> control = make_control<RichTextBox>(StableId("generated.richtextbox"));
     {
@@ -746,6 +781,7 @@ int main() {
     test_month_calendar_properties();
     test_numeric_up_down_properties();
     test_panel_properties();
+    test_picture_box_properties();
     test_rich_text_box_properties();
     test_scaled_group_box_properties();
     test_scaled_panel_properties();

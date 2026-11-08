@@ -2637,12 +2637,12 @@ void example() {
     std::shared_ptr<gf::PictureBox> preview =
         gf::make_control<gf::PictureBox>(gf::StableId("preview"));
     (*preview).set_requested_bounds({0.0, 0.0, 100.0, 100.0});
-    (*preview).set_size_mode(gf::PictureBoxSizeMode::zoom);
+    (*preview).size_mode = gf::PictureBoxSizeMode::zoom;
     (*preview).accessible_name = "Preview";
     gf::Window window(preview, gf::Size{100.0, 100.0});
     const std::vector<std::byte> pixels(4U * 2U * 4U, std::byte{0xff});   // 4 x 2, white
     const gf::ImageLoadResult loaded = window.load_bgra32_premultiplied(4U, 2U, 16U, pixels);
-    (*preview).set_image(loaded.image);
+    (*preview).image = loaded.image;
     window.perform_layout();
     // (*preview).image_bounds() is now {0, 25, 100, 50}
 }

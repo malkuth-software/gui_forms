@@ -184,14 +184,14 @@ void install_page_fixtures(Window& window) {
             if (const std::shared_ptr<gui_forms::PictureBox> picture = std::dynamic_pointer_cast<PictureBox>(
                     window.find("gallery.images.picture." +
                                  std::to_string(index)))) {
-                (*picture).set_image(loaded.image);
+                (*picture).image = loaded.image;
             }
         }
         for (std::size_t index = 0U; index < 3U; ++index) {
             if (const std::shared_ptr<gui_forms::PictureBox> picture = std::dynamic_pointer_cast<PictureBox>(
                     window.find("gallery.images.opacity." +
                                  std::to_string(index)))) {
-                (*picture).set_image(loaded.image);
+                (*picture).image = loaded.image;
             }
         }
         install_grid_previews(window, loaded.image);
@@ -314,7 +314,7 @@ std::unique_ptr<Window> make_gallery()
     if (!status_badge) {
         throw std::logic_error("compiled Gallery PNG failed core validation");
     }
-    (*(*tree.context).document.gallery_command_status_badge).set_image(status_badge.image);
+    (*(*tree.context).document.gallery_command_status_badge).image = status_badge.image;
     (*window).perform_layout();
     initialize_gallery_runtime(*window);
     install_page_fixtures(*window);

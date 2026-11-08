@@ -7,17 +7,17 @@ gui_forms::PictureBox
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: PictureBox : public Panel
+.. cpp:class:: PictureBox : public Panel, public PictureBoxCapabilities<PictureBox>
 
    ``#include <gui_forms/controls/panel/picture_box/picture_box.hpp>``
 
    A box that displays one image from its window's image registry.
 
    Load an image into the window, for example with ``Window::load_png``, and give
-   the returned :cpp:class:`ImageId <gui_forms::ImageId>` to :cpp:func:`set_image <gui_forms::PictureBox::set_image>`; :cpp:func:`size_mode <gui_forms::PictureBox::size_mode>` decides whether the image
+   the returned :cpp:class:`ImageId <gui_forms::ImageId>` to :cpp:member:`image <gui_forms::PictureBox::image>`; :cpp:member:`size_mode <gui_forms::PictureBox::size_mode>` decides whether the image
    keeps its size, stretches, is centred, is scaled to fit, or sizes the box. The
    box is for display only: it takes no focus or input, and pointer events pass
-   through to the control underneath. Use a :cpp:class:`Button <gui_forms::Button>` with an :cpp:func:`image <gui_forms::PictureBox::image>` for a
+   through to the control underneath. Use a :cpp:class:`Button <gui_forms::Button>` with an :cpp:member:`image <gui_forms::PictureBox::image>` for a
    clickable picture.
 
    *Status:* stable. *Windows Forms counterpart:* ``PictureBox``.
@@ -36,13 +36,6 @@ gui_forms::PictureBox
          window is accepted and simply draws nothing. Setting a different ID
          raises :cpp:func:`image_changed <gui_forms::PictureBox::image_changed>`.
 
-      **has_valid_image** : ``bool``, read-only
-         Whether the box is in a window and :cpp:func:`image <gui_forms::PictureBox::image>` is live in that window's
-         registry.
-
-      **image_size** : ``Size``, read-only
-         The image's size in pixels, or zero when there is no valid image.
-
       **size_mode** : ``PictureBoxSizeMode``, default ``PictureBoxSizeMode::normal``
          ``normal`` draws the image at its pixel size from the top-left corner;
          ``stretch_image`` stretches it to fill the box; ``center_image`` centres it
@@ -54,16 +47,23 @@ gui_forms::PictureBox
          Opacity of the image, from 0 to 1; other values throw
          ``std::invalid_argument``. Zero draws no image.
 
+      **has_valid_image** : ``bool``, read-only
+         Whether the box is in a window and :cpp:member:`image <gui_forms::PictureBox::image>` is live in that window's
+         registry.
+
+      **image_size** : ``Size``, read-only
+         The image's size in pixels, or zero when there is no valid image.
+
       **image_bounds** : ``Rect``, read-only
          Where the image is drawn, in the box's coordinates, for the current
-         :cpp:func:`size_mode <gui_forms::PictureBox::size_mode>`; empty when there is no valid image.
+         :cpp:member:`size_mode <gui_forms::PictureBox::size_mode>`; empty when there is no valid image.
 
       **parts** : ``Parts``, read-only
 
    :Events:
 
       **image_changed** : ``Event<ImageId>``
-         Raised after :cpp:func:`image <gui_forms::PictureBox::image>` changes. It carries the new ID.
+         Raised after :cpp:member:`image <gui_forms::PictureBox::image>` changes. It carries the new ID.
 
    :Inherited:
 
@@ -80,7 +80,9 @@ gui_forms::PictureBox
       :widths: 35 65
 
       * - :cpp:func:`clear_image <gui_forms::PictureBox::clear_image>`
-        - Sets :cpp:func:`image <gui_forms::PictureBox::image>` to none, which raises :cpp:func:`image_changed <gui_forms::PictureBox::image_changed>` if an image was set.
+        - Sets :cpp:member:`image <gui_forms::PictureBox::image>` to none, which raises :cpp:func:`image_changed <gui_forms::PictureBox::image_changed>` if an image was set.
+      * - :cpp:func:`picture_box_property_entries <gui_forms::PictureBox::picture_box_property_entries>`
+        -  
 
    .. seealso::
 
@@ -105,7 +107,7 @@ gui_forms::PictureBox
    Removing an image from the window while a box shows it is safe: the box stops
    drawing it and reports no valid image.
 
-   The control publishes the accessibility role :cpp:func:`image <gui_forms::PictureBox::image>`. Its name and
+   The control publishes the accessibility role :cpp:member:`image <gui_forms::PictureBox::image>`. Its name and
    description are the accessible name and description, and its value is the
    image's pixel size, such as ``"4 x 2"``. It is exposed when it has a valid
    image or a name or description, so give a meaningful picture an accessible
@@ -120,12 +122,12 @@ gui_forms::PictureBox
       std::shared_ptr<gf::PictureBox> preview =
           gf::make_control<gf::PictureBox>(gf::StableId("preview"));
       (*preview).set_requested_bounds({0.0, 0.0, 100.0, 100.0});
-      (*preview).set_size_mode(gf::PictureBoxSizeMode::zoom);
+      (*preview).size_mode = gf::PictureBoxSizeMode::zoom;
       (*preview).accessible_name = "Preview";
       gf::Window window(preview, gf::Size{100.0, 100.0});
       const std::vector<std::byte> pixels(4U * 2U * 4U, std::byte{0xff});   // 4 x 2, white
       const gf::ImageLoadResult loaded = window.load_bgra32_premultiplied(4U, 2U, 16U, pixels);
-      (*preview).set_image(loaded.image);
+      (*preview).image = loaded.image;
       window.perform_layout();
       // (*preview).image_bounds() is now {0, 25, 100, 50}
 
@@ -137,27 +139,14 @@ gui_forms::PictureBox
 
    .. rubric:: Properties
 
-   .. cpp:function:: ImageId image() const noexcept
+   .. cpp:member:: ImageId image
 
       The displayed image. The box stores only the ID; the window's registry
       owns the pixels. An ID that is not, or is no longer, live in the box's
       window is accepted and simply draws nothing. Setting a different ID
       raises :cpp:func:`image_changed <gui_forms::PictureBox::image_changed>`.
 
-   .. cpp:function:: void set_image(ImageId image)
-
-      Sets :cpp:func:`image <gui_forms::PictureBox::image>`; see the property's description above.
-
-   .. cpp:function:: bool has_valid_image() const noexcept
-
-      Whether the box is in a window and :cpp:func:`image <gui_forms::PictureBox::image>` is live in that window's
-      registry.
-
-   .. cpp:function:: Size image_size() const noexcept
-
-      The image's size in pixels, or zero when there is no valid image.
-
-   .. cpp:function:: PictureBoxSizeMode size_mode() const noexcept
+   .. cpp:member:: PictureBoxSizeMode size_mode
 
       ``normal`` draws the image at its pixel size from the top-left corner;
       ``stretch_image`` stretches it to fill the box; ``center_image`` centres it
@@ -165,23 +154,24 @@ gui_forms::PictureBox
       aspect ratio, and centres it; ``auto_size`` draws it like ``normal`` and
       makes the box's preferred size the image's size plus the border.
 
-   .. cpp:function:: void set_size_mode(PictureBoxSizeMode mode)
-
-      Sets :cpp:func:`size_mode <gui_forms::PictureBox::size_mode>`; see the property's description above.
-
-   .. cpp:function:: double image_opacity() const noexcept
+   .. cpp:member:: double image_opacity
 
       Opacity of the image, from 0 to 1; other values throw
       ``std::invalid_argument``. Zero draws no image.
 
-   .. cpp:function:: void set_image_opacity(double opacity)
+   .. cpp:function:: bool has_valid_image() const noexcept
 
-      Sets :cpp:func:`image_opacity <gui_forms::PictureBox::image_opacity>`; see the property's description above.
+      Whether the box is in a window and :cpp:member:`image <gui_forms::PictureBox::image>` is live in that window's
+      registry.
+
+   .. cpp:function:: Size image_size() const noexcept
+
+      The image's size in pixels, or zero when there is no valid image.
 
    .. cpp:function:: Rect image_bounds() const noexcept
 
       Where the image is drawn, in the box's coordinates, for the current
-      :cpp:func:`size_mode <gui_forms::PictureBox::size_mode>`; empty when there is no valid image.
+      :cpp:member:`size_mode <gui_forms::PictureBox::size_mode>`; empty when there is no valid image.
 
    .. cpp:function:: Parts parts() const
 
@@ -190,14 +180,16 @@ gui_forms::PictureBox
 
    .. cpp:function:: Event<ImageId>& image_changed() noexcept
 
-      Raised after :cpp:func:`image <gui_forms::PictureBox::image>` changes. It carries the new ID.
+      Raised after :cpp:member:`image <gui_forms::PictureBox::image>` changes. It carries the new ID.
 
 
    .. rubric:: Methods
 
    .. cpp:function:: void clear_image()
 
-      Sets :cpp:func:`image <gui_forms::PictureBox::image>` to none, which raises :cpp:func:`image_changed <gui_forms::PictureBox::image_changed>` if an image was set.
+      Sets :cpp:member:`image <gui_forms::PictureBox::image>` to none, which raises :cpp:func:`image_changed <gui_forms::PictureBox::image_changed>` if an image was set.
+
+   .. cpp:function:: static const std::array<PropertyEntry, picture_box_property_count>& picture_box_property_entries() noexcept
 
 
    .. rubric:: Extension points
@@ -219,3 +211,15 @@ gui_forms::PictureBox
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 
       *Protected.*
+
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
+   .. cpp:function:: virtual void on_size_mode_changed()
+
+      *Protected.*
+
+      on_<property>_changed runs after a changed write's touch and raises the change event; an override calls the base. coerce_<property> runs last before the compare and may rewrite the incoming value.
+
+   .. cpp:member:: constexpr std::size_t picture_box_property_count
+
+      PictureBox's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 3U``.

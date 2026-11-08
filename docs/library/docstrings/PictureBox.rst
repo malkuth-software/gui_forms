@@ -1,7 +1,7 @@
 A box that displays one image from its window's image registry.
 
 Load an image into the window, for example with `Window::load_png`, and give
-the returned `ImageId` to `set_image`; `size_mode` decides whether the image
+the returned `ImageId` to `image`; `size_mode` decides whether the image
 keeps its size, stretches, is centred, is scaled to fit, or sizes the box. The
 box is for display only: it takes no focus or input, and pointer events pass
 through to the control underneath. Use a `Button` with an `image` for a
@@ -81,11 +81,11 @@ Show an image scaled to fit, keeping its aspect ratio:
    std::shared_ptr<gf::PictureBox> preview =
        gf::make_control<gf::PictureBox>(gf::StableId("preview"));
    (*preview).set_requested_bounds({0.0, 0.0, 100.0, 100.0});
-   (*preview).set_size_mode(gf::PictureBoxSizeMode::zoom);
+   (*preview).size_mode = gf::PictureBoxSizeMode::zoom;
    (*preview).accessible_name = "Preview";
    gf::Window window(preview, gf::Size{100.0, 100.0});
    const std::vector<std::byte> pixels(4U * 2U * 4U, std::byte{0xff});   // 4 x 2, white
    const gf::ImageLoadResult loaded = window.load_bgra32_premultiplied(4U, 2U, 16U, pixels);
-   (*preview).set_image(loaded.image);
+   (*preview).image = loaded.image;
    window.perform_layout();
    // (*preview).image_bounds() is now {0, 25, 100, 50}

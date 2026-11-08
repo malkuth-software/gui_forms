@@ -1,0 +1,131 @@
+{
+  "family": "PictureBox",
+  "step": "B5",
+  "declaring": "PictureBox",
+  "header": "include/gui_forms/controls/panel/picture_box/picture_box.hpp",
+  "source": "src/controls/panel/picture_box/picture_box.cpp",
+  "capabilities_header": "include/gui_forms/controls/panel/picture_box/picture_box_capabilities/picture_box_capabilities.hpp",
+  "base": "Panel",
+  "shared": [],
+  "includes": [
+    "gui_forms/controls/panel/picture_box/picture_box_values/picture_box_values.hpp",
+    "gui_forms/types.hpp"
+  ],
+  "properties": [
+    {
+      "name": "image",
+      "capability": "PictureBoxImage",
+      "value": "ImageId",
+      "initial": null,
+      "comment": "The generational image resource shown (Image); an ImageId into the window's ImageRegistry. A change raises image_changed. clear_image() resets it.",
+      "getter": "image",
+      "setter": "set_image",
+      "clear": null,
+      "field": "image_",
+      "event": "image_changed_",
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": {
+        "kind": "image",
+        "category": "Appearance",
+        "description": "Generational image resource displayed by this control.",
+        "default": "BindingValue{ImageId{}}",
+        "effects": "Dirty::measure | Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": true,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "hand": [],
+      "sample": "ImageId{3U}",
+      "thunks": {
+        "reset": "clear_image",
+        "should_serialize": "should_serialize_image"
+      }
+    },
+    {
+      "name": "size_mode",
+      "capability": "PictureBoxSizeModeProperty",
+      "value": "PictureBoxSizeMode",
+      "initial": "PictureBoxSizeMode::normal",
+      "comment": "How the image is placed and scaled (SizeMode): normal, stretch_image, auto_size, center_image or zoom.",
+      "getter": "size_mode",
+      "setter": "set_size_mode",
+      "clear": null,
+      "field": "size_mode_",
+      "event": null,
+      "on_changed": true,
+      "coerce": false,
+      "localizable": null,
+      "table": {
+        "kind": "enumeration",
+        "category": "Appearance",
+        "description": "Image placement and scaling policy.",
+        "default": "BindingValue{PropertyEnumValue{\"picture_box_size_mode\", \"normal\", 0}}",
+        "effects": "Dirty::measure | Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": "picture_box_size_mode_enum()",
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "hand": [],
+      "sample": "PictureBoxSizeMode::zoom"
+    },
+    {
+      "name": "image_opacity",
+      "capability": "PictureBoxImageOpacity",
+      "value": "double",
+      "initial": "1.0",
+      "comment": "The image's opacity from zero through one; anything else, or a value that is not finite, throws std::invalid_argument.",
+      "getter": "image_opacity",
+      "setter": "set_image_opacity",
+      "clear": null,
+      "field": "image_opacity_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": {
+        "kind": "number",
+        "category": "Appearance",
+        "description": "Image opacity from zero through one.",
+        "default": "BindingValue{1.0}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "hand": [],
+      "prepare": [
+        "if (!std::isfinite(incoming) || incoming < 0.0 || incoming > 1.0) {",
+        "    throw std::invalid_argument(\"PictureBox image opacity must be finite and between zero and one\");",
+        "}"
+      ],
+      "sample": "0.5"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "clear_image",
+      "reason": "the image's reset, kept as a method (the table's reset thunk)"
+    }
+  ],
+  "test": {
+    "type": "PictureBox",
+    "include": "gui_forms/controls/panel/picture_box/picture_box.hpp"
+  }
+}

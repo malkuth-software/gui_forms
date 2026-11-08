@@ -2,38 +2,22 @@
 
 #include "gui_forms/controls/panel/panel.hpp"
 #include "gui_forms/event.hpp"
+#include "gui_forms/controls/panel/picture_box/picture_box_values/picture_box_values.hpp"
+#include "gui_forms/controls/panel/picture_box/picture_box_capabilities/picture_box_capabilities.hpp"
 
 #include <cstdint>
 #include <span>
 
 namespace gui_forms {
 
-// Mirrors the five System.Windows.Forms PictureBoxSizeMode policies. Image
-// storage remains owned by Window's renderer-neutral ImageRegistry; PictureBox
-// is only a retained presentation consumer of a generational ImageId.
-enum class PictureBoxSizeMode : std::uint8_t {
-    normal,
-    stretch_image,
-    auto_size,
-    center_image,
-    zoom,
-};
-
-class PictureBox : public Panel {
+class PictureBox : public Panel, public PictureBoxCapabilities<PictureBox> {
 public:
     explicit PictureBox(StableId stable_id);
 
-    [[nodiscard]] ImageId image() const noexcept { return image_; }
-    void set_image(ImageId image);
+    // Resets image to none (the table's reset for image).
     void clear_image();
     [[nodiscard]] bool has_valid_image() const noexcept;
     [[nodiscard]] Size image_size() const noexcept;
-    [[nodiscard]] PictureBoxSizeMode size_mode() const noexcept {
-        return size_mode_;
-    }
-    void set_size_mode(PictureBoxSizeMode mode);
-    [[nodiscard]] double image_opacity() const noexcept { return image_opacity_; }
-    void set_image_opacity(double opacity);
     [[nodiscard]] Rect image_bounds() const noexcept;
     [[nodiscard]] Event<ImageId>& image_changed() noexcept { return image_changed_; }
 
@@ -58,13 +42,33 @@ protected:
 private:
     [[nodiscard]] Rect content_bounds() const noexcept;
     [[nodiscard]] bool should_serialize_image() const noexcept;
-    [[nodiscard]] BindingValue size_mode_property_value() const;
-    void set_size_mode_property_value(const BindingValue& value);
 
-    ImageId image_{};
-    PictureBoxSizeMode size_mode_{PictureBoxSizeMode::normal};
-    double image_opacity_{1.0};
     Event<ImageId> image_changed_;
+    // property_codemod begin PictureBox (tools/property_families/picture_box.json; generated, do not edit)
+public:
+    // PictureBox's property table: Panel's entries, then its own.
+    static constexpr std::size_t picture_box_property_count = Panel::panel_property_count + 3U;
+    [[nodiscard]] static const std::array<PropertyEntry, picture_box_property_count>& picture_box_property_entries() noexcept;
+    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
+
+protected:
+    // on_<property>_changed runs after a changed write's touch and raises the
+    // change event; an override calls the base. coerce_<property> runs last
+    // before the compare and may rewrite the incoming value.
+    virtual void on_size_mode_changed();
+
+private:
+    friend struct PictureBoxImageCapability<PictureBox>;
+    friend struct PictureBoxSizeModePropertyCapability<PictureBox>;
+    friend struct PictureBoxImageOpacityCapability<PictureBox>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(image)& cell, ImageId& incoming);
+    void written(const decltype(image)& cell);
+    void prepare_write(const decltype(size_mode)& cell, PictureBoxSizeMode& incoming);
+    void written(const decltype(size_mode)& cell);
+    void prepare_write(const decltype(image_opacity)& cell, double& incoming);
+    void written(const decltype(image_opacity)& cell);
+    // property_codemod end PictureBox
 };
 
 } // namespace gui_forms

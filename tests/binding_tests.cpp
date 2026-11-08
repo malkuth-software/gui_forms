@@ -692,9 +692,9 @@ void test_visual_property_values_drive_stock_controls() {
     (*picture).set_property_value("Image", std::uint64_t{42});
     (*picture).set_property_value("SizeMode", std::string("Zoom"));
     (*picture).set_property_value("ImageOpacity", 0.375);
-    require((*picture).image() == ImageId{42} &&
-                (*picture).size_mode() == PictureBoxSizeMode::zoom &&
-                (*picture).image_opacity() == 0.375 && image_changes == 1U &&
+    require((*picture).image.read() == ImageId{42} &&
+                (*picture).size_mode.read() == PictureBoxSizeMode::zoom &&
+                (*picture).image_opacity.read() == 0.375 && image_changes == 1U &&
                 (*picture).should_serialize_property("Image") &&
                 (*picture).should_serialize_property("SizeMode") &&
                 changed.connected(),
@@ -702,9 +702,9 @@ void test_visual_property_values_drive_stock_controls() {
     require((*picture).reset_property("Image") &&
                 (*picture).reset_property("SizeMode") &&
                 (*picture).reset_property("ImageOpacity") &&
-                (*picture).image() == ImageId{} &&
-                (*picture).size_mode() == PictureBoxSizeMode::normal &&
-                (*picture).image_opacity() == 1.0 && image_changes == 2U,
+                (*picture).image.read() == ImageId{} &&
+                (*picture).size_mode.read() == PictureBoxSizeMode::normal &&
+                (*picture).image_opacity.read() == 1.0 && image_changes == 2U,
             "visual resource properties must have deterministic default reset behavior");
 
     std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("property.visual.root"));
@@ -716,7 +716,7 @@ void test_visual_property_values_drive_stock_controls() {
     });
     const std::shared_ptr<Binding> image_binding = (*picture).data_bindings().add(
         "Image", source, "image");
-    require(image_binding && (*picture).image() == ImageId{77},
+    require(image_binding && (*picture).image.read() == ImageId{77},
             "Binding must use descriptor-aware unsigned-to-ImageId conversion rather than scalar-only conversion");
 
     std::shared_ptr<gui_forms::Button> button = make_control<Button>(StableId("property.button"), "Run");

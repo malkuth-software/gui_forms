@@ -247,6 +247,19 @@ protected:
     }
 };
 
+// on_size_mode_changed counts each changed SizeMode write after the touch.
+class CountingPictureBox final : public PictureBox {
+public:
+    using PictureBox::PictureBox;
+    int size_mode_changes{};
+
+protected:
+    void on_size_mode_changed() override {
+        PictureBox::on_size_mode_changed();
+        ++size_mode_changes;
+    }
+};
+
 void attempt_label_mutation(const std::shared_ptr<Label>& label,
                             bool& rejected) noexcept {
     try {
@@ -1455,7 +1468,7 @@ void test_picture_box_modes_registry_and_semantics() {
     std::uint64_t changes{};
     SubscriptionToken changed = (*picture).image_changed().subscribe(
         callbacks::IncrementCounter<std::uint64_t, ImageId>(changes));
-    (*picture).set_image(loaded.image);
+    (*picture).image = loaded.image;
     window.perform_layout();
     require(changes == 1U && (*picture).has_valid_image() &&
                 (*picture).image_size() == Size{4.0, 2.0},
@@ -1468,7 +1481,7 @@ void test_picture_box_modes_registry_and_semantics() {
         {PictureBoxSizeMode::zoom, {1.0, 25.5, 98.0, 49.0}},
     }};
     for (const std::pair<PictureBoxSizeMode, Rect>& mode_and_bounds : modes) {
-        (*picture).set_size_mode(mode_and_bounds.first);
+        (*picture).size_mode = mode_and_bounds.first;
         require((*picture).image_bounds() == mode_and_bounds.second,
                 "PictureBox sizing mode must compute deterministic image geometry");
         RecordingPainter painter{};
@@ -1479,11 +1492,11 @@ void test_picture_box_modes_registry_and_semantics() {
                 "PictureBox must submit the resolved image and destination to Painter");
     }
 
-    (*picture).set_size_mode(PictureBoxSizeMode::auto_size);
+    (*picture).size_mode = PictureBoxSizeMode::auto_size;
     require((*picture).measure({1000.0, 1000.0}) == Size{6.0, 4.0} &&
                 (*picture).image_bounds() == Rect{1.0, 1.0, 4.0, 2.0},
             "PictureBox AutoSize must measure to intrinsic pixels plus its border");
-    (*picture).set_image_opacity(0.42);
+    (*picture).image_opacity = 0.42;
     RecordingPainter opacity_painter{};
     window.paint(opacity_painter, {0.0, 0.0, 100.0, 100.0});
     require(opacity_painter.image_opacities.size() == 1U &&
@@ -1499,11 +1512,11 @@ void test_picture_box_modes_registry_and_semantics() {
 
     bool rejected{};
     try {
-        (*picture).set_image_opacity(1.1);
+        (*picture).image_opacity = 1.1;
     } catch (const std::invalid_argument&) {
         rejected = true;
     }
-    require(rejected && (*picture).image_opacity() == 0.42,
+    require(rejected && (*picture).image_opacity.read() == 0.42,
             "PictureBox must reject invalid opacity without mutation");
     require(window.remove_image(loaded.image) && !(*picture).has_valid_image(),
             "PictureBox must reject a removed generational image ID safely");
@@ -1955,6 +1968,40 @@ void test_group_box_capability_hooks() {
     require(constructor_refused, "a constructor's empty design size is refused");
 }
 
+void test_picture_box_property_capabilities() {
+    std::shared_ptr<CountingPictureBox> picture = make_control<CountingPictureBox>(StableId("hooks.picture"));
+    std::uint64_t changes{};
+    const SubscriptionToken changed = (*picture).image_changed().subscribe(
+        callbacks::IncrementCounter<std::uint64_t, ImageId>(changes));
+    require(!(*picture).should_serialize_property("image"), "an empty image is not serialized");
+    (*picture).image = ImageId{3U};
+    require(changes == 1U && (*picture).image.read() == ImageId{3U} && (*picture).should_serialize_property("image"),
+            "an image write raises image_changed and is serialized");
+    (*picture).image = ImageId{3U};
+    require(changes == 1U, "writing the current image raises nothing");
+    require((*picture).reset_property("image") && (*picture).image.read() == ImageId{} && changes == 2U &&
+                !(*picture).should_serialize_property("image"),
+            "the table reset clears the image through clear_image");
+    (*picture).set_property_value("image", BindingValue{ImageId{5U}});
+    require((*picture).image.read() == ImageId{5U} && changes == 3U, "a table image write runs the same hooks");
+
+    (*picture).size_mode = PictureBoxSizeMode::zoom;
+    require((*picture).size_mode.read() == PictureBoxSizeMode::zoom && (*picture).size_mode_changes == 1,
+            "a size mode write runs on_size_mode_changed");
+    (*picture).size_mode = PictureBoxSizeMode::zoom;
+    require((*picture).size_mode_changes == 1, "writing the current size mode runs nothing");
+
+    (*picture).image_opacity = 0.5;
+    bool refused = false;
+    try {
+        (*picture).image_opacity = 1.5;
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*picture).image_opacity.read() == 0.5, "an opacity above one is refused");
+    static_cast<void>(changed);
+}
+
 int main() {
     try {
         test_public_controls_render_with_role_policy();
@@ -1981,6 +2028,7 @@ int main() {
         test_basic_control_layout_customization_is_bounded_and_atomic();
         test_label_inherits_theme_typography_until_explicitly_overridden();
         test_picture_box_modes_registry_and_semantics();
+        test_picture_box_property_capabilities();
         test_public_drawing_metrics_and_control_tag();
         test_button_disclosure_semantics();
         test_button_selected_state();

@@ -148,7 +148,7 @@ void test_moved_subtree_keeps_its_images() {
     (*button).text_image_relation = TextImageRelation::image_before_text;
     const std::shared_ptr<PictureBox> picture = make_control<PictureBox>(StableId("move.picture"));
     (*picture).set_requested_bounds({0.0, 40.0, 32.0, 32.0});
-    (*picture).set_image(raw);
+    (*picture).image = raw;
     (*panel).add_child(button);
     (*panel).add_child(picture);
     (*root_a).add_child(panel);
@@ -164,7 +164,7 @@ void test_moved_subtree_keeps_its_images() {
     b.perform_layout();
     require((*button).attached_window() == &b && (*button).image_list() == list,
             "the moved button lost its image list");
-    require((*picture).image() == raw && b.image_resources().find(raw).has_value(),
+    require((*picture).image.read() == raw && b.image_resources().find(raw).has_value(),
             "the moved picture lost its image");
     ImagePainter after;
     (*button).on_paint(after, {0.0, 0.0, 120.0, 30.0});
@@ -220,7 +220,7 @@ void test_runtime_window_shares_the_main_window_resources() {
     const ImageId image = (*main_model).load_png(png()).image;
     const std::shared_ptr<PictureBox> picture = make_control<PictureBox>(StableId("run.picture"));
     (*picture).set_requested_bounds({0.0, 0.0, 32.0, 32.0});
-    (*picture).set_image(image);
+    (*picture).image = image;
     (*main_root).add_child(picture);
 
     // The floating window's model is built with the main window's resources.

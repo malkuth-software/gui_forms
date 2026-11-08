@@ -45,6 +45,14 @@ Related types
      - Stage T1 anatomy, as dot members (see Control::Parts); its states are Control's.
    * - :cpp:class:`PictureBox::Parts <gui_forms::PictureBox::Parts>`
      - Stage T1 anatomy, as dot members: Panel's parts and the image.
+   * - :cpp:class:`PictureBoxCapabilities <gui_forms::PictureBoxCapabilities>`
+     - Every PictureBox capability, in the order the declaring class takes them.
+   * - :cpp:class:`PictureBoxImageCapability <gui_forms::PictureBoxImageCapability>`
+     - The generational image resource shown (Image); an ImageId into the window's ImageRegistry.
+   * - :cpp:class:`PictureBoxImageOpacityCapability <gui_forms::PictureBoxImageOpacityCapability>`
+     - The image's opacity from zero through one; anything else, or a value that is not finite, throws std::invalid_argument.
+   * - :cpp:class:`PictureBoxSizeModePropertyCapability <gui_forms::PictureBoxSizeModePropertyCapability>`
+     - How the image is placed and scaled (SizeMode): normal, stretch_image, auto_size, center_image or zoom.
    * - :cpp:class:`ProgressBar::Parts <gui_forms::ProgressBar::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`ProgressBar::States <gui_forms::ProgressBar::States>`
@@ -103,6 +111,78 @@ Related types
    .. cpp:member:: PartGeometry edge
 
    .. cpp:member:: PartGeometry image
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PictureBoxCapabilities : public PictureBoxImageCapability<Declaring>, public PictureBoxSizeModePropertyCapability<Declaring>, public PictureBoxImageOpacityCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/picture_box/picture_box_capabilities/picture_box_capabilities.hpp>``
+
+   Every PictureBox capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: ImageId image
+
+      The generational image resource shown (Image); an ImageId into the window's ImageRegistry. A change raises image_changed. clear_image() resets it.
+
+   .. cpp:member:: PictureBoxSizeMode size_mode
+
+      How the image is placed and scaled (SizeMode): normal, stretch_image, auto_size, center_image or zoom.
+
+   .. cpp:member:: double image_opacity
+
+      The image's opacity from zero through one; anything else, or a value that is not finite, throws std::invalid_argument.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PictureBoxImageCapability
+
+   ``#include <gui_forms/controls/panel/picture_box/picture_box_capabilities/picture_box_capabilities.hpp>``
+
+   The generational image resource shown (Image); an ImageId into the window's ImageRegistry. A change raises image_changed. clear_image() resets it.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PictureBoxImageCapability& capability, ImageId incoming)
+
+   .. cpp:member:: PropertyCell<ImageId, PictureBoxImageCapability<Declaring>> image
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PictureBoxImageOpacityCapability
+
+   ``#include <gui_forms/controls/panel/picture_box/picture_box_capabilities/picture_box_capabilities.hpp>``
+
+   The image's opacity from zero through one; anything else, or a value that is not finite, throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PictureBoxImageOpacityCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, PictureBoxImageOpacityCapability<Declaring>> image_opacity
+
+      Default: ``{1.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PictureBoxSizeModePropertyCapability
+
+   ``#include <gui_forms/controls/panel/picture_box/picture_box_capabilities/picture_box_capabilities.hpp>``
+
+   How the image is placed and scaled (SizeMode): normal, stretch_image, auto_size, center_image or zoom.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PictureBoxSizeModePropertyCapability& capability, PictureBoxSizeMode incoming)
+
+   .. cpp:member:: PropertyCell<PictureBoxSizeMode, PictureBoxSizeModePropertyCapability<Declaring>> size_mode
+
+      Default: ``{PictureBoxSizeMode::normal}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -429,7 +509,7 @@ Enumerations
 
 .. cpp:enum-class:: PictureBoxSizeMode
 
-   ``#include <gui_forms/controls/panel/picture_box/picture_box.hpp>``
+   ``#include <gui_forms/controls/panel/picture_box/picture_box_values/picture_box_values.hpp>``
 
    .. cpp:enumerator:: normal
 
