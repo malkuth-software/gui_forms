@@ -44,7 +44,7 @@ void test_tree_and_object_views(gui_forms::Window& window) {
     // One fixture, projected: the initial folder is src/controls.
     require((*tree).selected_id() == "controls" && (*trail).active_id.read() == "controls" &&
                 (*trail).segments().size() == 3U && (*objects).items().size() == 2U &&
-                (*ledger).items().size() == 2U && (*ledger).pinned_id() == "button.cpp" &&
+                (*ledger).items().size() == 2U && (*ledger).pinned_id.read() == "button.cpp" &&
                 (*objects).view_mode() == ObjectViewMode::details,
             "the initial folder must be projected into the trail, the objects and the ledger");
 
@@ -82,7 +82,7 @@ void test_tree_and_object_views(gui_forms::Window& window) {
     // one pinned. A single click selects the row on press and moves the pin
     // to it on release, so the final status is the pin report with the path.
     window.perform_layout();
-    require((*ledger).items().size() == 3U && (*ledger).pinned_id() == "button.cpp",
+    require((*ledger).items().size() == 3U && (*ledger).pinned_id.read() == "button.cpp",
             "the ledger must list the files under src with the first entry pinned");
     const std::optional<Rect> row = (*ledger).item_bounds("window.cpp");
     require(row.has_value(), "the ledger row must be realized");
@@ -91,7 +91,7 @@ void test_tree_and_object_views(gui_forms::Window& window) {
     require(window.hit_test(ledger_point) == ledger,
             "the computed ledger row point must hit the CorrespondenceView");
     click_at(window, ledger_point, "a ledger row must accept a pointer press");
-    require((*ledger).selected_id() == "window.cpp" && (*ledger).pinned_id() == "window.cpp" &&
+    require((*ledger).selected_id.read() == "window.cpp" && (*ledger).pinned_id.read() == "window.cpp" &&
                 (*ledger).expanded("window.cpp") &&
                 (*status).text().find("Pinned entry: window.cpp · Portsmouth Gallery / src / core / window.cpp") == 0U,
             "clicking a ledger row must select it, pin it and report its fixture path");

@@ -326,9 +326,9 @@ void CorrespondenceShell::build_panes() {
     (*(*content_split_).second_panel()).set_background(paper);
 
     messages_ = make_control<CorrespondenceView>(StableId(std::string(ids::messages)));
-    (*messages_).set_font(list_font);
-    (*messages_).set_compact_height(48.0);
-    (*messages_).set_expanded_height(132.0);
+    (*messages_).font = list_font;
+    (*messages_).compact_height = 48.0;
+    (*messages_).expanded_height = 132.0;
     (*messages_).set_style(correspondence_style());
     (*messages_).dock = DockStyle::fill;
     (*messages_).accessible_name = "Messages";
@@ -423,7 +423,7 @@ void CorrespondenceShell::project_messages() {
     }
     (*messages_).set_items(std::move(items));
     const std::optional<std::uint32_t> selected = model_.selected_message();
-    (*messages_).set_selected_id(selected ? message_id(*selected) : std::string());
+    (*messages_).selected_id = selected ? message_id(*selected) : std::string();
 }
 
 void CorrespondenceShell::project_reading_pane() {

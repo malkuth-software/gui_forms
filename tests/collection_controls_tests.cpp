@@ -868,12 +868,12 @@ std::vector<CorrespondenceItem> correspondence_fixture(std::size_t count) {
 void test_correspondence_virtualization_and_anchor_stability() {
     std::shared_ptr<gui_forms::CorrespondenceView> customization = make_control<CorrespondenceView>(
         StableId("correspondence.customization"));
-    (*customization).set_status_rail_width(7.0);
-    require((*customization).status_rail_width() == 7.0,
+    (*customization).status_rail_width = 7.0;
+    require((*customization).status_rail_width.read() == 7.0,
             "CorrespondenceView must retain explicit status-rail width");
     bool rejected_rail = false;
     try {
-        (*customization).set_status_rail_width(0.0);
+        (*customization).status_rail_width = 0.0;
     } catch (const std::invalid_argument&) {
         rejected_rail = true;
     }
@@ -893,10 +893,10 @@ void test_correspondence_virtualization_and_anchor_stability() {
                 (*records).semantic_virtual_children().size() <= 8U,
             "variable-height correspondence realization must remain viewport bounded");
 
-    (*records).set_scroll_offset(45.0 * 10.0);
+    (*records).scroll_offset = 45.0 * 10.0;
     const double anchored_y = (*(*records).item_bounds("correspondence.10")).y;
-    (*records).set_pinned_id("correspondence.2");
-    require((*records).pinned_id() == "correspondence.2" &&
+    (*records).pinned_id = "correspondence.2";
+    require((*records).pinned_id.read() == "correspondence.2" &&
                 (*records).expanded("correspondence.2") &&
                 std::abs((*(*records).item_bounds("correspondence.10")).y -
                          anchored_y) < 0.01,
@@ -917,7 +917,7 @@ void test_correspondence_virtualization_and_anchor_stability() {
     const double before_expand = (*(*records).item_bounds("correspondence.12")).y;
     static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
     require((*records).expanded("correspondence.12") &&
-                (*records).pinned_id() == "correspondence.2" &&
+                (*records).pinned_id.read() == "correspondence.2" &&
                 std::abs((*(*records).item_bounds("correspondence.12")).y -
                          before_expand) < 0.01,
             "hover intent must preserve its pointer target while a distinct pinned row persists");
@@ -933,8 +933,8 @@ void test_correspondence_keyboard_pin_semantics_and_activation() {
         StableId("correspondence.keyboard"));
     (*records).set_requested_bounds({0.0, 0.0, 820.0, 360.0});
     (*records).set_items(correspondence_fixture(20U));
-    (*records).set_selected_id("correspondence.10");
-    (*records).set_pinned_id("correspondence.0");
+    (*records).selected_id = "correspondence.10";
+    (*records).pinned_id = "correspondence.0";
     Window window(records, {820.0, 360.0});
     const bool operation_check_64 = window.request_focus(records);
     require(operation_check_64, "keyboard focus must expand independently from one persistent pin");
@@ -948,13 +948,13 @@ void test_correspondence_keyboard_pin_semantics_and_activation() {
     require(operation_check_68, "Down must move stable focus/selection and expand the keyboard-active row");
     const bool operation_check_69 = (*records).focused_id() == "correspondence.11";
     require(operation_check_69, "Down must move stable focus/selection and expand the keyboard-active row");
-    const bool operation_check_70 = (*records).selected_id() == "correspondence.11";
+    const bool operation_check_70 = (*records).selected_id.read() == "correspondence.11";
     require(operation_check_70, "Down must move stable focus/selection and expand the keyboard-active row");
     const bool operation_check_71 = (*records).expanded("correspondence.11");
     require(operation_check_71, "Down must move stable focus/selection and expand the keyboard-active row");
     const bool operation_check_72 = window.dispatch_key({KeyAction::down, PhysicalKey::space});
     require(operation_check_72, "Space must replace the sole persistent pin without losing focus");
-    const bool operation_check_73 = (*records).pinned_id() == "correspondence.11";
+    const bool operation_check_73 = (*records).pinned_id.read() == "correspondence.11";
     require(operation_check_73, "Space must replace the sole persistent pin without losing focus");
     const bool operation_check_74 = !(*records).expanded("correspondence.0");
     require(operation_check_74, "Space must replace the sole persistent pin without losing focus");
@@ -988,7 +988,7 @@ void test_correspondence_keyboard_pin_semantics_and_activation() {
     const bool operation_check_79 = (*records).on_semantic_child_action(
                 "correspondence.12", SemanticAction::expand, {});
     require(operation_check_79, "semantic expansion must enter the same one-pin state path for unavailable evidence");
-    const bool operation_check_80 = (*records).pinned_id() == "correspondence.12";
+    const bool operation_check_80 = (*records).pinned_id.read() == "correspondence.12";
     require(operation_check_80, "semantic expansion must enter the same one-pin state path for unavailable evidence");
     const bool operation_check_81 = (*records).expanded("correspondence.12");
     require(operation_check_81, "semantic expansion must enter the same one-pin state path for unavailable evidence");
@@ -1011,10 +1011,10 @@ void test_correspondence_narrow_card_layout() {
     std::shared_ptr<gui_forms::CorrespondenceView> records = make_control<CorrespondenceView>(
         StableId("correspondence.narrow"));
     (*records).set_requested_bounds({0.0, 0.0, 280.0, 300.0});
-    (*records).set_compact_height(44.0);
-    (*records).set_expanded_height(124.0);
+    (*records).compact_height = 44.0;
+    (*records).expanded_height = 124.0;
     (*records).set_items(correspondence_fixture(3U));
-    (*records).set_pinned_id("correspondence.0");
+    (*records).pinned_id = "correspondence.0";
     Window window(records, {280.0, 300.0});
     window.flush();
     require((*records).expanded("correspondence.0"), "the pinned card must be expanded");
@@ -1042,7 +1042,7 @@ void test_correspondence_background_pointer_contract() {
         make_control<CorrespondenceView>(StableId("correspondence.background"));
     (*records).set_requested_bounds({0.0, 0.0, 820.0, 360.0});
     (*records).set_items(correspondence_fixture(1U));
-    (*records).set_selected_id("correspondence.0");
+    (*records).selected_id = "correspondence.0";
     Window window(records, {820.0, 360.0});
     window.perform_layout();
 
@@ -1058,21 +1058,21 @@ void test_correspondence_background_pointer_contract() {
     const bool operation_check_83 = window.dispatch_pointer(
                     {PointerAction::up, PointerButton::primary, background});
     require(operation_check_83, "primary correspondence background click must focus the collection and clear selection without opening a menu");
-    const bool operation_check_84 = (*records).selected_id().empty();
+    const bool operation_check_84 = (*records).selected_id.read().empty();
     require(operation_check_84, "primary correspondence background click must focus the collection and clear selection without opening a menu");
     const bool operation_check_85 = requests.empty();
     require(operation_check_85, "primary correspondence background click must focus the collection and clear selection without opening a menu");
     const bool operation_check_86 = window.focused_control() == records;
     require(operation_check_86, "primary correspondence background click must focus the collection and clear selection without opening a menu");
 
-    (*records).set_selected_id("correspondence.0");
+    (*records).selected_id = "correspondence.0";
     const bool operation_check_87 = window.dispatch_pointer(
                 {PointerAction::down, PointerButton::secondary, background});
     require(operation_check_87, "secondary correspondence background click must clear selection and emit one exact empty-target context request");
     const bool operation_check_88 = window.dispatch_pointer(
                     {PointerAction::up, PointerButton::secondary, background});
     require(operation_check_88, "secondary correspondence background click must clear selection and emit one exact empty-target context request");
-    const bool operation_check_89 = (*records).selected_id().empty();
+    const bool operation_check_89 = (*records).selected_id.read().empty();
     require(operation_check_89, "secondary correspondence background click must clear selection and emit one exact empty-target context request");
     const bool operation_check_90 = requests.size() == 1U;
     require(operation_check_90, "secondary correspondence background click must clear selection and emit one exact empty-target context request");

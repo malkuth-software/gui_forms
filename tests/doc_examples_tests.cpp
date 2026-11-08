@@ -1024,7 +1024,7 @@ void example() {
     records[1].excerpt = "Payment for invoice 1042 is due on Friday.";
     records[1].emphasis_terms = {"invoice"};
     (*results).set_items(records);
-    (*results).set_pinned_id("mail.1042");
+    (*results).pinned_id = "mail.1042";
     // (*results).expanded("mail.1042") is now true
 }
 }  // namespace doc_example_CorrespondenceView_1
@@ -1057,7 +1057,7 @@ void example() {
     records[1].stable_id = "mail.2";
     records[1].title = "Invoice 1042";
     (*pane.results).set_items(records);
-    (*pane.results).set_pinned_id("mail.2");
+    (*pane.results).pinned_id = "mail.2";
     // pane.pinned is "mail.2", and then pane.expanded_by_pin is true
 }
 }  // namespace doc_example_CorrespondenceView_2

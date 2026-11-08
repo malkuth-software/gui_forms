@@ -141,8 +141,8 @@ int main() {
     };
     correspondence_items.front().emphasis_terms = {"evidence"};
     (*correspondence).set_items(std::move(correspondence_items));
-    (*correspondence).set_selected_id("installed.correspondence.first");
-    (*correspondence).set_pinned_id("installed.correspondence.first");
+    (*correspondence).selected_id = "installed.correspondence.first";
+    (*correspondence).pinned_id = "installed.correspondence.first";
     (*root).add_child(correspondence);
     std::shared_ptr<gui_forms::InstrumentRack> rack =
         std::make_shared<gui_forms::InstrumentRack>(

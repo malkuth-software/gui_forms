@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "gui_forms/controls/panel/object_view/object_view.hpp"
+#include "gui_forms/controls/panel/correspondence_view/correspondence_view_capabilities/correspondence_view_capabilities.hpp"
 
 namespace gui_forms {
 
@@ -71,7 +72,7 @@ struct CorrespondenceExpansionChange final {
 // per-item control or per-item height object. Height changes preserve a stable
 // anchor row and local offset, preventing the pointer-target oscillation common
 // to naive hover expansion.
-class CorrespondenceView final : public Panel {
+class CorrespondenceView final : public Panel, public CorrespondenceViewCapabilities<CorrespondenceView> {
 public:
     explicit CorrespondenceView(StableId stable_id);
 
@@ -79,45 +80,17 @@ public:
         return items_;
     }
     void set_items(std::vector<CorrespondenceItem> items);
-    [[nodiscard]] std::string_view selected_id() const noexcept {
-        return selected_id_;
-    }
-    void set_selected_id(std::string_view stable_id);
     [[nodiscard]] std::string_view focused_id() const noexcept {
         return focused_id_;
     }
     [[nodiscard]] std::string_view hovered_id() const noexcept {
         return hovered_id_;
     }
-    [[nodiscard]] std::string_view pinned_id() const noexcept {
-        return pinned_id_;
-    }
-    void set_pinned_id(std::string_view stable_id);
     [[nodiscard]] bool expanded(std::string_view stable_id) const;
-    [[nodiscard]] double compact_height() const noexcept {
-        return compact_height_;
-    }
-    void set_compact_height(double height);
-    [[nodiscard]] double expanded_height() const noexcept {
-        return expanded_height_;
-    }
-    void set_expanded_height(double height);
-    [[nodiscard]] double status_rail_width() const noexcept {
-        return status_rail_width_;
-    }
-    void set_status_rail_width(double width);
-    [[nodiscard]] std::chrono::milliseconds hover_intent_delay() const noexcept {
-        return hover_intent_delay_;
-    }
-    void set_hover_intent_delay(std::chrono::milliseconds delay);
-    [[nodiscard]] double scroll_offset() const noexcept { return scroll_offset_; }
-    void set_scroll_offset(double offset);
     [[nodiscard]] double content_height() const noexcept;
     [[nodiscard]] std::size_t realized_count() const noexcept;
     [[nodiscard]] std::optional<Rect> item_bounds(
         std::string_view stable_id) const noexcept;
-    [[nodiscard]] FontSpec font() const noexcept { return font_; }
-    void set_font(FontSpec font);
 
     [[nodiscard]] Event<const CorrespondenceSelectionChange&>&
     selection_changed() noexcept { return selection_changed_; }
@@ -280,7 +253,7 @@ private:
     };
     [[nodiscard]] CorrespondenceCardFonts card_fonts() const;
     [[nodiscard]] CorrespondenceCardLayout card_layout(std::size_t index, const CorrespondenceCardFonts& fonts) const;
-    [[nodiscard]] double measured_text_width(std::string_view text, FontSpec font) const;
+    [[nodiscard]] double measured_text_width(std::string_view text, FontSpec text_face) const;
 
     std::vector<CorrespondenceItem> items_;
     std::string selected_id_;
@@ -294,10 +267,7 @@ private:
     std::uint32_t pressed_click_count_{1U};
     double compact_height_{45.0};
     double expanded_height_{126.0};
-    double status_rail_width_{4.0};
     double scroll_offset_{};
-    std::chrono::milliseconds hover_intent_delay_{180};
-    FontSpec font_{FontRole::content, 11.0, 400, false};
     FrameRequestToken hover_timer_;
     bool focused_{};
     Event<const CorrespondenceSelectionChange&> selection_changed_;
@@ -305,6 +275,34 @@ private:
     Event<const CorrespondenceExpansionChange&> expansion_changed_;
     Event<const std::string&> item_activated_;
     Event<const ObjectContextRequest&> context_requested_;
+    // property_codemod begin CorrespondenceView (tools/property_families/correspondence_view.json; generated, do not edit)
+private:
+    friend struct CorrespondenceViewSelectedIdCapability<CorrespondenceView>;
+    friend struct CorrespondenceViewPinnedIdCapability<CorrespondenceView>;
+    friend struct CorrespondenceViewCompactHeightCapability<CorrespondenceView>;
+    friend struct CorrespondenceViewExpandedHeightCapability<CorrespondenceView>;
+    friend struct CorrespondenceViewStatusRailWidthCapability<CorrespondenceView>;
+    friend struct CorrespondenceViewHoverIntentDelayCapability<CorrespondenceView>;
+    friend struct FontCapability<CorrespondenceView>;
+    friend struct CorrespondenceViewScrollOffsetCapability<CorrespondenceView>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void write_view(const decltype(selected_id)& cell, std::string incoming);
+    [[nodiscard]] std::string read_view(const decltype(selected_id)& cell) const;
+    void write_view(const decltype(pinned_id)& cell, std::string incoming);
+    [[nodiscard]] std::string read_view(const decltype(pinned_id)& cell) const;
+    void write_view(const decltype(compact_height)& cell, double incoming);
+    [[nodiscard]] double read_view(const decltype(compact_height)& cell) const;
+    void write_view(const decltype(expanded_height)& cell, double incoming);
+    [[nodiscard]] double read_view(const decltype(expanded_height)& cell) const;
+    void prepare_write(const decltype(status_rail_width)& cell, double& incoming);
+    void written(const decltype(status_rail_width)& cell);
+    void prepare_write(const decltype(hover_intent_delay)& cell, std::chrono::milliseconds& incoming);
+    void written(const decltype(hover_intent_delay)& cell);
+    void prepare_write(const decltype(font)& cell, FontSpec& incoming);
+    void written(const decltype(font)& cell);
+    void write_view(const decltype(scroll_offset)& cell, double incoming);
+    [[nodiscard]] double read_view(const decltype(scroll_offset)& cell) const;
+    // property_codemod end CorrespondenceView
 };
 
 } // namespace gui_forms

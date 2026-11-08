@@ -240,8 +240,8 @@ private:
 
     void build_ledger() {
         (*ledger_).set_style(page_style());
-        (*ledger_).set_compact_height(44.0);
-        (*ledger_).set_expanded_height(124.0);
+        (*ledger_).compact_height = 44.0;
+        (*ledger_).expanded_height = 124.0;
         on((*ledger_).selection_changed(), *this, &TreeAndObjectViewsPage::on_file_selected);
         on((*ledger_).pin_changed(), *this, &TreeAndObjectViewsPage::on_pin_changed);
         on((*ledger_).expansion_changed(), *this, &TreeAndObjectViewsPage::on_file_expansion);
@@ -409,7 +409,7 @@ private:
         }
         (*ledger_).set_items(std::move(items));
         if (!(*ledger_).items().empty()) {
-            (*ledger_).set_pinned_id((*ledger_).items().front().stable_id);
+            (*ledger_).pinned_id = (*ledger_).items().front().stable_id;
         }
     }
 

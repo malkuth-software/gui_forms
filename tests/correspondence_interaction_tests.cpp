@@ -201,7 +201,7 @@ int main()
     expect((*folders).items()[4].text == "Junk  (3)", "Junk shows its unread count");
     expect((*folders).items()[2].text == "Sent", "folders without unread mail show no count");
     expect((*messages).items().size() == 16U, "Inbox lists sixteen messages");
-    expect((*messages).selected_id().empty(), "no message is selected at start");
+    expect((*messages).selected_id.read().empty(), "no message is selected at start");
     expect((*subject).text() == "No message selected", "reading pane starts empty");
     expect((*status).text().rfind("Inbox · 16 messages · 6 unread", 0) == 0,
            "status line reports folder, count and unread");
@@ -220,7 +220,7 @@ int main()
     click_at(view, message_point(*messages, 1U), ids::messages);
     expect(model.selected_message() == std::optional<std::uint32_t>{1U},
            "clicking a row selects it in the model");
-    expect((*messages).selected_id() == correspondence::message_id(1U),
+    expect((*messages).selected_id.read() == correspondence::message_id(1U),
            "list selection follows the model");
     expect((*first_message).read, "selecting marks the message read");
     expect((*subject).text() == "Dome shutter motor: replacement quote",
@@ -257,7 +257,7 @@ int main()
     expect((*first_message).folder == Folder::archive, "Archive button moves the message");
     expect((*messages).items().size() == 15U, "archived message leaves the list");
     expect(model.selected_message() == std::optional<std::uint32_t>{2U} &&
-               (*messages).selected_id() == correspondence::message_id(2U),
+               (*messages).selected_id.read() == correspondence::message_id(2U),
            "the next message becomes selected");
     expect((*subject).text() == "Observing conditions, week 41",
            "reading pane follows the new selection");

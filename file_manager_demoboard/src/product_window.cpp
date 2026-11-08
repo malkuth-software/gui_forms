@@ -382,10 +382,10 @@ std::shared_ptr<Panel> make_search_surface(ProductRefs& refs) {
     std::shared_ptr<gui_forms::CorrespondenceView> results = std::make_shared<CorrespondenceView>(
         StableId("fm.search.results"));
     (*results).set_style(house_style());
-    (*results).set_font({FontRole::content, 11.0, 400, false});
-    (*results).set_compact_height(45.0);
-    (*results).set_expanded_height(126.0);
-    (*results).set_hover_intent_delay(std::chrono::milliseconds(180));
+    (*results).font = FontSpec{FontRole::content, 11.0, 400, false};
+    (*results).compact_height = 45.0;
+    (*results).expanded_height = 126.0;
+    (*results).hover_intent_delay = std::chrono::milliseconds(180);
     (*results).accessible_name = "Search results";
     (*results).accessible_description =
         "Seven factual fixture correspondences with one pinned row and bounded virtual realization";
@@ -405,8 +405,8 @@ std::shared_ptr<Panel> make_search_surface(ProductRefs& refs) {
         if (fixture.default_pinned) pinned = id;
     }
     (*results).set_items(std::move(items));
-    (*results).set_selected_id(pinned);
-    (*results).set_pinned_id(pinned);
+    (*results).selected_id = pinned;
+    (*results).pinned_id = pinned;
     (*results).dock = DockStyle::fill;
     (*surface).add_child(results);
     refs.search_results = results;
@@ -1800,7 +1800,7 @@ public:
                 void (SearchController::*)(const ObjectContextRequest&)>(
                     *this, &SearchController::on_context_requested));
         build_context_menu();
-        update_context_availability((*refs_.search_results).selected_id());
+        update_context_availability((*refs_.search_results).selected_id.read());
     }
 
     [[nodiscard]] bool select_surface(std::string_view surface) {
@@ -2057,8 +2057,8 @@ private:
 
     void on_properties_invoked(const CommandInvocation&) {
         if (!context_id_.empty()) {
-            (*refs_.search_results).set_selected_id(context_id_);
-            (*refs_.search_results).set_pinned_id(context_id_);
+            (*refs_.search_results).selected_id = context_id_;
+            (*refs_.search_results).pinned_id = context_id_;
             status_("Search evidence pinned · " + title_for(context_id_));
         }
     }

@@ -7,7 +7,7 @@ gui_forms::CorrespondenceView
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: CorrespondenceView final : public Panel
+.. cpp:class:: CorrespondenceView final : public Panel, public CorrespondenceViewCapabilities<CorrespondenceView>
 
    ``#include <gui_forms/controls/panel/correspondence_view/correspondence_view.hpp>``
 
@@ -20,7 +20,7 @@ gui_forms::CorrespondenceView
    with a heading, tags and detail. A row expands for any of three independent
    reasons: it is the one pinned record, which the user toggles by clicking
    it or pressing Space; it has the keyboard focus while the view is focused;
-   or the pointer has rested on it for :cpp:func:`hover_intent_delay <gui_forms::CorrespondenceView::hover_intent_delay>`. When rows grow or
+   or the pointer has rested on it for :cpp:member:`hover_intent_delay <gui_forms::CorrespondenceView::hover_intent_delay>`. When rows grow or
    shrink, the row the user is looking at stays where it was. Only the rows in
    view are painted and published, and no child control is created per
    record. Use an :cpp:class:`ObjectView <gui_forms::ObjectView>` for items of one size with icons or columns,
@@ -36,43 +36,24 @@ gui_forms::CorrespondenceView
 
    :Properties:
 
-      **items** : ``std::span<const CorrespondenceItem>``
-         The records in display order. Empty by default. IDs must be unique and
-         follow the :cpp:class:`StableId <gui_forms::StableId>` segment rule, every text field valid UTF-8, and every
-         information tag and emphasis term nonempty, or :cpp:func:`set_items <gui_forms::CorrespondenceView::set_items>` throws
-         ``std::invalid_argument``. Replacing the records keeps the selected,
-         focused and pinned IDs that are still present, ends any hover
-         expansion, and keeps the first row in view where it was. It raises
-         :cpp:func:`selection_changed <gui_forms::CorrespondenceView::selection_changed>` or :cpp:func:`pin_changed <gui_forms::CorrespondenceView::pin_changed>` when the selected or pinned record
-         is gone.
-
-      **selected_id** : ``std::string_view``, default ``""``
+      **selected_id** : ``std::string``, default ``""``
          The ID of the selected record, or empty when nothing is selected.
          Setting an empty ID clears the selection; an ID that is not in :cpp:func:`items <gui_forms::CorrespondenceView::items>`
          throws ``std::out_of_range``. Selecting does not expand or pin a record.
 
-      **focused_id** : ``std::string_view``, read-only
-         The record with the keyboard focus. It moves with the arrow keys and
-         with clicks, and is expanded while the view has focus. When the view
-         gains focus with no focused record, the selected record, or else the
-         first, takes the focus.
-
-      **hovered_id** : ``std::string_view``, read-only
-         The record under the pointer, or empty.
-
-      **pinned_id** : ``std::string_view``, default ``""``
+      **pinned_id** : ``std::string``, default ``""``
          The one pinned record, which stays expanded. Setting a new ID moves the
          pin, an empty ID removes it, and an ID that is not in :cpp:func:`items <gui_forms::CorrespondenceView::items>` throws
          ``std::out_of_range``.
 
       **compact_height** : ``double``, default ``45.0``
          Height of a compact row in logical pixels, before text scaling. Values
-         outside 24 to 192, not below :cpp:func:`expanded_height <gui_forms::CorrespondenceView::expanded_height>`, or not finite throw
+         outside 24 to 192, not below :cpp:member:`expanded_height <gui_forms::CorrespondenceView::expanded_height>`, or not finite throw
          ``std::invalid_argument``.
 
       **expanded_height** : ``double``, default ``126.0``
          Height of an expanded row in logical pixels, before text scaling.
-         Values not above :cpp:func:`compact_height <gui_forms::CorrespondenceView::compact_height>`, above 512, or not finite throw
+         Values not above :cpp:member:`compact_height <gui_forms::CorrespondenceView::compact_height>`, above 512, or not finite throw
          ``std::invalid_argument``.
 
       **status_rail_width** : ``double``, default ``4.0``
@@ -84,11 +65,35 @@ gui_forms::CorrespondenceView
          How long the pointer must rest on a row before the row expands. Values
          outside 1 millisecond to 5 seconds throw ``std::invalid_argument``.
 
+      **font** : ``FontSpec``, default ``FontSpec{FontRole::content, 11.0, 400, false}``
+         The font of the row text. Titles use it in bold and the secondary text
+         two points smaller. An invalid specification throws
+         ``std::invalid_argument``.
+
       **scroll_offset** : ``double``, default ``0.0``
          The vertical scroll position, from the top of the content, in pixels
          after text scaling. It is clamped to the scrollable range. A negative
          or non-finite value throws ``std::invalid_argument``. Scrolling ends any
          hover expansion; the mouse wheel scrolls by two compact rows.
+
+      **items** : ``std::span<const CorrespondenceItem>``
+         The records in display order. Empty by default. IDs must be unique and
+         follow the :cpp:class:`StableId <gui_forms::StableId>` segment rule, every text field valid UTF-8, and every
+         information tag and emphasis term nonempty, or :cpp:func:`set_items <gui_forms::CorrespondenceView::set_items>` throws
+         ``std::invalid_argument``. Replacing the records keeps the selected,
+         focused and pinned IDs that are still present, ends any hover
+         expansion, and keeps the first row in view where it was. It raises
+         :cpp:func:`selection_changed <gui_forms::CorrespondenceView::selection_changed>` or :cpp:func:`pin_changed <gui_forms::CorrespondenceView::pin_changed>` when the selected or pinned record
+         is gone.
+
+      **focused_id** : ``std::string_view``, read-only
+         The record with the keyboard focus. It moves with the arrow keys and
+         with clicks, and is expanded while the view has focus. When the view
+         gains focus with no focused record, the selected record, or else the
+         first, takes the focus.
+
+      **hovered_id** : ``std::string_view``, read-only
+         The record under the pointer, or empty.
 
       **content_height** : ``double``, read-only
          The height of all rows together, expanded rows included, in pixels
@@ -98,11 +103,6 @@ gui_forms::CorrespondenceView
          How many rows are realized for painting and accessibility: the rows in
          view and one more on each side.
 
-      **font** : ``FontSpec``, default ``FontSpec{FontRole::content, 11.0, 400, false}``
-         The font of the row text. Titles use it in bold and the secondary text
-         two points smaller. An invalid specification throws
-         ``std::invalid_argument``.
-
       **parts** : ``Parts``, read-only
 
       **realized_items** : ``std::vector<Item>``, read-only
@@ -111,13 +111,13 @@ gui_forms::CorrespondenceView
    :Events:
 
       **selection_changed** : ``Event<const CorrespondenceSelectionChange&>``
-         Raised after :cpp:func:`selected_id <gui_forms::CorrespondenceView::selected_id>` changes, by input, by the setter, or by
+         Raised after :cpp:member:`selected_id <gui_forms::CorrespondenceView::selected_id>` changes, by input, by a write, or by
          :cpp:func:`set_items <gui_forms::CorrespondenceView::set_items>` removing the selected record. It carries a
          :cpp:class:`CorrespondenceSelectionChange <gui_forms::CorrespondenceSelectionChange>` with the ``previous_id`` and the
          ``current_id``.
 
       **pin_changed** : ``Event<const CorrespondencePinChange&>``
-         Raised after :cpp:func:`pinned_id <gui_forms::CorrespondenceView::pinned_id>` changes, by input, by the setter, or by
+         Raised after :cpp:member:`pinned_id <gui_forms::CorrespondenceView::pinned_id>` changes, by input, by a write, or by
          :cpp:func:`set_items <gui_forms::CorrespondenceView::set_items>` removing the pinned record. It carries a
          :cpp:class:`CorrespondencePinChange <gui_forms::CorrespondencePinChange>` with the ``previous_id`` and the ``current_id``,
          and comes before the :cpp:func:`expansion_changed <gui_forms::CorrespondenceView::expansion_changed>` events the new pin causes.
@@ -178,7 +178,7 @@ gui_forms::CorrespondenceView
    .. rubric:: Notes
 
    When the pointer moves onto a row, the row becomes hovered and, after
-   :cpp:func:`hover_intent_delay <gui_forms::CorrespondenceView::hover_intent_delay>`, expands; moving to another row or leaving the view
+   :cpp:member:`hover_intent_delay <gui_forms::CorrespondenceView::hover_intent_delay>`, expands; moving to another row or leaving the view
    collapses that hover expansion. A primary or secondary press on a row
    focuses the view, selects the row and gives it the focus. Releasing a
    single primary click on the same row toggles its pin; releasing a
@@ -225,7 +225,7 @@ gui_forms::CorrespondenceView
       records[1].excerpt = "Payment for invoice 1042 is due on Friday.";
       records[1].emphasis_terms = {"invoice"};
       (*results).set_items(records);
-      (*results).set_pinned_id("mail.1042");
+      (*results).pinned_id = "mail.1042";
       // (*results).expanded("mail.1042") is now true
 
    Observe the pin and the expansion it causes. :cpp:func:`pin_changed <gui_forms::CorrespondenceView::pin_changed>` comes first:
@@ -259,7 +259,7 @@ gui_forms::CorrespondenceView
           records[1].stable_id = "mail.2";
           records[1].title = "Invoice 1042";
           (*pane.results).set_items(records);
-          (*pane.results).set_pinned_id("mail.2");
+          (*pane.results).pinned_id = "mail.2";
           // pane.pinned is "mail.2", and then pane.expanded_by_pin is true
       }
 
@@ -270,6 +270,54 @@ gui_forms::CorrespondenceView
 
 
    .. rubric:: Properties
+
+   .. cpp:member:: std::string selected_id
+
+      The ID of the selected record, or empty when nothing is selected.
+      Setting an empty ID clears the selection; an ID that is not in :cpp:func:`items <gui_forms::CorrespondenceView::items>`
+      throws ``std::out_of_range``. Selecting does not expand or pin a record.
+
+   .. cpp:member:: std::string pinned_id
+
+      The one pinned record, which stays expanded. Setting a new ID moves the
+      pin, an empty ID removes it, and an ID that is not in :cpp:func:`items <gui_forms::CorrespondenceView::items>` throws
+      ``std::out_of_range``.
+
+   .. cpp:member:: double compact_height
+
+      Height of a compact row in logical pixels, before text scaling. Values
+      outside 24 to 192, not below :cpp:member:`expanded_height <gui_forms::CorrespondenceView::expanded_height>`, or not finite throw
+      ``std::invalid_argument``.
+
+   .. cpp:member:: double expanded_height
+
+      Height of an expanded row in logical pixels, before text scaling.
+      Values not above :cpp:member:`compact_height <gui_forms::CorrespondenceView::compact_height>`, above 512, or not finite throw
+      ``std::invalid_argument``.
+
+   .. cpp:member:: double status_rail_width
+
+      Width of the coloured rail at the left edge of each row, which marks
+      pinned, stale and unavailable records. Values outside 1 to 12 throw
+      ``std::invalid_argument``.
+
+   .. cpp:member:: std::chrono::milliseconds hover_intent_delay
+
+      How long the pointer must rest on a row before the row expands. Values
+      outside 1 millisecond to 5 seconds throw ``std::invalid_argument``.
+
+   .. cpp:member:: FontSpec font
+
+      The font of the row text. Titles use it in bold and the secondary text
+      two points smaller. An invalid specification throws
+      ``std::invalid_argument``.
+
+   .. cpp:member:: double scroll_offset
+
+      The vertical scroll position, from the top of the content, in pixels
+      after text scaling. It is clamped to the scrollable range. A negative
+      or non-finite value throws ``std::invalid_argument``. Scrolling ends any
+      hover expansion; the mouse wheel scrolls by two compact rows.
 
    .. cpp:function:: std::span<const CorrespondenceItem> items() const noexcept
 
@@ -286,16 +334,6 @@ gui_forms::CorrespondenceView
 
       Sets :cpp:func:`items <gui_forms::CorrespondenceView::items>`; see the property's description above.
 
-   .. cpp:function:: std::string_view selected_id() const noexcept
-
-      The ID of the selected record, or empty when nothing is selected.
-      Setting an empty ID clears the selection; an ID that is not in :cpp:func:`items <gui_forms::CorrespondenceView::items>`
-      throws ``std::out_of_range``. Selecting does not expand or pin a record.
-
-   .. cpp:function:: void set_selected_id(std::string_view stable_id)
-
-      Sets :cpp:func:`selected_id <gui_forms::CorrespondenceView::selected_id>`; see the property's description above.
-
    .. cpp:function:: std::string_view focused_id() const noexcept
 
       The record with the keyboard focus. It moves with the arrow keys and
@@ -307,66 +345,6 @@ gui_forms::CorrespondenceView
 
       The record under the pointer, or empty.
 
-   .. cpp:function:: std::string_view pinned_id() const noexcept
-
-      The one pinned record, which stays expanded. Setting a new ID moves the
-      pin, an empty ID removes it, and an ID that is not in :cpp:func:`items <gui_forms::CorrespondenceView::items>` throws
-      ``std::out_of_range``.
-
-   .. cpp:function:: void set_pinned_id(std::string_view stable_id)
-
-      Sets :cpp:func:`pinned_id <gui_forms::CorrespondenceView::pinned_id>`; see the property's description above.
-
-   .. cpp:function:: double compact_height() const noexcept
-
-      Height of a compact row in logical pixels, before text scaling. Values
-      outside 24 to 192, not below :cpp:func:`expanded_height <gui_forms::CorrespondenceView::expanded_height>`, or not finite throw
-      ``std::invalid_argument``.
-
-   .. cpp:function:: void set_compact_height(double height)
-
-      Sets :cpp:func:`compact_height <gui_forms::CorrespondenceView::compact_height>`; see the property's description above.
-
-   .. cpp:function:: double expanded_height() const noexcept
-
-      Height of an expanded row in logical pixels, before text scaling.
-      Values not above :cpp:func:`compact_height <gui_forms::CorrespondenceView::compact_height>`, above 512, or not finite throw
-      ``std::invalid_argument``.
-
-   .. cpp:function:: void set_expanded_height(double height)
-
-      Sets :cpp:func:`expanded_height <gui_forms::CorrespondenceView::expanded_height>`; see the property's description above.
-
-   .. cpp:function:: double status_rail_width() const noexcept
-
-      Width of the coloured rail at the left edge of each row, which marks
-      pinned, stale and unavailable records. Values outside 1 to 12 throw
-      ``std::invalid_argument``.
-
-   .. cpp:function:: void set_status_rail_width(double width)
-
-      Sets :cpp:func:`status_rail_width <gui_forms::CorrespondenceView::status_rail_width>`; see the property's description above.
-
-   .. cpp:function:: std::chrono::milliseconds hover_intent_delay() const noexcept
-
-      How long the pointer must rest on a row before the row expands. Values
-      outside 1 millisecond to 5 seconds throw ``std::invalid_argument``.
-
-   .. cpp:function:: void set_hover_intent_delay(std::chrono::milliseconds delay)
-
-      Sets :cpp:func:`hover_intent_delay <gui_forms::CorrespondenceView::hover_intent_delay>`; see the property's description above.
-
-   .. cpp:function:: double scroll_offset() const noexcept
-
-      The vertical scroll position, from the top of the content, in pixels
-      after text scaling. It is clamped to the scrollable range. A negative
-      or non-finite value throws ``std::invalid_argument``. Scrolling ends any
-      hover expansion; the mouse wheel scrolls by two compact rows.
-
-   .. cpp:function:: void set_scroll_offset(double offset)
-
-      Sets :cpp:func:`scroll_offset <gui_forms::CorrespondenceView::scroll_offset>`; see the property's description above.
-
    .. cpp:function:: double content_height() const noexcept
 
       The height of all rows together, expanded rows included, in pixels
@@ -376,16 +354,6 @@ gui_forms::CorrespondenceView
 
       How many rows are realized for painting and accessibility: the rows in
       view and one more on each side.
-
-   .. cpp:function:: FontSpec font() const noexcept
-
-      The font of the row text. Titles use it in bold and the secondary text
-      two points smaller. An invalid specification throws
-      ``std::invalid_argument``.
-
-   .. cpp:function:: void set_font(FontSpec font)
-
-      Sets :cpp:func:`font <gui_forms::CorrespondenceView::font>`; see the property's description above.
 
    .. cpp:function:: Parts parts() const
 
@@ -398,14 +366,14 @@ gui_forms::CorrespondenceView
 
    .. cpp:function:: Event<const CorrespondenceSelectionChange&>& selection_changed() noexcept
 
-      Raised after :cpp:func:`selected_id <gui_forms::CorrespondenceView::selected_id>` changes, by input, by the setter, or by
+      Raised after :cpp:member:`selected_id <gui_forms::CorrespondenceView::selected_id>` changes, by input, by a write, or by
       :cpp:func:`set_items <gui_forms::CorrespondenceView::set_items>` removing the selected record. It carries a
       :cpp:class:`CorrespondenceSelectionChange <gui_forms::CorrespondenceSelectionChange>` with the ``previous_id`` and the
       ``current_id``.
 
    .. cpp:function:: Event<const CorrespondencePinChange&>& pin_changed() noexcept
 
-      Raised after :cpp:func:`pinned_id <gui_forms::CorrespondenceView::pinned_id>` changes, by input, by the setter, or by
+      Raised after :cpp:member:`pinned_id <gui_forms::CorrespondenceView::pinned_id>` changes, by input, by a write, or by
       :cpp:func:`set_items <gui_forms::CorrespondenceView::set_items>` removing the pinned record. It carries a
       :cpp:class:`CorrespondencePinChange <gui_forms::CorrespondencePinChange>` with the ``previous_id`` and the ``current_id``,
       and comes before the :cpp:func:`expansion_changed <gui_forms::CorrespondenceView::expansion_changed>` events the new pin causes.

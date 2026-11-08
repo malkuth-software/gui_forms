@@ -7,6 +7,7 @@
 #include "gui_forms/gui_forms.hpp"
 #include "gui_forms/inspection_controls.hpp"
 
+#include <chrono>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
@@ -188,6 +189,54 @@ void test_anchored_overlay_layer() {
             "the dismissals are independent");
 }
 
+void test_correspondence_view() {
+    std::shared_ptr<CorrespondenceView> view = make_control<CorrespondenceView>(StableId("caps.correspondence"));
+    bool refused = false;
+    try {
+        (*view).selected_id = std::string("missing");
+    } catch (const std::out_of_range&) {
+        refused = true;
+    }
+    require(refused && (*view).selected_id.read().empty(), "a selection outside the model is refused");
+    refused = false;
+    try {
+        (*view).compact_height = (*view).expanded_height.read();
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*view).compact_height.read() == 45.0, "a compact height not below the expanded height is refused");
+    (*view).expanded_height = 140.0;
+    (*view).compact_height = 50.0;
+    require((*view).expanded_height.read() == 140.0 && (*view).compact_height.read() == 50.0,
+            "row heights store within their bounds");
+    refused = false;
+    try {
+        (*view).status_rail_width = 13.0;
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*view).status_rail_width.read() == 4.0, "a rail wider than 12 is refused");
+    refused = false;
+    try {
+        (*view).hover_intent_delay = std::chrono::milliseconds(0);
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*view).hover_intent_delay.read() == std::chrono::milliseconds(180),
+            "a zero hover delay is refused");
+    refused = false;
+    try {
+        (*view).scroll_offset = -1.0;
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    (*view).scroll_offset = 30.0;
+    require(refused && (*view).scroll_offset.read() == 0.0, "an empty view clamps its scroll offset to zero");
+    const FontSpec larger{FontRole::content, 13.0, 400, false};
+    (*view).font = larger;
+    require((*view).font.read() == larger, "the font stores");
+}
+
 } // namespace
 
 int main() {
@@ -196,6 +245,7 @@ int main() {
     test_cards();
     test_breadcrumb_trail();
     test_anchored_overlay_layer();
+    test_correspondence_view();
     std::cout << "gui_forms_editor_composite_capabilities_tests: all tests passed\n";
     return EXIT_SUCCESS;
 }

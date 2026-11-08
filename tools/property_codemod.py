@@ -294,9 +294,15 @@ def capabilities_header(config):
         includes.append('"gui_forms/text/localizable/localizable_property.hpp"')
     if config.get("shared"):
         includes.append('"%s"' % SHARED_HEADER[len("include/"):])
-    for extra in config.get("includes") or []:
-        includes.append('"%s"' % extra)
     system = ["<cstdint>", "<optional>", "<string>", "<utility>"]
+    # An include spelled with angle brackets is a standard header.
+    for extra in config.get("includes") or []:
+        if extra.startswith("<"):
+            if extra not in system:
+                system.append(extra)
+        else:
+            includes.append('"%s"' % extra)
+    system.sort()
     out = ["#pragma once", ""]
     out += ["#include " + include for include in includes]
     out.append("")

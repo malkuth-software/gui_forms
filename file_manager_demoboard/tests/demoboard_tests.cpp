@@ -388,11 +388,11 @@ int main() {
                 (*search_surface).visible.read() && !(*folder_surface).visible.read() &&
                 (*search_results).items().size() == 7U &&
                 (*search_results).children().empty() &&
-                (*search_results).compact_height() == 45.0 &&
-                (*search_results).expanded_height() == 126.0 &&
-                (*search_results).selected_id() ==
+                (*search_results).compact_height.read() == 45.0 &&
+                (*search_results).expanded_height.read() == 126.0 &&
+                (*search_results).selected_id.read() ==
                     "fm.result.result-invoice-text" &&
-                (*search_results).pinned_id() ==
+                (*search_results).pinned_id.read() ==
                     "fm.result.result-invoice-text" &&
                 (*search_results).expanded("fm.result.result-invoice-text"),
             "Search must expose seven virtual correspondences with one exact default pin");
@@ -478,7 +478,7 @@ int main() {
                     "fm.result.result-invoice-pdf" &&
                 (*search_product).dispatch_key({gui_forms::KeyAction::down,
                                               gui_forms::PhysicalKey::space}) &&
-                (*search_results).pinned_id() ==
+                (*search_results).pinned_id.read() ==
                     "fm.result.result-invoice-pdf",
             "Search keyboard focus and Space pinning must be independent and deterministic");
     require((*search_product).dispatch_key({gui_forms::KeyAction::down,

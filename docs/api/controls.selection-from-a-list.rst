@@ -132,6 +132,22 @@ Related types
      -  
    * - :cpp:class:`CorrespondenceView::Parts <gui_forms::CorrespondenceView::Parts>`
      - Stage T1 anatomy, as dot members.
+   * - :cpp:class:`CorrespondenceViewCapabilities <gui_forms::CorrespondenceViewCapabilities>`
+     - Every CorrespondenceView capability, in the order the declaring class takes them.
+   * - :cpp:class:`CorrespondenceViewCompactHeightCapability <gui_forms::CorrespondenceViewCompactHeightCapability>`
+     - The height of a collapsed row before text scaling, 24 to 192 and below expanded_height (std::invalid_argument otherwise); a view, so a change can keep the visible anchor row.
+   * - :cpp:class:`CorrespondenceViewExpandedHeightCapability <gui_forms::CorrespondenceViewExpandedHeightCapability>`
+     - The height of an expanded row before text scaling, above compact_height and at most 512 (std::invalid_argument otherwise); a view, so a change can keep the visible anchor row.
+   * - :cpp:class:`CorrespondenceViewHoverIntentDelayCapability <gui_forms::CorrespondenceViewHoverIntentDelayCapability>`
+     - How long the pointer must rest on a row before it expands, 1 ms to 5 s (std::invalid_argument otherwise).
+   * - :cpp:class:`CorrespondenceViewPinnedIdCapability <gui_forms::CorrespondenceViewPinnedIdCapability>`
+     - The pinned (persistently expanded) item's stable ID, or empty; a view, since replacing the items keeps or clears it.
+   * - :cpp:class:`CorrespondenceViewScrollOffsetCapability <gui_forms::CorrespondenceViewScrollOffsetCapability>`
+     - The vertical scroll position, clamped to the content; a view, since the view's own anchoring and reveal move it.
+   * - :cpp:class:`CorrespondenceViewSelectedIdCapability <gui_forms::CorrespondenceViewSelectedIdCapability>`
+     - The selected item's stable ID, or empty; a view, since replacing the items keeps or clears it.
+   * - :cpp:class:`CorrespondenceViewStatusRailWidthCapability <gui_forms::CorrespondenceViewStatusRailWidthCapability>`
+     - The width of each row's status rail, 1 to 12 (std::invalid_argument otherwise).
    * - :cpp:class:`DataGridView::Cell <gui_forms::DataGridView::Cell>`
      -  
    * - :cpp:class:`DataGridView::CellParts <gui_forms::DataGridView::CellParts>`
@@ -1202,6 +1218,173 @@ Related types
    .. cpp:member:: PartGeometry face
 
    .. cpp:member:: PartGeometry edge
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CorrespondenceViewCapabilities : public CorrespondenceViewSelectedIdCapability<Declaring>, public CorrespondenceViewPinnedIdCapability<Declaring>, public CorrespondenceViewCompactHeightCapability<Declaring>, public CorrespondenceViewExpandedHeightCapability<Declaring>, public CorrespondenceViewStatusRailWidthCapability<Declaring>, public CorrespondenceViewHoverIntentDelayCapability<Declaring>, public FontCapability<Declaring>, public CorrespondenceViewScrollOffsetCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/correspondence_view/correspondence_view_capabilities/correspondence_view_capabilities.hpp>``
+
+   Every CorrespondenceView capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: CorrespondenceViewCapabilities()
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string selected_id
+
+      The selected item's stable ID, or empty; a view, since replacing the items keeps or clears it. A change raises selection_changed; an ID not in the model throws std::out_of_range.
+
+   .. cpp:member:: std::string pinned_id
+
+      The pinned (persistently expanded) item's stable ID, or empty; a view, since replacing the items keeps or clears it. A change keeps the visible anchor row, raises pin_changed, then expansion_changed for each item whose expansion changed; an ID not in the model throws std::out_of_range.
+
+   .. cpp:member:: double compact_height
+
+      The height of a collapsed row before text scaling, 24 to 192 and below expanded_height (std::invalid_argument otherwise); a view, so a change can keep the visible anchor row.
+
+   .. cpp:member:: double expanded_height
+
+      The height of an expanded row before text scaling, above compact_height and at most 512 (std::invalid_argument otherwise); a view, so a change can keep the visible anchor row.
+
+   .. cpp:member:: double status_rail_width
+
+      The width of each row's status rail, 1 to 12 (std::invalid_argument otherwise).
+
+   .. cpp:member:: std::chrono::milliseconds hover_intent_delay
+
+      How long the pointer must rest on a row before it expands, 1 ms to 5 s (std::invalid_argument otherwise). A change restarts a pending hover.
+
+   .. cpp:member:: FontSpec font
+
+      The font of the control's text (Font).
+
+   .. cpp:member:: double scroll_offset
+
+      The vertical scroll position, clamped to the content; a view, since the view's own anchoring and reveal move it. A negative or non-finite offset throws std::invalid_argument; a change ends a pending hover.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CorrespondenceViewCompactHeightCapability
+
+   ``#include <gui_forms/controls/panel/correspondence_view/correspondence_view_capabilities/correspondence_view_capabilities.hpp>``
+
+   The height of a collapsed row before text scaling, 24 to 192 and below expanded_height (std::invalid_argument otherwise); a view, so a change can keep the visible anchor row.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CorrespondenceViewCompactHeightCapability& capability, double incoming)
+
+   .. cpp:function:: static double read(const CorrespondenceViewCompactHeightCapability& capability)
+
+   .. cpp:member:: PropertyView<double, CorrespondenceViewCompactHeightCapability<Declaring>> compact_height
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CorrespondenceViewExpandedHeightCapability
+
+   ``#include <gui_forms/controls/panel/correspondence_view/correspondence_view_capabilities/correspondence_view_capabilities.hpp>``
+
+   The height of an expanded row before text scaling, above compact_height and at most 512 (std::invalid_argument otherwise); a view, so a change can keep the visible anchor row.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CorrespondenceViewExpandedHeightCapability& capability, double incoming)
+
+   .. cpp:function:: static double read(const CorrespondenceViewExpandedHeightCapability& capability)
+
+   .. cpp:member:: PropertyView<double, CorrespondenceViewExpandedHeightCapability<Declaring>> expanded_height
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CorrespondenceViewHoverIntentDelayCapability
+
+   ``#include <gui_forms/controls/panel/correspondence_view/correspondence_view_capabilities/correspondence_view_capabilities.hpp>``
+
+   How long the pointer must rest on a row before it expands, 1 ms to 5 s (std::invalid_argument otherwise). A change restarts a pending hover.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CorrespondenceViewHoverIntentDelayCapability& capability, std::chrono::milliseconds incoming)
+
+   .. cpp:member:: PropertyCell<std::chrono::milliseconds, CorrespondenceViewHoverIntentDelayCapability<Declaring>> hover_intent_delay
+
+      Default: ``{std::chrono::milliseconds(180)}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CorrespondenceViewPinnedIdCapability
+
+   ``#include <gui_forms/controls/panel/correspondence_view/correspondence_view_capabilities/correspondence_view_capabilities.hpp>``
+
+   The pinned (persistently expanded) item's stable ID, or empty; a view, since replacing the items keeps or clears it. A change keeps the visible anchor row, raises pin_changed, then expansion_changed for each item whose expansion changed; an ID not in the model throws std::out_of_range.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CorrespondenceViewPinnedIdCapability& capability, std::string incoming)
+
+   .. cpp:function:: static std::string read(const CorrespondenceViewPinnedIdCapability& capability)
+
+   .. cpp:member:: PropertyView<std::string, CorrespondenceViewPinnedIdCapability<Declaring>> pinned_id
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CorrespondenceViewScrollOffsetCapability
+
+   ``#include <gui_forms/controls/panel/correspondence_view/correspondence_view_capabilities/correspondence_view_capabilities.hpp>``
+
+   The vertical scroll position, clamped to the content; a view, since the view's own anchoring and reveal move it. A negative or non-finite offset throws std::invalid_argument; a change ends a pending hover.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CorrespondenceViewScrollOffsetCapability& capability, double incoming)
+
+   .. cpp:function:: static double read(const CorrespondenceViewScrollOffsetCapability& capability)
+
+   .. cpp:member:: PropertyView<double, CorrespondenceViewScrollOffsetCapability<Declaring>> scroll_offset
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CorrespondenceViewSelectedIdCapability
+
+   ``#include <gui_forms/controls/panel/correspondence_view/correspondence_view_capabilities/correspondence_view_capabilities.hpp>``
+
+   The selected item's stable ID, or empty; a view, since replacing the items keeps or clears it. A change raises selection_changed; an ID not in the model throws std::out_of_range.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CorrespondenceViewSelectedIdCapability& capability, std::string incoming)
+
+   .. cpp:function:: static std::string read(const CorrespondenceViewSelectedIdCapability& capability)
+
+   .. cpp:member:: PropertyView<std::string, CorrespondenceViewSelectedIdCapability<Declaring>> selected_id
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CorrespondenceViewStatusRailWidthCapability
+
+   ``#include <gui_forms/controls/panel/correspondence_view/correspondence_view_capabilities/correspondence_view_capabilities.hpp>``
+
+   The width of each row's status rail, 1 to 12 (std::invalid_argument otherwise).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CorrespondenceViewStatusRailWidthCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, CorrespondenceViewStatusRailWidthCapability<Declaring>> status_rail_width
+
+      Default: ``{4.0}``.
 
 .. cpp:namespace:: gui_forms
 

@@ -10,6 +10,7 @@
 #include "gui_forms/controls/panel/card/card.hpp"
 #include "gui_forms/controls/panel/card/review_card/review_card.hpp"
 #include "gui_forms/controls/panel/combo_box/combo_box.hpp"
+#include "gui_forms/controls/panel/correspondence_view/correspondence_view.hpp"
 #include "gui_forms/controls/panel/domain_up_down/domain_up_down.hpp"
 #include "gui_forms/controls/panel/group_box/group_box.hpp"
 #include "gui_forms/controls/panel/group_box/scaled_group_box/scaled_group_box.hpp"
@@ -270,6 +271,25 @@ void test_combo_box_properties() {
         expect((*control).auto_complete_source.read() == sample, "ComboBox.auto_complete_source: a write stores");
     }
     // auto_complete_custom_source: no sample for std::shared_ptr<AutoCompleteStringCollection>; give the property a "sample".
+}
+
+void test_correspondence_view_properties() {
+    std::shared_ptr<CorrespondenceView> control = make_control<CorrespondenceView>(StableId("generated.correspondenceview"));
+    {
+        const double sample = 6.0;
+        (*control).status_rail_width = sample;
+        expect((*control).status_rail_width.read() == sample, "CorrespondenceView.status_rail_width: a write stores");
+    }
+    {
+        const std::chrono::milliseconds sample = std::chrono::milliseconds(250);
+        (*control).hover_intent_delay = sample;
+        expect((*control).hover_intent_delay.read() == sample, "CorrespondenceView.hover_intent_delay: a write stores");
+    }
+    {
+        const FontSpec sample = FontSpec{FontRole::content, 13.0, 400, false};
+        (*control).font = sample;
+        expect((*control).font.read() == sample, "CorrespondenceView.font: a write stores");
+    }
 }
 
 void test_data_grid_view_properties() {
@@ -965,6 +985,7 @@ int main() {
     test_card_properties();
     test_checked_list_box_properties();
     test_combo_box_properties();
+    test_correspondence_view_properties();
     test_data_grid_view_properties();
     test_domain_up_down_properties();
     test_group_box_properties();
