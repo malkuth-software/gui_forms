@@ -686,7 +686,7 @@ int main() {
         const std::string card_id = std::string("fm.palette.") + palette_id;
         const std::shared_ptr<gui_forms::Card> card = std::dynamic_pointer_cast<gui_forms::Card>(
             (*palette_product).find(card_id));
-        require(card && (*card).interactive() &&
+        require(card && (*card).interactive.read() &&
                     (*palette_product).find(card_id + ".title") &&
                     (*palette_product).find(card_id + ".swatch") &&
                     (*palette_product).find(card_id + ".state"),
@@ -700,14 +700,14 @@ int main() {
         (*palette_product).semantic_snapshot();
     const gui_forms::SemanticNode* sapphire_semantic = find_semantic(
         palette_semantics.roots, "fm.palette.sapphire");
-    require(sapphire_card && cobalt_card && (*sapphire_card).selected() &&
-                !(*cobalt_card).selected() && sapphire_semantic &&
+    require(sapphire_card && cobalt_card && (*sapphire_card).selected.read() &&
+                !(*cobalt_card).selected.read() && sapphire_semantic &&
                 gui_forms::has_semantic_state(
                     (*sapphire_semantic).states, gui_forms::SemanticState::selected),
             "Sapphire must begin as the visibly and semantically selected recipe");
     require((*palette_product).perform_semantic_action(
                 "fm.palette.cobalt", gui_forms::SemanticAction::press) &&
-                (*cobalt_card).selected() && !(*sapphire_card).selected() &&
+                (*cobalt_card).selected.read() && !(*sapphire_card).selected.read() &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
                     (*palette_product).find("fm.status.summary"))).text().find(
                         "Cobalt atmosphere") != std::string::npos,
@@ -745,7 +745,7 @@ int main() {
     for (const char* decision_id : decision_ids) {
         const std::shared_ptr<gui_forms::Card> card = std::dynamic_pointer_cast<gui_forms::Card>(
             (*dna_product).find(std::string("fm.dna.") + decision_id));
-        require(card && (*card).interactive() && (*card).header() && (*card).body() &&
+        require(card && (*card).interactive.read() && (*card).header() && (*card).body() &&
                     (*card).footer(),
                 "every DNA decision must be a retained interactive public Card");
     }

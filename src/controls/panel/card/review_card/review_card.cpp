@@ -2,6 +2,7 @@
 
 #include "gui_forms/text.hpp"
 #include "../card_anatomy.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <array>
 #include <stdexcept>
@@ -62,28 +63,32 @@ void ReviewCard::initialize_control_tree() {
     initialized_ = true;
 }
 
-void ReviewCard::set_record(ReviewRecord record) {
+void ReviewCard::prepare_write(const decltype(record)&, ReviewRecord& incoming) {
     require_mutable();
-    if (!valid_review_record(record)) {
+    if (!valid_review_record(incoming)) {
         throw std::invalid_argument(
             "review record identity/text/disposition is invalid or unbounded");
     }
-    if (record_ == record) return;
+}
+
+// The labels, the accessibility text and the visual status follow the
+// record; record_changed is raised last.
+void ReviewCard::written(const decltype(record)&) {
     initialize_control_tree();
-    record_ = std::move(record);
-    (*title_label_).set_text(record_.title);
-    (*summary_label_).set_text(record_.summary);
-    (*verdict_label_).set_text(record_.verdict);
-    accessible_name = record_.title;
-    accessible_description = record_.summary;
-    set_visual_status(record_.disposition == ReviewDisposition::pending
+    const ReviewRecord& current = record.read();
+    (*title_label_).set_text(current.title);
+    (*summary_label_).set_text(current.summary);
+    (*verdict_label_).set_text(current.verdict);
+    accessible_name = current.title;
+    accessible_description = current.summary;
+    set_visual_status(current.disposition == ReviewDisposition::pending
         ? ControlVisualStatus::pending
-        : record_.disposition == ReviewDisposition::rejected
+        : current.disposition == ReviewDisposition::rejected
             ? ControlVisualStatus::invalid
             : ControlVisualStatus::normal);
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint |
                Dirty::semantics);
-    publish_change(record_changed_, record_);
+    publish_change(record_changed_, record.read());
 }
 
 Size ReviewCard::measure(Size available) {
@@ -98,19 +103,17 @@ void ReviewCard::arrange(Rect final_bounds) {
 
 SemanticDescriptor ReviewCard::semantic_descriptor() const {
     SemanticDescriptor descriptor = Card::semantic_descriptor();
-    descriptor.name = record_.title;
-    descriptor.description = record_.summary;
-    descriptor.value = record_.verdict;
-    descriptor.exposed = !record_.key.empty();
-    if (record_.disposition == ReviewDisposition::pending) {
+    descriptor.name = record.read().title;
+    descriptor.description = record.read().summary;
+    descriptor.value = record.read().verdict;
+    descriptor.exposed = !record.read().key.empty();
+    if (record.read().disposition == ReviewDisposition::pending) {
         descriptor.states |= SemanticState::busy;
-    } else if (record_.disposition == ReviewDisposition::rejected) {
+    } else if (record.read().disposition == ReviewDisposition::rejected) {
         descriptor.states |= SemanticState::invalid;
     }
     return descriptor;
 }
-
-
 
 namespace {
 
@@ -140,5 +143,9 @@ void ReviewCard::append_interactions(std::vector<InteractionDeclaration>& intera
     Card::append_interactions(interactions);
     interactions.insert(interactions.end(), review_card_interactions.begin(), review_card_interactions.end());
 }
+
+// property_codemod begin ReviewCard (tools/property_families/review_card.json; generated, do not edit)
+
+// property_codemod end ReviewCard
 
 } // namespace gui_forms

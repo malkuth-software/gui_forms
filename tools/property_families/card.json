@@ -1,0 +1,118 @@
+{
+  "family": "Card",
+  "step": "B6",
+  "declaring": "Card",
+  "header": "include/gui_forms/controls/panel/card/card.hpp",
+  "source": "src/controls/panel/card/card.cpp",
+  "capabilities_header": "include/gui_forms/controls/panel/card/card_capabilities/card_capabilities.hpp",
+  "base": "Panel",
+  "shared": [],
+  "includes": [
+    "gui_forms/controls/panel/card/card_values/card_values.hpp"
+  ],
+  "properties": [
+    {
+      "name": "card_layout",
+      "capability": "CardCardLayout",
+      "value": "CardLayout",
+      "initial": null,
+      "comment": "The padding, section gap and header and footer extents; a view. Until written the card follows its theme's layout (effective_card_layout); a write overrides it, and reset_card_layout_to_theme returns to the theme's. Values that are not finite or are unbounded throw std::invalid_argument.",
+      "getter": "card_layout",
+      "setter": "set_card_layout",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto layout_ beside uses_theme_layout_; write_view validates and leaves the theme's layout"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "interactive",
+      "capability": "CardInteractive",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether the card takes focus, the pointer and activation. Turning it off clears the hot, pressed and focused visuals.",
+      "getter": "interactive",
+      "setter": "set_interactive",
+      "clear": null,
+      "field": "interactive_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "written sets focusability and clears the interaction visuals"
+      ],
+      "effects": null
+    },
+    {
+      "name": "selected",
+      "capability": "CardSelected",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether the card is selected; a change raises selected_changed. selection_behavior decides whether activation writes it.",
+      "getter": "selected",
+      "setter": "set_selected",
+      "clear": null,
+      "field": "selected_",
+      "event": "selected_changed_",
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": "Dirty::style | Dirty::paint | Dirty::semantics",
+      "sample": "true"
+    },
+    {
+      "name": "selection_behavior",
+      "capability": "CardSelectionBehaviorProperty",
+      "value": "CardSelectionBehavior",
+      "initial": "CardSelectionBehavior::manual",
+      "comment": "Whether activation only notifies (manual, the default) or also selects or toggles the card before activated is raised. An undeclared value throws std::invalid_argument.",
+      "getter": "selection_behavior",
+      "setter": "set_selection_behavior",
+      "clear": null,
+      "field": "selection_behavior_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": "Dirty::semantics",
+      "prepare": [
+        "switch (incoming) {",
+        "case CardSelectionBehavior::manual:",
+        "case CardSelectionBehavior::select_on_activation:",
+        "case CardSelectionBehavior::toggle_on_activation:",
+        "    break;",
+        "default:",
+        "    throw std::invalid_argument(\"card selection behavior is invalid\");",
+        "}"
+      ],
+      "sample": "CardSelectionBehavior::toggle_on_activation"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "header",
+      "reason": "child slots returning the detached predecessor (G10)"
+    }
+  ],
+  "test": {
+    "type": "Card",
+    "include": "gui_forms/controls/panel/card/card.hpp"
+  }
+}

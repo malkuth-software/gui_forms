@@ -1,6 +1,7 @@
 #include "gui_forms/controls/panel/card/card.hpp"
 #include "card_anatomy.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <array>
 #include <algorithm>
@@ -75,13 +76,17 @@ CardLayout Card::effective_card_layout() const noexcept {
     return uses_theme_layout_ ? themed_card_layout(effective_theme()) : layout_;
 }
 
-void Card::set_card_layout(CardLayout layout) {
+CardLayout Card::read_view(const decltype(card_layout)&) const {
+    return layout_;
+}
+
+void Card::write_view(const decltype(card_layout)&, CardLayout incoming) {
     require_mutable();
-    if (!valid_layout(layout)) {
+    if (!valid_layout(incoming)) {
         throw std::invalid_argument("card layout values must be finite and bounded");
     }
-    if (!uses_theme_layout_ && layout_ == layout) return;
-    layout_ = layout;
+    if (!uses_theme_layout_ && layout_ == incoming) return;
+    layout_ = incoming;
     uses_theme_layout_ = false;
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint |
                Dirty::hit_test | Dirty::semantics);
@@ -95,41 +100,20 @@ void Card::reset_card_layout_to_theme() {
                Dirty::hit_test | Dirty::semantics);
 }
 
-void Card::set_interactive(bool interactive) {
+void Card::prepare_write(const decltype(interactive)&, bool&) {
     require_mutable();
-    if (interactive_ == interactive) return;
-    interactive_ = interactive;
-    set_focusable(interactive_);
-    if (!interactive_) {
+}
+
+// A card that stops being interactive drops its interaction visuals.
+void Card::written(const decltype(interactive)&) {
+    set_focusable(interactive.read());
+    if (!interactive.read()) {
         hovered_ = false;
         pressed_ = false;
         focused_ = false;
         keyboard_key_ = 0U;
     }
     invalidate(Dirty::style | Dirty::paint | Dirty::hit_test | Dirty::semantics);
-}
-
-void Card::set_selected(bool selected) {
-    require_mutable();
-    if (selected_ == selected) return;
-    selected_ = selected;
-    invalidate(Dirty::style | Dirty::paint | Dirty::semantics);
-    publish_change(selected_changed_, selected_);
-}
-
-void Card::set_selection_behavior(CardSelectionBehavior behavior) {
-    require_mutable();
-    switch (behavior) {
-    case CardSelectionBehavior::manual:
-    case CardSelectionBehavior::select_on_activation:
-    case CardSelectionBehavior::toggle_on_activation:
-        break;
-    default:
-        throw std::invalid_argument("card selection behavior is invalid");
-    }
-    if (selection_behavior_ == behavior) return;
-    selection_behavior_ = behavior;
-    invalidate(Dirty::semantics);
 }
 
 Size Card::measure(Size available) {
@@ -216,7 +200,7 @@ void Card::arrange(Rect final_bounds) {
 }
 
 ControlVisualContext Card::current_context() const noexcept {
-    return visual_context(hovered_, pressed_, selected_, focused_);
+    return visual_context(hovered_, pressed_, selected.read(), focused_);
 }
 
 void Card::on_paint(Painter& painter, Rect local_damage) {
@@ -231,7 +215,7 @@ void Card::on_paint(Painter& painter, Rect local_damage) {
     AnatomyStateSet states{};
     if (hovered_) states.insert(AnatomyState::hot);
     if (pressed_) states.insert(AnatomyState::pressed);
-    if (selected_) states.insert(AnatomyState::selected);
+    if (selected.read()) states.insert(AnatomyState::selected);
     PartPaint face;
     face.family = ControlVisualRole::card;
     face.role = PartRole::face;
@@ -260,11 +244,11 @@ Insets Card::visual_outsets() const noexcept {
 }
 
 bool Card::hit_test_local(Point local_point) const {
-    return interactive_ && Control::hit_test_local(local_point);
+    return interactive.read() && Control::hit_test_local(local_point);
 }
 
 void Card::on_pointer(PointerEvent& event) {
-    if (!interactive_) return;
+    if (!interactive.read()) return;
     if (event.action == PointerAction::enter || event.action == PointerAction::leave) {
         const bool next = event.action == PointerAction::enter;
         if (hovered_ != next) {
@@ -285,7 +269,7 @@ void Card::on_pointer(PointerEvent& event) {
 }
 
 void Card::on_key(KeyEvent& event) {
-    if (!interactive_) return;
+    if (!interactive.read()) return;
     const bool activation = event.physical_key == PhysicalKey::space ||
                             event.physical_key == PhysicalKey::enter;
     if (!activation) return;
@@ -314,12 +298,12 @@ void Card::on_focus_changed(bool focused) {
 }
 
 void Card::on_activate() {
-    if (!interactive_) return;
-    if (selection_behavior_ == CardSelectionBehavior::select_on_activation) {
-        set_selected(true);
-    } else if (selection_behavior_ ==
+    if (!interactive.read()) return;
+    if (selection_behavior.read() == CardSelectionBehavior::select_on_activation) {
+        selected = true;
+    } else if (selection_behavior.read() ==
                CardSelectionBehavior::toggle_on_activation) {
-        set_selected(!selected_);
+        selected = !selected.read();
     }
     if (is_alive()) activated_.emit(*this);
 }
@@ -328,13 +312,13 @@ SemanticDescriptor Card::semantic_descriptor() const {
     SemanticDescriptor descriptor = Panel::semantic_descriptor();
     descriptor.name = accessible_name.read();
     descriptor.description = accessible_description.read();
-    descriptor.exposed = interactive_ || !descriptor.name.empty() ||
+    descriptor.exposed = interactive.read() || !descriptor.name.empty() ||
                          !descriptor.description.empty();
-    if (interactive_) {
+    if (interactive.read()) {
         descriptor.role = SemanticRole::list_item;
         descriptor.actions = {SemanticAction::focus, SemanticAction::press,
                               SemanticAction::select};
-        if (selected_) descriptor.states |= SemanticState::selected;
+        if (selected.read()) descriptor.states |= SemanticState::selected;
         if (visual_status() == ControlVisualStatus::pending) {
             descriptor.states |= SemanticState::busy;
         } else if (visual_status() == ControlVisualStatus::invalid) {
@@ -345,18 +329,16 @@ SemanticDescriptor Card::semantic_descriptor() const {
 }
 
 bool Card::on_semantic_action(SemanticAction action, std::string_view value) {
-    if (interactive_ && action == SemanticAction::press) {
+    if (interactive.read() && action == SemanticAction::press) {
         on_activate();
         return true;
     }
-    if (interactive_ && action == SemanticAction::select) {
-        set_selected(true);
+    if (interactive.read() && action == SemanticAction::select) {
+        selected = true;
         return true;
     }
     return Panel::on_semantic_action(action, value);
 }
-
-
 
 namespace {
 
@@ -395,7 +377,7 @@ AnatomyStateSet Card::anatomy_states() const {
         states.erase(AnatomyState::normal);
         states.insert(AnatomyState::hot);
     }
-    if (selected_) {
+    if (selected.read()) {
         states.insert(AnatomyState::selected);
     }
     return states;
@@ -421,5 +403,34 @@ void Card::append_interactions(std::vector<InteractionDeclaration>& interactions
     Panel::append_interactions(interactions);
     interactions.insert(interactions.end(), card_interactions.begin(), card_interactions.end());
 }
+
+// property_codemod begin Card (tools/property_families/card.json; generated, do not edit)
+
+void Card::prepare_write(const decltype(selected)&, bool&) {
+    require_mutable();
+}
+
+void Card::written(const decltype(selected)&) {
+    invalidate(Dirty::style | Dirty::paint | Dirty::semantics);
+    publish_change(selected_changed_, selected.read());
+}
+
+void Card::prepare_write(const decltype(selection_behavior)&, CardSelectionBehavior& incoming) {
+    require_mutable();
+    switch (incoming) {
+    case CardSelectionBehavior::manual:
+    case CardSelectionBehavior::select_on_activation:
+    case CardSelectionBehavior::toggle_on_activation:
+        break;
+    default:
+        throw std::invalid_argument("card selection behavior is invalid");
+    }
+}
+
+void Card::written(const decltype(selection_behavior)&) {
+    invalidate(Dirty::semantics);
+}
+
+// property_codemod end Card
 
 } // namespace gui_forms

@@ -5,6 +5,8 @@
 #include "gui_forms/gui_forms.hpp"
 #include "gui_forms/controls/button_base/button/button.hpp"
 #include "gui_forms/controls/data_grid_view/data_grid_view.hpp"
+#include "gui_forms/controls/panel/card/card.hpp"
+#include "gui_forms/controls/panel/card/review_card/review_card.hpp"
 #include "gui_forms/controls/panel/combo_box/combo_box.hpp"
 #include "gui_forms/controls/panel/domain_up_down/domain_up_down.hpp"
 #include "gui_forms/controls/panel/group_box/group_box.hpp"
@@ -13,6 +15,7 @@
 #include "gui_forms/controls/panel/list_box/list_box.hpp"
 #include "gui_forms/controls/panel/list_view/list_view.hpp"
 #include "gui_forms/controls/panel/masked_text_box/masked_text_box.hpp"
+#include "gui_forms/controls/panel/material_panel/material_panel.hpp"
 #include "gui_forms/controls/panel/month_calendar/month_calendar.hpp"
 #include "gui_forms/controls/panel/numeric_up_down/numeric_up_down.hpp"
 #include "gui_forms/controls/panel/panel.hpp"
@@ -127,6 +130,31 @@ void test_button_base_properties() {
         (*control).expanded_state = sample;
         expect(raises == 1, "ButtonBase.expanded_state: an equal write raises nothing");
         static_cast<void>(token);
+    }
+}
+
+void test_card_properties() {
+    std::shared_ptr<Card> control = make_control<Card>(StableId("generated.card"));
+    {
+        const bool sample = !(*control).interactive.read();
+        (*control).interactive = sample;
+        expect((*control).interactive.read() == sample, "Card.interactive: a write stores");
+    }
+    {
+        const bool sample = true;
+        int raises = 0;
+        const SubscriptionToken token = (*control).selected_changed().subscribe(RaiseCounter{&raises});
+        (*control).selected = sample;
+        expect((*control).selected.read() == sample, "Card.selected: a write stores");
+        expect(raises == 1, "Card.selected: a changed write raises once");
+        (*control).selected = sample;
+        expect(raises == 1, "Card.selected: an equal write raises nothing");
+        static_cast<void>(token);
+    }
+    {
+        const CardSelectionBehavior sample = CardSelectionBehavior::toggle_on_activation;
+        (*control).selection_behavior = sample;
+        expect((*control).selection_behavior.read() == sample, "Card.selection_behavior: a write stores");
     }
 }
 
@@ -539,6 +567,11 @@ void test_masked_text_box_properties() {
     }
 }
 
+void test_material_panel_properties() {
+    std::shared_ptr<MaterialPanel> control = make_control<MaterialPanel>(StableId("generated.materialpanel"));
+    // material: no sample for SurfaceMaterial; give the property a "sample".
+}
+
 void test_month_calendar_properties() {
     std::shared_ptr<MonthCalendar> control = make_control<MonthCalendar>(StableId("generated.monthcalendar"));
     {
@@ -689,6 +722,11 @@ void test_property_grid_properties() {
 
 void test_property_list_properties() {
     std::shared_ptr<PropertyList> control = make_control<PropertyList>(StableId("generated.propertylist"));
+}
+
+void test_review_card_properties() {
+    std::shared_ptr<ReviewCard> control = make_control<ReviewCard>(StableId("generated.reviewcard"));
+    // record: no sample for ReviewRecord; give the property a "sample".
 }
 
 void test_rich_text_box_properties() {
@@ -876,6 +914,7 @@ void test_tree_list_view_properties() {
 
 int main() {
     test_button_base_properties();
+    test_card_properties();
     test_checked_list_box_properties();
     test_combo_box_properties();
     test_data_grid_view_properties();
@@ -884,12 +923,14 @@ int main() {
     test_list_box_properties();
     test_list_view_properties();
     test_masked_text_box_properties();
+    test_material_panel_properties();
     test_month_calendar_properties();
     test_numeric_up_down_properties();
     test_panel_properties();
     test_picture_box_properties();
     test_property_grid_properties();
     test_property_list_properties();
+    test_review_card_properties();
     test_rich_text_box_properties();
     test_scaled_group_box_properties();
     test_scaled_panel_properties();

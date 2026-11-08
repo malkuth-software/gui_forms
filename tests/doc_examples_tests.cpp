@@ -479,11 +479,11 @@ struct Plans final : gf::Component {
     bool chosen = false;
 
     Plans() {
-        (*pro).set_interactive(true);
-        (*pro).set_selection_behavior(gf::CardSelectionBehavior::toggle_on_activation);
+        (*pro).interactive = true;
+        (*pro).selection_behavior = gf::CardSelectionBehavior::toggle_on_activation;
         gf::on((*pro).activated(), *this, &Plans::on_activated);
     }
-    void on_activated(gf::Card& card) { chosen = card.selected(); }
+    void on_activated(gf::Card& card) { chosen = card.selected.read(); }
 };
 
 void example() {
@@ -2233,7 +2233,7 @@ void example() {
     std::shared_ptr<gf::MaterialPanel> hero =
         gf::make_control<gf::MaterialPanel>(gf::StableId("welcome.hero"));
     (*hero).set_requested_bounds({16.0, 16.0, 320.0, 120.0});
-    (*hero).set_material(banner);
+    (*hero).material = banner;
     std::shared_ptr<gf::Label> title =
         gf::make_control<gf::Label>(gf::StableId("welcome.hero.title"), "Welcome");
     (*title).set_requested_bounds({16.0, 16.0, 200.0, 28.0});
@@ -2958,12 +2958,12 @@ namespace doc_example_ReviewCard_1 {
 void example() {
     std::shared_ptr<gf::ReviewCard> card =
         gf::make_control<gf::ReviewCard>(gf::StableId("review.render"));
-    (*card).set_record(gf::ReviewRecord{
+    (*card).record = gf::ReviewRecord{
         .key = "render-pipeline",
         .title = "Render pipeline",
         .summary = "Painting records renderer-neutral commands before host replay.",
         .verdict = "Measured, partial",
-        .disposition = gf::ReviewDisposition::pending});
+        .disposition = gf::ReviewDisposition::pending};
     // (*card).visual_status() is now gf::ControlVisualStatus::pending
 }
 }  // namespace doc_example_ReviewCard_1
@@ -2975,16 +2975,16 @@ struct Reviews final : gf::Component {
     std::string opened;
 
     Reviews() {
-        (*card).set_record(gf::ReviewRecord{.key = "fonts",
+        (*card).record = gf::ReviewRecord{.key = "fonts",
                                             .title = "Bundled fonts",
                                             .summary = "Control faces ship with the library.",
                                             .verdict = "Accepted",
-                                            .disposition = gf::ReviewDisposition::accepted});
-        (*card).set_interactive(true);
-        (*card).set_selection_behavior(gf::CardSelectionBehavior::select_on_activation);
+                                            .disposition = gf::ReviewDisposition::accepted};
+        (*card).interactive = true;
+        (*card).selection_behavior = gf::CardSelectionBehavior::select_on_activation;
         gf::on((*card).activated(), *this, &Reviews::on_open);
     }
-    void on_open() { opened = (*card).record().key; }
+    void on_open() { opened = (*card).record.read().key; }
 };
 
 void example() {

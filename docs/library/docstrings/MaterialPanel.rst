@@ -78,7 +78,7 @@ A rounded panel with a vertical gradient, a border and a soft shadow:
    std::shared_ptr<gf::MaterialPanel> hero =
        gf::make_control<gf::MaterialPanel>(gf::StableId("welcome.hero"));
    (*hero).set_requested_bounds({16.0, 16.0, 320.0, 120.0});
-   (*hero).set_material(banner);
+   (*hero).material = banner;
    std::shared_ptr<gf::Label> title =
        gf::make_control<gf::Label>(gf::StableId("welcome.hero.title"), "Welcome");
    (*title).set_requested_bounds({16.0, 16.0, 200.0, 28.0});

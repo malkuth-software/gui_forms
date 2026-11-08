@@ -7,7 +7,7 @@ gui_forms::Card
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: Card : public Panel
+.. cpp:class:: Card : public Panel, public CardCapabilities<Card>
 
    ``#include <gui_forms/controls/panel/card/card.hpp>``
 
@@ -31,6 +31,28 @@ gui_forms::Card
 
    :Properties:
 
+      **card_layout** : ``CardLayout``, default ``CardLayout{}``
+         Your own padding, section gap and header and footer heights. Setting it
+         makes the card use it instead of the theme's values; a value that is not
+         finite or lies outside 0 to 4096 throws ``std::invalid_argument``. Until
+         you set it, the card follows the theme and this value is not used.
+
+      **interactive** : ``bool``, default ``false``
+         Whether the user can hover, focus, press and activate the card.
+         Turning it on also makes the card focusable; turning it off clears its
+         hover and pressed state. A card that is not interactive is never itself
+         the target of a click; the click goes to the control behind it.
+
+      **selected** : ``bool``, default ``false``
+         Whether the card is selected. It changes the card's appearance and, on
+         an interactive card, its accessibility state. The application sets it,
+         or activation does through :cpp:member:`selection_behavior <gui_forms::Card::selection_behavior>`.
+
+      **selection_behavior** : ``CardSelectionBehavior``, default ``CardSelectionBehavior::manual``
+         What activation does to :cpp:member:`selected <gui_forms::Card::selected>` before :cpp:func:`activated <gui_forms::Card::activated>` is raised:
+         nothing, select the card, or toggle it. An unknown value throws
+         ``std::invalid_argument``.
+
       **header** : ``Control::Ptr``, default ``nullptr``
          The control in the header strip. :cpp:func:`set_header <gui_forms::Card::set_header>` makes the new control a
          child of the card and returns the control it replaces, now detached, or
@@ -47,38 +69,16 @@ gui_forms::Card
          The control in the footer strip; :cpp:func:`set_footer <gui_forms::Card::set_footer>` follows the same rules as
          :cpp:func:`set_header <gui_forms::Card::set_header>`.
 
-      **card_layout** : ``CardLayout``, default ``CardLayout{}``
-         Your own padding, section gap and header and footer heights. Setting it
-         makes the card use it instead of the theme's values; a value that is not
-         finite or lies outside 0 to 4096 throws ``std::invalid_argument``. Until
-         you set it, the card follows the theme and this value is not used.
-
       **uses_theme_layout** : ``bool``, default ``true``, read-only
          Whether the card takes its layout from the theme. It becomes false when
-         you call :cpp:func:`set_card_layout <gui_forms::Card::set_card_layout>`, and true again after
+         you call ``set_card_layout``, and true again after
          :cpp:func:`reset_card_layout_to_theme <gui_forms::Card::reset_card_layout_to_theme>`.
 
       **effective_card_layout** : ``CardLayout``, read-only
-         The layout in use: :cpp:func:`card_layout <gui_forms::Card::card_layout>`, or the theme's values, with the
+         The layout in use: :cpp:member:`card_layout <gui_forms::Card::card_layout>`, or the theme's values, with the
          theme's large spacing as left and right padding, its medium spacing as
          top and bottom padding and as the section gap, and its control height
          for the header and footer.
-
-      **interactive** : ``bool``, default ``false``
-         Whether the user can hover, focus, press and activate the card.
-         Turning it on also makes the card focusable; turning it off clears its
-         hover and pressed state. A card that is not interactive is never itself
-         the target of a click; the click goes to the control behind it.
-
-      **selected** : ``bool``, default ``false``
-         Whether the card is selected. It changes the card's appearance and, on
-         an interactive card, its accessibility state. The application sets it,
-         or activation does through :cpp:func:`selection_behavior <gui_forms::Card::selection_behavior>`.
-
-      **selection_behavior** : ``CardSelectionBehavior``, default ``CardSelectionBehavior::manual``
-         What activation does to :cpp:func:`selected <gui_forms::Card::selected>` before :cpp:func:`activated <gui_forms::Card::activated>` is raised:
-         nothing, select the card, or toggle it. An unknown value throws
-         ``std::invalid_argument``.
 
       **hovered_visual** : ``bool``, default ``false``, read-only
          Whether the pointer is over an interactive card.
@@ -98,11 +98,11 @@ gui_forms::Card
          Raised when the user activates an interactive card: a primary-button
          press and release over it, the release of Space or Enter while it has
          focus, or an accessibility press action. It carries the card. When
-         :cpp:func:`selection_behavior <gui_forms::Card::selection_behavior>` changes the selection, :cpp:func:`selected_changed <gui_forms::Card::selected_changed>` is raised
+         :cpp:member:`selection_behavior <gui_forms::Card::selection_behavior>` changes the selection, :cpp:func:`selected_changed <gui_forms::Card::selected_changed>` is raised
          first.
 
       **selected_changed** : ``Event<bool>``
-         Raised after :cpp:func:`selected <gui_forms::Card::selected>` changes, whether by :cpp:func:`set_selected <gui_forms::Card::set_selected>`, by
+         Raised after :cpp:member:`selected <gui_forms::Card::selected>` changes, whether by ``set_selected``, by
          activation or by an accessibility select action. It carries the new
          value. Setting the current value again raises nothing.
 
@@ -121,7 +121,7 @@ gui_forms::Card
       :widths: 35 65
 
       * - :cpp:func:`reset_card_layout_to_theme <gui_forms::Card::reset_card_layout_to_theme>`
-        - Returns to the theme's layout after :cpp:func:`set_card_layout <gui_forms::Card::set_card_layout>`.
+        - Returns to the theme's layout after ``set_card_layout``.
 
    .. seealso::
 
@@ -150,13 +150,13 @@ gui_forms::Card
    so the card is activated only where no such child covers it; a :cpp:class:`Label <gui_forms::Label>` lets
    the click through to the card. With focus, Space or Enter
    presses the card on key down and activates it on key up; a held key does
-   not repeat. The order of an activation is: :cpp:func:`selected <gui_forms::Card::selected>` changes as
-   :cpp:func:`selection_behavior <gui_forms::Card::selection_behavior>` says, :cpp:func:`selected_changed <gui_forms::Card::selected_changed>` is raised, then :cpp:func:`activated <gui_forms::Card::activated>`.
+   not repeat. The order of an activation is: :cpp:member:`selected <gui_forms::Card::selected>` changes as
+   :cpp:member:`selection_behavior <gui_forms::Card::selection_behavior>` says, :cpp:func:`selected_changed <gui_forms::Card::selected_changed>` is raised, then :cpp:func:`activated <gui_forms::Card::activated>`.
 
    An interactive card is published to accessibility as a ``list_item`` with
    focus, press and select actions, the selected state, and a busy or invalid
    state when its ``visual_status`` is pending or invalid. The press action
-   activates the card; the select action only sets :cpp:func:`selected <gui_forms::Card::selected>`. A card that is
+   activates the card; the select action only sets :cpp:member:`selected <gui_forms::Card::selected>`. A card that is
    not interactive is published as a ``group`` when it has an accessible name or
    description, and is otherwise left out with its sections published in its
    place.
@@ -194,11 +194,11 @@ gui_forms::Card
           bool chosen = false;
 
           Plans() {
-              (*pro).set_interactive(true);
-              (*pro).set_selection_behavior(gf::CardSelectionBehavior::toggle_on_activation);
+              (*pro).interactive = true;
+              (*pro).selection_behavior = gf::CardSelectionBehavior::toggle_on_activation;
               gf::on((*pro).activated(), *this, &Plans::on_activated);
           }
-          void on_activated(gf::Card& card) { chosen = card.selected(); }
+          void on_activated(gf::Card& card) { chosen = card.selected.read(); }
       };
 
       void example() {
@@ -216,6 +216,32 @@ gui_forms::Card
 
 
    .. rubric:: Properties
+
+   .. cpp:member:: CardLayout card_layout
+
+      Your own padding, section gap and header and footer heights. Setting it
+      makes the card use it instead of the theme's values; a value that is not
+      finite or lies outside 0 to 4096 throws ``std::invalid_argument``. Until
+      you set it, the card follows the theme and this value is not used.
+
+   .. cpp:member:: bool interactive
+
+      Whether the user can hover, focus, press and activate the card.
+      Turning it on also makes the card focusable; turning it off clears its
+      hover and pressed state. A card that is not interactive is never itself
+      the target of a click; the click goes to the control behind it.
+
+   .. cpp:member:: bool selected
+
+      Whether the card is selected. It changes the card's appearance and, on
+      an interactive card, its accessibility state. The application sets it,
+      or activation does through :cpp:member:`selection_behavior <gui_forms::Card::selection_behavior>`.
+
+   .. cpp:member:: CardSelectionBehavior selection_behavior
+
+      What activation does to :cpp:member:`selected <gui_forms::Card::selected>` before :cpp:func:`activated <gui_forms::Card::activated>` is raised:
+      nothing, select the card, or toggle it. An unknown value throws
+      ``std::invalid_argument``.
 
    .. cpp:function:: Control::Ptr header() const noexcept
 
@@ -248,60 +274,18 @@ gui_forms::Card
 
       Sets :cpp:func:`footer <gui_forms::Card::footer>`; see the property's description above.
 
-   .. cpp:function:: const CardLayout& card_layout() const noexcept
-
-      Your own padding, section gap and header and footer heights. Setting it
-      makes the card use it instead of the theme's values; a value that is not
-      finite or lies outside 0 to 4096 throws ``std::invalid_argument``. Until
-      you set it, the card follows the theme and this value is not used.
-
-   .. cpp:function:: void set_card_layout(CardLayout layout)
-
-      Sets :cpp:func:`card_layout <gui_forms::Card::card_layout>`; see the property's description above.
-
    .. cpp:function:: bool uses_theme_layout() const noexcept
 
       Whether the card takes its layout from the theme. It becomes false when
-      you call :cpp:func:`set_card_layout <gui_forms::Card::set_card_layout>`, and true again after
+      you call ``set_card_layout``, and true again after
       :cpp:func:`reset_card_layout_to_theme <gui_forms::Card::reset_card_layout_to_theme>`.
 
    .. cpp:function:: CardLayout effective_card_layout() const noexcept
 
-      The layout in use: :cpp:func:`card_layout <gui_forms::Card::card_layout>`, or the theme's values, with the
+      The layout in use: :cpp:member:`card_layout <gui_forms::Card::card_layout>`, or the theme's values, with the
       theme's large spacing as left and right padding, its medium spacing as
       top and bottom padding and as the section gap, and its control height
       for the header and footer.
-
-   .. cpp:function:: bool interactive() const noexcept
-
-      Whether the user can hover, focus, press and activate the card.
-      Turning it on also makes the card focusable; turning it off clears its
-      hover and pressed state. A card that is not interactive is never itself
-      the target of a click; the click goes to the control behind it.
-
-   .. cpp:function:: void set_interactive(bool interactive)
-
-      Sets :cpp:func:`interactive <gui_forms::Card::interactive>`; see the property's description above.
-
-   .. cpp:function:: bool selected() const noexcept
-
-      Whether the card is selected. It changes the card's appearance and, on
-      an interactive card, its accessibility state. The application sets it,
-      or activation does through :cpp:func:`selection_behavior <gui_forms::Card::selection_behavior>`.
-
-   .. cpp:function:: void set_selected(bool selected)
-
-      Sets :cpp:func:`selected <gui_forms::Card::selected>`; see the property's description above.
-
-   .. cpp:function:: CardSelectionBehavior selection_behavior() const noexcept
-
-      What activation does to :cpp:func:`selected <gui_forms::Card::selected>` before :cpp:func:`activated <gui_forms::Card::activated>` is raised:
-      nothing, select the card, or toggle it. An unknown value throws
-      ``std::invalid_argument``.
-
-   .. cpp:function:: void set_selection_behavior(CardSelectionBehavior behavior)
-
-      Sets :cpp:func:`selection_behavior <gui_forms::Card::selection_behavior>`; see the property's description above.
 
    .. cpp:function:: bool hovered_visual() const noexcept
 
@@ -326,12 +310,12 @@ gui_forms::Card
       Raised when the user activates an interactive card: a primary-button
       press and release over it, the release of Space or Enter while it has
       focus, or an accessibility press action. It carries the card. When
-      :cpp:func:`selection_behavior <gui_forms::Card::selection_behavior>` changes the selection, :cpp:func:`selected_changed <gui_forms::Card::selected_changed>` is raised
+      :cpp:member:`selection_behavior <gui_forms::Card::selection_behavior>` changes the selection, :cpp:func:`selected_changed <gui_forms::Card::selected_changed>` is raised
       first.
 
    .. cpp:function:: Event<bool>& selected_changed() noexcept
 
-      Raised after :cpp:func:`selected <gui_forms::Card::selected>` changes, whether by :cpp:func:`set_selected <gui_forms::Card::set_selected>`, by
+      Raised after :cpp:member:`selected <gui_forms::Card::selected>` changes, whether by ``set_selected``, by
       activation or by an accessibility select action. It carries the new
       value. Setting the current value again raises nothing.
 
@@ -340,7 +324,7 @@ gui_forms::Card
 
    .. cpp:function:: void reset_card_layout_to_theme()
 
-      Returns to the theme's layout after :cpp:func:`set_card_layout <gui_forms::Card::set_card_layout>`.
+      Returns to the theme's layout after ``set_card_layout``.
 
 
    .. rubric:: Extension points

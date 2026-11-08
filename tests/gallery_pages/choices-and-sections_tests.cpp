@@ -55,14 +55,14 @@ void test_choices_and_sections(gui_forms::Window& window) {
     on((*ring).changed(), observer, &ChoiceObserver::changed);
     on((*ring).activated(), observer, &ChoiceObserver::activated);
     require((*ring).selected_index() == 0 && (*chips).selected_index() == 0 &&
-                (*review).record().disposition == ReviewDisposition::pending,
+                (*review).record.read().disposition == ReviewDisposition::pending,
             "both choice views must start from the shared ring Value");
     click(window, window.find("gallery.choices.ring.item.20"));
     require((*ring).selected_index() == 1 && (*chips).selected_index() == 1 &&
                 observer.changes == 1 && observer.activations == 1,
             "a user click must change the shared Value once and activate once");
-    require((*review).record().title == "Review: Staged" &&
-                (*review).record().disposition == ReviewDisposition::accepted &&
+    require((*review).record.read().title == "Review: Staged" &&
+                (*review).record.read().disposition == ReviewDisposition::accepted &&
                 (*card_body).text().find("Staged") != std::string::npos &&
                 (*ring_status).text().find("user activations: 1") != std::string::npos,
             "the ReviewCard and Card must project the chosen ring");
@@ -70,7 +70,7 @@ void test_choices_and_sections(gui_forms::Window& window) {
     (*chips).set_selected_index(2);
     require((*ring).selected_index() == 2 && observer.changes == 2 &&
                 observer.activations == 1 &&
-                (*review).record().disposition == ReviewDisposition::warning,
+                (*review).record.read().disposition == ReviewDisposition::warning,
             "a setter on the glyph view must move the labelled view without an activation");
     // Arrow keys select and focus the neighbouring choice.
     require(window.request_focus((*ring).item(2).shared_from_this()) &&
@@ -97,8 +97,8 @@ void test_choices_and_sections(gui_forms::Window& window) {
             "collapsing through the toggle must hide the retained section body");
 
     // The interactive Card selects on activation and reports through its footer.
-    require(!(*card).selected() && window.perform_semantic_action(
-                "gallery.choices.card", SemanticAction::press) && (*card).selected() &&
+    require(!(*card).selected.read() && window.perform_semantic_action(
+                "gallery.choices.card", SemanticAction::press) && (*card).selected.read() &&
                 (*std::dynamic_pointer_cast<Label>(window.find("gallery.choices.card.footer")))
                         .text().find("Selected") != std::string::npos,
             "activating the Card must set its retained selection and report it");

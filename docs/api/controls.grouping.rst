@@ -66,14 +66,28 @@ Related types
      - The panel's border: none, a line, sunken or raised (BorderStyle).
    * - :cpp:class:`Card::States <gui_forms::Card::States>`
      - Stage T1 states, as dot members; Card's parts are Panel's.
+   * - :cpp:class:`CardCapabilities <gui_forms::CardCapabilities>`
+     - Every Card capability, in the order the declaring class takes them.
+   * - :cpp:class:`CardCardLayoutCapability <gui_forms::CardCardLayoutCapability>`
+     - The padding, section gap and header and footer extents; a view.
+   * - :cpp:class:`CardInteractiveCapability <gui_forms::CardInteractiveCapability>`
+     - Whether the card takes focus, the pointer and activation.
    * - :cpp:class:`CardLayout <gui_forms::CardLayout>`
      - CardLayout defines validated logical padding, section gaps, and footer/header allocation used by Card measurement and arrangement.
+   * - :cpp:class:`CardSelectedCapability <gui_forms::CardSelectedCapability>`
+     - Whether the card is selected; a change raises selected_changed.
+   * - :cpp:class:`CardSelectionBehaviorPropertyCapability <gui_forms::CardSelectionBehaviorPropertyCapability>`
+     - Whether activation only notifies (manual, the default) or also selects or toggles the card before activated is raised.
    * - :cpp:class:`GroupBox::Parts <gui_forms::GroupBox::Parts>`
      - Stage T1 anatomy, as dot members: a face, the frame and the caption.
    * - :cpp:class:`GroupBoxCapabilities <gui_forms::GroupBoxCapabilities>`
      - Every GroupBox capability, in the order the declaring class takes them.
    * - :cpp:class:`GroupBoxUseMnemonicCapability <gui_forms::GroupBoxUseMnemonicCapability>`
      - Whether an ampersand in the caption marks the access key (UseMnemonic); the access key moves the focus to the group's first focusable child.
+   * - :cpp:class:`MaterialPanelCapabilities <gui_forms::MaterialPanelCapabilities>`
+     - Every MaterialPanel capability, in the order the declaring class takes them.
+   * - :cpp:class:`MaterialPanelMaterialCapability <gui_forms::MaterialPanelMaterialCapability>`
+     - The surface recipe painted behind the content; a change repaints and raises material_changed.
    * - :cpp:class:`NavigationPane::Item <gui_forms::NavigationPane::Item>`
      -  
    * - :cpp:class:`NavigationPane::ItemStates <gui_forms::NavigationPane::ItemStates>`
@@ -192,9 +206,68 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> CardCapabilities : public CardCardLayoutCapability<Declaring>, public CardInteractiveCapability<Declaring>, public CardSelectedCapability<Declaring>, public CardSelectionBehaviorPropertyCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/card/card_capabilities/card_capabilities.hpp>``
+
+   Every Card capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: CardLayout card_layout
+
+      The padding, section gap and header and footer extents; a view. Until written the card follows its theme's layout (effective_card_layout); a write overrides it, and reset_card_layout_to_theme returns to the theme's. Values that are not finite or are unbounded throw std::invalid_argument.
+
+   .. cpp:member:: bool interactive
+
+      Whether the card takes focus, the pointer and activation. Turning it off clears the hot, pressed and focused visuals.
+
+   .. cpp:member:: bool selected
+
+      Whether the card is selected; a change raises selected_changed. selection_behavior decides whether activation writes it.
+
+   .. cpp:member:: CardSelectionBehavior selection_behavior
+
+      Whether activation only notifies (manual, the default) or also selects or toggles the card before activated is raised. An undeclared value throws std::invalid_argument.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CardCardLayoutCapability
+
+   ``#include <gui_forms/controls/panel/card/card_capabilities/card_capabilities.hpp>``
+
+   The padding, section gap and header and footer extents; a view. Until written the card follows its theme's layout (effective_card_layout); a write overrides it, and reset_card_layout_to_theme returns to the theme's. Values that are not finite or are unbounded throw std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CardCardLayoutCapability& capability, CardLayout incoming)
+
+   .. cpp:function:: static CardLayout read(const CardCardLayoutCapability& capability)
+
+   .. cpp:member:: PropertyView<CardLayout, CardCardLayoutCapability<Declaring>> card_layout
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CardInteractiveCapability
+
+   ``#include <gui_forms/controls/panel/card/card_capabilities/card_capabilities.hpp>``
+
+   Whether the card takes focus, the pointer and activation. Turning it off clears the hot, pressed and focused visuals.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CardInteractiveCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, CardInteractiveCapability<Declaring>> interactive
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: CardLayout final
 
-   ``#include <gui_forms/controls/panel/card/card.hpp>``
+   ``#include <gui_forms/controls/panel/card/card_values/card_values.hpp>``
 
    CardLayout defines validated logical padding, section gaps, and footer/header allocation used by Card measurement and arrangement.
 
@@ -213,6 +286,38 @@ Related types
    .. cpp:member:: double footer_extent
 
       Default: ``{30.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CardSelectedCapability
+
+   ``#include <gui_forms/controls/panel/card/card_capabilities/card_capabilities.hpp>``
+
+   Whether the card is selected; a change raises selected_changed. selection_behavior decides whether activation writes it.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CardSelectedCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, CardSelectedCapability<Declaring>> selected
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CardSelectionBehaviorPropertyCapability
+
+   ``#include <gui_forms/controls/panel/card/card_capabilities/card_capabilities.hpp>``
+
+   Whether activation only notifies (manual, the default) or also selects or toggles the card before activated is raised. An undeclared value throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CardSelectionBehaviorPropertyCapability& capability, CardSelectionBehavior incoming)
+
+   .. cpp:member:: PropertyCell<CardSelectionBehavior, CardSelectionBehaviorPropertyCapability<Declaring>> selection_behavior
+
+      Default: ``{CardSelectionBehavior::manual}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -274,6 +379,36 @@ Related types
    .. cpp:member:: PropertyCell<bool, GroupBoxUseMnemonicCapability<Declaring>> use_mnemonic
 
       Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MaterialPanelCapabilities : public MaterialPanelMaterialCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/material_panel/material_panel_capabilities/material_panel_capabilities.hpp>``
+
+   Every MaterialPanel capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: SurfaceMaterial material
+
+      The surface recipe painted behind the content; a change repaints and raises material_changed. An invalid or unbounded recipe, or an image the attached window does not hold, throws std::invalid_argument.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MaterialPanelMaterialCapability
+
+   ``#include <gui_forms/controls/panel/material_panel/material_panel_capabilities/material_panel_capabilities.hpp>``
+
+   The surface recipe painted behind the content; a change repaints and raises material_changed. An invalid or unbounded recipe, or an image the attached window does not hold, throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MaterialPanelMaterialCapability& capability, SurfaceMaterial incoming)
+
+   .. cpp:member:: PropertyCell<SurfaceMaterial, MaterialPanelMaterialCapability<Declaring>> material
 
 .. cpp:namespace:: gui_forms
 
@@ -956,7 +1091,7 @@ Enumerations
 
 .. cpp:enum-class:: CardSelectionBehavior
 
-   ``#include <gui_forms/controls/panel/card/card.hpp>``
+   ``#include <gui_forms/controls/panel/card/card_values/card_values.hpp>``
 
    .. cpp:enumerator:: manual
 

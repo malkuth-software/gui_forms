@@ -226,7 +226,7 @@ std::shared_ptr<ScaledPanel> make_title(ProductRefs& refs) {
             {0.94, 1.05}, {0.22, 0.82},
             {{0.0, Color::rgba(255, 185, 144, 110)},
              {1.0, Color::rgba(255, 185, 144, 0)}})};
-    (*fresco).set_material(std::move(title_material));
+    (*fresco).material = std::move(title_material);
     (*panel).add_at(fresco, {0.0, 0.0, 1450.0, 40.0});
     std::shared_ptr<DrawingSurface> keylines =
         material("fm.title.keylines", paint_title_keylines);
@@ -266,7 +266,7 @@ std::shared_ptr<ScaledPanel> make_ribbon(ProductRefs& refs) {
          {0.29, Color::rgba(250, 253, 255)},
          {0.64, Color::rgba(237, 243, 249)},
          {1.0, Color::rgba(213, 225, 235)}})};
-    (*pearl).set_material(std::move(ribbon_material));
+    (*pearl).material = std::move(ribbon_material);
     (*panel).add_at(pearl, {0.0, 0.0, 1450.0, 66.0});
     std::shared_ptr<DrawingSurface> ribbon_lines =
         material("fm.ribbon.keylines", paint_ribbon_keylines);
@@ -670,15 +670,15 @@ std::shared_ptr<FlowLayoutPanelCompat> make_palette_surface(ProductRefs& refs) {
             StableId(std::string("fm.palette.") + spec.id));
         (*card).set_requested_bounds({0.0, 0.0, 220.0, 142.0});
         (*card).margin = {7.0, 7.0, 7.0, 7.0};
-        (*card).set_interactive(true);
-        (*card).set_selected(index == 8U);
+        (*card).interactive = true;
+        (*card).selected = index == 8U;
         (*card).accessible_name = std::string(spec.name) + " atmosphere";
         CardLayout card_layout;
         card_layout.padding = {10.0, 8.0, 10.0, 8.0};
         card_layout.section_gap = 6.0;
         card_layout.header_extent = 24.0;
         card_layout.footer_extent = 18.0;
-        (*card).set_card_layout(card_layout);
+        (*card).card_layout = card_layout;
         std::shared_ptr<Label> heading = label(std::string("fm.palette.") + spec.id + ".title",
                              spec.name, {},
                              {FontRole::control, 11.0, 700, false, 0.22});
@@ -696,7 +696,7 @@ std::shared_ptr<FlowLayoutPanelCompat> make_palette_surface(ProductRefs& refs) {
                  {1.0, Color::rgba(255, 255, 255, 0)}})};
         material_recipe.corner_radius = 4.0;
         material_recipe.border = MaterialBorder{Color::rgba(56, 72, 92), 1.0};
-        (*swatch).set_material(std::move(material_recipe));
+        (*swatch).material = std::move(material_recipe);
         static_cast<void>((*card).set_body(swatch));
         std::shared_ptr<Label> footer = label(std::string("fm.palette.") + spec.id + ".state",
                             index == 8U ? "CURRENT · HOUSE" : "AVAILABLE",
@@ -721,9 +721,9 @@ std::shared_ptr<ReviewCard> review_card(
     layout.section_gap = 7.0;
     layout.header_extent = 28.0;
     layout.footer_extent = 22.0;
-    (*card).set_card_layout(layout);
-    (*card).set_record({std::string((*card).stable_id().value()), std::move(title),
-                      std::move(body), std::move(footer), disposition});
+    (*card).card_layout = layout;
+    (*card).record = ReviewRecord{std::string((*card).stable_id().value()), std::move(title),
+                      std::move(body), std::move(footer), disposition};
     return card;
 }
 
@@ -777,8 +777,8 @@ std::shared_ptr<MasterDetailView> make_dna_surface(ProductRefs& refs) {
                                 spec.title, spec.summary, spec.state, 130.0);
         (*card).set_requested_bounds({0.0, 0.0, 296.0, 130.0});
         (*card).margin = {0.0, 4.0, 0.0, 4.0};
-        (*card).set_interactive(true);
-        (*card).set_selected(index == 0U);
+        (*card).interactive = true;
+        (*card).selected = index == 0U;
         (*master).add_child(card);
         refs.dna_decisions.push_back(card);
     }
@@ -3284,7 +3284,7 @@ struct CardSelectionHandler final {
         if (!selected) return;
         for (const std::weak_ptr<Card>& source : cards) {
             const std::shared_ptr<Card> candidate = source.lock();
-            if (candidate) (*candidate).set_selected(candidate == selected);
+            if (candidate) (*candidate).selected = candidate == selected;
         }
         const std::shared_ptr<Label> label = summary.lock();
         if (label) {
@@ -3307,16 +3307,16 @@ struct DnaSelectionHandler final {
         if (!selected) return;
         for (const std::weak_ptr<Card>& source : cards) {
             const std::shared_ptr<Card> candidate = source.lock();
-            if (candidate) (*candidate).set_selected(candidate == selected);
+            if (candidate) (*candidate).selected = candidate == selected;
         }
         const std::string name((*selected).accessible_name.read());
         const std::shared_ptr<Label> heading_label = heading.lock();
         if (heading_label) (*heading_label).set_text(name);
         const std::shared_ptr<ReviewCard> verdict_card = verdict.lock();
         if (verdict_card) {
-            ReviewRecord record = (*verdict_card).record();
+            ReviewRecord record = (*verdict_card).record.read();
             record.verdict = "ACTIVE REVIEW · " + name;
-            (*verdict_card).set_record(std::move(record));
+            (*verdict_card).record = std::move(record);
         }
         const std::shared_ptr<Label> summary_label = summary.lock();
         if (summary_label) (*summary_label).set_text(name + " · decision record selected");

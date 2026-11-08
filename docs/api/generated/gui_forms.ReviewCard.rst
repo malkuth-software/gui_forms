@@ -7,18 +7,18 @@ gui_forms::ReviewCard
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: ReviewCard final : public Card
+.. cpp:class:: ReviewCard final : public Card, public ReviewCardCapabilities<ReviewCard>
 
    ``#include <gui_forms/controls/panel/card/review_card/review_card.hpp>``
 
    A card that presents one review record: a title, a summary and a verdict.
 
    :cpp:class:`ReviewCard <gui_forms::ReviewCard>` is a :cpp:class:`Card <gui_forms::Card>` whose header, body and footer are three :cpp:class:`Label <gui_forms::Label>`
-   controls it owns. Give it a :cpp:class:`ReviewRecord <gui_forms::ReviewRecord>` with :cpp:func:`set_record <gui_forms::ReviewCard::set_record>` and it shows the
+   controls it owns. Give it a :cpp:class:`ReviewRecord <gui_forms::ReviewRecord>` with ``set_record`` and it shows the
    record's title as a heading, its summary as wrapped body text and its verdict
    as a caption, names itself after the title for accessibility, and draws a
    pending or rejected record in the theme's busy or invalid state. Like any
-   card it is static until ``set_interactive(true)``, after which the user can
+   card it is static until ``interactive = true``, after which the user can
    click it or press Space or Enter to activate it. Use a plain :cpp:class:`Card <gui_forms::Card>` to
    compose other content.
 
@@ -35,10 +35,10 @@ gui_forms::ReviewCard
 
       **record** : ``ReviewRecord``, default ``ReviewRecord{}``
          The record shown. The default record is empty, and the card shows nothing
-         until :cpp:func:`set_record <gui_forms::ReviewCard::set_record>`. A record needs a ``key`` of 1 to 128 bytes and a
+         until ``set_record``. A record needs a ``key`` of 1 to 128 bytes and a
          ``title`` of 1 to 512 bytes; the ``summary`` may have up to 8192 bytes and the
          ``verdict`` up to 1024, all valid UTF-8, with a defined ``disposition``.
-         Otherwise :cpp:func:`set_record <gui_forms::ReviewCard::set_record>` throws ``std::invalid_argument`` and nothing
+         Otherwise ``set_record`` throws ``std::invalid_argument`` and nothing
          changes. Setting an equal record does nothing.
 
       **title_label** : ``std::shared_ptr<Label>``, read-only
@@ -56,12 +56,12 @@ gui_forms::ReviewCard
    :Events:
 
       **record_changed** : ``Event<const ReviewRecord&>``
-         Raised after :cpp:func:`set_record <gui_forms::ReviewCard::set_record>` has updated the labels, the accessible name and
+         Raised after ``set_record`` has updated the labels, the accessible name and
          description, and the visual status. It carries the new record.
 
    :Inherited:
 
-      From :cpp:class:`Card <gui_forms::Card>`: properties :cpp:func:`header <gui_forms::Card::header>`, :cpp:func:`body <gui_forms::Card::body>`, :cpp:func:`footer <gui_forms::Card::footer>`, :cpp:func:`card_layout <gui_forms::Card::card_layout>`, :cpp:func:`uses_theme_layout <gui_forms::Card::uses_theme_layout>`, :cpp:func:`effective_card_layout <gui_forms::Card::effective_card_layout>`, :cpp:func:`interactive <gui_forms::Card::interactive>`, :cpp:func:`selected <gui_forms::Card::selected>`, :cpp:func:`selection_behavior <gui_forms::Card::selection_behavior>`, :cpp:func:`hovered_visual <gui_forms::Card::hovered_visual>`, :cpp:func:`pressed_visual <gui_forms::Card::pressed_visual>`, :cpp:func:`focused_visual <gui_forms::Card::focused_visual>`, :cpp:func:`states <gui_forms::Card::states>`; events :cpp:func:`activated <gui_forms::Card::activated>`, :cpp:func:`selected_changed <gui_forms::Card::selected_changed>`; methods :cpp:func:`reset_card_layout_to_theme <gui_forms::Card::reset_card_layout_to_theme>`.
+      From :cpp:class:`Card <gui_forms::Card>`: properties :cpp:member:`card_layout <gui_forms::Card::card_layout>`, :cpp:member:`interactive <gui_forms::Card::interactive>`, :cpp:member:`selected <gui_forms::Card::selected>`, :cpp:member:`selection_behavior <gui_forms::Card::selection_behavior>`, :cpp:func:`header <gui_forms::Card::header>`, :cpp:func:`body <gui_forms::Card::body>`, :cpp:func:`footer <gui_forms::Card::footer>`, :cpp:func:`uses_theme_layout <gui_forms::Card::uses_theme_layout>`, :cpp:func:`effective_card_layout <gui_forms::Card::effective_card_layout>`, :cpp:func:`hovered_visual <gui_forms::Card::hovered_visual>`, :cpp:func:`pressed_visual <gui_forms::Card::pressed_visual>`, :cpp:func:`focused_visual <gui_forms::Card::focused_visual>`, :cpp:func:`states <gui_forms::Card::states>`; events :cpp:func:`activated <gui_forms::Card::activated>`, :cpp:func:`selected_changed <gui_forms::Card::selected_changed>`; methods :cpp:func:`reset_card_layout_to_theme <gui_forms::Card::reset_card_layout_to_theme>`.
 
       From :cpp:class:`Panel <gui_forms::Panel>`: properties :cpp:member:`border_style <gui_forms::Panel::border_style>`, :cpp:member:`visual_role <gui_forms::Panel::visual_role>`, :cpp:func:`background <gui_forms::Panel::background>`, :cpp:func:`has_background_override <gui_forms::Panel::has_background_override>`, :cpp:func:`style <gui_forms::Panel::style>`, :cpp:func:`has_style_override <gui_forms::Panel::has_style_override>`, :cpp:func:`parts <gui_forms::Panel::parts>`; methods :cpp:func:`clear_background <gui_forms::Panel::clear_background>`, :cpp:func:`clear_style <gui_forms::Panel::clear_style>`, :cpp:func:`panel_property_entries <gui_forms::Panel::panel_property_entries>`.
 
@@ -88,7 +88,7 @@ gui_forms::ReviewCard
 
    .. rubric:: Notes
 
-   :cpp:func:`set_record <gui_forms::ReviewCard::set_record>` writes the record's text into the three labels, sets the card's
+   ``set_record`` writes the record's text into the three labels, sets the card's
    accessible name to the title and its accessible description to the summary,
    and sets ``visual_status`` from the disposition: :cpp:enumerator:`ReviewDisposition::pending <gui_forms::ReviewDisposition::pending>`
    becomes :cpp:enumerator:`ControlVisualStatus::pending <gui_forms::ControlVisualStatus::pending>`, :cpp:enumerator:`ReviewDisposition::rejected <gui_forms::ReviewDisposition::rejected>`
@@ -98,12 +98,12 @@ gui_forms::ReviewCard
 
    You may restyle the labels through their ordinary :cpp:class:`Label <gui_forms::Label>` properties, such as
    fonts, colours and alignment, but the card rewrites their text on every
-   :cpp:func:`set_record <gui_forms::ReviewCard::set_record>`.
+   ``set_record``.
 
    Layout follows :cpp:class:`Card <gui_forms::Card>`: the title and verdict take fixed-height header and
    footer strips from the theme, and the summary fills the space between them.
 
-   With ``set_interactive(true)`` the card takes focus when clicked, and a click
+   With ``interactive = true`` the card takes focus when clicked, and a click
    or Space or Enter raises the inherited ``activated`` event, after applying the
    card's ``selection_behavior``. The labels never intercept the pointer, so a
    click anywhere on the card reaches it.
@@ -121,12 +121,12 @@ gui_forms::ReviewCard
 
       std::shared_ptr<gf::ReviewCard> card =
           gf::make_control<gf::ReviewCard>(gf::StableId("review.render"));
-      (*card).set_record(gf::ReviewRecord{
+      (*card).record = gf::ReviewRecord{
           .key = "render-pipeline",
           .title = "Render pipeline",
           .summary = "Painting records renderer-neutral commands before host replay.",
           .verdict = "Measured, partial",
-          .disposition = gf::ReviewDisposition::pending});
+          .disposition = gf::ReviewDisposition::pending};
       // (*card).visual_status() is now gf::ControlVisualStatus::pending
 
    Make the card clickable and react when the user opens it:
@@ -139,16 +139,16 @@ gui_forms::ReviewCard
           std::string opened;
 
           Reviews() {
-              (*card).set_record(gf::ReviewRecord{.key = "fonts",
+              (*card).record = gf::ReviewRecord{.key = "fonts",
                                                   .title = "Bundled fonts",
                                                   .summary = "Control faces ship with the library.",
                                                   .verdict = "Accepted",
-                                                  .disposition = gf::ReviewDisposition::accepted});
-              (*card).set_interactive(true);
-              (*card).set_selection_behavior(gf::CardSelectionBehavior::select_on_activation);
+                                                  .disposition = gf::ReviewDisposition::accepted};
+              (*card).interactive = true;
+              (*card).selection_behavior = gf::CardSelectionBehavior::select_on_activation;
               gf::on((*card).activated(), *this, &Reviews::on_open);
           }
-          void on_open() { opened = (*card).record().key; }
+          void on_open() { opened = (*card).record.read().key; }
       };
 
       void example() {
@@ -171,18 +171,14 @@ gui_forms::ReviewCard
 
    .. rubric:: Properties
 
-   .. cpp:function:: const ReviewRecord& record() const noexcept
+   .. cpp:member:: ReviewRecord record
 
       The record shown. The default record is empty, and the card shows nothing
-      until :cpp:func:`set_record <gui_forms::ReviewCard::set_record>`. A record needs a ``key`` of 1 to 128 bytes and a
+      until ``set_record``. A record needs a ``key`` of 1 to 128 bytes and a
       ``title`` of 1 to 512 bytes; the ``summary`` may have up to 8192 bytes and the
       ``verdict`` up to 1024, all valid UTF-8, with a defined ``disposition``.
-      Otherwise :cpp:func:`set_record <gui_forms::ReviewCard::set_record>` throws ``std::invalid_argument`` and nothing
+      Otherwise ``set_record`` throws ``std::invalid_argument`` and nothing
       changes. Setting an equal record does nothing.
-
-   .. cpp:function:: void set_record(ReviewRecord record)
-
-      Sets :cpp:func:`record <gui_forms::ReviewCard::record>`; see the property's description above.
 
    .. cpp:function:: std::shared_ptr<Label> title_label() const noexcept
 
@@ -204,7 +200,7 @@ gui_forms::ReviewCard
 
    .. cpp:function:: Event<const ReviewRecord&>& record_changed() noexcept
 
-      Raised after :cpp:func:`set_record <gui_forms::ReviewCard::set_record>` has updated the labels, the accessible name and
+      Raised after ``set_record`` has updated the labels, the accessible name and
       description, and the visual status. It carries the new record.
 
 

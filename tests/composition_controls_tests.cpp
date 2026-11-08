@@ -50,7 +50,7 @@ void test_card_section_ownership_and_layout() {
     layout.section_gap = 5.0;
     layout.header_extent = 30.0;
     layout.footer_extent = 20.0;
-    (*card).set_card_layout(layout);
+    (*card).card_layout = layout;
     std::shared_ptr<gui_forms::Label> header = make_control<Label>(StableId("card.header"), "Header");
     std::shared_ptr<gui_forms::Panel> body = make_control<Panel>(StableId("card.body"));
     std::shared_ptr<gui_forms::Label> footer = make_control<Label>(StableId("card.footer"), "Footer");
@@ -86,7 +86,7 @@ void test_interactive_card_state_input_and_semantics() {
     std::shared_ptr<gui_forms::Card> card = make_control<Card>(StableId("card.interactive"));
     (*card).set_requested_bounds({10.0, 10.0, 180.0, 100.0});
     (*card).accessible_name = "Sapphire specimen";
-    (*card).set_interactive(true);
+    (*card).interactive = true;
     Window window(card, {200.0, 120.0});
     window.perform_layout();
     unsigned activations{};
@@ -111,8 +111,8 @@ void test_interactive_card_state_input_and_semantics() {
                 !(*card).pressed_visual() && activations == 1U,
             "qualified pointer release must activate the card once");
 
-    (*card).set_selected(true);
-    (*card).set_selected(true);
+    (*card).selected = true;
+    (*card).selected = true;
     require(selection_changes == 1U,
             "card selection assignment must be synchronous and silent on no-op");
     const SemanticDescriptor descriptor = (*card).semantic_descriptor();
@@ -129,8 +129,8 @@ void test_interactive_card_state_input_and_semantics() {
 void test_card_selection_behavior_is_explicit_and_ordered() {
     std::shared_ptr<gui_forms::Card> card = make_control<Card>(StableId("card.selection-behavior"));
     (*card).set_requested_bounds({0.0, 0.0, 180.0, 80.0});
-    (*card).set_interactive(true);
-    (*card).set_selection_behavior(CardSelectionBehavior::toggle_on_activation);
+    (*card).interactive = true;
+    (*card).selection_behavior = CardSelectionBehavior::toggle_on_activation;
     Window window(card, {180.0, 80.0});
     std::string trace;
     SubscriptionToken selection = (*card).selected_changed().subscribe(
@@ -140,24 +140,23 @@ void test_card_selection_behavior_is_explicit_and_ordered() {
 
     require(window.perform_semantic_action(
                 "card.selection-behavior", SemanticAction::press) &&
-                (*card).selected() &&
+                (*card).selected.read() &&
                 trace == "selected\nactivated\n",
             "toggle-on-activation must commit selection before activation");
     trace.clear();
     require(window.perform_semantic_action(
                 "card.selection-behavior", SemanticAction::press) &&
-                !(*card).selected() &&
+                !(*card).selected.read() &&
                 trace == "cleared\nactivated\n",
             "toggle-on-activation must remain symmetric and ordered");
 
     bool rejected{};
     try {
-        (*card).set_selection_behavior(
-            static_cast<CardSelectionBehavior>(255));
+        (*card).selection_behavior = static_cast<CardSelectionBehavior>(255);
     } catch (const std::invalid_argument&) {
         rejected = true;
     }
-    require(rejected && (*card).selection_behavior() ==
+    require(rejected && (*card).selection_behavior.read() ==
                             CardSelectionBehavior::toggle_on_activation,
             "invalid card selection customization must fail atomically");
 }
@@ -212,7 +211,7 @@ void test_compositions_follow_structural_theme_tokens_until_overridden() {
     CardLayout explicit_layout;
     explicit_layout.padding = {3.0, 4.0, 5.0, 6.0};
     explicit_layout.section_gap = 2.0;
-    (*card).set_card_layout(explicit_layout);
+    (*card).card_layout = explicit_layout;
     require(!(*card).uses_theme_layout() &&
                 (*card).effective_card_layout() == explicit_layout,
             "an explicit Card layout must remain authoritative");
@@ -256,7 +255,7 @@ void test_compositions_follow_structural_theme_tokens_until_overridden() {
 void test_review_card_owns_typed_theme_aware_projection() {
     std::shared_ptr<gui_forms::ReviewCard> card = make_control<ReviewCard>(StableId("review.typed"));
     (*card).set_requested_bounds({0.0, 0.0, 360.0, 150.0});
-    (*card).set_interactive(true);
+    (*card).interactive = true;
     unsigned changes{};
     SubscriptionToken changed = (*card).record_changed().subscribe(
         ObserveReviewRecord(changes));
@@ -264,8 +263,8 @@ void test_review_card_owns_typed_theme_aware_projection() {
         "surface-pipeline", "Retained surface pipeline",
         "Painting records renderer-neutral commands before host replay.",
         "MEASURED PARTIAL", ReviewDisposition::pending};
-    (*card).set_record(pending);
-    (*card).set_record(pending);
+    (*card).record = pending;
+    (*card).record = pending;
     require(changes == 1U && (*card).header() == (*card).title_label() &&
                 (*card).body() == (*card).summary_label() &&
                 (*card).footer() == (*card).verdict_label() &&
@@ -294,7 +293,7 @@ void test_review_card_owns_typed_theme_aware_projection() {
 
     ReviewRecord rejected = pending;
     rejected.disposition = ReviewDisposition::rejected;
-    (*card).set_record(rejected);
+    (*card).record = rejected;
     require((*card).visual_status() == ControlVisualStatus::invalid &&
                 has_semantic_state((*card).semantic_descriptor().states,
                                    SemanticState::invalid),
@@ -303,11 +302,11 @@ void test_review_card_owns_typed_theme_aware_projection() {
     invalid.key.clear();
     bool rejected_invalid{};
     try {
-        (*card).set_record(std::move(invalid));
+        (*card).record = std::move(invalid);
     } catch (const std::invalid_argument&) {
         rejected_invalid = true;
     }
-    require(rejected_invalid && (*card).record() == rejected && changes == 2U,
+    require(rejected_invalid && (*card).record.read() == rejected && changes == 2U,
             "invalid ReviewCard mutation must fail atomically");
 }
 

@@ -1,0 +1,40 @@
+{
+  "family": "ReviewCard",
+  "step": "B6",
+  "declaring": "ReviewCard",
+  "header": "include/gui_forms/controls/panel/card/review_card/review_card.hpp",
+  "source": "src/controls/panel/card/review_card/review_card.cpp",
+  "capabilities_header": "include/gui_forms/controls/panel/card/review_card/review_card_capabilities/review_card_capabilities.hpp",
+  "base": "Card",
+  "shared": [],
+  "includes": [
+    "gui_forms/controls/panel/card/review_card/review_card_values/review_card_values.hpp"
+  ],
+  "properties": [
+    {
+      "name": "record",
+      "capability": "ReviewCardRecord",
+      "value": "ReviewRecord",
+      "initial": null,
+      "comment": "The review shown: key, title, summary, verdict and disposition. A change rewrites the three labels, the accessible name and description and the visual status, then raises record_changed. An invalid or unbounded record throws std::invalid_argument.",
+      "getter": "record",
+      "setter": "set_record",
+      "clear": null,
+      "field": "record_",
+      "event": "record_changed_",
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "written projects the record onto the labels, accessibility text and visual status"
+      ],
+      "effects": null
+    }
+  ],
+  "test": {
+    "type": "ReviewCard",
+    "include": "gui_forms/controls/panel/card/review_card/review_card.hpp"
+  }
+}

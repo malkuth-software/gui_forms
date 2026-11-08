@@ -56,6 +56,7 @@
 #include "gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail.hpp"
 #include "gui_forms/controls/panel/card/card.hpp"
 #include "gui_forms/controls/panel/card/review_card/review_card.hpp"
+#include "gui_forms/controls/panel/card/review_card/review_card_values/review_card_values.hpp"
 #include "gui_forms/controls/panel/color_value_editor/color_value_editor.hpp"
 #include "gui_forms/controls/panel/combo_box/combo_box.hpp"
 #include "gui_forms/controls/panel/correspondence_view/correspondence_view.hpp"

@@ -113,8 +113,8 @@ private:
     }
 
     void build_cards() {
-        (*card_).set_interactive(true);
-        (*card_).set_selection_behavior(CardSelectionBehavior::select_on_activation);
+        (*card_).interactive = true;
+        (*card_).selection_behavior = CardSelectionBehavior::select_on_activation;
         static_cast<void>((*card_).set_header(
             label("gallery.choices.card.title", "Rollout plan", 12.0, 700, shell_blue_dark)));
         card_body_ = label("gallery.choices.card.body", "", 11.0, 400, ink);
@@ -155,7 +155,7 @@ private:
             record.verdict = "NO RING";
             record.disposition = ReviewDisposition::neutral;
         }
-        (*review_).set_record(std::move(record));
+        (*review_).record = std::move(record);
     }
 
     // Input: only the user's activation of the labelled row.
@@ -186,7 +186,7 @@ private:
             ? std::string("Click or press Space to select")
             : "activated " + std::to_string(card_activations_) +
                   (card_activations_ == 1 ? " time" : " times");
-        (*card_footer_).set_text((*card_).selected() ? "Selected · " + activations : activations);
+        (*card_footer_).set_text((*card_).selected.read() ? "Selected · " + activations : activations);
     }
 
     [[nodiscard]] static std::string ring_name(const int index) {

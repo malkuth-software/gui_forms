@@ -149,7 +149,7 @@ void place_display(FixtureBuilder& builder) {
     std::shared_ptr<ReviewCard> review = builder.place(
         make_control<ReviewCard>(StableId("review-card")), 90.0);
     (*review).accessible_name = "Review";
-    (*review).set_interactive(true);
+    (*review).interactive = true;
 }
 
 void place_lists(FixtureBuilder& builder) {

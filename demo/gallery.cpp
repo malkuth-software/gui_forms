@@ -251,7 +251,7 @@ void install_page_fixtures(Window& window) {
                 {5.0, 5.0, 5.0, 5.0})};
             material.shadows = {{{0.0, 2.0}, 3.0, 0.0,
                                  Color::rgba(25, 40, 55, 70)}};
-            (*panel).set_material(std::move(material));
+            (*panel).material = std::move(material);
         }
     }
     const std::vector<std::byte> tile_pixels = make_tile_surface();
@@ -270,7 +270,7 @@ void install_page_fixtures(Window& window) {
                      static_cast<double>(test_tile_extent)},
                     1.0, 0.42)};
             material.border = MaterialBorder{Color::rgba(76, 105, 129), 1.0};
-            (*panel).set_material(std::move(material));
+            (*panel).material = std::move(material);
         }
     }
 }

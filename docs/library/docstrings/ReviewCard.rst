@@ -5,7 +5,7 @@ controls it owns. Give it a `ReviewRecord` with `set_record` and it shows the
 record's title as a heading, its summary as wrapped body text and its verdict
 as a caption, names itself after the title for accessibility, and draws a
 pending or rejected record in the theme's busy or invalid state. Like any
-card it is static until `set_interactive(true)`, after which the user can
+card it is static until `interactive = true`, after which the user can
 click it or press Space or Enter to activate it. Use a plain `Card` to
 compose other content.
 
@@ -69,7 +69,7 @@ fonts, colours and alignment, but the card rewrites their text on every
 Layout follows `Card`: the title and verdict take fixed-height header and
 footer strips from the theme, and the summary fills the space between them.
 
-With `set_interactive(true)` the card takes focus when clicked, and a click
+With `interactive = true` the card takes focus when clicked, and a click
 or Space or Enter raises the inherited `activated` event, after applying the
 card's `selection_behavior`. The labels never intercept the pointer, so a
 click anywhere on the card reaches it.
@@ -87,12 +87,12 @@ Show a pending review:
 
    std::shared_ptr<gf::ReviewCard> card =
        gf::make_control<gf::ReviewCard>(gf::StableId("review.render"));
-   (*card).set_record(gf::ReviewRecord{
+   (*card).record = gf::ReviewRecord{
        .key = "render-pipeline",
        .title = "Render pipeline",
        .summary = "Painting records renderer-neutral commands before host replay.",
        .verdict = "Measured, partial",
-       .disposition = gf::ReviewDisposition::pending});
+       .disposition = gf::ReviewDisposition::pending};
    // (*card).visual_status() is now gf::ControlVisualStatus::pending
 
 Make the card clickable and react when the user opens it:
@@ -105,16 +105,16 @@ Make the card clickable and react when the user opens it:
        std::string opened;
 
        Reviews() {
-           (*card).set_record(gf::ReviewRecord{.key = "fonts",
+           (*card).record = gf::ReviewRecord{.key = "fonts",
                                                .title = "Bundled fonts",
                                                .summary = "Control faces ship with the library.",
                                                .verdict = "Accepted",
-                                               .disposition = gf::ReviewDisposition::accepted});
-           (*card).set_interactive(true);
-           (*card).set_selection_behavior(gf::CardSelectionBehavior::select_on_activation);
+                                               .disposition = gf::ReviewDisposition::accepted};
+           (*card).interactive = true;
+           (*card).selection_behavior = gf::CardSelectionBehavior::select_on_activation;
            gf::on((*card).activated(), *this, &Reviews::on_open);
        }
-       void on_open() { opened = (*card).record().key; }
+       void on_open() { opened = (*card).record.read().key; }
    };
 
    void example() {

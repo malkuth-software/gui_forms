@@ -69,6 +69,10 @@ Related types
      - Marching diagonal stripes over the fill (ProgressBarVisualStyle:: marching_stripes and the moving-stripes overlay).
    * - :cpp:class:`ProgressWovenStripes <gui_forms::ProgressWovenStripes>`
      - Randomly woven stripes (owner amendment, 2026-11-02): setup chooses which stripes exist, where and in what order at random; run weaves each in as the fraction passes its threshold, and shimmers them.
+   * - :cpp:class:`ReviewCardCapabilities <gui_forms::ReviewCardCapabilities>`
+     - Every ReviewCard capability, in the order the declaring class takes them.
+   * - :cpp:class:`ReviewCardRecordCapability <gui_forms::ReviewCardRecordCapability>`
+     - The review shown: key, title, summary, verdict and disposition.
    * - :cpp:class:`ReviewRecord <gui_forms::ReviewRecord>`
      - ReviewRecord owns the stable author, timestamp, score/status, title, body, and metadata projected by ReviewCard.
    * - :cpp:class:`RisingBody <gui_forms::RisingBody>`
@@ -365,9 +369,39 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> ReviewCardCapabilities : public ReviewCardRecordCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/card/review_card/review_card_capabilities/review_card_capabilities.hpp>``
+
+   Every ReviewCard capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: ReviewRecord record
+
+      The review shown: key, title, summary, verdict and disposition. A change rewrites the three labels, the accessible name and description and the visual status, then raises record_changed. An invalid or unbounded record throws std::invalid_argument.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ReviewCardRecordCapability
+
+   ``#include <gui_forms/controls/panel/card/review_card/review_card_capabilities/review_card_capabilities.hpp>``
+
+   The review shown: key, title, summary, verdict and disposition. A change rewrites the three labels, the accessible name and description and the visual status, then raises record_changed. An invalid or unbounded record throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ReviewCardRecordCapability& capability, ReviewRecord incoming)
+
+   .. cpp:member:: PropertyCell<ReviewRecord, ReviewCardRecordCapability<Declaring>> record
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ReviewRecord final
 
-   ``#include <gui_forms/controls/panel/card/review_card/review_card.hpp>``
+   ``#include <gui_forms/controls/panel/card/review_card/review_card_values/review_card_values.hpp>``
 
    ReviewRecord owns the stable author, timestamp, score/status, title, body, and metadata projected by ReviewCard.
 
@@ -557,7 +591,7 @@ Enumerations
 
 .. cpp:enum-class:: ReviewDisposition
 
-   ``#include <gui_forms/controls/panel/card/review_card/review_card.hpp>``
+   ``#include <gui_forms/controls/panel/card/review_card/review_card_values/review_card_values.hpp>``
 
    .. cpp:enumerator:: neutral
 

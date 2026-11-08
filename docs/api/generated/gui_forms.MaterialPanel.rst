@@ -7,7 +7,7 @@ gui_forms::MaterialPanel
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: MaterialPanel : public Panel
+.. cpp:class:: MaterialPanel : public Panel, public MaterialPanelCapabilities<MaterialPanel>
 
    ``#include <gui_forms/controls/panel/material_panel/material_panel.hpp>``
 
@@ -44,7 +44,7 @@ gui_forms::MaterialPanel
    :Events:
 
       **material_changed** : ``Event<const SurfaceMaterial&>``
-         Raised after :cpp:func:`material <gui_forms::MaterialPanel::material>` changes, with the new material.
+         Raised after :cpp:member:`material <gui_forms::MaterialPanel::material>` changes, with the new material.
 
    :Inherited:
 
@@ -93,7 +93,7 @@ gui_forms::MaterialPanel
       std::shared_ptr<gf::MaterialPanel> hero =
           gf::make_control<gf::MaterialPanel>(gf::StableId("welcome.hero"));
       (*hero).set_requested_bounds({16.0, 16.0, 320.0, 120.0});
-      (*hero).set_material(banner);
+      (*hero).material = banner;
       std::shared_ptr<gf::Label> title =
           gf::make_control<gf::Label>(gf::StableId("welcome.hero.title"), "Welcome");
       (*title).set_requested_bounds({16.0, 16.0, 200.0, 28.0});
@@ -107,7 +107,7 @@ gui_forms::MaterialPanel
 
    .. rubric:: Properties
 
-   .. cpp:function:: const SurfaceMaterial& material() const noexcept
+   .. cpp:member:: SurfaceMaterial material
 
       The material painted over the whole panel. The default is a single
       opaque white fill. Setting a material that ``valid_surface_material``
@@ -119,23 +119,19 @@ gui_forms::MaterialPanel
       with that window, with its exact pixel size, or the setter throws
       ``std::invalid_argument``. Setting an equal material does nothing.
 
-   .. cpp:function:: void set_material(SurfaceMaterial material)
-
-      Sets :cpp:func:`material <gui_forms::MaterialPanel::material>`; see the property's description above.
-
 
    .. rubric:: Events
 
    .. cpp:function:: Event<const SurfaceMaterial&>& material_changed() noexcept
 
-      Raised after :cpp:func:`material <gui_forms::MaterialPanel::material>` changes, with the new material.
+      Raised after :cpp:member:`material <gui_forms::MaterialPanel::material>` changes, with the new material.
 
 
    .. rubric:: Extension points
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 
-      Paints :cpp:func:`material <gui_forms::MaterialPanel::material>` over the panel's arranged bounds. It ignores the
+      Paints :cpp:member:`material <gui_forms::MaterialPanel::material>` over the panel's arranged bounds. It ignores the
       inherited ``background``, ``border_style``, ``style`` and ``visual_role``.
 
    .. cpp:function:: Insets visual_outsets() const noexcept override

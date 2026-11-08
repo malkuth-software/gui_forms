@@ -73,11 +73,60 @@ void test_property_list() {
     require((*list).font.read() == larger, "a font write overrides the theme's");
 }
 
+// Counts selected_changed payloads.
+struct CountSelected final {
+    int* count{};
+    void operator()(bool) const { ++*count; }
+};
+
+void test_cards() {
+    std::shared_ptr<Card> card = make_control<Card>(StableId("caps.card"));
+    int changes = 0;
+    const SubscriptionToken token = (*card).selected_changed().subscribe(CountSelected{&changes});
+    (*card).selected = true;
+    (*card).selected = true;
+    require((*card).selected.read() && changes == 1, "selected raises selected_changed once per change");
+    (*card).interactive = true;
+    require((*card).interactive.read() && (*card).focusable(), "an interactive card takes focus");
+    bool refused = false;
+    try {
+        (*card).selection_behavior = static_cast<CardSelectionBehavior>(9);
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*card).selection_behavior.read() == CardSelectionBehavior::manual,
+            "an undeclared selection behavior is refused");
+    CardLayout layout;
+    layout.section_gap = 4.0;
+    (*card).card_layout = layout;
+    require(!(*card).uses_theme_layout() && (*card).card_layout.read() == layout,
+            "a layout write leaves the theme's layout");
+    static_cast<void>(token);
+
+    std::shared_ptr<ReviewCard> review = make_control<ReviewCard>(StableId("caps.review"));
+    (*review).record = ReviewRecord{"k", "Title", "Summary", "Verdict", ReviewDisposition::pending};
+    require((*review).record.read().title == "Title" && (*review).accessible_name.read() == "Title",
+            "a record write projects onto the accessibility text");
+
+    std::shared_ptr<MaterialPanel> panel = make_control<MaterialPanel>(StableId("caps.material"));
+    const SurfaceMaterial before = (*panel).material.read();
+    SurfaceMaterial broken = before;
+    broken.corner_radius = -1.0;
+    refused = false;
+    try {
+        (*panel).material = broken;
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*panel).material.read() == before, "an invalid material is refused");
+}
+
 } // namespace
 
 int main() {
     test_property_grid();
     test_property_list();
+    test_cards();
     std::cout << "gui_forms_editor_composite_capabilities_tests: all tests passed\n";
     return EXIT_SUCCESS;
 }
