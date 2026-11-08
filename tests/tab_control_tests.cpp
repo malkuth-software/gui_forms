@@ -353,13 +353,13 @@ bool throws(Action action) {
 struct SetImageKey final {
     TabPage* page{};
     std::string key{};
-    void operator()() const { (*page).set_image_key(key); }
+    void operator()() const { (*page).image_key = key; }
 };
 
 struct SetImageIndex final {
     TabPage* page{};
     int index{};
-    void operator()() const { (*page).set_image_index(index); }
+    void operator()() const { (*page).image_index = index; }
 };
 
 struct SetImageList final {
@@ -386,10 +386,16 @@ void test_tab_images() {
     require(throws(SetImageKey{fixture.first.get(), std::string("bad \xC3", 5U)}),
             "an image key that is not UTF-8 is refused");
     require(throws(SetImageKey{fixture.first.get(), std::string(257U, 'k')}), "an image key over 256 bytes is refused");
-    (*fixture.first).set_image_key("folder");
-    (*fixture.third).set_image_index(1);
-    require((*fixture.first).image_index() == -1 && (*fixture.third).image_key().empty(),
+    (*fixture.first).image_key = "folder";
+    (*fixture.third).image_index = 1;
+    require((*fixture.first).image_index.read() == -1 && (*fixture.third).image_key.read().empty(),
             "a key and an index exclude each other");
+    (*fixture.second).image_key = "folder";
+    (*fixture.second).image_index = 0;
+    (*fixture.second).image_key = "folder";
+    require((*fixture.second).image_index.read() == -1 && (*fixture.second).image_key.read() == "folder",
+            "rewriting the same key clears an index set since");
+    (*fixture.second).image_key = std::string{};
     window.perform_layout();
     require(!(*fixture.tabs).realized_items().front().parts.tab_icon.present,
             "a tab shows no image before the control has an image list");
@@ -419,8 +425,8 @@ void test_tab_images() {
     require(!(*fixture.tabs).realized_items()[2].parts.tab_icon.present,
             "an index past the list's end shows no image after the list shrinks");
 
-    (*fixture.third).set_image_index(-1);
-    (*fixture.first).set_image_key({});
+    (*fixture.third).image_index = -1;
+    (*fixture.first).image_key = std::string{};
     window.perform_layout();
     for (const TabControl::Item& item : (*fixture.tabs).realized_items()) {
         require(!item.parts.tab_icon.present, "clearing the key and index removes the image");

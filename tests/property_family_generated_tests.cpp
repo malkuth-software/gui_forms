@@ -58,6 +58,7 @@
 #include "gui_forms/controls/scrollable_control/container_control/split_container/split_container.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/split_container/splitter_panel/splitter_panel.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/tab_control/tab_control.hpp"
+#include "gui_forms/controls/scrollable_control/container_control/tab_control/tab_page/tab_page.hpp"
 #include "gui_forms/controls/scrollable_control/scrollable_control.hpp"
 #include "gui_forms/controls/search_field/search_field.hpp"
 #include "gui_forms/controls/splitter/splitter.hpp"
@@ -1570,6 +1571,15 @@ void test_tab_control_properties() {
     // image_list: no sample for std::shared_ptr<ImageList>; give the property a "sample".
 }
 
+void test_tab_page_properties() {
+    std::shared_ptr<TabPage> control = make_control<TabPage>(StableId("generated.tabpage"));
+    {
+        const std::string sample = std::string{"Options"};
+        (*control).text = sample;
+        expect((*control).text.read() == sample, "TabPage.text: a write stores");
+    }
+}
+
 void test_text_block_properties() {
     std::shared_ptr<TextBlock> control = make_control<TextBlock>(StableId("generated.textblock"));
     {
@@ -1945,6 +1955,7 @@ int main() {
     test_splitter_properties();
     test_splitter_panel_properties();
     test_tab_control_properties();
+    test_tab_page_properties();
     test_text_block_properties();
     test_text_box_properties();
     test_toggle_switch_properties();

@@ -193,7 +193,7 @@ void TabControl::add_page(std::shared_ptr<TabPage> page) {
     synchronize_tab_set();
     PageRecord record{};
     record.id = tab_page_id(*page);
-    record.title = (*page).text();
+    record.title = (*page).text.read();
     record.image_key = tab_image_key(*page);
     PageEditStatus inserted = PageEditStatus::applied;
     {
@@ -456,8 +456,8 @@ void TabControl::on_image_list_changed(const ImageListChange&) {
 }
 
 std::string TabControl::tab_image_key(const TabPage& page) const {
-    if (!page.image_key().empty()) return page.image_key();
-    const int index = page.image_index();
+    if (!page.image_key.read().empty()) return page.image_key.read();
+    const int index = page.image_index.read();
     if (index < 0 || !image_list.read() || !(*image_list.read()).is_alive()) return {};
     const std::size_t position = static_cast<std::size_t>(index);
     if (position >= (*image_list.read()).count()) return {};
@@ -534,8 +534,8 @@ void TabControl::synchronize_tab_set() {
     for (std::size_t index = 0; index < live.size() && index < tab_set_.count(); ++index) {
         const PageRecord& record = tab_set_.record_at(PagePosition{index});
         const PageId id = record.id;
-        if (record.title != (*live[index]).text()) {
-            static_cast<void>(tab_set_.set_title(id, (*live[index]).text()));
+        if (record.title != (*live[index]).text.read()) {
+            static_cast<void>(tab_set_.set_title(id, (*live[index]).text.read()));
         }
         std::string image_key = tab_image_key(*live[index]);
         if (tab_set_.record_at(PagePosition{index}).image_key != image_key) {
@@ -790,7 +790,7 @@ SemanticDescriptor TabControl::semantic_descriptor() const {
     descriptor.name = accessible_name.read();
     descriptor.description = accessible_description.read();
     const std::shared_ptr<TabPage> selected = selected_page_.lock();
-    if (selected) descriptor.value = (*selected).text();
+    if (selected) descriptor.value = (*selected).text.read();
     const bool row = alignment.read() == TabAlignment::top || alignment.read() == TabAlignment::bottom;
     descriptor.orientation = row ? SemanticOrientation::horizontal : SemanticOrientation::vertical;
     descriptor.actions = {SemanticAction::focus};
@@ -811,7 +811,7 @@ std::vector<SemanticNode> TabControl::semantic_virtual_children() const {
         node.stable_id = std::string((*live[index]).stable_id().value()) + ".tab";
         node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
         node.role = SemanticRole::tab;
-        node.name = (*live[index]).text();
+        node.name = (*live[index]).text.read();
         node.tool_tip = (*live[index]).tool_tip_text.read();
         const Rect local = tab_parts(*live[index]).tab.bounds;
         if (!local.empty()) {

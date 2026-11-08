@@ -431,8 +431,6 @@
       "summary": "TabPage is an owned Panel surface with bounded caption text and page semantics; TabControl, not the page, owns selection and header interaction.",
       "methods": {
         "TabPage": "Constructs a Panel page with authored caption text.",
-        "text": "Returns the tab header caption owned by this page.",
-        "set_text": "Validates bounded UTF-8 caption text and invalidates parent measurement, painting, and semantics.",
         "semantic_descriptor": "Projects the selected content surface as a named page group while its TabControl owns the virtual tab action."
       }
     },

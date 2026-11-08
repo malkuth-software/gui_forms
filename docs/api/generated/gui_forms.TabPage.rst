@@ -7,7 +7,7 @@ gui_forms::TabPage
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: TabPage final : public Panel
+.. cpp:class:: TabPage final : public Panel, public TabPageCapabilities<TabPage>
 
    ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_page/tab_page.hpp>``
 
@@ -26,8 +26,8 @@ gui_forms::TabPage
          Identity of the page, unique within its window. The page's tab is
          published to accessibility as ``<stable_id>.tab``.
 
-      **text** : ``std::string``, default ``{}``
-         The caption on the page's tab.
+      **initial_text** : ``std::string``, default ``{}``
+         The caption on the page's tab at construction.
 
    :Properties:
 
@@ -37,13 +37,13 @@ gui_forms::TabPage
 
       **image_key** : ``std::string``, default empty
          The key of the tab's image in the tab control's ``image_list``. Setting it
-         clears :cpp:func:`image_index <gui_forms::TabPage::image_index>`. An empty key, or one the list does not have, shows
+         clears :cpp:member:`image_index <gui_forms::TabPage::image_index>`. An empty key, or one the list does not have, shows
          no image. Throws ``std::invalid_argument`` for a key that is not valid
          UTF-8 or is longer than 256 bytes.
 
       **image_index** : ``int``, default ``-1``
          The index of the tab's image in the tab control's ``image_list``, used
-         while :cpp:func:`image_key <gui_forms::TabPage::image_key>` is empty; setting it clears :cpp:func:`image_key <gui_forms::TabPage::image_key>`. ``-1``, or an
+         while :cpp:member:`image_key <gui_forms::TabPage::image_key>` is empty; setting it clears :cpp:member:`image_key <gui_forms::TabPage::image_key>`. ``-1``, or an
          index past the list's end, shows no image. Throws ``std::out_of_range``
          below ``-1``.
 
@@ -96,46 +96,34 @@ gui_forms::TabPage
       (*fonts).add_child(sample);
       (*fonts).auto_scroll = true;   // scroll the page, not the tab control
       (*tabs).add_page(fonts);
-      (*fonts).set_text("Fonts and colours");   // the tab shows the new caption
+      (*fonts).text = "Fonts and colours";   // the tab shows the new caption
 
 
    .. rubric:: Construction
 
-   .. cpp:function:: explicit TabPage(StableId stable_id, std::string text = {})
+   .. cpp:function:: explicit TabPage(StableId stable_id, std::string initial_text = {})
 
 
    .. rubric:: Properties
 
-   .. cpp:function:: const std::string& text() const noexcept
+   .. cpp:member:: std::string text
 
       The caption on the page's tab, drawn exactly as written, and the page's
       accessible name unless you set one. Setting it repaints the tab strip.
 
-   .. cpp:function:: void set_text(std::string text)
-
-      Sets :cpp:func:`text <gui_forms::TabPage::text>`; see the property's description above.
-
-   .. cpp:function:: const std::string& image_key() const noexcept
+   .. cpp:member:: std::string image_key
 
       The key of the tab's image in the tab control's ``image_list``. Setting it
-      clears :cpp:func:`image_index <gui_forms::TabPage::image_index>`. An empty key, or one the list does not have, shows
+      clears :cpp:member:`image_index <gui_forms::TabPage::image_index>`. An empty key, or one the list does not have, shows
       no image. Throws ``std::invalid_argument`` for a key that is not valid
       UTF-8 or is longer than 256 bytes.
 
-   .. cpp:function:: void set_image_key(std::string image_key)
-
-      Sets :cpp:func:`image_key <gui_forms::TabPage::image_key>`; see the property's description above.
-
-   .. cpp:function:: int image_index() const noexcept
+   .. cpp:member:: int image_index
 
       The index of the tab's image in the tab control's ``image_list``, used
-      while :cpp:func:`image_key <gui_forms::TabPage::image_key>` is empty; setting it clears :cpp:func:`image_key <gui_forms::TabPage::image_key>`. ``-1``, or an
+      while :cpp:member:`image_key <gui_forms::TabPage::image_key>` is empty; setting it clears :cpp:member:`image_key <gui_forms::TabPage::image_key>`. ``-1``, or an
       index past the list's end, shows no image. Throws ``std::out_of_range``
       below ``-1``.
-
-   .. cpp:function:: void set_image_index(int image_index)
-
-      Sets :cpp:func:`image_index <gui_forms::TabPage::image_index>`; see the property's description above.
 
 
    .. rubric:: Extension points

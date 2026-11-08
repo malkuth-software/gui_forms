@@ -78,8 +78,8 @@ private:
             // The first tab names its image by key, the third by index; the
             // Gallery gives the control its image list once the window
             // holds the images.
-            if (index == 0U) (*tab_page).set_image_key("folder");
-            if (index == 2U) (*tab_page).set_image_index(0);
+            if (index == 0U) (*tab_page).image_key = "folder";
+            if (index == 2U) (*tab_page).image_index = 0;
             primary.add_page(tab_page);
         }
         primary.set_selected_index(1U);

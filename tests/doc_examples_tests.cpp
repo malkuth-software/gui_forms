@@ -3503,7 +3503,7 @@ void example() {
     (*fonts).add_child(sample);
     (*fonts).auto_scroll = true;   // scroll the page, not the tab control
     (*tabs).add_page(fonts);
-    (*fonts).set_text("Fonts and colours");   // the tab shows the new caption
+    (*fonts).text = "Fonts and colours";   // the tab shows the new caption
 }
 }  // namespace doc_example_TabPage_1
 

@@ -194,6 +194,12 @@ Related types
      - A tab's size: its height across the row, and its width along it in TabSizeMode::fixed (default 120 by 30).
    * - :cpp:class:`TabControlSizeModeCapability <gui_forms::TabControlSizeModeCapability>`
      - How wide each tab is (see TabSizeMode; default normal).
+   * - :cpp:class:`TabPageCapabilities <gui_forms::TabPageCapabilities>`
+     - Every TabPage capability, in the order the declaring class takes them.
+   * - :cpp:class:`TabPageImageIndexCapability <gui_forms::TabPageImageIndexCapability>`
+     - The tab's image in the TabControl's image list, by index (Windows Forms' ImageIndex).
+   * - :cpp:class:`TabPageImageKeyCapability <gui_forms::TabPageImageKeyCapability>`
+     - The tab's image in the TabControl's image list, by key (Windows Forms' ImageKey).
    * - :cpp:class:`TabSelectionChange <gui_forms::TabSelectionChange>`
      - TabSelectionChange reports previous/current tab indices and stable page identities after one accepted selection.
    * - :cpp:class:`TextItemsCapability <gui_forms::TextItemsCapability>`
@@ -1439,6 +1445,63 @@ Related types
    .. cpp:member:: PropertyCell<TabSizeMode, TabControlSizeModeCapability<Declaring>> size_mode
 
       Default: ``{TabSizeMode::normal}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TabPageCapabilities : public TextCapability<Declaring>, public TabPageImageKeyCapability<Declaring>, public TabPageImageIndexCapability<Declaring>
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_page/tab_page_capabilities/tab_page_capabilities.hpp>``
+
+   Every TabPage capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string text
+
+      The text the control shows (Text).
+
+   .. cpp:member:: std::string image_key
+
+      The tab's image in the TabControl's image list, by key (Windows Forms' ImageKey). A write clears image_index, as in Windows Forms; an empty key shows no image, and so does a key the list does not have. A key that is not valid UTF-8 or is longer than 256 bytes throws std::invalid_argument.
+
+   .. cpp:member:: int image_index
+
+      The tab's image in the TabControl's image list, by index (Windows Forms' ImageIndex). A write clears image_key; -1 (the default) shows no image, and so does an index the list does not have. An index below -1 throws std::out_of_range.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TabPageImageIndexCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_page/tab_page_capabilities/tab_page_capabilities.hpp>``
+
+   The tab's image in the TabControl's image list, by index (Windows Forms' ImageIndex). A write clears image_key; -1 (the default) shows no image, and so does an index the list does not have. An index below -1 throws std::out_of_range.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TabPageImageIndexCapability& capability, int incoming)
+
+   .. cpp:function:: static int read(const TabPageImageIndexCapability& capability)
+
+   .. cpp:member:: PropertyView<int, TabPageImageIndexCapability<Declaring>> image_index
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TabPageImageKeyCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_page/tab_page_capabilities/tab_page_capabilities.hpp>``
+
+   The tab's image in the TabControl's image list, by key (Windows Forms' ImageKey). A write clears image_index, as in Windows Forms; an empty key shows no image, and so does a key the list does not have. A key that is not valid UTF-8 or is longer than 256 bytes throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TabPageImageKeyCapability& capability, std::string incoming)
+
+   .. cpp:function:: static std::string read(const TabPageImageKeyCapability& capability)
+
+   .. cpp:member:: PropertyView<std::string, TabPageImageKeyCapability<Declaring>> image_key
 
 .. cpp:namespace:: gui_forms
 
