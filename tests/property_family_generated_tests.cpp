@@ -7,6 +7,7 @@
 #include "gui_forms/controls/data_grid_view/data_grid_view.hpp"
 #include "gui_forms/controls/panel/month_calendar/month_calendar.hpp"
 #include "gui_forms/controls/panel/panel.hpp"
+#include "gui_forms/controls/panel/token_box/token_box.hpp"
 #include "gui_forms/controls/panel/tree_list_view/tree_list_view.hpp"
 #include "gui_forms/controls/scrollable_control/scrollable_control.hpp"
 
@@ -388,6 +389,20 @@ void test_scrollable_control_properties() {
     }
 }
 
+void test_token_box_properties() {
+    std::shared_ptr<TokenBox> control = make_control<TokenBox>(StableId("generated.tokenbox"));
+    {
+        const std::string sample = std::string{"|"};
+        (*control).delimiters = sample;
+        expect((*control).delimiters.read() == sample, "TokenBox.delimiters: a write stores");
+    }
+    {
+        const FontSpec sample = FontSpec{FontRole::content, 14.0, 700, false};
+        (*control).font = sample;
+        expect((*control).font.read() == sample, "TokenBox.font: a write stores");
+    }
+}
+
 void test_tree_list_view_properties() {
     std::shared_ptr<TreeListView> control = make_control<TreeListView>(StableId("generated.treelistview"));
     {
@@ -411,6 +426,7 @@ int main() {
     test_month_calendar_properties();
     test_panel_properties();
     test_scrollable_control_properties();
+    test_token_box_properties();
     test_tree_list_view_properties();
     std::cout << "generated property tests passed\n";
     return EXIT_SUCCESS;

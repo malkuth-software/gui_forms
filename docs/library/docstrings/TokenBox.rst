@@ -124,9 +124,9 @@ A recipients field that suggests names and starts with one recipient:
 
    std::shared_ptr<gf::TokenBox> recipients =
        gf::make_control<gf::TokenBox>(gf::StableId("mail.to"));
-   (*(*recipients).auto_complete_custom_source()).add_range({"Ada Lovelace", "Alan Turing"});
-   (*recipients).set_auto_complete_source(gf::AutoCompleteSource::custom_source);
-   (*recipients).set_auto_complete_mode(gf::AutoCompleteMode::suggest);
+   (*(*recipients).auto_complete_custom_source.read()).add_range({"Ada Lovelace", "Alan Turing"});
+   (*recipients).auto_complete_source = gf::AutoCompleteSource::custom_source;
+   (*recipients).auto_complete_mode = gf::AutoCompleteMode::suggest;
    const gf::TokenId grace = (*recipients).add_token("Grace Hopper");
    gf::Window window(recipients, gf::Size{400.0, 60.0});
    window.request_focus((*recipients).editor());

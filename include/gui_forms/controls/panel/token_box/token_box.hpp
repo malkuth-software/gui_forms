@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/controls/panel/text_box/text_box.hpp"
+#include "gui_forms/controls/panel/token_box/token_box_capabilities/token_box_capabilities.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -41,7 +42,7 @@ struct Token final {
 // typed (nothing, or only spaces), Enter goes on to the containers and the
 // window's accept button (owner decision W-6). A
 // GUI.Forms-only control (Windows Forms has none).
-class TokenBox final : public Control {
+class TokenBox final : public Control, public TokenBoxCapabilities<TokenBox> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
     explicit TokenBox(StableId stable_id);
@@ -64,24 +65,7 @@ public:
     [[nodiscard]] std::optional<TokenId> selected_token() const noexcept { return selected_; }
     // Throws std::invalid_argument for an identity not in the box.
     void select_token(std::optional<TokenId> id);
-    // The characters that end an entry when typed or pasted, default ",;".
-    // Only ASCII punctuation and the space are admitted; anything else
-    // throws std::invalid_argument. Empty: only Enter ends an entry.
-    [[nodiscard]] std::string_view delimiters() const noexcept { return delimiters_; }
-    void set_delimiters(std::string delimiters);
-    [[nodiscard]] FontSpec font() const noexcept { return font_; }
-    void set_font(FontSpec font);
     [[nodiscard]] std::shared_ptr<TextBox> editor() const noexcept { return editor_; }
-
-    // The editor's auto-complete (see TextBox); an accepted completion
-    // becomes a token. list_items throws std::invalid_argument.
-    [[nodiscard]] AutoCompleteMode auto_complete_mode() const noexcept;
-    void set_auto_complete_mode(AutoCompleteMode mode);
-    [[nodiscard]] AutoCompleteSource auto_complete_source() const noexcept;
-    void set_auto_complete_source(AutoCompleteSource source);
-    [[nodiscard]] const std::shared_ptr<AutoCompleteStringCollection>&
-    auto_complete_custom_source() const noexcept;
-    void set_auto_complete_custom_source(std::shared_ptr<AutoCompleteStringCollection> source);
 
     // Raised after a token is added, with the token.
     [[nodiscard]] Event<const Token&>& token_added() noexcept { return token_added_; }
@@ -202,13 +186,30 @@ private:
     std::optional<TokenId> hot_{};
     bool hot_close_{};
     std::optional<TokenId> pressed_close_{};
-    std::string delimiters_{",;"};
-    FontSpec font_{FontRole::content, 12.0, 400, false};
     bool editor_focused_{};
     bool synchronizing_{};
     Event<const Token&> token_added_;
     Event<const Token&> token_removed_;
     Event<std::optional<TokenId>> selected_token_changed_;
+    // property_codemod begin TokenBox (tools/property_families/token_box.json; generated, do not edit)
+private:
+    friend struct DelimitersCapability<TokenBox>;
+    friend struct FontCapability<TokenBox>;
+    friend struct TokenBoxAutoCompleteModeCapability<TokenBox>;
+    friend struct TokenBoxAutoCompleteSourceCapability<TokenBox>;
+    friend struct TokenBoxAutoCompleteCustomSourceCapability<TokenBox>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(delimiters)& cell, std::string& incoming);
+    void written(const decltype(delimiters)& cell);
+    void prepare_write(const decltype(font)& cell, FontSpec& incoming);
+    void written(const decltype(font)& cell);
+    void write_view(const decltype(auto_complete_mode)& cell, AutoCompleteMode incoming);
+    [[nodiscard]] AutoCompleteMode read_view(const decltype(auto_complete_mode)& cell) const;
+    void write_view(const decltype(auto_complete_source)& cell, AutoCompleteSource incoming);
+    [[nodiscard]] AutoCompleteSource read_view(const decltype(auto_complete_source)& cell) const;
+    void write_view(const decltype(auto_complete_custom_source)& cell, std::shared_ptr<AutoCompleteStringCollection> incoming);
+    [[nodiscard]] std::shared_ptr<AutoCompleteStringCollection> read_view(const decltype(auto_complete_custom_source)& cell) const;
+    // property_codemod end TokenBox
 };
 
 } // namespace gui_forms

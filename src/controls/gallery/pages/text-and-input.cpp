@@ -130,10 +130,10 @@ private:
     // TokenBox specimen: recipients entered by Enter, a comma or a
     // suggestion, each a removable token.
     void build_tokens() {
-        (*(*recipients_).auto_complete_custom_source()).add_range(
+        (*(*recipients_).auto_complete_custom_source.read()).add_range(
             {"Ada Lovelace", "Alan Turing", "Grace Hopper", "Edsger Dijkstra", "Barbara Liskov"});
-        (*recipients_).set_auto_complete_source(AutoCompleteSource::custom_source);
-        (*recipients_).set_auto_complete_mode(AutoCompleteMode::suggest);
+        (*recipients_).auto_complete_source = AutoCompleteSource::custom_source;
+        (*recipients_).auto_complete_mode = AutoCompleteMode::suggest;
         static_cast<void>((*recipients_).add_token("Grace Hopper"));
         on((*recipients_).token_added(), *this, &TextAndInputPage::token_added);
         on((*recipients_).token_removed(), *this, &TextAndInputPage::token_removed);

@@ -41,6 +41,8 @@ Related types
    :class: autosummary longtable
    :widths: 35 65
 
+   * - :cpp:class:`DelimitersCapability <gui_forms::DelimitersCapability>`
+     - The characters that end an entry when typed or pasted, default ",;".
    * - :cpp:class:`MaskCulture <gui_forms::MaskCulture>`
      - The symbols the mask's culture characters stand for: ``.`` the decimal separator, ``,`` the group separator, ``:`` the time separator, ``/`` the date separator and ``$`` the currency symbol.
    * - :cpp:class:`MaskEditResult <gui_forms::MaskEditResult>`
@@ -87,8 +89,33 @@ Related types
      - Stage T1 anatomy, as dot members.
    * - :cpp:class:`TokenBox::States <gui_forms::TokenBox::States>`
      -  
+   * - :cpp:class:`TokenBoxAutoCompleteCustomSourceCapability <gui_forms::TokenBoxAutoCompleteCustomSourceCapability>`
+     - The candidate list used when auto_complete_source is custom_source; null for none.
+   * - :cpp:class:`TokenBoxAutoCompleteModeCapability <gui_forms::TokenBoxAutoCompleteModeCapability>`
+     - The editor's auto-complete (see TextBox); an accepted completion becomes a token.
+   * - :cpp:class:`TokenBoxAutoCompleteSourceCapability <gui_forms::TokenBoxAutoCompleteSourceCapability>`
+     - Where the editor's completion candidates come from (see TextBox).
+   * - :cpp:class:`TokenBoxCapabilities <gui_forms::TokenBoxCapabilities>`
+     - Every TokenBox capability, in the order the declaring class takes them.
    * - :cpp:class:`TokenId <gui_forms::TokenId>`
      - A token's identity in its TokenBox: assigned when the token is added and never reused, so it stays valid while positions change.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DelimitersCapability
+
+   ``#include <gui_forms/controls/panel/token_box/token_box_capabilities/token_box_capabilities.hpp>``
+
+   The characters that end an entry when typed or pasted, default ",;". Only ASCII punctuation and the space are admitted; anything else throws std::invalid_argument. Empty: only Enter ends an entry.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DelimitersCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, DelimitersCapability<Declaring>> delimiters
+
+      Default: ``{std::string{",;"}}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -562,6 +589,93 @@ Related types
    .. cpp:member:: bool focused
 
    .. cpp:member:: bool focus_visible
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TokenBoxAutoCompleteCustomSourceCapability
+
+   ``#include <gui_forms/controls/panel/token_box/token_box_capabilities/token_box_capabilities.hpp>``
+
+   The candidate list used when auto_complete_source is custom_source; null for none.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TokenBoxAutoCompleteCustomSourceCapability& capability, std::shared_ptr<AutoCompleteStringCollection> incoming)
+
+   .. cpp:function:: static std::shared_ptr<AutoCompleteStringCollection> read(const TokenBoxAutoCompleteCustomSourceCapability& capability)
+
+   .. cpp:member:: PropertyView<std::shared_ptr<AutoCompleteStringCollection>, TokenBoxAutoCompleteCustomSourceCapability<Declaring>> auto_complete_custom_source
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TokenBoxAutoCompleteModeCapability
+
+   ``#include <gui_forms/controls/panel/token_box/token_box_capabilities/token_box_capabilities.hpp>``
+
+   The editor's auto-complete (see TextBox); an accepted completion becomes a token. list_items throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TokenBoxAutoCompleteModeCapability& capability, AutoCompleteMode incoming)
+
+   .. cpp:function:: static AutoCompleteMode read(const TokenBoxAutoCompleteModeCapability& capability)
+
+   .. cpp:member:: PropertyView<AutoCompleteMode, TokenBoxAutoCompleteModeCapability<Declaring>> auto_complete_mode
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TokenBoxAutoCompleteSourceCapability
+
+   ``#include <gui_forms/controls/panel/token_box/token_box_capabilities/token_box_capabilities.hpp>``
+
+   Where the editor's completion candidates come from (see TextBox).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TokenBoxAutoCompleteSourceCapability& capability, AutoCompleteSource incoming)
+
+   .. cpp:function:: static AutoCompleteSource read(const TokenBoxAutoCompleteSourceCapability& capability)
+
+   .. cpp:member:: PropertyView<AutoCompleteSource, TokenBoxAutoCompleteSourceCapability<Declaring>> auto_complete_source
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TokenBoxCapabilities : public DelimitersCapability<Declaring>, public FontCapability<Declaring>, public TokenBoxAutoCompleteModeCapability<Declaring>, public TokenBoxAutoCompleteSourceCapability<Declaring>, public TokenBoxAutoCompleteCustomSourceCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/token_box/token_box_capabilities/token_box_capabilities.hpp>``
+
+   Every TokenBox capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: TokenBoxCapabilities()
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string delimiters
+
+      The characters that end an entry when typed or pasted, default ",;". Only ASCII punctuation and the space are admitted; anything else throws std::invalid_argument. Empty: only Enter ends an entry.
+
+   .. cpp:member:: FontSpec font
+
+      The font of the control's text (Font).
+
+   .. cpp:member:: AutoCompleteMode auto_complete_mode
+
+      The editor's auto-complete (see TextBox); an accepted completion becomes a token. list_items throws std::invalid_argument.
+
+   .. cpp:member:: AutoCompleteSource auto_complete_source
+
+      Where the editor's completion candidates come from (see TextBox).
+
+   .. cpp:member:: std::shared_ptr<AutoCompleteStringCollection> auto_complete_custom_source
+
+      The candidate list used when auto_complete_source is custom_source; null for none.
 
 .. cpp:namespace:: gui_forms
 

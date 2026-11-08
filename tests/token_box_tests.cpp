@@ -128,16 +128,16 @@ void tokens_and_identity() {
     require((*box).tokens().empty() && trace.back() == "removed beta", "clear removes the last token last");
     threw = false;
     try {
-        (*box).set_delimiters("a,");
+        (*box).delimiters = "a,";
     } catch (const std::invalid_argument&) {
         threw = true;
     }
-    require(threw && (*box).delimiters() == ",;", "a letter is not a delimiter");
-    (*box).set_delimiters(" ");
-    require((*box).delimiters() == " ", "the space may be a delimiter");
+    require(threw && (*box).delimiters.read() == ",;", "a letter is not a delimiter");
+    (*box).delimiters = " ";
+    require((*box).delimiters.read() == " ", "the space may be a delimiter");
     threw = false;
     try {
-        (*box).set_auto_complete_source(AutoCompleteSource::list_items);
+        (*box).auto_complete_source = AutoCompleteSource::list_items;
     } catch (const std::invalid_argument&) {
         threw = true;
     }
@@ -199,7 +199,7 @@ void entries_become_tokens() {
     require(type(window, " delta , ,epsilon;zeta") &&
                 texts_are(box, {"alpha", "beta", "gamma", "delta", "epsilon"}) && editor.text() == "zeta",
             "text with several delimiters makes several tokens, skipping empty pieces");
-    box.set_delimiters("");
+    box.delimiters = "";
     require(type(window, ",") && editor.text() == "zeta," && box.tokens().size() == 5U,
             "with no delimiters only Enter ends an entry");
 }
@@ -349,10 +349,10 @@ void auto_complete_makes_tokens() {
     Fixture fixture = make_fixture("tokens.complete", 360.0, 40.0);
     Window& window = *fixture.window;
     TokenBox& box = *fixture.box;
-    (*box.auto_complete_custom_source()).add_range({"Dartmouth", "Derby", "Dover"});
-    box.set_auto_complete_source(AutoCompleteSource::custom_source);
-    box.set_auto_complete_mode(AutoCompleteMode::suggest);
-    require(box.auto_complete_mode() == AutoCompleteMode::suggest &&
+    (*box.auto_complete_custom_source.read()).add_range({"Dartmouth", "Derby", "Dover"});
+    box.auto_complete_source = AutoCompleteSource::custom_source;
+    box.auto_complete_mode = AutoCompleteMode::suggest;
+    require(box.auto_complete_mode.read() == AutoCompleteMode::suggest &&
                 (*box.editor()).auto_complete_mode() == AutoCompleteMode::suggest,
             "the settings are the editor's");
     require(type(window, "d") && (*box.editor()).auto_complete_open(), "typing suggests");
@@ -363,7 +363,7 @@ void auto_complete_makes_tokens() {
                 press(window, PhysicalKey::enter) && texts_are(box, {"Derby"}) &&
                 (*box.editor()).text().empty() && !(*box.editor()).auto_complete_open(),
             "accepting a suggestion makes it a token");
-    box.set_auto_complete_mode(AutoCompleteMode::append);
+    box.auto_complete_mode = AutoCompleteMode::append;
     require(type(window, "do") && (*box.editor()).text() == "dover" && press(window, PhysicalKey::tab) &&
                 texts_are(box, {"Derby", "dover"}) && window.focused_control() == box.editor(),
             "Tab takes an appended completion as a token");

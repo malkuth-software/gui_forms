@@ -9,6 +9,7 @@
 #include "../input_control_utilities.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
 #include <array>
@@ -77,7 +78,7 @@ void TokenBox::initialize_control_tree() {
     const std::string prefix(stable_id().value());
     editor_ = make_control<TextBox>(StableId(prefix + ".editor"));
     (*editor_).border_style = BorderStyle::none;
-    (*editor_).set_font(font_);
+    (*editor_).set_font(font.read());
     (*editor_).set_auto_complete_anchor(shared_from_this());
     // Enter turns the typed text into a token (editor_committed); with
     // nothing typed it goes on to the window's accept button (W decision 6),
@@ -162,53 +163,51 @@ void TokenBox::set_selected(std::optional<TokenId> id) {
     publish_change(selected_token_changed_, selected_);
 }
 
-void TokenBox::set_delimiters(std::string delimiters) {
+// The font's hooks: an invalid specification is refused; a new font
+// reaches the inner editor too.
+void TokenBox::prepare_write(const decltype(font)&, FontSpec& incoming) {
     require_mutable();
-    for (const char byte : delimiters) {
-        if (!admitted_delimiter(byte)) {
-            throw std::invalid_argument("TokenBox delimiters must be ASCII punctuation or the space");
-        }
-    }
-    delimiters_ = std::move(delimiters);
-}
-
-void TokenBox::set_font(FontSpec font) {
-    require_mutable();
-    if (!valid_font_spec(font)) {
+    if (!valid_font_spec(incoming)) {
         throw std::invalid_argument("TokenBox font specification is invalid");
     }
     set_font_from_code(true);
-    if (font_ == font) return;
-    font_ = font;
-    if (editor_) (*editor_).set_font(font);
+}
+
+void TokenBox::written(const decltype(font)&) {
+    if (editor_) (*editor_).set_font(font.read());
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
-AutoCompleteMode TokenBox::auto_complete_mode() const noexcept {
-    return (*editor_).auto_complete_mode();
-}
-
-void TokenBox::set_auto_complete_mode(AutoCompleteMode mode) {
+// The auto-complete views: the inner editor owns the settings (see TextBox).
+void TokenBox::write_view(const decltype(auto_complete_mode)&, AutoCompleteMode incoming) {
     require_mutable();
-    (*editor_).set_auto_complete_mode(mode);
+    (*editor_).set_auto_complete_mode(incoming);
 }
 
-AutoCompleteSource TokenBox::auto_complete_source() const noexcept {
-    return (*editor_).auto_complete_source();
+AutoCompleteMode TokenBox::read_view(const decltype(auto_complete_mode)&) const {
+    const AutoCompleteMode mode = (*editor_).auto_complete_mode();
+    return mode;
 }
 
-void TokenBox::set_auto_complete_source(AutoCompleteSource source) {
+void TokenBox::write_view(const decltype(auto_complete_source)&, AutoCompleteSource incoming) {
     require_mutable();
-    (*editor_).set_auto_complete_source(source);
+    (*editor_).set_auto_complete_source(incoming);
 }
 
-const std::shared_ptr<AutoCompleteStringCollection>& TokenBox::auto_complete_custom_source() const noexcept {
-    return (*editor_).auto_complete_custom_source();
+AutoCompleteSource TokenBox::read_view(const decltype(auto_complete_source)&) const {
+    const AutoCompleteSource source = (*editor_).auto_complete_source();
+    return source;
 }
 
-void TokenBox::set_auto_complete_custom_source(std::shared_ptr<AutoCompleteStringCollection> source) {
+void TokenBox::write_view(const decltype(auto_complete_custom_source)&,
+                          std::shared_ptr<AutoCompleteStringCollection> incoming) {
     require_mutable();
-    (*editor_).set_auto_complete_custom_source(std::move(source));
+    (*editor_).set_auto_complete_custom_source(std::move(incoming));
+}
+
+std::shared_ptr<AutoCompleteStringCollection> TokenBox::read_view(const decltype(auto_complete_custom_source)&) const {
+    std::shared_ptr<AutoCompleteStringCollection> source = (*editor_).auto_complete_custom_source();
+    return source;
 }
 
 // -- the editor's events -----------------------------------------------------
@@ -226,10 +225,11 @@ void TokenBox::accept_entry(std::string_view entry) {
 void TokenBox::split_delimited(const std::string& text) {
     // Every delimited piece but the last becomes a token; the last stays in
     // the editor, still being typed.
+    const std::string& ends = delimiters.read();
     std::vector<std::string> pieces;
     std::size_t start = 0U;
     for (std::size_t index = 0U; index < text.size(); ++index) {
-        if (delimiters_.find(text[index]) == std::string::npos) continue;
+        if (ends.find(text[index]) == std::string::npos) continue;
         pieces.emplace_back(text, start, index - start);
         start = index + 1U;
     }
@@ -264,7 +264,7 @@ void TokenBox::editor_text_changed(const std::string& text) {
         if (!is_alive()) return;
     }
     // Any delimiter in the text (none without delimiters) splits it.
-    const bool delimited = text.find_first_of(delimiters_) != std::string::npos;
+    const bool delimited = text.find_first_of(delimiters.read()) != std::string::npos;
     if (delimited) split_delimited(text);
 }
 
@@ -284,12 +284,12 @@ TokenBox::Layout TokenBox::layout_for(double width, double height) const {
     const double face_height = token_height * scale;
     const double pitch = line_pitch * scale;
     const double inner_right = std::max(padding, width - padding);
-    const FontSpec font = text_font(font_);
+    const FontSpec token_font = text_font(font.read());
     double x = padding;
     double y = padding;
     placed.tokens.reserve(tokens_.size());
     for (std::size_t index = 0U; index < tokens_.size(); ++index) {
-        const ResolvedTextLayout text = resolve_text_layout_utf8(tokens_[index].text, font);
+        const ResolvedTextLayout text = resolve_text_layout_utf8(tokens_[index].text, token_font);
         const double label_width = std::ceil(text.logical_size.width);
         const double face_width = label_padding + label_width + close_gap + close_side * scale + close_gap;
         // A token that does not fit the rest of the line starts the next
@@ -370,7 +370,7 @@ void TokenBox::on_paint(Painter& painter, Rect) {
                    .family = ControlVisualRole::editor};
     paint_part(painter, *this, well);
     const Layout placed = layout();
-    const FontSpec font = text_font(font_);
+    const FontSpec token_font = text_font(font.read());
     for (const TokenPlacement& placement : placed.tokens) {
         const Token& token = tokens_[placement.index];
         const AnatomyStateSet states = token_states(placement.index);
@@ -383,7 +383,7 @@ void TokenBox::on_paint(Painter& painter, Rect) {
         part.role = PartRole::label;
         part.bounds = placement.label;
         part.text = token.text;
-        part.font = font;
+        part.font = token_font;
         paint_part(painter, *this, part);
         part.text = {};
         part.role = PartRole::glyph;
@@ -767,5 +767,21 @@ void TokenBox::append_interactions(std::vector<InteractionDeclaration>& interact
     Control::append_interactions(interactions);
     interactions.insert(interactions.end(), token_box_interactions.begin(), token_box_interactions.end());
 }
+
+// property_codemod begin TokenBox (tools/property_families/token_box.json; generated, do not edit)
+
+void TokenBox::prepare_write(const decltype(delimiters)&, std::string& incoming) {
+    require_mutable();
+    for (const char byte : incoming) {
+        if (!admitted_delimiter(byte)) {
+            throw std::invalid_argument("TokenBox delimiters must be ASCII punctuation or the space");
+        }
+    }
+}
+
+void TokenBox::written(const decltype(delimiters)&) {
+}
+
+// property_codemod end TokenBox
 
 } // namespace gui_forms
