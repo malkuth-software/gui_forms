@@ -350,6 +350,7 @@ add_library(gui_forms_core STATIC
     src/core/theme_language/syntax_tree/theme_sheet_parser.cpp
     src/core/form_language/form_model/form_model.cpp
     src/core/form_language/form_loader/form_loader.cpp
+    src/core/form_language/form_loader/form_window_loader.cpp
     src/core/form_language/form_editor/form_editor.cpp
     src/core/form_language/form_generator/form_generator.cpp
     src/core/theme_language/selector/theme_selector.cpp
@@ -410,6 +411,7 @@ add_library(gui_forms_core STATIC
     src/core/surface_root/requests/surface_alerts.cpp
     src/core/window/alerts/window_alerts.cpp
     src/core/surface_root/control_table/control_table.cpp
+    src/core/surface_root/control_lookup/control_lookup.cpp
     src/core/window/lifecycle/window_lifecycle.cpp
     src/core/window/typography/window_typography.cpp
     src/core/window/update_scope/update_scope.cpp
@@ -2610,10 +2612,19 @@ if(GUI_FORMS_BUILD_TESTS)
         examples/reference/bound_values.cpp
         examples/reference/shared_state.cpp
         examples/reference/collection_state.cpp
-        examples/reference/collection_gallery.cpp
         examples/reference/mouse_events.cpp
     )
     target_link_libraries(gui_forms_reference_examples PRIVATE gui_forms_core)
+    if(TARGET GUIForms::form_compiler)
+        # Stage B's reference: the window is the form, generated at build time.
+        add_library(gui_forms_reference_form_examples OBJECT examples/reference/collection_gallery.cpp)
+        target_link_libraries(gui_forms_reference_form_examples PRIVATE gui_forms_core)
+        target_include_directories(gui_forms_reference_form_examples PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/examples/reference)
+        gui_forms_add_form(gui_forms_reference_form_examples examples/reference/collection_gallery.form
+            CLASS CollectionGalleryWindow OUTPUT gui_forms_forms/collection_gallery_window.hpp
+            MODEL GalleryModel MODEL_HEADER collection_gallery_model.hpp)
+    endif()
 
     find_package(Python3 COMPONENTS Interpreter QUIET)
     find_program(GUI_FORMS_REFERENCE_CLANG NAMES clang++)

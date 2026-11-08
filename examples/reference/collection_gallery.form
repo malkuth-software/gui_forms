@@ -1,0 +1,19 @@
+/* The collection gallery's window (stage B reference): the build generates
+   CollectionGalleryWindow, a gui_forms::Window, with gui_forms_add_form
+   MODEL GalleryModel. The controls, their places and their bindings are
+   here; the program attaches the items and the behaviour. */
+form gallery.window {
+  text: "GUI.Forms — shared state and collections";
+  client-size: 760 610;
+
+  panel gallery {
+    command-bar commands { bounds: 24 20 712 40; }
+    track-bar volume.first { bounds: 24 84 340 42; value: bind(volume); }
+    track-bar volume.second { bounds: 396 84 340 42; value: bind(volume); }
+    check-box music.left { text: "Music — shared command"; bounds: 24 150 340 36; command: bind(music); }
+    check-box music.right { text: "Music — second presentation"; bounds: 396 150 340 36; command: bind(music); }
+    choice-group choices { bounds: 24 220 712 52; }
+    expandable-sections sections { bounds: 24 300 712 220; }
+    label status { text: "Ready — arrows navigate groups; Tab leaves the command bar."; bounds: 24 540 712 44; }
+  }
+}

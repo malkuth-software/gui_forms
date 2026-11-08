@@ -119,11 +119,43 @@ Window options are a designated-initializer struct
   `initially_visible` and `hide_on_close` apply only to secondary windows
   run together with this one.
 
+## A window from a form document
+
+The same window can be described in a `.form` document and generated at build
+time. With `MODEL`, `gui_forms_add_form` generates a class that *is* the
+window: a `gui_forms::Window` subclass whose controls are typed members, made
+in document order and bound to the model's members when it is constructed.
+
+```cmake
+gui_forms_add_form(my_app forms/settings.form CLASS SettingsWindow
+                   MODEL my_app::Settings MODEL_HEADER my_app/settings.hpp)
+```
+
+```cpp
+gf::ApplicationCreateResult created = gf::Application::create(gf::ApplicationConfig{});
+my_app::Settings settings{};             // the model, declared before the window
+std::unique_ptr<SettingsWindow> window = std::make_unique<SettingsWindow>(settings);
+(*(*window).ok).set_text("Apply");       // a member per control: a wrong name does not compile
+```
+
+- **The model** is named once, in the CMake call. The constructor takes it only
+  when the form binds; a form without bindings is constructed with no
+  arguments, and `DERIVED` without `MODEL` generates that class.
+- **The application.** Each constructor has an overload that takes the
+  `Application&` first; without it the window joins the current application.
+- **A control root** (`user-control`, `panel`, ...) generates a subclass of
+  that type instead, made with `X::make(model)`.
+- **What a form does not describe**, such as a collection's items or a click's
+  behaviour, the program attaches to the members afterwards.
+
+Without `MODEL` or `DERIVED`, the generated class is the earlier document
+class template over an owner, which the Gallery still uses.
+
 ## Where to go next
 
 - [Working with controls](controls) covers the conventions every control shares.
 - [Retained tree](retained-tree) explains ownership, stable
   identity and disposal in detail.
-- `examples/reference/collection_gallery.cpp` in the repository extends this
-  shape with a command bar, shared `Value<T>` state, a choice group and
-  expandable sections.
+- `examples/reference/collection_gallery.cpp` and `collection_gallery.form` in
+  the repository build a window from a form document, with a command bar,
+  shared `Value<T>` state, a choice group and expandable sections.

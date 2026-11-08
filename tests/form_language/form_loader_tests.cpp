@@ -2,9 +2,11 @@
 // made into controls and components. Gate: the tree, child order and
 // property values are the document's; bound properties are bound at
 // creation to the caller's sources (FD-6); a refusal by a run-time type or
-// of a source is located and leaves the previous load as it was.
+// of a source is located and leaves the previous load as it was; a form
+// loads as a window whose controls are found by stable ID (stage B).
 
 #include "../../src/core/form_language/form_loader/form_loader.hpp"
+#include "../../src/core/form_language/form_loader/form_window_loader.hpp"
 #include "../../src/core/form_language/form_model/form_model.hpp"
 #include "../../src/core/theme_language/diagnostics/theme_diagnostics.hpp"
 #include "../../src/core/theme_language/source_text/theme_source_text.hpp"
@@ -415,6 +417,105 @@ void test_form_root_defects() {
     require(reported, "form root defects: each located");
 }
 
+// A form loaded as a window (stage B, B.3): the tree and bindings as
+// load_form makes them, the window over the form's control with its client
+// size and buttons, its controls found by stable ID; a refused source, a
+// control root and a parse failure make nothing.
+void test_load_window() {
+    using gui_forms::ControlLookup;
+    using gui_forms::ControlLookupError;
+    using gui_forms::form_language::LoadedWindowResult;
+    using gui_forms::form_language::WindowLoadError;
+    using gui_forms::form_language::load_window;
+    const FormSchema schema = sample_schema();
+    const std::string_view document = "form settings.dialog {\n"
+                                      "  text: \"Settings\";\n"
+                                      "  client-size: 480 320;\n"
+                                      "  accept-button: \"settings.ok\";\n"
+                                      "  cancel-button: \"settings.cancel\";\n"
+                                      "  command settings.save { }\n"
+                                      "  user-control settings.body {\n"
+                                      "    check-box settings.auto-save { checked: bind(auto_save_); }\n"
+                                      "    button settings.ok { text: \"OK\"; }\n"
+                                      "    button settings.cancel { text: \"Cancel\"; }\n"
+                                      "  }\n"
+                                      "}\n";
+    // Declared before the window: its check box keeps a binding to it.
+    gui_forms::Value<bool> auto_save{true};
+    FormSources sources{};
+    sources.add("auto_save_", auto_save);
+    ThemeDiagnosticList diagnostics{};
+    LoadedWindowResult loaded = load_window("settings.form", document, schema, sources, diagnostics);
+    require(static_cast<bool>(loaded) && loaded.window != nullptr && diagnostics.records().empty(),
+            "load window: loaded");
+    if (!loaded) return;
+    gui_forms::Window& window = *loaded.window;
+    const Control::Ptr root = window.root();
+    require(root != nullptr && (*root).stable_id().value() == "settings.body", "load window: the form's control is the root");
+    require(window.client_size() == gui_forms::Size{480.0, 320.0} && loaded.title == "Settings",
+            "load window: the client size and the title");
+    require(loaded.components.size() == 1U && loaded.components[0] != nullptr, "load window: the command, kept");
+    const ControlLookup ok = window.control("settings.ok");
+    const ControlLookup cancel = window.control("settings.cancel");
+    require(static_cast<bool>(ok) && window.accept_button() == ok.control && static_cast<bool>(cancel) &&
+                window.cancel_button() == cancel.control,
+            "load window: the accept and cancel buttons, found by ID");
+    const ControlLookup check = window.control("settings.auto-save");
+    const std::shared_ptr<gui_forms::CheckBox> box = std::dynamic_pointer_cast<gui_forms::CheckBox>(check.control);
+    require(box != nullptr && (*box).checked(), "load window: bound at creation");
+    if (box != nullptr) {
+        (*box).set_checked(false);
+        require(!auto_save.get(), "load window: two way, the control's change reaches the source");
+    }
+    require(window.control("").error == ControlLookupError::empty_id &&
+                window.control("settings.none").error == ControlLookupError::not_found &&
+                window.control("settings.none").control == nullptr,
+            "lookup: an empty ID and an absent one, refused");
+    (*root).add_child(gui_forms::make_control<gui_forms::Button>(gui_forms::StableId("settings.ok")));
+    const ControlLookup repeated = window.control("settings.ok");
+    require(repeated.error == ControlLookupError::ambiguous && repeated.control == nullptr,
+            "lookup: a repeated ID is refused, not resolved by order");
+
+    FormSources missing{};
+    ThemeDiagnosticList refusals{};
+    const LoadedWindowResult refused = load_window("settings.form", document, schema, missing, refusals);
+    const bool located = !refusals.records().empty() &&
+                         refusals.records()[0].code == DiagnosticCode::form_binding_source_refused;
+    require(refused.error == WindowLoadError::refused && refused.window == nullptr && refused.title.empty() &&
+                refused.components.empty() && located,
+            "load window: a missing source refuses the whole load, located");
+
+    ThemeDiagnosticList control_root{};
+    const LoadedWindowResult panel =
+        load_window("panel.form", "user-control app.root { }\n", schema, sources, control_root);
+    require(panel.error == WindowLoadError::not_a_window && panel.window == nullptr,
+            "load window: a control root describes no window");
+    ThemeDiagnosticList broken{};
+    const LoadedWindowResult unparsed = load_window("broken.form", "form app.window {\n", schema, sources, broken);
+    require(unparsed.error == WindowLoadError::refused && unparsed.window == nullptr && !broken.records().empty(),
+            "load window: a document that does not parse");
+}
+
+// The application overload joins the application it names.
+void test_load_window_application() {
+    gui_forms::ApplicationCreateResult created = gui_forms::Application::create(gui_forms::ApplicationConfig{});
+    require(static_cast<bool>(created), "load window application: made");
+    if (!created) return;
+    gui_forms::Application& application = *created.application;
+    {
+        const FormSchema schema = sample_schema();
+        const FormSources sources{};
+        ThemeDiagnosticList diagnostics{};
+        const gui_forms::form_language::LoadedWindowResult loaded = gui_forms::form_language::load_window(
+            application, "app.form", "form app.window { user-control app.body { } }\n", schema, sources,
+            diagnostics);
+        require(loaded.window != nullptr && (*loaded.window).application() == &application,
+                "load window application: the window joins it");
+    }
+    const gui_forms::ApplicationResult closed = application.close();
+    require(closed.accepted(), "load window application: closed once the window is gone");
+}
+
 // Spans are defined before any placement, so the children's `area` and
 // `cell` find them (study 10.9).
 void test_spans() {
@@ -488,6 +589,8 @@ int main() {
     test_form_root_defects();
     test_spans();
     test_table_placement();
+    test_load_window();
+    test_load_window_application();
     if (failures != 0) {
         std::cerr << failures << " form loader checks failed\n";
         return 1;

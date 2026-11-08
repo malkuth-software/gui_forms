@@ -306,6 +306,29 @@ struct DialogKeySnapshot final {
 
 // A control subtree's picture (Window::snapshot_control): the registered
 // image, the logical size it covers and its pixels per logical unit.
+// Why a lookup by stable ID found no control (stage B, B.3).
+enum class ControlLookupError : std::uint8_t {
+    none,
+    // The ID is empty: unnamed controls share it, so it names none.
+    empty_id,
+    // No control in the root's subtree has the ID.
+    not_found,
+    // Two or more controls have it; none is chosen.
+    ambiguous,
+};
+
+// What SurfaceRoot::control found: the one control with the ID, or why
+// there is none (then `control` is null).
+struct ControlLookup final {
+    ControlLookupError error{ControlLookupError::none};
+    Control::Ptr control{};
+
+    [[nodiscard]] explicit operator bool() const noexcept {
+        const bool found = error == ControlLookupError::none;
+        return found;
+    }
+};
+
 struct ControlSnapshot final {
     ImageId image{};
     Size logical_size{};
@@ -379,6 +402,11 @@ public:
     void reset_activity_metrics();
 
     [[nodiscard]] Control::Ptr root() const noexcept { return root_; }
+    // The control with `stable_id` in the root's subtree (stage B, B.3: a
+    // runtime-loaded form's controls, a rule's target), searched whole so a
+    // repeated ID is refused rather than resolved by order. Overlays and
+    // popups are not searched. Changes nothing.
+    [[nodiscard]] ControlLookup control(std::string_view stable_id) const;
     [[nodiscard]] Size client_size() const noexcept { return client_size_; }
     // The root slot (stage B, B.2a): the client rectangle less the chrome
     // insets, in client coordinates. The layout pass measures the root at
