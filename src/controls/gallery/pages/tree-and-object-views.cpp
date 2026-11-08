@@ -346,11 +346,11 @@ private:
              index = project[index].parent) {
             (*tree_).set_expanded(project[index].id, true);
         }
-        if ((*tree_).selected_id() == project[folder].id) {
+        if ((*tree_).selected_id.read() == project[folder].id) {
             project_folder(folder);
             return;
         }
-        (*tree_).set_selected_id(project[folder].id);
+        (*tree_).selected_id = project[folder].id;
     }
 
     void project_objects() {

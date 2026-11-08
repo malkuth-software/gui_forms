@@ -339,10 +339,10 @@ void test_breadcrumb_readable_raised_geometry() {
 
 void test_tree_visibility_identity_and_navigation() {
     std::shared_ptr<gui_forms::TreeView> tree = make_control<TreeView>(StableId("tree"));
-    (*tree).set_show_expanders(false);
-    require(!(*tree).show_expanders(),
+    (*tree).show_expanders = false;
+    require(!(*tree).show_expanders.read(),
             "TreeView must retain explicit expander visibility policy");
-    (*tree).set_show_expanders(true);
+    (*tree).show_expanders = true;
     (*tree).set_requested_bounds({0.0, 0.0, 240.0, 140.0});
     (*tree).set_items({
         {"tree.local", "Local", 0, true, true},
@@ -354,7 +354,7 @@ void test_tree_visibility_identity_and_navigation() {
         {"tree.volumes", "Volumes", 0, true, false},
         {"tree.disk", "Macintosh HD", 1},
     });
-    (*tree).set_selected_id("tree.work");
+    (*tree).selected_id = "tree.work";
     Window window(tree, {240.0, 140.0});
     require((*tree).children().empty(),
             "TreeView must not allocate one retained control per logical item");
@@ -374,11 +374,11 @@ void test_tree_visibility_identity_and_navigation() {
     require(operation_check_23, "TreeView must accept retained focus");
     const bool operation_check_24 = window.dispatch_key({KeyAction::down, PhysicalKey::right});
     require(operation_check_24, "TreeView Right must enter the first expanded child");
-    const bool operation_check_25 = (*tree).selected_id() == "tree.projects";
+    const bool operation_check_25 = (*tree).selected_id.read() == "tree.projects";
     require(operation_check_25, "TreeView Right must enter the first expanded child");
     const bool operation_check_26 = window.dispatch_text({"ref"});
     require(operation_check_26, "TreeView type-to-select must use stable visible-row navigation");
-    const bool operation_check_27 = (*tree).selected_id() == "tree.reference";
+    const bool operation_check_27 = (*tree).selected_id.read() == "tree.reference";
     require(operation_check_27, "TreeView type-to-select must use stable visible-row navigation");
     require(trace == "tree.work:open\ntree.projects:selected\ntree.reference:selected\n",
             "TreeView expansion and selection events must be deterministic");
@@ -412,7 +412,7 @@ void test_tree_and_object_view_consume_keyed_image_list() {
     require(static_cast<bool>(loaded), "collection image fixture must load");
     std::shared_ptr<gui_forms::ImageList> images = std::make_shared<ImageList>(window, Size{18.0, 18.0});
     (*images).add_image("folder", loaded.image);
-    (*tree).set_image_list(images);
+    (*tree).image_list = images;
     (*objects).set_image_list(images);
     (*tree).set_items({{"tree.image", "Folder", 0U, false, false, true,
                       "FOLDER"}});

@@ -49,7 +49,7 @@ int main() {
     (*tree).set_requested_bounds({8, 36, 140, 80});
     (*tree).set_items({{"installed.node.root", "Root", 0, true, true},
                        {"installed.node.child", "Child", 1}});
-    (*tree).set_selected_id("installed.node.child");
+    (*tree).selected_id = "installed.node.child";
     (*root).add_child(tree);
     std::shared_ptr<gui_forms::ObjectView> objects =
         std::make_shared<gui_forms::ObjectView>(
@@ -220,7 +220,7 @@ int main() {
         "installed.correspondence.first.activate",
         gui_forms::SemanticAction::press);
     return window.find("installed.consumer.label") == label &&
-        (*tree).selected_id() == "installed.node.child" &&
+        (*tree).selected_id.read() == "installed.node.child" &&
         (*objects).selected_id() == "installed.object" &&
         (*objects).selected_ids().size() == 2U && menu_visible && strip_open &&
         accelerated && accelerator.connected() && accelerator_invocations == 1U &&

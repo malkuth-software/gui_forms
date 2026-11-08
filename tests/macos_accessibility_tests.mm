@@ -501,12 +501,12 @@ void check_repeated_item_identities(StockControlFixture& fixture, gui_forms::Win
         report.failures.push_back("repeated identities: the right tree's docs element has another parent");
     } else {
         [right_docs setAccessibilitySelected:YES];
-        if ((*right).selected_id() != "docs" || (*left).selected_id() == "docs") {
+        if ((*right).selected_id.read() != "docs" || (*left).selected_id.read() == "docs") {
             report.failures.push_back("repeated identities: selecting the right tree's docs element did not "
                                       "select the right tree's item alone");
         }
         [left_docs setAccessibilitySelected:YES];
-        if ((*left).selected_id() != "docs") {
+        if ((*left).selected_id.read() != "docs") {
             report.failures.push_back("repeated identities: selecting the left tree's docs element did not "
                                       "select the left tree's item");
         }

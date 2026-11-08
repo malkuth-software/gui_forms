@@ -7,7 +7,7 @@ gui_forms::TreeView
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: TreeView final : public Panel
+.. cpp:class:: TreeView final : public Panel, public TreeViewCapabilities<TreeView>
 
    ``#include <gui_forms/controls/panel/tree_view/tree_view.hpp>``
 
@@ -33,31 +33,11 @@ gui_forms::TreeView
 
    :Properties:
 
-      **items** : ``std::span<const TreeViewItem>``
-         The items in preorder: each :cpp:class:`TreeViewItem <gui_forms::TreeViewItem>` is followed by its
-         descendants, at one more ``depth`` for each level. The first item must
-         have depth 0 and no item may be more than one level deeper than the
-         item before it. IDs must be unique and follow the
-         :cpp:class:`StableId <gui_forms::StableId>` segment rule, the text
-         valid UTF-8, and an ``image_key`` at most 256 bytes, or :cpp:func:`set_items <gui_forms::TreeView::set_items>`
-         throws ``std::invalid_argument``. Only items marked ``expandable`` can be
-         collapsed; the descendants of an expandable item that is not
-         :cpp:func:`expanded <gui_forms::TreeView::expanded>` are hidden. :cpp:func:`set_items <gui_forms::TreeView::set_items>` keeps the selected and active IDs
-         if they are still present and clears them otherwise, without raising
-         :cpp:func:`selection_changed <gui_forms::TreeView::selection_changed>`. The :cpp:func:`expanded <gui_forms::TreeView::expanded>` flags reflect :cpp:func:`set_expanded <gui_forms::TreeView::set_expanded>` and
-         user input.
-
-      **selected_id** : ``std::string_view``, default ``""``
+      **selected_id** : ``std::string``, default ``""``
          The ID of the selected item, or empty when nothing is selected. Setting
          an empty ID clears the selection; an ID that is not in :cpp:func:`items <gui_forms::TreeView::items>` throws
          ``std::out_of_range``. The setter also selects disabled items and items
          hidden inside a collapsed parent.
-
-      **active_id** : ``std::string_view``, default ``""``, read-only
-         The ID of the keyboard-active row, where the focus rectangle is drawn
-         and from which the arrow keys move. Selecting an item makes it active.
-         When the tree gains focus with no active row, the selected item, or
-         else the first visible row, becomes active.
 
       **item_height** : ``double``, default ``24.0``
          Height of each row in logical pixels, before text scaling. Values
@@ -72,11 +52,6 @@ gui_forms::TreeView
          When false, rows still expand and collapse with the keyboard and
          :cpp:func:`set_expanded <gui_forms::TreeView::set_expanded>`.
 
-      **top_row** : ``std::size_t``, default ``0``
-         The index, among the visible rows, of the first row shown. The mouse
-         wheel moves it by three rows. An index outside the visible rows throws
-         ``std::out_of_range``.
-
       **font** : ``FontSpec``, default ``FontSpec{FontRole::content, 12.0, 400, false}``
          The font of the row text. An invalid specification throws
          ``std::invalid_argument``.
@@ -88,6 +63,31 @@ gui_forms::TreeView
          ``std::invalid_argument`` is thrown; attaching the tree to a different
          window later throws ``std::logic_error``.
 
+      **items** : ``std::span<const TreeViewItem>``
+         The items in preorder: each :cpp:class:`TreeViewItem <gui_forms::TreeViewItem>` is followed by its
+         descendants, at one more ``depth`` for each level. The first item must
+         have depth 0 and no item may be more than one level deeper than the
+         item before it. IDs must be unique and follow the
+         :cpp:class:`StableId <gui_forms::StableId>` segment rule, the text
+         valid UTF-8, and an ``image_key`` at most 256 bytes, or :cpp:func:`set_items <gui_forms::TreeView::set_items>`
+         throws ``std::invalid_argument``. Only items marked ``expandable`` can be
+         collapsed; the descendants of an expandable item that is not
+         :cpp:func:`expanded <gui_forms::TreeView::expanded>` are hidden. :cpp:func:`set_items <gui_forms::TreeView::set_items>` keeps the selected and active IDs
+         if they are still present and clears them otherwise, without raising
+         :cpp:func:`selection_changed <gui_forms::TreeView::selection_changed>`. The :cpp:func:`expanded <gui_forms::TreeView::expanded>` flags reflect :cpp:func:`set_expanded <gui_forms::TreeView::set_expanded>` and
+         user input.
+
+      **active_id** : ``std::string_view``, default ``""``, read-only
+         The ID of the keyboard-active row, where the focus rectangle is drawn
+         and from which the arrow keys move. Selecting an item makes it active.
+         When the tree gains focus with no active row, the selected item, or
+         else the first visible row, becomes active.
+
+      **top_row** : ``std::size_t``, default ``0``
+         The index, among the visible rows, of the first row shown. The mouse
+         wheel moves it by three rows. An index outside the visible rows throws
+         ``std::out_of_range``.
+
       **parts** : ``Parts``, read-only
 
       **realized_items** : ``std::vector<Item>``, read-only
@@ -96,7 +96,7 @@ gui_forms::TreeView
    :Events:
 
       **selection_changed** : ``Event<const TreeSelectionChange&>``
-         Raised after :cpp:func:`selected_id <gui_forms::TreeView::selected_id>` changes, by input or by the setter. It
+         Raised after :cpp:member:`selected_id <gui_forms::TreeView::selected_id>` changes, by input or by the setter. It
          carries a :cpp:class:`TreeSelectionChange <gui_forms::TreeSelectionChange>` with the ``previous_id`` and the
          ``current_id``.
 
@@ -187,7 +187,7 @@ gui_forms::TreeView
       folders.push_back({"home.documents.taxes", "Taxes", 2U});
       folders.push_back({"home.music", "Music", 1U});
       (*tree).set_items(folders);
-      (*tree).set_selected_id("home.music");
+      (*tree).selected_id = "home.music";
       (*tree).set_expanded("home.documents", true);   // Taxes is now visible
 
    Collapsing an item that contains the selection moves the selection to it.
@@ -219,7 +219,7 @@ gui_forms::TreeView
           folders.push_back({"src", "src", 0U, true, true});
           folders.push_back({"src.core", "core", 1U});
           (*pane.tree).set_items(folders);
-          (*pane.tree).set_selected_id("src.core");   // pane.current is "src.core"
+          (*pane.tree).selected_id = "src.core";   // pane.current is "src.core"
           (*pane.tree).set_expanded("src", false);    // collapses, then pane.current is "src"
       }
 
@@ -230,6 +230,42 @@ gui_forms::TreeView
 
 
    .. rubric:: Properties
+
+   .. cpp:member:: std::string selected_id
+
+      The ID of the selected item, or empty when nothing is selected. Setting
+      an empty ID clears the selection; an ID that is not in :cpp:func:`items <gui_forms::TreeView::items>` throws
+      ``std::out_of_range``. The setter also selects disabled items and items
+      hidden inside a collapsed parent.
+
+   .. cpp:member:: double item_height
+
+      Height of each row in logical pixels, before text scaling. Values
+      outside 14 to 256, or not finite, throw ``std::invalid_argument``.
+
+   .. cpp:member:: double indentation
+
+      Horizontal indent per level, in logical pixels. Values outside 8 to 96,
+      or not finite, throw ``std::invalid_argument``.
+
+   .. cpp:member:: bool show_expanders
+
+      Whether expandable rows draw an expander arrow that a click toggles.
+      When false, rows still expand and collapse with the keyboard and
+      :cpp:func:`set_expanded <gui_forms::TreeView::set_expanded>`.
+
+   .. cpp:member:: FontSpec font
+
+      The font of the row text. An invalid specification throws
+      ``std::invalid_argument``.
+
+   .. cpp:member:: std::shared_ptr<ImageList> image_list
+
+      The :cpp:class:`ImageList <gui_forms::ImageList>` whose images the rows show, looked up by each item's
+      ``image_key``. Empty by default, which shows no images. The list must be
+      alive and, while the tree is in a window, belong to that window, or
+      ``std::invalid_argument`` is thrown; attaching the tree to a different
+      window later throws ``std::logic_error``.
 
    .. cpp:function:: std::span<const TreeViewItem> items() const noexcept
 
@@ -250,51 +286,12 @@ gui_forms::TreeView
 
       Sets :cpp:func:`items <gui_forms::TreeView::items>`; see the property's description above.
 
-   .. cpp:function:: std::string_view selected_id() const noexcept
-
-      The ID of the selected item, or empty when nothing is selected. Setting
-      an empty ID clears the selection; an ID that is not in :cpp:func:`items <gui_forms::TreeView::items>` throws
-      ``std::out_of_range``. The setter also selects disabled items and items
-      hidden inside a collapsed parent.
-
-   .. cpp:function:: void set_selected_id(std::string_view stable_id)
-
-      Sets :cpp:func:`selected_id <gui_forms::TreeView::selected_id>`; see the property's description above.
-
    .. cpp:function:: std::string_view active_id() const noexcept
 
       The ID of the keyboard-active row, where the focus rectangle is drawn
       and from which the arrow keys move. Selecting an item makes it active.
       When the tree gains focus with no active row, the selected item, or
       else the first visible row, becomes active.
-
-   .. cpp:function:: double item_height() const noexcept
-
-      Height of each row in logical pixels, before text scaling. Values
-      outside 14 to 256, or not finite, throw ``std::invalid_argument``.
-
-   .. cpp:function:: void set_item_height(double height)
-
-      Sets :cpp:func:`item_height <gui_forms::TreeView::item_height>`; see the property's description above.
-
-   .. cpp:function:: double indentation() const noexcept
-
-      Horizontal indent per level, in logical pixels. Values outside 8 to 96,
-      or not finite, throw ``std::invalid_argument``.
-
-   .. cpp:function:: void set_indentation(double indentation)
-
-      Sets :cpp:func:`indentation <gui_forms::TreeView::indentation>`; see the property's description above.
-
-   .. cpp:function:: bool show_expanders() const noexcept
-
-      Whether expandable rows draw an expander arrow that a click toggles.
-      When false, rows still expand and collapse with the keyboard and
-      :cpp:func:`set_expanded <gui_forms::TreeView::set_expanded>`.
-
-   .. cpp:function:: void set_show_expanders(bool show)
-
-      Sets :cpp:func:`show_expanders <gui_forms::TreeView::show_expanders>`; see the property's description above.
 
    .. cpp:function:: std::size_t top_row() const noexcept
 
@@ -305,27 +302,6 @@ gui_forms::TreeView
    .. cpp:function:: void set_top_row(std::size_t row)
 
       Sets :cpp:func:`top_row <gui_forms::TreeView::top_row>`; see the property's description above.
-
-   .. cpp:function:: FontSpec font() const noexcept
-
-      The font of the row text. An invalid specification throws
-      ``std::invalid_argument``.
-
-   .. cpp:function:: void set_font(FontSpec font)
-
-      Sets :cpp:func:`font <gui_forms::TreeView::font>`; see the property's description above.
-
-   .. cpp:function:: std::shared_ptr<ImageList> image_list() const noexcept
-
-      The :cpp:class:`ImageList <gui_forms::ImageList>` whose images the rows show, looked up by each item's
-      ``image_key``. Empty by default, which shows no images. The list must be
-      alive and, while the tree is in a window, belong to that window, or
-      ``std::invalid_argument`` is thrown; attaching the tree to a different
-      window later throws ``std::logic_error``.
-
-   .. cpp:function:: void set_image_list(std::shared_ptr<ImageList> image_list)
-
-      Sets :cpp:func:`image_list <gui_forms::TreeView::image_list>`; see the property's description above.
 
    .. cpp:function:: Parts parts() const
 
@@ -338,7 +314,7 @@ gui_forms::TreeView
 
    .. cpp:function:: Event<const TreeSelectionChange&>& selection_changed() noexcept
 
-      Raised after :cpp:func:`selected_id <gui_forms::TreeView::selected_id>` changes, by input or by the setter. It
+      Raised after :cpp:member:`selected_id <gui_forms::TreeView::selected_id>` changes, by input or by the setter. It
       carries a :cpp:class:`TreeSelectionChange <gui_forms::TreeSelectionChange>` with the ``previous_id`` and the
       ``current_id``.
 

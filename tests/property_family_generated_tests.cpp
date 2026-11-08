@@ -31,6 +31,7 @@
 #include "gui_forms/controls/panel/text_box/text_box.hpp"
 #include "gui_forms/controls/panel/token_box/token_box.hpp"
 #include "gui_forms/controls/panel/tree_list_view/tree_list_view.hpp"
+#include "gui_forms/controls/panel/tree_view/tree_view.hpp"
 #include "gui_forms/controls/scrollable_control/scrollable_control.hpp"
 
 #include <cstdlib>
@@ -981,6 +982,31 @@ void test_tree_list_view_properties() {
     }
 }
 
+void test_tree_view_properties() {
+    std::shared_ptr<TreeView> control = make_control<TreeView>(StableId("generated.treeview"));
+    {
+        const double sample = 30.0;
+        (*control).item_height = sample;
+        expect((*control).item_height.read() == sample, "TreeView.item_height: a write stores");
+    }
+    {
+        const double sample = 24.0;
+        (*control).indentation = sample;
+        expect((*control).indentation.read() == sample, "TreeView.indentation: a write stores");
+    }
+    {
+        const bool sample = !(*control).show_expanders.read();
+        (*control).show_expanders = sample;
+        expect((*control).show_expanders.read() == sample, "TreeView.show_expanders: a write stores");
+    }
+    {
+        const FontSpec sample = FontSpec{FontRole::content, 14.0, 400, false};
+        (*control).font = sample;
+        expect((*control).font.read() == sample, "TreeView.font: a write stores");
+    }
+    // image_list: no sample for std::shared_ptr<ImageList>; give the property a "sample".
+}
+
 } // namespace
 
 int main() {
@@ -1013,6 +1039,7 @@ int main() {
     test_text_box_properties();
     test_token_box_properties();
     test_tree_list_view_properties();
+    test_tree_view_properties();
     std::cout << "generated property tests passed\n";
     return EXIT_SUCCESS;
 }

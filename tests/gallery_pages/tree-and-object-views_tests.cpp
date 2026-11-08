@@ -42,7 +42,7 @@ void test_tree_and_object_views(gui_forms::Window& window) {
             "the page must publish all four views and its status by stable id");
 
     // One fixture, projected: the initial folder is src/controls.
-    require((*tree).selected_id() == "controls" && (*trail).active_id.read() == "controls" &&
+    require((*tree).selected_id.read() == "controls" && (*trail).active_id.read() == "controls" &&
                 (*trail).segments().size() == 3U && (*objects).items().size() == 2U &&
                 (*ledger).items().size() == 2U && (*ledger).pinned_id.read() == "button.cpp" &&
                 (*objects).view_mode() == ObjectViewMode::details,
@@ -51,9 +51,9 @@ void test_tree_and_object_views(gui_forms::Window& window) {
     // TreeView: a pointer press on the fifth visible row (docs) selects it and
     // every other view follows through the tree's selection_changed.
     const Rect tree_bounds = (*tree).absolute_bounds();
-    click_at(window, {tree_bounds.x + 40.0, tree_bounds.y + 2.0 + 4.5 * (*tree).item_height()},
+    click_at(window, {tree_bounds.x + 40.0, tree_bounds.y + 2.0 + 4.5 * (*tree).item_height.read()},
              "the TreeView must accept a pointer press on a visible row");
-    require((*tree).selected_id() == "docs" && (*trail).active_id.read() == "docs" &&
+    require((*tree).selected_id.read() == "docs" && (*trail).active_id.read() == "docs" &&
                 (*trail).segments().size() == 2U && (*objects).items().size() == 2U &&
                 (*objects).items()[0].stable_id == "atlas.md" &&
                 (*status).text().find("Folder Portsmouth Gallery / docs selected") == 0U,
@@ -62,7 +62,7 @@ void test_tree_and_object_views(gui_forms::Window& window) {
     // BreadcrumbTrail: activating the root segment selects the root folder.
     click_at(window, virtual_child_center(*trail, "root"),
              "a breadcrumb segment must accept a pointer press");
-    require((*tree).selected_id() == "root" && (*trail).segments().size() == 1U &&
+    require((*tree).selected_id.read() == "root" && (*trail).segments().size() == 1U &&
                 (*objects).items().size() == 4U && (*ledger).items().size() == 8U &&
                 (*status).text().find("Breadcrumb root activated") == 0U,
             "a breadcrumb segment must drive the tree selection and the dependent views");
@@ -74,7 +74,7 @@ void test_tree_and_object_views(gui_forms::Window& window) {
     require((*objects).selected_id() == "src" && window.focused_control() == objects,
             "a pointer press must select the object row and focus the view");
     require(window.dispatch_key({KeyAction::down, PhysicalKey::enter}) &&
-                (*tree).selected_id() == "src" && (*objects).items().size() == 2U &&
+                (*tree).selected_id.read() == "src" && (*objects).items().size() == 2U &&
                 (*objects).items()[0].stable_id == "controls" && (*trail).segments().size() == 2U,
             "Enter on a folder object must select that folder in the tree");
 

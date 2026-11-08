@@ -1,0 +1,172 @@
+{
+  "family": "TreeView",
+  "step": "B7",
+  "declaring": "TreeView",
+  "header": "include/gui_forms/controls/panel/tree_view/tree_view.hpp",
+  "source": "src/controls/panel/tree_view/tree_view.cpp",
+  "capabilities_header": "include/gui_forms/controls/panel/tree_view/tree_view_capabilities/tree_view_capabilities.hpp",
+  "base": "Panel",
+  "shared": [
+    "FontCapability"
+  ],
+  "includes": [
+    "gui_forms/image_list.hpp",
+    "gui_forms/types.hpp"
+  ],
+  "properties": [
+    {
+      "name": "selected_id",
+      "capability": "TreeViewSelectedId",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The selected item's stable ID, or empty; a view, since replacing the items keeps or clears it. A change makes the item active and raises selection_changed; an ID not in the model throws std::out_of_range.",
+      "getter": "selected_id",
+      "setter": "set_selected_id",
+      "clear": null,
+      "field": null,
+      "event": "selection_changed_",
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto selected_id_, which set_items retains or clears and collapsing an ancestor moves; write_view validates and raises selection_changed"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "item_height",
+      "capability": "TreeViewItemHeight",
+      "value": "double",
+      "initial": "24.0",
+      "comment": "The row height in logical units, 14 to 256 (std::invalid_argument otherwise).",
+      "getter": "item_height",
+      "setter": "set_item_height",
+      "clear": null,
+      "field": "item_height_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": "Dirty::measure | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "prepare": [
+        "if (!std::isfinite(incoming) || incoming < 14.0 || incoming > 256.0) {",
+        "    throw std::invalid_argument(\"TreeView item height must be finite and between 14 and 256\");",
+        "}"
+      ],
+      "sample": "30.0"
+    },
+    {
+      "name": "indentation",
+      "capability": "TreeViewIndentation",
+      "value": "double",
+      "initial": "18.0",
+      "comment": "The width of one tree level in logical units, 8 to 96 (std::invalid_argument otherwise).",
+      "getter": "indentation",
+      "setter": "set_indentation",
+      "clear": null,
+      "field": "indentation_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": "Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "prepare": [
+        "if (!std::isfinite(incoming) || incoming < 8.0 || incoming > 96.0) {",
+        "    throw std::invalid_argument(\"TreeView indentation must be finite and between 8 and 96\");",
+        "}"
+      ],
+      "sample": "24.0"
+    },
+    {
+      "name": "show_expanders",
+      "capability": "TreeViewShowExpanders",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether expandable items draw their expander glyph.",
+      "getter": "show_expanders",
+      "setter": "set_show_expanders",
+      "clear": null,
+      "field": "show_expanders_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": "Dirty::paint | Dirty::hit_test | Dirty::semantics"
+    },
+    {
+      "name": "font",
+      "capability": "Font",
+      "value": "FontSpec",
+      "initial": "FontRole::content, 12.0, 400, false",
+      "comment": "The rows' font (Font). Throws std::invalid_argument for an invalid FontSpec; any write marks the font as set from code.",
+      "getter": "font",
+      "setter": "set_font",
+      "clear": null,
+      "field": "font_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": "Dirty::measure | Dirty::paint | Dirty::semantics",
+      "prepare": [
+        "if (!valid_font_spec(incoming)) throw std::invalid_argument(\"TreeView font is invalid\");",
+        "set_font_from_code(true);"
+      ],
+      "sample": "FontSpec{FontRole::content, 14.0, 400, false}"
+    },
+    {
+      "name": "image_list",
+      "capability": "TreeViewImageList",
+      "value": "std::shared_ptr<ImageList>",
+      "initial": null,
+      "comment": "The images that the items' image keys name; a list must be alive and belong to this view's Window (std::invalid_argument otherwise). A change follows the new list's changes.",
+      "getter": "image_list",
+      "setter": "set_image_list",
+      "clear": null,
+      "field": "image_list_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "prepare_write: a live list of the own Window; written: resubscribe to the list's changes"
+      ],
+      "effects": null
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "items",
+      "reason": "the model is replaced whole and validated as a set; collections stay methods"
+    },
+    {
+      "name": "set_expanded",
+      "reason": "kept as a method (per-item)"
+    },
+    {
+      "name": "top_row",
+      "reason": "scroll state clamped by layout: the read differs from the write"
+    }
+  ],
+  "test": {
+    "type": "TreeView",
+    "include": "gui_forms/controls/panel/tree_view/tree_view.hpp"
+  }
+}

@@ -854,11 +854,11 @@ std::shared_ptr<Panel> make_tree_pane(ProductRefs& refs) {
         {"fm.tree.node.macintosh-hd", "Macintosh HD", 1},
         {"fm.tree.node.archive-04", "Archive 04  · offline", 1},
     });
-    (*tree).set_item_height(24.0);
-    (*tree).set_font({FontRole::content, 10.5, 400, false});
+    (*tree).item_height = 24.0;
+    (*tree).font = FontSpec{FontRole::content, 10.5, 400, false};
     (*tree).set_style(house_style());
     (*tree).accessible_name = "Folders";
-    (*tree).set_selected_id("fm.tree.node.projects");
+    (*tree).selected_id = "fm.tree.node.projects";
     refs.tree = tree;
     (*tree).dock = DockStyle::fill;
     // Dock consumes reverse public z-order: add edge reservations behind the

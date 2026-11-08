@@ -696,10 +696,10 @@ void test_trees_sharing_item_identities_route_by_owner() {
                 find_node((*right_node).children, "docs") != nullptr,
             "both trees publish an item docs");
     require(window.perform_semantic_action((*right).runtime_id(), "docs", SemanticAction::select) &&
-                (*right).selected_id() == "docs" && (*left).selected_id() != "docs",
+                (*right).selected_id.read() == "docs" && (*left).selected_id.read() != "docs",
             "an action named by the right tree's runtime identity reaches its item");
     require(window.perform_semantic_action("docs", SemanticAction::select) &&
-                (*left).selected_id() == "docs",
+                (*left).selected_id.read() == "docs",
             "an action named by stable identity alone reaches the first tree's item");
 }
 

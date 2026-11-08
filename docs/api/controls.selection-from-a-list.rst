@@ -494,8 +494,20 @@ Related types
      -  
    * - :cpp:class:`TreeView::Parts <gui_forms::TreeView::Parts>`
      - Stage T1 anatomy, as dot members.
+   * - :cpp:class:`TreeViewCapabilities <gui_forms::TreeViewCapabilities>`
+     - Every TreeView capability, in the order the declaring class takes them.
+   * - :cpp:class:`TreeViewImageListCapability <gui_forms::TreeViewImageListCapability>`
+     - The images that the items' image keys name; a list must be alive and belong to this view's Window (std::invalid_argument otherwise).
+   * - :cpp:class:`TreeViewIndentationCapability <gui_forms::TreeViewIndentationCapability>`
+     - The width of one tree level in logical units, 8 to 96 (std::invalid_argument otherwise).
    * - :cpp:class:`TreeViewItem <gui_forms::TreeViewItem>`
      - TreeViewItem owns stable identity, text, icon/status metadata, expansion capability/state, and nested children for one tree node.
+   * - :cpp:class:`TreeViewItemHeightCapability <gui_forms::TreeViewItemHeightCapability>`
+     - The row height in logical units, 14 to 256 (std::invalid_argument otherwise).
+   * - :cpp:class:`TreeViewSelectedIdCapability <gui_forms::TreeViewSelectedIdCapability>`
+     - The selected item's stable ID, or empty; a view, since replacing the items keeps or clears it.
+   * - :cpp:class:`TreeViewShowExpandersCapability <gui_forms::TreeViewShowExpandersCapability>`
+     - Whether expandable items draw their expander glyph.
 
 .. cpp:namespace:: gui_forms
 
@@ -4790,6 +4802,78 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> TreeViewCapabilities : public TreeViewSelectedIdCapability<Declaring>, public TreeViewItemHeightCapability<Declaring>, public TreeViewIndentationCapability<Declaring>, public TreeViewShowExpandersCapability<Declaring>, public FontCapability<Declaring>, public TreeViewImageListCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/tree_view/tree_view_capabilities/tree_view_capabilities.hpp>``
+
+   Every TreeView capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: TreeViewCapabilities()
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string selected_id
+
+      The selected item's stable ID, or empty; a view, since replacing the items keeps or clears it. A change makes the item active and raises selection_changed; an ID not in the model throws std::out_of_range.
+
+   .. cpp:member:: double item_height
+
+      The row height in logical units, 14 to 256 (std::invalid_argument otherwise).
+
+   .. cpp:member:: double indentation
+
+      The width of one tree level in logical units, 8 to 96 (std::invalid_argument otherwise).
+
+   .. cpp:member:: bool show_expanders
+
+      Whether expandable items draw their expander glyph.
+
+   .. cpp:member:: FontSpec font
+
+      The font of the control's text (Font).
+
+   .. cpp:member:: std::shared_ptr<ImageList> image_list
+
+      The images that the items' image keys name; a list must be alive and belong to this view's Window (std::invalid_argument otherwise). A change follows the new list's changes.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TreeViewImageListCapability
+
+   ``#include <gui_forms/controls/panel/tree_view/tree_view_capabilities/tree_view_capabilities.hpp>``
+
+   The images that the items' image keys name; a list must be alive and belong to this view's Window (std::invalid_argument otherwise). A change follows the new list's changes.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TreeViewImageListCapability& capability, std::shared_ptr<ImageList> incoming)
+
+   .. cpp:member:: PropertyCell<std::shared_ptr<ImageList>, TreeViewImageListCapability<Declaring>> image_list
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TreeViewIndentationCapability
+
+   ``#include <gui_forms/controls/panel/tree_view/tree_view_capabilities/tree_view_capabilities.hpp>``
+
+   The width of one tree level in logical units, 8 to 96 (std::invalid_argument otherwise).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TreeViewIndentationCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, TreeViewIndentationCapability<Declaring>> indentation
+
+      Default: ``{18.0}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: TreeViewItem final
 
    ``#include <gui_forms/controls/panel/tree_view/tree_view.hpp>``
@@ -4811,6 +4895,57 @@ Related types
       Default: ``{true}``.
 
    .. cpp:member:: std::string image_key
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TreeViewItemHeightCapability
+
+   ``#include <gui_forms/controls/panel/tree_view/tree_view_capabilities/tree_view_capabilities.hpp>``
+
+   The row height in logical units, 14 to 256 (std::invalid_argument otherwise).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TreeViewItemHeightCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, TreeViewItemHeightCapability<Declaring>> item_height
+
+      Default: ``{24.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TreeViewSelectedIdCapability
+
+   ``#include <gui_forms/controls/panel/tree_view/tree_view_capabilities/tree_view_capabilities.hpp>``
+
+   The selected item's stable ID, or empty; a view, since replacing the items keeps or clears it. A change makes the item active and raises selection_changed; an ID not in the model throws std::out_of_range.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TreeViewSelectedIdCapability& capability, std::string incoming)
+
+   .. cpp:function:: static std::string read(const TreeViewSelectedIdCapability& capability)
+
+   .. cpp:member:: PropertyView<std::string, TreeViewSelectedIdCapability<Declaring>> selected_id
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TreeViewShowExpandersCapability
+
+   ``#include <gui_forms/controls/panel/tree_view/tree_view_capabilities/tree_view_capabilities.hpp>``
+
+   Whether expandable items draw their expander glyph.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TreeViewShowExpandersCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, TreeViewShowExpandersCapability<Declaring>> show_expanders
+
+      Default: ``{true}``.
 
 Enumerations
 ------------

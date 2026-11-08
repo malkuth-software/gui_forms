@@ -121,7 +121,7 @@ void click(gui_forms::Window& window, std::string_view stable_id)
 {
     const gui_forms::Rect bounds = folders.absolute_bounds();
     return {bounds.x + 40.0,
-            bounds.y + 2.0 + (static_cast<double>(row) + 0.5) * folders.item_height()};
+            bounds.y + 2.0 + (static_cast<double>(row) + 0.5) * folders.item_height.read()};
 }
 
 [[nodiscard]] gui_forms::Point message_point(const gui_forms::CorrespondenceView& messages,
@@ -194,7 +194,7 @@ int main()
 
     // Initial projection.
     expect(model.selected_folder() == Folder::inbox, "window starts in Inbox");
-    expect((*folders).selected_id() == correspondence::folder_id(Folder::inbox),
+    expect((*folders).selected_id.read() == correspondence::folder_id(Folder::inbox),
            "folder tree reflects the model folder");
     expect((*folders).items().size() == 6U, "six folders are listed");
     expect((*folders).items()[0].text == "Inbox  (6)", "Inbox shows its unread count");
@@ -299,7 +299,7 @@ int main()
     // New message creates a draft and shows it; no secondary window is opened.
     click(view, correspondence::command_button_id(correspondence::command_new_message));
     expect(model.selected_folder() == Folder::drafts, "New message switches to Drafts");
-    expect((*folders).selected_id() == correspondence::folder_id(Folder::drafts),
+    expect((*folders).selected_id.read() == correspondence::folder_id(Folder::drafts),
            "folder tree follows the compose switch");
     expect((*messages).items().size() == 4U, "Drafts gained the new draft");
     expect((*subject).text() == "Untitled message", "reading pane shows the new draft");

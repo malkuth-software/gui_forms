@@ -132,7 +132,7 @@ void test_tree_view_collapse_outlives_an_expansion_handler() {
     (*root).add_child(view);
     Window window(root, {320.0, 220.0});
     window.perform_layout();
-    (*view).set_selected_id(second_id);
+    (*view).selected_id = second_id;
     SubscriptionToken replace = (*view).expansion_changed().subscribe(
         ReplaceTreeItemsOnExpansion{view.get()});
     bool threw = false;

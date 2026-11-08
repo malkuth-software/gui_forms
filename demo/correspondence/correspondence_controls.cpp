@@ -302,10 +302,10 @@ void CorrespondenceShell::build_panes() {
     (*(*split_).second_panel()).set_background(canvas);
 
     folders_ = make_control<TreeView>(StableId(std::string(ids::folders)));
-    (*folders_).set_show_expanders(false);
-    (*folders_).set_item_height(28.0);
-    (*folders_).set_indentation(8.0);
-    (*folders_).set_font(folder_font);
+    (*folders_).show_expanders = false;
+    (*folders_).item_height = 28.0;
+    (*folders_).indentation = 8.0;
+    (*folders_).font = folder_font;
     (*folders_).set_background(navigation);
     (*folders_).set_style(correspondence_style());
     (*folders_).dock = DockStyle::fill;
@@ -394,7 +394,7 @@ void CorrespondenceShell::project_folders() {
         items.push_back(std::move(item));
     }
     (*folders_).set_items(std::move(items));
-    (*folders_).set_selected_id(folder_id(model_.selected_folder()));
+    (*folders_).selected_id = folder_id(model_.selected_folder());
 }
 
 void CorrespondenceShell::project_messages() {
