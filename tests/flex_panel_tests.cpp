@@ -269,7 +269,7 @@ void test_ten_thousand_children_counts() {
     // One item's text: its one content query misses, and so do the
     // panel's own measure and the plain root's above it (Panel keeps the
     // default propagation); every other item answers from its cache.
-    (*labels[4'321]).set_text("A rather longer item text");
+    (*labels[4'321]).text = "A rather longer item text";
     window.perform_layout();
     std::uint64_t callbacks = 0U;
     for (const std::shared_ptr<CountingLabel>& label : labels) callbacks += (*label).callbacks;

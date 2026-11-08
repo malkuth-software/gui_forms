@@ -39,13 +39,13 @@ const std::string greeting = "Welcome";
 
 // A helper of the developer's own, marked: literals passed to it are found.
 void set_caption(Label& label, GUI_FORMS_LOCALIZABLE(text) std::string_view caption) {
-    label.set_text(std::string(caption));
+    label.text = std::string(caption);
 }
 
 // The same helper unmarked: the literal reaches set_text only through the
 // parameter, so it is not found.
 void set_caption_unmarked(Label& label, std::string_view caption) {
-    label.set_text(std::string(caption));
+    label.text = std::string(caption);
 }
 
 // u8 literals reach a char8_t parameter of a marked helper directly.
@@ -60,7 +60,7 @@ std::size_t set_wide_caption(GUI_FORMS_LOCALIZABLE(text) std::wstring_view capti
 
 template <typename ControlType>
 void set_from_template(ControlType& control) {
-    control.set_text("From a template");
+    control.text = "From a template";
 }
 
 struct Controls final {
@@ -75,29 +75,29 @@ struct Controls final {
 
 void exercise(Controls& controls, Window& window, bool never, int mode) {
     Label& label = *controls.label;
-    label.set_text("Ready");
+    label.text = "Ready";
     if (never) {
-        label.set_text("Never shown");
+        label.text = "Never shown";
     }
     switch (mode) {
     case 1:
-        label.set_text("Mode one");
+        label.text = "Mode one";
         break;
     default:
         // Every other mode keeps "Ready": the switch exists so the plugin
         // sees a literal in a case that the test never runs.
         break;
     }
-    label.set_text(never ? "On" : "Off");
-    label.set_text("Ready");
-    label.set_text("Save " "all");
-    label.set_text(R"(Path "C:\temp")");
-    label.set_text(reinterpret_cast<const char*>(u8"Caf\u00e9"));
-    label.set_text("Tab\there \xE2\x9C\x93 \u65e5\u672c");
-    label.set_text("日本語のテキスト");
-    label.set_text(settings_title);
-    label.set_text(greeting);
-    label.set_text("Literal operator"s);
+    label.text = never ? "On" : "Off";
+    label.text = "Ready";
+    label.text = "Save " "all";
+    label.text = R"(Path "C:\temp")";
+    label.text = reinterpret_cast<const char*>(u8"Caf\u00e9");
+    label.text = "Tab\there \xE2\x9C\x93 \u65e5\u672c";
+    label.text = "日本語のテキスト";
+    label.text = settings_title;
+    label.text = greeting;
+    label.text = "Literal operator"s;
     static_cast<void>(set_u8_caption(u8"Grüße"));
     static_cast<void>(set_wide_caption(L"Wide caption"));
 
@@ -114,7 +114,7 @@ void exercise(Controls& controls, Window& window, bool never, int mode) {
     (*controls.box).text = "User content";
     set_caption(label, "Helper caption");
     set_caption_unmarked(label, "Unmarked helper");
-    label.set_text("Built at " + std::to_string(mode));
+    label.text = "Built at " + std::to_string(mode);
 
     set_from_template(label);
     (*controls.group).text = "Group caption";

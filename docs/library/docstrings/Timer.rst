@@ -125,7 +125,7 @@ host runs:
        }
        void on_tick() {
            ++seconds;
-           (*label).set_text(std::to_string(seconds) + " s");
+           (*label).text = std::to_string(seconds) + " s";
        }
    };
 

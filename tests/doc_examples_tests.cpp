@@ -3737,7 +3737,7 @@ struct StatusClock final : gf::Component {
     }
     void on_tick() {
         ++seconds;
-        (*label).set_text(std::to_string(seconds) + " s");
+        (*label).text = std::to_string(seconds) + " s";
     }
 };
 
@@ -4015,7 +4015,7 @@ void example() {
     {
         gf::UpdateScope scope = window.begin_update();
         (*status).set_bounds({8.0, 8.0, 200.0, 24.0});
-        (*status).set_text("Working");
+        (*status).text = "Working";
         (*cancel).set_bounds({216.0, 6.0, 96.0, 28.0});
     }   // one layout flush here
     gf::MetricsSnapshot metrics = window.metrics_snapshot();   // metrics.flush_count == 1
@@ -4215,7 +4215,7 @@ void example() {
 namespace doc_example_Window_2 {
 struct ShowDone final {
     std::shared_ptr<gf::Label> status;
-    void operator()() const { (*status).set_text("Done"); }
+    void operator()() const { (*status).text = "Done"; }
 };
 
 void example() {

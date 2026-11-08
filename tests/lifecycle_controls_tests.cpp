@@ -114,7 +114,7 @@ public:
     void operator()(const std::string& value) const {
         ++text_events_;
         trace_.push_back("text:" + value);
-        require(!label_.initializing() && label_.text() == "second",
+        require(!label_.initializing() && label_.text.read() == "second",
                 "deferred observers must see the committed final state");
     }
 

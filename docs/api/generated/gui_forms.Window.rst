@@ -230,7 +230,7 @@ gui_forms::Window
 
       struct ShowDone final {
           std::shared_ptr<gf::Label> status;
-          void operator()() const { (*status).set_text("Done"); }
+          void operator()() const { (*status).text = "Done"; }
       };
 
       void example() {

@@ -430,25 +430,25 @@ void CorrespondenceShell::project_reading_pane() {
     const std::optional<std::uint32_t> selected = model_.selected_message();
     const Message* message = selected ? model_.find(*selected) : nullptr;
     if (message == nullptr) {
-        (*reading_subject_).set_text("No message selected");
-        (*reading_correspondent_).set_text("");
-        (*reading_date_).set_text(std::string(folder_name(model_.selected_folder())) +
-                                  " · " + plural(model_.visible_messages().size(), "message"));
+        (*reading_subject_).text = "No message selected";
+        (*reading_correspondent_).text = "";
+        (*reading_date_).text = std::string(folder_name(model_.selected_folder())) +
+                                  " · " + plural(model_.visible_messages().size(), "message");
         (*reading_body_).text = "Select a message in the list to read it here.\n\n"
             "Every folder and message is a deterministic in-memory fixture: nothing is "
             "sent, received, or written to disk.";
         return;
     }
-    (*reading_subject_).set_text((*message).subject);
+    (*reading_subject_).text = (*message).subject;
     const std::string party = (*message).correspondent.empty()
         ? std::string("(no recipient)")
         : (*message).address.empty()
             ? (*message).correspondent
             : (*message).correspondent + " <" + (*message).address + ">";
-    (*reading_correspondent_).set_text(((*message).outgoing ? "To: " : "From: ") + party);
+    (*reading_correspondent_).text = ((*message).outgoing ? "To: " : "From: ") + party;
     std::string date_line = (*message).date + " · " + std::string(folder_name((*message).folder));
     if ((*message).flagged) date_line += " · Flagged";
-    (*reading_date_).set_text(date_line);
+    (*reading_date_).text = date_line;
     (*reading_body_).text = (*message).body;
 }
 

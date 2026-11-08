@@ -76,9 +76,9 @@ void ReviewCard::prepare_write(const decltype(record)&, ReviewRecord& incoming) 
 void ReviewCard::written(const decltype(record)&) {
     initialize_control_tree();
     const ReviewRecord& current = record.read();
-    (*title_label_).set_text(current.title);
-    (*summary_label_).set_text(current.summary);
-    (*verdict_label_).set_text(current.verdict);
+    (*title_label_).text = current.title;
+    (*summary_label_).text = current.summary;
+    (*verdict_label_).text = current.verdict;
     accessible_name = current.title;
     accessible_description = current.summary;
     set_visual_status(current.disposition == ReviewDisposition::pending

@@ -1018,7 +1018,7 @@ void test_fixed_label_text_is_paint_only() {
     (*label).auto_size = true;
     window.perform_layout();
     window.reset_activity_metrics();
-    (*label).set_text("content-sized telemetry");
+    (*label).text = "content-sized telemetry";
     const DamageRegion auto_damage = window.take_damage();
     require(!auto_damage.empty(), "auto-sized label text must request repaint");
     window.paint(painter, auto_damage.bounds());
@@ -1069,7 +1069,7 @@ void test_fixed_label_measurement_does_not_resolve_unused_text() {
     require(scaled == complete && provider.calls == 0U,
             "explicit label dimensions remain authoritative with AutoSize and text scaling");
 
-    (*label).set_text("one two three four");
+    (*label).text = "one two three four";
     (*label).set_requested_bounds({0.0, 0.0, 80.0, 0.0});
     provider.calls = 0U;
     const Size content_height = (*label).measure({300.0, 200.0});
@@ -1380,7 +1380,7 @@ void test_basic_control_layout_customization_is_bounded_and_atomic() {
     }
     require(rejected_lines && rejected_alignment &&
                 (*label).maximum_lines.read() == 2U &&
-                (*label).alignment() == HorizontalAlignment::near,
+                (*label).alignment.read() == HorizontalAlignment::near,
             "Label bounded and enum properties must reject invalid values atomically");
 
     std::shared_ptr<gui_forms::Button> button = make_control<Button>(StableId("button.content-padding"), "Run");
