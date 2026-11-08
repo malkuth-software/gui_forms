@@ -381,7 +381,7 @@ double RichTextBox::document_height() const noexcept {
 }
 
 Rect RichTextBox::text_rectangle() const noexcept {
-    const Rect viewport = auto_scroll() ? viewport_rectangle() : local_bounds();
+    const Rect viewport = auto_scroll.read() ? viewport_rectangle() : local_bounds();
     const double top = bar_height() + text_top_;
     const Rect result{text_left_, top, std::max(0.0, viewport.width - 10.0),
                       std::max(0.0, viewport.height - top - text_top_)};
@@ -389,7 +389,7 @@ Rect RichTextBox::text_rectangle() const noexcept {
 }
 
 void RichTextBox::set_scroll(Point position) {
-    if (auto_scroll()) {
+    if (auto_scroll.read()) {
         if (word_wrap_) position.x = 0.0;
         static_cast<void>(scroll_to(position));
         return;
@@ -409,7 +409,7 @@ void RichTextBox::ensure_layout() {
     const TextMetricsProvider* provider = owner == nullptr ? nullptr : (*owner).text_metrics_provider();
     if (!rows_.empty() && layout_width_ >= 0.0 && layout_revision_ == content_revision_ &&
         layout_font_ == font && layout_provider_ == provider && layout_scale_ == scale &&
-        layout_wrap_ == word_wrap_ && layout_client_ == client && layout_scroll_ == auto_scroll() &&
+        layout_wrap_ == word_wrap_ && layout_client_ == client && layout_scroll_ == auto_scroll.read() &&
         layout_bar_ == control_bar_visible_) {
         return;
     }
@@ -419,7 +419,7 @@ void RichTextBox::ensure_layout() {
     layout_client_ = {-1.0, -1.0};
     rebuild_rows(std::max(1.0, client.width - 10.0));
     bool reveal = reveal_pending_;
-    if (auto_scroll()) {
+    if (auto_scroll.read()) {
         const double chrome = bar_height() + 2.0 * text_top_;
         const double content_width = word_wrap_ ? 0.0 : document_width_ + 11.0;
         double content_height = document_height() + chrome;
@@ -435,7 +435,7 @@ void RichTextBox::ensure_layout() {
     set_scroll(scroll_offset());
     reveal_pending_ = reveal;
     layout_client_ = client;
-    layout_scroll_ = auto_scroll();
+    layout_scroll_ = auto_scroll.read();
     layout_bar_ = control_bar_visible_;
 }
 

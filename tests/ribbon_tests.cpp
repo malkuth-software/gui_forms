@@ -314,7 +314,7 @@ void hosted_controls() {
     const std::shared_ptr<NumericUpDown> size = (*ribbon).numeric_up_down("font-size");
     const std::shared_ptr<CheckBox> strike = (*ribbon).check_box("strike");
     const std::vector<Ribbon::CommandItem> items = (*ribbon).realized_commands();
-    require((*font).items().size() == 2U && (*strike).text() == "Strike" &&
+    require((*font).items().size() == 2U && (*strike).text.read() == "Strike" &&
                 command_named(items, "font-name").parts.command_combo_box.bounds ==
                     (*font).committed_arranged_bounds() &&
                 command_named(items, "font-size").parts.command_numeric_up_down.present &&

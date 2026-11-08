@@ -164,8 +164,8 @@ struct CycleDeviceScale final {
         (*window).set_scale(next);
         (*window).perform_layout();
         if (const std::shared_ptr<Button> target = button.lock()) {
-            (*target).set_text(next == 2.0 ? "Device scale 2×"
-                                           : "Device scale 1×");
+            (*target).text = next == 2.0 ? "Device scale 2×"
+                                           : "Device scale 1×";
         }
         readout.refresh();
     }
@@ -180,8 +180,8 @@ struct CycleTextScale final {
             (current < 1.4 ? 1.5 : 1.0);
         (*window).set_text_scale(next);
         if (const std::shared_ptr<Button> target = button.lock()) {
-            (*target).set_text("Text scale " +
-                std::to_string(static_cast<int>(next * 100.0)) + "%");
+            (*target).text = "Text scale " +
+                std::to_string(static_cast<int>(next * 100.0)) + "%";
         }
     }
 };

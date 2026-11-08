@@ -32,6 +32,14 @@ Types
      - BindingSnapshot reports endpoints, directional operations, successes, failures, reentrancy suppression, and active state.
    * - :cpp:class:`BindingSourceSnapshot <gui_forms::BindingSourceSnapshot>`
      - BindingSourceSnapshot reports currency, revision, reset/field/position/suspension counters, edit state, and event publication policy.
+   * - :cpp:class:`ChildPropertyEntry <gui_forms::ChildPropertyEntry>`
+     - One property a container provides to its direct children (an attached property, study sections 10 and 15.4): a child writes it in its own ``.form`` block, and the container stores the value per child.
+   * - :cpp:class:`ChildPropertyView <gui_forms::ChildPropertyView>`
+     - A property a container provides to its direct children (an attached property: study sections 10 and 15.4), as the single member of its capability.
+   * - :cpp:class:`ChildPropertyView::Borrow <gui_forms::ChildPropertyView::Borrow>`
+     - One child's value, writable: borrows the capability and the child.
+   * - :cpp:class:`ChildPropertyView::Reading <gui_forms::ChildPropertyView::Reading>`
+     - One child's value through a const container: the reads only.
    * - :cpp:class:`ControlBindingsCollection <gui_forms::ControlBindingsCollection>`
      - ControlBindingsCollection owns the unique active binding for each canonical target property and disposes the set deterministically.
    * - :cpp:class:`CurrencyManager <gui_forms::CurrencyManager>`
@@ -337,6 +345,101 @@ Types
    .. cpp:member:: bool raise_list_changed_events
 
       Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ChildPropertyEntry final
+
+   ``#include <gui_forms/binding/property_table/property_table.hpp>``
+
+   One property a container provides to its direct children (an attached property, study sections 10 and 15.4): a child writes it in its own ``.form`` block, and the container stores the value per child. The operations take the container as a Component (static_cast to the declaring class, as PropertyEntry's do) and the child, which must be a live direct child of it. A child property has no change event and no origin (Windows Forms raises no per-child event).
+
+   .. cpp:member:: std::string_view name
+
+      The registered (snake_case) name; equal to describe().name.
+
+   .. cpp:member:: const PropertyDescriptor& (*describe)()
+
+      The inert descriptor, built once (property_table_descriptor).
+
+   .. cpp:member:: BindingValue (*read)(const Component& container, const Control& child)
+
+      The child's current value; the descriptor's default when none was written.
+
+   .. cpp:member:: void (*write)(Component& container, const Control& child, const BindingValue& value)
+
+      Writes a value already converted to the descriptor's kind.
+
+   .. cpp:member:: void (*reset)(Component& container, const Control& child)
+
+      Restores the default; null: write the descriptor's default value.
+
+   .. cpp:member:: bool (*should_serialize)(const Component& container, const Control& child)
+
+      Whether the value is serialized; null: compare with the default.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: template <typename Value, typename Capability> ChildPropertyView final
+
+   ``#include <gui_forms/binding/child_property_view/child_property_view.hpp>``
+
+   A property a container provides to its direct children (an attached property: study sections 10 and 15.4), as the single member of its capability. The container owns the values, one per child, keyed by the child's runtime identity; the view has no storage. Subscripting by a child yields a borrow of that child's value for one expression: template <typename Declaring> struct FlowBreakCapability { ChildPropertyView<bool, FlowBreakCapability<Declaring>> flow_break; static void assign(FlowBreakCapability& capability, const Control& child, bool value); static bool read(const FlowBreakCapability& capability, const Control& child); }; For example, ``(*flow).flow_break[*button] = true`` is the write and ``(*flow).flow_break[*button].read()`` the read. The write calls ``Capability::assign``, which checks the container's thread and that ``child`` is a live direct child, compares with the child's value (an equal value does nothing), stores in the container and touches the container. The read calls ``Capability::read``, which refuses a child that is not a live direct child and answers the default for a child with no value written. A borrow cannot be copied, kept or written twice: its write is rvalue-qualified and returns nothing. Like a cell, neither the view nor a borrow has a conversion operator or ==, so a forgotten ``.read()`` does not compile.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: ChildPropertyView() = default
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: ChildPropertyView::Borrow final
+
+   ``#include <gui_forms/binding/child_property_view/child_property_view.hpp>``
+
+   One child's value, writable: borrows the capability and the child.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: Value read() const
+
+      The read.
+
+   .. cpp:function:: PropertyType type() const
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: template <typename Target> requires detail::total_property_conversion<Value, Target> Target as_type(TypeTag<Target>) const
+
+      A total conversion, named by a tag (as on PropertyCell).
+
+   .. cpp:function:: std::optional<BindingValue> as_type(const PropertyType& target) const
+
+      A conversion to a runtime type: nullopt when the value has no form of that type.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: ChildPropertyView::Reading final
+
+   ``#include <gui_forms/binding/child_property_view/child_property_view.hpp>``
+
+   One child's value through a const container: the reads only.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: Value read() const
+
+   .. cpp:function:: PropertyType type() const
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: template <typename Target> requires detail::total_property_conversion<Value, Target> Target as_type(TypeTag<Target>) const
+
+   .. cpp:function:: std::optional<BindingValue> as_type(const PropertyType& target) const
 
 .. cpp:namespace:: gui_forms
 
@@ -1141,19 +1244,51 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
+``#include <gui_forms/binding/property_cell_entry/property_cell_entry.hpp>``
+
+.. cpp:function:: template <typename Declaring, typename MemberPointer, MemberPointer Member> BindingValue read_cell_entry(const Component& owner)
+
+   The current value in its BindingValue form.
+
+.. cpp:function:: template <typename Declaring, typename MemberPointer, MemberPointer Member> void write_cell_entry(Component& owner, const BindingValue& value)
+
+   Writes a value write_property_entry has already converted to the descriptor's kind.
+
+.. cpp:function:: template <typename Declaring, typename EventPointer, EventPointer EventMember> SubscriptionToken connect_event_entry(Component& owner, Component& subscriber, std::function<void()> changed)
+
+   Connects ``changed`` to the event field ``EventMember`` of the declaring class for ``subscriber``'s lifetime.
+
+.. cpp:function:: template <typename Declaring, typename MemberPointer, MemberPointer Read> BindingValue read_member_entry(const Component& owner)
+
+   A declaring-class member function as an entry's read (``BindingValue f() const``), where the table read is not the cell's value.
+
+.. cpp:function:: template <typename Declaring, typename MemberPointer, MemberPointer Write> void write_member_entry(Component& owner, const BindingValue& value)
+
+   A declaring-class member function as an entry's write (``void f(const BindingValue&)``).
+
+.. cpp:function:: template <typename Declaring, typename MemberPointer, MemberPointer Reset> void reset_member_entry(Component& owner)
+
+   A declaring-class member function as an entry's reset.
+
+.. cpp:function:: template <typename Declaring, typename MemberPointer, MemberPointer ShouldSerialize> bool should_serialize_member_entry(const Component& owner)
+
+   A declaring-class member function as an entry's should_serialize.
+
+.. cpp:namespace:: gui_forms
+
 ``#include <gui_forms/binding/property_table/property_table.hpp>``
 
-.. cpp:function:: consteval bool property_names_distinct(std::span<const PropertyEntry> entries)
+.. cpp:function:: template <typename Entry, std::size_t Count> consteval bool property_names_distinct(const std::array<Entry, Count>& entries)
 
-   Whether the names of ``entries`` are distinct. Used in a static_assert next to each type's table, so a duplicate fails where it is declared, naming the table.
+   Whether the names of ``entries`` are distinct. Used in a static_assert next to each type's table, so a duplicate fails where it is declared, naming the table. Entry: PropertyEntry or ChildPropertyEntry.
 
-.. cpp:function:: template <std::size_t BaseCount, std::size_t OwnCount> constexpr std::array<PropertyEntry, BaseCount + OwnCount> join_property_tables(const std::array<PropertyEntry, BaseCount>& base, const std::array<PropertyEntry, OwnCount>& own)
+.. cpp:function:: template <typename Entry, std::size_t BaseCount, std::size_t OwnCount> constexpr std::array<Entry, BaseCount + OwnCount> join_property_tables(const std::array<Entry, BaseCount>& base, const std::array<Entry, OwnCount>& own)
 
-   A declaring class's table after its base's: the base's entries first, then its own, so a type's slots are stable and gap-free.
+   A declaring class's table after its base's: the base's entries first, then its own, so a type's slots are stable and gap-free. Entry: PropertyEntry or ChildPropertyEntry.
 
-.. cpp:function:: template <std::size_t BaseCount, std::size_t OverrideCount> constexpr std::array<PropertyEntry, BaseCount> override_property_entries(const std::array<PropertyEntry, BaseCount>& base, const std::array<PropertyEntry, OverrideCount>& overrides)
+.. cpp:function:: template <typename Entry, std::size_t BaseCount, std::size_t OverrideCount> constexpr std::array<Entry, BaseCount> override_property_entries(const std::array<Entry, BaseCount>& base, const std::array<Entry, OverrideCount>& overrides)
 
-   A derived type's refinement of base entries (study section 14, G3): the base's table with each entry of ``overrides`` replacing the base entry of the same name, in the base entry's slot. An override that names no base entry throws, which fails the constant evaluation of the table that uses it, so the mistake does not compile.
+   A derived type's refinement of base entries (study section 14, G3): the base's table with each entry of ``overrides`` replacing the base entry of the same name, in the base entry's slot. An override that names no base entry throws, which fails the constant evaluation of the table that uses it, so the mistake does not compile. Entry: PropertyEntry or ChildPropertyEntry.
 
 .. cpp:function:: PropertyDescriptor property_table_descriptor(PropertyDescriptor descriptor, PropertyOperations operations)
 
@@ -1182,6 +1317,16 @@ Functions, constants and aliases
 .. cpp:function:: SubscriptionToken connect_property_entry(Component& owner, const PropertyEntry& entry, Component& subscriber, std::function<void()> changed)
 
    Connects ``changed`` for ``subscriber``'s lifetime; an empty token when the entry raises no change or ``changed`` is empty.
+
+.. cpp:function:: BindingValue read_child_property_entry(const Component& container, const Control& child, const ChildPropertyEntry& entry)
+
+   The same operations for one child property. Callers (Control's child property API) check the container's thread and that ``child`` is a live direct child; the entries' writes check both again through their prepare hooks. The read is converted and checked against the descriptor, and the written value converted to its kind, as above.
+
+.. cpp:function:: void write_child_property_entry(Component& container, const Control& child, const ChildPropertyEntry& entry, const BindingValue& value)
+
+.. cpp:function:: bool reset_child_property_entry(Component& container, const Control& child, const ChildPropertyEntry& entry)
+
+.. cpp:function:: bool child_property_entry_should_serialize(const Component& container, const Control& child, const ChildPropertyEntry& entry)
 
 .. cpp:namespace:: gui_forms
 

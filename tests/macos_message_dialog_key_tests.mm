@@ -228,8 +228,9 @@ const char* buttons_name(HostMessageButtons buttons) {
     case HostMessageButtons::yes_no: return "yes_no";
     case HostMessageButtons::yes_no_cancel: return "yes_no_cancel";
     case HostMessageButtons::retry_cancel: return "retry_cancel";
+    // The probe names only the buttons and choices it exercises.
+    default: return "?";
     }
-    return "?";
 }
 
 const char* choice_name(HostDialogChoice choice) {
@@ -240,8 +241,9 @@ const char* choice_name(HostDialogChoice choice) {
     case HostDialogChoice::yes: return "yes";
     case HostDialogChoice::no: return "no";
     case HostDialogChoice::retry: return "retry";
+    // The probe names only the buttons and choices it exercises.
+    default: return "?";
     }
-    return "?";
 }
 
 const char* key_name(ProbeKey key) {

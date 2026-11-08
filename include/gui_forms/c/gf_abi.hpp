@@ -668,6 +668,32 @@ public:
         return called;
     }
 
+    [[nodiscard]] gf_status child_property_count(uint64_t type, uint64_t* count) const noexcept {
+        if (table_.struct_size < 168u || table_.child_property_count == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.child_property_count(type, count);
+        return called;
+    }
+
+    [[nodiscard]] gf_status child_property_at(uint64_t type, uint64_t property,
+                                              gf_schema_property* record) const noexcept {
+        if (table_.struct_size < 176u || table_.child_property_at == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.child_property_at(type, property, record);
+        return called;
+    }
+
+    [[nodiscard]] gf_status child_choice_at(uint64_t type, uint64_t property, uint64_t choice,
+                                            gf_schema_choice* record) const noexcept {
+        if (table_.struct_size < 184u || table_.child_choice_at == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.child_choice_at(type, property, choice, record);
+        return called;
+    }
+
 private:
     gf_schema_table table_;
 };

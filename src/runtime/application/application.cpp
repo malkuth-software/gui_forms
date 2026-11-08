@@ -227,6 +227,7 @@ NativeWindow prepare_one(ApplicationWindow& source, BridgeScope& scope,
     entry.owner_id = std::move(source.owner_id);
     entry.tool_window = source.tool_window;
     entry.floating = source.floating;
+    entry.popup = source.popup;
     entry.model = std::move(source.model);
     // One key map for the application's windows, floating ones included
     // (owner decision DK-44).

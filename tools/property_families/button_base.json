@@ -1,0 +1,304 @@
+{
+  "family": "ButtonBase",
+  "step": "M3",
+  "declaring": "ButtonBase",
+  "header": "include/gui_forms/controls/button_base/button_base.hpp",
+  "source": "src/controls/button_base/button_base.cpp",
+  "capabilities_header": "include/gui_forms/controls/button_base/button_base_capabilities/button_base_capabilities.hpp",
+  "base": "Control",
+  "shared": [
+    "TextCapability",
+    "FontCapability"
+  ],
+  "includes": [
+    "gui_forms/binding/property_type/property_type.hpp",
+    "gui_forms/controls/button_base/button_content_types/button_content_types.hpp",
+    "gui_forms/types.hpp"
+  ],
+  "test": {
+    "type": "Button",
+    "include": "gui_forms/controls/button_base/button/button.hpp"
+  },
+  "properties": [
+    {
+      "name": "text",
+      "capability": "Text",
+      "value": "std::string",
+      "initial": null,
+      "comment": "Text displayed by the button (Text).",
+      "getter": "text",
+      "setter": "set_text",
+      "clear": null,
+      "field": "text_",
+      "event": "text_changed_",
+      "on_changed": true,
+      "coerce": true,
+      "localizable": "text",
+      "table": {
+        "kind": "text",
+        "category": "Appearance",
+        "description": "Text displayed by the button.",
+        "default": "BindingValue{std::string{}}",
+        "effects": "invalidation::text_content",
+        "subtree": false,
+        "bindable": true,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "written_effects": "Dirty::measure | Dirty::paint | Dirty::semantics"
+    },
+    {
+      "name": "text_alignment",
+      "capability": "TextAlignment",
+      "value": "ContentAlignment",
+      "initial": "ContentAlignment::middle_center",
+      "comment": "Where the text sits in the content area (TextAlign).",
+      "getter": "text_alignment",
+      "setter": "set_text_alignment",
+      "clear": null,
+      "field": "text_alignment_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": {
+        "kind": "enumeration",
+        "category": "Appearance",
+        "description": "Where the text sits in the content area.",
+        "default": null,
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": "content_alignment_enum()",
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "prepare": [
+        "if (!valid_content_alignment(incoming)) throw std::invalid_argument(\"invalid Button text alignment\");"
+      ],
+      "sample": "ContentAlignment::top_left"
+    },
+    {
+      "name": "font",
+      "capability": "Font",
+      "value": "FontSpec",
+      "initial": "FontSpec{FontRole::control, 12.0, 400, false, 0.24}",
+      "comment": "Font used for button measurement and painting (Font).",
+      "getter": "font",
+      "setter": "set_font",
+      "clear": null,
+      "field": "font_",
+      "event": null,
+      "on_changed": true,
+      "coerce": true,
+      "localizable": null,
+      "table": {
+        "kind": "font",
+        "category": "Appearance",
+        "description": "Font used for button measurement and painting.",
+        "default": "BindingValue{FontSpec{FontRole::control, 12.0, 400, false, 0.24}}",
+        "effects": "Dirty::measure | Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "prepare": [
+        "if (!valid_font_spec(incoming)) throw std::invalid_argument(\"Button font specification is invalid\");",
+        "set_font_from_code(true);"
+      ],
+      "sample": "FontSpec{FontRole::control, 14.0, 600, false, 0.24}"
+    },
+    {
+      "name": "content_padding",
+      "capability": "ContentPadding",
+      "value": "Insets",
+      "initial": "Insets{6.0, 4.0, 6.0, 4.0}",
+      "comment": "Insets between the button frame and its image and text content (Padding of the content).",
+      "getter": "content_padding",
+      "setter": "set_content_padding",
+      "clear": null,
+      "field": "content_padding_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": {
+        "kind": "insets",
+        "category": "Layout",
+        "description": "Insets between the button frame and its image/text content.",
+        "default": "BindingValue{Insets{6.0, 4.0, 6.0, 4.0}}",
+        "effects": "Dirty::measure | Dirty::paint",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "prepare": [
+        "const double sides[] = {incoming.left, incoming.top, incoming.right, incoming.bottom};",
+        "for (const double side : sides) {",
+        "    if (!std::isfinite(side) || side < 0.0 || side > 128.0) {",
+        "        throw std::invalid_argument(\"Button content padding must be finite and between zero and 128\");",
+        "    }",
+        "}"
+      ]
+    },
+    {
+      "name": "text_line_spacing",
+      "capability": "TextLineSpacing",
+      "value": "double",
+      "initial": "1.25",
+      "comment": "Line height as a multiple of the font's (between 0.75 and 3).",
+      "getter": "text_line_spacing",
+      "setter": "set_text_line_spacing",
+      "clear": null,
+      "field": "text_line_spacing_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "effects": "Dirty::measure | Dirty::paint | Dirty::semantics",
+      "prepare": [
+        "if (!std::isfinite(incoming) || incoming < 0.75 || incoming > 3.0) {",
+        "    throw std::invalid_argument(\"Button text line spacing must be finite and between 0.75 and 3.0\");",
+        "}"
+      ],
+      "sample": "1.5"
+    },
+    {
+      "name": "image_alignment",
+      "capability": "ImageAlignment",
+      "value": "ContentAlignment",
+      "initial": "ContentAlignment::middle_center",
+      "comment": "Where the image sits in the content area (ImageAlign).",
+      "getter": "image_alignment",
+      "setter": "set_image_alignment",
+      "clear": null,
+      "field": "image_alignment_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "effects": "Dirty::paint | Dirty::semantics",
+      "prepare": [
+        "if (!valid_content_alignment(incoming)) throw std::invalid_argument(\"invalid Button image alignment\");"
+      ],
+      "sample": "ContentAlignment::bottom_right"
+    },
+    {
+      "name": "text_image_relation",
+      "capability": "TextImageRelation",
+      "value": "TextImageRelation",
+      "initial": "TextImageRelation::overlay",
+      "comment": "How the text and the image are placed against each other (TextImageRelation).",
+      "getter": "text_image_relation",
+      "setter": "set_text_image_relation",
+      "clear": null,
+      "field": "text_image_relation_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "effects": "Dirty::measure | Dirty::paint | Dirty::semantics",
+      "prepare": [
+        "if (!valid_text_image_relation(incoming)) throw std::invalid_argument(\"invalid Button text/image relation\");"
+      ],
+      "sample": "TextImageRelation::image_before_text"
+    },
+    {
+      "name": "image_gap",
+      "capability": "ImageGap",
+      "value": "double",
+      "initial": "4.0",
+      "comment": "The space between the image and the text (between zero and 64).",
+      "getter": "image_gap",
+      "setter": "set_image_gap",
+      "clear": null,
+      "field": "image_gap_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "effects": "Dirty::measure | Dirty::paint | Dirty::semantics",
+      "prepare": [
+        "if (!std::isfinite(incoming) || incoming < 0.0 || incoming > 64.0) {",
+        "    throw std::invalid_argument(\"Button image gap must be finite and between zero and 64\");",
+        "}"
+      ],
+      "sample": "8.0"
+    },
+    {
+      "name": "use_mnemonic",
+      "capability": "ButtonUseMnemonic",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether an ampersand in the text marks the access key (UseMnemonic).",
+      "getter": "use_mnemonic",
+      "setter": "set_use_mnemonic",
+      "clear": null,
+      "field": "use_mnemonic_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "effects": "Dirty::measure | Dirty::paint | Dirty::semantics"
+    },
+    {
+      "name": "expanded_state",
+      "capability": "ExpandedState",
+      "value": "std::optional<bool>",
+      "initial": null,
+      "comment": "Optional disclosure state for a button that owns a popup or a retained disclosure region: empty is an ordinary push button; false and true expose collapsed and expanded semantics without conflating the pressed visual.",
+      "getter": "expanded_state",
+      "setter": "set_expanded_state",
+      "clear": null,
+      "field": "expanded_state_",
+      "event": "expanded_changed_",
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "effects": "Dirty::paint | Dirty::semantics"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "image, image_index, image_key",
+      "reason": "one image source: setting one clears the others and an equal write still clears them, so they are not independent cells (a compound capability later)"
+    },
+    {
+      "name": "image_list",
+      "reason": "its write subscribes to the list's changes and checks image_index; it moves with the image source"
+    },
+    {
+      "name": "style, visual_recipes, connection_topology",
+      "reason": "optional overrides read through effective getters (style() returns the theme's when unset)"
+    }
+  ]
+}

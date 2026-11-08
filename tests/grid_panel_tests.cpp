@@ -1,7 +1,8 @@
 // Stage L, phase L4: GridPanel over child controls. Track lists,
 // areas and item records and their validation and reconciliation, the
 // solver's results published as child slots, nested intrinsic sizes, the
-// cell limit's refusal, and the counts of PLAN section 5 at 10,000
+// cell limit's refusal, spans and the two views of a placement (study 10.9),
+// and the counts of PLAN section 5 at 10,000
 // children: changing one item's text costs one item measure callback,
 // resizing costs none, and arranging allocates nothing.
 
@@ -15,6 +16,7 @@
 #include <iostream>
 #include <memory>
 #include <new>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -457,6 +459,149 @@ void test_ten_thousand_children_counts() {
                  "0 allocations per arrange\n";
 }
 
+bool refuses_area(GridPanel& panel, const Control& child, const std::string& name) {
+    try {
+        panel.area[child] = name;
+    } catch (const std::invalid_argument&) {
+        return true;
+    }
+    return false;
+}
+
+bool refuses_cell(GridPanel& panel, const Control& child, GridCell cell) {
+    try {
+        panel.cell[child] = cell;
+    } catch (const std::invalid_argument&) {
+        return true;
+    }
+    return false;
+}
+
+bool refuses_cell_value(GridPanel& panel, const Control& child, Point value) {
+    try {
+        panel.set_child_property_value(child, "cell", BindingValue{value});
+    } catch (const std::invalid_argument&) {
+        return true;
+    }
+    return false;
+}
+
+// Study 10.9: spans owned by the panel, refused edits, and the two views of
+// one placement (area and cell), name-keyed too.
+void test_spans_and_placement() {
+    std::shared_ptr<GridPanel> panel = make_control<GridPanel>(StableId("grid.spans"));
+    (*panel).set_template_columns(tracks({fixed(50.0), fixed(50.0), fixed(50.0)}));
+    (*panel).set_template_rows(tracks({fixed(20.0), fixed(20.0), fixed(20.0)}));
+    const GridSpan footer{"footer", GridCell{2U, 0U}, 1U, 3U};
+    const GridSpan side_region{"", GridCell{0U, 2U}, 2U, 1U};
+    require((*panel).define_span(footer) == GridSpanOutcome::applied, "a named span is defined");
+    require((*panel).define_span(side_region) == GridSpanOutcome::applied, "an anonymous span is defined");
+    require((*panel).define_span(GridSpan{"", GridCell{1U, 2U}, 1U, 1U}) == GridSpanOutcome::overlaps,
+            "a span over another's cell is refused");
+    require((*panel).define_span(GridSpan{"footer", GridCell{0U, 0U}, 1U, 1U}) == GridSpanOutcome::name_repeated,
+            "a repeated name is refused");
+    require((*panel).define_span(GridSpan{"", GridCell{0U, 0U}, 0U, 1U}) == GridSpanOutcome::extent_invalid,
+            "a span of no rows is refused");
+    require((*panel).define_span(GridSpan{"", GridCell{9999U, 0U}, 2U, 1U}) == GridSpanOutcome::extent_invalid,
+            "a span past the track limit is refused");
+    require((*panel).spans().size() == 2U, "refusals change nothing");
+    const GridTemplateAreas& areas = (*panel).template_areas();
+    require(areas.rows == 3U && areas.columns == 3U && areas.areas.size() == 1U && areas.areas[0].name == "footer",
+            "the template areas are the named spans");
+
+    std::shared_ptr<Panel> title = box("grid.spans.title", 10.0, 10.0);
+    std::shared_ptr<Panel> side = box("grid.spans.side", 10.0, 10.0);
+    std::shared_ptr<Panel> ok = box("grid.spans.ok", 10.0, 10.0);
+    std::shared_ptr<Panel> note = box("grid.spans.note", 10.0, 10.0);
+    std::shared_ptr<Panel> stranger = box("grid.spans.stranger", 10.0, 10.0);
+    (*panel).add_child(title);
+    (*panel).add_child(side);
+    (*panel).add_child(ok);
+    (*panel).add_child(note);
+    (*panel).cell[*title] = GridCell{0U, 0U};
+    (*panel).cell[*side] = GridCell{0U, 2U};
+    (*panel).area[*ok] = "footer";
+    require(refuses_area(*panel, *note, "nowhere"), "an area names a span");
+    require(refuses_cell(*panel, *note, GridCell{1U, 2U}), "a cell inside a span is refused");
+    require(refuses_cell(*panel, *note, GridCell{10000U, 0U}), "a cell past the track limit is refused");
+    require(refuses_cell(*panel, *stranger, GridCell{1U, 1U}), "a placement needs a direct child");
+    require((*panel).placement(*note).form == GridPlacement::Form::automatic, "refusals place nothing");
+    require((*panel).area[*ok].read() == "footer", "the area reads back");
+    require((*panel).cell[*ok].read() == GridCell{2U, 0U}, "an area's cell is its span's anchor");
+    require((*panel).area[*side].read().empty(), "a cell placement has no area");
+
+    const std::unique_ptr<Window> held = std::make_unique<Window>(panel, Size{150.0, 60.0});
+    Window& window = *held;
+    window.perform_layout();
+    require_bounds(*title, 0.0, 0.0, 50.0, 20.0, "a single cell");
+    require_bounds(*side, 100.0, 0.0, 50.0, 40.0, "the anchor of an anonymous span takes its region");
+    require_bounds(*ok, 0.0, 40.0, 150.0, 20.0, "the named span's region");
+
+    require((*panel).remove_span("footer") == GridSpanOutcome::in_use, "a span in use is not removed");
+    require((*panel).remove_span("absent") == GridSpanOutcome::not_found, "an absent span is not found");
+    (*panel).cell[*note] = GridCell{1U, 1U};
+    require((*panel).define_span(GridSpan{"", GridCell{1U, 0U}, 1U, 2U}) == GridSpanOutcome::covers_placed_child,
+            "a span over a placed child's cell is refused");
+    require((*panel).define_span(GridSpan{"", GridCell{0U, 0U}, 1U, 2U}) == GridSpanOutcome::applied,
+            "a span anchored at a placed child's cell is defined");
+    window.perform_layout();
+    require_bounds(*title, 0.0, 0.0, 100.0, 20.0, "the child at the new span's anchor takes its region");
+
+    (*panel).cell[*ok] = GridCell{1U, 0U};
+    require((*panel).placement(*ok).form == GridPlacement::Form::cell && (*panel).area[*ok].read().empty(),
+            "writing the cell replaces the area");
+    require((*panel).remove_span("footer") == GridSpanOutcome::applied, "a span no longer in use is removed");
+    require((*panel).template_areas().areas.empty(), "the template areas follow the spans");
+    require((*panel).remove_span(GridCell{0U, 0U}) == GridSpanOutcome::applied, "a span is removed by its anchor");
+
+    GridItemLayout lines{};
+    lines.placement.column_start = line(3);
+    (*panel).set_item_layout(*side, lines);
+    require((*panel).placement(*side).form == GridPlacement::Form::automatic,
+            "item layout lines replace a cell placement");
+    (*panel).cell[*side] = GridCell{0U, 2U};
+    require((*panel).item_layout(*side).placement == GridItemStyle{}, "a cell placement replaces the lines");
+
+    (*panel).set_child_property_value(*side, "cell", BindingValue{Point{1.0, 1.0}});
+    require((*panel).cell[*side].read() == GridCell{1U, 1U}, "the name-keyed write places by cell");
+    require(refuses_cell_value(*panel, *side, Point{0.5, 1.0}), "a fractional cell is refused");
+    require(refuses_cell_value(*panel, *side, Point{-1.0, 1.0}), "a negative cell is refused");
+    const std::optional<BindingValue> read = (*panel).child_property_value(*side, "cell");
+    require(read && *read == BindingValue{Point{1.0, 1.0}}, "the name-keyed read answers row then column");
+    require((*panel).should_serialize_child_property(*side, "cell"), "a cell placement is serialized");
+    require(!(*panel).should_serialize_child_property(*side, "area"), "an absent area is not");
+    require((*panel).reset_child_property(*side, "area"), "the area resets");
+    require((*panel).placement(*side).form == GridPlacement::Form::cell, "resetting the area keeps a cell");
+    require((*panel).reset_child_property(*side, "cell"), "the cell resets");
+    require((*panel).placement(*side).form == GridPlacement::Form::automatic, "resetting the cell clears it");
+
+    static_cast<void>((*panel).remove_child((*note).runtime_id()));
+    (*panel).add_child(note);
+    require((*panel).placement(*note).form == GridPlacement::Form::automatic,
+            "a child added again starts automatic");
+    require((*panel).define_span(GridSpan{"", GridCell{1U, 0U}, 1U, 2U}) == GridSpanOutcome::applied,
+            "a departed child's cell no longer refuses a span");
+
+    // grid-template-areas is the same list: setting it replaces every span.
+    GridTemplateAreas spelled{};
+    spelled.rows = 3U;
+    spelled.columns = 3U;
+    spelled.areas = {GridNamedArea{"head", 0U, 1U, 0U, 3U}};
+    (*panel).set_template_areas(spelled);
+    require((*panel).spans().size() == 1U && (*panel).spans()[0] == GridSpan{"head", GridCell{0U, 0U}, 1U, 3U},
+            "the areas become the spans");
+    require((*panel).template_areas() == spelled, "and read back unchanged");
+    (*panel).area[*ok] = "head";
+    GridTemplateAreas without{};
+    bool refused = false;
+    try {
+        (*panel).set_template_areas(without);
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*panel).spans().size() == 1U, "areas that drop a span in use are refused");
+}
+
 } // namespace
 
 int main() {
@@ -464,6 +609,7 @@ int main() {
         test_tracks_gaps_and_stretch();
         test_records_validate_and_reconcile();
         test_named_areas();
+        test_spans_and_placement();
         test_nested_intrinsic_columns();
         test_cell_limit_refuses();
         test_documented_examples();

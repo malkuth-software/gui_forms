@@ -505,7 +505,7 @@ ApplicationWindowOpenResult HeadlessApplication::open(ApplicationWindow&& source
         }
         owner = *found;
     }
-    const std::optional<ApplicationPopup> popup = source.popup;
+    const std::optional<HostPopupPlacement> popup = source.popup;
     const HostWindowKind kind =
         host_window_kind(owner.valid(), source.tool_window, source.floating, popup.has_value());
     const bool floating = host_window_kind_traits(kind).floating;

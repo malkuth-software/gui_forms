@@ -2428,6 +2428,12 @@ Types
 
    .. cpp:member:: gf_status (*effect_at)(uint64_t effect, gf_schema_effect* record)
 
+   .. cpp:member:: gf_status (*child_property_count)(uint64_t type, uint64_t* count)
+
+   .. cpp:member:: gf_status (*child_property_at)(uint64_t type, uint64_t property, gf_schema_property* record)
+
+   .. cpp:member:: gf_status (*child_choice_at)(uint64_t type, uint64_t property, uint64_t choice, gf_schema_choice* record)
+
    .. cpp:member:: uint32_t struct_size
 
    .. cpp:member:: uint32_t abi_minor
@@ -3205,6 +3211,12 @@ Types
    .. cpp:function:: gf_status effect_count(uint64_t* count) const noexcept
 
    .. cpp:function:: gf_status effect_at(uint64_t effect, gf_schema_effect* record) const noexcept
+
+   .. cpp:function:: gf_status child_property_count(uint64_t type, uint64_t* count) const noexcept
+
+   .. cpp:function:: gf_status child_property_at(uint64_t type, uint64_t property, gf_schema_property* record) const noexcept
+
+   .. cpp:function:: gf_status child_choice_at(uint64_t type, uint64_t property, uint64_t choice, gf_schema_choice* record) const noexcept
 
 .. cpp:namespace:: gui_forms::abi
 

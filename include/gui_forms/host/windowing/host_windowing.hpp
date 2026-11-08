@@ -108,6 +108,18 @@ enum class HostPopupFocus : std::uint8_t {
 
 [[nodiscard]] const char* host_popup_focus_name(HostPopupFocus focus) noexcept;
 
+// Where a native popup window opens and how it takes focus (owner,
+// 2026-11-04): carried by its window entry (ApplicationWindow::popup and
+// each adapter's native entry). Programs open popups through
+// Window::open_native_popup, which fills this in.
+struct HostPopupPlacement final {
+    HostPopupFocus focus{HostPopupFocus::passive};
+    // The client area's origin in desktop logical units, each coordinate
+    // within HostWindowing::maximum_desktop_coordinate; the client size is
+    // the entry's initial size.
+    DesktopLogicalPoint origin{};
+};
+
 // The kind of a window entry, the one rule every adapter uses: a popup
 // entry is popup; else a floating entry is floating_tool or
 // floating_document; else a tool window is tool; else a window with an

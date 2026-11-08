@@ -12,12 +12,13 @@ namespace gui_forms {
 
 class Control;
 class Painter;
+class SurfaceRoot;
 class Window;
 struct PartPaint;
 
-// What `window` is to a rule's media condition (EC3): its presentation
+// What `window` (a window or a sub-surface) is to a rule's media condition (EC3): its presentation
 // settings' colour scheme, high contrast and reduced motion, and its scale.
-[[nodiscard]] MediaFacts window_media_facts(const Window& window) noexcept;
+[[nodiscard]] MediaFacts window_media_facts(const SurfaceRoot& window) noexcept;
 
 // The text role a part of `control` whose cascade gave it `font` has (T3
 // P8c): the font's role, or, where it is `inherit` (owner decision D7),
@@ -142,15 +143,15 @@ private:
     // effect on the window's clock, or stopping it and returning the pose
     // when the effect is refused for its area (`area_ok` false) or ambient
     // motion is stopped. A part without a record is at its pose.
-    [[nodiscard]] static double ambient_seconds(Window& window, EnginePartRecord* record,
+    [[nodiscard]] static double ambient_seconds(SurfaceRoot& window, EnginePartRecord* record,
                                                 const std::optional<PartRecordHandle>& handle,
                                                 const AmbientEffect& ambient, bool area_ok);
     // Stops the ambient effect of a part whose paint has none.
-    static void stop_ambient(Window& window, EnginePartRecord& record, PartRecordHandle handle) noexcept;
+    static void stop_ambient(SurfaceRoot& window, EnginePartRecord& record, PartRecordHandle handle) noexcept;
     // E7r: queues for the window's idle frames every keyframe level of
     // each animated parameter in `movable` (bits by parameter position),
     // with the part's other parameters as `request` has them.
-    static void queue_keyframes(Window& window, const PartRasterRequest& request, std::uint32_t movable);
+    static void queue_keyframes(SurfaceRoot& window, const PartRasterRequest& request, std::uint32_t movable);
 
     // Borrowed: the built-in registry has static storage.
     const PrimitiveRegistry* registry_;

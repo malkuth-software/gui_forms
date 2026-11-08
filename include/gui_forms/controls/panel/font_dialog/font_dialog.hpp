@@ -2,6 +2,7 @@
 
 #include "gui_forms/controls/panel/panel.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/window/native_popup/native_popup.hpp"
 
 #include <cstdint>
 #include <memory>
@@ -82,6 +83,16 @@ public:
     // Opens the dialog over `owner`'s window. Returns false when the owner is
     // not attached or the dialog already has a parent; true when it is open.
     bool show(const Control::Ptr& owner);
+    // How show() presents the dialog (DialogSurface; an overlay by default).
+    // With native_popup it opens in a native popup window owned by the
+    // owner's window, centred over its client area, when the run can open
+    // one; the transparent layer that holds the owner's input stays in the
+    // owner's window. Takes effect at the next show().
+    [[nodiscard]] DialogSurface surface() const noexcept { return surface_; }
+    void set_surface(DialogSurface surface) noexcept { surface_ = surface; }
+    // Where the open dialog went: native while it is in a popup window, else
+    // overlay (or none when it is not open).
+    [[nodiscard]] NativePopupSurface presented_surface() const noexcept;
     // Closes the dialog with `result` (OK takes the selection as font()) and
     // raises closed. Nothing happens when it is not open.
     void close(DialogResult result);
@@ -168,6 +179,17 @@ private:
     std::shared_ptr<Panel> overlay_layer_;
     OverlayToken overlay_token_;
     std::uint64_t overlay_scope_{};
+    // The native popup window the dialog is in (DialogSurface::native_popup):
+    // its root holds the dialog, so closing detaches the dialog at once even
+    // though the window itself is released later.
+    DialogSurface surface_{DialogSurface::overlay};
+    Control::Ptr native_root_{};
+    NativePopupToken native_token_{};
+    SubscriptionToken native_closed_;
+    // Moves the open dialog from the layer into a native popup window at
+    // `bounds`; false (the dialog back in the layer) when the run cannot
+    // open one.
+    bool open_native(Window& host, const Control::Ptr& owner, Rect bounds);
     SubscriptionToken face_token_;
     SubscriptionToken style_token_;
     SubscriptionToken size_token_;

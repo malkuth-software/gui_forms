@@ -313,7 +313,7 @@ void FormGenerator::check_values() {
         // A form root's properties are the window's, written apart.
         if (property.object.value == 0U && form_root_) continue;
         const FormObject& object = model_.objects[property.object.value];
-        const PropertyDescriptor& descriptor = type_of(property.object.value).properties[property.schema_property];
+        const PropertyDescriptor& descriptor = form_property_descriptor(schema_, model_, property);
         std::optional<std::string> literal = value_literal(property.value);
         if (!literal) {
             report(property.node, object.stable_id, descriptor.name, "the value's kind has no C++ spelling");
@@ -375,8 +375,10 @@ void FormGenerator::write_includes(std::string& out) const {
     headers.insert("gui_forms/delegate.hpp");
     headers.insert("gui_forms/event.hpp");
     if (form_root_) headers.insert("gui_forms/window.hpp");
+    if (!model_.spans.empty()) headers.insert("gui_forms/layout/grid_span/grid_span.hpp");
     for (const std::string& header : headers) out += "#include \"" + header + "\"\n";
     out += "\n#include <cstdint>\n#include <limits>\n#include <memory>\n#include <optional>\n";
+    if (!model_.spans.empty()) out += "#include <stdexcept>\n";
     out += "#include <string>\n#include <string_view>\n#include <utility>\n#include <vector>\n\n";
 }
 
@@ -444,12 +446,30 @@ void FormGenerator::write_initialize(std::string& out) const {
         if (!type.holds_children || (parent == 0U && form_root_)) continue;
         out += "        (*made." + member(parent) + ").add_child(made." + field + ");\n";
     }
+    // Spans before any placement (study 10.9).
+    for (const FormSpan& span : model_.spans) {
+        const GridSpan& value = span.span;
+        out += "        if ((*made." + member(span.owner.value) + ").define_span(gui_forms::GridSpan{" +
+               string_literal(value.name) + ", gui_forms::GridCell{" + std::to_string(value.anchor.row) + "U, " +
+               std::to_string(value.anchor.column) + "U}, " + std::to_string(value.rows) + "U, " +
+               std::to_string(value.columns) + "U}) != gui_forms::GridSpanOutcome::applied) {\n";
+        out += "            throw std::invalid_argument(\"the form's span is refused\");\n";
+        out += "        }\n";
+    }
     for (std::size_t index = 0U; index < model_.properties.size(); ++index) {
         const FormProperty& property = model_.properties[index];
         if (property.object.value == 0U && form_root_) continue;
-        const std::string& property_name =
-            type_of(property.object.value).properties[property.schema_property].name;
-        out += "        (*made." + member(property.object.value) + ").set_property_value(\"" + property_name +
+        const std::string& property_name = form_property_descriptor(schema_, model_, property).name;
+        const std::string& field = member(property.object.value);
+        if (property.provider == FormPropertyProvider::parent_type) {
+            // Name-keyed until the child-property capabilities exist (study
+            // section 10.8); they replace this call in the M-G step.
+            const std::size_t parent = (*model_.objects[property.object.value].parent).value;
+            out += "        (*made." + member(parent) + ").set_child_property_value(*made." + field + ", \"" +
+                   property_name + "\", gui_forms::BindingValue{" + values_[index] + "});\n";
+            continue;
+        }
+        out += "        (*made." + field + ").set_property_value(\"" + property_name +
                "\", gui_forms::BindingValue{" + values_[index] + "});\n";
     }
     for (const FormHandler& handler : model_.handlers) {

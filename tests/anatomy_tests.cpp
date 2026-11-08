@@ -666,7 +666,7 @@ void test_panel_and_scrollable_parts() {
     require(!(*panel).parts().scrollable.vertical_thumb.present,
             "without auto-scroll no scroll axis is published");
 
-    (*panel).set_auto_scroll(true);
+    (*panel).auto_scroll = true;
     window.perform_layout();
     const PartGeometry track = (*panel).parts().scrollable.vertical_track;
     const PartGeometry thumb = (*panel).parts().scrollable.vertical_thumb;

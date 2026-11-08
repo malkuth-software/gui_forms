@@ -287,7 +287,7 @@ void sort_within_siblings() {
     window.perform_layout();
     std::vector<TreeListSortChange> sorts;
     SubscriptionToken sorted = (*view).sort_changed().subscribe(RecordSort{&sorts});
-    (*view).set_selected_id("zeta");
+    (*view).selected_id = "zeta";
     const std::optional<std::size_t> zeta_before = (*view).row_of("zeta");
 
     (*view).set_sort(std::size_t{0U}, TreeListSortOrder::ascending);
@@ -298,7 +298,7 @@ void sort_within_siblings() {
                 (*view).realized_columns()[0].states.sorted_ascending &&
                 (*view).realized_columns()[0].parts.sort_glyph.present,
             "the sort raises sort_changed and shows a glyph and a custom state on its column");
-    require((*view).selected_id() == std::optional<std::string_view>("zeta") && (*view).row_of("zeta") != zeta_before,
+    require((*view).selected_id.read() == std::optional<std::string_view>("zeta") && (*view).row_of("zeta") != zeta_before,
             "the selection stays on its node while its row moves");
     require((*view).nodes()[0].stable_id == "src", "sorting never reorders the model");
 
@@ -413,21 +413,21 @@ void keyboard_traces() {
             "focus puts the current node on the first row");
 
     require(key(window, PhysicalKey::down) && key(window, PhysicalKey::down) &&
-                (*view).selected_id() == std::optional<std::string_view>("lib"),
+                (*view).selected_id.read() == std::optional<std::string_view>("lib"),
             "Down moves the selection one row at a time");
     require(key(window, PhysicalKey::left) && !(*view).is_expanded("lib") && expansions == std::vector<std::string>({"-lib"}),
             "Left collapses an expanded node");
-    require(key(window, PhysicalKey::left) && (*view).selected_id() == std::optional<std::string_view>("src"),
+    require(key(window, PhysicalKey::left) && (*view).selected_id.read() == std::optional<std::string_view>("src"),
             "Left on a collapsed node goes to its parent");
     require(key(window, PhysicalKey::down) && key(window, PhysicalKey::down) && key(window, PhysicalKey::right) &&
-                (*view).is_expanded("lib") && (*view).selected_id() == std::optional<std::string_view>("lib"),
+                (*view).is_expanded("lib") && (*view).selected_id.read() == std::optional<std::string_view>("lib"),
             "Right expands a collapsed node and stays on it");
-    require(key(window, PhysicalKey::right) && (*view).selected_id() == std::optional<std::string_view>("zeta"),
+    require(key(window, PhysicalKey::right) && (*view).selected_id.read() == std::optional<std::string_view>("zeta"),
             "Right on an expanded node goes to its first child");
-    require(key(window, PhysicalKey::end) && (*view).selected_id() == std::optional<std::string_view>("docs") &&
-                key(window, PhysicalKey::home) && (*view).selected_id() == std::optional<std::string_view>("src"),
+    require(key(window, PhysicalKey::end) && (*view).selected_id.read() == std::optional<std::string_view>("docs") &&
+                key(window, PhysicalKey::home) && (*view).selected_id.read() == std::optional<std::string_view>("src"),
             "End and Home go to the last and first rows");
-    require(key(window, PhysicalKey::page_down) && (*view).selected_id() == std::optional<std::string_view>("docs"),
+    require(key(window, PhysicalKey::page_down) && (*view).selected_id.read() == std::optional<std::string_view>("docs"),
             "Page Down moves a page, stopping at the last row");
     require(key(window, PhysicalKey::keypad_plus) && (*view).is_expanded("docs") &&
                 key(window, PhysicalKey::keypad_minus) && !(*view).is_expanded("docs"),
@@ -436,34 +436,34 @@ void keyboard_traces() {
             "the asterisk expands the subtree");
     require(key(window, PhysicalKey::enter) && activations == std::vector<std::string>({"docs"}),
             "Enter activates the current node");
-    require(type(window, "z") && (*view).selected_id() == std::optional<std::string_view>("zeta"),
+    require(type(window, "z") && (*view).selected_id.read() == std::optional<std::string_view>("zeta"),
             "typing selects the next row whose text starts with it");
 
     // Disabled rows are skipped by the arrows and refused by the pointer.
     std::vector<TreeListNode> nodes = sample_nodes();
     nodes[1].enabled = false;
     (*view).set_nodes(std::move(nodes));
-    (*view).set_selected_id("src");
-    require(key(window, PhysicalKey::down) && (*view).selected_id() == std::optional<std::string_view>("lib"),
+    (*view).selected_id = "src";
+    require(key(window, PhysicalKey::down) && (*view).selected_id.read() == std::optional<std::string_view>("lib"),
             "Down skips a disabled row");
     const std::vector<TreeListView::Row> disabled_rows = (*view).realized_rows();
     const TreeListView::Row& beta = row_named(disabled_rows, "beta");
     require(beta.states.disabled, "a disabled node's row publishes disabled");
     click(window, to_window(*view, centre(beta.parts.text.bounds)));
-    require((*view).selected_id() == std::optional<std::string_view>("lib"), "a click on a disabled row selects nothing");
+    require((*view).selected_id.read() == std::optional<std::string_view>("lib"), "a click on a disabled row selects nothing");
 
     // The pointer: a click on the expander toggles without selecting; a
     // double click activates.
     const std::vector<TreeListView::Row> expander_rows = (*view).realized_rows();
     const TreeListView::Row& lib = row_named(expander_rows, "lib");
     click(window, to_window(*view, centre(lib.parts.expander.bounds)));
-    require(!(*view).is_expanded("lib") && (*view).selected_id() == std::optional<std::string_view>("lib"),
+    require(!(*view).is_expanded("lib") && (*view).selected_id.read() == std::optional<std::string_view>("lib"),
             "a click on the expander collapses the node");
     const std::vector<TreeListView::Row> collapsed_rows = (*view).realized_rows();
     const TreeListView::Row& delta = row_named(collapsed_rows, "delta");
     click(window, to_window(*view, centre(delta.parts.text.bounds)));
     click(window, to_window(*view, centre(delta.parts.text.bounds)), 2U);
-    require((*view).selected_id() == std::optional<std::string_view>("delta") && activations.back() == "delta",
+    require((*view).selected_id.read() == std::optional<std::string_view>("delta") && activations.back() == "delta",
             "a click selects a row and a double click activates it");
     require(selections.front() == "beta", "every selection change is reported");
 }
@@ -477,39 +477,39 @@ void selection_kept_by_id() {
     std::vector<std::string> expansions;
     SubscriptionToken expanded = (*view).expansion_changed().subscribe(RecordExpansion{&expansions});
 
-    (*view).set_selected_id("manual");
+    (*view).selected_id = "manual";
     require((*view).is_expanded("docs") && (*view).row_of("manual").has_value() &&
                 expansions == std::vector<std::string>({"+docs"}) && selections == std::vector<std::string>({"manual"}),
             "selecting a hidden node expands its ancestors first, then reports the selection");
-    (*view).set_selected_id("zeta");
+    (*view).selected_id = "zeta";
     (*view).set_expanded("src", false);
-    require((*view).selected_id() == std::optional<std::string_view>("src") && expansions.back() == "-src" &&
+    require((*view).selected_id.read() == std::optional<std::string_view>("src") && expansions.back() == "-src" &&
                 selections.back() == "src",
             "a collapse that hides the selected node moves the selection to the collapsed node");
     (*view).set_expanded("src", true);
-    require((*view).selected_id() == std::optional<std::string_view>("src"), "expanding keeps the selection");
+    require((*view).selected_id.read() == std::optional<std::string_view>("src"), "expanding keeps the selection");
 
     // Replacement: the same IDs in a new order keep the selection.
-    (*view).set_selected_id("delta");
+    (*view).selected_id = "delta";
     const std::size_t changes = selections.size();
     std::vector<TreeListNode> reordered = sample_nodes();
     std::swap(reordered[1], reordered[5]);
     (*view).set_nodes(std::move(reordered));
-    require((*view).selected_id() == std::optional<std::string_view>("delta") && selections.size() == changes &&
+    require((*view).selected_id.read() == std::optional<std::string_view>("delta") && selections.size() == changes &&
                 (*view).row_of("delta") == 1U,
             "set_nodes keeps the selection on its ID while its row moves, without a change report");
     (*view).set_cell_text("delta", 0U, "Delta renamed");
-    require((*view).selected_id() == std::optional<std::string_view>("delta") &&
+    require((*view).selected_id.read() == std::optional<std::string_view>("delta") &&
                 (*view).nodes()[1].text == "Delta renamed",
             "an edit keeps the selection");
     std::vector<TreeListNode> without = sample_nodes();
     without.erase(without.begin() + 5);
     (*view).set_nodes(std::move(without));
-    require(!(*view).selected_id().has_value() && selections.back() == "(none)",
+    require(!(*view).selected_id.read().has_value() && selections.back() == "(none)",
             "removing the selected node clears the selection and reports it");
-    (*view).set_selected_id("eta");
-    (*view).set_selected_id(std::nullopt);
-    require(!(*view).selected_id().has_value() && selections.back() == "(none)", "the program can clear the selection");
+    (*view).selected_id = "eta";
+    (*view).selected_id = std::nullopt;
+    require(!(*view).selected_id.read().has_value() && selections.back() == "(none)", "the program can clear the selection");
 }
 
 void semantics() {
@@ -543,7 +543,7 @@ void semantics() {
     require((*view).on_semantic_child_action("docs", SemanticAction::expand, {}) && (*view).is_expanded("docs"),
             "the expand action expands");
     require((*view).on_semantic_child_action("eta", SemanticAction::select, {}) &&
-                (*view).selected_id() == std::optional<std::string_view>("eta") &&
+                (*view).selected_id.read() == std::optional<std::string_view>("eta") &&
                 (*view).semantic_descriptor().value == "eta.h",
             "the select action selects a node, and the list's value names it");
     std::vector<std::string> activations;
@@ -597,11 +597,11 @@ void refusals() {
     (*view).set_nodes(sample_nodes());
     threw = false;
     try {
-        (*view).set_selected_id("missing");
+        (*view).selected_id = "missing";
     } catch (const std::out_of_range&) {
         threw = true;
     }
-    require(threw && !(*view).selected_id().has_value(), "selecting an unknown node is refused");
+    require(threw && !(*view).selected_id.read().has_value(), "selecting an unknown node is refused");
     threw = false;
     try {
         (*view).set_sort(std::size_t{5U}, TreeListSortOrder::ascending);
@@ -627,7 +627,7 @@ void refusals() {
     require(threw, "editing a missing column is refused");
     threw = false;
     try {
-        (*view).set_indentation(2.0);
+        (*view).indentation = 2.0;
     } catch (const std::invalid_argument&) {
         threw = true;
     }

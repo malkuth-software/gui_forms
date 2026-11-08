@@ -97,9 +97,9 @@ struct ForeignEditorTextUpdater final {
             display.resize(93U);
             display += "...";
         }
-        (*editor).set_text(display.empty()
+        (*editor).text = display.empty()
             ? std::string("Edit \xE2\x80\xA6")
-            : display + "  \xE2\x80\xA6");
+            : display + "  \xE2\x80\xA6";
     }
 };
 

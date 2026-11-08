@@ -74,7 +74,7 @@ constexpr double not_published = std::numeric_limits<double>::quiet_NaN();
 
 // Where a part's inputs come from (E6).
 struct PartInputSources final {
-    const Window* window{};
+    const SurfaceRoot* window{};
     // The part's record, or null for a part painted without a key, which
     // reads only the two scales: it is drawn statically.
     const EnginePartRecord* record{};
@@ -99,7 +99,7 @@ std::size_t input_slot(EngineInput input) noexcept {
 void gather_inputs(const CompiledThemeRules& rules, std::uint64_t read, const PartInputSources& sources,
                    std::span<double> inputs) {
     std::fill(inputs.begin(), inputs.end(), not_published);
-    const Window& window = *sources.window;
+    const SurfaceRoot& window = *sources.window;
     inputs[input_slot(EngineInput::display_scale)] = window.scale();
     inputs[input_slot(EngineInput::text_scale)] = window.presentation_settings().text_scale;
     if (sources.record == nullptr) return;
@@ -157,7 +157,7 @@ void evaluate_expressions(const CompiledThemeRules::Resolution& resolution, std:
 // statically), the part's control as the owner of its motion values, and
 // its published states.
 struct PartTransitionSources final {
-    Window* window{};
+    SurfaceRoot* window{};
     EnginePartRecord* record{};
     PartRecordHandle handle{};
     std::shared_ptr<Control> owner{};
@@ -760,7 +760,7 @@ void paint_built_in(Painter& painter, const Control& control, const PartPaint& p
 
 } // namespace
 
-MediaFacts window_media_facts(const Window& window) noexcept {
+MediaFacts window_media_facts(const SurfaceRoot& window) noexcept {
     const PresentationSettings& settings = window.presentation_settings();
     MediaFacts facts{};
     facts.dark_scheme = settings.colour_scheme == ColourScheme::dark;
@@ -783,7 +783,7 @@ TextRole resolved_text_role(const Control& control, FontDeclaration font) {
         facts.classes = above.classes();
         facts.inline_rules = above.inline_style_rules();
         facts.states = above.anatomy_states();
-        const Window* const window = above.attached_window();
+        const SurfaceRoot* const window = above.attached_surface_root();
         if (window != nullptr) facts.media = window_media_facts(*window);
         if (window != nullptr) facts.user_rules = (*window).user_theme_rules();
         font = above.effective_theme().engine().rules().resolve(facts).font;
@@ -827,7 +827,7 @@ ThemeEngine::ThemeEngine(const ThemeRuleSheet& sheet, ThemeRuleSet set)
 ThemeEngine::PartPlan ThemeEngine::plan(const Control& control, const PartPaint& part) const noexcept {
     PartPlan result{};
     if (rules_.empty()) return result;
-    const Window* const window = control.attached_window();
+    const SurfaceRoot* const window = control.attached_surface_root();
     if (window == nullptr || !part_bounds_paintable(part.bounds)) {
         result.drawing = PartDrawing::not_paintable;
         return result;
@@ -928,7 +928,7 @@ PartHitRegion ThemeEngine::hit_region(const Control& control, const PartPaint& p
 Rect ThemeEngine::text_slot(const Control& control, const PartPaint& part) const noexcept {
     const PartPlan decided = plan(control, part);
     if (decided.drawing != PartDrawing::primitive) return part.bounds;
-    const Window* const window = control.attached_window();
+    const SurfaceRoot* const window = control.attached_surface_root();
     const double text_scale = (*window).presentation_settings().text_scale;
     const Size logical{part.bounds.width, part.bounds.height};
     const Insets insets = (*decided.resolution.primitive)
@@ -968,7 +968,7 @@ void ThemeEngine::paint(Painter& painter, const Control& control, const PartPain
 
 void ThemeEngine::paint_planned(Painter& painter, const Control& control, const PartPaint& part,
                                 const PartPlan& decided) const {
-    Window* const window = control.attached_window();
+    SurfaceRoot* const window = control.attached_surface_root();
     // A program drawing both a theme and an inline style (E1, W401).
     const bool themed = rules_.rule_count() > rules_.built_in_rule_count();
     if (window != nullptr && themed && control.inline_style_rules() != nullptr) {
@@ -1384,7 +1384,7 @@ void ThemeEngine::paint_planned(Painter& painter, const Control& control, const 
 // nearest the value `request` shows first, with the part's other
 // parameters as `request` has them. Blank keyframes (a flat bulge) need
 // none.
-void ThemeEngine::queue_keyframes(Window& window, const PartRasterRequest& request, std::uint32_t movable) {
+void ThemeEngine::queue_keyframes(SurfaceRoot& window, const PartRasterRequest& request, std::uint32_t movable) {
     const EnginePrimitive& primitive = *request.primitive;
     const PrimitiveDescriptor& descriptor = primitive.descriptor();
     for (std::size_t index = 0; index < request.parameters.count; ++index) {
@@ -1408,7 +1408,7 @@ void ThemeEngine::queue_keyframes(Window& window, const PartRasterRequest& reque
     }
 }
 
-double ThemeEngine::ambient_seconds(Window& window, EnginePartRecord* record,
+double ThemeEngine::ambient_seconds(SurfaceRoot& window, EnginePartRecord* record,
                                     const std::optional<PartRecordHandle>& handle, const AmbientEffect& ambient,
                                     bool area_ok) {
     const double pose = std::chrono::duration<double>(ambient.pose).count();
@@ -1442,7 +1442,7 @@ double ThemeEngine::ambient_seconds(Window& window, EnginePartRecord* record,
     return seconds;
 }
 
-void ThemeEngine::stop_ambient(Window& window, EnginePartRecord& record, PartRecordHandle handle) noexcept {
+void ThemeEngine::stop_ambient(SurfaceRoot& window, EnginePartRecord& record, PartRecordHandle handle) noexcept {
     if (!record.ambient) return;
     record.ambient = false;
     record.ambient_refused = false;

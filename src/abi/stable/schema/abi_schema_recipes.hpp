@@ -55,12 +55,14 @@
 
 namespace gui_forms::abi1 {
 
-// What describing one type records: a control's anatomy (static storage)
-// and its properties and interactions, or a component's interactions. A
-// type nothing records is a service.
+// What describing one type records: a control's anatomy (static storage),
+// its properties, the properties it provides to its children, and its
+// interactions, or a component's interactions. A type nothing records is a
+// service.
 struct SchemaSample final {
     const ControlAnatomy* anatomy = nullptr;
     std::vector<PropertyDescriptor> properties;
+    std::vector<PropertyDescriptor> child_properties;
     std::vector<InteractionDeclaration> interactions;
     bool recorded = false;
 };

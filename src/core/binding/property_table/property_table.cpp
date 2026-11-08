@@ -79,4 +79,51 @@ SubscriptionToken connect_property_entry(Component& owner, const PropertyEntry& 
     return token;
 }
 
+BindingValue read_child_property_entry(const Component& container, const Control& child,
+                                       const ChildPropertyEntry& entry) {
+    const PropertyDescriptor& descriptor = entry.describe();
+    const BindingValue value = entry.read(container, child);
+    std::optional<BindingValue> normalized = convert_property_value(value, descriptor);
+    if (!normalized || !valid_property_value_tree(*normalized)) {
+        throw std::logic_error("GUI.Forms child property getter violated its declared schema: " + descriptor.name);
+    }
+    BindingValue result = std::move(*normalized);
+    return result;
+}
+
+void write_child_property_entry(Component& container, const Control& child, const ChildPropertyEntry& entry,
+                                const BindingValue& value) {
+    const PropertyDescriptor& descriptor = entry.describe();
+    if (!descriptor.writable || entry.write == nullptr) {
+        throw std::logic_error("GUI.Forms child property is read-only: " + descriptor.name);
+    }
+    const std::optional<BindingValue> converted = convert_property_value(value, descriptor);
+    if (!converted) {
+        throw std::invalid_argument("GUI.Forms child property value cannot convert to its declared kind: " +
+                                    descriptor.name);
+    }
+    entry.write(container, child, *converted);
+}
+
+bool reset_child_property_entry(Component& container, const Control& child, const ChildPropertyEntry& entry) {
+    if (entry.reset != nullptr) {
+        entry.reset(container, child);
+        return true;
+    }
+    const PropertyDescriptor& descriptor = entry.describe();
+    if (!descriptor.writable || entry.write == nullptr || !descriptor.default_value) return false;
+    entry.write(container, child, *descriptor.default_value);
+    return true;
+}
+
+bool child_property_entry_should_serialize(const Component& container, const Control& child,
+                                           const ChildPropertyEntry& entry) {
+    const PropertyDescriptor& descriptor = entry.describe();
+    if (descriptor.serialization_visibility == PropertySerializationVisibility::hidden) return false;
+    if (entry.should_serialize != nullptr) return entry.should_serialize(container, child);
+    if (!descriptor.default_value) return true;
+    const bool differs = entry.read(container, child) != *descriptor.default_value;
+    return differs;
+}
+
 } // namespace gui_forms

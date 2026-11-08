@@ -1,10 +1,12 @@
 #include "gui_forms/host.hpp"
 
 #include "gui_forms/window.hpp"
+#include "../../surface_root/requests/alert_route.hpp"
 
 #include <algorithm>
 #include <cmath>
 #include <array>
+#include <atomic>
 #include <new>
 #include <sstream>
 #include <type_traits>
@@ -1023,3 +1025,20 @@ HostServicesSnapshot HostServices::snapshot() const {
 }
 
 } // namespace gui_forms
+
+namespace gui_forms::detail {
+
+namespace {
+
+// The last identity take_dialog_request_id gave; zero before the first.
+std::atomic<std::uint64_t> last_dialog_request_id{0U};
+
+} // namespace
+
+std::uint64_t take_dialog_request_id() noexcept {
+    const std::uint64_t previous = last_dialog_request_id.fetch_add(1U, std::memory_order_relaxed);
+    const std::uint64_t result = previous + 1U;
+    return result;
+}
+
+} // namespace gui_forms::detail

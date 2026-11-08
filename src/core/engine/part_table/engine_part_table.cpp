@@ -198,7 +198,7 @@ std::size_t raster_bytes(DeviceExtent extent) noexcept {
 
 } // namespace
 
-PartMotion::PartMotion(Window& window, PartRecordHandle record) noexcept : window_(&window), record_(record) {}
+PartMotion::PartMotion(SurfaceRoot& window, PartRecordHandle record) noexcept : window_(&window), record_(record) {}
 
 bool PartMotion::moving() const noexcept {
     for (const PartTransitionChannel& channel : channels) {

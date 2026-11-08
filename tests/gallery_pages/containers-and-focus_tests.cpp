@@ -36,11 +36,11 @@ void test_containers_and_focus(gui_forms::Window& window) {
             "a focused splitter must move its seam from keyboard input");
     click(window, collapse);
     require((*split).first_collapsed() &&
-                (*collapse).text() == "Restore navigation",
+                (*collapse).text.read() == "Restore navigation",
             "gallery collapse command must mutate the public SplitContainer");
     click(window, collapse);
     require(!(*split).first_collapsed() &&
-                (*collapse).text() == "Collapse navigation",
+                (*collapse).text.read() == "Collapse navigation",
             "gallery SplitContainer must restore its retained allocation");
 
     // The docked workspace: three stacks in the tree and Output auto-hidden

@@ -22,6 +22,7 @@ namespace gui_forms::abi1 {
 void record_control(const Control& control, SchemaSample& sample) {
     sample.anatomy = &control.anatomy();
     sample.properties = control.property_descriptors();
+    sample.child_properties = control.child_property_descriptors();
     sample.interactions = control.interactions();
     sample.recorded = true;
 }

@@ -71,7 +71,7 @@ struct ApplicationHandleAccess final {
 // Run bookkeeping shared by every adapter, defined in application.cpp.
 
 // Gives a ready window's model its state in the run, so the model can open
-// native popups owned by it (SurfaceRoot::open_native_popup). The model
+// native popups owned by it (Window::open_native_popup). The model
 // keeps only a weak reference. Called by every adapter when the window
 // becomes ready, before its ready callback.
 void attach_application_window(SurfaceRoot& model, const std::shared_ptr<ApplicationWindowState>& state) noexcept;

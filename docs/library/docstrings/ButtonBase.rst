@@ -13,7 +13,7 @@ stable_id
     Identity of the control, unique within its window. Logs, automation and
     semantic actions address the control by this ID. A bound `Command`
     receives it as the invocation's source.
-text
+initial_text
     Caption. `&` marks the next character as the mnemonic, so `"&Save"`
     responds to Alt+S; write `&&` for a literal ampersand. A `\n` starts a new
     line.

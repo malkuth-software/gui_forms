@@ -654,7 +654,7 @@ void test_property_origins_and_metadata_driven_property_grid() {
     (*text).select_all();
     require(window.dispatch_text({"Edited through metadata"}) &&
                 window.dispatch_key({KeyAction::down, PhysicalKey::enter}) &&
-                (*target).text() == "Edited through metadata" &&
+                (*target).text.read() == "Edited through metadata" &&
                 !changes.empty() && changes.back().property_name == "text" &&
                 changes.back().origin == PropertyValueOrigin::local,
             "committing a PropertyGrid text editor must use the target's registered setter and event");
@@ -664,7 +664,7 @@ void test_property_origins_and_metadata_driven_property_grid() {
                 std::get<bool>(changes.back().current_value),
             "Boolean PropertyGrid edits must use a retained CheckBox and commit immediately");
 
-    (*target).set_text("Programmatic update");
+    (*target).text = "Programmatic update";
     text = std::dynamic_pointer_cast<TextBox>((*grid).editor("Text"));
     require(text && (*text).text() == "Programmatic update" &&
                 changes.back().property_name == "text",
@@ -678,7 +678,7 @@ void test_property_origins_and_metadata_driven_property_grid() {
                 failures.back().property_name == "tab_index",
             "invalid scalar edits must preserve the target and publish inline diagnostic state");
 
-    require((*grid).reset_property("Text") && (*target).text().empty() &&
+    require((*grid).reset_property("Text") && (*target).text.read().empty() &&
                 (*grid).selected_origin("Text") ==
                     PropertyValueOrigin::defaulted &&
                 changes.back().reset,

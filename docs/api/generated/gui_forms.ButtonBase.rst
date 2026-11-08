@@ -7,7 +7,7 @@ gui_forms::ButtonBase
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: ButtonBase : public Control
+.. cpp:class:: ButtonBase : public Control, public ButtonBaseCapabilities<ButtonBase>
 
    ``#include <gui_forms/controls/button_base/button_base.hpp>``
 
@@ -29,28 +29,58 @@ gui_forms::ButtonBase
          semantic actions address the control by this ID. A bound :cpp:class:`Command <gui_forms::Command>`
          receives it as the invocation's source.
 
-      **text** : ``std::string``, default ``{}``
+      **initial_text** : ``std::string``, default ``{}``
          Caption. ``&`` marks the next character as the mnemonic, so ``"&Save"``
          responds to Alt+S; write ``&&`` for a literal ampersand. A ``\n`` starts a new
          line.
 
    :Properties:
 
-      **command_connected** : ``bool``, read-only
-         Whether a :cpp:class:`Command <gui_forms::Command>` is currently bound with ``bind``.
-
       **text** : ``std::string``, default ``""``
          The caption, including any ``&`` mnemonic marker. Setting a different value
          raises :cpp:func:`text_changed <gui_forms::ButtonBase::text_changed>`.
+
+      **text_alignment** : ``ContentAlignment``, default ``ContentAlignment::middle_center``
+         Where the caption, or the caption and image together, sit inside the
+         content area.
 
       **font** : ``FontSpec``, default ``FontSpec{FontRole::control, 12.0, 400, false, 0.24}``
          Font used to measure and paint the caption. It is scaled by the window's
          text scale. An invalid specification throws ``std::invalid_argument``.
 
+      **content_padding** : ``Insets``, default ``Insets{6.0, 4.0, 6.0, 4.0}``
+         Space between the frame and the content. Each side must lie between 0 and
+         128. The control's preferred size grows with it.
+
       **text_line_spacing** : ``double``, default ``1.25``
          Line height of a multi-line caption, as a multiple of the font size. It
          must lie between 0.75 and 3.0, or the setter throws
          ``std::invalid_argument``.
+
+      **image_alignment** : ``ContentAlignment``, default ``ContentAlignment::middle_center``
+         Where the image sits when :cpp:member:`text_image_relation <gui_forms::ButtonBase::text_image_relation>` is ``overlay`` or there is
+         no caption.
+
+      **text_image_relation** : ``TextImageRelation``, default ``TextImageRelation::overlay``
+         How the image and caption are arranged: on top of each other, or side by
+         side and stacked in either order.
+
+      **image_gap** : ``double``, default ``4.0``
+         Space between image and caption when both are shown side by side or
+         stacked; between 0 and 64.
+
+      **use_mnemonic** : ``bool``, default ``true``
+         Whether ``&`` in :cpp:member:`text <gui_forms::ButtonBase::text>` marks a mnemonic. When false the ampersand is drawn
+         and Alt shortcuts are ignored.
+
+      **expanded_state** : ``std::optional<bool>``, default ``std::nullopt``
+         Optional disclosure state for a button that opens or shows something. A
+         value adds expanded or collapsed state and an expand or collapse action
+         to the accessibility tree. Setting a different value raises
+         :cpp:func:`expanded_changed <gui_forms::ButtonBase::expanded_changed>`.
+
+      **command_connected** : ``bool``, read-only
+         Whether a :cpp:class:`Command <gui_forms::Command>` is currently bound with ``bind``.
 
       **style** : ``BasicControlStyle``
          The colours used when the control paints in the classic style. Until you
@@ -89,30 +119,6 @@ gui_forms::ButtonBase
          Key into :cpp:func:`image_list <gui_forms::ButtonBase::image_list>`. Setting it clears :cpp:func:`image <gui_forms::ButtonBase::image>` and :cpp:func:`image_index <gui_forms::ButtonBase::image_index>`. The
          key must be valid UTF-8 of at most 256 bytes.
 
-      **image_alignment** : ``ContentAlignment``, default ``ContentAlignment::middle_center``
-         Where the image sits when :cpp:func:`text_image_relation <gui_forms::ButtonBase::text_image_relation>` is ``overlay`` or there is
-         no caption.
-
-      **text_alignment** : ``ContentAlignment``, default ``ContentAlignment::middle_center``
-         Where the caption, or the caption and image together, sit inside the
-         content area.
-
-      **text_image_relation** : ``TextImageRelation``, default ``TextImageRelation::overlay``
-         How the image and caption are arranged: on top of each other, or side by
-         side and stacked in either order.
-
-      **image_gap** : ``double``, default ``4.0``
-         Space between image and caption when both are shown side by side or
-         stacked; between 0 and 64.
-
-      **content_padding** : ``Insets``, default ``Insets{6.0, 4.0, 6.0, 4.0}``
-         Space between the frame and the content. Each side must lie between 0 and
-         128. The control's preferred size grows with it.
-
-      **use_mnemonic** : ``bool``, default ``true``
-         Whether ``&`` in :cpp:func:`text <gui_forms::ButtonBase::text>` marks a mnemonic. When false the ampersand is drawn
-         and Alt shortcuts are ignored.
-
       **pressed_visual** : ``bool``, read-only
          Combines retained pointer and keyboard press states into the current visual cue.
 
@@ -124,12 +130,6 @@ gui_forms::ButtonBase
       **hovered_visual** : ``bool``, read-only
          Reports the retained hover cue state.
 
-      **expanded_state** : ``std::optional<bool>``, default ``std::nullopt``
-         Optional disclosure state for a button that opens or shows something. A
-         value adds expanded or collapsed state and an expand or collapse action
-         to the accessibility tree. Setting a different value raises
-         :cpp:func:`expanded_changed <gui_forms::ButtonBase::expanded_changed>`.
-
       **parts** : ``Parts``, read-only
 
       **states** : ``States``, read-only
@@ -137,7 +137,7 @@ gui_forms::ButtonBase
    :Events:
 
       **expanded_changed** : ``Event<std::optional<bool>>``
-         Raised after :cpp:func:`expanded_state <gui_forms::ButtonBase::expanded_state>` changes. It carries the new state.
+         Raised after :cpp:member:`expanded_state <gui_forms::ButtonBase::expanded_state>` changes. It carries the new state.
 
       **clicked** : ``Event<ButtonBase&>``
          Raised when the control is activated: by a primary-button click, by Space
@@ -149,7 +149,7 @@ gui_forms::ButtonBase
          instead.
 
       **text_changed** : ``Event<const std::string&>``
-         Raised after :cpp:func:`text <gui_forms::ButtonBase::text>` changes. It carries the new text.
+         Raised after :cpp:member:`text <gui_forms::ButtonBase::text>` changes. It carries the new text.
 
    :Inherited:
 
@@ -171,6 +171,8 @@ gui_forms::ButtonBase
         - Removes the direct :cpp:func:`image <gui_forms::ButtonBase::image>`.
       * - :cpp:func:`perform_click <gui_forms::ButtonBase::perform_click>`
         - Activates the control as a mnemonic would.
+      * - :cpp:func:`button_base_property_entries <gui_forms::ButtonBase::button_base_property_entries>`
+        -  
       * - :cpp:func:`set_visual_recipes <gui_forms::ButtonBase::set_visual_recipes>`
         - Replaces the theme's visual recipe for this control with one recipe per surface state (normal, hot, pressed, disabled and so on).
 
@@ -214,12 +216,12 @@ gui_forms::ButtonBase
    The control publishes the accessibility role ``button``. Its name is the
    accessible name, or else the caption without the mnemonic marker. It offers
    the actions focus and press; press runs :cpp:func:`perform_click <gui_forms::ButtonBase::perform_click>`. With an
-   :cpp:func:`expanded_state <gui_forms::ButtonBase::expanded_state>` it also reports expanded and offers expand or collapse, and
-   those actions raise :cpp:func:`clicked <gui_forms::ButtonBase::clicked>` without changing :cpp:func:`expanded_state <gui_forms::ButtonBase::expanded_state>`, so the
+   :cpp:member:`expanded_state <gui_forms::ButtonBase::expanded_state>` it also reports expanded and offers expand or collapse, and
+   those actions raise :cpp:func:`clicked <gui_forms::ButtonBase::clicked>` without changing :cpp:member:`expanded_state <gui_forms::ButtonBase::expanded_state>`, so the
    application updates it in its handler. A ``visual_status`` of pending or invalid
    is reported as busy or invalid.
 
-   The preferred size fits the caption and image plus :cpp:func:`content_padding <gui_forms::ButtonBase::content_padding>`, and is
+   The preferred size fits the caption and image plus :cpp:member:`content_padding <gui_forms::ButtonBase::content_padding>`, and is
    at least 24 high; a requested width or height takes precedence.
 
    .. rubric:: Examples
@@ -266,42 +268,67 @@ gui_forms::ButtonBase
 
    .. rubric:: Construction
 
-   .. cpp:function:: explicit ButtonBase(StableId stable_id, std::string text = {})
+   .. cpp:function:: explicit ButtonBase(StableId stable_id, std::string initial_text = {})
 
 
    .. rubric:: Properties
 
-   .. cpp:function:: bool command_connected() const noexcept
-
-      Whether a :cpp:class:`Command <gui_forms::Command>` is currently bound with ``bind``.
-
-   .. cpp:function:: const std::string& text() const noexcept
+   .. cpp:member:: std::string text
 
       The caption, including any ``&`` mnemonic marker. Setting a different value
       raises :cpp:func:`text_changed <gui_forms::ButtonBase::text_changed>`.
 
-   .. cpp:function:: virtual void set_text(std::string text)
+   .. cpp:member:: ContentAlignment text_alignment
 
-      Sets :cpp:func:`text <gui_forms::ButtonBase::text>`; see the property's description above.
+      Where the caption, or the caption and image together, sit inside the
+      content area.
 
-   .. cpp:function:: FontSpec font() const noexcept
+   .. cpp:member:: FontSpec font
 
       Font used to measure and paint the caption. It is scaled by the window's
       text scale. An invalid specification throws ``std::invalid_argument``.
 
-   .. cpp:function:: void set_font(FontSpec font)
+   .. cpp:member:: Insets content_padding
 
-      Sets :cpp:func:`font <gui_forms::ButtonBase::font>`; see the property's description above.
+      Space between the frame and the content. Each side must lie between 0 and
+      128. The control's preferred size grows with it.
 
-   .. cpp:function:: double text_line_spacing() const noexcept
+   .. cpp:member:: double text_line_spacing
 
       Line height of a multi-line caption, as a multiple of the font size. It
       must lie between 0.75 and 3.0, or the setter throws
       ``std::invalid_argument``.
 
-   .. cpp:function:: void set_text_line_spacing(double spacing)
+   .. cpp:member:: ContentAlignment image_alignment
 
-      Sets :cpp:func:`text_line_spacing <gui_forms::ButtonBase::text_line_spacing>`; see the property's description above.
+      Where the image sits when :cpp:member:`text_image_relation <gui_forms::ButtonBase::text_image_relation>` is ``overlay`` or there is
+      no caption.
+
+   .. cpp:member:: TextImageRelation text_image_relation
+
+      How the image and caption are arranged: on top of each other, or side by
+      side and stacked in either order.
+
+   .. cpp:member:: double image_gap
+
+      Space between image and caption when both are shown side by side or
+      stacked; between 0 and 64.
+
+   .. cpp:member:: bool use_mnemonic
+
+      Whether ``&`` in :cpp:member:`text <gui_forms::ButtonBase::text>` marks a mnemonic. When false the ampersand is drawn
+      and Alt shortcuts are ignored.
+
+   .. cpp:member:: std::optional<bool> expanded_state
+
+      Optional disclosure state for a button that opens or shows something. A
+      value adds expanded or collapsed state and an expand or collapse action
+      to the accessibility tree. Setting a different value raises
+      :cpp:func:`expanded_changed <gui_forms::ButtonBase::expanded_changed>`.
+
+   .. cpp:function:: bool command_connected() const noexcept
+
+      Whether a :cpp:class:`Command <gui_forms::Command>` is currently bound with ``bind``.
 
    .. cpp:function:: const BasicControlStyle& style() const noexcept
 
@@ -369,60 +396,6 @@ gui_forms::ButtonBase
 
       Sets :cpp:func:`image_key <gui_forms::ButtonBase::image_key>`; see the property's description above.
 
-   .. cpp:function:: ContentAlignment image_alignment() const noexcept
-
-      Where the image sits when :cpp:func:`text_image_relation <gui_forms::ButtonBase::text_image_relation>` is ``overlay`` or there is
-      no caption.
-
-   .. cpp:function:: void set_image_alignment(ContentAlignment alignment)
-
-      Sets :cpp:func:`image_alignment <gui_forms::ButtonBase::image_alignment>`; see the property's description above.
-
-   .. cpp:function:: ContentAlignment text_alignment() const noexcept
-
-      Where the caption, or the caption and image together, sit inside the
-      content area.
-
-   .. cpp:function:: void set_text_alignment(ContentAlignment alignment)
-
-      Sets :cpp:func:`text_alignment <gui_forms::ButtonBase::text_alignment>`; see the property's description above.
-
-   .. cpp:function:: TextImageRelation text_image_relation() const noexcept
-
-      How the image and caption are arranged: on top of each other, or side by
-      side and stacked in either order.
-
-   .. cpp:function:: void set_text_image_relation(TextImageRelation relation)
-
-      Sets :cpp:func:`text_image_relation <gui_forms::ButtonBase::text_image_relation>`; see the property's description above.
-
-   .. cpp:function:: double image_gap() const noexcept
-
-      Space between image and caption when both are shown side by side or
-      stacked; between 0 and 64.
-
-   .. cpp:function:: void set_image_gap(double gap)
-
-      Sets :cpp:func:`image_gap <gui_forms::ButtonBase::image_gap>`; see the property's description above.
-
-   .. cpp:function:: Insets content_padding() const noexcept
-
-      Space between the frame and the content. Each side must lie between 0 and
-      128. The control's preferred size grows with it.
-
-   .. cpp:function:: void set_content_padding(Insets padding)
-
-      Sets :cpp:func:`content_padding <gui_forms::ButtonBase::content_padding>`; see the property's description above.
-
-   .. cpp:function:: bool use_mnemonic() const noexcept
-
-      Whether ``&`` in :cpp:func:`text <gui_forms::ButtonBase::text>` marks a mnemonic. When false the ampersand is drawn
-      and Alt shortcuts are ignored.
-
-   .. cpp:function:: void set_use_mnemonic(bool value)
-
-      Sets :cpp:func:`use_mnemonic <gui_forms::ButtonBase::use_mnemonic>`; see the property's description above.
-
    .. cpp:function:: bool pressed_visual() const noexcept
 
    .. cpp:function:: bool focused_visual() const noexcept
@@ -430,17 +403,6 @@ gui_forms::ButtonBase
    .. cpp:function:: bool focus_cue_visible() const noexcept
 
    .. cpp:function:: bool hovered_visual() const noexcept
-
-   .. cpp:function:: std::optional<bool> expanded_state() const noexcept
-
-      Optional disclosure state for a button that opens or shows something. A
-      value adds expanded or collapsed state and an expand or collapse action
-      to the accessibility tree. Setting a different value raises
-      :cpp:func:`expanded_changed <gui_forms::ButtonBase::expanded_changed>`.
-
-   .. cpp:function:: void set_expanded_state(std::optional<bool> expanded)
-
-      Sets :cpp:func:`expanded_state <gui_forms::ButtonBase::expanded_state>`; see the property's description above.
 
    .. cpp:function:: Parts parts() const
 
@@ -451,7 +413,7 @@ gui_forms::ButtonBase
 
    .. cpp:function:: Event<std::optional<bool>>& expanded_changed() noexcept
 
-      Raised after :cpp:func:`expanded_state <gui_forms::ButtonBase::expanded_state>` changes. It carries the new state.
+      Raised after :cpp:member:`expanded_state <gui_forms::ButtonBase::expanded_state>` changes. It carries the new state.
 
    .. cpp:function:: Event<ButtonBase&>& clicked() noexcept
 
@@ -465,7 +427,7 @@ gui_forms::ButtonBase
 
    .. cpp:function:: Event<const std::string&>& text_changed() noexcept
 
-      Raised after :cpp:func:`text <gui_forms::ButtonBase::text>` changes. It carries the new text.
+      Raised after :cpp:member:`text <gui_forms::ButtonBase::text>` changes. It carries the new text.
 
 
    .. rubric:: Methods
@@ -491,6 +453,8 @@ gui_forms::ButtonBase
       Activates the control as a mnemonic would. It returns false, and raises
       nothing, when the control is disposed, hidden or disabled, or when focus
       validation of the currently focused control refuses the change.
+
+   .. cpp:function:: static const std::array<PropertyEntry, button_base_property_count>& button_base_property_entries() noexcept
 
    .. cpp:function:: void set_visual_recipes(ControlStateRecipes recipes)
 
@@ -551,7 +515,7 @@ gui_forms::ButtonBase
 
       The face less its content padding, and the command leading when ``command_alignment`` is set.
 
-   .. cpp:function:: ContentLayout layout_content(Rect content, std::span<const Size> line_sizes, FontSpec font, bool selected, bool command_alignment) const
+   .. cpp:function:: ContentLayout layout_content(Rect content, std::span<const Size> line_sizes, FontSpec line_font, bool selected, bool command_alignment) const
 
       *Protected.*
 
@@ -583,7 +547,7 @@ gui_forms::ButtonBase
 
       *Protected.*
 
-   .. cpp:function:: void paint_button_content(Painter& painter, Rect bounds, std::string_view text, const ButtonContentInk& ink, Point offset = {}, bool selected = false, bool command_alignment = false) const
+   .. cpp:function:: void paint_button_content(Painter& painter, Rect bounds, std::string_view shown_text, const ButtonContentInk& ink, Point offset = {}, bool selected = false, bool command_alignment = false) const
 
       *Protected.*
 
@@ -626,3 +590,27 @@ gui_forms::ButtonBase
    .. cpp:function:: bool process_mnemonic_self(char32_t character) override
 
       *Protected.*
+
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
+   .. cpp:function:: virtual void on_text_changed()
+
+      *Protected.*
+
+      on_<property>_changed runs after a changed write's touch and raises the change event; an override calls the base. coerce_<property> runs last before the compare and may rewrite the incoming value.
+
+   .. cpp:function:: virtual void coerce_text(std::string& incoming)
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_font_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void coerce_font(FontSpec& incoming)
+
+      *Protected.*
+
+   .. cpp:member:: constexpr std::size_t button_base_property_count
+
+      ButtonBase's property table: Control's entries, then its own. Default: ``Control::control_property_count + 4U``.

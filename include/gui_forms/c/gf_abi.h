@@ -946,6 +946,14 @@ typedef struct gf_schema_table {
     /* Effect index (below effect_count), in registration order (since
      * 1.1). GF_STATUS_INVALID_ARGUMENT past the end. */
     gf_status (GF_CALL* effect_at)(uint64_t effect, gf_schema_effect* record);
+    /* The properties a type provides to each of its children, such as a
+     * grid panel's cell (since 1.1): how many, one of them (below the
+     * count), and one choice of it, as property_at and choice_at give the
+     * type's own. GF_STATUS_INVALID_ARGUMENT past the end. */
+    gf_status (GF_CALL* child_property_count)(uint64_t type, uint64_t* count);
+    gf_status (GF_CALL* child_property_at)(uint64_t type, uint64_t property, gf_schema_property* record);
+    gf_status (GF_CALL* child_choice_at)(uint64_t type, uint64_t property, uint64_t choice,
+                                         gf_schema_choice* record);
 } gf_schema_table;
 
 /* Borrowed bytes: size bytes at data. data may be null only when size is

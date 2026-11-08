@@ -743,7 +743,7 @@ struct PauseClicked final {
         if (!state) return;
         const bool next = !(*(*state).waterfall).paused();
         (*(*state).waterfall).set_paused(next);
-        (*(*state).pause).set_text(next ? "Resume producer" : "Pause producer");
+        (*(*state).pause).text = next ? "Resume producer" : "Pause producer";
     }
 };
 

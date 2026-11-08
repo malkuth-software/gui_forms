@@ -192,12 +192,12 @@ void check_provider_identity(Checks& checks, Window& window) {
 
 void check_provider_rename(Checks& checks, Window& window, ProviderFixture& fixture) {
     const std::uint64_t before = window.semantic_snapshot().generation;
-    (*fixture.button).set_text("Renamed");
+    (*fixture.button).text = "Renamed";
     const SemanticSnapshot renamed = window.semantic_snapshot();
     const SemanticNode* node = find_node(renamed.roots, "uia.button");
     expect(checks, node != nullptr && (*node).name == "Renamed" && renamed.generation != before,
            "a renamed button is described again, with a new generation");
-    (*fixture.button).set_text("Press me");
+    (*fixture.button).text = "Press me";
     const std::optional<SemanticNode> restored = read_node(window, "uia.button");
     expect(checks, restored && (*restored).name == "Press me", "the restored name is published");
 }

@@ -1,10 +1,14 @@
 #pragma once
 
+#include "gui_forms/binding/child_property_view/child_property_view.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/container_control.hpp"
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
+#include <span>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace gui_forms {
@@ -32,15 +36,42 @@ enum class FlowCrossAlignment : std::uint8_t {
     stretch,
 };
 
+// The flow break a flow container provides to its children (FlowBreak; a
+// child property, study sections 10 and 15.4): whether the flow continues
+// on a new line after the child. `(*flow).flow_break[*child] = true;`
+template <typename Declaring>
+struct FlowBreakCapability {
+    ChildPropertyView<bool, FlowBreakCapability<Declaring>> flow_break;
+
+    static void assign(FlowBreakCapability& capability, const Control& child, bool value) {
+        Declaring& container = static_cast<Declaring&>(capability);
+        container.prepare_write(std::as_const(capability.flow_break), child, value);
+        if (!container.replace_flow_break(child, value)) return;
+        container.written(std::as_const(capability.flow_break), child);
+    }
+
+    static bool read(const FlowBreakCapability& capability, const Control& child) {
+        const Declaring& container = static_cast<const Declaring&>(capability);
+        const bool value = container.stored_flow_break(child);
+        return value;
+    }
+};
+
 // The Windows Forms flow container: its children in lines along a flow
 // direction, wrapped, broken and aligned. Its algorithm is its own, not the
 // CSS flex solver's (notes:planning/stages/L-layout/README.md, "Decisions in
 // force"). In a right-to-left effective layout direction the layout is
 // computed left to right and mirrored about the viewport, padding and
 // margins included: a `left_to_right` flow starts at the right edge.
-class FlowLayoutPanelCompat final : public ContainerControl {
+class FlowLayoutPanelCompat final : public ContainerControl, public FlowBreakCapability<FlowLayoutPanelCompat> {
 public:
     explicit FlowLayoutPanelCompat(StableId stable_id);
+
+    // The child properties it provides: flow_break.
+    static constexpr std::size_t flow_child_property_count = 1U;
+    [[nodiscard]] static const std::array<ChildPropertyEntry, flow_child_property_count>&
+    flow_child_property_entries() noexcept;
+    [[nodiscard]] std::span<const ChildPropertyEntry> child_property_table() const noexcept override;
 
     [[nodiscard]] FlowDirection flow_direction() const noexcept {
         return flow_direction_;
@@ -58,8 +89,6 @@ public:
         return cross_alignment_;
     }
     void set_cross_alignment(FlowCrossAlignment alignment);
-    void set_flow_break(const Control& child, bool flow_break);
-    [[nodiscard]] bool flow_break(const Control& child) const;
     void set_flex_grow(const Control& child, double grow);
     [[nodiscard]] double flex_grow(const Control& child) const;
 
@@ -68,7 +97,25 @@ public:
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
 
+protected:
+    void child_leaving(const Control& child) noexcept override;
+
 private:
+    friend struct FlowBreakCapability<FlowLayoutPanelCompat>;
+
+    // The flow break's hooks: the container's thread and a live direct
+    // child before the compare; the container's relayout after a change.
+    void prepare_write(const ChildPropertyView<bool, FlowBreakCapability<FlowLayoutPanelCompat>>& property,
+                       const Control& child, bool& incoming) const;
+    void written(const ChildPropertyView<bool, FlowBreakCapability<FlowLayoutPanelCompat>>& property,
+                 const Control& child);
+    // Stores `child`'s flow break; false when it was already `value`.
+    bool replace_flow_break(const Control& child, bool value);
+    // `child`'s flow break; refuses a child that is not a live direct child.
+    [[nodiscard]] bool stored_flow_break(const Control& child) const;
+    // The flow break recorded under a child's runtime id; false when none.
+    [[nodiscard]] bool recorded_flow_break(std::uint64_t id) const noexcept;
+
     // One child's records, its flow break and grow factor, kept while
     // either differs from the default; `seen_pass` is the layout pass that
     // last found the child, for reconciliation.

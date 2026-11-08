@@ -1415,6 +1415,10 @@ public:
         return true;
     }
 
+    // A passive native popup (HostPopupFocus::passive): a click does not
+    // activate it. Set before the native window is created.
+    void mark_passive_popup() noexcept { passive_popup_ = true; }
+
     // Application-scope windowing (windows_application_run.inc). Bound before
     // the native window is created; the run outlives this state.
     void attach_run(WindowsApplicationRun& run, HostWindowId window) noexcept {
@@ -1559,6 +1563,9 @@ public:
                              GetActiveWindow() == hwnd_, GetFocus() == hwnd_);
                 std::fflush(stderr);
             }
+            // A passive popup leaves its owner active; the click still
+            // reaches the popup.
+            if (passive_popup_) return MA_NOACTIVATE;
             break;
         case WM_SETCURSOR:
             if (LOWORD(lparam) == HTCLIENT) {
@@ -3210,6 +3217,8 @@ private:
     // this state) and the window's identity in it. Null for run_windows.
     WindowsApplicationRun* run_{};
     HostWindowId window_id_{};
+    // mark_passive_popup: never activated by a click.
+    bool passive_popup_{};
     // The reason WM_DESTROY reports: user for every native close, application
     // when the run destroys the window (HostWindowing::destroy_window).
     HostCloseReason destroy_reason_{HostCloseReason::user};

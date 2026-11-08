@@ -1,0 +1,163 @@
+{
+  "family": "ScrollableControl",
+  "step": "G9",
+  "declaring": "ScrollableControl",
+  "header": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
+  "source": "src/controls/scrollable_control/scrollable_control.cpp",
+  "capabilities_header": "include/gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp",
+  "base": "Control",
+  "includes": [
+    "gui_forms/types.hpp"
+  ],
+  "test": {
+    "type": "ScrollableControl",
+    "include": "gui_forms/controls/scrollable_control/scrollable_control.hpp"
+  },
+  "properties": [
+    {
+      "name": "auto_scroll",
+      "capability": "AutoScroll",
+      "value": "bool",
+      "initial": "false",
+      "comment": "Whether scroll bars appear when the content exceeds the client area (AutoScroll).",
+      "getter": "auto_scroll",
+      "setter": "set_auto_scroll",
+      "clear": null,
+      "field": "auto_scroll_",
+      "event": null,
+      "on_changed": false,
+      "coerce": true,
+      "localizable": null,
+      "table": {
+        "kind": "boolean",
+        "category": "Layout",
+        "description": "Whether scroll bars appear when content exceeds the client area.",
+        "default": "BindingValue{false}",
+        "effects": "Dirty::measure | Dirty::arrange | Dirty::paint",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written updates the scroll state, resets the position when turned off and reports a moved position; TextBox and RichTextBox react through on_auto_scroll_changed (study 15.3)"
+      ]
+    },
+    {
+      "name": "auto_scroll_margin",
+      "capability": "AutoScrollMargin",
+      "value": "Size",
+      "initial": null,
+      "comment": "Logical space kept around the content when scrolling; nonnegative (AutoScrollMargin).",
+      "getter": "auto_scroll_margin",
+      "setter": "set_auto_scroll_margin",
+      "clear": null,
+      "field": "auto_scroll_margin_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": {
+        "kind": "size",
+        "category": "Layout",
+        "description": "Logical space kept around the content when scrolling; nonnegative.",
+        "default": "BindingValue{Size{}}",
+        "effects": "Dirty::measure | Dirty::arrange | Dirty::paint",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written touches only while auto scroll is on"
+      ],
+      "sample": "Size{5.0, 7.0}"
+    },
+    {
+      "name": "auto_scroll_min_size",
+      "capability": "AutoScrollMinSize",
+      "value": "Size",
+      "initial": null,
+      "comment": "Smallest logical content size scrolling allows for; nonnegative (AutoScrollMinSize).",
+      "getter": "auto_scroll_min_size",
+      "setter": "set_auto_scroll_min_size",
+      "clear": null,
+      "field": "auto_scroll_min_size_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": {
+        "kind": "size",
+        "category": "Layout",
+        "description": "Smallest logical content size scrolling allows for; nonnegative.",
+        "default": "BindingValue{Size{}}",
+        "effects": "Dirty::measure | Dirty::arrange | Dirty::paint",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written turns auto scroll on, as Windows Forms' setter writes AutoScroll"
+      ],
+      "sample": "Size{40.0, 30.0}"
+    },
+    {
+      "name": "auto_scroll_position",
+      "capability": "AutoScrollPosition",
+      "value": "Point",
+      "initial": null,
+      "comment": "The scrolled content's offset, negated as Windows Forms reports it (AutoScrollPosition); a write scrolls to the given position, clamped at zero.",
+      "getter": "auto_scroll_position",
+      "setter": "set_auto_scroll_position",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "storage": "view",
+      "table": {
+        "kind": "point",
+        "category": "Layout",
+        "description": "The scrolled content's offset, negated as Windows Forms reports it.",
+        "default": "BindingValue{Point{}}",
+        "effects": "Dirty::arrange | Dirty::paint",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "a view over the scroll position: the write scrolls"
+      ]
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "set_auto_scroll_margin(double x, double y)",
+      "reason": "Windows Forms' SetAutoScrollMargin method: clamps negative components to zero"
+    },
+    {
+      "name": "hscroll, vscroll",
+      "reason": "views of the scroll bars' visibility, kept with the bars (ScrollProperties)"
+    }
+  ]
+}

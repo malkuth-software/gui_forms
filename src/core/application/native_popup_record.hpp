@@ -10,7 +10,7 @@ namespace gui_forms::detail {
 
 struct ApplicationWindowState;
 
-// One native popup window (SurfaceRoot::open_native_popup): the run's
+// One native popup window (Window::open_native_popup): the run's
 // handle on it and a borrowed pointer to its model. Shared by the token
 // that keeps it open and, as a revocable, by the control that opened it.
 // The window and its model are owned by the host's entry; the model
@@ -18,7 +18,17 @@ struct ApplicationWindowState;
 // destroys the model only after the window's state is revoked.
 class NativePopupRecord final : public Revocable {
 public:
-    NativePopupRecord(ApplicationWindowHandle window, Window* model) noexcept;
+    // Unbound until the run opens the window (bind).
+    explicit NativePopupRecord(Window* model) noexcept;
+
+    // The popup window's handle, once open_window returned it.
+    void bind(ApplicationWindowHandle window) noexcept;
+    // The popup window closed (its closed callback): the record no longer
+    // names it, and closed() is raised once.
+    void notify_closed();
+    // Raised once, on the UI thread, when the popup window closes, whatever
+    // closed it (the token, the opener's death, the host).
+    [[nodiscard]] Event<>& closed() noexcept { return closed_; }
 
     // Destroys the popup window if it is still open (ApplicationWindows::
     // destroy_window): its closed callback runs before this returns.
@@ -32,6 +42,17 @@ public:
 private:
     ApplicationWindowHandle window_{};
     Window* model_{};
+    Event<> closed_{};
+    // Set by notify_closed; the handle may still read active inside the
+    // window's own closed callback.
+    bool window_closed_{};
+};
+
+// The popup window's closed callback (ApplicationWindowOptions::closed):
+// tells the record, if it is still alive.
+struct NativePopupClosed final {
+    std::weak_ptr<NativePopupRecord> record{};
+    void operator()() const;
 };
 
 // What open_native_popup_window needs. Borrowed for the call.

@@ -35,10 +35,20 @@ Related types
    :class: autosummary longtable
    :widths: 35 65
 
+   * - :cpp:class:`AutoScrollCapability <gui_forms::AutoScrollCapability>`
+     - Whether scroll bars appear when the content exceeds the client area (AutoScroll).
+   * - :cpp:class:`AutoScrollMarginCapability <gui_forms::AutoScrollMarginCapability>`
+     - Logical space kept around the content when scrolling; nonnegative (AutoScrollMargin).
+   * - :cpp:class:`AutoScrollMinSizeCapability <gui_forms::AutoScrollMinSizeCapability>`
+     - Smallest logical content size scrolling allows for; nonnegative (AutoScrollMinSize).
+   * - :cpp:class:`AutoScrollPositionCapability <gui_forms::AutoScrollPositionCapability>`
+     - The scrolled content's offset, negated as Windows Forms reports it (AutoScrollPosition); a write scrolls to the given position, clamped at zero.
    * - :cpp:class:`ScrollableControl::Parts <gui_forms::ScrollableControl::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`ScrollableControl::States <gui_forms::ScrollableControl::States>`
      -  
+   * - :cpp:class:`ScrollableControlCapabilities <gui_forms::ScrollableControlCapabilities>`
+     - Every ScrollableControl capability, in the order the declaring class takes them.
    * - :cpp:class:`ScrollAxisSnapshot <gui_forms::ScrollAxisSnapshot>`
      - ScrollAxisSnapshot exposes minimum, maximum, viewport, small/large change, value, effective maximum, and visibility for one axis.
    * - :cpp:class:`ScrollBar::Parts <gui_forms::ScrollBar::Parts>`
@@ -51,6 +61,70 @@ Related types
      - ScrollProperties is the owner-bound, per-axis state model for enabled/visible state, authored or automatic range increments, clamped position, orientation, and inspectable snapshot projection.
    * - :cpp:class:`ScrollSnapshot <gui_forms::ScrollSnapshot>`
      - ScrollSnapshot combines horizontal/vertical axis snapshots with auto-scroll policy, margin, minimum size, offset, and logical position.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> AutoScrollCapability
+
+   ``#include <gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp>``
+
+   Whether scroll bars appear when the content exceeds the client area (AutoScroll).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(AutoScrollCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, AutoScrollCapability<Declaring>> auto_scroll
+
+      Default: ``{false}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> AutoScrollMarginCapability
+
+   ``#include <gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp>``
+
+   Logical space kept around the content when scrolling; nonnegative (AutoScrollMargin).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(AutoScrollMarginCapability& capability, Size incoming)
+
+   .. cpp:member:: PropertyCell<Size, AutoScrollMarginCapability<Declaring>> auto_scroll_margin
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> AutoScrollMinSizeCapability
+
+   ``#include <gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp>``
+
+   Smallest logical content size scrolling allows for; nonnegative (AutoScrollMinSize).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(AutoScrollMinSizeCapability& capability, Size incoming)
+
+   .. cpp:member:: PropertyCell<Size, AutoScrollMinSizeCapability<Declaring>> auto_scroll_min_size
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> AutoScrollPositionCapability
+
+   ``#include <gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp>``
+
+   The scrolled content's offset, negated as Windows Forms reports it (AutoScrollPosition); a write scrolls to the given position, clamped at zero.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(AutoScrollPositionCapability& capability, Point incoming)
+
+   .. cpp:function:: static Point read(const AutoScrollPositionCapability& capability)
+
+   .. cpp:member:: PropertyView<Point, AutoScrollPositionCapability<Declaring>> auto_scroll_position
 
 .. cpp:namespace:: gui_forms
 
@@ -103,6 +177,33 @@ Related types
    .. cpp:member:: bool focused
 
    .. cpp:member:: bool focus_visible
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ScrollableControlCapabilities : public AutoScrollCapability<Declaring>, public AutoScrollMarginCapability<Declaring>, public AutoScrollMinSizeCapability<Declaring>, public AutoScrollPositionCapability<Declaring>
+
+   ``#include <gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp>``
+
+   Every ScrollableControl capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: bool auto_scroll
+
+      Whether scroll bars appear when the content exceeds the client area (AutoScroll).
+
+   .. cpp:member:: Size auto_scroll_margin
+
+      Logical space kept around the content when scrolling; nonnegative (AutoScrollMargin).
+
+   .. cpp:member:: Size auto_scroll_min_size
+
+      Smallest logical content size scrolling allows for; nonnegative (AutoScrollMinSize).
+
+   .. cpp:member:: Point auto_scroll_position
+
+      The scrolled content's offset, negated as Windows Forms reports it (AutoScrollPosition); a write scrolls to the given position, clamped at zero.
 
 .. cpp:namespace:: gui_forms
 

@@ -6,8 +6,29 @@
 #include <cstdint>
 #include <memory>
 #include <span>
+#include <string_view>
+#include <vector>
 
 namespace gui_forms {
+
+// Counters of a host's side of its sub-surface's requests (design note
+// section 15). UI thread.
+struct SubSurfaceRequestStatistics final {
+    std::uint64_t received{};
+    // Answered shown by the window's tooltip presenter.
+    std::uint64_t shown{};
+    // Refused by the window's policy (its tooltips off for that origin).
+    std::uint64_t declined{};
+    // Dropped as out of date: measured in an older content epoch, or older
+    // than the pointer or focus leaving the host.
+    std::uint64_t stale{};
+    // Revoked by the host: the pointer or keyboard focus left it.
+    std::uint64_t revoked{};
+    // Revoked by the sub-surface.
+    std::uint64_t withdrawn{};
+    // Alerts raised on the host for the sub-surface (SurfaceRoot::raise_alert).
+    std::uint64_t alerts{};
+};
 
 // The parent's control for one threaded sub-surface (stage S2, design note
 // section 2): it occupies the region, owns the sub-surface's thread, sizes
@@ -31,6 +52,17 @@ namespace gui_forms {
 // dialog keys, and Tab, which moves focus past the host because the
 // sub-surface's own traversal does not wrap. Keyboard focus inside the
 // sub-surface follows the host's focus and the window's activation.
+//
+// Requests (design note section 15): the sub-surface shows nothing beyond
+// its region, so it asks for its tooltips. The host receives each request on
+// the window's thread, drops it as stale when it is out of date, declines it
+// when the window's tooltips are off for its origin, and otherwise offers it
+// to the window's tooltip presenter as one of its tooltip items
+// ("sub-surface-request.<id>", anchored at the host's origin plus the
+// request's anchor), which applies every policy and placement; a program
+// request is shown at once. Answers go back asynchronously. The host revokes
+// the pointer's requests when the pointer leaves it, the keyboard's when its
+// keyboard focus leaves, and drops every request when its thread stops.
 class SubSurfaceHost final : public Control {
 public:
     explicit SubSurfaceHost(StableId stable_id);
@@ -58,6 +90,13 @@ public:
     // Keys the sub-surface returned after the host had lost keyboard focus
     // or left its window; they are not replayed in the window.
     [[nodiscard]] std::uint64_t returned_keys_discarded() const noexcept { return returned_keys_discarded_; }
+    [[nodiscard]] const SubSurfaceRequestStatistics& request_statistics() const noexcept {
+        return request_statistics_;
+    }
+    // The sub-surface's open requests as tooltip parts, in window
+    // coordinates; a program request has no bounds (it is shown at once,
+    // never found under the pointer or focus).
+    [[nodiscard]] std::vector<SemanticNode> tool_tip_items() const override;
 
     // Arranges as any control, then reconfigures the sub-surface when its
     // device size or scale changed. The window's theme and presentation
@@ -108,6 +147,30 @@ private:
     // and revokes it when that thread stops; a key posted before then finds
     // it revoked or released and is dropped. Parent thread only.
     class KeyReturn;
+    // The sub-surface's request target for one thread, revoked the same way.
+    class RequestTarget;
+    // Where the answers to the alerts raised for one thread go, revoked the
+    // same way.
+    class AlertRelay;
+    // An alert raised on the host's root for the sub-surface: the root's
+    // alert ID and the sub-surface's request ID.
+    struct RaisedAlert final {
+        std::uint64_t raised{};
+        std::uint64_t request{};
+    };
+
+    // A request the sub-surface posted (RequestTarget).
+    void receive_request(const SubSurfaceRequest& request);
+    void receive_revoke(std::uint64_t id);
+    // Revokes every open request of `origin` and tells the sub-surface.
+    void revoke_requests(SubSurfaceToolTipOrigin origin);
+    void answer(std::uint64_t id, SurfaceRequestResult result, HostDialogChoice choice = HostDialogChoice::none);
+    // An alert the sub-surface raised: raised again on the host's root,
+    // whose one answer goes back (relay_alert).
+    void receive_alert(const SubSurfaceRequest& request);
+    void relay_alert(const SurfaceRequestOutcome& outcome);
+    // The window's presenter showed or closed one of this host's items.
+    void on_window_tool_tip(const ToolTipEvent& change);
 
     // Tells the sub-surface whether it has keyboard focus: the host is the
     // window's focused control in an active window. `entry` is where focus
@@ -146,6 +209,18 @@ private:
     SubscriptionToken presentation_subscription_{};
     SubscriptionToken active_subscription_{};
     std::shared_ptr<KeyReturn> key_return_{};
+    std::shared_ptr<RequestTarget> request_target_{};
+    SubscriptionToken tool_tip_subscription_{};
+    // The sub-surface's open requests, oldest first.
+    std::vector<SubSurfaceRequest> requests_{};
+    std::shared_ptr<AlertRelay> alert_relay_{};
+    // The alerts raised for the sub-surface and not yet answered.
+    std::vector<RaisedAlert> alerts_{};
+    // The input sequences of the newest pointer leave and focus leave
+    // forwarded: an older request of that origin is stale.
+    std::uint64_t pointer_left_sequence_{};
+    std::uint64_t focus_left_sequence_{};
+    SubSurfaceRequestStatistics request_statistics_{};
     // The sub-surface was last told it has keyboard focus.
     bool keyboard_inside_{};
     // The non-primary pointer buttons forwarded down and not yet up, one bit

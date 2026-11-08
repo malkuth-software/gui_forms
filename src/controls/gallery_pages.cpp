@@ -162,7 +162,7 @@ GalleryShell build_gallery_shell(const GalleryTree& compiled) {
     constexpr double sidebar_height = 786.0;
     std::shared_ptr<gui_forms::ScrollableControl> sidebar = make_control<ScrollableControl>(
         StableId("gallery.sidebar"));
-    (*sidebar).set_auto_scroll(true);
+    (*sidebar).auto_scroll = true;
     (*root).add_at(sidebar, {0.0, 34.0, 238.0, sidebar_height});
     // First child, so it paints beneath the rows; sized to the content below.
     std::shared_ptr<gui_forms::Panel> sidebar_paper =
@@ -187,7 +187,7 @@ GalleryShell build_gallery_shell(const GalleryTree& compiled) {
         std::shared_ptr<gui_forms::Button> navigation = make_control<Button>(
             StableId(std::string(navigation_id_prefix) + std::string((*entry.page).id)),
             std::string((*entry.page).title));
-        (*navigation).set_font({FontRole::control, 12.0, 400, false, 0.24});
+        (*navigation).font = {FontRole::control, 12.0, 400, false, 0.24};
         (*navigation).set_visual_style(ButtonVisualStyle::command);
         (*navigation).set_style(page_style());
         (*navigation).set_bounds({16.0, navigation_y, 190.0, 24.0});
@@ -203,7 +203,7 @@ GalleryShell build_gallery_shell(const GalleryTree& compiled) {
     // Narrower than the viewport beside the vertical bar, so no horizontal
     // scrollbar appears; the column's own background shows at the edge.
     (*sidebar_paper).set_bounds({0.0, 0.0, 206.0, std::max(sidebar_height, navigation_y + 8.0)});
-    (*sidebar).set_auto_scroll_min_size({206.0, navigation_y + 8.0});
+    (*sidebar).auto_scroll_min_size = {206.0, navigation_y + 8.0};
 
     std::shared_ptr<gui_forms::ScaledPanel> content = make_control<Surface>(
         StableId("gallery.content"), Size{1042.0, 742.0});
@@ -231,7 +231,7 @@ GalleryShell build_gallery_shell(const GalleryTree& compiled) {
         // its content.
         std::shared_ptr<gui_forms::ScrollableControl> viewport = make_control<ScrollableControl>(
             StableId(surface_id + ".viewport"));
-        (*viewport).set_auto_scroll(true);
+        (*viewport).auto_scroll = true;
         (*viewport).visible = index == 0U;
         (*content).add_at(viewport, {20.0, 0.0, 1022.0, 742.0});
         std::shared_ptr<gui_forms::ScaledPanel> page = make_control<Surface>(
@@ -274,7 +274,7 @@ GalleryShell build_gallery_shell(const GalleryTree& compiled) {
         (*page).set_design_bounds(*body, {0.0, strip_height, 1000.0, body_height});
         (*page).set_design_size({1000.0, page_height});
         (*page).set_bounds({0.0, 0.0, 1000.0, page_height});
-        (*viewport).set_auto_scroll_min_size({1000.0, page_height});
+        (*viewport).auto_scroll_min_size = {1000.0, page_height};
         (*context).pages.push_back(viewport);
     }
 
@@ -387,10 +387,10 @@ public:
             (*(*context).error_provider).set_error(
                 (*context).provider_error_target,
                 "Endpoint is intentionally marked invalid for provider dogfood.");
-            (*(*context).provider_error_toggle).set_text("Clear");
+            (*(*context).provider_error_toggle).text = "Clear";
         } else {
             (*(*context).error_provider).set_error((*context).provider_error_target, {});
-            (*(*context).provider_error_toggle).set_text("Restore");
+            (*(*context).provider_error_toggle).text = "Restore";
         }
     }
 
@@ -510,7 +510,7 @@ void initialize_gallery_runtime(Window& window) {
         "The overlay re-anchors when this retained target moves on UI Timer ticks.");
     for (const std::shared_ptr<gui_forms::Button>& navigation : (*context).navigation) {
         (*(*context).tooltips).set_tool_tip(
-            navigation, "Open the " + (*navigation).text() + " Gallery page.");
+            navigation, "Open the " + (*navigation).text.read() + " Gallery page.");
     }
 
     // Enhanced tooltips on the commands page's ToolStrip items: title,

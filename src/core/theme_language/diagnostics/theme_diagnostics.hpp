@@ -204,6 +204,12 @@ enum class DiagnosticCode : std::uint16_t {
     // property marked as content (PropertyDescriptor::content_value) is
     // not presentation and stays.
     form_presentation_property = 813,
+    // A grid span that conflicts (study 10.9): two spans of one container
+    // sharing a cell or a name, a span past the grid's limit or covering a
+    // cell a child is placed at other than its anchor, an `area` naming no
+    // span of the parent, or a `cell` inside a span. Every conflict is
+    // reported.
+    form_span_conflict = 814,
     // E999 is temporary: a form a later phase gives its meaning, refused
     // until then so that no interim meaning ships (PLAN.md P4: a custom
     // property with several definitions, until P12; P5: `!important`, the

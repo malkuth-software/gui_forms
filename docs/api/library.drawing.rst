@@ -1406,6 +1406,10 @@ Types
 
       Decides without blocking, for a producer that waits on something of its own as well (a sub-surface's loop, woken by LiveSurface::connect_presented_wake): frame or deadline commit the frame (the next decision waits for it to be shown); pending names when to look again. Empty pacers answer frame at ``now``.
 
+   .. cpp:function:: FrameTime display_time(FrameTime now) const
+
+      The display time a frame produced now would be shown for (the frame_time plan would answer), without deciding anything: a producer's motion ticks on it before it knows whether it will paint. ``now`` without display timing or for an empty pacer.
+
    .. cpp:function:: LivePacingResult wait_for_frame(const std::stop_token& stop)
 
       Blocks until plan would answer frame or deadline, or ``stop`` fires; one wait per frame on the surface's condition, never a fixed sleep. While idle it waits only for ``stop`` and arm().

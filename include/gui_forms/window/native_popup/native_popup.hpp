@@ -61,6 +61,18 @@ struct NativePopupOptions final {
     NativePopupFallback fallback{NativePopupFallback::overlay};
 };
 
+// How an owned dialog (TaskDialog, FontDialog) presents its panel. The
+// modal layer that blocks the rest of the owner's window stays in that
+// window either way (owner, 2026-11-04: scrims stay in-surface).
+enum class DialogSurface : std::uint8_t {
+    // The panel is an overlay in the owner's window.
+    overlay,
+    // The panel opens in a native popup window owned by the owner's window
+    // (Window::open_native_popup, taking focus); an overlay when the run
+    // cannot open one.
+    native_popup,
+};
+
 class Window;
 
 // Keeps one popup open (Window::open_native_popup). Destroying or
@@ -80,6 +92,12 @@ public:
     void disconnect() noexcept;
     // Whether the popup is still open.
     [[nodiscard]] bool connected() const noexcept;
+    // Raised once, on the UI thread, when the popup closes, whatever closed
+    // it (this token, the opener's death, the host closing the window, or
+    // for an overlay its owner leaving the window). Null for an empty token.
+    // A subscriber that disconnects the token itself should unsubscribe
+    // first if it does not want to hear its own close.
+    [[nodiscard]] Event<>* closed_event() noexcept;
     [[nodiscard]] NativePopupSurface surface() const noexcept { return surface_; }
     // Why the native path did not open the popup; none when it did, and for
     // an empty token.

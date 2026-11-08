@@ -215,9 +215,6 @@ visual_line_count
 validate_multiline_text
     Checks text against the multi-line limits without changing anything,
     returning the first problem found.
-set_auto_scroll
-    In a multi-line box, true lets the document's extent drive the inherited
-    `Panel` scroll bars; a wrapped document overflows only vertically.
 
 See Also
 --------

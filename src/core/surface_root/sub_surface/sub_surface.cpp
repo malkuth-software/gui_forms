@@ -1,6 +1,8 @@
 #include "gui_forms/surface_root/sub_surface/sub_surface.hpp"
 
+#include "sub_surface_alerts.hpp"
 #include "sub_surface_channel.hpp"
+#include "sub_surface_tool_tips.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -30,6 +32,16 @@ SubSurface::SubSurface(Control::Ptr root, std::shared_ptr<ApplicationResources> 
     if (!(*root_).is_alive()) {
         throw std::logic_error("GUI.Forms sub-surface root may not be disposed");
     }
+    // Tooltips are asked of the parent (design note section 15).
+    std::unique_ptr<detail::SubSurfaceToolTipRequester> requester =
+        std::make_unique<detail::SubSurfaceToolTipRequester>(*this);
+    requester_ = requester.get();
+    tool_tips_ = std::move(requester);
+    // So are alerts.
+    std::unique_ptr<detail::SubSurfaceAlertRequester> alerts =
+        std::make_unique<detail::SubSurfaceAlertRequester>(*this);
+    alert_requester_ = alerts.get();
+    alerts_ = std::move(alerts);
     // Inactive until keyboard focus enters from the host (enter_focus), and
     // no wrap-around: Tab past the last stop goes back to the parent.
     active_ = false;
@@ -44,6 +56,10 @@ SubSurface::SubSurface(Control::Ptr root, std::shared_ptr<ApplicationResources> 
 }
 
 SubSurface::~SubSurface() {
+    // Nothing is asked of the parent while the tree goes.
+    channel_.reset();
+    (*tool_tips_).shutdown();
+    (*alerts_).shutdown();
     release_tree();
     (*resources_).detach(*this);
 }
@@ -69,14 +85,21 @@ void SubSurface::enter_focus(SubSurfaceFocusEntry entry) {
     set_active(true);
     if (entry == SubSurfaceFocusEntry::restore) {
         const Control::Ptr current = focused_.lock();
-        if (current && eligible(current)) return;
-        static_cast<void>(move_focus(true));
-        return;
+        if (!current || !eligible(current)) static_cast<void>(move_focus(true));
+    } else if (request_focus(Control::Ptr{})) {
+        // Traversal from no focus starts at the first or the last stop. A
+        // validation that refuses to let the current control go keeps it.
+        static_cast<void>(move_focus(entry == SubSurfaceFocusEntry::first));
     }
-    // Traversal from no focus starts at the first or the last stop. A
-    // validation that refuses to let the current control go keeps it.
-    if (!request_focus(Control::Ptr{})) return;
-    static_cast<void>(move_focus(entry == SubSurfaceFocusEntry::first));
+    // Focus may have stayed where it was: the thing under it is asked for
+    // again now that the sub-surface is active.
+    (*requester_).key_handled();
+}
+
+void SubSurface::leave_focus() {
+    require_root_thread("sub-surface focus");
+    set_active(false);
+    (*requester_).focus_left();
 }
 
 namespace {
@@ -161,15 +184,21 @@ private:
 // the presenter holds every one (rare: three buffers by default).
 constexpr std::chrono::milliseconds publish_retry_interval{4};
 
+} // namespace
+
+namespace detail {
+
 // One sub-surface's thread: everything here is that thread's, from the
 // moment run() starts until it returns and destroys the loop.
 class SubSurfaceLoop final {
 public:
     SubSurfaceLoop(std::shared_ptr<detail::SubSurfaceChannel> channel,
                    std::unique_ptr<SubSurfaceContent> content, std::shared_ptr<LiveSurface> surface,
-                   std::shared_ptr<const Theme> theme, std::unique_ptr<PaintFramebuffer> text_measure) noexcept
+                   std::shared_ptr<const Theme> theme, std::shared_ptr<const Theme> user_theme,
+                   std::unique_ptr<PaintFramebuffer> text_measure) noexcept
         : channel_(std::move(channel)), content_(std::move(content)), surface_(std::move(surface)),
-          theme_(std::move(theme)), text_measure_(std::move(text_measure)), pacer_(surface_) {}
+          theme_(std::move(theme)), user_theme_(std::move(user_theme)), text_measure_(std::move(text_measure)),
+          pacer_(surface_) {}
 
     // The thread's entry. Owns the loop and destroys it before returning, so
     // the content, its controls and both framebuffers die on this thread.
@@ -186,6 +215,8 @@ private:
     // Dispatches the input taken by wait(), in posting order, and returns
     // the keys the tree left unhandled to the parent.
     void dispatch_inputs(SubSurface& root);
+    // Hands the parent's answers taken by wait() to the root, in order.
+    void deliver_outcomes(SubSurface& root);
     void produce(SubSurface& root);
     void publish();
     // Publishes the root's text input caret when it changed.
@@ -196,6 +227,8 @@ private:
     std::unique_ptr<SubSurfaceContent> content_;
     std::shared_ptr<LiveSurface> surface_;
     std::shared_ptr<const Theme> theme_;
+    // The parent's layered user theme, or null; immutable and shared.
+    std::shared_ptr<const Theme> user_theme_;
     std::unique_ptr<PaintFramebuffer> text_measure_;
     std::unique_ptr<PaintFramebuffer> framebuffer_{};
     std::uint64_t content_epoch_{};
@@ -215,8 +248,11 @@ private:
     // until the window showed the last one, or one and a half refreshes.
     LiveSurfacePacer pacer_;
     std::optional<FrameTime> pacing_wake_{};
+    // The display time the frame schedule was last polled at.
+    FrameTime motion_time_{};
     // The input wait() took from the channel; empty between turns.
     std::vector<detail::SubSurfaceInputRecord> inputs_{};
+    std::vector<SurfaceRequestOutcome> outcomes_{};
     std::optional<Rect> published_caret_{};
 };
 
@@ -243,12 +279,15 @@ void SubSurfaceLoop::run(std::unique_ptr<SubSurfaceLoop> loop) noexcept {
 
 void SubSurfaceLoop::run_tree() {
     std::shared_ptr<ApplicationResources> resources = std::make_shared<ApplicationResources>();
+    // A user theme is chosen before the first root shares the resources.
+    if (user_theme_) (*resources).set_user_theme(user_theme_);
     (*resources).set_theme(theme_);
     Control::Ptr built = (*content_).build_root();
     if (!built) {
         throw std::invalid_argument("GUI.Forms sub-surface content built no root control");
     }
     SubSurface root(std::move(built), std::move(resources));
+    root.channel_ = channel_;
     if (text_measure_) root.set_text_metrics_provider(&(*text_measure_).painter());
     root.set_dispatch_wake_handler(detail::SignalSubSurfaceChannel(channel_));
     root.set_paint_wake_handler(detail::SignalSubSurfaceChannel(channel_));
@@ -263,18 +302,29 @@ void SubSurfaceLoop::run_tree() {
     }
     std::optional<SubSurfaceConfiguration> configuration;
     while (wait(root, configuration)) {
-        if (configuration) {
+        const bool configured = static_cast<bool>(configuration);
+        if (configured) {
             apply(root, *configuration);
             configuration.reset();
         }
         dispatch_inputs(root);
+        deliver_outcomes(root);
         const DispatchDrainResult drained = root.drain_posted_work();
         if (drained.remaining != 0U) {
             const std::lock_guard<std::mutex> lock((*channel_).mutex);
             (*channel_).signalled = true;
         }
-        static_cast<void>(root.poll_frame_schedule(FrameClock::now()));
+        // Motion ticks on display time (design note section 8): the
+        // vertical blank the next frame would be shown at, never earlier
+        // than the last one used (a host that re-arms its clock may move
+        // the phase back).
+        const FrameTime shown = pacer_.display_time(FrameClock::now());
+        if (shown > motion_time_) motion_time_ = shown;
+        static_cast<void>(root.poll_frame_schedule(motion_time_));
         root.flush();
+        // After the flush, so the things are measured in the new
+        // configuration.
+        if (configured) (*root.requester_).content_epoch_changed();
         produce(root);
         publish_caret(root);
     }
@@ -288,7 +338,8 @@ bool SubSurfaceLoop::wait(const SubSurface& root, std::optional<SubSurfaceConfig
     if (pacing_wake_ && (!deadline || *pacing_wake_ < *deadline)) deadline = pacing_wake_;
     std::unique_lock<std::mutex> lock((*channel_).mutex);
     detail::SubSurfaceChannel& channel = *channel_;
-    while (!channel.stop_requested && !channel.pending && !channel.signalled && channel.inputs.empty()) {
+    while (!channel.stop_requested && !channel.pending && !channel.signalled && channel.inputs.empty() &&
+           channel.outcomes.empty()) {
         if (!deadline) {
             channel.wake.wait(lock);
             continue;
@@ -300,6 +351,7 @@ bool SubSurfaceLoop::wait(const SubSurface& root, std::optional<SubSurfaceConfig
     configuration.swap(channel.pending);
     if (configuration) ++channel.statistics.configurations_applied;
     inputs_.swap(channel.inputs);
+    outcomes_.swap(channel.outcomes);
     channel.signalled = false;
     return true;
 }
@@ -317,6 +369,8 @@ void SubSurfaceLoop::dispatch_inputs(SubSurface& root) {
     std::uint64_t returned = 0U;
     for (const detail::SubSurfaceInputRecord& record : inputs_) {
         const SubSurfaceInput& input = record.input;
+        // A request the tree makes now carries this sequence.
+        root.input_sequence_ = record.sequence;
         switch (input.kind) {
         case SubSurfaceInputKind::pointer:
             static_cast<void>(root.dispatch_pointer(input.pointer));
@@ -338,7 +392,7 @@ void SubSurfaceLoop::dispatch_inputs(SubSurface& root) {
             root.enter_focus(input.focus_entry);
             break;
         case SubSurfaceInputKind::focus_leave:
-            root.set_active(false);
+            root.leave_focus();
             break;
         default:
             throw std::invalid_argument("GUI.Forms sub-surface input kind is not a defined value");
@@ -353,6 +407,20 @@ void SubSurfaceLoop::dispatch_inputs(SubSurface& root) {
     (*channel_).statistics.keys_returned += returned;
 }
 
+void SubSurfaceLoop::deliver_outcomes(SubSurface& root) {
+    if (outcomes_.empty()) return;
+    std::uint64_t stale = 0U;
+    const std::uint64_t received = outcomes_.size();
+    for (const SurfaceRequestOutcome& outcome : outcomes_) {
+        if ((*root.requester_).receive_outcome(outcome)) continue;
+        if (!(*root.alert_requester_).receive_outcome(outcome)) ++stale;
+    }
+    outcomes_.clear();
+    const std::lock_guard<std::mutex> lock((*channel_).mutex);
+    (*channel_).statistics.outcomes_received += received;
+    (*channel_).statistics.outcomes_stale += stale;
+}
+
 void SubSurfaceLoop::apply(SubSurface& root, SubSurfaceConfiguration& configuration) {
     root.set_presentation_settings(configuration.presentation);
     const std::shared_ptr<ApplicationResources> resources = root.resources();
@@ -362,6 +430,7 @@ void SubSurfaceLoop::apply(SubSurface& root, SubSurfaceConfiguration& configurat
     if (configuration.scale != root.scale()) root.apply_scale(configuration.scale);
     root.apply_size(configuration.logical_size);
     content_epoch_ = configuration.content_epoch;
+    root.content_epoch_ = configuration.content_epoch;
     if (configuration.framebuffer) {
         // The producer carries its content (resize rule 5): at an unchanged
         // scale the pixels both sizes cover stay, so only what the resize
@@ -482,19 +551,25 @@ void SubSurfaceLoop::publish() {
     (*channel_).statistics.published_content_epoch = content_epoch_;
 }
 
-} // namespace
+} // namespace detail
 
 SubSurfaceThread::SubSurfaceThread(std::unique_ptr<SubSurfaceContent> content,
                                    std::shared_ptr<LiveSurface> surface,
                                    std::shared_ptr<const Theme> theme,
-                                   std::unique_ptr<PaintFramebuffer> text_measure)
+                                   std::unique_ptr<PaintFramebuffer> text_measure,
+                                   std::shared_ptr<const Theme> layered_user_theme)
     : channel_(std::make_shared<detail::SubSurfaceChannel>()) {
     if (!content || !surface || !theme) {
         throw std::invalid_argument("GUI.Forms sub-surface requires content, a LiveSurface and a theme");
     }
-    std::unique_ptr<SubSurfaceLoop> loop = std::make_unique<SubSurfaceLoop>(
-        channel_, std::move(content), std::move(surface), std::move(theme), std::move(text_measure));
-    thread_ = std::thread(&SubSurfaceLoop::run, std::move(loop));
+    // Checked here, so the thread's set_user_theme cannot refuse it.
+    if (layered_user_theme && (*layered_user_theme).definition().rule_set != ThemeRuleSet::user) {
+        throw std::invalid_argument("a sub-surface's layered user theme is compiled as a user theme");
+    }
+    std::unique_ptr<detail::SubSurfaceLoop> loop = std::make_unique<detail::SubSurfaceLoop>(
+        channel_, std::move(content), std::move(surface), std::move(theme), std::move(layered_user_theme),
+        std::move(text_measure));
+    thread_ = std::thread(&detail::SubSurfaceLoop::run, std::move(loop));
 }
 
 SubSurfaceThread::~SubSurfaceThread() {
@@ -556,14 +631,37 @@ void SubSurfaceThread::set_key_return(WindowDispatcher parent, std::weak_ptr<Sub
     std::swap((*channel_).key_return, previous_target);
 }
 
+void SubSurfaceThread::set_request_target(WindowDispatcher parent,
+                                          std::weak_ptr<SubSurfaceRequestTarget> target) {
+    if (!target.expired() && !parent.window_alive()) {
+        throw std::invalid_argument("GUI.Forms sub-surface request target needs a live parent dispatcher");
+    }
+    // The previous dispatcher and target are released after the lock.
+    WindowDispatcher previous_parent = std::move(parent);
+    std::weak_ptr<SubSurfaceRequestTarget> previous_target = std::move(target);
+    const std::lock_guard<std::mutex> lock((*channel_).mutex);
+    std::swap((*channel_).request_dispatcher, previous_parent);
+    std::swap((*channel_).request_target, previous_target);
+}
+
+void SubSurfaceThread::post_request_outcome(const SurfaceRequestOutcome& outcome) {
+    const std::lock_guard<std::mutex> lock((*channel_).mutex);
+    detail::SubSurfaceChannel& channel = *channel_;
+    if (channel.stop_requested || channel.state == SubSurfaceState::failed) return;
+    channel.outcomes.push_back(outcome);
+    channel.wake.notify_one();
+}
+
 void SubSurfaceThread::stop() noexcept {
     std::optional<SubSurfaceConfiguration> abandoned;
     std::vector<detail::SubSurfaceInputRecord> discarded;
+    std::vector<SurfaceRequestOutcome> unanswered;
     {
         const std::lock_guard<std::mutex> lock((*channel_).mutex);
         (*channel_).stop_requested = true;
         abandoned.swap((*channel_).pending);
         discarded.swap((*channel_).inputs);
+        unanswered.swap((*channel_).outcomes);
         (*channel_).wake.notify_one();
     }
     if (!thread_.joinable()) return;

@@ -59,6 +59,11 @@ public:
     // frame (the next decision waits for it to be shown); pending names
     // when to look again. Empty pacers answer frame at `now`.
     [[nodiscard]] LivePacingResult plan(FrameTime now);
+    // The display time a frame produced now would be shown for (the
+    // frame_time plan would answer), without deciding anything: a
+    // producer's motion ticks on it before it knows whether it will paint.
+    // `now` without display timing or for an empty pacer.
+    [[nodiscard]] FrameTime display_time(FrameTime now) const;
     // Blocks until plan would answer frame or deadline, or `stop` fires;
     // one wait per frame on the surface's condition, never a fixed sleep.
     // While idle it waits only for `stop` and arm().

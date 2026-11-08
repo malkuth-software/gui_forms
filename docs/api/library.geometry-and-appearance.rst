@@ -3500,7 +3500,7 @@ Types
 
    .. rubric:: Construction
 
-   .. cpp:function:: PartMotion(Window& window, PartRecordHandle record) noexcept
+   .. cpp:function:: PartMotion(SurfaceRoot& window, PartRecordHandle record) noexcept
 
 
    .. rubric:: Properties
@@ -7075,9 +7075,9 @@ Functions, constants and aliases
 
 ``#include <gui_forms/engine/theme_engine/theme_engine.hpp>``
 
-.. cpp:function:: MediaFacts window_media_facts(const Window& window) noexcept
+.. cpp:function:: MediaFacts window_media_facts(const SurfaceRoot& window) noexcept
 
-   What ``window`` is to a rule's media condition (EC3): its presentation settings' colour scheme, high contrast and reduced motion, and its scale.
+   What ``window`` (a window or a sub-surface) is to a rule's media condition (EC3): its presentation settings' colour scheme, high contrast and reduced motion, and its scale.
 
 .. cpp:function:: TextRole resolved_text_role(const Control& control, FontDeclaration font)
 

@@ -1,11 +1,14 @@
 // Stage S2.2: a SubSurface built, laid out and painted on its own thread,
 // publishing into a LiveSurface its SubSurfaceHost composes (threaded
-// sub-surfaces design note sections 2, 6, 7 and 9), and stage S3, input
-// and focus forwarding (section 4).
+// sub-surfaces design note sections 2, 6, 7 and 9), stage S3, input and
+// focus forwarding (section 4), S3.3, tooltips asked of the parent
+// (section 15), and S4, effects on a sub-surface (section 14).
 
 #include "gui_forms/gui_forms.hpp"
 #include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
 #include "gui_forms/paint_framebuffer.hpp"
+#include "headless_host.hpp"
+#include "support/theme_definition_heap.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -13,6 +16,8 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
+#include <deque>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -793,9 +798,852 @@ void host_forwards_input_and_focus() {
             "the window's own traversal moved on");
 }
 
-} // namespace
+// Stage S3.3: tooltips asked of the parent (design note section 15).
 
-int main() {
+// A control with a tooltip, focusable or not.
+class TipControl final : public Control {
+public:
+    TipControl(StableId stable_id, std::string tip, bool focusable) : Control(std::move(stable_id)) {
+        set_focusable(focusable);
+        tool_tip_text = std::move(tip);
+    }
+};
+
+// The sub-surface's tooltip controls, published by its thread for the
+// test's program requests (weak: the sub-surface owns them).
+struct TipControls final {
+    std::mutex mutex;
+    std::weak_ptr<Control> hover{};
+};
+
+// A pointer tip at (10, 5, 30, 15) and a focusable tip at (60, 5, 30, 15),
+// in the sub-surface's coordinates.
+class TipContent final : public SubSurfaceContent {
+public:
+    explicit TipContent(std::shared_ptr<TipControls> controls) : controls_(std::move(controls)) {}
+    Control::Ptr build_root() override {
+        std::shared_ptr<Panel> root = std::make_shared<Panel>(StableId("tips.root"));
+        std::shared_ptr<TipControl> hover = std::make_shared<TipControl>(StableId("tips.hover"), "hover tip", false);
+        std::shared_ptr<TipControl> focus = std::make_shared<TipControl>(StableId("tips.focus"), "focus tip", true);
+        (*hover).set_requested_bounds(Rect{10.0, 5.0, 30.0, 15.0});
+        (*focus).set_requested_bounds(Rect{60.0, 5.0, 30.0, 15.0});
+        (*root).add_child(hover);
+        (*root).add_child(focus);
+        const std::lock_guard<std::mutex> lock((*controls_).mutex);
+        (*controls_).hover = hover;
+        return root;
+    }
+
+private:
+    std::shared_ptr<TipControls> controls_;
+};
+
+// Posted to the sub-surface's thread: shows or hides `control`'s tooltip
+// through its root (a program request).
+class ProgramTip final {
+public:
+    ProgramTip(std::weak_ptr<Control> control, bool show) noexcept : control_(std::move(control)), show_(show) {}
+    void operator()() const {
+        const Control::Ptr control = control_.lock();
+        if (!control) return;
+        SurfaceRoot* const root = (*control).attached_surface_root();
+        if (root == nullptr) return;
+        if (show_) {
+            (*root).show_tool_tip(control, std::chrono::milliseconds(0));
+            return;
+        }
+        (*root).hide_tool_tip();
+    }
+
+private:
+    std::weak_ptr<Control> control_;
+    bool show_{};
+};
+
+// Runs the window's posted work until `done` holds of the host's request
+// counters.
+template <typename Predicate>
+[[nodiscard]] bool drain_until_requests(Window& window, const SubSurfaceHost& host, Predicate done) {
+    const std::chrono::steady_clock::time_point limit = std::chrono::steady_clock::now() + wait_limit;
+    while (std::chrono::steady_clock::now() < limit) {
+        static_cast<void>(window.drain_posted_work());
+        if (done(host.request_statistics())) return true;
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    return false;
+}
+
+struct ReceivedAtLeast final {
+    std::uint64_t count{};
+    [[nodiscard]] bool operator()(const SubSurfaceRequestStatistics& statistics) const noexcept {
+        return statistics.received >= count;
+    }
+};
+
+struct WithdrawnAtLeast final {
+    std::uint64_t count{};
+    [[nodiscard]] bool operator()(const SubSurfaceRequestStatistics& statistics) const noexcept {
+        return statistics.withdrawn >= count;
+    }
+};
+
+[[nodiscard]] bool wait_for_outcomes(const SubSurfaceHost& host, std::uint64_t outcomes) {
+    const std::chrono::steady_clock::time_point limit = std::chrono::steady_clock::now() + wait_limit;
+    while (std::chrono::steady_clock::now() < limit) {
+        if (host.statistics().outcomes_received >= outcomes) return true;
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    return false;
+}
+
+[[nodiscard]] PointerEvent pointer_move(Point position) {
+    PointerEvent move;
+    move.action = PointerAction::move;
+    move.position = position;
+    return move;
+}
+
+[[nodiscard]] bool starts_with(const std::string& text, std::string_view prefix) {
+    return text.compare(0, prefix.size(), prefix) == 0;
+}
+
+// The pointer over a sub-surface's control: the sub-surface asks, the
+// window's presenter shows the bubble anchored in the window and answers;
+// the pointer leaving the host revokes it. Keyboard focus asks the same
+// way; the program's request shows at once and its hide withdraws it; the
+// window's switch declines.
+void tool_tips_are_asked_of_the_parent() {
+    std::shared_ptr<Panel> root = std::make_shared<Panel>(StableId("tips.window"));
+    std::shared_ptr<PlainStop> before = std::make_shared<PlainStop>(StableId("tips.before"));
+    std::shared_ptr<SubSurfaceHost> host = std::make_shared<SubSurfaceHost>(StableId("tips.host"));
+    (*before).set_requested_bounds(Rect{0.0, 0.0, 20.0, 20.0});
+    (*host).set_requested_bounds(Rect{20.0, 40.0, 100.0, 30.0});
+    std::shared_ptr<TipControls> controls = std::make_shared<TipControls>();
+    (*host).set_content(std::make_unique<TipContent>(controls), true);
+    (*root).add_child(before);
+    (*root).add_child(host);
+    FillRaster raster;
+    Window window(root, Size{200.0, 100.0});
+    window.set_framebuffer_painter(&raster);
+    ToolTipSettings settings = window.tool_tip_settings();
+    settings.initial_delay = std::chrono::milliseconds(0);
+    settings.reshow_delay = std::chrono::milliseconds(0);
+    settings.auto_pop_delay = std::chrono::milliseconds(0);
+    window.set_tool_tip_settings(settings);
+    window.flush();
+    require((*host).started(), "the host starts");
+    require(wait_for_content_tag(*(*host).live_surface(), 1U), "the sub-surface is configured");
+
+    // Hover: one request, shown below the pointer once the presenter wakes.
+    static_cast<void>(window.dispatch_pointer(pointer_move(Point{20.0 + 15.0, 40.0 + 10.0})));
+    require(drain_until_requests(window, *host, ReceivedAtLeast{1U}), "the sub-surface asks for the hover tip");
+    static_cast<void>(window.poll_frame_schedule(FrameClock::now() + std::chrono::seconds(1)));
+    require(window.tool_tip_visible(), "the window shows the requested tooltip");
+    require(window.tool_tip_target() == host, "on the host");
+    require(window.tool_tip_text() == "hover tip", "with the sub-surface's text");
+    require(starts_with(window.tool_tip_item_id(), "sub-surface-request."), "as one of the host's items");
+    require(wait_for_outcomes(*host, 1U), "the sub-surface hears it was shown");
+    require((*host).request_statistics().shown == 1U, "counted shown");
+
+    // The pointer leaves the host: the host revokes, the bubble closes.
+    static_cast<void>(window.dispatch_pointer(pointer_move(Point{5.0, 90.0})));
+    require(!window.tool_tip_visible(), "leaving the host closes the tooltip");
+    require((*host).request_statistics().revoked == 1U, "the host revoked the pointer's request");
+    require(wait_for_outcomes(*host, 2U), "the sub-surface hears it was revoked");
+
+    // Keyboard: Tab onto the host enters at the focus tip, which is asked
+    // for and shown below its anchor.
+    require(window.request_focus(before), "focus starts before the host");
+    require(window.dispatch_key(key_down(PhysicalKey::tab)), "Tab moves onto the host");
+    require(window.focused_control() == host, "the host has the window's focus");
+    const std::uint64_t asked = (*host).request_statistics().received;
+    require(drain_until_requests(window, *host, ReceivedAtLeast{asked + 1U}), "the sub-surface asks for the focus tip");
+    static_cast<void>(window.poll_frame_schedule(FrameClock::now() + std::chrono::seconds(1)));
+    require(window.tool_tip_visible() && window.tool_tip_text() == "focus tip", "the keyboard's tooltip shows");
+    // Focus leaves the host: revoked and closed.
+    require(window.request_focus(before), "focus leaves the host");
+    require(!window.tool_tip_visible(), "focus leaving the host closes the tooltip");
+    require((*host).request_statistics().revoked == 2U, "the host revoked the keyboard's request");
+
+    // The program: shown at once, then withdrawn by the sub-surface.
+    std::weak_ptr<Control> hover;
+    {
+        const std::lock_guard<std::mutex> lock((*controls).mutex);
+        hover = (*controls).hover;
+    }
+    const std::uint64_t before_program = (*host).request_statistics().received;
+    static_cast<void>((*host).dispatcher().begin_invoke(ProgramTip(hover, true)));
+    require(drain_until_requests(window, *host, ReceivedAtLeast{before_program + 1U}), "the program asks");
+    require(window.tool_tip_visible() && window.tool_tip_text() == "hover tip", "a program request shows at once");
+    const std::uint64_t withdrawn = (*host).request_statistics().withdrawn;
+    static_cast<void>((*host).dispatcher().begin_invoke(ProgramTip(hover, false)));
+    require(drain_until_requests(window, *host, WithdrawnAtLeast{withdrawn + 1U}), "the program withdraws it");
+    require(!window.tool_tip_visible(), "withdrawing closes it");
+
+    // The window's switch: the hover request is declined, nothing shows.
+    window.set_tool_tips_shown(false);
+    const std::uint64_t before_declined = (*host).request_statistics().received;
+    static_cast<void>(window.dispatch_pointer(pointer_move(Point{20.0 + 16.0, 40.0 + 11.0})));
+    require(drain_until_requests(window, *host, ReceivedAtLeast{before_declined + 1U}), "asked again");
+    static_cast<void>(window.poll_frame_schedule(FrameClock::now() + std::chrono::seconds(1)));
+    require((*host).request_statistics().declined == 1U, "the window declined");
+    require(!window.tool_tip_visible(), "nothing shows while tooltips are off");
+
+    static_cast<void>((*root).remove_child((*host).runtime_id()));
+    require(!(*host).started(), "leaving the window stops the thread");
+}
+
+// Collects a request's answers on the requesting root's thread.
+class CollectAnswers final : public SurfaceRequestAnswer {
+public:
+    void request_answered(const SurfaceRequestOutcome& outcome) override {
+        const std::lock_guard<std::mutex> lock(mutex);
+        outcomes.push_back(outcome);
+    }
+    [[nodiscard]] bool has(std::uint64_t id, SurfaceRequestResult result) {
+        const std::lock_guard<std::mutex> lock(mutex);
+        for (const SurfaceRequestOutcome& outcome : outcomes) {
+            if (outcome.id == id && outcome.result == result) return true;
+        }
+        return false;
+    }
+    std::mutex mutex;
+    std::vector<SurfaceRequestOutcome> outcomes;
+};
+
+// A window handles a request itself: shown at once below its anchor and
+// answered through the dispatcher; a newer request replaces it (revoked),
+// withdrawing closes it unanswered, and an owner that cannot show one now
+// is declined.
+void window_handles_tool_tip_requests() {
+    std::shared_ptr<Panel> root = std::make_shared<Panel>(StableId("request.root"));
+    std::shared_ptr<PlainStop> owner = std::make_shared<PlainStop>(StableId("request.owner"));
+    (*owner).set_requested_bounds(Rect{10.0, 10.0, 40.0, 20.0});
+    (*root).add_child(owner);
+    Window window(root, Size{200.0, 100.0});
+    window.flush();
+    std::shared_ptr<CollectAnswers> answers = std::make_shared<CollectAnswers>();
+    ToolTipRequest request;
+    request.text = "asked";
+    request.anchor = Rect{12.0, 12.0, 10.0, 10.0};
+    request.duration = std::chrono::milliseconds(0);
+    const std::uint64_t first = window.request_tool_tip(owner, request, answers);
+    require(first == 1U, "the first request is 1");
+    require(window.tool_tip_visible() && window.tool_tip_text() == "asked", "the window shows it at once");
+    require(window.tool_tip_target() == owner && window.tool_tip_item_id() == "request.1", "as the owner's part");
+    static_cast<void>(window.drain_posted_work());
+    require((*answers).has(first, SurfaceRequestResult::shown), "answered shown through the dispatcher");
+    request.text = "newer";
+    const std::uint64_t second = window.request_tool_tip(owner, request, answers);
+    static_cast<void>(window.drain_posted_work());
+    require((*answers).has(first, SurfaceRequestResult::revoked), "a newer request replaces the first");
+    require(window.tool_tip_text() == "newer", "and shows");
+    window.withdraw_tool_tip_request(second);
+    require(!window.tool_tip_visible(), "withdrawing closes it");
+    (*owner).visible = false;
+    const std::uint64_t hidden = window.request_tool_tip(owner, request, answers);
+    static_cast<void>(window.drain_posted_work());
+    require((*answers).has(hidden, SurfaceRequestResult::declined), "a hidden owner is declined");
+    bool refused = false;
+    request.text.clear();
+    try {
+        static_cast<void>(window.request_tool_tip(owner, request, answers));
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused, "empty text is refused");
+}
+
+// A sub-surface forwards a request to its parent, which shows it and
+// answers; the answer reaches the request's target on the sub-surface's
+// thread; withdrawing closes it in the window.
+class RequestTip final {
+public:
+    RequestTip(std::weak_ptr<Control> control, std::shared_ptr<CollectAnswers> answers, bool withdraw) noexcept
+        : control_(std::move(control)), answers_(std::move(answers)), withdraw_(withdraw) {}
+    void operator()() const {
+        const Control::Ptr control = control_.lock();
+        if (!control) return;
+        SurfaceRoot* const root = (*control).attached_surface_root();
+        if (root == nullptr) return;
+        if (withdraw_) {
+            (*root).withdraw_tool_tip_request(1U);
+            return;
+        }
+        ToolTipRequest request;
+        request.text = "from inside";
+        request.anchor = Rect{10.0, 5.0, 30.0, 15.0};
+        request.duration = std::chrono::milliseconds(0);
+        static_cast<void>((*root).request_tool_tip(control, request, answers_));
+    }
+
+private:
+    std::weak_ptr<Control> control_;
+    std::shared_ptr<CollectAnswers> answers_;
+    bool withdraw_{};
+};
+
+[[nodiscard]] bool wait_for_answer(CollectAnswers& answers, std::uint64_t id, SurfaceRequestResult result) {
+    const std::chrono::steady_clock::time_point limit = std::chrono::steady_clock::now() + wait_limit;
+    while (std::chrono::steady_clock::now() < limit) {
+        if (answers.has(id, result)) return true;
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    return false;
+}
+
+void sub_surface_forwards_tool_tip_requests() {
+    std::shared_ptr<Panel> root = std::make_shared<Panel>(StableId("forward.window"));
+    std::shared_ptr<SubSurfaceHost> host = std::make_shared<SubSurfaceHost>(StableId("forward.host"));
+    (*host).set_requested_bounds(Rect{20.0, 40.0, 100.0, 30.0});
+    std::shared_ptr<TipControls> controls = std::make_shared<TipControls>();
+    (*host).set_content(std::make_unique<TipContent>(controls), true);
+    (*root).add_child(host);
+    FillRaster raster;
+    Window window(root, Size{200.0, 100.0});
+    window.set_framebuffer_painter(&raster);
+    window.flush();
+    require(wait_for_content_tag(*(*host).live_surface(), 1U), "the sub-surface is configured");
+    std::weak_ptr<Control> hover;
+    {
+        const std::lock_guard<std::mutex> lock((*controls).mutex);
+        hover = (*controls).hover;
+    }
+    std::shared_ptr<CollectAnswers> answers = std::make_shared<CollectAnswers>();
+    static_cast<void>((*host).dispatcher().begin_invoke(RequestTip(hover, answers, false)));
+    require(drain_until_requests(window, *host, ReceivedAtLeast{1U}), "the request reaches the parent");
+    require(window.tool_tip_visible() && window.tool_tip_text() == "from inside", "the parent shows it");
+    require(window.tool_tip_target() == host, "on the host");
+    require(wait_for_answer(*answers, 1U, SurfaceRequestResult::shown), "the answer reaches the target");
+    static_cast<void>((*host).dispatcher().begin_invoke(RequestTip(hover, answers, true)));
+    require(drain_until_requests(window, *host, WithdrawnAtLeast{1U}), "the withdrawal reaches the parent");
+    require(!window.tool_tip_visible(), "withdrawing closes it in the window");
+    static_cast<void>((*root).remove_child((*host).runtime_id()));
+}
+
+// Stage S4: effects on a sub-surface (design note section 14).
+
+// What an ambient control on a sub-surface saw, written on its thread.
+struct AmbientLog final {
+    std::mutex mutex;
+    std::vector<FrameTime> ticks;
+    // Paints while ambient motion was suppressed: the still pose.
+    std::uint64_t still_paints{};
+};
+
+// Enlists itself on its root's motion clock whenever it paints, as a
+// control hosting an effect program does, and records each frame's time.
+class AmbientProbe final : public Control {
+public:
+    AmbientProbe(StableId stable_id, std::shared_ptr<AmbientLog> log)
+        : Control(std::move(stable_id)), log_(std::move(log)) {}
+    void on_paint(Painter& painter, Rect local_damage) override {
+        Control::on_paint(painter, local_damage);
+        painted_ = true;
+        SurfaceRoot* const root = attached_surface_root();
+        if (root == nullptr) return;
+        MotionClock& clock = (*root).motion_clock();
+        if (clock.ambient_suppressed()) {
+            const std::lock_guard<std::mutex> lock((*log_).mutex);
+            ++(*log_).still_paints;
+            return;
+        }
+        static_cast<void>(clock.enlist_control_ambient(*this, std::chrono::milliseconds(4)));
+    }
+    bool on_ambient_frame(FrameTime now) override {
+        const bool shown = painted_;
+        painted_ = false;
+        {
+            const std::lock_guard<std::mutex> lock((*log_).mutex);
+            (*log_).ticks.push_back(now);
+        }
+        invalidate(Dirty::paint);
+        return shown;
+    }
+
+private:
+    std::shared_ptr<AmbientLog> log_;
+    bool painted_{};
+};
+
+class AmbientContent final : public SubSurfaceContent {
+public:
+    explicit AmbientContent(std::shared_ptr<AmbientLog> log) : log_(std::move(log)) {}
+    Control::Ptr build_root() override {
+        return std::make_shared<AmbientProbe>(StableId("ambient.probe"), log_);
+    }
+
+private:
+    std::shared_ptr<AmbientLog> log_;
+};
+
+[[nodiscard]] std::size_t ticks_of(AmbientLog& log) {
+    const std::lock_guard<std::mutex> lock(log.mutex);
+    return log.ticks.size();
+}
+
+[[nodiscard]] bool wait_for_ticks(AmbientLog& log, std::size_t ticks) {
+    const std::chrono::steady_clock::time_point limit = std::chrono::steady_clock::now() + wait_limit;
+    while (std::chrono::steady_clock::now() < limit) {
+        if (ticks_of(log) >= ticks) return true;
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    return false;
+}
+
+// Measurement M3's test: the UI thread blocks for 200 ms and the
+// sub-surface's ambient control keeps ticking; once the window reports
+// display timing, the ticks fall on its vertical blanks; reduced motion
+// from the window stills it (it paints its still pose and stops ticking),
+// and turning it off resumes the ticks.
+void ambient_effect_ticks_off_the_ui_thread() {
+    std::shared_ptr<Panel> root = std::make_shared<Panel>(StableId("ambient.window"));
+    std::shared_ptr<SubSurfaceHost> host = std::make_shared<SubSurfaceHost>(StableId("ambient.host"));
+    (*host).set_requested_bounds(Rect{10.0, 10.0, 60.0, 30.0});
+    std::shared_ptr<AmbientLog> log = std::make_shared<AmbientLog>();
+    (*host).set_content(std::make_unique<AmbientContent>(log), true);
+    (*root).add_child(host);
+    FillRaster raster;
+    Window window(root, Size{200.0, 100.0});
+    window.set_framebuffer_painter(&raster);
+    window.flush();
+    require(wait_for_ticks(*log, 3U), "the ambient control ticks on the sub-surface");
+
+    // The UI thread blocks; the sub-surface goes on.
+    const std::size_t before_block = ticks_of(*log);
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    require(ticks_of(*log) >= before_block + 3U, "ticks continue while the UI thread is blocked");
+
+    // Display timing: a 10 ms refresh phased at `phase`. Later ticks are on
+    // its vertical blanks.
+    const std::shared_ptr<LiveSurface> surface = (*host).live_surface();
+    LiveDisplayTiming timing;
+    timing.refresh_period = std::chrono::duration_cast<FrameInterval>(std::chrono::milliseconds(10));
+    timing.last_vblank = FrameClock::now();
+    timing.source = LiveTimingSource::display_phased;
+    (*surface).notify_presented((*surface).snapshot().published_generation, timing);
+    const std::size_t after_timing = ticks_of(*log) + 2U;
+    require(wait_for_ticks(*log, after_timing + 3U), "ticks continue with display timing");
+    {
+        const std::lock_guard<std::mutex> lock((*log).mutex);
+        for (std::size_t index = after_timing; index < (*log).ticks.size(); ++index) {
+            const FrameInterval offset = (*log).ticks[index] - timing.last_vblank;
+            require(offset.count() >= 0 && offset % timing.refresh_period == FrameInterval::zero(),
+                    "an ambient frame's time is a vertical blank of the window's display");
+        }
+    }
+
+    // Reduced motion: still pose, no more ticks.
+    PresentationSettings settings = window.presentation_settings();
+    settings.reduced_motion = true;
+    window.set_presentation_settings(settings);
+    window.flush();
+    const std::chrono::steady_clock::time_point limit = std::chrono::steady_clock::now() + wait_limit;
+    bool stilled = false;
+    while (!stilled && std::chrono::steady_clock::now() < limit) {
+        {
+            const std::lock_guard<std::mutex> lock((*log).mutex);
+            stilled = (*log).still_paints > 0U;
+        }
+        if (!stilled) std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    require(stilled, "reduced motion paints the still pose on the sub-surface");
+    const std::size_t stilled_ticks = ticks_of(*log);
+    std::this_thread::sleep_for(std::chrono::milliseconds(60));
+    require(ticks_of(*log) == stilled_ticks, "no ambient frame runs while motion is reduced");
+
+    // Motion back: the ticks resume.
+    settings.reduced_motion = false;
+    window.set_presentation_settings(settings);
+    window.flush();
+    require(wait_for_ticks(*log, stilled_ticks + 3U), "turning reduced motion off resumes the ticks");
+    static_cast<void>((*root).remove_child((*host).runtime_id()));
+}
+
+// What a sub-surface's control saw of its root's environment, written on
+// the sub-surface's thread.
+struct EnvironmentLog final {
+    std::mutex mutex;
+    // The root's user theme rules at the first paint (an address compared,
+    // never followed, on the test's thread).
+    std::uintptr_t user_rules{};
+    bool painted{};
+    // MetricsSnapshot::engine_input_changes at the last pointer move.
+    std::uint64_t engine_input_changes{};
+    std::uint64_t pointer_moves{};
+};
+
+class EnvironmentProbe final : public Control {
+public:
+    EnvironmentProbe(StableId stable_id, std::shared_ptr<EnvironmentLog> log)
+        : Control(std::move(stable_id)), log_(std::move(log)) {}
+    void on_paint(Painter& painter, Rect local_damage) override {
+        Control::on_paint(painter, local_damage);
+        const SurfaceRoot* const root = attached_surface_root();
+        if (root == nullptr) return;
+        const std::lock_guard<std::mutex> lock((*log_).mutex);
+        if ((*log_).painted) return;
+        (*log_).painted = true;
+        (*log_).user_rules = reinterpret_cast<std::uintptr_t>((*root).user_theme_rules());
+    }
+    void on_pointer(PointerEvent& event) override {
+        Control::on_pointer(event);
+        if (event.action != PointerAction::move) return;
+        const SurfaceRoot* const root = attached_surface_root();
+        if (root == nullptr) return;
+        // The root noted the position for its engine parts before routing.
+        const std::uint64_t changes = (*root).metrics_snapshot().engine_input_changes;
+        const std::lock_guard<std::mutex> lock((*log_).mutex);
+        (*log_).engine_input_changes = changes;
+        ++(*log_).pointer_moves;
+    }
+
+private:
+    std::shared_ptr<EnvironmentLog> log_;
+};
+
+class EnvironmentContent final : public SubSurfaceContent {
+public:
+    explicit EnvironmentContent(std::shared_ptr<EnvironmentLog> log) : log_(std::move(log)) {}
+    Control::Ptr build_root() override {
+        return std::make_shared<EnvironmentProbe>(StableId("environment.probe"), log_);
+    }
+
+private:
+    std::shared_ptr<EnvironmentLog> log_;
+};
+
+[[nodiscard]] std::shared_ptr<const Theme> user_theme_of_test() {
+    std::unique_ptr<ThemeDefinition> definition = test_support::professional_definition();
+    (*definition).rule_set = ThemeRuleSet::user;
+    std::shared_ptr<const Theme> theme = Theme::create(*definition);
+    return theme;
+}
+
+// Gap 3: the window's layered user theme is the sub-surface's, the same
+// immutable theme and so the same rules. Gap 5: pointer input the window
+// forwards reaches the sub-surface's engine inputs (the position its
+// themed parts' expressions read).
+void user_theme_and_engine_input_reach_the_sub_surface() {
+    const std::shared_ptr<const Theme> user = user_theme_of_test();
+    const std::shared_ptr<ApplicationResources> resources = std::make_shared<ApplicationResources>();
+    (*resources).set_user_theme(user);
+    std::shared_ptr<Panel> root = std::make_shared<Panel>(StableId("environment.window"));
+    std::shared_ptr<SubSurfaceHost> host = std::make_shared<SubSurfaceHost>(StableId("environment.host"));
+    (*host).set_requested_bounds(Rect{20.0, 40.0, 100.0, 30.0});
+    std::shared_ptr<EnvironmentLog> log = std::make_shared<EnvironmentLog>();
+    (*host).set_content(std::make_unique<EnvironmentContent>(log), true);
+    (*root).add_child(host);
+    FillRaster raster;
+    Window window(root, Size{200.0, 100.0}, resources);
+    window.set_framebuffer_painter(&raster);
+    window.flush();
+    require(wait_for_content_tag(*(*host).live_surface(), 1U), "the sub-surface is configured");
+    const std::chrono::steady_clock::time_point painted_limit = std::chrono::steady_clock::now() + wait_limit;
+    bool painted = false;
+    while (!painted && std::chrono::steady_clock::now() < painted_limit) {
+        {
+            const std::lock_guard<std::mutex> lock((*log).mutex);
+            painted = (*log).painted;
+        }
+        if (!painted) std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    require(painted, "the sub-surface's control paints");
+    {
+        const std::lock_guard<std::mutex> lock((*log).mutex);
+        require((*log).user_rules == reinterpret_cast<std::uintptr_t>(&(*user).engine().rules()),
+                "the window's layered user theme rules are the sub-surface's");
+    }
+
+    // Moves waiting together coalesce (the newest wins), so each is sent
+    // once the last arrived.
+    std::uint64_t changes = 0U;
+    std::uint64_t moves = 0U;
+    const Point positions[2] = {Point{20.0 + 10.0, 40.0 + 10.0}, Point{20.0 + 30.0, 40.0 + 12.0}};
+    for (std::uint64_t index = 0U; index < 2U; ++index) {
+        static_cast<void>(window.dispatch_pointer(pointer_move(positions[index])));
+        const std::chrono::steady_clock::time_point moved_limit = std::chrono::steady_clock::now() + wait_limit;
+        while (moves <= index && std::chrono::steady_clock::now() < moved_limit) {
+            {
+                const std::lock_guard<std::mutex> lock((*log).mutex);
+                changes = (*log).engine_input_changes;
+                moves = (*log).pointer_moves;
+            }
+            if (moves <= index) std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+    }
+    require(moves == 2U, "both pointer moves reach the sub-surface's control");
+    // The count is the root's activity since its metrics were last reset,
+    // so only the move just noted is certain to be in it.
+    require(changes >= 1U, "a forwarded move changes the sub-surface's engine pointer input");
+    static_cast<void>((*root).remove_child((*host).runtime_id()));
+}
+
+// Stage S4.6: alerts on the request API (design note section 15).
+
+// The host's message dialog, scripted: records each request and answers
+// the next scripted result (cancelled without a choice when none is left).
+struct AlertScript final {
+    std::vector<HostDialogRequest> requests{};
+    std::deque<HostMessageDialogResult> answers{};
+};
+
+class ScriptedAlerts final {
+public:
+    explicit ScriptedAlerts(AlertScript* script) noexcept : script_(script) {}
+    HostDialogResult operator()(const HostDialogRequest& request, host::HeadlessHostServices&) const {
+        (*script_).requests.push_back(request);
+        HostDialogResult result;
+        result.request_id = request.request_id;
+        HostMessageDialogResult message{HostDialogOutcome::cancelled, HostDialogChoice::none};
+        if (!(*script_).answers.empty()) {
+            message = (*script_).answers.front();
+            (*script_).answers.pop_front();
+        }
+        result.payload = message;
+        return result;
+    }
+
+private:
+    AlertScript* script_{};
+};
+
+// The answer `answers` received for alert `id`, if any.
+[[nodiscard]] std::optional<SurfaceRequestOutcome> alert_answer(CollectAnswers& answers, std::uint64_t id) {
+    const std::lock_guard<std::mutex> lock(answers.mutex);
+    for (const SurfaceRequestOutcome& outcome : answers.outcomes) {
+        if (outcome.id == id) return outcome;
+    }
+    return std::nullopt;
+}
+
+[[nodiscard]] std::size_t answers_for(CollectAnswers& answers, std::uint64_t id) {
+    const std::lock_guard<std::mutex> lock(answers.mutex);
+    std::size_t count = 0U;
+    for (const SurfaceRequestOutcome& outcome : answers.outcomes) {
+        if (outcome.id == id) ++count;
+    }
+    return count;
+}
+
+struct RaiseWithDefault final {
+    Window* window{};
+    Control::Ptr owner{};
+    void operator()() const {
+        AlertRequest request;
+        request.text = "Wrong default";
+        request.default_choice = HostDialogChoice::retry;
+        static_cast<void>((*window).raise_alert(owner, request));
+    }
+};
+
+struct RaiseEmpty final {
+    Window* window{};
+    Control::Ptr owner{};
+    void operator()() const { static_cast<void>((*window).raise_alert(owner, AlertRequest{})); }
+};
+
+template <typename Action>
+[[nodiscard]] bool throws_invalid(const Action& action) {
+    try {
+        action();
+    } catch (const std::invalid_argument&) {
+        return true;
+    }
+    return false;
+}
+
+// A window shows its alerts through the host's message dialog, one at a
+// time and in order, from its dispatcher; each is answered once (closed
+// with the choice; declined without a host; revoked when withdrawn or its
+// owner left before it showed), and bad content changes nothing.
+void window_shows_alerts() {
+    std::shared_ptr<Panel> root = std::make_shared<Panel>(StableId("alerts.window"));
+    std::shared_ptr<PlainStop> owner = std::make_shared<PlainStop>(StableId("alerts.owner"));
+    std::shared_ptr<PlainStop> leaving = std::make_shared<PlainStop>(StableId("alerts.leaving"));
+    (*root).add_child(owner);
+    (*root).add_child(leaving);
+    Window window(root, Size{200.0, 100.0});
+    std::shared_ptr<CollectAnswers> answers = std::make_shared<CollectAnswers>();
+
+    AlertRequest saved;
+    saved.text = "Saved.";
+    const std::uint64_t unhosted = window.raise_alert(owner, saved, answers);
+    require(unhosted == 1U, "the first alert is 1");
+    require(!alert_answer(*answers, unhosted).has_value(), "raising returns before the alert is decided");
+    static_cast<void>(window.drain_posted_work());
+    static_cast<void>(window.drain_posted_work());
+    const std::optional<SurfaceRequestOutcome> declined = alert_answer(*answers, unhosted);
+    require(declined && (*declined).result == SurfaceRequestResult::declined,
+            "without a host the alert is declined");
+
+    host::HeadlessHost headless(window);
+    host::HeadlessHostServices& services = static_cast<host::HeadlessHostServices&>(headless.services());
+    AlertScript script;
+    services.set_dialog_handler(ScriptedAlerts(&script));
+    script.answers.push_back(HostMessageDialogResult{HostDialogOutcome::accepted, HostDialogChoice::no});
+
+    AlertRequest discard;
+    discard.text = "Discard the changes?";
+    discard.caption = "Evidence";
+    discard.buttons = HostMessageButtons::yes_no_cancel;
+    discard.icon = HostMessageIcon::question;
+    discard.default_choice = HostDialogChoice::no;
+    const std::uint64_t first = window.raise_alert(owner, discard, answers);
+    AlertRequest withdrawn;
+    withdrawn.text = "Withdrawn";
+    const std::uint64_t second = window.raise_alert(owner, withdrawn, answers);
+    AlertRequest third;
+    third.text = "Closed without a choice";
+    third.buttons = HostMessageButtons::ok_cancel;
+    const std::uint64_t later = window.raise_alert(owner, third, answers);
+    AlertRequest orphan;
+    orphan.text = "Its owner leaves";
+    const std::uint64_t orphaned = window.raise_alert(leaving, orphan, answers);
+    window.withdraw_alert(second);
+    static_cast<void>((*root).remove_child((*leaving).runtime_id()));
+    for (int round = 0; round < 8; ++round) static_cast<void>(window.drain_posted_work());
+
+    require(script.requests.size() == 2U, "the two alerts still raised are shown, one at a time");
+    const HostMessageDialogRequest* const shown =
+        std::get_if<HostMessageDialogRequest>(&script.requests[0].payload);
+    require(shown != nullptr && (*shown).message == "Discard the changes?" && (*shown).title == "Evidence" &&
+                (*shown).buttons == HostMessageButtons::yes_no_cancel && (*shown).icon == HostMessageIcon::question &&
+                (*shown).default_choice == HostDialogChoice::no,
+            "the first alert's content reaches the host's dialog");
+    require(script.requests[0].owner_id == "alerts.window" && script.requests[0].request_id != 0U &&
+                script.requests[1].request_id != script.requests[0].request_id,
+            "each dialog names the window's root and a fresh identity");
+    const HostMessageDialogRequest* const next =
+        std::get_if<HostMessageDialogRequest>(&script.requests[1].payload);
+    require(next != nullptr && (*next).message == "Closed without a choice" &&
+                (*next).default_choice == HostDialogChoice::ok,
+            "the next one follows, defaulting to its first button");
+    const std::optional<SurfaceRequestOutcome> chose = alert_answer(*answers, first);
+    require(chose && (*chose).result == SurfaceRequestResult::closed && (*chose).choice == HostDialogChoice::no,
+            "the user's choice is the answer");
+    const std::optional<SurfaceRequestOutcome> revoked = alert_answer(*answers, second);
+    require(revoked && (*revoked).result == SurfaceRequestResult::revoked, "a withdrawn alert is revoked");
+    const std::optional<SurfaceRequestOutcome> dismissed = alert_answer(*answers, later);
+    require(dismissed && (*dismissed).result == SurfaceRequestResult::closed &&
+                (*dismissed).choice == HostDialogChoice::cancel,
+            "a box closed without a choice answers cancel");
+    const std::optional<SurfaceRequestOutcome> gone = alert_answer(*answers, orphaned);
+    require(gone && (*gone).result == SurfaceRequestResult::revoked, "an alert whose owner left is revoked");
+    require(answers_for(*answers, first) == 1U && answers_for(*answers, later) == 1U, "each alert is answered once");
+
+    require(throws_invalid(RaiseWithDefault{&window, owner}), "a default choice outside the buttons is refused");
+    require(throws_invalid(RaiseEmpty{&window, owner}), "an alert without text is refused");
+    require(throws_invalid(RaiseEmpty{&window, leaving}), "an owner outside the root is refused");
+    static_cast<void>(window.drain_posted_work());
+    require(script.requests.size() == 2U, "refused alerts show nothing");
+}
+
+// Posted to the sub-surface's thread: raises an alert about `control`
+// through its root, or withdraws alert 1.
+class RaiseAlertInside final {
+public:
+    RaiseAlertInside(std::weak_ptr<Control> control, std::shared_ptr<CollectAnswers> answers, bool withdraw) noexcept
+        : control_(std::move(control)), answers_(std::move(answers)), withdraw_(withdraw) {}
+    void operator()() const {
+        const Control::Ptr control = control_.lock();
+        if (!control) return;
+        SurfaceRoot* const root = (*control).attached_surface_root();
+        if (root == nullptr) return;
+        if (withdraw_) {
+            (*root).withdraw_alert(1U);
+            return;
+        }
+        AlertRequest request;
+        request.text = "From inside";
+        request.buttons = HostMessageButtons::retry_cancel;
+        request.icon = HostMessageIcon::warning;
+        static_cast<void>((*root).raise_alert(control, request, answers_));
+    }
+
+private:
+    std::weak_ptr<Control> control_;
+    std::shared_ptr<CollectAnswers> answers_;
+    bool withdraw_{};
+};
+
+struct AlertsAtLeast final {
+    std::uint64_t count{};
+    [[nodiscard]] bool operator()(const SubSurfaceRequestStatistics& statistics) const noexcept {
+        return statistics.alerts >= count;
+    }
+};
+
+// A sub-surface forwards its alert; the parent raises it on the host and
+// shows it over the window, and the one answer reaches the target on the
+// sub-surface's thread, with the choice. Withdrawn while it waits at the
+// parent, it is revoked and never shown.
+void sub_surface_forwards_alerts() {
+    std::shared_ptr<Panel> root = std::make_shared<Panel>(StableId("forward-alert.window"));
+    std::shared_ptr<SubSurfaceHost> host = std::make_shared<SubSurfaceHost>(StableId("forward-alert.host"));
+    (*host).set_requested_bounds(Rect{20.0, 40.0, 100.0, 30.0});
+    std::shared_ptr<TipControls> controls = std::make_shared<TipControls>();
+    (*host).set_content(std::make_unique<TipContent>(controls), true);
+    (*root).add_child(host);
+    FillRaster raster;
+    Window window(root, Size{200.0, 100.0});
+    window.set_framebuffer_painter(&raster);
+    host::HeadlessHost headless(window);
+    host::HeadlessHostServices& services = static_cast<host::HeadlessHostServices&>(headless.services());
+    AlertScript script;
+    services.set_dialog_handler(ScriptedAlerts(&script));
+    script.answers.push_back(HostMessageDialogResult{HostDialogOutcome::accepted, HostDialogChoice::retry});
+    window.flush();
+    require(wait_for_content_tag(*(*host).live_surface(), 1U), "the sub-surface is configured");
+    std::weak_ptr<Control> hover;
+    {
+        const std::lock_guard<std::mutex> lock((*controls).mutex);
+        hover = (*controls).hover;
+    }
+    std::shared_ptr<CollectAnswers> answers = std::make_shared<CollectAnswers>();
+    static_cast<void>((*host).dispatcher().begin_invoke(RaiseAlertInside(hover, answers, false)));
+    require(drain_until_requests(window, *host, AlertsAtLeast{1U}), "the alert reaches the parent");
+    for (int round = 0; round < 4; ++round) static_cast<void>(window.drain_posted_work());
+    require(script.requests.size() == 1U, "the parent shows it");
+    const HostMessageDialogRequest* const shown =
+        std::get_if<HostMessageDialogRequest>(&script.requests[0].payload);
+    require(shown != nullptr && (*shown).message == "From inside" &&
+                (*shown).buttons == HostMessageButtons::retry_cancel && (*shown).icon == HostMessageIcon::warning,
+            "with the sub-surface's content");
+    require(wait_for_answer(*answers, 1U, SurfaceRequestResult::closed), "the answer reaches the target");
+    const std::optional<SurfaceRequestOutcome> chose = alert_answer(*answers, 1U);
+    require(chose && (*chose).choice == HostDialogChoice::retry, "with the user's choice");
+
+    // A second alert, withdrawn before the parent shows it.
+    static_cast<void>((*host).dispatcher().begin_invoke(RaiseAlertInside(hover, answers, false)));
+    require(drain_until_requests(window, *host, AlertsAtLeast{2U}), "the second alert reaches the parent");
+    // The parent shows it from its next drain; the sub-surface withdraws it
+    // first (alert 2 is the root's; withdraw_alert(1) is a no-op now).
+    static_cast<void>(window.raise_alert(host, AlertRequest{.text = "Parent's own"}, answers));
+    require(script.requests.size() == 1U, "nothing more shown yet");
+    static_cast<void>((*root).remove_child((*host).runtime_id()));
+    for (int round = 0; round < 4; ++round) static_cast<void>(window.drain_posted_work());
+    require(script.requests.size() == 1U, "a host that leaves withdraws its waiting alerts, and its own go too");
+}
+
+// A sub-surface made on the test's thread, without a SubSurfaceThread: its
+// tooltip API works and asks nowhere (it used to reach a window's absent
+// presenter).
+void tool_tips_without_a_parent_ask_nowhere() {
+    std::shared_ptr<Panel> tree = std::make_shared<Panel>(StableId("alone.root"));
+    std::shared_ptr<TipControl> tip = std::make_shared<TipControl>(StableId("alone.tip"), "tip", true);
+    (*tree).add_child(tip);
+    SubSurface surface(tree, std::make_shared<ApplicationResources>());
+    (*tip).tool_tip_text = "changed";
+    surface.show_tool_tip(tip);
+    require(!surface.tool_tip_visible(), "a sub-surface shows no tooltip itself");
+    surface.hide_tool_tip();
+    require(!surface.tool_tip_visible(), "and hiding changes nothing");
+}
+
+// The failing check's message goes to stderr: an uncaught exception would
+// end the process without it.
+int run_all() {
     thread_produces_tagged_frames();
     content_failure_is_reported();
     start_stop_stress();
@@ -803,5 +1651,24 @@ int main() {
     caret_falls_back_to_left_edge();
     input_reaches_sub_surface_in_order();
     host_forwards_input_and_focus();
+    tool_tips_are_asked_of_the_parent();
+    tool_tips_without_a_parent_ask_nowhere();
+    window_handles_tool_tip_requests();
+    sub_surface_forwards_tool_tip_requests();
+    ambient_effect_ticks_off_the_ui_thread();
+    user_theme_and_engine_input_reach_the_sub_surface();
+    window_shows_alerts();
+    sub_surface_forwards_alerts();
     return 0;
+}
+
+} // namespace
+
+int main() {
+    try {
+        return run_all();
+    } catch (const std::exception& error) {
+        std::fprintf(stderr, "gui_forms_sub_surface_tests: %s\n", error.what());
+        return 1;
+    }
 }

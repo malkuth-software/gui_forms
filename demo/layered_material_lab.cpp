@@ -166,8 +166,8 @@ struct CycleTextScale final {
         const double next = current < 1.20 ? 1.25 : (current < 1.45 ? 1.5 : 1.0);
         (*window).set_text_scale(next);
         if (const std::shared_ptr<Button> strong = button.lock()) {
-            (*strong).set_text("Text scale " + std::to_string(
-                static_cast<int>(next * 100.0)) + "%");
+            (*strong).text = "Text scale " + std::to_string(
+                static_cast<int>(next * 100.0)) + "%";
         }
     }
 };
@@ -440,7 +440,7 @@ std::unique_ptr<Window> make_layered_material_lab() {
         StableId("layered-material.live-state"),
         "Live Pearl — hover / press / Tab");
     (*live).set_visual_recipes(office_pearl_state_recipes());
-    (*live).set_font({FontRole::control, 11.0, 700, false, 0.1});
+    (*live).font = {FontRole::control, 11.0, 700, false, 0.1};
     add_at(root, live, {22.0, 560.0, 362.0, 42.0});
 
     std::shared_ptr<Button> disabled = make_control<Button>(

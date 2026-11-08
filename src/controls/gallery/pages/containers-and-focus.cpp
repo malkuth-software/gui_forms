@@ -233,7 +233,7 @@ private:
     void on_collapse() {
         const bool next = !(*split_).first_collapsed();
         (*split_).set_first_collapsed(next);
-        (*collapse_).set_text(next ? "Restore navigation" : "Collapse navigation");
+        (*collapse_).text = next ? "Restore navigation" : "Collapse navigation";
     }
 
     void on_focus_splitter() {

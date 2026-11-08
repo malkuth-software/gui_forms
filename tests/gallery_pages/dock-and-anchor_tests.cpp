@@ -25,12 +25,12 @@ void test_dock_and_anchor(gui_forms::Window& window) {
     window.perform_layout();
     require(!(*left).visible.read() &&
                 (*fill).arranged_bounds().width > fill_before.width + 70.0 &&
-                (*toggle_left).text() == "Restore left edge",
+                (*toggle_left).text.read() == "Restore left edge",
             "dock visibility command must release the hidden edge into Fill");
     click(window, toggle_left);
     window.perform_layout();
     require((*left).visible.read() && (*fill).arranged_bounds() == fill_before &&
-                (*toggle_left).text() == "Hide left edge",
+                (*toggle_left).text.read() == "Hide left edge",
             "dock visibility restore must recover exact retained geometry");
 
     const double first_y = (*top_first).arranged_bounds().y;

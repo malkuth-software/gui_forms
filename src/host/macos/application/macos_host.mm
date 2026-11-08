@@ -1,6 +1,7 @@
 #include "display_link_trace.hpp"
 #import <AppKit/AppKit.h>
 #import <CoreGraphics/CoreGraphics.h>
+#import <QuartzCore/CABase.h>
 #import <QuartzCore/CADisplayLink.h>
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 
@@ -881,6 +882,10 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
     // one surface share one acquisition) and the part of its clip to copy.
     std::vector<std::size_t> _liveFrameSources;
     std::vector<GFRect> _liveRegions;
+    // Per acquired frame (indexed like _liveFrames): its generation, kept
+    // after the frames are released so that a presented pass can report
+    // what it showed (LiveSurface::notify_presented); 0 for no frame.
+    std::vector<std::uint64_t> _liveFrameGenerations;
     std::vector<GFRect> _uncoveredDamage;
     // Per drawRect: on a reusable raster, the pending live presentations'
     // destinations and the parts of the uncovered damage inside them.
@@ -2508,6 +2513,47 @@ void post_perform_close(NSWindow* window) {
     return MacDisplayLinkTrace{};
 }
 
+// The display timing of the display link's last tick, in FrameClock time:
+// its vertical blank and refresh period. Empty (source none) before the
+// link first ticked or while it has no link.
+- (gui_forms::LiveDisplayTiming)liveDisplayTiming {
+    gui_forms::LiveDisplayTiming timing{};
+    if (_displayLink == nil) return timing;
+    const CFTimeInterval vblank = _displayLink.timestamp;
+    const CFTimeInterval period = _displayLink.duration;
+    if (vblank <= 0.0 || period <= 0.0) return timing;
+    // CADisplayLink times are CACurrentMediaTime seconds; carry the age of
+    // the vertical blank over to the steady clock.
+    const CFTimeInterval age = std::max(0.0, CACurrentMediaTime() - vblank);
+    const gui_forms::FrameTime now = gui_forms::FrameClock::now();
+    timing.refresh_period = std::chrono::duration_cast<gui_forms::FrameInterval>(
+        std::chrono::duration<double>(period));
+    timing.last_vblank = now - std::chrono::duration_cast<gui_forms::FrameInterval>(
+        std::chrono::duration<double>(age));
+    timing.source = gui_forms::LiveTimingSource::display_phased;
+    return timing;
+}
+
+// Reports each surface this pass presented to its LiveSurface, once per
+// surface (its fragments share one frame), with the generation shown. Reads
+// _pendingLivePresentations, _liveFrameSources, _liveRegions and
+// _liveFrameGenerations as the pass left them.
+- (void)reportLivePresentations {
+    const gui_forms::LiveDisplayTiming timing = [self liveDisplayTiming];
+    for (std::size_t index = 0; index < _pendingLivePresentations.size(); ++index) {
+        if (index >= _liveRegions.size() || index >= _liveFrameSources.size()) break;
+        if (_liveRegions[index].empty() || !_pendingLivePresentations[index].surface) continue;
+        const std::size_t source = _liveFrameSources[index];
+        if (source >= _liveFrameGenerations.size() || _liveFrameGenerations[source] == 0U) continue;
+        bool first = true;
+        for (std::size_t earlier = 0; earlier < index; ++earlier) {
+            if (_liveFrameSources[earlier] == source && !_liveRegions[earlier].empty()) first = false;
+        }
+        if (!first) continue;
+        (*_pendingLivePresentations[index].surface).notify_presented(_liveFrameGenerations[source], timing);
+    }
+}
+
 - (void)displayLinkTick {
     if (_displayTrace) {
         MacDisplayLinkTrace& trace = *_displayTrace;
@@ -3042,6 +3088,11 @@ void post_perform_close(NSWindow* window) {
         receipt.reset();
     }
 #endif
+    _liveFrameGenerations.clear();
+    _liveFrameGenerations.reserve(_liveFrames.size());
+    for (const gui_forms::LiveSurfaceFrame& frame : _liveFrames) {
+        _liveFrameGenerations.push_back(frame ? frame.generation() : 0U);
+    }
     _liveFrames.clear();
     const std::chrono::steady_clock::time_point finishEnded =
         std::chrono::steady_clock::now();
@@ -3127,6 +3178,15 @@ void post_perform_close(NSWindow* window) {
     }
     const std::chrono::duration<long long, std::ratio<1, 1000000000>> elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
         std::chrono::steady_clock::now() - started);
+#if defined(GUI_FORMS_PREPARED_TEXT)
+    const bool livePresented = presented && committed;
+#else
+    const bool livePresented = presented;
+#endif
+    // Each surface shown learns the generation it showed and the display
+    // timing of this pass (threaded sub-surfaces design note sections 7 and
+    // 8), once per pass, before the presentations are released.
+    if (livePresented) [self reportLivePresentations];
     if (presented) {
 #if defined(GUI_FORMS_PREPARED_TEXT)
         if (committed) _pendingLivePresentations.clear();
@@ -3134,11 +3194,6 @@ void post_perform_close(NSWindow* window) {
         _pendingLivePresentations.clear();
 #endif
     }
-#if defined(GUI_FORMS_PREPARED_TEXT)
-    const bool livePresented = presented && committed;
-#else
-    const bool livePresented = presented;
-#endif
     // A taken region is validated only by a presented raster, as EndPaint
     // validates an update region. Otherwise the next pass copies everything.
     if (regionsTaken) _liveRegionLost = livePresented ? NO : YES;
@@ -3431,10 +3486,15 @@ void post_perform_close(NSWindow* window) {
     if (actualRange != nullptr) {
         *actualRange = range;
     }
+    // The window's text input caret (SurfaceRoot::text_input_caret): the
+    // focused control's own caret, a sub-surface host's forwarded caret, or
+    // the focused control's left edge. Without one, a box at the origin.
     NSRect caret = NSMakeRect(0.0, 0.0, 1.0, 18.0);
-    if (const gui_forms::Control::Ptr focused = (*_model).focused_control()) {
-        const GFRect bounds = (*focused).absolute_bounds();
-        caret = NSMakeRect(bounds.x, bounds.y, 1.0, bounds.height);
+    if (_model) {
+        const std::optional<GFRect> inputCaret = (*_model).text_input_caret();
+        if (inputCaret) {
+            caret = NSMakeRect((*inputCaret).x, (*inputCaret).y, (*inputCaret).width, (*inputCaret).height);
+        }
     }
     const NSRect inWindow = [self convertRect:caret toView:nil];
     return [self.window convertRectToScreen:inWindow];
@@ -3803,6 +3863,32 @@ void finish_run(MacRunEnd& end) {
         return NSTerminateNow;
     }
     return NSTerminateNow;
+}
+@end
+
+// A native popup window (HostWindowKind::popup, macos_application_run.inc):
+// a borderless, non-activating panel. A borderless window cannot become key
+// by default; a focus-taking popup (HostPopupFocus::takes_focus) may, so its
+// own keyboard input reaches it, while a passive popup never does and its
+// owner keeps the keyboard.
+@interface GUIFormsPopupPanel : NSPanel {
+    BOOL _takesFocus;
+}
+- (instancetype)initWithContentRect:(NSRect)contentRect takesFocus:(BOOL)takesFocus;
+@end
+
+@implementation GUIFormsPopupPanel
+- (instancetype)initWithContentRect:(NSRect)contentRect takesFocus:(BOOL)takesFocus {
+    const NSWindowStyleMask style = NSWindowStyleMaskBorderless | NSWindowStyleMaskNonactivatingPanel;
+    self = [super initWithContentRect:contentRect styleMask:style backing:NSBackingStoreBuffered defer:NO];
+    if (self != nil) _takesFocus = takesFocus;
+    return self;
+}
+- (BOOL)canBecomeKeyWindow {
+    return _takesFocus;
+}
+- (BOOL)canBecomeMainWindow {
+    return NO;
 }
 @end
 

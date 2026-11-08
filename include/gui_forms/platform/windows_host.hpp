@@ -85,6 +85,9 @@ struct WindowsApplicationWindow final {
     bool tool_window{};
     // See ApplicationWindow::floating.
     HostWindowFloating floating{HostWindowFloating::none};
+    // A native popup window (ApplicationWindow::popup); none for every
+    // other kind.
+    std::optional<HostPopupPlacement> popup{};
 };
 
 // Opens one window while the application runs: the same entry, ownership

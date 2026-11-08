@@ -192,7 +192,7 @@ private:
     void on_toggle_left() {
         const bool visible = !(*left_).visible.read();
         (*left_).visible = visible;
-        (*toggle_left_).set_text(visible ? "Hide left edge" : "Restore left edge");
+        (*toggle_left_).text = visible ? "Hide left edge" : "Restore left edge";
         report(visible ? "Dock · left edge restored · fill contracted"
                        : "Dock · hidden edge released · fill expanded");
     }
@@ -208,8 +208,8 @@ private:
             return;
         }
         top_b_front_ = next;
-        (*swap_top_).set_text(next ? "Move Top A behind Top B"
-                                   : "Move Top B behind Top A");
+        (*swap_top_).text = next ? "Move Top A behind Top B"
+                                   : "Move Top B behind Top A";
         report(next ? "Dock · Top B now consumes the edge first"
                     : "Dock · Top A now consumes the edge first");
     }
@@ -219,7 +219,7 @@ private:
         (*anchor_group_).set_design_bounds(
             *anchor_canvas_, expanded_ ? Rect{18.0, 38.0, 730.0, 190.0}
                                        : Rect{18.0, 38.0, 600.0, 170.0});
-        (*resize_).set_text(expanded_ ? "Restore specimen" : "Expand specimen");
+        (*resize_).text = expanded_ ? "Restore specimen" : "Expand specimen";
         report(expanded_ ? "Anchor · parent expanded · stretch/right/center updated"
                          : "Anchor · parent restored from retained design slot");
     }

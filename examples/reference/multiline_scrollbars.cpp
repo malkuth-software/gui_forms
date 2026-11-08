@@ -16,7 +16,7 @@ void document_viewport() {
         gui_forms::make_control<gui_forms::TextBox>(gui_forms::StableId("document"));
     gui_forms::TextBox& editor = *field;
     editor.set_multiline(true);
-    editor.set_auto_scroll(true);
+    editor.auto_scroll = true;
     std::string source{};
     for (unsigned int row = 0; row < 80; ++row) {
         source.append(140, 'x');

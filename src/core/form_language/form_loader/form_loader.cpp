@@ -33,6 +33,7 @@ public:
 private:
     void make_object(std::size_t index, LoadedForm& scratch);
     void set_property(const FormProperty& property, LoadedForm& scratch);
+    void define_span(const FormSpan& span, LoadedForm& scratch);
     // A form root's property, which the window takes.
     static void set_window_property(const std::string& name, const BindingValue& value, LoadedWindow& window);
     void report(DiagnosticCode code, NodeIndex node, const std::string& rule, const std::string& property,
@@ -64,6 +65,9 @@ bool FormLoader::run(LoadedForm& scratch) {
     // Parents come before their children in the model, so each parent is
     // made by the time its children are added.
     for (std::size_t index = 0U; index < model_.objects.size(); ++index) make_object(index, scratch);
+    if (refused_) return false;
+    // Spans before any placement, so that `area` and `cell` find them.
+    for (const FormSpan& span : model_.spans) define_span(span, scratch);
     if (refused_) return false;
     for (const FormProperty& property : model_.properties) set_property(property, scratch);
     if (refused_) return false;
@@ -113,9 +117,31 @@ void FormLoader::make_object(std::size_t index, LoadedForm& scratch) {
     }
 }
 
+void FormLoader::define_span(const FormSpan& span, LoadedForm& scratch) {
+    const FormObject& owner = model_.objects[span.owner.value];
+    const FormSchemaType& type = schema_.types[owner.schema_type];
+    const Component::Ptr& made = scratch.objects[span.owner.value];
+    if (type.define_span == nullptr || !made) {
+        report(DiagnosticCode::form_load_refused, span.node, owner.stable_id, span.span.name,
+               type.name + " has no span definer");
+        return;
+    }
+    GridSpanOutcome outcome = GridSpanOutcome::applied;
+    try {
+        outcome = (*type.define_span)(*made, span.span);
+    } catch (const std::exception& refusal) {
+        report(DiagnosticCode::form_load_refused, span.node, owner.stable_id, span.span.name, refusal.what());
+        return;
+    }
+    if (outcome != GridSpanOutcome::applied) {
+        report(DiagnosticCode::form_load_refused, span.node, owner.stable_id, span.span.name,
+               "the container refuses the span");
+    }
+}
+
 void FormLoader::set_property(const FormProperty& property, LoadedForm& scratch) {
     const FormObject& object = model_.objects[property.object.value];
-    const PropertyDescriptor& descriptor = schema_.types[object.schema_type].properties[property.schema_property];
+    const PropertyDescriptor& descriptor = form_property_descriptor(schema_, model_, property);
     if (property.object.value == 0U && form_root_) {
         set_window_property(descriptor.name, property.value, *scratch.window);
         return;
@@ -126,8 +152,17 @@ void FormLoader::set_property(const FormProperty& property, LoadedForm& scratch)
                "properties are set on controls only");
         return;
     }
+    // A property the parent's type provides is the parent's to store; the
+    // child was added to it when it was made.
+    const Control::Ptr parent = property.provider == FormPropertyProvider::parent_type
+        ? std::dynamic_pointer_cast<Control>(scratch.objects[(*object.parent).value])
+        : Control::Ptr{};
     try {
-        (*control).set_property_value(descriptor.name, property.value);
+        if (parent) {
+            (*parent).set_child_property_value(*control, descriptor.name, property.value);
+        } else {
+            (*control).set_property_value(descriptor.name, property.value);
+        }
     } catch (const std::exception& refusal) {
         report(DiagnosticCode::form_load_refused, property.node, object.stable_id, descriptor.name, refusal.what());
     }

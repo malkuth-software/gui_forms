@@ -472,7 +472,7 @@ MotionValue::Sample MotionValue::state_at(FrameTime now) const noexcept {
 }
 
 MotionStart MotionValue::begin(const Segment& next, double position, double velocity) {
-    Window* const window = (*owner_).attached_window();
+    SurfaceRoot* const window = (*owner_).attached_surface_root();
     if (window == nullptr) {
         if (clock_ != nullptr) (*clock_).release(*this);
         segment_ = next;
@@ -502,7 +502,7 @@ MotionStart MotionValue::animate_to(double target) {
     if (!admissible(target)) return MotionStart::refused;
     if (moving_ && segment_.target == target) return MotionStart::unchanged;
     if (!moving_ && current_ == target) return MotionStart::unchanged;
-    const Window* const window = (*owner_).attached_window();
+    const SurfaceRoot* const window = (*owner_).attached_surface_root();
     const FrameTime now = window != nullptr ? (*window).motion_clock().now() : FrameTime{};
     const Sample here = state_at(now);
     const Segment next = make_segment(curve_, now, here.position, here.velocity, target);
@@ -520,7 +520,7 @@ MotionStart MotionValue::animate_through(std::span<const MotionStop> stops, doub
         if (!ordered || !admissible(stop.value)) return MotionStart::refused;
         previous = stop.offset;
     }
-    const Window* const window = (*owner_).attached_window();
+    const SurfaceRoot* const window = (*owner_).attached_surface_root();
     const FrameTime now = window != nullptr ? (*window).motion_clock().now() : FrameTime{};
     const Sample here = state_at(now);
     Segment next = make_segment(curve_, now, here.position, here.velocity, target);
@@ -533,7 +533,7 @@ MotionStart MotionValue::animate_through(std::span<const MotionStop> stops, doub
 MotionStart MotionValue::fling(double velocity) {
     if (curve_.kind != MotionKind::decay || !admissible(velocity)) return MotionStart::refused;
     if (!moving_ && velocity == 0.0) return MotionStart::unchanged;
-    const Window* const window = (*owner_).attached_window();
+    const SurfaceRoot* const window = (*owner_).attached_surface_root();
     const FrameTime now = window != nullptr ? (*window).motion_clock().now() : FrameTime{};
     const Sample here = state_at(now);
     // Friction stops it where the velocity carries it: the integral of
@@ -551,7 +551,7 @@ MotionStart MotionValue::adopt(const MotionValue& source) {
         jump_to(source.current_);
         return MotionStart::finished;
     }
-    const Window* const window = (*owner_).attached_window();
+    const SurfaceRoot* const window = (*owner_).attached_surface_root();
     const FrameTime now = window != nullptr ? (*window).motion_clock().now() : FrameTime{};
     const Sample here = source.state_at(now);
     const MotionStart started = begin(source.segment_, here.position, here.velocity);

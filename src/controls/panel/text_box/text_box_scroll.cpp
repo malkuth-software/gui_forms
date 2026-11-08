@@ -7,16 +7,13 @@
 
 namespace gui_forms {
 
-void TextBox::set_auto_scroll(const bool enabled) {
-    require_mutable();
-    if (auto_scroll() == enabled) return;
-    const Point previous = scroll_offset();
-    Panel::set_auto_scroll(enabled);
+void TextBox::on_auto_scroll_changed(const Point previous_position) {
+    Panel::on_auto_scroll_changed(previous_position);
     multiline_client_size_ = {-1.0, -1.0};
-    if (!multiline_ || enabled) return;
+    if (!multiline_ || auto_scroll.read()) return;
     adjust_scrollbars(false);
-    horizontal_offset_ = previous.x;
-    vertical_offset_ = previous.y;
+    horizontal_offset_ = previous_position.x;
+    vertical_offset_ = previous_position.y;
 }
 
 void TextBox::arrange(const Rect final_bounds) {
@@ -30,7 +27,7 @@ void TextBox::arrange(const Rect final_bounds) {
 }
 
 void TextBox::on_scroll_position_changed() {
-    if (!multiline_ || !auto_scroll()) return;
+    if (!multiline_ || !auto_scroll.read()) return;
     // Explicit scrolling must not snap back to an offscreen caret on paint.
     // Layout preserves a pending caret reveal around its own range updates.
     reveal_pending_ = false;
@@ -38,14 +35,14 @@ void TextBox::on_scroll_position_changed() {
 }
 
 Rect TextBox::multiline_text_rectangle() const noexcept {
-    const Rect viewport = auto_scroll() ? viewport_rectangle() : local_bounds();
+    const Rect viewport = auto_scroll.read() ? viewport_rectangle() : local_bounds();
     const Rect result{text_left_, 4.0, std::max(0.0, viewport.width - 10.0),
                       std::max(0.0, viewport.height - 8.0)};
     return result;
 }
 
 void TextBox::set_multiline_scroll(Point position) {
-    if (auto_scroll()) {
+    if (auto_scroll.read()) {
         if (word_wrap_) position.x = 0.0;
         static_cast<void>(scroll_to(position));
         return;
@@ -67,7 +64,7 @@ void TextBox::ensure_multiline_layout() {
     if (!visual_lines_.empty() && multiline_width_ >= 0.0 &&
         multiline_revision_ == (*editing_).store().revision() && multiline_font_ == font &&
         multiline_provider_ == provider && multiline_device_scale_ == scale &&
-        multiline_client_size_ == client && multiline_scroll_enabled_ == auto_scroll()) return;
+        multiline_client_size_ == client && multiline_scroll_enabled_ == auto_scroll.read()) return;
 
     // Start from the full width so a bar from the previous layout cannot keep
     // itself visible after content shrinks. A vertical bar can only add wrapped
@@ -75,7 +72,7 @@ void TextBox::ensure_multiline_layout() {
     multiline_client_size_ = {-1.0, -1.0};
     rebuild_multiline_rows(std::max(1.0, client.width - 10.0));
     bool reveal = reveal_pending_;
-    if (auto_scroll()) {
+    if (auto_scroll.read()) {
         const double content_width = word_wrap_ ? 0.0 : document_width_ + 11.0;
         double content_height = static_cast<double>(visual_lines_.size()) * line_height_ + 8.0;
         arrange_scroll_viewport(client, {content_width, content_height});
@@ -92,7 +89,7 @@ void TextBox::ensure_multiline_layout() {
     set_multiline_scroll(position);
     reveal_pending_ = reveal;
     multiline_client_size_ = client;
-    multiline_scroll_enabled_ = auto_scroll();
+    multiline_scroll_enabled_ = auto_scroll.read();
 }
 
 } // namespace gui_forms

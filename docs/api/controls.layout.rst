@@ -113,8 +113,16 @@ Related types
      -  
    * - :cpp:class:`FlexItemLayout <gui_forms::FlexItemLayout>`
      - One child's flex item properties (CSS Flexbox's names; PLAN section 2.2).
+   * - :cpp:class:`FlowBreakCapability <gui_forms::FlowBreakCapability>`
+     - The flow break a flow container provides to its children (FlowBreak; a child property, study sections 10 and 15.4): whether the flow continues on a new line after the child.
+   * - :cpp:class:`GridAreaCapability <gui_forms::GridAreaCapability>`
+     - The two views of a grid child's placement (child properties, study 10.9): writing either replaces the other.
+   * - :cpp:class:`GridCellCapability <gui_forms::GridCellCapability>`
+     -  
    * - :cpp:class:`GridItemLayout <gui_forms::GridItemLayout>`
      - One child's grid item properties (CSS Grid's names; PLAN section 2.3).
+   * - :cpp:class:`GridPlacement <gui_forms::GridPlacement>`
+     - A child's placement in a grid: automatic (the item layout's lines, or auto-placed), into a span by name, or at a cell (a span's anchor places the child into that span's region).
    * - :cpp:class:`MasterDetailLayout <gui_forms::MasterDetailLayout>`
      - MasterDetailLayout defines bounded navigation width and inter-pane gap for deterministic responsive projection.
    * - :cpp:class:`MasterDetailPresentationChange <gui_forms::MasterDetailPresentationChange>`
@@ -648,6 +656,55 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> FlowBreakCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/flow_layout_panel_compat/flow_layout_panel_compat.hpp>``
+
+   The flow break a flow container provides to its children (FlowBreak; a child property, study sections 10 and 15.4): whether the flow continues on a new line after the child. ``(*flow).flow_break[*child] = true;``
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(FlowBreakCapability& capability, const Control& child, bool value)
+
+   .. cpp:function:: static bool read(const FlowBreakCapability& capability, const Control& child)
+
+   .. cpp:member:: ChildPropertyView<bool, FlowBreakCapability<Declaring>> flow_break
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> GridAreaCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/grid_panel/grid_panel.hpp>``
+
+   The two views of a grid child's placement (child properties, study 10.9): writing either replaces the other. For example, ``(*grid).area[*ok] = "footer"`` places into the span named footer, and ``(*grid).cell[*title] = GridCell{.row = 0U, .column = 0U}`` places at a cell. Writing "" to ``area`` makes the placement automatic.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(GridAreaCapability& capability, const Control& child, std::string value)
+
+   .. cpp:function:: static std::string read(const GridAreaCapability& capability, const Control& child)
+
+   .. cpp:member:: ChildPropertyView<std::string, GridAreaCapability<Declaring>> area
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> GridCellCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/grid_panel/grid_panel.hpp>``
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(GridCellCapability& capability, const Control& child, GridCell value)
+
+   .. cpp:function:: static GridCell read(const GridCellCapability& capability, const Control& child)
+
+   .. cpp:member:: ChildPropertyView<GridCell, GridCellCapability<Declaring>> cell
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: GridItemLayout final
 
    ``#include <gui_forms/controls/scrollable_control/container_control/grid_panel/grid_panel.hpp>``
@@ -691,6 +748,26 @@ Related types
    .. cpp:member:: ItemPositioning positioning
 
       ``position`` and the insets (PLAN section 2.5): a relative item is offset after layout without moving its neighbours; an absolute item leaves the flow and is placed in its containing block after the in-flow items. Either makes the child a positioned box, the containing block of absolute children below it.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: GridPlacement final
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/grid_panel/grid_panel.hpp>``
+
+   A child's placement in a grid: automatic (the item layout's lines, or auto-placed), into a span by name, or at a cell (a span's anchor places the child into that span's region). Exactly one form is in force.
+
+   .. cpp:member:: Form form
+
+      Default: ``{Form::automatic}``.
+
+   .. cpp:member:: std::string area
+
+      form == area: the span's name.
+
+   .. cpp:member:: GridCell cell
+
+      form == cell: the cell.
 
 .. cpp:namespace:: gui_forms
 
@@ -1219,6 +1296,18 @@ Enumerations
    .. cpp:enumerator:: space_around
 
    .. cpp:enumerator:: space_evenly
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: GridPlacement::Form
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/grid_panel/grid_panel.hpp>``
+
+   .. cpp:enumerator:: automatic
+
+   .. cpp:enumerator:: area
+
+   .. cpp:enumerator:: cell
 
 .. cpp:namespace:: gui_forms
 

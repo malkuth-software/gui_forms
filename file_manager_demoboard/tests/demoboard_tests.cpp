@@ -251,7 +251,7 @@ int main() {
     const gui_forms::Control::Ptr matrix = (*product).find("fm.path.matrix");
     const std::shared_ptr<gui_forms::AnchoredOverlayLayer> matrix_layer = std::dynamic_pointer_cast<gui_forms::AnchoredOverlayLayer>(
         (*product).find("fm.path.matrix.layer"));
-    require(matrix && matrix_layer && (*terminal).expanded_state() == true &&
+    require(matrix && matrix_layer && (*terminal).expanded_state.read() == true &&
                 (*matrix).absolute_bounds() == gui_forms::Rect{111,169,860,424} &&
                 (*product).focused_control() ==
                     (*product).find("fm.path.matrix.current.tail"),
@@ -309,7 +309,7 @@ int main() {
     require((*product).dispatch_key({gui_forms::KeyAction::down,
                                    gui_forms::PhysicalKey::enter}) &&
                 !(*product).find("fm.path.matrix") &&
-                (*terminal).expanded_state() == false &&
+                (*terminal).expanded_state.read() == false &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
                     (*product).find("fm.title.text"))).text().find("North Shore") !=
                     std::string::npos,
@@ -890,11 +890,11 @@ int main() {
             "choice property must commit through the shared PropertyList model");
     (*preview_disclosure).perform_click();
     require(!(*preview).visible.read() && (*property_list).header_height() == 34.0 &&
-                (*preview_disclosure).text() == "▶",
+                (*preview_disclosure).text.read() == "▶",
             "preview disclosure must collapse retained header content without replacing it");
     (*preview_disclosure).perform_click();
     require((*preview).visible.read() && (*property_list).header_height() == 212.0 &&
-                (*preview_disclosure).text() == "▼" &&
+                (*preview_disclosure).text.read() == "▼" &&
                 (*property_list).header_content() ==
                     (*product).find("fm.selection.summary"),
             "preview disclosure must restore the same retained header subtree");
@@ -948,7 +948,7 @@ int main() {
     (*view_command).perform_click();
     require((*objects).view_mode() == gui_forms::ObjectViewMode::details &&
                 (*std::dynamic_pointer_cast<gui_forms::Button>(
-                    (*product).find("fm.status.view"))).text() == "Details  ▼" &&
+                    (*product).find("fm.status.view"))).text.read() == "Details  ▼" &&
                 (*objects).selected_id() == "fm.object.obj-facade-study",
             "shared view command did not preserve selection across presentations");
     require((*objects).on_semantic_child_action(
@@ -975,7 +975,7 @@ int main() {
                 "fm.object.obj-delivery-archive" &&
                 (*objects).selected_id() == "fm.object.obj-file-manager" &&
                 (*objects).selected_ids().size() == 2U &&
-                (*sort_command).text() == "Sort Z→A  ▼",
+                (*sort_command).text.read() == "Sort Z→A  ▼",
             "shared sort command did not preserve the stable selection set");
     require((*product).request_focus(objects),
             "object field must accept focus before context-menu exercise");

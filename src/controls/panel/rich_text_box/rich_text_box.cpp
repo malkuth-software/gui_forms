@@ -120,7 +120,7 @@ RichTextBox::RichTextBox(StableId stable_id, std::string_view markdown)
     set_focusable(true);
     cursor = CursorKind::text;
     set_tool_tip_presentation(ToolTipPresentation::field_hint);
-    Panel::set_auto_scroll(true);
+    Panel::auto_scroll = true;
     reparse();
     heading_menu_ = std::make_unique<ContextMenu>(std::string((*this).stable_id().value()) + ".heading-menu");
     heading_invoked_ = (*heading_menu_).item_invoked().subscribe(
@@ -273,16 +273,13 @@ void RichTextBox::set_font(FontSpec font) {
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
 }
 
-void RichTextBox::set_auto_scroll(bool enabled) {
-    require_mutable();
-    if (auto_scroll() == enabled) return;
-    const Point previous = scroll_offset();
-    Panel::set_auto_scroll(enabled);
+void RichTextBox::on_auto_scroll_changed(const Point previous_position) {
+    Panel::on_auto_scroll_changed(previous_position);
     layout_client_ = {-1.0, -1.0};
-    if (enabled) return;
+    if (auto_scroll.read()) return;
     adjust_scrollbars(false);
-    horizontal_offset_ = previous.x;
-    vertical_offset_ = previous.y;
+    horizontal_offset_ = previous_position.x;
+    vertical_offset_ = previous_position.y;
 }
 
 void RichTextBox::arrange(Rect final_bounds) {
@@ -292,7 +289,7 @@ void RichTextBox::arrange(Rect final_bounds) {
 }
 
 void RichTextBox::on_scroll_position_changed() {
-    if (!auto_scroll()) return;
+    if (!auto_scroll.read()) return;
     // Explicit scrolling must not snap back to an offscreen caret on paint.
     reveal_pending_ = false;
 }
@@ -500,7 +497,7 @@ void RichTextBox::on_pointer(PointerEvent& event) {
     if (!selecting_ && control_bar_visible_ && event.action != PointerAction::wheel && bar_pointer(event, local)) {
         return;
     }
-    if (auto_scroll() && (!selecting_ || event.action == PointerAction::wheel)) {
+    if (auto_scroll.read() && (!selecting_ || event.action == PointerAction::wheel)) {
         ensure_layout();
         Panel::on_pointer(event);
         if (event.handled || event.action == PointerAction::wheel) return;

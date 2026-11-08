@@ -148,6 +148,9 @@ public:
                                                            const ThemeCompileOptions& options);
     // The selected user theme, or null.
     [[nodiscard]] const Theme* user_theme() const noexcept { return user_theme_.get(); }
+    // The selected user theme shared, for resources of another thread (a
+    // sub-surface's) to layer the same immutable theme.
+    [[nodiscard]] std::shared_ptr<const Theme> user_theme_ptr() const noexcept { return user_theme_; }
     // The layered user theme's rules, or null where none is layered.
     [[nodiscard]] const CompiledThemeRules* user_theme_rules() const noexcept;
 

@@ -263,7 +263,7 @@ ApplicationResult Application::validate(const std::vector<ApplicationWindow>& wi
         ApplicationResult invalid{ApplicationError::invalid_argument};
         invalid.window_index = index;
         if (!detail::valid_window_entry(entry)) return invalid;
-        // A popup opens during the run only (SurfaceRoot::open_native_popup).
+        // A popup opens during the run only (Window::open_native_popup).
         if (entry.popup.has_value()) return invalid;
         if (!(*entry.model).check_access()) {
             invalid.error = ApplicationError::wrong_thread;

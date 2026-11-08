@@ -83,7 +83,7 @@ private:
                 StableId("gallery.overlays.anchor." + std::to_string(index)),
                 std::string(anchors[index].first));
             (*anchor).set_style(page_style());
-            (*anchor).set_expanded_state(false);
+            (*anchor).expanded_state = false;
             (*stage).add_at(anchor, anchors[index].second);
             on((*anchor).clicked(), *this, &AnchoredOverlaysPage::on_anchor_clicked,
                static_cast<int>(index));
@@ -155,7 +155,7 @@ private:
         (*layer_).set_dismiss_on_escape(escape_.get());
         token_ = (*window).open_overlay(anchor.shared_from_this(), layer_);
         scope_ = (*window).begin_focus_scope(layer_, field_);
-        anchor.set_expanded_state(true);
+        anchor.expanded_state = true;
         if (Event<>* closed = token_.closed_event()) {
             on(*closed, *this, &AnchoredOverlaysPage::on_overlay_closed);
         }
@@ -193,7 +193,7 @@ private:
 
     void release_anchor() {
         if (open_anchor_ < 0) return;
-        (*anchors_[static_cast<std::size_t>(open_anchor_)]).set_expanded_state(false);
+        (*anchors_[static_cast<std::size_t>(open_anchor_)]).expanded_state = false;
         open_anchor_ = -1;
     }
 

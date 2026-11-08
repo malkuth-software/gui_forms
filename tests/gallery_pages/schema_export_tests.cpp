@@ -30,6 +30,9 @@ namespace {
 struct TypeRecord final {
     const ControlAnatomy* anatomy{};
     std::vector<PropertyDescriptor> properties;
+    // The properties the type provides to its children; exported only when
+    // there are some.
+    std::vector<PropertyDescriptor> child_properties;
     std::vector<InteractionDeclaration> interactions;
     bool seen{};
 };
@@ -660,6 +663,7 @@ void record_control(const Control& control, std::vector<TypeRecord>& records) {
     if (!record.seen) {
         record.anatomy = &anatomy;
         record.properties = properties;
+        record.child_properties = control.child_property_descriptors();
         record.interactions = interactions;
         record.seen = true;
         return;
@@ -741,6 +745,11 @@ std::string render_schema(std::span<const TypeRecord> records) {
             out += ",\n";
             append_key(out, "      ", "properties");
             append_properties(out, record.properties);
+            if (!record.child_properties.empty()) {
+                out += ",\n";
+                append_key(out, "      ", "child_properties");
+                append_properties(out, record.child_properties);
+            }
         }
         out += ",\n";
         append_key(out, "      ", "interactions");

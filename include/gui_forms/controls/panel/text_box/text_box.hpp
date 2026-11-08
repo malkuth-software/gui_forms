@@ -118,7 +118,6 @@ public:
     void set_multiline(bool enabled);
     // Multiline opt-in: document extent drives the inherited scrollbars and
     // scroll_position. Wrapped documents expose only vertical overflow.
-    void set_auto_scroll(bool enabled) override;
     void arrange(Rect final_bounds) override;
     [[nodiscard]] bool word_wrap() const noexcept { return word_wrap_; }
     void set_word_wrap(bool enabled);
@@ -155,7 +154,7 @@ public:
     [[nodiscard]] static MultilineValidation validate_multiline_text(std::string_view text);
     [[nodiscard]] std::size_t visual_line_count();
     [[nodiscard]] Point scroll_offset() const noexcept {
-        if (multiline_ && auto_scroll()) return scroll_position();
+        if (multiline_ && auto_scroll.read()) return scroll_position();
         const Point result{.x = horizontal_offset_, .y = vertical_offset_};
         return result;
     }
@@ -323,6 +322,9 @@ public:
 protected:
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     void on_scroll_position_changed() override;
+    // Multiline opt-in: the document extent drives the inherited scroll bars;
+    // turning auto scroll off keeps the document where it was.
+    void on_auto_scroll_changed(Point previous_position) override;
     void on_detached_from_window() noexcept override;
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
 

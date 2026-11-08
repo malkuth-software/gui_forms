@@ -25,7 +25,7 @@ auto_scroll : default ``false``
 auto_scroll_margin : default ``{0.0, 0.0}``
     Extra space added beyond the right-most and bottom-most child when the
     content size is computed, and kept around a control that
-    `scroll_control_into_view` reveals. `set_auto_scroll_margin(Size)` rejects
+    `scroll_control_into_view` reveals. Writing it rejects
     a negative or non-finite size with `std::invalid_argument`;
     `set_auto_scroll_margin(x, y)` clamps negative values to zero and rejects
     only non-finite ones.
@@ -40,7 +40,7 @@ auto_scroll_position
     raising `scroll`.
 scroll_position
     How far the content is scrolled, as positive offsets from the origin.
-    Change it with `scroll_to`, `scroll_by` or `set_auto_scroll_position`.
+    Change it with `scroll_to`, `scroll_by` or a write of `auto_scroll_position`.
 viewport_rectangle
     The area in which children are painted and hit-tested: the client
     rectangle less the space taken by visible bars.
@@ -81,7 +81,7 @@ scroll
     track a large one, dragging the thumb raises
     `ScrollEventType::thumb_track` on each move, and releasing the thumb
     raises `ScrollEventType::thumb_position` with equal old and new values.
-    The mouse wheel, `scroll_to`, `scroll_by` and `set_auto_scroll_position`
+    The mouse wheel, `scroll_to`, `scroll_by` and writes of `auto_scroll_position`
     move the content without raising it, unless you pass ``notify = true``.
 
 Methods
@@ -182,7 +182,7 @@ and scrolling moves the child without changing its requested bounds:
        gf::make_control<gf::Label>(gf::StableId("viewer.page"), "A long page");
    (*page).set_requested_bounds({0.0, 0.0, 600.0, 900.0});
    (*viewer).add_child(page);
-   (*viewer).set_auto_scroll(true);
+   (*viewer).auto_scroll = true;
 
    gf::Window window(viewer, {300.0, 200.0});
    window.perform_layout();               // both bars are now visible
@@ -212,7 +212,7 @@ silent; an accessibility increment raises `scroll`:
            gf::make_control<gf::Label>(gf::StableId("viewer.page"), "A long page");
        (*page).set_requested_bounds({0.0, 0.0, 200.0, 900.0});
        (*viewer.view).add_child(page);
-       (*viewer.view).set_auto_scroll(true);
+       (*viewer.view).auto_scroll = true;
        gf::Window window(viewer.view, {300.0, 200.0});
        window.perform_layout();
 

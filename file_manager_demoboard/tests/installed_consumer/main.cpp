@@ -78,7 +78,7 @@ int main() {
         std::make_shared<gui_forms::Button>(
             gui_forms::StableId("installed.overlay.owner"), "Open overlay");
     (*overlay_owner).set_requested_bounds({190, 116, 120, 28});
-    (*overlay_owner).set_expanded_state(false);
+    (*overlay_owner).expanded_state = false;
     (*root).add_child(overlay_owner);
     std::shared_ptr<gui_forms::ListBox> stable_list =
         std::make_shared<gui_forms::ListBox>(
@@ -238,8 +238,8 @@ int main() {
         std::dynamic_pointer_cast<gui_forms::TextBox>(
             (*rack).field_editor("installed.criterion.content", "value")) &&
         (*stable_list).item_stable_id(1U) == "installed.stable-list.beta" &&
-        (*overlay_owner).expanded_state() == false &&
-        (*button).text() == "Installed command" &&
-        (*button).accessible_description() ==
+        (*overlay_owner).expanded_state.read() == false &&
+        (*button).text.read() == "Installed command" &&
+        (*button).accessible_description.read() ==
             "Installed public command metadata" ? 0 : 1;
 }

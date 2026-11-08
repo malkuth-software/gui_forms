@@ -136,7 +136,7 @@ void exact_editing() {
 void document_scrollbars() {
     Fixture f{};
     f.window.resize({360.0, 240.0});
-    f.editor.set_auto_scroll(true);
+    f.editor.auto_scroll = true;
     f.editor.set_text("short");
     f.window.perform_layout();
     require(!f.editor.hscroll() && !f.editor.vscroll(), "fitting text has no bars");
@@ -201,7 +201,7 @@ void document_scrollbars() {
 void document_scrollbar_input() {
     Fixture f{};
     f.window.resize({360.0, 240.0});
-    f.editor.set_auto_scroll(true);
+    f.editor.auto_scroll = true;
     std::string source{};
     for (unsigned int row = 0; row < 80; ++row) source.append("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ\n");
     f.editor.set_text(source);
@@ -235,14 +235,14 @@ void document_scrollbar_input() {
     f.paint();
     require(f.editor.scroll_offset().y > 200.0 && f.editor.scroll_offset() == f.editor.scroll_position(),
             "caret reveal updates the retained scrollbar position");
-    f.editor.set_auto_scroll(false);
+    f.editor.auto_scroll = false;
     f.window.perform_layout();
     require(!f.editor.hscroll() && !f.editor.vscroll(), "opting out removes document bars");
 }
 
 void document_scrollbar_reflow() {
     Fixture f{};
-    f.editor.set_auto_scroll(true);
+    f.editor.auto_scroll = true;
     f.editor.set_word_wrap(true);
     f.editor.set_text("abcdefghijklmnopqrst");
     f.caret(0);

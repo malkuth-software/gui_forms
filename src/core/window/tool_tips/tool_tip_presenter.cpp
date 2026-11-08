@@ -14,53 +14,17 @@ namespace {
 // The font every tooltip draws with, before the window's text scale.
 constexpr FontSpec tool_tip_font{FontRole::content, 12.0, 400, false};
 
-[[nodiscard]] bool contains_point(Rect bounds, Point point) noexcept {
-    const bool inside = !bounds.empty() && point.x >= bounds.x && point.y >= bounds.y &&
-                        point.x < bounds.x + bounds.width && point.y < bounds.y + bounds.height;
-    return inside;
-}
-
-// The deepest node under `point` among `nodes` and their children, or null.
-// The pointer is borrowed from `nodes`.
-[[nodiscard]] const SemanticNode* node_at(const std::vector<SemanticNode>& nodes, Point point) {
-    for (const SemanticNode& node : nodes) {
-        if (!contains_point(node.bounds, point)) continue;
-        const SemanticNode* deeper = node_at(node.children, point);
-        if (deeper != nullptr) return deeper;
-        return &node;
-    }
-    return nullptr;
-}
-const SemanticNode* node_at(std::vector<SemanticNode>&& nodes, Point point) = delete;
-
-// The first node among `nodes` and their children whose states hold `state`,
+// The node among `nodes` and their children whose stable ID is `stable_id`,
 // or null. The pointer is borrowed from `nodes`.
-[[nodiscard]] const SemanticNode* node_with_state(const std::vector<SemanticNode>& nodes,
-                                                  SemanticState state) {
+[[nodiscard]] const SemanticNode* item_with_id(const std::vector<SemanticNode>& nodes, std::string_view stable_id) {
     for (const SemanticNode& node : nodes) {
-        if (has_semantic_state(node.states, state)) return &node;
-        const SemanticNode* deeper = node_with_state(node.children, state);
+        if (node.stable_id == stable_id) return &node;
+        const SemanticNode* deeper = item_with_id(node.children, stable_id);
         if (deeper != nullptr) return deeper;
     }
     return nullptr;
 }
-const SemanticNode* node_with_state(std::vector<SemanticNode>&& nodes, SemanticState state) = delete;
-
-[[nodiscard]] ToolTipSubject nothing_over(Rect region) {
-    ToolTipSubject subject{};
-    subject.anchor = region;
-    return subject;
-}
-
-[[nodiscard]] ToolTipSubject subject_of(const Control::Ptr& control, std::string item_id, std::string text,
-                                        Rect anchor) {
-    ToolTipSubject subject{};
-    subject.control = control;
-    subject.item_id = std::move(item_id);
-    subject.text = std::move(text);
-    subject.anchor = anchor;
-    return subject;
-}
+const SemanticNode* item_with_id(std::vector<SemanticNode>&& nodes, std::string_view stable_id) = delete;
 
 } // namespace
 
@@ -108,90 +72,6 @@ bool ToolTipPresenter::focus_allowed() const noexcept {
     return allowed;
 }
 
-// A cover of the control itself covers every part of it too.
-bool ToolTipPresenter::covered(const Control& control, std::string_view item_id) const {
-    const std::pair<std::uint64_t, std::string> whole{control.runtime_id().value, std::string{}};
-    if (covers_.find(whole) != covers_.end()) return true;
-    if (item_id.empty()) return false;
-    const std::pair<std::uint64_t, std::string> part{control.runtime_id().value, std::string(item_id)};
-    const bool found = covers_.find(part) != covers_.end();
-    return found;
-}
-
-bool ToolTipPresenter::available(const Control& control) const noexcept {
-    if (!control.effectively_visible()) return false;
-    const bool shown = window_.tool_tip_settings().show_when_disabled || control.effectively_enabled();
-    return shown;
-}
-
-// The thing under the pointer: from the control under it outwards, a part
-// of a control that publishes part tooltips, else the control's own text
-// (a control whose tooltip shows only over its owner's item is passed
-// over). A part's tooltip only overrides where it exists: over a part
-// without one, the control's own text shows, as anywhere else on it
-// (coordinator decision, 2026-11-02). A disabled control, unless disabled
-// tooltips show, and a disabled or covered part end the search with
-// nothing.
-ToolTipSubject ToolTipPresenter::resolve_pointer(const Control::Ptr& hovered, Point position) const {
-    for (Control::Ptr current = hovered; current; current = (*current).parent()) {
-        const Rect bounds = (*current).absolute_bounds();
-        if (!available(*current)) return nothing_over(bounds);
-        if ((*current).publishes_item_tool_tips()) {
-            const std::vector<SemanticNode> nodes = (*current).semantic_virtual_children();
-            const SemanticNode* node = node_at(nodes, position);
-            if (node != nullptr) {
-                const bool enabled = window_.tool_tip_settings().show_when_disabled ||
-                                     has_semantic_state((*node).states, SemanticState::enabled);
-                if (!(*node).tool_tip.empty()) {
-                    if (!enabled || covered(*current, (*node).stable_id)) return nothing_over((*node).bounds);
-                    return subject_of(current, (*node).stable_id, (*node).tool_tip, (*node).bounds);
-                }
-            }
-        }
-        if ((*current).tool_tip_presentation() != ToolTipPresentation::owner_item &&
-            !(*current).tool_tip_text.read().empty()) {
-            if (covered(*current, {})) return nothing_over(bounds);
-            return subject_of(current, {}, (*current).tool_tip_text.read(), bounds);
-        }
-    }
-    const Rect region = hovered ? (*hovered).absolute_bounds() : Rect{};
-    return nothing_over(region);
-}
-
-// The thing under keyboard focus: from the focused control outwards, the
-// part the keyboard is on (the focused part, or the selected one of the
-// focused control) of a control that publishes part tooltips, else the
-// control's own text. A typed-text field shows its tooltip as a hint inside
-// itself, so it ends the search with nothing.
-ToolTipSubject ToolTipPresenter::resolve_focus(const Control::Ptr& focused) const {
-    for (Control::Ptr current = focused; current; current = (*current).parent()) {
-        const Rect bounds = (*current).absolute_bounds();
-        if ((*current).tool_tip_presentation() == ToolTipPresentation::field_hint ||
-            !available(*current)) return nothing_over(bounds);
-        if ((*current).publishes_item_tool_tips()) {
-            const std::vector<SemanticNode> nodes = (*current).semantic_virtual_children();
-            const SemanticNode* node = node_with_state(nodes, SemanticState::focused);
-            if (node == nullptr && current == focused) node = node_with_state(nodes, SemanticState::selected);
-            if (node != nullptr && !(*node).tool_tip.empty() && !(*node).bounds.empty()) {
-                if (covered(*current, (*node).stable_id)) return nothing_over((*node).bounds);
-                return subject_of(current, (*node).stable_id, (*node).tool_tip, (*node).bounds);
-            }
-        }
-        if ((*current).tool_tip_presentation() != ToolTipPresentation::owner_item &&
-            !(*current).tool_tip_text.read().empty()) {
-            if (covered(*current, {})) return nothing_over(bounds);
-            return subject_of(current, {}, (*current).tool_tip_text.read(), bounds);
-        }
-    }
-    return nothing_over({});
-}
-
-bool ToolTipPresenter::same_thing(const ToolTipSubject& left, const ToolTipSubject& right) const noexcept {
-    const bool same = left.control.lock() == right.control.lock() && left.item_id == right.item_id &&
-                      left.text.empty() == right.text.empty();
-    return same;
-}
-
 // --- Waiting and waking ---------------------------------------------------
 
 std::chrono::milliseconds ToolTipPresenter::show_delay(FrameTime now) const noexcept {
@@ -230,7 +110,8 @@ void ToolTipPresenter::woke(FrameTime now) {
                 return;
             }
             Control::Ptr hovered = window_.hit_test(pointer_);
-            ToolTipSubject subject = resolve_pointer(hovered, pointer_);
+            ToolTipSubject subject =
+                resolve_pointer_subject(hovered, pointer_, window_.tool_tip_settings(), covers_);
             if (subject.text.empty()) {
                 Settled settled{};
                 settled.region = subject.anchor;
@@ -245,7 +126,7 @@ void ToolTipPresenter::woke(FrameTime now) {
             state_ = Idle{};
             return;
         }
-        ToolTipSubject subject = resolve_focus(window_.focused_control());
+        ToolTipSubject subject = resolve_focus_subject(window_.focused_control(), window_.tool_tip_settings(), covers_);
         if (subject.text.empty()) {
             state_ = Idle{};
             return;
@@ -276,7 +157,7 @@ std::optional<ToolTipEvent> ToolTipPresenter::open(ToolTipOrigin origin, ToolTip
                                                    std::optional<std::chrono::milliseconds> duration) {
     const Control::Ptr control = subject.control.lock();
     if (!control || !(*control).is_alive() || (*control).attached_window() != &window_ ||
-        !available(*control) || subject.text.empty()) {
+        !available(window_.tool_tip_settings(), *control) || subject.text.empty()) {
         state_ = Idle{};
         return std::nullopt;
     }
@@ -378,7 +259,9 @@ void ToolTipPresenter::position(Showing& showing) {
 }
 
 void ToolTipPresenter::raise(const std::optional<ToolTipEvent>& change) {
-    if (change) window_.tool_tip_visibility_changed_.emit(*change);
+    if (!change) return;
+    window_.tool_tip_request_changed(*change);
+    window_.tool_tip_visibility_changed_.emit(*change);
 }
 
 void ToolTipPresenter::overlay_closed() {
@@ -409,7 +292,7 @@ void ToolTipPresenter::pointer_wait(const Control::Ptr& hovered, FrameTime now) 
         // Still over the thing that waits: the wake checks the rest.
         if (contains_point((*waiting).subject.anchor, pointer_) && (*waiting).hovered.lock() == hovered) return;
     }
-    ToolTipSubject subject = resolve_pointer(hovered, pointer_);
+    ToolTipSubject subject = resolve_pointer_subject(hovered, pointer_, window_.tool_tip_settings(), covers_);
     if (subject.text.empty()) {
         Settled settled{};
         settled.region = subject.anchor;
@@ -454,7 +337,8 @@ void ToolTipPresenter::pointer_pressed() {
         // A press over the thing the pointer waits on ends the wait until
         // the pointer leaves it.
         Control::Ptr hovered = window_.hit_test(pointer_);
-        const ToolTipSubject subject = resolve_pointer(hovered, pointer_);
+        const ToolTipSubject subject =
+            resolve_pointer_subject(hovered, pointer_, window_.tool_tip_settings(), covers_);
         Settled settled{};
         settled.region = subject.anchor;
         settled.hovered = hovered;
@@ -487,7 +371,7 @@ void ToolTipPresenter::focus_changed(const Control::Ptr& focused) {
     }
     keyboard_subject_ = ToolTipSubject{};
     if (focused && focus_allowed() && window_.focus_cue_visible()) {
-        ToolTipSubject subject = resolve_focus(focused);
+        ToolTipSubject subject = resolve_focus_subject(focused, window_.tool_tip_settings(), covers_);
         keyboard_subject_ = subject;
         if (!subject.text.empty()) {
             if (!change) change = close(Idle{});
@@ -504,8 +388,8 @@ void ToolTipPresenter::key_handled() {
     if (!focus_allowed() || !window_.focus_cue_visible()) return;
     const Control::Ptr focused = window_.focused_control();
     if (!focused) return;
-    ToolTipSubject subject = resolve_focus(focused);
-    if (same_thing(subject, keyboard_subject_) && keyboard_subject_.control.lock()) return;
+    ToolTipSubject subject = resolve_focus_subject(focused, window_.tool_tip_settings(), covers_);
+    if (same_tool_tip_thing(subject, keyboard_subject_) && keyboard_subject_.control.lock()) return;
     keyboard_subject_ = subject;
     std::optional<ToolTipEvent> change{};
     if (std::holds_alternative<Showing>(state_)) {
@@ -559,6 +443,43 @@ void ToolTipPresenter::text_changed(const Control& control) {
     replace(origin, std::move(subject), std::nullopt);
 }
 
+void ToolTipPresenter::items_changed(const Control& control) {
+    if (Showing* showing = std::get_if<Showing>(&state_)) {
+        if ((*showing).subject.item_id.empty() || (*showing).subject.control.lock().get() != &control) return;
+        const std::vector<SemanticNode> items = control.tool_tip_items();
+        const SemanticNode* item = item_with_id(items, (*showing).subject.item_id);
+        const ToolTipOrigin origin = (*showing).origin;
+        if (item == nullptr || (*item).tool_tip.empty()) {
+            const std::optional<ToolTipEvent> change = close(Idle{});
+            // The pointer may rest over another part of the control now.
+            if (origin == ToolTipOrigin::pointer) pointer_wait(window_.hit_test(pointer_), last_motion_);
+            raise(change);
+            return;
+        }
+        if ((*item).tool_tip == (*showing).subject.text) return;
+        ToolTipSubject subject = (*showing).subject;
+        subject.text = (*item).tool_tip;
+        replace(origin, std::move(subject), std::nullopt);
+        return;
+    }
+    Control::Ptr hovered{};
+    if (const Waiting* waiting = std::get_if<Waiting>(&state_)) {
+        if ((*waiting).origin == ToolTipOrigin::pointer) hovered = (*waiting).hovered.lock();
+    } else if (const Settled* settled = std::get_if<Settled>(&state_)) {
+        hovered = (*settled).hovered.lock();
+    }
+    if (hovered.get() == &control) {
+        // Found again from the moment the pointer came to rest: the delay
+        // still counts from then.
+        state_ = Idle{};
+        wake_.disconnect();
+        pointer_wait(hovered, last_motion_);
+        return;
+    }
+    const Control::Ptr focused = window_.focused_control();
+    if (focused.get() == &control) key_handled();
+}
+
 void ToolTipPresenter::settings_changed() {
     if (const Showing* showing = std::get_if<Showing>(&state_)) {
         const ToolTipOrigin origin = (*showing).origin;
@@ -599,8 +520,33 @@ void ToolTipPresenter::cover(RuntimeId control, std::string_view item_id, bool c
 
 void ToolTipPresenter::show_program(const Control::Ptr& target,
                                     std::optional<std::chrono::milliseconds> duration) {
-    ToolTipSubject subject = subject_of(target, {}, (*target).tool_tip_text.read(), (*target).absolute_bounds());
+    ToolTipSubject subject =
+        tool_tip_subject_of(target, {}, (*target).tool_tip_text.read(), (*target).absolute_bounds());
     replace(ToolTipOrigin::program, std::move(subject), duration);
+}
+
+void ToolTipPresenter::show_program_item(const Control::Ptr& control, std::string item_id, std::string text,
+                                         Rect anchor, std::optional<std::chrono::milliseconds> duration) {
+    ToolTipSubject subject = tool_tip_subject_of(control, std::move(item_id), std::move(text), anchor);
+    replace(ToolTipOrigin::program, std::move(subject), duration);
+}
+
+void ToolTipPresenter::request(const Control::Ptr& owner, std::uint64_t id, std::string item_id,
+                               const ToolTipRequest& content) {
+    const std::string shown_item = item_id;
+    show_program_item(owner, std::move(item_id), content.text, content.anchor, content.duration);
+    const Showing* showing = std::get_if<Showing>(&state_);
+    const bool shows = showing != nullptr && (*showing).subject.item_id == shown_item &&
+                       (*showing).subject.control.lock() == owner;
+    // An owner that cannot show one now (hidden, or disabled without
+    // disabled tooltips) leaves the presenter idle.
+    if (!shows) window_.answer_tool_tip_request(id, SurfaceRequestResult::declined);
+}
+
+void ToolTipPresenter::withdraw(std::string_view item_id) {
+    const Showing* showing = std::get_if<Showing>(&state_);
+    if (showing == nullptr || (*showing).subject.item_id != item_id) return;
+    raise(close(Idle{}));
 }
 
 void ToolTipPresenter::hide() {
