@@ -338,7 +338,7 @@ void DockSite::realize() {
         // is the docking drag at once (phase D3).
         if (node.kind == DockNodeKind::document_stack) strip.reorder_enabled = true;
         // The workspace's navigator takes Ctrl+Tab (owner decision DK-30).
-        view.set_ctrl_tab(PageViewCtrlTab::pass);
+        view.ctrl_tab = PageViewCtrlTab::pass;
         on(view.pages().selected_page_changed(), *this, &DockSite::on_view_selection, stack);
         on(view.content_requested(), *this, &DockSite::on_view_content, stack);
         on(strip.page_close_requested(), *this, &DockSite::on_view_close, stack);

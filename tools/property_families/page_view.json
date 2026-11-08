@@ -1,0 +1,97 @@
+{
+  "family": "PageView",
+  "step": "M-S8",
+  "declaring": "PageView",
+  "header": "include/gui_forms/controls/pages/page_view/page_view.hpp",
+  "source": "src/controls/pages/page_view/page_view.cpp",
+  "capabilities_header": "include/gui_forms/controls/pages/page_view/page_view_capabilities/page_view_capabilities.hpp",
+  "base": "Control",
+  "shared": [],
+  "includes": [
+    "gui_forms/controls/pages/page_view/page_view_values/page_view_values.hpp"
+  ],
+  "test": {
+    "type": "PageView",
+    "include": "gui_forms/controls/pages/page_view/page_view.hpp"
+  },
+  "properties": [
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "close_policy",
+      "capability": "PageViewClosePolicyProperty",
+      "value": "PageViewClosePolicy",
+      "initial": "PageViewClosePolicy::remove_when_unhandled",
+      "hooks": "generated",
+      "hand": [],
+      "effects": null,
+      "prepare": [
+        "if (incoming != PageViewClosePolicy::remove_when_unhandled && incoming != PageViewClosePolicy::request_only) {",
+        "    throw std::invalid_argument(\"PageView close policy is invalid\");",
+        "}"
+      ],
+      "comment": "What the view does with a close request no handler took (see PageViewClosePolicy). An unknown policy throws std::invalid_argument.",
+      "sample": "PageViewClosePolicy::request_only",
+      "getter": "close_policy",
+      "setter": "set_close_policy",
+      "field": "close_policy_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "ctrl_tab",
+      "capability": "PageViewCtrlTabProperty",
+      "value": "PageViewCtrlTab",
+      "initial": "PageViewCtrlTab::select_next",
+      "hooks": "generated",
+      "hand": [],
+      "effects": null,
+      "prepare": [
+        "if (incoming != PageViewCtrlTab::select_next && incoming != PageViewCtrlTab::pass) {",
+        "    throw std::invalid_argument(\"PageView Ctrl+Tab policy is invalid\");",
+        "}"
+      ],
+      "comment": "What Ctrl+Tab and Ctrl+Shift+Tab do while focus is inside the view (see PageViewCtrlTab). An unknown policy throws std::invalid_argument.",
+      "sample": "PageViewCtrlTab::pass",
+      "getter": "ctrl_tab",
+      "setter": "set_ctrl_tab",
+      "field": "ctrl_tab_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "focus_region",
+      "capability": "PageViewFocusRegion",
+      "value": "bool",
+      "initial": "false",
+      "hooks": "hand",
+      "hand": [
+        "written registers or unregisters the view as a focus region of its attached window"
+      ],
+      "effects": null,
+      "comment": "Whether the view registers itself as an F6 region of its window (owner decision RB-17), off by default. A view nested in another region is not registered.",
+      "sample": "true",
+      "getter": "focus_region",
+      "setter": "set_focus_region",
+      "field": "focus_region_"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "preset",
+      "reason": "read-only, chosen at construction"
+    }
+  ]
+}

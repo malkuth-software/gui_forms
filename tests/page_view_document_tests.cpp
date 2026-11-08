@@ -191,7 +191,7 @@ void preset_and_anatomy() {
     std::shared_ptr<PageView> view = make_control<PageView>(StableId("docs"), document_options(true));
     const PageStrip& strip = *(*view).strip();
     require((*view).preset() == PageViewPreset::document &&
-                (*view).close_policy() == PageViewClosePolicy::remove_when_unhandled,
+                (*view).close_policy.read() == PageViewClosePolicy::remove_when_unhandled,
             "the document preset starts by removing unhandled closes");
     require(strip.close_buttons.read() == PageCloseButtons::selected_and_hot &&
                 strip.overflow.read() == PageStripOverflow::shrink_then_list && !strip.mnemonics_enabled.read(),
@@ -338,7 +338,7 @@ void close_policy_and_most_recent() {
     require(window.dispatch_key(key(PhysicalKey::f4, Modifier::control)) && !pages.find(PageId{"d2"}) &&
                 selected_id(pages) == "d3",
             "an unhandled close removes the page and selects the most recently active one");
-    (*view).set_close_policy(PageViewClosePolicy::request_only);
+    (*view).close_policy = PageViewClosePolicy::request_only;
     const std::uint64_t revision = pages.revision();
     CloseLog log{};
     log.take = false;
@@ -346,7 +346,7 @@ void close_policy_and_most_recent() {
     require(window.dispatch_key(key(PhysicalKey::f4, Modifier::control)) && log.requests.size() == 1U &&
                 pages.count() == 4U && selected_id(pages) == "d3" && pages.revision() == revision,
             "under request_only the view asks and removes nothing");
-    (*view).set_close_policy(PageViewClosePolicy::remove_when_unhandled);
+    (*view).close_policy = PageViewClosePolicy::remove_when_unhandled;
     log.take = true;
     require(window.dispatch_key(key(PhysicalKey::f4, Modifier::control)) && log.requests.size() == 2U &&
                 pages.count() == 4U && selected_id(pages) == "d3" && pages.revision() == revision,

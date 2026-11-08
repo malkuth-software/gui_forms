@@ -158,6 +158,14 @@ Related types
      - Whether an unclaimed drag reorders tabs live (owner decision DK-39): off by default, the strip preset; PageView's document preset turns it on.
    * - :cpp:class:`PageView::Parts <gui_forms::PageView::Parts>`
      - Stage T1 anatomy, as dot members; its states are Control's.
+   * - :cpp:class:`PageViewCapabilities <gui_forms::PageViewCapabilities>`
+     - Every PageView capability, in the order the declaring class takes them.
+   * - :cpp:class:`PageViewClosePolicyPropertyCapability <gui_forms::PageViewClosePolicyPropertyCapability>`
+     - What the view does with a close request no handler took (see PageViewClosePolicy).
+   * - :cpp:class:`PageViewCtrlTabPropertyCapability <gui_forms::PageViewCtrlTabPropertyCapability>`
+     - What Ctrl+Tab and Ctrl+Shift+Tab do while focus is inside the view (see PageViewCtrlTab).
+   * - :cpp:class:`PageViewFocusRegionCapability <gui_forms::PageViewFocusRegionCapability>`
+     - Whether the view registers itself as an F6 region of its window (owner decision RB-17), off by default.
    * - :cpp:class:`PageViewOptions <gui_forms::PageViewOptions>`
      -  
    * - :cpp:class:`Panel::Parts <gui_forms::Panel::Parts>`
@@ -1142,6 +1150,80 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> PageViewCapabilities : public PageViewClosePolicyPropertyCapability<Declaring>, public PageViewCtrlTabPropertyCapability<Declaring>, public PageViewFocusRegionCapability<Declaring>
+
+   ``#include <gui_forms/controls/pages/page_view/page_view_capabilities/page_view_capabilities.hpp>``
+
+   Every PageView capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: PageViewClosePolicy close_policy
+
+      What the view does with a close request no handler took (see PageViewClosePolicy). An unknown policy throws std::invalid_argument.
+
+   .. cpp:member:: PageViewCtrlTab ctrl_tab
+
+      What Ctrl+Tab and Ctrl+Shift+Tab do while focus is inside the view (see PageViewCtrlTab). An unknown policy throws std::invalid_argument.
+
+   .. cpp:member:: bool focus_region
+
+      Whether the view registers itself as an F6 region of its window (owner decision RB-17), off by default. A view nested in another region is not registered.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PageViewClosePolicyPropertyCapability
+
+   ``#include <gui_forms/controls/pages/page_view/page_view_capabilities/page_view_capabilities.hpp>``
+
+   What the view does with a close request no handler took (see PageViewClosePolicy). An unknown policy throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PageViewClosePolicyPropertyCapability& capability, PageViewClosePolicy incoming)
+
+   .. cpp:member:: PropertyCell<PageViewClosePolicy, PageViewClosePolicyPropertyCapability<Declaring>> close_policy
+
+      Default: ``{PageViewClosePolicy::remove_when_unhandled}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PageViewCtrlTabPropertyCapability
+
+   ``#include <gui_forms/controls/pages/page_view/page_view_capabilities/page_view_capabilities.hpp>``
+
+   What Ctrl+Tab and Ctrl+Shift+Tab do while focus is inside the view (see PageViewCtrlTab). An unknown policy throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PageViewCtrlTabPropertyCapability& capability, PageViewCtrlTab incoming)
+
+   .. cpp:member:: PropertyCell<PageViewCtrlTab, PageViewCtrlTabPropertyCapability<Declaring>> ctrl_tab
+
+      Default: ``{PageViewCtrlTab::select_next}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PageViewFocusRegionCapability
+
+   ``#include <gui_forms/controls/pages/page_view/page_view_capabilities/page_view_capabilities.hpp>``
+
+   Whether the view registers itself as an F6 region of its window (owner decision RB-17), off by default. A view nested in another region is not registered.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PageViewFocusRegionCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, PageViewFocusRegionCapability<Declaring>> focus_region
+
+      Default: ``{false}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: PageViewOptions final
 
    ``#include <gui_forms/controls/pages/page_view/page_view.hpp>``
@@ -1703,7 +1785,7 @@ Enumerations
 
 .. cpp:enum-class:: PageViewClosePolicy
 
-   ``#include <gui_forms/controls/pages/page_view/page_view.hpp>``
+   ``#include <gui_forms/controls/pages/page_view/page_view_values/page_view_values.hpp>``
 
    .. cpp:enumerator:: remove_when_unhandled
 
@@ -1713,7 +1795,7 @@ Enumerations
 
 .. cpp:enum-class:: PageViewCtrlTab
 
-   ``#include <gui_forms/controls/pages/page_view/page_view.hpp>``
+   ``#include <gui_forms/controls/pages/page_view/page_view_values/page_view_values.hpp>``
 
    .. cpp:enumerator:: select_next
 

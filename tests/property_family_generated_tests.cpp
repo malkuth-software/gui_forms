@@ -21,6 +21,7 @@
 #include "gui_forms/controls/menu_strip/menu_strip.hpp"
 #include "gui_forms/controls/metrics_view/metrics_view.hpp"
 #include "gui_forms/controls/pages/page_strip/page_strip.hpp"
+#include "gui_forms/controls/pages/page_view/page_view.hpp"
 #include "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp"
 #include "gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail.hpp"
 #include "gui_forms/controls/panel/card/card.hpp"
@@ -1283,6 +1284,25 @@ void test_page_strip_properties() {
     }
 }
 
+void test_page_view_properties() {
+    std::shared_ptr<PageView> control = make_control<PageView>(StableId("generated.pageview"));
+    {
+        const PageViewClosePolicy sample = PageViewClosePolicy::request_only;
+        (*control).close_policy = sample;
+        expect((*control).close_policy.read() == sample, "PageView.close_policy: a write stores");
+    }
+    {
+        const PageViewCtrlTab sample = PageViewCtrlTab::pass;
+        (*control).ctrl_tab = sample;
+        expect((*control).ctrl_tab.read() == sample, "PageView.ctrl_tab: a write stores");
+    }
+    {
+        const bool sample = true;
+        (*control).focus_region = sample;
+        expect((*control).focus_region.read() == sample, "PageView.focus_region: a write stores");
+    }
+}
+
 void test_panel_properties() {
     std::shared_ptr<Panel> control = make_control<Panel>(StableId("generated.panel"));
     {
@@ -1940,6 +1960,7 @@ int main() {
     test_numeric_up_down_properties();
     test_object_view_properties();
     test_page_strip_properties();
+    test_page_view_properties();
     test_panel_properties();
     test_picture_box_properties();
     test_property_grid_properties();
