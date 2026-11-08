@@ -2,7 +2,23 @@ cmake_minimum_required(VERSION 3.25)
 project(GUIFormsOwnedEventsReference LANGUAGES C CXX)
 
 find_package(GUIForms 0.2 CONFIG REQUIRED COMPONENTS Controls)
+
+# Each program's window is a form document (forms/), generated at build time
+# into a gui_forms::Window subclass; a model header beside the program names
+# what the document binds.
+function(reference_window target document class)
+    cmake_parse_arguments(PARSE_ARGV 3 WINDOW "" "MODEL;MODEL_HEADER" "")
+    if(WINDOW_MODEL)
+        gui_forms_add_form(${target} ${document} CLASS ${class} NAMESPACE reference
+                           MODEL ${WINDOW_MODEL} MODEL_HEADER ${WINDOW_MODEL_HEADER})
+        target_include_directories(${target} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+    else()
+        gui_forms_add_form(${target} ${document} CLASS ${class} NAMESPACE reference DERIVED)
+    endif()
+endfunction()
+
 add_executable(owned_events owned_events.cpp)
+reference_window(owned_events forms/owned_events.form ExampleWindow)
 target_compile_features(owned_events PRIVATE cxx_std_20)
 target_link_libraries(owned_events PRIVATE GUIForms::Controls)
 # Keep the selected SDK ahead of an older GUI.Forms installation in the
@@ -21,6 +37,16 @@ foreach(example_name IN ITEMS bound_values window_rules shared_state collection_
         target_link_libraries(${example_name} PRIVATE GUIForms::Controls)
     endif()
     set_target_properties(${example_name} PROPERTIES NO_SYSTEM_FROM_IMPORTED TRUE)
+    if(example_name STREQUAL "bound_values")
+        reference_window(${example_name} forms/bound_values.form SettingsWindow)
+    elseif(example_name STREQUAL "shared_state")
+        reference_window(${example_name} forms/shared_state.form SharedWindow
+                         MODEL reference::SharedModel MODEL_HEADER shared_state_model.hpp)
+    elseif(example_name STREQUAL "collection_state")
+        reference_window(${example_name} forms/collection_state.form CollectionsWindow)
+    elseif(example_name STREQUAL "multiline_scrollbars")
+        reference_window(${example_name} forms/multiline_scrollbars.form ViewerWindow)
+    endif()
     add_test(NAME ${example_name} COMMAND ${example_name})
     set_tests_properties(${example_name} PROPERTIES TIMEOUT 15)
 endforeach()
@@ -91,6 +117,10 @@ if(TARGET GUIForms::Application)
     target_compile_features(collection_gallery PRIVATE cxx_std_20)
     target_link_libraries(collection_gallery PRIVATE GUIForms::Application)
     set_target_properties(collection_gallery PROPERTIES NO_SYSTEM_FROM_IMPORTED TRUE)
+    reference_window(collection_gallery forms/collection_gallery.form GalleryWindow
+                     MODEL reference::GalleryModel MODEL_HEADER collection_gallery_model.hpp)
+    gui_forms_add_theme(collection_gallery themes/collection_gallery FUNCTION collection_gallery_theme
+                        NAMESPACE reference FORMS forms/collection_gallery.form)
 endif()
 
 if(TARGET GUIForms::Audio)

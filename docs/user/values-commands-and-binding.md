@@ -9,48 +9,60 @@ thread. Record-and-field binding is described in [Data binding](data-binding).
 
 A form document binds the same sources in a property's own slot when it
 creates the control (`value: bind(volume);`); see [Forms](forms.md#bindings).
-The `bind` calls below are the C++ spelling, for controls a program makes
-itself.
+The `bind` calls in the table below are the C++ spelling, for controls a
+program makes itself.
+
+```css
+/* forms/mixer.form */
+form mixer.window {
+  text: "Mixer";
+  client-size: 360 160;
+
+  panel mixer.root {
+    track-bar volume.left { bounds: 12 12 336 40; value: bind(volume); }
+    track-bar volume.right { bounds: 12 60 336 40; value: bind(volume); }
+    command-bar mixer.commands { bounds: 12 112 336 36; }
+  }
+}
+```
 
 ```cpp
-#include <gui_forms/collection_controls.hpp>
-#include <gui_forms/range_controls.hpp>
-
-#include <memory>
-
-namespace gf = gui_forms;
+// mixer_model.hpp; the form is generated with
+// gui_forms_add_form(mixer forms/mixer.form CLASS MixerWindow NAMESPACE mixer
+//                    MODEL mixer::Mixer MODEL_HEADER mixer_model.hpp)
+namespace mixer {
 
 // The model owns the state and its handler subscriptions.
-class Mixer final : public gf::Component {
+class Mixer final : public gui_forms::Component {
 public:
-    Mixer() { gf::on(mute.invoked(), *this, &Mixer::on_mute); }
+    Mixer() { gui_forms::on(mute.invoked(), *this, &Mixer::on_mute); }
 
-    gf::Value<double> volume{25.0};
-    gf::Command mute{"mixer.mute", "Mute"};
+    gui_forms::Value<double> volume{25.0};
+    gui_forms::Command mute{"mixer.mute", "Mute"};
 
 private:
     void on_mute() { volume.set(0.0); }
 };
 
-int main() {
-    Mixer mixer{};
-    std::shared_ptr<gf::TrackBar> left =
-        gf::make_control<gf::TrackBar>(gf::StableId("volume.left"));
-    std::shared_ptr<gf::TrackBar> right =
-        gf::make_control<gf::TrackBar>(gf::StableId("volume.right"));
-    std::shared_ptr<gf::CommandBar> bar =
-        gf::make_control<gf::CommandBar>(gf::StableId("commands"));
-    (*left).bind(mixer.volume);  // the model's 25 wins at bind time
-    (*right).bind(mixer.volume);
-    (*bar).set_items({{.id = 1, .label = "Mute", .command = &mixer.mute}});
-
-    (*left).set_value(60.0);        // right and mixer.volume follow
-    (*bar).item(0).perform_click(); // runs mixer.mute, then bar.invoked()
-    return (*right).value() == 0.0 ? 0 : 1;
-}
+} // namespace mixer
 ```
 
-## Handlers that carry values
+```cpp
+#include "mixer_form.hpp"   // generated
+
+namespace gf = gui_forms;
+
+int main() {
+    mixer::Mixer model{};               // the model's 25 wins when the bars are bound
+    mixer::MixerWindow window(model);   // both bars bound to model.volume as they are made
+    // A collection's items are data: the program sets them.
+    (*window.mixer_commands).set_items({{.id = 1, .label = "Mute", .command = &model.mute}});
+
+    (*window.volume_left).value = 60.0;              // right and model.volume follow
+    (*window.mixer_commands).item(0).perform_click(); // runs model.mute, then the bar's invoked()
+    return (*window.volume_right).value.read() == 0.0 ? 0 : 1;
+}
+```
 
 `on(event, owner, &Owner::method, values...)` registers an owned handler; see
 [Retained tree](retained-tree) for how the owner revokes it. Up to two values
@@ -82,12 +94,12 @@ Its contract is `get()`, `set()`, `changed()` and `validating()`:
 
 ## Binding controls to a value
 
-| Control | Connects with | Model |
-|---|---|---|
-| [`RangeControl`](../api/generated/gui_forms.RangeControl.rst), [`TrackBar`](../api/generated/gui_forms.TrackBar.rst) | `bind(model)` | `Value<double>` |
-| [`CheckBox`](../api/generated/gui_forms.CheckBox.rst) | `bind(model)` | `Value<bool>` |
-| [`ChoiceGroup`](../api/generated/gui_forms.ChoiceGroup.rst) | `bind(model)`; `-1` selects nothing | `Value<int>` |
-| [`ExpandableSections`](../api/generated/gui_forms.ExpandableSections.rst) | `SectionItem::expanded` | `Value<bool>*` per section |
+| Control | In a form | In code | Model |
+|---|---|---|---|
+| [`RangeControl`](../api/generated/gui_forms.RangeControl.rst), [`TrackBar`](../api/generated/gui_forms.TrackBar.rst) | `value: bind(x);` | `bind(model)` | `Value<double>` |
+| [`CheckBox`](../api/generated/gui_forms.CheckBox.rst) | `checked: bind(x);` | `bind(model)` | `Value<bool>` |
+| [`ChoiceGroup`](../api/generated/gui_forms.ChoiceGroup.rst) | (in code) | `bind(model)`; `-1` selects nothing | `Value<int>` |
+| [`ExpandableSections`](../api/generated/gui_forms.ExpandableSections.rst) | (items are data) | `SectionItem::expanded` | `Value<bool>*` per section |
 
 A binding is two-way, and the model's value wins when you bind. A model value
 the control cannot represent (outside its range, past its last choice) throws
@@ -116,7 +128,8 @@ that again, as `CommandState::checkable` reports. `execute(source_id)` raises
 `invoked()` with a `CommandInvocation`; it returns false and invokes nothing
 when the command is disabled or disposed.
 
-`button.bind(command)` connects any `ButtonBase`, and the command's state wins
+`command: bind(x);` in a form, or `button.bind(command)` in code, connects any
+`ButtonBase`, and the command's state wins
 at bind time. The button's enabled state follows the command; a checkable
 command shows as a `CheckBox` check or a `Button` selected state; toggling a
 bound check box updates the command; one click executes it once, with the
@@ -155,7 +168,7 @@ items from a group handler is supported; recursive replacement throws.
   selection past its end to `-1`, and the group has radio-group semantics.
 - `ExpandableSections` stacks a 28-unit disclosure header over each content
   control, which keeps its requested height. Contents must be distinct and
-  have no other parent. `single_open = true` closes the others when one
+  have no other parent. `set_single_open(true)` closes the others when one
   opens.
 
 Item controls are named parts for styling: `part("item", index)` on

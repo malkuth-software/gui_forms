@@ -1,14 +1,16 @@
-// The collection gallery's model (stage B reference): the sources its
-// form binds, declared before the window that binds them.
-
 #pragma once
 
-#include <gui_forms/gui_forms.hpp>
+// The state forms/collection_gallery.form binds, found by name: both sliders
+// bind `volume` and both check boxes run `music`. The program binds the
+// choices to `selection` and the sections to `first_open` and `second_open`.
 
-class GalleryModel final {
-public:
-    GalleryModel() { music.set_checked(true); }
+#include <gui_forms/binding.hpp>
+#include <gui_forms/commands.hpp>
+#include <gui_forms/value.hpp>
 
+namespace reference {
+
+struct GalleryModel final {
     gui_forms::Command run{"run", "Run"};
     gui_forms::Command music{"music", "Music"};
     gui_forms::Value<double> volume{40.0};
@@ -16,3 +18,5 @@ public:
     gui_forms::Value<bool> first_open{true};
     gui_forms::Value<bool> second_open{false};
 };
+
+} // namespace reference

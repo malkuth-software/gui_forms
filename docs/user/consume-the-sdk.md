@@ -16,6 +16,11 @@ find_package(GUIForms 0.2 CONFIG REQUIRED COMPONENTS Application)
 add_executable(my_forms main.cpp)
 target_compile_features(my_forms PRIVATE cxx_std_20)
 target_link_libraries(my_forms PRIVATE GUIForms::Application)
+# The window class each form document generates, and the program's theme.
+gui_forms_add_form(my_forms forms/greeter.form CLASS GreeterWindow NAMESPACE greeter
+                   MODEL greeter::GreeterModel MODEL_HEADER greeter_model.hpp)
+gui_forms_add_theme(my_forms themes/greeter FUNCTION greeter_theme NAMESPACE greeter
+                    FORMS forms/greeter.form)
 # Keep the selected SDK ahead of any older GUI.Forms installation in the
 # compiler's normal include search path.
 set_target_properties(my_forms PROPERTIES NO_SYSTEM_FROM_IMPORTED TRUE)

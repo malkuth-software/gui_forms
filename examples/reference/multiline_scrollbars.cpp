@@ -1,5 +1,4 @@
-#include <gui_forms/controls/panel/text_box/text_box.hpp>
-#include <gui_forms/window.hpp>
+#include "multiline_scrollbars_form.hpp"   // generated from forms/multiline_scrollbars.form
 
 #include <iostream>
 #include <memory>
@@ -12,11 +11,8 @@ void require(const bool condition, const char* const message) {
 }
 
 void document_viewport() {
-    const std::shared_ptr<gui_forms::TextBox> field =
-        gui_forms::make_control<gui_forms::TextBox>(gui_forms::StableId("document"));
-    gui_forms::TextBox& editor = *field;
-    editor.multiline = true;
-    editor.auto_scroll = true;
+    reference::ViewerWindow window{};   // binds nothing, so it takes no model
+    gui_forms::TextBox& editor = *window.viewer_document;
     std::string source{};
     for (unsigned int row = 0; row < 80; ++row) {
         source.append(140, 'x');
@@ -24,7 +20,6 @@ void document_viewport() {
     }
     editor.text = source;
     editor.select(gui_forms::Utf8Offset(0), gui_forms::Utf8Offset(4));
-    gui_forms::Window window(field, {360.0, 240.0});
     window.perform_layout();
     require(editor.hscroll() && editor.vscroll(), "document extent must expose both bars");
     const gui_forms::TextSelection selection = editor.selection();

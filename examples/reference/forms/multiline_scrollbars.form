@@ -1,0 +1,11 @@
+/* A multiline text box that fills its window: its document extent decides
+   which scroll bars it shows. */
+form viewer.window {
+  text: "Document";
+  client-size: 360 240;
+
+  text-box viewer.document {
+    multiline: true;
+    auto-scroll: true;
+  }
+}

@@ -52,8 +52,10 @@ lab
 
 ## Conventions shared by every control
 
-- Construct with `make_control<T>(StableId, ...)`; the parent owns the result
-  once you `add_child` it. A stable ID is one or more segments separated by
+- A form document declares the controls a window starts with, and its
+  generated class makes them ([Forms](forms)). A control made at run time is
+  constructed with `make_control<T>(StableId, ...)`; the parent owns the
+  result once you `add_child` it. A stable ID is one or more segments separated by
   `.`, each made of lowercase ASCII letters and digits joined by single `-`
   (`files.list-view`). A literal such as `StableId("files.list-view")` is
   checked when the program compiles; a `std::string` or `std::string_view`

@@ -28,9 +28,9 @@ every Forms type to its GUI.Forms counterpart.
 | `Invalidate()`, `Invalidate(Rectangle)`, `Refresh()`, `Update()` | `invalidate(Dirty)`, `invalidate(Rect)` | Invalidation says *what* changed: measure, arrange, paint, hit test, text, semantics. Invalidation never paints; the host paints the accumulated damage on its next frame. |
 | `OnPaint(PaintEventArgs)` and `Graphics` | Override `on_paint(Painter&, Rect local_damage)`, or use `DrawingSurface` | `Painter` is a renderer-neutral drawing vocabulary over a CPU rasterizer. See [Painting and damage](painting-and-damage). |
 | `Handle`, `CreateControl`, `WndProc` | None | Controls are not native windows. Only the top-level window is native, and reparenting a control creates nothing native. |
-| `Form` and `Application.Run(form)` | `Window` and `Application::run(window, options)` | `Window` is a complete model that also runs without a native window, which is how tests run. `ApplicationWindowOptions` carries the title, sizes and the `ready`, `closing` and `closed` callbacks. Up to 64 windows run in one host. |
+| `Form` and `Application.Run(form)` | The window class a `.form` document generates (a `Window` subclass), `Application::create(config)` and `application.run(window, options)` | `Window` is a complete model that also runs without a native window, which is how tests run. The application compiles the program's theme once and every window it makes joins it. `ApplicationWindowOptions` carries the title, sizes and the `ready`, `closing` and `closed` callbacks. Up to 64 windows run in one host. |
 | `FormClosing` with `e.Cancel` | `closing(HostCloseRequest&)` with `cancel` | The request carries its `reason`. |
-| `AcceptButton`, `CancelButton`, `DialogResult` | `Window::set_accept_button`, `set_cancel_button`, `Button::set_dialog_result` | Return and Escape activate the targets when the focused control does not use the key. A button copies its result to the window after its click handlers run. Assigning a cancel button gives it `DialogResult::cancel` if it had none. |
+| `AcceptButton`, `CancelButton`, `DialogResult` | `accept-button` and `cancel-button` on the form (`Window::set_accept_button`, `set_cancel_button` in code), `Button::set_dialog_result` | Return and Escape activate the targets when the focused control does not use the key. A button copies its result to the window after its click handlers run. Assigning a cancel button gives it `DialogResult::cancel` if it had none. |
 | `ShowDialog()` | No modal run loop for your own windows | The window's `dialog_result()` is retained state and closes nothing; act on `dialog_result_changed()`. Use an owned overlay (`AnchoredOverlayLayer`, `Window::open_overlay`) with a focus scope, or a second window. |
 | `MessageBox`, `OpenFileDialog`, `SaveFileDialog`, `FolderBrowserDialog`, `ColorDialog` | Typed requests to `Window::host_services()->show_dialog(...)` | Each request returns a typed result. A host that cannot show a dialog reports `unsupported`. |
 | `InvokeRequired`, `Invoke`, `BeginInvoke` | `invoke_required()`, `invoke`, `begin_invoke` | `begin_invoke` returns a `DispatchOperation` with explicit `cancel()`. A property write or setter called from the wrong thread on an attached control throws. There is no `DoEvents`. See [Threading](threading). |
@@ -50,32 +50,30 @@ every Forms type to its GUI.Forms counterpart.
 
 ### Example: accept and cancel buttons
 
+```css
+/* forms/confirm.form */
+form confirm.window {
+  text: "Confirm";
+  client-size: 400 140;
+  accept-button: confirm.ok;
+  cancel-button: confirm.cancel;   /* assigns DialogResult::cancel */
+
+  panel confirm.root {
+    button confirm.ok { text: "OK"; bounds: 200 96 88 32; anchor: bottom right; }
+    button confirm.cancel { text: "Cancel"; bounds: 296 96 88 32; anchor: bottom right; }
+  }
+}
+```
+
 ```cpp
+// gui_forms_add_form(my_app forms/confirm.form CLASS ConfirmWindow NAMESPACE my_app DERIVED)
 class Confirm final : public gf::Component {
 public:
-    Confirm() {
-        root = gf::make_control<gf::Panel>(gf::StableId("confirm"));
-        ok = gf::make_control<gf::Button>(gf::StableId("confirm.ok"), "OK");
-        cancel = gf::make_control<gf::Button>(gf::StableId("confirm.cancel"), "Cancel");
-        (*ok).set_bounds({200.0, 96.0, 88.0, 32.0});
-        (*cancel).set_bounds({296.0, 96.0, 88.0, 32.0});
-        (*ok).anchor = gf::AnchorStyles::bottom | gf::AnchorStyles::right;
-        (*cancel).anchor = gf::AnchorStyles::bottom | gf::AnchorStyles::right;
-        (*ok).set_dialog_result(gf::DialogResult::ok);
-        (*root).add_child(ok);
-        (*root).add_child(cancel);
-    }
-
-    // Accept and cancel targets must already belong to the window.
-    void attach(gf::Window& window) {
-        window.set_accept_button(ok);
-        window.set_cancel_button(cancel);  // assigns DialogResult::cancel
+    explicit Confirm(my_app::ConfirmWindow& window) {
+        (*window.confirm_ok).set_dialog_result(gf::DialogResult::ok);
         gf::on(window.dialog_result_changed(), *this, &Confirm::on_result);
     }
 
-    std::shared_ptr<gf::Panel> root{};
-    std::shared_ptr<gf::Button> ok{};
-    std::shared_ptr<gf::Button> cancel{};
     gf::DialogResult last_result{gf::DialogResult::none};
 
 private:
@@ -83,9 +81,8 @@ private:
     void on_result(gf::DialogResult result) { last_result = result; }
 };
 
-Confirm confirm{};
-gf::Window window(confirm.root, gf::Size{400.0, 140.0});
-confirm.attach(window);
+my_app::ConfirmWindow window{};   // binds nothing, so it takes no model
+Confirm confirm(window);          // declared after the window, so it ends first
 ```
 
 ## Type correspondence

@@ -336,7 +336,7 @@ of the renderer-neutral core; a boundary test enforces that.
 
 ## Multiple windows
 
-`Application::run(std::vector<ApplicationWindow>)` presents up to 64 windows
+`application.run(std::vector<ApplicationWindow>)` presents up to 64 windows
 in one host run, each with its own `Window` model, stable ID, options and an
 optional owner ID for tool windows. The `ready` callback hands you an
 `ApplicationWindowHandle`, a weak, thread-affine handle for `show`, `hide`,
@@ -385,9 +385,12 @@ Each `Window` has an image registry and a theme. Windows constructed with
 the same `ApplicationResources` (stage DK decision 8) share both: an
 `ImageId` or an `ImageList` from one is valid in the others, setting the
 theme on one sets it on all, and a control subtree moved from one window to
-another keeps its images. Build a window opened during the run from the main
-window's resources, `Window(root, size, main_window.resources())`. A window
-constructed without resources makes its own, so a single-window program, or
+another keeps its images. Every top-level window made while an
+`Application` is current joins it and shares its resources, so a generated
+window class constructed with the application
+(`SettingsWindow(application, model)`), or on its thread while it is
+current, shares the main window's images and theme. A window
+constructed with no current application makes its own, so a test, or
 windows meant to stay separate, behave as before (a `Button` still refuses
 an `ImageList` from a window that does not share its registry). The shared
 registry lives until its last window, or other holder, releases it.

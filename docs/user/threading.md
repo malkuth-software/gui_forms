@@ -111,7 +111,7 @@ struct Job {
 struct ShowResult final {
     std::shared_ptr<gf::Label> status;
     std::string text;
-    void operator()() const { (*status).set_text(text); }
+    void operator()() const { (*status).text = text; }
 };
 
 void entry(const gf::CancellationFlag& cancel, void* raw) {

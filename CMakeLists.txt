@@ -2589,22 +2589,40 @@ if(GUI_FORMS_BUILD_TESTS)
     endif()
     add_library(gui_forms_reference_examples OBJECT
         examples/reference/clipboard_image.cpp
-        examples/reference/owned_events.cpp
-        examples/reference/bound_values.cpp
-        examples/reference/shared_state.cpp
-        examples/reference/collection_state.cpp
         examples/reference/mouse_events.cpp
     )
     target_link_libraries(gui_forms_reference_examples PRIVATE gui_forms_core)
     if(TARGET GUIForms::form_compiler)
-        # Stage B's reference: the window is the form, generated at build time.
-        add_library(gui_forms_reference_form_examples OBJECT examples/reference/collection_gallery.cpp)
+        # The windowed references: each window is a form document (forms/),
+        # generated at build time as examples/reference/CMakeLists.txt does.
+        set(reference_forms examples/reference)
+        add_library(gui_forms_reference_form_examples OBJECT
+            ${reference_forms}/owned_events.cpp
+            ${reference_forms}/bound_values.cpp
+            ${reference_forms}/shared_state.cpp
+            ${reference_forms}/collection_state.cpp
+            ${reference_forms}/multiline_scrollbars.cpp
+            ${reference_forms}/collection_gallery.cpp)
         target_link_libraries(gui_forms_reference_form_examples PRIVATE gui_forms_core)
         target_include_directories(gui_forms_reference_form_examples PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/examples/reference)
-        gui_forms_add_form(gui_forms_reference_form_examples examples/reference/collection_gallery.form
-            CLASS CollectionGalleryWindow OUTPUT gui_forms_forms/collection_gallery_window.hpp
-            MODEL GalleryModel MODEL_HEADER collection_gallery_model.hpp)
+        gui_forms_add_form(gui_forms_reference_form_examples ${reference_forms}/forms/owned_events.form
+            CLASS ExampleWindow NAMESPACE reference DERIVED)
+        gui_forms_add_form(gui_forms_reference_form_examples ${reference_forms}/forms/bound_values.form
+            CLASS SettingsWindow NAMESPACE reference DERIVED)
+        gui_forms_add_form(gui_forms_reference_form_examples ${reference_forms}/forms/shared_state.form
+            CLASS SharedWindow NAMESPACE reference
+            MODEL reference::SharedModel MODEL_HEADER shared_state_model.hpp)
+        gui_forms_add_form(gui_forms_reference_form_examples ${reference_forms}/forms/collection_state.form
+            CLASS CollectionsWindow NAMESPACE reference DERIVED)
+        gui_forms_add_form(gui_forms_reference_form_examples ${reference_forms}/forms/multiline_scrollbars.form
+            CLASS ViewerWindow NAMESPACE reference DERIVED)
+        gui_forms_add_form(gui_forms_reference_form_examples ${reference_forms}/forms/collection_gallery.form
+            CLASS GalleryWindow NAMESPACE reference
+            MODEL reference::GalleryModel MODEL_HEADER collection_gallery_model.hpp)
+        gui_forms_add_theme(gui_forms_reference_form_examples ${reference_forms}/themes/collection_gallery
+            FUNCTION collection_gallery_theme NAMESPACE reference
+            FORMS ${reference_forms}/forms/collection_gallery.form)
     endif()
 
     find_package(Python3 COMPONENTS Interpreter QUIET)

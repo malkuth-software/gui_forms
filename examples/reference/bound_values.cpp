@@ -1,4 +1,5 @@
-#include <gui_forms/basic_controls.hpp>
+#include "bound_values_form.hpp"   // generated from forms/bound_values.form
+
 #include <gui_forms/event.hpp>
 
 namespace gf = gui_forms;
@@ -15,17 +16,15 @@ public:
 };
 
 int main() {
-    Settings settings{};
-    gf::Button back(gf::StableId("back"), "Back");
-    gf::Button option(gf::StableId("option"), "Option");
-    gf::Button tile(gf::StableId("tile"), "Tile");
-    gf::on(back.clicked(), settings, &Settings::fixed);
-    gf::on(option.clicked(), settings, &Settings::toggle, 3);
-    gf::on(tile.clicked(), settings, &Settings::choose, 2, 4);
-    back.perform_click();
-    option.perform_click();
+    reference::SettingsWindow window{};   // binds nothing, so it takes no model
+    Settings settings{};                  // declared after the window, so it ends first
+    gf::on((*window.back).clicked(), settings, &Settings::fixed);
+    gf::on((*window.option).clicked(), settings, &Settings::toggle, 3);
+    gf::on((*window.tile).clicked(), settings, &Settings::choose, 2, 4);
+    (*window.back).perform_click();
+    (*window.option).perform_click();
     if (settings.calls != 1 || settings.selected != 3) return 1;
-    tile.perform_click();
+    (*window.tile).perform_click();
     if (settings.selected != 24) return 1;
     return 0;
 }

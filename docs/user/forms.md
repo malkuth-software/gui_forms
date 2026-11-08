@@ -180,5 +180,5 @@ window's rules end with the window.
 
 [Converting an existing application](converting-an-app) moves a program
 written in C++ onto a form, a model, a theme sheet and rules, one step at a
-time. `examples/reference/collection_gallery.form` and its program are a
+time. `examples/reference/forms/collection_gallery.form` and its program are a
 complete window in this shape.

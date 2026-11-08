@@ -1,0 +1,5 @@
+/* The reference application's theme: the form names each object's role
+   with `classes`, and this sheet gives the role its look. Text colours are
+   colour roles, so forced high contrast can replace them. */
+:root { status-ink-on-paper: #1d3557 on #ffffff; }
+.status { color: role(status-ink-on-paper); font-family: content; font-size: 13px; font-weight: 600; }

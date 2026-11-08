@@ -9,11 +9,27 @@ formatting and validation, in the manner of Windows Forms. The types are
 [`BindingContext`](../api/generated/gui_forms.BindingContext.rst); the
 [Data binding reference](../api/library.data-binding.rst) lists the rest.
 
+```css
+/* forms/person.form */
+form person.window {
+  text: "Person";
+  client-size: 320 120;
+
+  panel person.root {
+    text-box person.name { bounds: 12 12 296 28; }
+    check-box person.active { text: "Active"; bounds: 12 52 296 28; }
+  }
+}
+```
+
+```cmake
+gui_forms_add_form(people forms/person.form CLASS PersonWindow NAMESPACE people DERIVED)
+```
+
 ```cpp
-#include <gui_forms/basic_controls.hpp>
+#include "person_form.hpp"   // generated
+
 #include <gui_forms/binding.hpp>
-#include <gui_forms/input_controls.hpp>
-#include <gui_forms/window.hpp>
 
 #include <memory>
 #include <string>
@@ -21,30 +37,32 @@ formatting and validation, in the manner of Windows Forms. The types are
 namespace gf = gui_forms;
 
 int main() {
-    std::shared_ptr<gf::Panel> root = gf::make_control<gf::Panel>(gf::StableId("root"));
-    std::shared_ptr<gf::TextBox> name = gf::make_control<gf::TextBox>(gf::StableId("name"));
-    std::shared_ptr<gf::CheckBox> active =
-        gf::make_control<gf::CheckBox>(gf::StableId("active"), "Active");
-    (*root).add_child(name);
-    (*root).add_child(active);
-    gf::Window window(root, {320.0, 120.0});
+    people::PersonWindow window{};   // binds nothing, so it takes no model
 
-    std::shared_ptr<gf::BindingSource> people = std::make_shared<gf::BindingSource>(window);
-    (*people).set_records({
+    // A record source belongs to one window, so it is made over the window.
+    std::shared_ptr<gf::BindingSource> source = std::make_shared<gf::BindingSource>(window);
+    (*source).set_records({
         {"person.ada", {{"name", std::string("Ada")}, {"active", true}}},
         {"person.alan", {{"name", std::string("Alan")}, {"active", false}}},
     });
 
     gf::BindingOptions immediate{};
     immediate.data_source_update_mode = gf::DataSourceUpdateMode::on_property_changed;
-    (*name).data_bindings().add("text", people, "Name", immediate);
-    (*active).data_bindings().add("checked", people, "Active");
+    static_cast<void>((*window.person_name).data_bindings().add("text", source, "Name", immediate));
+    static_cast<void>((*window.person_active).data_bindings().add("checked", source, "Active"));
 
-    (*name).set_text("Ada L."); // written to the current record at once
-    (*people).move_next();      // both controls now show Alan's record
-    return (*name).text() == "Alan" && !(*active).checked() ? 0 : 1;
+    (*window.person_name).text = "Ada L.";   // written to the current record at once
+    (*source).move_next();                   // both controls now show Alan's record
+    const bool shows_alan = (*window.person_name).text.read() == "Alan" &&
+                            !(*window.person_active).checked.read();
+    return shows_alan ? 0 : 1;
 }
 ```
+
+A form binds a property to a scalar `Value` or a `Command` of its model in
+the property's own slot (`checked: bind(autosave);`), when the control is
+created ([Forms](forms#bindings)). The record bindings on this page are the
+layer under that: they take a field of a `BindingSource`'s current record.
 
 ## Records and currency
 
