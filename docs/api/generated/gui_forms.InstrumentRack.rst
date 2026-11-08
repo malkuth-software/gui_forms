@@ -249,7 +249,7 @@ gui_forms::InstrumentRack
           Search search;
           std::shared_ptr<gf::ComboBox> value = std::dynamic_pointer_cast<gf::ComboBox>(
               (*search.rack).field_editor("search.kind", "value"));
-          if (value) (*value).set_selected_index(1U);   // kind is "Documents"
+          if (value) (*value).selected_index = std::size_t{1U};   // kind is "Documents"
       }
 
 
