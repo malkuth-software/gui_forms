@@ -334,7 +334,7 @@ private:
                              "Open " + std::string(project[index].name)});
         }
         (*trail_).set_segments(std::move(segments));
-        (*trail_).active_id = project[folder].id;
+        (*trail_).active_id = std::string(project[folder].id);
         project_objects();
         project_ledger();
     }
