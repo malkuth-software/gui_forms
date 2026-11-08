@@ -6,6 +6,7 @@
 #include "gui_forms/host/services/host_services.hpp"
 #include "gui_forms/scheduler.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
+#include "gui_forms/components/notify_icon/notify_icon_capabilities/notify_icon_capabilities.hpp"
 
 #include <chrono>
 #include <cstdint>
@@ -29,10 +30,10 @@ struct NotifyIconClick final {
 // the icon's pixels at one or more sizes, a tooltip and an optional
 // ContextMenu; the host shows the image nearest the size its tray asks for.
 // The icon is shown through the window's HostServices, so it needs a host
-// that reports HostCapability::notification_area; status() and the results
-// of set_visible and show_balloon_tip say when it does not. Events arrive on
-// the UI thread.
-class NotifyIcon final : public Component {
+// that reports HostCapability::notification_area; status() after a write of
+// icon, text or visible, and the result of show_balloon_tip, say when it does
+// not. Events arrive on the UI thread.
+class NotifyIcon final : public Component, public NotifyIconCapabilities<NotifyIcon> {
 public:
     // Construct on the window's UI thread. The icon is shown through the
     // HostServices the window has when it becomes visible.
@@ -40,23 +41,6 @@ public:
     // Removes the icon from the notification area.
     ~NotifyIcon() override;
 
-    // The icon at one or more sizes, premultiplied BGRA8 (HostImage). Throws
-    // std::invalid_argument for more than 8 images or an image that is
-    // malformed or larger than 256 pixels a side. A shown icon is updated.
-    [[nodiscard]] const std::vector<HostImage>& icon() const noexcept { return images_; }
-    void set_icon(std::vector<HostImage> images);
-    // The tooltip, at most 127 bytes of UTF-8 (std::invalid_argument
-    // otherwise). A shown icon is updated.
-    [[nodiscard]] const std::string& text() const noexcept { return text_; }
-    void set_text(GUI_FORMS_LOCALIZABLE(text) std::string text);
-
-    // Whether the application wants the icon shown.
-    [[nodiscard]] bool visible() const noexcept { return visible_; }
-    // Shows or removes the icon and returns the host's answer: unsupported
-    // without a host or without the notification_area capability,
-    // invalid_argument while there is no icon image. A visible icon without an
-    // image is shown once an image is set.
-    HostServiceStatus set_visible(bool visible);
     // Whether the icon is in the notification area now.
     [[nodiscard]] bool shown() const noexcept;
     // The host's answer to the last request this icon made.
@@ -64,19 +48,12 @@ public:
     // Whether the window's host shows notification-area icons.
     [[nodiscard]] bool supported() const noexcept;
 
-    // The menu shown on the icon's context gesture. Hosts with native tray
-    // menus (notification_area_menus) show its rows natively; choosing a row
-    // executes its command and raises menu_item_invoked. Submenus are left
-    // out. Without native tray menus only click is raised.
-    [[nodiscard]] std::shared_ptr<ContextMenu> context_menu() const noexcept { return context_menu_; }
-    void set_context_menu(std::shared_ptr<ContextMenu> menu);
-
     // Shows notification text from the icon (Windows Forms' ShowBalloonTip):
     // a title of at most 63 bytes and text of at most 255 bytes. Refused as
     // unsupported where the host has no notification_area_messages, and as
     // invalid_argument while the icon is not shown.
-    HostServiceStatus show_balloon_tip(std::string title, std::string text,
-                                       HostTrayNotificationIcon icon = HostTrayNotificationIcon::none,
+    HostServiceStatus show_balloon_tip(std::string title, std::string message,
+                                       HostTrayNotificationIcon symbol = HostTrayNotificationIcon::none,
                                        std::chrono::milliseconds timeout = std::chrono::milliseconds(0));
 
     [[nodiscard]] Event<const NotifyIconClick&>& click() noexcept { return click_; }
@@ -103,10 +80,10 @@ private:
     [[nodiscard]] HostTrayIconRequest request() const;
 
     std::weak_ptr<detail::WindowLifetime> window_lifetime_;
+    // The storage of the icon and visible views (every write of either
+    // synchronizes the host icon).
     std::vector<HostImage> images_{};
-    std::string text_{};
     bool visible_{};
-    std::shared_ptr<ContextMenu> context_menu_{};
     // The services the icon is shown through and its identity there. The
     // pointer is used only while the window still has these services.
     HostServices* services_{};
@@ -118,6 +95,22 @@ private:
     Event<> balloon_tip_clicked_{};
     Event<> balloon_tip_closed_{};
     Event<const MenuItemInvocation&> menu_item_invoked_{};
+    // property_codemod begin NotifyIcon (tools/property_families/notify_icon.json; generated, do not edit)
+private:
+    friend struct NotifyIconIconCapability<NotifyIcon>;
+    friend struct TextCapability<NotifyIcon>;
+    friend struct NotifyIconVisibleCapability<NotifyIcon>;
+    friend struct NotifyIconContextMenuCapability<NotifyIcon>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void write_view(const decltype(icon)& cell, std::vector<HostImage> incoming);
+    [[nodiscard]] std::vector<HostImage> read_view(const decltype(icon)& cell) const;
+    void prepare_write(const decltype(text)& cell, std::string& incoming);
+    void written(const decltype(text)& cell);
+    void write_view(const decltype(visible)& cell, bool incoming);
+    [[nodiscard]] bool read_view(const decltype(visible)& cell) const;
+    void prepare_write(const decltype(context_menu)& cell, std::shared_ptr<ContextMenu>& incoming);
+    void written(const decltype(context_menu)& cell);
+    // property_codemod end NotifyIcon
 };
 
 } // namespace gui_forms

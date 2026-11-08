@@ -16,7 +16,7 @@ Properties
 ----------
 description : default empty
     The text the dialog shows: above the tree on Windows, as the title
-    elsewhere. Empty gives the host's own. `set_description` throws
+    elsewhere. Empty gives the host's own. A write throws
     `std::invalid_argument` for text that is not valid UTF-8, holds NUL or
     is longer than `HostServices::maximum_dialog_text_bytes`, and keeps the
     old text.
@@ -66,10 +66,10 @@ A dialog for choosing where exports go, shown over a window:
    std::shared_ptr<gf::Panel> root = gf::make_control<gf::Panel>(gf::StableId("doc.root"));
    gf::Window window(root, {320.0, 200.0});
    gf::FolderBrowserDialog dialog;
-   dialog.set_description("Choose where the exports go");
+   dialog.description = "Choose where the exports go";
    const gf::DialogResult result = dialog.show_dialog(window);
    if (result == gf::DialogResult::ok) {
-       const std::string& folder = dialog.selected_path();
+       const std::string folder = dialog.selected_path.read();
        static_cast<void>(folder);
    } else if (result == gf::DialogResult::none) {
        // Without a host, dialog.status().error is gf::HostServiceError::unsupported.

@@ -15,7 +15,7 @@ does not show it: `show_dialog` returns ``none`` and `status` says why.
 Properties
 ----------
 title : default empty
-    The dialog's title; empty gives the host's own. `set_title` throws
+    The dialog's title; empty gives the host's own. A write throws
     `std::invalid_argument` for text that is not valid UTF-8, holds NUL or
     is longer than `HostServices::maximum_dialog_text_bytes`, and keeps the
     old title.
@@ -24,7 +24,7 @@ initial_directory : default empty
     as `title` is.
 filter : default empty
     The filter in Windows Forms' syntax, as `OpenFileDialog` reads it:
-    ``"Reports|*.txt|All files|*.*"``. `set_filter` throws
+    ``"Reports|*.txt|All files|*.*"``. A write throws
     `std::invalid_argument` for a string `parse_file_dialog_filter` refuses,
     and keeps the old filter.
 filters
@@ -50,8 +50,8 @@ add_extension : default ``true``
 overwrite_prompt : default ``true``
     Whether the host asks before the user chooses a file that exists.
 file_name
-    The chosen path, or empty. Before the dialog is shown, a name set with
-    `set_file_name` is the one the dialog suggests.
+    The chosen path, or empty. Before the dialog is shown, a name written
+    here is the one the dialog suggests.
 file_names
     The chosen path as a list of one, or none.
 status
@@ -113,13 +113,13 @@ A dialog for exporting a report, shown over a window:
    std::shared_ptr<gf::Panel> root = gf::make_control<gf::Panel>(gf::StableId("doc.root"));
    gf::Window window(root, {320.0, 200.0});
    gf::SaveFileDialog dialog;
-   dialog.set_title("Export report");
-   dialog.set_filter("Reports|*.txt|All files|*.*");
-   dialog.set_default_ext("txt");
-   dialog.set_file_name("summary");
+   dialog.title = "Export report";
+   dialog.filter = "Reports|*.txt|All files|*.*";
+   dialog.default_ext = "txt";
+   dialog.file_name = "summary";
    const gf::DialogResult result = dialog.show_dialog(window);
    if (result == gf::DialogResult::ok) {
-       const std::string& path = dialog.file_name();
+       const std::string path = dialog.file_name.read();
        static_cast<void>(path);
    } else if (result == gf::DialogResult::none) {
        // Without a host, dialog.status().error is gf::HostServiceError::unsupported.

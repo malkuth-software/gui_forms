@@ -14,7 +14,7 @@ does not show it: `show_dialog` returns ``none`` and `status` says why.
 Properties
 ----------
 title : default empty
-    The dialog's title; empty gives the host's own. `set_title` throws
+    The dialog's title; empty gives the host's own. A write throws
     `std::invalid_argument` for text that is not valid UTF-8, holds NUL or
     is longer than `HostServices::maximum_dialog_text_bytes`, and keeps the
     old title.
@@ -26,7 +26,7 @@ filter : default empty
     by ``|``, the patterns separated by ``;``, as in
     ``"Text files|*.txt;*.log|All files|*.*"``. A pattern is ``*``, ``*.*``
     (any file) or ``*.extension``; the hosts filter by extension only, so
-    other patterns are refused. `set_filter` throws `std::invalid_argument`
+    other patterns are refused. A write throws `std::invalid_argument`
     for a string `parse_file_dialog_filter` refuses, and keeps the old
     filter.
 filters
@@ -41,8 +41,8 @@ filter_index : default ``0``
 multiselect : default ``false``
     Whether the user may choose more than one file.
 file_name
-    The first chosen path, or empty. Before the dialog is shown, a name set
-    with `set_file_name` is the one the dialog suggests; it becomes the one
+    The first chosen path, or empty. Before the dialog is shown, a name written
+    here is the one the dialog suggests; it becomes the one
     chosen path (none for an empty name).
 file_names
     Every chosen path, in the host's order. Only an accepted dialog changes
@@ -103,9 +103,9 @@ A dialog for one or more recordings, shown over a window:
    std::shared_ptr<gf::Panel> root = gf::make_control<gf::Panel>(gf::StableId("doc.root"));
    gf::Window window(root, {320.0, 200.0});
    gf::OpenFileDialog dialog;
-   dialog.set_title("Open recordings");
-   dialog.set_filter("Recordings|*.wav;*.flac|All files|*.*");
-   dialog.set_multiselect(true);
+   dialog.title = "Open recordings";
+   dialog.filter = "Recordings|*.wav;*.flac|All files|*.*";
+   dialog.multiselect = true;
    const gf::DialogResult result = dialog.show_dialog(window);
    if (result == gf::DialogResult::ok) {
        for (const std::string& path : dialog.file_names()) {

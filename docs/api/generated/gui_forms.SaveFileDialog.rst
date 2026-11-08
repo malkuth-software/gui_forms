@@ -7,7 +7,7 @@ gui_forms::SaveFileDialog
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: SaveFileDialog final : public Component
+.. cpp:class:: SaveFileDialog final : public Component, public SaveFileDialogCapabilities<SaveFileDialog>
 
    ``#include <gui_forms/components/save_file_dialog/save_file_dialog.hpp>``
 
@@ -30,23 +30,20 @@ gui_forms::SaveFileDialog
    :Properties:
 
       **title** : ``std::string``, default empty
-         The dialog's title; empty gives the host's own. :cpp:func:`set_title <gui_forms::SaveFileDialog::set_title>` throws
+         The dialog's title; empty gives the host's own. A write throws
          ``std::invalid_argument`` for text that is not valid UTF-8, holds NUL or
          is longer than ``HostServices::maximum_dialog_text_bytes``, and keeps the
          old title.
 
       **initial_directory** : ``std::string``, default empty
          The directory the dialog starts in; empty lets the host choose. Refused
-         as :cpp:func:`title <gui_forms::SaveFileDialog::title>` is.
+         as :cpp:member:`title <gui_forms::SaveFileDialog::title>` is.
 
       **filter** : ``std::string``, default empty
          The filter in Windows Forms' syntax, as :cpp:class:`OpenFileDialog <gui_forms::OpenFileDialog>` reads it:
-         ``"Reports|*.txt|All files|*.*"``. :cpp:func:`set_filter <gui_forms::SaveFileDialog::set_filter>` throws
+         ``"Reports|*.txt|All files|*.*"``. A write throws
          ``std::invalid_argument`` for a string ``parse_file_dialog_filter`` refuses,
          and keeps the old filter.
-
-      **filters** : ``std::span<const HostFileDialogFilter>``, read-only
-         The host filters the filter parsed into, in order.
 
       **filter_index** : ``std::size_t``, default ``0``
          The filter the dialog starts with, an index into :cpp:func:`filters <gui_forms::SaveFileDialog::filters>` counting from
@@ -56,7 +53,7 @@ gui_forms::SaveFileDialog
          adds one) is no filter of the program's and leaves the index as it was.
          An index past the filters starts the dialog on the first.
          A chosen name without an extension takes the selected filter's first
-         extension (unless that filter is any file), else :cpp:func:`default_ext <gui_forms::SaveFileDialog::default_ext>`.
+         extension (unless that filter is any file), else :cpp:member:`default_ext <gui_forms::SaveFileDialog::default_ext>`.
 
       **default_ext** : ``std::string``, default empty
          The extension a chosen name without one is given, without its dot; a
@@ -65,7 +62,7 @@ gui_forms::SaveFileDialog
 
       **add_extension** : ``bool``, default ``true``
          Whether a chosen name without an extension is given an extension: the
-         selected filter's, or :cpp:func:`default_ext <gui_forms::SaveFileDialog::default_ext>` (see :cpp:func:`filter_index <gui_forms::SaveFileDialog::filter_index>`). A
+         selected filter's, or :cpp:member:`default_ext <gui_forms::SaveFileDialog::default_ext>` (see :cpp:member:`filter_index <gui_forms::SaveFileDialog::filter_index>`). A
          name has an extension when it holds a dot that is not its last
          character, as .NET's ``Path.HasExtension`` says.
 
@@ -73,8 +70,11 @@ gui_forms::SaveFileDialog
          Whether the host asks before the user chooses a file that exists.
 
       **file_name** : ``std::string``
-         The chosen path, or empty. Before the dialog is shown, a name set with
-         :cpp:func:`set_file_name <gui_forms::SaveFileDialog::set_file_name>` is the one the dialog suggests.
+         The chosen path, or empty. Before the dialog is shown, a name written
+         here is the one the dialog suggests.
+
+      **filters** : ``std::span<const HostFileDialogFilter>``, read-only
+         The host filters the filter parsed into, in order.
 
       **file_names** : ``std::span<const std::string>``, read-only
          The chosen path as a list of one, or none.
@@ -86,7 +86,7 @@ gui_forms::SaveFileDialog
 
       **file_ok** : ``Event<FileDialogOk&>``
          Raised when the user accepts, before the dialog takes the path. The
-         payload's ``file_names`` holds the path, with :cpp:func:`default_ext <gui_forms::SaveFileDialog::default_ext>` already
+         payload's ``file_names`` holds the path, with :cpp:member:`default_ext <gui_forms::SaveFileDialog::default_ext>` already
          added. Setting ``cancel`` keeps the old path and shows the dialog again
          with the same settings, where Windows Forms keeps its dialog open.
 
@@ -120,11 +120,11 @@ gui_forms::SaveFileDialog
 
    The hosts add the default extension themselves (Windows and X11 to a typed
    name without one, macOS as the type it allows when the filter names none),
-   so it is sent to the host only while :cpp:func:`add_extension <gui_forms::SaveFileDialog::add_extension>` is on; the dialog adds
+   so it is sent to the host only while :cpp:member:`add_extension <gui_forms::SaveFileDialog::add_extension>` is on; the dialog adds
    it to a path the host returned without one. A path the addition would make
    longer than the dialog contract allows is kept as chosen. Windows Forms
    first tries the extension of the selected filter; GUI.Forms does not yet
-   know which filter the user selected, so it uses :cpp:func:`default_ext <gui_forms::SaveFileDialog::default_ext>` alone.
+   know which filter the user selected, so it uses :cpp:member:`default_ext <gui_forms::SaveFileDialog::default_ext>` alone.
 
    A :cpp:func:`file_ok <gui_forms::SaveFileDialog::file_ok>` handler may dispose or destroy the dialog; :cpp:func:`show_dialog <gui_forms::SaveFileDialog::show_dialog>` then
    returns ``cancel`` without touching it. A handler that cancels and destroys
@@ -147,13 +147,13 @@ gui_forms::SaveFileDialog
       std::shared_ptr<gf::Panel> root = gf::make_control<gf::Panel>(gf::StableId("doc.root"));
       gf::Window window(root, {320.0, 200.0});
       gf::SaveFileDialog dialog;
-      dialog.set_title("Export report");
-      dialog.set_filter("Reports|*.txt|All files|*.*");
-      dialog.set_default_ext("txt");
-      dialog.set_file_name("summary");
+      dialog.title = "Export report";
+      dialog.filter = "Reports|*.txt|All files|*.*";
+      dialog.default_ext = "txt";
+      dialog.file_name = "summary";
       const gf::DialogResult result = dialog.show_dialog(window);
       if (result == gf::DialogResult::ok) {
-          const std::string& path = dialog.file_name();
+          const std::string path = dialog.file_name.read();
           static_cast<void>(path);
       } else if (result == gf::DialogResult::none) {
           // Without a host, dialog.status().error is gf::HostServiceError::unsupported.
@@ -167,42 +167,26 @@ gui_forms::SaveFileDialog
 
    .. rubric:: Properties
 
-   .. cpp:function:: const std::string& title() const noexcept
+   .. cpp:member:: std::string title
 
-      The dialog's title; empty gives the host's own. :cpp:func:`set_title <gui_forms::SaveFileDialog::set_title>` throws
+      The dialog's title; empty gives the host's own. A write throws
       ``std::invalid_argument`` for text that is not valid UTF-8, holds NUL or
       is longer than ``HostServices::maximum_dialog_text_bytes``, and keeps the
       old title.
 
-   .. cpp:function:: void set_title(std::string title)
-
-      Sets :cpp:func:`title <gui_forms::SaveFileDialog::title>`; see the property's description above.
-
-   .. cpp:function:: const std::string& initial_directory() const noexcept
+   .. cpp:member:: std::string initial_directory
 
       The directory the dialog starts in; empty lets the host choose. Refused
-      as :cpp:func:`title <gui_forms::SaveFileDialog::title>` is.
+      as :cpp:member:`title <gui_forms::SaveFileDialog::title>` is.
 
-   .. cpp:function:: void set_initial_directory(std::string directory)
-
-      Sets :cpp:func:`initial_directory <gui_forms::SaveFileDialog::initial_directory>`; see the property's description above.
-
-   .. cpp:function:: const std::string& filter() const noexcept
+   .. cpp:member:: std::string filter
 
       The filter in Windows Forms' syntax, as :cpp:class:`OpenFileDialog <gui_forms::OpenFileDialog>` reads it:
-      ``"Reports|*.txt|All files|*.*"``. :cpp:func:`set_filter <gui_forms::SaveFileDialog::set_filter>` throws
+      ``"Reports|*.txt|All files|*.*"``. A write throws
       ``std::invalid_argument`` for a string ``parse_file_dialog_filter`` refuses,
       and keeps the old filter.
 
-   .. cpp:function:: void set_filter(std::string filter)
-
-      Sets :cpp:func:`filter <gui_forms::SaveFileDialog::filter>`; see the property's description above.
-
-   .. cpp:function:: std::span<const HostFileDialogFilter> filters() const noexcept
-
-      The host filters the filter parsed into, in order.
-
-   .. cpp:function:: std::size_t filter_index() const noexcept
+   .. cpp:member:: std::size_t filter_index
 
       The filter the dialog starts with, an index into :cpp:func:`filters <gui_forms::SaveFileDialog::filters>` counting from
       zero (Windows Forms' ``FilterIndex`` counts from one). After the user
@@ -211,49 +195,33 @@ gui_forms::SaveFileDialog
       adds one) is no filter of the program's and leaves the index as it was.
       An index past the filters starts the dialog on the first.
       A chosen name without an extension takes the selected filter's first
-      extension (unless that filter is any file), else :cpp:func:`default_ext <gui_forms::SaveFileDialog::default_ext>`.
+      extension (unless that filter is any file), else :cpp:member:`default_ext <gui_forms::SaveFileDialog::default_ext>`.
 
-   .. cpp:function:: void set_filter_index(std::size_t index) noexcept
-
-      Sets :cpp:func:`filter_index <gui_forms::SaveFileDialog::filter_index>`; see the property's description above.
-
-   .. cpp:function:: const std::string& default_ext() const noexcept
+   .. cpp:member:: std::string default_ext
 
       The extension a chosen name without one is given, without its dot; a
       leading dot is removed when it is set. An extension holding a wildcard,
       a path separator or a character Windows forbids in a name is refused.
 
-   .. cpp:function:: void set_default_ext(std::string extension)
-
-      Sets :cpp:func:`default_ext <gui_forms::SaveFileDialog::default_ext>`; see the property's description above.
-
-   .. cpp:function:: bool add_extension() const noexcept
+   .. cpp:member:: bool add_extension
 
       Whether a chosen name without an extension is given an extension: the
-      selected filter's, or :cpp:func:`default_ext <gui_forms::SaveFileDialog::default_ext>` (see :cpp:func:`filter_index <gui_forms::SaveFileDialog::filter_index>`). A
+      selected filter's, or :cpp:member:`default_ext <gui_forms::SaveFileDialog::default_ext>` (see :cpp:member:`filter_index <gui_forms::SaveFileDialog::filter_index>`). A
       name has an extension when it holds a dot that is not its last
       character, as .NET's ``Path.HasExtension`` says.
 
-   .. cpp:function:: void set_add_extension(bool add) noexcept
-
-      Sets :cpp:func:`add_extension <gui_forms::SaveFileDialog::add_extension>`; see the property's description above.
-
-   .. cpp:function:: bool overwrite_prompt() const noexcept
+   .. cpp:member:: bool overwrite_prompt
 
       Whether the host asks before the user chooses a file that exists.
 
-   .. cpp:function:: void set_overwrite_prompt(bool prompt) noexcept
+   .. cpp:member:: std::string file_name
 
-      Sets :cpp:func:`overwrite_prompt <gui_forms::SaveFileDialog::overwrite_prompt>`; see the property's description above.
+      The chosen path, or empty. Before the dialog is shown, a name written
+      here is the one the dialog suggests.
 
-   .. cpp:function:: const std::string& file_name() const noexcept
+   .. cpp:function:: std::span<const HostFileDialogFilter> filters() const noexcept
 
-      The chosen path, or empty. Before the dialog is shown, a name set with
-      :cpp:func:`set_file_name <gui_forms::SaveFileDialog::set_file_name>` is the one the dialog suggests.
-
-   .. cpp:function:: void set_file_name(std::string name)
-
-      Sets :cpp:func:`file_name <gui_forms::SaveFileDialog::file_name>`; see the property's description above.
+      The host filters the filter parsed into, in order.
 
    .. cpp:function:: std::span<const std::string> file_names() const noexcept
 
@@ -269,7 +237,7 @@ gui_forms::SaveFileDialog
    .. cpp:function:: Event<FileDialogOk&>& file_ok() noexcept
 
       Raised when the user accepts, before the dialog takes the path. The
-      payload's ``file_names`` holds the path, with :cpp:func:`default_ext <gui_forms::SaveFileDialog::default_ext>` already
+      payload's ``file_names`` holds the path, with :cpp:member:`default_ext <gui_forms::SaveFileDialog::default_ext>` already
       added. Setting ``cancel`` keeps the old path and shows the dialog again
       with the same settings, where Windows Forms keeps its dialog open.
 

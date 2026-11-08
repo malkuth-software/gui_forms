@@ -11,9 +11,6 @@
 namespace gui_forms {
 namespace {
 
-// The name file_name returns while no path is chosen.
-const std::string no_file_name{};
-
 void require_dialog_text(std::string_view text, const char* message) {
     if (!file_dialog_text_valid(text)) throw std::invalid_argument(message);
 }
@@ -24,38 +21,35 @@ OpenFileDialog::OpenFileDialog() = default;
 
 OpenFileDialog::~OpenFileDialog() = default;
 
-void OpenFileDialog::set_title(std::string title) {
-    require_dialog_text(title, "OpenFileDialog title must be valid UTF-8 without NUL");
-    title_ = std::move(title);
-}
-
-void OpenFileDialog::set_initial_directory(std::string directory) {
-    require_dialog_text(directory, "OpenFileDialog initial directory must be valid UTF-8 without NUL");
-    initial_directory_ = std::move(directory);
-}
-
-void OpenFileDialog::set_filter(std::string filter) {
-    FileDialogFilterParse parsed = parse_file_dialog_filter(filter);
+void OpenFileDialog::prepare_write(const decltype(filter)&, std::string& incoming) {
+    const FileDialogFilterParse parsed = parse_file_dialog_filter(incoming);
     if (parsed.error != FileDialogFilterError::none) {
         throw std::invalid_argument("OpenFileDialog filter must be label|patterns pairs of *, *.* or *.extension");
     }
-    filter_ = std::move(filter);
+}
+
+// The stored filter parsed in prepare_write, so parsing it again succeeds.
+void OpenFileDialog::written(const decltype(filter)&) {
+    FileDialogFilterParse parsed = parse_file_dialog_filter(filter.read());
     filters_ = std::move(parsed.filters);
 }
 
-const std::string& OpenFileDialog::file_name() const noexcept {
-    if (file_names_.empty()) return no_file_name;
-    return file_names_.front();
+// file_name is the first chosen path, which show_dialog moves; a write
+// makes the chosen paths this one name, even when unchanged.
+std::string OpenFileDialog::read_view(const decltype(file_name)&) const {
+    if (file_names_.empty()) return std::string{};
+    std::string first = file_names_.front();
+    return first;
 }
 
-void OpenFileDialog::set_file_name(std::string name) {
-    require_dialog_text(name, "OpenFileDialog file name must be valid UTF-8 without NUL");
+void OpenFileDialog::write_view(const decltype(file_name)&, std::string incoming) {
+    require_dialog_text(incoming, "OpenFileDialog file name must be valid UTF-8 without NUL");
     file_names_.clear();
-    if (!name.empty()) file_names_.push_back(std::move(name));
+    if (!incoming.empty()) file_names_.push_back(std::move(incoming));
 }
 
 std::string OpenFileDialog::safe_file_name() const {
-    std::string result = file_dialog_name_part(file_name());
+    std::string result = file_dialog_name_part(file_name.read());
     return result;
 }
 
@@ -69,24 +63,23 @@ std::vector<std::string> OpenFileDialog::safe_file_names() const {
 }
 
 void OpenFileDialog::reset() {
-    title_.clear();
-    initial_directory_.clear();
-    filter_.clear();
-    filters_.clear();
-    filter_index_ = 0U;
-    multiselect_ = false;
+    title = std::string{};
+    initial_directory = std::string{};
+    filter = std::string{};
+    filter_index = std::size_t{0U};
+    multiselect = false;
     file_names_.clear();
     status_ = {};
 }
 
 HostOpenFileDialogRequest OpenFileDialog::request() const {
     HostOpenFileDialogRequest built;
-    built.title = title_;
-    built.initial_directory = initial_directory_;
-    built.suggested_name = file_name();
+    built.title = title.read();
+    built.initial_directory = initial_directory.read();
+    built.suggested_name = file_name.read();
     built.filters = filters_;
-    built.allow_multiple = multiselect_;
-    built.initial_filter = filter_index_ < filters_.size() ? filter_index_ : 0U;
+    built.allow_multiple = multiselect.read();
+    built.initial_filter = filter_index.read() < filters_.size() ? filter_index.read() : 0U;
     return built;
 }
 
@@ -128,7 +121,7 @@ DialogResult OpenFileDialog::show_dialog(Window& owner) {
         if (presence.expired() || !is_alive()) return DialogResult::cancel;
         if (!ok.cancel) {
             file_names_ = (*paths).paths;
-            if ((*paths).chosen_filter) filter_index_ = *(*paths).chosen_filter;
+            if ((*paths).chosen_filter) filter_index = *(*paths).chosen_filter;
             return DialogResult::ok;
         }
         // A cancelled file_ok shows the dialog again, while its window lives.
@@ -150,5 +143,29 @@ void OpenFileDialog::append_interactions(std::vector<InteractionDeclaration>& in
     interactions.insert(interactions.end(), open_file_dialog_interactions.begin(),
                         open_file_dialog_interactions.end());
 }
+
+// property_codemod begin OpenFileDialog (tools/property_families/open_file_dialog.json; generated, do not edit)
+
+void OpenFileDialog::prepare_write(const decltype(title)&, std::string& incoming) {
+    require_dialog_text(incoming, "OpenFileDialog title must be valid UTF-8 without NUL");
+}
+
+void OpenFileDialog::written(const decltype(title)&) {}
+
+void OpenFileDialog::prepare_write(const decltype(initial_directory)&, std::string& incoming) {
+    require_dialog_text(incoming, "OpenFileDialog initial directory must be valid UTF-8 without NUL");
+}
+
+void OpenFileDialog::written(const decltype(initial_directory)&) {}
+
+void OpenFileDialog::prepare_write(const decltype(filter_index)&, std::size_t&) {}
+
+void OpenFileDialog::written(const decltype(filter_index)&) {}
+
+void OpenFileDialog::prepare_write(const decltype(multiselect)&, bool&) {}
+
+void OpenFileDialog::written(const decltype(multiselect)&) {}
+
+// property_codemod end OpenFileDialog
 
 } // namespace gui_forms

@@ -133,48 +133,48 @@ void name_part() {
 
 void settings() {
     OpenFileDialog dialog;
-    require(dialog.title().empty() && dialog.filter().empty() && dialog.filters().empty() && !dialog.multiselect() &&
-                dialog.file_name().empty() && dialog.file_names().empty() && dialog.status().accepted(),
+    require(dialog.title.read().empty() && dialog.filter.read().empty() && dialog.filters().empty() && !dialog.multiselect.read() &&
+                dialog.file_name.read().empty() && dialog.file_names().empty() && dialog.status().accepted(),
             "a new dialog has the defaults");
-    dialog.set_title("Open a recording");
-    dialog.set_initial_directory("/srv/recordings");
-    dialog.set_filter("Recordings|*.wav;*.flac");
-    dialog.set_multiselect(true);
-    dialog.set_file_name("/srv/recordings/first.wav");
+    dialog.title = "Open a recording";
+    dialog.initial_directory = "/srv/recordings";
+    dialog.filter = "Recordings|*.wav;*.flac";
+    dialog.multiselect = true;
+    dialog.file_name = "/srv/recordings/first.wav";
     require(dialog.filters().size() == 1U && dialog.filters()[0].extensions.size() == 2U,
             "the filter is parsed when set");
-    require(dialog.file_name() == "/srv/recordings/first.wav" && dialog.file_names().size() == 1U &&
+    require(dialog.file_name.read() == "/srv/recordings/first.wav" && dialog.file_names().size() == 1U &&
                 dialog.safe_file_name() == "first.wav",
             "a set name is the one chosen name");
 
     bool refused = false;
     try {
-        dialog.set_filter("Recordings|rec*.wav");
+        dialog.filter = "Recordings|rec*.wav";
     } catch (const std::invalid_argument&) {
         refused = true;
     }
-    require(refused && dialog.filter() == "Recordings|*.wav;*.flac" && dialog.filters().size() == 1U,
+    require(refused && dialog.filter.read() == "Recordings|*.wav;*.flac" && dialog.filters().size() == 1U,
             "a bad filter throws and keeps the old one");
     refused = false;
     try {
-        dialog.set_title(std::string("Bad \xFF"));
+        dialog.title = std::string("Bad \xFF");
     } catch (const std::invalid_argument&) {
         refused = true;
     }
-    require(refused && dialog.title() == "Open a recording", "an invalid title throws and keeps the old one");
+    require(refused && dialog.title.read() == "Open a recording", "an invalid title throws and keeps the old one");
     refused = false;
     try {
-        dialog.set_file_name(std::string("a\0b", 3U));
+        dialog.file_name = std::string("a\0b", 3U);
     } catch (const std::invalid_argument&) {
         refused = true;
     }
-    require(refused && dialog.file_name() == "/srv/recordings/first.wav", "a name holding NUL is refused");
+    require(refused && dialog.file_name.read() == "/srv/recordings/first.wav", "a name holding NUL is refused");
 
-    dialog.set_file_name("");
+    dialog.file_name = "";
     require(dialog.file_names().empty() && dialog.safe_file_names().empty(), "an empty name chooses nothing");
     dialog.reset();
-    require(dialog.title().empty() && dialog.initial_directory().empty() && dialog.filter().empty() &&
-                dialog.filters().empty() && !dialog.multiselect() && dialog.file_names().empty(),
+    require(dialog.title.read().empty() && dialog.initial_directory.read().empty() && dialog.filter.read().empty() &&
+                dialog.filters().empty() && !dialog.multiselect.read() && dialog.file_names().empty(),
             "reset restores the defaults");
 
     const std::vector<InteractionDeclaration> interactions = dialog.interactions();
@@ -187,9 +187,9 @@ void without_host() {
     std::shared_ptr<Panel> root = make_control<Panel>(StableId("open.unhosted"));
     Window window(root, {320.0, 200.0});
     OpenFileDialog dialog;
-    dialog.set_file_name("/tmp/kept.txt");
+    dialog.file_name = "/tmp/kept.txt";
     require(dialog.show_dialog(window) == DialogResult::none &&
-                dialog.status().error == HostServiceError::unsupported && dialog.file_name() == "/tmp/kept.txt",
+                dialog.status().error == HostServiceError::unsupported && dialog.file_name.read() == "/tmp/kept.txt",
             "without a host the dialog is not shown and the names stay");
 }
 
@@ -217,10 +217,10 @@ void shown_through_host() {
     services.set_dialog_handler(ScriptedDialogs{&script});
 
     OpenFileDialog dialog;
-    dialog.set_title("Open a log");
-    dialog.set_initial_directory("/var/log");
-    dialog.set_filter("Logs|*.log|All files|*.*");
-    dialog.set_file_name("system.log");
+    dialog.title = "Open a log";
+    dialog.initial_directory = "/var/log";
+    dialog.filter = "Logs|*.log|All files|*.*";
+    dialog.file_name = "system.log";
     OkLog log;
     SubscriptionToken ok_token =
         dialog.file_ok().subscribe(Delegate<FileDialogOk&>::bind<OkLog, &OkLog::on_ok>(log));
@@ -236,11 +236,11 @@ void shown_through_host() {
                 (*sent).suggested_name == "system.log" && (*sent).filters.size() == 2U &&
                 (*sent).filters[1].extensions[0] == "*" && !(*sent).allow_multiple,
             "the request carries the settings");
-    require(dialog.file_name() == "/var/log/kernel.log" && dialog.safe_file_name() == "kernel.log" &&
+    require(dialog.file_name.read() == "/var/log/kernel.log" && dialog.safe_file_name() == "kernel.log" &&
                 log.seen.size() == 1U && log.seen[0].size() == 1U && log.seen[0][0] == "/var/log/kernel.log",
             "file_ok sees the chosen path and the dialog takes it");
 
-    dialog.set_multiselect(true);
+    dialog.multiselect = true;
     script.answers.push_back(accepted({"/var/log/a.log", "/var/log/b.log"}));
     require(dialog.show_dialog(window) == DialogResult::ok && dialog.file_names().size() == 2U &&
                 dialog.safe_file_names()[1] == "b.log",
@@ -259,19 +259,19 @@ void shown_through_host() {
     script.answers.push_back(accepted({"/var/log/right.log"}));
     const std::size_t before = script.requests.size();
     require(dialog.show_dialog(window) == DialogResult::ok && dialog.file_names().size() == 1U &&
-                dialog.file_name() == "/var/log/right.log",
+                dialog.file_name.read() == "/var/log/right.log",
             "a cancelled file_ok shows the dialog again and the second choice is taken");
     require(script.requests.size() == before + 2U && log.seen.size() == 4U && log.seen[2][0] == "/var/log/wrong.log",
             "the dialog was shown twice and file_ok raised for each acceptance");
 
     log.refusals = 1;
     script.answers.push_back(accepted({"/var/log/refused.log"}));
-    require(dialog.show_dialog(window) == DialogResult::cancel && dialog.file_name() == "/var/log/right.log",
+    require(dialog.show_dialog(window) == DialogResult::cancel && dialog.file_name.read() == "/var/log/right.log",
             "cancelling file_ok and then the dialog keeps the old names");
 
     script.error = HostServiceError::backend_failure;
     require(dialog.show_dialog(window) == DialogResult::none &&
-                dialog.status().error == HostServiceError::backend_failure && dialog.file_name() == "/var/log/right.log",
+                dialog.status().error == HostServiceError::backend_failure && dialog.file_name.read() == "/var/log/right.log",
             "a host failure returns none with the host's answer");
     script.error = HostServiceError::none;
     require(services.snapshot().modal_depth == 0U, "no dialog is left on the modal stack");
@@ -353,17 +353,17 @@ void ended_from_file_ok() {
         reentered.file_ok().subscribe(Delegate<FileDialogOk&>::bind<ReenterOnOk, &ReenterOnOk::on_ok>(reenter));
     script.answers.push_back(accepted({"/tmp/c.txt"}));
     require(reentered.show_dialog(window) == DialogResult::ok && reenter.refused &&
-                reentered.file_name() == "/tmp/c.txt",
+                reentered.file_name.read() == "/tmp/c.txt",
             "showing a dialog that is already showing is refused");
     reenter_token.disconnect();
     script.answers.push_back(accepted({"/tmp/d.txt"}));
-    require(reentered.show_dialog(window) == DialogResult::ok && reentered.file_name() == "/tmp/d.txt",
+    require(reentered.show_dialog(window) == DialogResult::ok && reentered.file_name.read() == "/tmp/d.txt",
             "the dialog shows again once the first call has returned");
 
     bool wrong_thread = false;
     std::thread other(ShowFromOtherThread{&reentered, &window, &wrong_thread});
     other.join();
-    require(wrong_thread && reentered.file_name() == "/tmp/d.txt", "showing off the UI thread is refused");
+    require(wrong_thread && reentered.file_name.read() == "/tmp/d.txt", "showing off the UI thread is refused");
 }
 
 // The filter the dialog starts on, and the one the user ended on.
@@ -376,34 +376,34 @@ void filter_index() {
     services.set_dialog_handler(ScriptedDialogs{&script});
 
     OpenFileDialog dialog;
-    require(dialog.filter_index() == 0U, "the first filter is the default");
-    dialog.set_filter("Logs|*.log|Text|*.txt|All files|*.*");
-    dialog.set_filter_index(1U);
+    require(dialog.filter_index.read() == 0U, "the first filter is the default");
+    dialog.filter = "Logs|*.log|Text|*.txt|All files|*.*";
+    dialog.filter_index = 1U;
     HostPathDialogResult answer = accepted({"/tmp/a.txt"});
     answer.chosen_filter = 2U;
     script.answers.push_back(answer);
     require(dialog.show_dialog(window) == DialogResult::ok, "the dialog is accepted");
     const HostOpenFileDialogRequest* const first = open_request(script.requests[0]);
-    require(first != nullptr && (*first).initial_filter == 1U && dialog.filter_index() == 2U,
+    require(first != nullptr && (*first).initial_filter == 1U && dialog.filter_index.read() == 2U,
             "the request starts on the set filter and the dialog takes the one the user ended on");
 
-    dialog.set_filter_index(7U);
+    dialog.filter_index = 7U;
     script.answers.push_back(accepted({"/tmp/b.log"}));
     require(dialog.show_dialog(window) == DialogResult::ok, "the dialog is accepted again");
     const HostOpenFileDialogRequest* const second = open_request(script.requests[1]);
-    require(second != nullptr && (*second).initial_filter == 0U && dialog.filter_index() == 7U,
+    require(second != nullptr && (*second).initial_filter == 0U && dialog.filter_index.read() == 7U,
             "an index past the filters starts on the first, and a host that does not tell keeps the index");
 
     answer.chosen_filter = 3U;
     script.answers.push_back(answer);
     require(dialog.show_dialog(window) == DialogResult::none && !dialog.status().accepted() &&
-                dialog.filter_index() == 7U && dialog.file_name() == "/tmp/b.log",
+                dialog.filter_index.read() == 7U && dialog.file_name.read() == "/tmp/b.log",
             "a host naming a filter the request does not have is refused and changes nothing");
 
-    require(dialog.show_dialog(window) == DialogResult::cancel && dialog.filter_index() == 7U,
+    require(dialog.show_dialog(window) == DialogResult::cancel && dialog.filter_index.read() == 7U,
             "a cancelled dialog keeps the index");
     dialog.reset();
-    require(dialog.filter_index() == 0U, "reset returns to the first filter");
+    require(dialog.filter_index.read() == 0U, "reset returns to the first filter");
 }
 
 } // namespace

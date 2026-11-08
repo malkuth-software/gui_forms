@@ -7,7 +7,7 @@ gui_forms::ToolTip
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: ToolTip final : public Component
+.. cpp:class:: ToolTip final : public Component, public ToolTipCapabilities<ToolTip>
 
    ``#include <gui_forms/components/tool_tip/tool_tip.hpp>``
 
@@ -46,7 +46,7 @@ gui_forms::ToolTip
 
       **reshow_delay** : ``std::chrono::milliseconds``, default ``100 ms``
          The shorter delay used instead when a tooltip closed no more than
-         :cpp:func:`initial_delay <gui_forms::ToolTip::initial_delay>` ago, so that moving from one control to the next shows
+         :cpp:member:`initial_delay <gui_forms::ToolTip::initial_delay>` ago, so that moving from one control to the next shows
          each tooltip quickly. A negative delay throws ``std::invalid_argument``.
 
       **auto_pop_delay** : ``std::chrono::milliseconds``, default ``5000 ms``
@@ -100,7 +100,7 @@ gui_forms::ToolTip
       * - :cpp:func:`clear <gui_forms::ToolTip::clear>`
         - Clears the text this tool tip set on every control.
       * - :cpp:func:`show <gui_forms::ToolTip::show>`
-        - ``show(control)`` shows the control's tooltip at once, placed below the control, for :cpp:func:`auto_pop_delay <gui_forms::ToolTip::auto_pop_delay>`; ``show(control, duration)`` shows it for ``duration``, where zero means until it is hidden.
+        - ``show(control)`` shows the control's tooltip at once, placed below the control, for :cpp:member:`auto_pop_delay <gui_forms::ToolTip::auto_pop_delay>`; ``show(control, duration)`` shows it for ``duration``, where zero means until it is hidden.
       * - :cpp:func:`hide <gui_forms::ToolTip::hide>`
         - Closes the window's tooltip when it shows one of this tool tip's controls.
       * - :cpp:func:`set_tool_tip <gui_forms::ToolTip::set_tool_tip>`
@@ -201,71 +201,43 @@ gui_forms::ToolTip
 
    .. rubric:: Properties
 
-   .. cpp:function:: std::chrono::milliseconds initial_delay() const
+   .. cpp:member:: std::chrono::milliseconds initial_delay
 
       How long the pointer must rest on a control, or the control must have
       keyboard focus, before its tooltip appears. Moving the pointer starts
       the rest again. A negative delay throws ``std::invalid_argument``.
 
-   .. cpp:function:: void set_initial_delay(std::chrono::milliseconds delay)
-
-      Sets :cpp:func:`initial_delay <gui_forms::ToolTip::initial_delay>`; see the property's description above.
-
-   .. cpp:function:: std::chrono::milliseconds reshow_delay() const
+   .. cpp:member:: std::chrono::milliseconds reshow_delay
 
       The shorter delay used instead when a tooltip closed no more than
-      :cpp:func:`initial_delay <gui_forms::ToolTip::initial_delay>` ago, so that moving from one control to the next shows
+      :cpp:member:`initial_delay <gui_forms::ToolTip::initial_delay>` ago, so that moving from one control to the next shows
       each tooltip quickly. A negative delay throws ``std::invalid_argument``.
 
-   .. cpp:function:: void set_reshow_delay(std::chrono::milliseconds delay)
-
-      Sets :cpp:func:`reshow_delay <gui_forms::ToolTip::reshow_delay>`; see the property's description above.
-
-   .. cpp:function:: std::chrono::milliseconds auto_pop_delay() const
+   .. cpp:member:: std::chrono::milliseconds auto_pop_delay
 
       How long a tooltip stays up. Zero keeps it up until the pointer leaves,
       focus moves or :cpp:func:`hide <gui_forms::ToolTip::hide>` is called. A negative delay throws
       ``std::invalid_argument``.
 
-   .. cpp:function:: void set_auto_pop_delay(std::chrono::milliseconds delay)
-
-      Sets :cpp:func:`auto_pop_delay <gui_forms::ToolTip::auto_pop_delay>`; see the property's description above.
-
-   .. cpp:function:: bool show_on_hover() const
+   .. cpp:member:: bool show_on_hover
 
       Whether the pointer resting on a control shows its tooltip.
 
-   .. cpp:function:: void set_show_on_hover(bool value)
-
-      Sets :cpp:func:`show_on_hover <gui_forms::ToolTip::show_on_hover>`; see the property's description above.
-
-   .. cpp:function:: bool show_on_focus() const
+   .. cpp:member:: bool show_on_focus
 
       Whether keyboard focus reaching a control shows its tooltip, placed
       below the control.
 
-   .. cpp:function:: void set_show_on_focus(bool value)
-
-      Sets :cpp:func:`show_on_focus <gui_forms::ToolTip::show_on_focus>`; see the property's description above.
-
-   .. cpp:function:: bool show_always() const
+   .. cpp:member:: bool show_always
 
       Whether tooltips also appear for disabled controls, for example to
       explain why a command is unavailable. Hidden controls never show them.
 
-   .. cpp:function:: void set_show_always(bool value)
-
-      Sets :cpp:func:`show_always <gui_forms::ToolTip::show_always>`; see the property's description above.
-
-   .. cpp:function:: double maximum_width() const
+   .. cpp:member:: double maximum_width
 
       The widest a tooltip's text may be before it wraps onto further lines.
       It must be finite and between 80 and 2048, or ``std::invalid_argument`` is
       thrown. Changing it reshapes a tooltip that is showing.
-
-   .. cpp:function:: void set_maximum_width(double width)
-
-      Sets :cpp:func:`maximum_width <gui_forms::ToolTip::maximum_width>`; see the property's description above.
 
    .. cpp:function:: bool visible() const
 
@@ -304,22 +276,22 @@ gui_forms::ToolTip
    .. cpp:function:: void show(const std::shared_ptr<Control>& target)
 
       ``show(control)`` shows the control's tooltip at once, placed below the
-      control, for :cpp:func:`auto_pop_delay <gui_forms::ToolTip::auto_pop_delay>`; ``show(control, duration)`` shows it for
+      control, for :cpp:member:`auto_pop_delay <gui_forms::ToolTip::auto_pop_delay>`; ``show(control, duration)`` shows it for
       ``duration``, where zero means until it is hidden. It shows even when the
       window's or the program's tooltips are switched off. A control this
       tool tip set no text on throws ``std::invalid_argument``, as does a
       negative duration. A hidden control shows nothing, and so does a
-      disabled one unless :cpp:func:`show_always <gui_forms::ToolTip::show_always>` is true.
+      disabled one unless :cpp:member:`show_always <gui_forms::ToolTip::show_always>` is true.
 
    .. cpp:function:: void show(const std::shared_ptr<Control>& target, std::chrono::milliseconds duration)
 
       ``show(control)`` shows the control's tooltip at once, placed below the
-      control, for :cpp:func:`auto_pop_delay <gui_forms::ToolTip::auto_pop_delay>`; ``show(control, duration)`` shows it for
+      control, for :cpp:member:`auto_pop_delay <gui_forms::ToolTip::auto_pop_delay>`; ``show(control, duration)`` shows it for
       ``duration``, where zero means until it is hidden. It shows even when the
       window's or the program's tooltips are switched off. A control this
       tool tip set no text on throws ``std::invalid_argument``, as does a
       negative duration. A hidden control shows nothing, and so does a
-      disabled one unless :cpp:func:`show_always <gui_forms::ToolTip::show_always>` is true.
+      disabled one unless :cpp:member:`show_always <gui_forms::ToolTip::show_always>` is true.
 
    .. cpp:function:: void hide()
 

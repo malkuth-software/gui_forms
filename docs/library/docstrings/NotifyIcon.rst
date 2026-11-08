@@ -23,14 +23,14 @@ Properties
 ----------
 icon
     The icon's images, premultiplied BGRA8, up to 8 sizes of at most 256
-    pixels a side. `set_icon` replaces them and updates a shown icon; more
+    pixels a side. Every write replaces them and updates a shown icon; more
     images, or a malformed or larger image, throw `std::invalid_argument`.
 text
-    The tooltip, at most 127 bytes of UTF-8. `set_text` updates a shown icon;
+    The tooltip, at most 127 bytes of UTF-8. A changed write updates a shown icon;
     longer or invalid text throws `std::invalid_argument`.
 visible : default ``false``
-    Whether the application wants the icon shown. `set_visible` shows or
-    removes it and returns the host's answer: `unsupported` without a host or
+    Whether the application wants the icon shown. Every write shows or
+    removes it, and `status` then holds the host's answer: `unsupported` without a host or
     without the `notification_area` capability, `invalid_argument` while
     there is no image. A visible icon without an image is shown once an image
     is set.
@@ -42,7 +42,7 @@ status
 supported
     Whether the window's host reports `notification_area`.
 context_menu
-    The menu shown on the icon's context gesture. `set_context_menu` sets it.
+    The menu shown on the icon's context gesture.
 
 Events
 ------
@@ -118,9 +118,10 @@ An icon with a tooltip and a menu, shown where the host allows:
    pixel.row_bytes = 64U;
    pixel.pixels.assign(64U * 16U, std::byte{0xFF});
    gf::NotifyIcon icon(window);
-   icon.set_icon({pixel});
-   icon.set_text("Radio: FM 98.1");
-   const gf::HostServiceStatus status = icon.set_visible(true);
+   icon.icon = std::vector<gf::HostImage>{pixel};
+   icon.text = "Radio: FM 98.1";
+   icon.visible = true;
+   const gf::HostServiceStatus status = icon.status();
    if (!status.accepted()) {
        // Without a host, status.error is gf::HostServiceError::unsupported.
    }

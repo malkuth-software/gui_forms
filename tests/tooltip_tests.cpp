@@ -162,8 +162,8 @@ private:
 void test_hover_delay_cancel_and_accessible_overlay() {
     Fixture fixture;
     ToolTip tips(fixture.window);
-    tips.set_initial_delay(30ms);
-    tips.set_auto_pop_delay(200ms);
+    tips.initial_delay = 30ms;
+    tips.auto_pop_delay = 200ms;
     tips.set_tool_tip(fixture.button, "Opens the calibrated input selector");
     require((*fixture.button).tool_tip_text.read() == "Opens the calibrated input selector",
             "ToolTip writes the target's own tooltip text");
@@ -229,8 +229,8 @@ void test_motion_restarts_the_rest() {
 void test_keyboard_focus_shows_below_and_follows_the_target() {
     Fixture fixture;
     ToolTip tips(fixture.window);
-    tips.set_initial_delay(1ms);
-    tips.set_auto_pop_delay(40ms);
+    tips.initial_delay = 1ms;
+    tips.auto_pop_delay = 40ms;
     tips.set_tool_tip(fixture.button, "Keyboard help");
     // Focus by the program, with no keyboard cue, shows no bubble.
     require(fixture.window.request_focus(fixture.button), "fixture button must accept focus");
@@ -266,9 +266,9 @@ void test_keyboard_focus_shows_below_and_follows_the_target() {
 void test_repeated_focus_show_hide_reuses_no_stale_overlay_identity() {
     Fixture fixture;
     ToolTip tips(fixture.window);
-    tips.set_initial_delay(1ms);
-    tips.set_reshow_delay(1ms);
-    tips.set_auto_pop_delay(5s);
+    tips.initial_delay = 1ms;
+    tips.reshow_delay = 1ms;
+    tips.auto_pop_delay = 5s;
     tips.set_tool_tip(fixture.button, "Repeated keyboard help");
     // A key shows the keyboard cue, so the program's focus moves below count
     // as keyboard focus.
@@ -321,7 +321,7 @@ void test_one_presenter_for_every_provider_and_owner_disposal() {
 void test_mapping_removal_and_provider_disposal_are_quiescent() {
     Fixture fixture;
     std::unique_ptr<gui_forms::ToolTip> tips = std::make_unique<ToolTip>(fixture.window);
-    (*tips).set_initial_delay(20ms);
+    (*tips).initial_delay = 20ms;
     (*tips).set_tool_tip(fixture.button, "Disposable mapping");
     hover(fixture.window, {60.0, 60.0});
     require((*tips).remove_tool_tip(*fixture.button) && (*fixture.button).tool_tip_text.read().empty(),
@@ -351,7 +351,7 @@ void test_show_always_supports_a_disabled_visible_owner() {
     (*fixture.button).enabled = false;
     tips.show(fixture.button, 0ms);
     require(!tips.visible(), "a disabled control shows no tooltip by default");
-    tips.set_show_always(true);
+    tips.show_always = true;
     require(fixture.window.tool_tip_settings().show_when_disabled, "ShowAlways is the window's setting");
     tips.show(fixture.button, 0ms);
     fixture.window.perform_layout();
@@ -364,19 +364,19 @@ void test_show_always_supports_a_disabled_visible_owner() {
 void test_maximum_width_is_bounded_and_shapes_overlay() {
     Fixture fixture;
     ToolTip tips(fixture.window);
-    tips.set_maximum_width(120.0);
-    require(tips.maximum_width() == 120.0 && fixture.window.tool_tip_settings().maximum_width == 120.0,
+    tips.maximum_width = 120.0;
+    require(tips.maximum_width.read() == 120.0 && fixture.window.tool_tip_settings().maximum_width == 120.0,
             "ToolTip must retain an explicit bounded maximum width on its window");
     bool rejected = false;
     try {
-        tips.set_maximum_width(40.0);
+        tips.maximum_width = 40.0;
     } catch (const std::invalid_argument&) {
         rejected = true;
     }
-    require(rejected && tips.maximum_width() == 120.0, "ToolTip must reject unusably narrow maximum widths");
+    require(rejected && tips.maximum_width.read() == 120.0, "ToolTip must reject unusably narrow maximum widths");
     bool negative = false;
     try {
-        tips.set_initial_delay(-1ms);
+        tips.initial_delay = -1ms;
     } catch (const std::invalid_argument&) {
         negative = true;
     }

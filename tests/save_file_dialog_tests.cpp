@@ -71,7 +71,7 @@ const HostSaveFileDialogRequest* save_request(const HostDialogRequest& request) 
 bool refuses_default_ext(SaveFileDialog& dialog, std::string extension) {
     bool refused = false;
     try {
-        dialog.set_default_ext(std::move(extension));
+        dialog.default_ext = std::move(extension);
     } catch (const std::invalid_argument&) {
         refused = true;
     }
@@ -80,38 +80,38 @@ bool refuses_default_ext(SaveFileDialog& dialog, std::string extension) {
 
 void settings() {
     SaveFileDialog dialog;
-    require(dialog.title().empty() && dialog.filter().empty() && dialog.default_ext().empty() &&
-                dialog.add_extension() && dialog.overwrite_prompt() && dialog.file_name().empty() &&
+    require(dialog.title.read().empty() && dialog.filter.read().empty() && dialog.default_ext.read().empty() &&
+                dialog.add_extension.read() && dialog.overwrite_prompt.read() && dialog.file_name.read().empty() &&
                 dialog.file_names().empty() && dialog.status().accepted(),
             "a new dialog has the defaults");
-    dialog.set_default_ext(".txt");
-    require(dialog.default_ext() == "txt", "a leading dot is removed from the default extension");
-    dialog.set_default_ext("tar.gz");
-    require(dialog.default_ext() == "tar.gz", "a multi-dotted default extension is kept whole");
+    dialog.default_ext = ".txt";
+    require(dialog.default_ext.read() == "txt", "a leading dot is removed from the default extension");
+    dialog.default_ext = "tar.gz";
+    require(dialog.default_ext.read() == "tar.gz", "a multi-dotted default extension is kept whole");
     require(refuses_default_ext(dialog, "*.txt") && refuses_default_ext(dialog, "a/b") &&
                 refuses_default_ext(dialog, "a?") &&
-                refuses_default_ext(dialog, std::string("t\0t", 3U)) && dialog.default_ext() == "tar.gz",
+                refuses_default_ext(dialog, std::string("t\0t", 3U)) && dialog.default_ext.read() == "tar.gz",
             "wildcards, separators and NUL are refused and the old extension kept");
-    dialog.set_default_ext("");
-    require(dialog.default_ext().empty(), "an empty default extension adds none");
+    dialog.default_ext = "";
+    require(dialog.default_ext.read().empty(), "an empty default extension adds none");
 
-    dialog.set_title("Export");
-    dialog.set_filter("Reports|*.txt|All files|*.*");
-    dialog.set_add_extension(false);
-    dialog.set_overwrite_prompt(false);
-    dialog.set_file_name("/srv/report.txt");
+    dialog.title = "Export";
+    dialog.filter = "Reports|*.txt|All files|*.*";
+    dialog.add_extension = false;
+    dialog.overwrite_prompt = false;
+    dialog.file_name = "/srv/report.txt";
     bool refused = false;
     try {
-        dialog.set_filter("Reports|report*.txt");
+        dialog.filter = "Reports|report*.txt";
     } catch (const std::invalid_argument&) {
         refused = true;
     }
     require(refused && dialog.filters().size() == 2U, "a bad filter throws and keeps the old one");
-    require(dialog.file_name() == "/srv/report.txt" && dialog.file_names().size() == 1U,
+    require(dialog.file_name.read() == "/srv/report.txt" && dialog.file_names().size() == 1U,
             "a set name is the chosen path");
     dialog.reset();
-    require(dialog.title().empty() && dialog.filter().empty() && dialog.filters().empty() &&
-                dialog.default_ext().empty() && dialog.add_extension() && dialog.overwrite_prompt() &&
+    require(dialog.title.read().empty() && dialog.filter.read().empty() && dialog.filters().empty() &&
+                dialog.default_ext.read().empty() && dialog.add_extension.read() && dialog.overwrite_prompt.read() &&
                 dialog.file_names().empty(),
             "reset restores the defaults");
 
@@ -125,9 +125,9 @@ void without_host() {
     std::shared_ptr<Panel> root = make_control<Panel>(StableId("save.unhosted"));
     Window window(root, {320.0, 200.0});
     SaveFileDialog dialog;
-    dialog.set_file_name("/tmp/kept.txt");
+    dialog.file_name = "/tmp/kept.txt";
     require(dialog.show_dialog(window) == DialogResult::none &&
-                dialog.status().error == HostServiceError::unsupported && dialog.file_name() == "/tmp/kept.txt",
+                dialog.status().error == HostServiceError::unsupported && dialog.file_name.read() == "/tmp/kept.txt",
             "without a host the dialog is not shown and the name stays");
 }
 
@@ -155,11 +155,11 @@ void shown_through_host() {
     services.set_dialog_handler(ScriptedDialogs{&script});
 
     SaveFileDialog dialog;
-    dialog.set_title("Export a report");
-    dialog.set_initial_directory("/srv/reports");
-    dialog.set_filter("Reports|*.txt|All files|*.*");
-    dialog.set_default_ext("txt");
-    dialog.set_file_name("summary");
+    dialog.title = "Export a report";
+    dialog.initial_directory = "/srv/reports";
+    dialog.filter = "Reports|*.txt|All files|*.*";
+    dialog.default_ext = "txt";
+    dialog.file_name = "summary";
     OkLog log;
     SubscriptionToken ok_token =
         dialog.file_ok().subscribe(Delegate<FileDialogOk&>::bind<OkLog, &OkLog::on_ok>(log));
@@ -175,32 +175,32 @@ void shown_through_host() {
                 (*sent).suggested_name == "summary" && (*sent).default_extension == "txt" &&
                 (*sent).confirm_overwrite && (*sent).filters.size() == 2U,
             "the request carries the settings");
-    require(dialog.file_name() == "/srv/reports/summary.txt" && dialog.file_names().size() == 1U &&
+    require(dialog.file_name.read() == "/srv/reports/summary.txt" && dialog.file_names().size() == 1U &&
                 log.seen.size() == 1U && log.seen[0] == "/srv/reports/summary.txt",
             "a name without an extension is given the default one before file_ok");
 
     script.answers.push_back(accepted("/srv/reports/summary.md"));
-    require(dialog.show_dialog(window) == DialogResult::ok && dialog.file_name() == "/srv/reports/summary.md",
+    require(dialog.show_dialog(window) == DialogResult::ok && dialog.file_name.read() == "/srv/reports/summary.md",
             "a name with an extension keeps it");
     const HostSaveFileDialogRequest* const second = save_request(script.requests[1]);
     require(second != nullptr && (*second).suggested_name == "/srv/reports/summary.txt" &&
                 script.requests[1].request_id != script.requests[0].request_id,
             "each request has its own identity and suggests the chosen path");
     script.answers.push_back(accepted("/srv/reports/.profile"));
-    require(dialog.show_dialog(window) == DialogResult::ok && dialog.file_name() == "/srv/reports/.profile",
+    require(dialog.show_dialog(window) == DialogResult::ok && dialog.file_name.read() == "/srv/reports/.profile",
             "a name starting with a dot has an extension, as in .NET");
 
-    dialog.set_add_extension(false);
-    dialog.set_overwrite_prompt(false);
+    dialog.add_extension = false;
+    dialog.overwrite_prompt = false;
     script.answers.push_back(accepted("/srv/reports/plain"));
-    require(dialog.show_dialog(window) == DialogResult::ok && dialog.file_name() == "/srv/reports/plain",
+    require(dialog.show_dialog(window) == DialogResult::ok && dialog.file_name.read() == "/srv/reports/plain",
             "with add_extension off the name is kept as chosen");
     const HostSaveFileDialogRequest* const plain = save_request(script.requests[3]);
     require(plain != nullptr && (*plain).default_extension.empty() && !(*plain).confirm_overwrite,
             "with add_extension off the host is given no extension to add, and no overwrite prompt");
-    dialog.set_add_extension(true);
+    dialog.add_extension = true;
 
-    require(dialog.show_dialog(window) == DialogResult::cancel && dialog.file_name() == "/srv/reports/plain" &&
+    require(dialog.show_dialog(window) == DialogResult::cancel && dialog.file_name.read() == "/srv/reports/plain" &&
                 log.seen.size() == 4U,
             "a cancelled dialog keeps the path and raises no file_ok");
 
@@ -208,7 +208,7 @@ void shown_through_host() {
     script.answers.push_back(accepted("/srv/reports/taken.txt"));
     script.answers.push_back(accepted("/srv/reports/free.txt"));
     const std::size_t before = script.requests.size();
-    require(dialog.show_dialog(window) == DialogResult::ok && dialog.file_name() == "/srv/reports/free.txt",
+    require(dialog.show_dialog(window) == DialogResult::ok && dialog.file_name.read() == "/srv/reports/free.txt",
             "a cancelled file_ok shows the dialog again and the second choice is taken");
     require(script.requests.size() == before + 2U && log.seen.size() == 6U && log.seen[4] == "/srv/reports/taken.txt",
             "the dialog was shown twice and file_ok raised for each acceptance");
@@ -216,7 +216,7 @@ void shown_through_host() {
     script.error = HostServiceError::backend_failure;
     require(dialog.show_dialog(window) == DialogResult::none &&
                 dialog.status().error == HostServiceError::backend_failure &&
-                dialog.file_name() == "/srv/reports/free.txt",
+                dialog.file_name.read() == "/srv/reports/free.txt",
             "a host failure returns none with the host's answer");
     script.error = HostServiceError::none;
     require(services.snapshot().modal_depth == 0U, "no dialog is left on the modal stack");
@@ -279,12 +279,12 @@ void ended_and_nested() {
     services.set_dialog_handler(NestedDialogs{&deepest, &identities});
     OpenFileDialog open;
     SaveFileDialog save;
-    save.set_default_ext("txt");
+    save.default_ext = "txt";
     SaveFromOpen nested{&save, &window, DialogResult::none};
     SubscriptionToken nested_token =
         open.file_ok().subscribe(Delegate<FileDialogOk&>::bind<SaveFromOpen, &SaveFromOpen::on_ok>(nested));
     require(open.show_dialog(window) == DialogResult::ok && nested.result == DialogResult::ok &&
-                save.file_name() == "/tmp/copy.txt" && open.file_name() == "/tmp/source.txt",
+                save.file_name.read() == "/tmp/copy.txt" && open.file_name.read() == "/tmp/source.txt",
             "a save dialog shown from an open dialog's file_ok is answered and given the extension");
     require(identities.size() == 2U && identities[0] != identities[1] && deepest == 1U &&
                 services.snapshot().modal_depth == 0U,
@@ -302,37 +302,37 @@ void filter_index_and_extension() {
     services.set_dialog_handler(ScriptedDialogs{&script});
 
     SaveFileDialog dialog;
-    dialog.set_filter("Text|*.txt|Markdown|*.md;*.markdown|All files|*.*");
-    dialog.set_default_ext("log");
-    dialog.set_filter_index(2U);
+    dialog.filter = "Text|*.txt|Markdown|*.md;*.markdown|All files|*.*";
+    dialog.default_ext = "log";
+    dialog.filter_index = 2U;
     HostPathDialogResult answer = accepted("/tmp/notes");
     answer.chosen_filter = 1U;
     script.answers.push_back(answer);
     require(dialog.show_dialog(window) == DialogResult::ok, "the dialog is accepted");
     const HostSaveFileDialogRequest* const sent = save_request(script.requests[0]);
-    require(sent != nullptr && (*sent).initial_filter == 2U && dialog.filter_index() == 1U &&
-                dialog.file_name() == "/tmp/notes.md",
+    require(sent != nullptr && (*sent).initial_filter == 2U && dialog.filter_index.read() == 1U &&
+                dialog.file_name.read() == "/tmp/notes.md",
             "the chosen filter's first extension is added and its index taken");
 
     answer.chosen_filter = 2U;
     script.answers.push_back(answer);
-    require(dialog.show_dialog(window) == DialogResult::ok && dialog.file_name() == "/tmp/notes.log" &&
-                dialog.filter_index() == 2U,
+    require(dialog.show_dialog(window) == DialogResult::ok && dialog.file_name.read() == "/tmp/notes.log" &&
+                dialog.filter_index.read() == 2U,
             "a filter of any file adds the default extension");
 
     script.answers.push_back(accepted("/tmp/notes"));
-    require(dialog.show_dialog(window) == DialogResult::ok && dialog.file_name() == "/tmp/notes.log" &&
-                dialog.filter_index() == 2U,
+    require(dialog.show_dialog(window) == DialogResult::ok && dialog.file_name.read() == "/tmp/notes.log" &&
+                dialog.filter_index.read() == 2U,
             "a host that does not tell the filter adds the default extension and keeps the index");
 
     answer.chosen_filter = 0U;
     script.answers.push_back(answer);
-    dialog.set_add_extension(false);
-    require(dialog.show_dialog(window) == DialogResult::ok && dialog.file_name() == "/tmp/notes" &&
-                dialog.filter_index() == 0U,
+    dialog.add_extension = false;
+    require(dialog.show_dialog(window) == DialogResult::ok && dialog.file_name.read() == "/tmp/notes" &&
+                dialog.filter_index.read() == 0U,
             "without add_extension the name is kept as chosen");
     dialog.reset();
-    require(dialog.filter_index() == 0U, "reset returns to the first filter");
+    require(dialog.filter_index.read() == 0U, "reset returns to the first filter");
 }
 
 } // namespace

@@ -7,7 +7,7 @@ gui_forms::NotifyIcon
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: NotifyIcon final : public Component
+.. cpp:class:: NotifyIcon final : public Component, public NotifyIconCapabilities<NotifyIcon>
 
    ``#include <gui_forms/components/notify_icon/notify_icon.hpp>``
 
@@ -38,19 +38,22 @@ gui_forms::NotifyIcon
 
       **icon** : ``std::vector<HostImage>``
          The icon's images, premultiplied BGRA8, up to 8 sizes of at most 256
-         pixels a side. :cpp:func:`set_icon <gui_forms::NotifyIcon::set_icon>` replaces them and updates a shown icon; more
+         pixels a side. Every write replaces them and updates a shown icon; more
          images, or a malformed or larger image, throw ``std::invalid_argument``.
 
       **text** : ``std::string``
-         The tooltip, at most 127 bytes of UTF-8. :cpp:func:`set_text <gui_forms::NotifyIcon::set_text>` updates a shown icon;
+         The tooltip, at most 127 bytes of UTF-8. A changed write updates a shown icon;
          longer or invalid text throws ``std::invalid_argument``.
 
       **visible** : ``bool``, default ``false``
-         Whether the application wants the icon shown. :cpp:func:`set_visible <gui_forms::NotifyIcon::set_visible>` shows or
-         removes it and returns the host's answer: ``unsupported`` without a host or
+         Whether the application wants the icon shown. Every write shows or
+         removes it, and :cpp:func:`status <gui_forms::NotifyIcon::status>` then holds the host's answer: ``unsupported`` without a host or
          without the ``notification_area`` capability, ``invalid_argument`` while
          there is no image. A visible icon without an image is shown once an image
          is set.
+
+      **context_menu** : ``std::shared_ptr<ContextMenu>``
+         The menu shown on the icon's context gesture.
 
       **shown** : ``bool``, read-only
          Whether the icon is in the notification area now. An icon disappears
@@ -61,9 +64,6 @@ gui_forms::NotifyIcon
 
       **supported** : ``bool``, read-only
          Whether the window's host reports ``notification_area``.
-
-      **context_menu** : ``std::shared_ptr<ContextMenu>``
-         The menu shown on the icon's context gesture. :cpp:func:`set_context_menu <gui_forms::NotifyIcon::set_context_menu>` sets it.
 
    :Events:
 
@@ -152,9 +152,10 @@ gui_forms::NotifyIcon
       pixel.row_bytes = 64U;
       pixel.pixels.assign(64U * 16U, std::byte{0xFF});
       gf::NotifyIcon icon(window);
-      icon.set_icon({pixel});
-      icon.set_text("Radio: FM 98.1");
-      const gf::HostServiceStatus status = icon.set_visible(true);
+      icon.icon = std::vector<gf::HostImage>{pixel};
+      icon.text = "Radio: FM 98.1";
+      icon.visible = true;
+      const gf::HostServiceStatus status = icon.status();
       if (!status.accepted()) {
           // Without a host, status.error is gf::HostServiceError::unsupported.
       }
@@ -169,36 +170,28 @@ gui_forms::NotifyIcon
 
    .. rubric:: Properties
 
-   .. cpp:function:: const std::vector<HostImage>& icon() const noexcept
+   .. cpp:member:: std::vector<HostImage> icon
 
       The icon's images, premultiplied BGRA8, up to 8 sizes of at most 256
-      pixels a side. :cpp:func:`set_icon <gui_forms::NotifyIcon::set_icon>` replaces them and updates a shown icon; more
+      pixels a side. Every write replaces them and updates a shown icon; more
       images, or a malformed or larger image, throw ``std::invalid_argument``.
 
-   .. cpp:function:: void set_icon(std::vector<HostImage> images)
+   .. cpp:member:: std::string text
 
-      Sets :cpp:func:`icon <gui_forms::NotifyIcon::icon>`; see the property's description above.
-
-   .. cpp:function:: const std::string& text() const noexcept
-
-      The tooltip, at most 127 bytes of UTF-8. :cpp:func:`set_text <gui_forms::NotifyIcon::set_text>` updates a shown icon;
+      The tooltip, at most 127 bytes of UTF-8. A changed write updates a shown icon;
       longer or invalid text throws ``std::invalid_argument``.
 
-   .. cpp:function:: void set_text(std::string text)
+   .. cpp:member:: bool visible
 
-      Sets :cpp:func:`text <gui_forms::NotifyIcon::text>`; see the property's description above.
-
-   .. cpp:function:: bool visible() const noexcept
-
-      Whether the application wants the icon shown. :cpp:func:`set_visible <gui_forms::NotifyIcon::set_visible>` shows or
-      removes it and returns the host's answer: ``unsupported`` without a host or
+      Whether the application wants the icon shown. Every write shows or
+      removes it, and :cpp:func:`status <gui_forms::NotifyIcon::status>` then holds the host's answer: ``unsupported`` without a host or
       without the ``notification_area`` capability, ``invalid_argument`` while
       there is no image. A visible icon without an image is shown once an image
       is set.
 
-   .. cpp:function:: HostServiceStatus set_visible(bool visible)
+   .. cpp:member:: std::shared_ptr<ContextMenu> context_menu
 
-      Sets :cpp:func:`visible <gui_forms::NotifyIcon::visible>`; see the property's description above.
+      The menu shown on the icon's context gesture.
 
    .. cpp:function:: bool shown() const noexcept
 
@@ -212,14 +205,6 @@ gui_forms::NotifyIcon
    .. cpp:function:: bool supported() const noexcept
 
       Whether the window's host reports ``notification_area``.
-
-   .. cpp:function:: std::shared_ptr<ContextMenu> context_menu() const noexcept
-
-      The menu shown on the icon's context gesture. :cpp:func:`set_context_menu <gui_forms::NotifyIcon::set_context_menu>` sets it.
-
-   .. cpp:function:: void set_context_menu(std::shared_ptr<ContextMenu> menu)
-
-      Sets :cpp:func:`context_menu <gui_forms::NotifyIcon::context_menu>`; see the property's description above.
 
 
    .. rubric:: Events

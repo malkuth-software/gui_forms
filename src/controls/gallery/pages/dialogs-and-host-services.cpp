@@ -327,17 +327,18 @@ void HostServicesPage::on_toggle_notify_icon() {
     if (window == nullptr) return;
     if (!notify_icon_) {
         notify_icon_ = std::make_shared<NotifyIcon>(*window);
-        (*notify_icon_).set_icon({round_icon(16U), round_icon(32U), round_icon(48U)});
-        (*notify_icon_).set_text("GUI.Forms Gallery");
+        (*notify_icon_).icon = std::vector<HostImage>{round_icon(16U), round_icon(32U), round_icon(48U)};
+        (*notify_icon_).text = "GUI.Forms Gallery";
         std::shared_ptr<ContextMenu> menu = std::make_shared<ContextMenu>("gallery.host.notify-icon.menu");
         (*menu).set_items({MenuItemSpec("gallery.host.notify-icon.menu.hello", MenuItemKind::command,
                                         notify_menu_command_)});
-        (*notify_icon_).set_context_menu(menu);
+        (*notify_icon_).context_menu = menu;
         on((*notify_icon_).click(), *this, &HostServicesPage::on_notify_icon_click);
         on((*notify_icon_).menu_item_invoked(), *this, &HostServicesPage::on_notify_icon_menu);
     }
-    const bool show = !(*notify_icon_).visible();
-    const HostServiceStatus status = (*notify_icon_).set_visible(show);
+    const bool show = !(*notify_icon_).visible.read();
+    (*notify_icon_).visible = show;
+    const HostServiceStatus status = (*notify_icon_).status();
     notify_toggle_command_.set_text(show ? "Hide tray icon" : "Show tray icon");
     (*notify_toggle_button_).text = show ? "Hide tray icon" : "Show tray icon";
     (*status_).set_text(std::string(show ? "Tray icon shown: " : "Tray icon hidden: ") + service_result(status));
@@ -391,17 +392,17 @@ void HostServicesPage::build_paths() {
            static_cast<int>(index));
     }
     open_file_dialog_ = std::make_shared<OpenFileDialog>();
-    (*open_file_dialog_).set_filter("Text and logs|*.txt;*.log|PNG images|*.png");
+    (*open_file_dialog_).filter = "Text and logs|*.txt;*.log|PNG images|*.png";
     save_file_dialog_ = std::make_shared<SaveFileDialog>();
-    (*save_file_dialog_).set_title("Save GUI.Forms evidence");
-    (*save_file_dialog_).set_filter("Text evidence|*.txt");
-    (*save_file_dialog_).set_default_ext("txt");
-    (*save_file_dialog_).set_file_name("gui-forms-evidence");
+    (*save_file_dialog_).title = "Save GUI.Forms evidence";
+    (*save_file_dialog_).filter = "Text evidence|*.txt";
+    (*save_file_dialog_).default_ext = "txt";
+    (*save_file_dialog_).file_name = "gui-forms-evidence";
     color_dialog_ = std::make_shared<ColorDialog>();
-    (*color_dialog_).set_title("Choose an accent color");
-    (*color_dialog_).set_color(Color::rgba(0x27U, 0x74U, 0xB8U));
+    (*color_dialog_).title = "Choose an accent color";
+    (*color_dialog_).color = Color::rgba(0x27U, 0x74U, 0xB8U);
     folder_browser_dialog_ = std::make_shared<FolderBrowserDialog>();
-    (*folder_browser_dialog_).set_description("Choose an evidence directory");
+    (*folder_browser_dialog_).description = "Choose an evidence directory";
 }
 
 void HostServicesPage::build_services() {
@@ -467,8 +468,8 @@ void HostServicesPage::show_open_file_dialog(const bool multiple) {
         (*status_).set_text("Host rejected request · unsupported");
         return;
     }
-    (*open_file_dialog_).set_title(multiple ? "Open fixture set" : "Open one fixture");
-    (*open_file_dialog_).set_multiselect(multiple);
+    (*open_file_dialog_).title = multiple ? "Open fixture set" : "Open one fixture";
+    (*open_file_dialog_).multiselect = multiple;
     const DialogResult result = (*open_file_dialog_).show_dialog(*window);
     if (result == DialogResult::none) {
         (*status_).set_text(std::string("Host rejected request · ") +
@@ -500,7 +501,7 @@ void HostServicesPage::show_save_file_dialog() {
         publish_cancelled();
         return;
     }
-    publish_accepted("1 path · " + (*save_file_dialog_).file_name());
+    publish_accepted("1 path · " + (*save_file_dialog_).file_name.read());
 }
 
 void HostServicesPage::show_color_dialog() {
@@ -520,7 +521,7 @@ void HostServicesPage::show_color_dialog() {
         return;
     }
     // The colour as the host contract spells it, 0xRRGGBBAA.
-    const Color chosen = (*color_dialog_).color();
+    const Color chosen = (*color_dialog_).color.read();
     const std::uint32_t rgba = (static_cast<std::uint32_t>(chosen.red) << 24U) |
                                (static_cast<std::uint32_t>(chosen.green) << 16U) |
                                (static_cast<std::uint32_t>(chosen.blue) << 8U) |
@@ -546,7 +547,7 @@ void HostServicesPage::show_folder_browser_dialog() {
         publish_cancelled();
         return;
     }
-    publish_accepted("1 path · " + (*folder_browser_dialog_).selected_path());
+    publish_accepted("1 path · " + (*folder_browser_dialog_).selected_path.read());
 }
 
 void HostServicesPage::on_service(const int index) {

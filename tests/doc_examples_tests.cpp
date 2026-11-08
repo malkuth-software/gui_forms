@@ -612,10 +612,10 @@ void example() {
     std::shared_ptr<gf::Panel> root = gf::make_control<gf::Panel>(gf::StableId("doc.root"));
     gf::Window window(root, {320.0, 200.0});
     gf::ColorDialog dialog;
-    dialog.set_color(gf::Color::rgba(0x27U, 0x74U, 0xB8U));
+    dialog.color = gf::Color::rgba(0x27U, 0x74U, 0xB8U);
     const gf::DialogResult result = dialog.show_dialog(window);
     if (result == gf::DialogResult::ok) {
-        const gf::Color accent = dialog.color();
+        const gf::Color accent = dialog.color.read();
         static_cast<void>(accent);
     } else if (result == gf::DialogResult::none) {
         // Without a host, dialog.status().error is gf::HostServiceError::unsupported.
@@ -1732,10 +1732,10 @@ void example() {
     std::shared_ptr<gf::Panel> root = gf::make_control<gf::Panel>(gf::StableId("doc.root"));
     gf::Window window(root, {320.0, 200.0});
     gf::FolderBrowserDialog dialog;
-    dialog.set_description("Choose where the exports go");
+    dialog.description = "Choose where the exports go";
     const gf::DialogResult result = dialog.show_dialog(window);
     if (result == gf::DialogResult::ok) {
-        const std::string& folder = dialog.selected_path();
+        const std::string folder = dialog.selected_path.read();
         static_cast<void>(folder);
     } else if (result == gf::DialogResult::none) {
         // Without a host, dialog.status().error is gf::HostServiceError::unsupported.
@@ -2366,9 +2366,10 @@ void example() {
     pixel.row_bytes = 64U;
     pixel.pixels.assign(64U * 16U, std::byte{0xFF});
     gf::NotifyIcon icon(window);
-    icon.set_icon({pixel});
-    icon.set_text("Radio: FM 98.1");
-    const gf::HostServiceStatus status = icon.set_visible(true);
+    icon.icon = std::vector<gf::HostImage>{pixel};
+    icon.text = "Radio: FM 98.1";
+    icon.visible = true;
+    const gf::HostServiceStatus status = icon.status();
     if (!status.accepted()) {
         // Without a host, status.error is gf::HostServiceError::unsupported.
     }
@@ -2469,9 +2470,9 @@ void example() {
     std::shared_ptr<gf::Panel> root = gf::make_control<gf::Panel>(gf::StableId("doc.root"));
     gf::Window window(root, {320.0, 200.0});
     gf::OpenFileDialog dialog;
-    dialog.set_title("Open recordings");
-    dialog.set_filter("Recordings|*.wav;*.flac|All files|*.*");
-    dialog.set_multiselect(true);
+    dialog.title = "Open recordings";
+    dialog.filter = "Recordings|*.wav;*.flac|All files|*.*";
+    dialog.multiselect = true;
     const gf::DialogResult result = dialog.show_dialog(window);
     if (result == gf::DialogResult::ok) {
         for (const std::string& path : dialog.file_names()) {
@@ -3110,13 +3111,13 @@ void example() {
     std::shared_ptr<gf::Panel> root = gf::make_control<gf::Panel>(gf::StableId("doc.root"));
     gf::Window window(root, {320.0, 200.0});
     gf::SaveFileDialog dialog;
-    dialog.set_title("Export report");
-    dialog.set_filter("Reports|*.txt|All files|*.*");
-    dialog.set_default_ext("txt");
-    dialog.set_file_name("summary");
+    dialog.title = "Export report";
+    dialog.filter = "Reports|*.txt|All files|*.*";
+    dialog.default_ext = "txt";
+    dialog.file_name = "summary";
     const gf::DialogResult result = dialog.show_dialog(window);
     if (result == gf::DialogResult::ok) {
-        const std::string& path = dialog.file_name();
+        const std::string path = dialog.file_name.read();
         static_cast<void>(path);
     } else if (result == gf::DialogResult::none) {
         // Without a host, dialog.status().error is gf::HostServiceError::unsupported.

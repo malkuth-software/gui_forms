@@ -1,0 +1,89 @@
+{
+  "family": "ColorDialog",
+  "step": "B9",
+  "declaring": "ColorDialog",
+  "header": "include/gui_forms/components/color_dialog/color_dialog.hpp",
+  "source": "src/controls/color_dialog/color_dialog.cpp",
+  "capabilities_header": "include/gui_forms/components/color_dialog/color_dialog_capabilities/color_dialog_capabilities.hpp",
+  "shared": [],
+  "includes": [
+    "gui_forms/types/paint_types/paint_types.hpp"
+  ],
+  "mutation_check": null,
+  "properties": [
+    {
+      "name": "title",
+      "capability": "ColorDialogTitle",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The dialog's title; empty gives the host's own. Windows Forms' dialog has none; the hosts that title their dialog use it. Must be valid UTF-8 without NUL (std::invalid_argument).",
+      "getter": "title",
+      "setter": "set_title",
+      "clear": null,
+      "field": "title_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": "title",
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": null,
+      "prepare": [
+        "if (!file_dialog_text_valid(incoming)) {",
+        "    throw std::invalid_argument(\"ColorDialog title must be valid UTF-8 without NUL\");",
+        "}"
+      ],
+      "sample": "std::string{\"Sample\"}"
+    },
+    {
+      "name": "color",
+      "capability": "ColorDialogColor",
+      "value": "Color",
+      "initial": "Color::rgba(0U, 0U, 0U, 255U)",
+      "comment": "The chosen color, and before the dialog is shown the one it starts with (Windows Forms' Color; opaque black by default). An accepted show_dialog writes it.",
+      "getter": "color",
+      "setter": "set_color",
+      "clear": null,
+      "field": "color_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": null,
+      "sample": "Color::rgba(10U, 20U, 30U, 255U)"
+    },
+    {
+      "name": "allow_alpha",
+      "capability": "ColorDialogAllowAlpha",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether the user may choose a translucent color. Off by default, as in Windows Forms, where every chosen color is opaque: the dialog then takes the chosen color as opaque whatever the host returns.",
+      "getter": "allow_alpha",
+      "setter": "set_allow_alpha",
+      "clear": null,
+      "field": "allow_alpha_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": null
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "status",
+      "reason": "the host's answer to the last show_dialog; read-only"
+    },
+    {
+      "name": "reset",
+      "reason": "restores every setting; a method writing each cell"
+    }
+  ]
+}

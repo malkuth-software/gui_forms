@@ -1,0 +1,116 @@
+{
+  "family": "NotifyIcon",
+  "step": "B9",
+  "declaring": "NotifyIcon",
+  "header": "include/gui_forms/components/notify_icon/notify_icon.hpp",
+  "source": "src/controls/notify_icon/notify_icon.cpp",
+  "capabilities_header": "include/gui_forms/components/notify_icon/notify_icon_capabilities/notify_icon_capabilities.hpp",
+  "shared": [
+    "TextCapability"
+  ],
+  "includes": [
+    "gui_forms/host/image/host_image.hpp",
+    "gui_forms/components/context_menu/context_menu.hpp",
+    "<memory>",
+    "<vector>"
+  ],
+  "mutation_check": null,
+  "properties": [
+    {
+      "name": "icon",
+      "capability": "NotifyIconIcon",
+      "value": "std::vector<HostImage>",
+      "initial": null,
+      "comment": "The icon at one or more sizes, premultiplied BGRA8 (HostImage). Throws std::invalid_argument for more than 8 images or an image that is malformed or larger than 256 pixels a side. A write updates a shown icon, even when unchanged. UI thread only (std::logic_error).",
+      "getter": "icon",
+      "setter": "set_icon",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto images_: every write synchronizes the host icon and records its status"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "text",
+      "capability": "Text",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The tooltip, at most 127 bytes of UTF-8 (std::invalid_argument otherwise). A changed write updates a shown icon. UI thread only (std::logic_error).",
+      "getter": "text",
+      "setter": "set_text",
+      "clear": null,
+      "field": "text_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": "text",
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "shared TextCapability<NotifyIcon> (study 15.3): prepare_write checks the thread, UTF-8 and host length; written synchronizes the host icon; nothing invalidated"
+      ],
+      "effects": null
+    },
+    {
+      "name": "visible",
+      "capability": "NotifyIconVisible",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether the application wants the icon shown. Every write shows or removes the icon, even when unchanged, and status() then holds the host's answer: unsupported without a host or without the notification_area capability, invalid_argument while there is no icon image. A visible icon without an image is shown once an image is set. UI thread only (std::logic_error).",
+      "getter": "visible",
+      "setter": "set_visible",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto visible_: every write synchronizes, so a repeated true re-adds an icon a host session dropped"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "context_menu",
+      "capability": "NotifyIconContextMenu",
+      "value": "std::shared_ptr<ContextMenu>",
+      "initial": null,
+      "comment": "The menu shown on the icon's context gesture. Hosts with native tray menus (notification_area_menus) show its rows natively; choosing a row executes its command and raises menu_item_invoked. Submenus are left out. Without native tray menus only click is raised. UI thread only (std::logic_error).",
+      "getter": "context_menu",
+      "setter": "set_context_menu",
+      "clear": null,
+      "field": "context_menu_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "prepare_write checks the thread"
+      ],
+      "effects": null
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "status",
+      "reason": "the host's answer to the last request; read-only"
+    },
+    {
+      "name": "show_balloon_tip",
+      "reason": "a request with several arguments; a method"
+    }
+  ]
+}

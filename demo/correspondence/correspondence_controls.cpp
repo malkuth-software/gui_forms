@@ -488,7 +488,7 @@ void CorrespondenceShell::attach_tooltips() {
     Window* window = attached_window();
     if (window == nullptr || tooltips_) return;
     tooltips_ = std::make_shared<ToolTip>(*window);
-    (*tooltips_).set_initial_delay(std::chrono::milliseconds(400));
+    (*tooltips_).initial_delay = std::chrono::milliseconds(400);
     for (int index = 0; index < static_cast<int>((*bar_).items().size()); ++index) {
         const CommandItem& item = (*bar_).items()[static_cast<std::size_t>(index)];
         std::string text = item.label;

@@ -6,6 +6,7 @@
 #include "gui_forms/event.hpp"
 #include "gui_forms/host/services/host_services.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
+#include "gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp"
 
 #include <cstddef>
 #include <memory>
@@ -29,41 +30,14 @@ class Window;
 // parse (parse_file_dialog_filter); anything else throws
 // std::invalid_argument and changes nothing. The dialog is used on the UI
 // thread of the window it is shown over.
-class OpenFileDialog final : public Component {
+class OpenFileDialog final : public Component, public OpenFileDialogCapabilities<OpenFileDialog> {
 public:
     OpenFileDialog();
     ~OpenFileDialog() override;
 
-    // The dialog's title; empty gives the host's own ("Open").
-    [[nodiscard]] const std::string& title() const noexcept { return title_; }
-    void set_title(GUI_FORMS_LOCALIZABLE(title) std::string title);
-    // The directory the dialog starts in; empty lets the host choose.
-    [[nodiscard]] const std::string& initial_directory() const noexcept { return initial_directory_; }
-    void set_initial_directory(std::string directory);
-
-    // The filter in Windows Forms' syntax, as set, and the host filters it
-    // parsed into.
-    [[nodiscard]] const std::string& filter() const noexcept { return filter_; }
-    void set_filter(std::string filter);
+    // The host filters parsed from filter.
     [[nodiscard]] std::span<const HostFileDialogFilter> filters() const noexcept { return filters_; }
-    // The filter the dialog starts with, an index into filters() (Windows
-    // Forms' FilterIndex, which counts from one; this counts from zero).
-    // After the user accepts it is the filter they had selected, where the
-    // host tells; an index past the filters starts the dialog on the first.
-    [[nodiscard]] std::size_t filter_index() const noexcept { return filter_index_; }
-    void set_filter_index(std::size_t index) noexcept { filter_index_ = index; }
 
-    // Whether the user may choose more than one file (Windows Forms'
-    // Multiselect).
-    [[nodiscard]] bool multiselect() const noexcept { return multiselect_; }
-    void set_multiselect(bool multiselect) noexcept { multiselect_ = multiselect; }
-
-    // The first chosen path, or empty. Before the dialog is shown, a name
-    // set here is the one the dialog suggests.
-    [[nodiscard]] const std::string& file_name() const noexcept;
-    // Sets the suggested name; the chosen paths become this one name (none
-    // for an empty name).
-    void set_file_name(std::string name);
     // Every chosen path, in the host's order.
     [[nodiscard]] std::span<const std::string> file_names() const noexcept { return file_names_; }
     // The first chosen file's name without its directory, and every chosen
@@ -101,17 +75,34 @@ private:
 
     [[nodiscard]] HostOpenFileDialogRequest request() const;
 
-    std::string title_{};
-    std::string initial_directory_{};
-    std::string filter_{};
     std::vector<HostFileDialogFilter> filters_{};
-    std::size_t filter_index_{};
-    bool multiselect_{};
     std::vector<std::string> file_names_{};
     HostServiceStatus status_{};
     bool showing_{};
     std::shared_ptr<Presence> presence_{std::make_shared<Presence>()};
     Event<FileDialogOk&> file_ok_{};
+    // property_codemod begin OpenFileDialog (tools/property_families/open_file_dialog.json; generated, do not edit)
+private:
+    friend struct OpenFileDialogTitleCapability<OpenFileDialog>;
+    friend struct OpenFileDialogInitialDirectoryCapability<OpenFileDialog>;
+    friend struct OpenFileDialogFilterCapability<OpenFileDialog>;
+    friend struct OpenFileDialogFilterIndexCapability<OpenFileDialog>;
+    friend struct OpenFileDialogMultiselectCapability<OpenFileDialog>;
+    friend struct OpenFileDialogFileNameCapability<OpenFileDialog>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(title)& cell, std::string& incoming);
+    void written(const decltype(title)& cell);
+    void prepare_write(const decltype(initial_directory)& cell, std::string& incoming);
+    void written(const decltype(initial_directory)& cell);
+    void prepare_write(const decltype(filter)& cell, std::string& incoming);
+    void written(const decltype(filter)& cell);
+    void prepare_write(const decltype(filter_index)& cell, std::size_t& incoming);
+    void written(const decltype(filter_index)& cell);
+    void prepare_write(const decltype(multiselect)& cell, bool& incoming);
+    void written(const decltype(multiselect)& cell);
+    void write_view(const decltype(file_name)& cell, std::string incoming);
+    [[nodiscard]] std::string read_view(const decltype(file_name)& cell) const;
+    // property_codemod end OpenFileDialog
 };
 
 } // namespace gui_forms

@@ -108,14 +108,15 @@ void notify_icon_menus() {
     image.height = 16U;
     image.row_bytes = 16U * 4U;
     image.pixels.assign(static_cast<std::size_t>(image.row_bytes) * 16U, std::byte{0x7F});
-    icon.set_icon({image});
-    require(icon.set_visible(true).accepted() && icon.shown(), "the icon shows");
+    icon.icon = std::vector<HostImage>{image};
+    icon.visible = true;
+    require(icon.status().accepted() && icon.shown(), "the icon shows");
     const std::shared_ptr<Command> mute = std::make_shared<Command>("tray.mute", "Mute");
     int invoked = 0;
     SubscriptionToken counting = (*mute).invoked().subscribe(CountInvocations{&invoked});
     std::shared_ptr<ContextMenu> menu = std::make_shared<ContextMenu>("tray.menu");
     (*menu).set_items({MenuItemSpec("tray.menu.mute", MenuItemKind::command, mute)});
-    icon.set_context_menu(menu);
+    icon.context_menu = menu;
     const std::shared_ptr<CommandTarget> target = main_target(handler, "tray.mute");
     window.set_command_target(CommandRouteStage::main_window, target);
     services.queue_tray_menu_choice("tray.menu.mute");

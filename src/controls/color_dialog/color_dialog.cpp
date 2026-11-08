@@ -36,17 +36,10 @@ ColorDialog::ColorDialog() = default;
 
 ColorDialog::~ColorDialog() = default;
 
-void ColorDialog::set_title(std::string title) {
-    if (!file_dialog_text_valid(title)) {
-        throw std::invalid_argument("ColorDialog title must be valid UTF-8 without NUL");
-    }
-    title_ = std::move(title);
-}
-
 void ColorDialog::reset() {
-    title_.clear();
-    color_ = Color::rgba(0U, 0U, 0U, 255U);
-    allow_alpha_ = false;
+    title = std::string{};
+    color = Color::rgba(0U, 0U, 0U, 255U);
+    allow_alpha = false;
     status_ = {};
 }
 
@@ -62,9 +55,9 @@ DialogResult ColorDialog::show_dialog(Window& owner) {
         return DialogResult::none;
     }
     HostColorDialogRequest payload;
-    payload.title = title_;
-    payload.initial_rgba = packed_rgba(color_);
-    payload.allow_alpha = allow_alpha_;
+    payload.title = title.read();
+    payload.initial_rgba = packed_rgba(color.read());
+    payload.allow_alpha = allow_alpha.read();
     HostDialogRequest host_request;
     host_request.request_id = detail::take_dialog_request_id();
     const Control::Ptr root = owner.root();
@@ -78,9 +71,29 @@ DialogResult ColorDialog::show_dialog(Window& owner) {
     if (chosen == nullptr || (*chosen).outcome != HostDialogOutcome::accepted) return DialogResult::cancel;
     if (!is_alive()) return DialogResult::cancel;
     Color taken = unpacked_rgba((*chosen).rgba);
-    if (!allow_alpha_) taken.alpha = 255U;
-    color_ = taken;
+    if (!allow_alpha.read()) taken.alpha = 255U;
+    color = taken;
     return DialogResult::ok;
 }
+
+// property_codemod begin ColorDialog (tools/property_families/color_dialog.json; generated, do not edit)
+
+void ColorDialog::prepare_write(const decltype(title)&, std::string& incoming) {
+    if (!file_dialog_text_valid(incoming)) {
+        throw std::invalid_argument("ColorDialog title must be valid UTF-8 without NUL");
+    }
+}
+
+void ColorDialog::written(const decltype(title)&) {}
+
+void ColorDialog::prepare_write(const decltype(color)&, Color&) {}
+
+void ColorDialog::written(const decltype(color)&) {}
+
+void ColorDialog::prepare_write(const decltype(allow_alpha)&, bool&) {}
+
+void ColorDialog::written(const decltype(allow_alpha)&) {}
+
+// property_codemod end ColorDialog
 
 } // namespace gui_forms

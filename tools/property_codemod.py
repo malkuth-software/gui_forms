@@ -42,6 +42,9 @@ Config keys are the study's (section 15.2) plus these, all optional:
              "table_source": "hand" when the entries and descriptors are
              written by hand (only the capabilities header is generated).
              "test": {"type": concrete class, "include": its header}.
+             "mutation_check": the statement a generated prepare_write runs
+             first (default "require_mutable();", Control's check); null for
+             a component without one (study section 14, G7 point 4).
   property   "prepare": C++ statements a generated prepare_write runs after
              require_mutable and before coerce (`incoming` is the incoming value).
              "written_effects": the dirty mask a generated written touches
@@ -67,7 +70,7 @@ PROPERTY_KEYS = {
 }
 TOP_KEYS = {
     "family", "declaring", "header", "source", "capabilities_header", "properties", "step", "shared",
-    "not_properties", "base", "includes", "table_source", "test", "shared_header",
+    "not_properties", "base", "includes", "table_source", "test", "shared_header", "mutation_check",
 }
 TABLE_KEYS = {
     "kind", "category", "description", "default", "effects", "subtree", "bindable", "browsable", "nullable",
@@ -804,7 +807,10 @@ def generated_hooks(config, prop):
     statements = prop.get("prepare") or []
     uses_value = bool(statements) or prop.get("coerce")
     parameter = f"{value}& incoming" if uses_value else f"{value}&"
-    lines = [f"void {declaring}::prepare_write(const decltype({member})&, {parameter}) {{", "    require_mutable();"]
+    lines = [f"void {declaring}::prepare_write(const decltype({member})&, {parameter}) {{"]
+    check = config.get("mutation_check", "require_mutable();")
+    if check:
+        lines.append("    " + check)
     lines += ["    " + statement for statement in statements]
     if prop.get("coerce"):
         lines.append(f"    coerce_{member}(incoming);")
@@ -821,7 +827,11 @@ def generated_hooks(config, prop):
     elif prop.get("event"):
         lines.append(f"    publish_change({prop['event']}, {member}.read());")
     lines += ["}", ""]
-    return "\n".join(lines) + "\n"
+    # A hook with nothing to do (a component's unchecked, untouched write) is
+    # spelled `{}` on its signature's line.
+    text = "\n".join(lines) + "\n"
+    text = re.sub(r"\) \{\n\}\n", ") {}\n", text)
+    return text
 
 
 def virtual_bodies(config, prop):

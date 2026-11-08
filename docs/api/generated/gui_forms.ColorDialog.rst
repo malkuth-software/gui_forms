@@ -7,7 +7,7 @@ gui_forms::ColorDialog
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: ColorDialog final : public Component
+.. cpp:class:: ColorDialog final : public Component, public ColorDialogCapabilities<ColorDialog>
 
    ``#include <gui_forms/components/color_dialog/color_dialog.hpp>``
 
@@ -31,7 +31,7 @@ gui_forms::ColorDialog
 
       **title** : ``std::string``, default empty
          The dialog's title; empty gives the host's own. Windows Forms' dialog
-         has none; the hosts that title their dialog use it. :cpp:func:`set_title <gui_forms::ColorDialog::set_title>` throws
+         has none; the hosts that title their dialog use it. A write throws
          ``std::invalid_argument`` for text that is not valid UTF-8, holds NUL or
          is longer than ``HostServices::maximum_dialog_text_bytes``, and keeps the
          old title.
@@ -88,10 +88,10 @@ gui_forms::ColorDialog
       std::shared_ptr<gf::Panel> root = gf::make_control<gf::Panel>(gf::StableId("doc.root"));
       gf::Window window(root, {320.0, 200.0});
       gf::ColorDialog dialog;
-      dialog.set_color(gf::Color::rgba(0x27U, 0x74U, 0xB8U));
+      dialog.color = gf::Color::rgba(0x27U, 0x74U, 0xB8U);
       const gf::DialogResult result = dialog.show_dialog(window);
       if (result == gf::DialogResult::ok) {
-          const gf::Color accent = dialog.color();
+          const gf::Color accent = dialog.color.read();
           static_cast<void>(accent);
       } else if (result == gf::DialogResult::none) {
           // Without a host, dialog.status().error is gf::HostServiceError::unsupported.
@@ -105,36 +105,24 @@ gui_forms::ColorDialog
 
    .. rubric:: Properties
 
-   .. cpp:function:: const std::string& title() const noexcept
+   .. cpp:member:: std::string title
 
       The dialog's title; empty gives the host's own. Windows Forms' dialog
-      has none; the hosts that title their dialog use it. :cpp:func:`set_title <gui_forms::ColorDialog::set_title>` throws
+      has none; the hosts that title their dialog use it. A write throws
       ``std::invalid_argument`` for text that is not valid UTF-8, holds NUL or
       is longer than ``HostServices::maximum_dialog_text_bytes``, and keeps the
       old title.
 
-   .. cpp:function:: void set_title(std::string title)
-
-      Sets :cpp:func:`title <gui_forms::ColorDialog::title>`; see the property's description above.
-
-   .. cpp:function:: Color color() const noexcept
+   .. cpp:member:: Color color
 
       The chosen color, and before the dialog is shown the one it starts
       with. Only an accepted dialog changes it.
 
-   .. cpp:function:: void set_color(Color color) noexcept
-
-      Sets :cpp:func:`color <gui_forms::ColorDialog::color>`; see the property's description above.
-
-   .. cpp:function:: bool allow_alpha() const noexcept
+   .. cpp:member:: bool allow_alpha
 
       Whether the user may choose a translucent color. While it is off, as in
       Windows Forms, the chosen color is taken as opaque whatever the host
       returns.
-
-   .. cpp:function:: void set_allow_alpha(bool allow) noexcept
-
-      Sets :cpp:func:`allow_alpha <gui_forms::ColorDialog::allow_alpha>`; see the property's description above.
 
    .. cpp:function:: HostServiceStatus status() const noexcept
 

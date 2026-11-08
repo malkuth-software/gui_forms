@@ -184,8 +184,9 @@ void component() {
 
     NotifyIcon unhosted(window);
     require(!unhosted.supported(), "a window without a host does not support notification icons");
-    unhosted.set_icon({solid_image(16U)});
-    require(unhosted.set_visible(true).error == HostServiceError::unsupported && !unhosted.shown(),
+    unhosted.icon = std::vector<HostImage>{solid_image(16U)};
+    unhosted.visible = true;
+    require(unhosted.status().error == HostServiceError::unsupported && !unhosted.shown(),
             "showing without a host is refused as unsupported");
     unhosted.dispose();
 
@@ -193,17 +194,18 @@ void component() {
     host::HeadlessHostServices& services = static_cast<host::HeadlessHostServices&>(headless.services());
     NotifyIcon icon(window);
     require(icon.supported(), "the headless host supports notification icons");
-    require(icon.set_visible(true).error == HostServiceError::invalid_argument && !icon.shown(),
+    icon.visible = true;
+    require(icon.status().error == HostServiceError::invalid_argument && !icon.shown(),
             "a visible icon without an image is not shown");
-    icon.set_icon({solid_image(16U), solid_image(32U)});
+    icon.icon = std::vector<HostImage>{solid_image(16U), solid_image(32U)};
     require(icon.shown() && icon.status().accepted() && services.snapshot().tray_icons == 1U,
             "setting an image shows a visible icon");
-    icon.set_text("Radio: FM 98.1");
+    icon.text = "Radio: FM 98.1";
     require(services.tray_trace().find("tooltip=Radio: FM 98.1") != std::string::npos,
             "the tooltip reaches the host");
     bool refused = false;
     try {
-        icon.set_text(std::string(200U, 'x'));
+        icon.text = std::string(200U, 'x');
     } catch (const std::invalid_argument&) {
         refused = true;
     }
@@ -233,7 +235,7 @@ void component() {
     (*menu).set_items({MenuItemSpec("tray.menu.open", MenuItemKind::command, open),
                        MenuItemSpec("tray.menu.rule", MenuItemKind::separator),
                        MenuItemSpec("tray.menu.mute", MenuItemKind::check, mute)});
-    icon.set_context_menu(menu);
+    icon.context_menu = menu;
     services.queue_tray_menu_choice("tray.menu.mute");
     services.simulate_tray_icon_event({id, HostTrayIconAction::context});
     require(log.clicks.size() == 2U && log.clicks[1] == PointerButton::secondary,
@@ -251,11 +253,13 @@ void component() {
     services.simulate_tray_icon_event({id, HostTrayIconAction::notification_closed});
     require(log.balloon_clicks == 1 && log.balloon_closes == 1, "notification clicks and closes are raised");
 
-    require(icon.set_visible(false).accepted() && !icon.shown() && services.snapshot().tray_icons == 0U,
+    icon.visible = false;
+    require(icon.status().accepted() && !icon.shown() && services.snapshot().tray_icons == 0U,
             "hiding removes the icon");
     require(icon.show_balloon_tip("Hidden", "Nobody sees this").error == HostServiceError::invalid_argument,
             "a hidden icon refuses notification text");
-    require(icon.set_visible(true).accepted() && icon.shown(), "the icon shows again");
+    icon.visible = true;
+    require(icon.status().accepted() && icon.shown(), "the icon shows again");
     icon.dispose();
     require(services.snapshot().tray_icons == 0U, "disposal removes the icon");
 }
@@ -263,7 +267,7 @@ void component() {
 // A menu command that takes the icon's context menu away while it runs.
 struct DropIconMenu final {
     NotifyIcon* icon{};
-    void operator()(const CommandInvocation&) const { (*icon).set_context_menu(nullptr); }
+    void operator()(const CommandInvocation&) const { (*icon).context_menu = nullptr; }
 };
 
 // The chosen row's command may replace or remove the icon's context menu;
@@ -274,8 +278,9 @@ void menu_removed_by_its_command() {
     host::HeadlessHost headless(window);
     host::HeadlessHostServices& services = static_cast<host::HeadlessHostServices&>(headless.services());
     NotifyIcon icon(window);
-    icon.set_icon({solid_image(16U)});
-    require(icon.set_visible(true).accepted() && icon.shown(), "the icon shows");
+    icon.icon = std::vector<HostImage>{solid_image(16U)};
+    icon.visible = true;
+    require(icon.status().accepted() && icon.shown(), "the icon shows");
     ClickLog log;
     SubscriptionToken invoked = icon.menu_item_invoked().subscribe(
         Delegate<const MenuItemInvocation&>::bind<ClickLog, &ClickLog::on_menu>(log));
@@ -283,10 +288,10 @@ void menu_removed_by_its_command() {
     SubscriptionToken dropping = (*quit).invoked().subscribe(DropIconMenu{&icon});
     std::shared_ptr<ContextMenu> menu = std::make_shared<ContextMenu>("tray.menu");
     (*menu).set_items({MenuItemSpec("tray.menu.quit", MenuItemKind::command, quit)});
-    icon.set_context_menu(menu);
+    icon.context_menu = menu;
     services.queue_tray_menu_choice("tray.menu.quit");
     services.simulate_tray_icon_event({1U, HostTrayIconAction::context});
-    require(!icon.context_menu(), "the command removed the icon's menu");
+    require(!icon.context_menu.read(), "the command removed the icon's menu");
     require(log.invocations.size() == 1U && log.invocations[0].menu_id == "tray.menu" &&
                 log.invocations[0].item_id == "tray.menu.quit" && log.invocations[0].command_id == "tray.quit",
             "the invocation is reported from the menu the row ran in");
@@ -296,13 +301,15 @@ void session_end() {
     std::shared_ptr<Panel> root = make_control<Panel>(StableId("notify.session"));
     Window window(root, {320.0, 200.0});
     NotifyIcon icon(window);
-    icon.set_icon({solid_image(16U)});
+    icon.icon = std::vector<HostImage>{solid_image(16U)};
     {
         host::HeadlessHost headless(window);
-        require(icon.set_visible(true).accepted() && icon.shown(), "the icon shows in the session");
+        icon.visible = true;
+        require(icon.status().accepted() && icon.shown(), "the icon shows in the session");
     }
-    require(!icon.shown() && icon.visible(), "an ended session took the icon with it");
-    require(icon.set_visible(true).error == HostServiceError::unsupported, "without a host the icon is refused");
+    require(!icon.shown() && icon.visible.read(), "an ended session took the icon with it");
+    icon.visible = true;
+    require(icon.status().error == HostServiceError::unsupported, "without a host the icon is refused");
 }
 
 } // namespace

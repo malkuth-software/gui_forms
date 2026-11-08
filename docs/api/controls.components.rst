@@ -89,8 +89,30 @@ Related types
      - ImageListChange identifies revision, mutation kind, entry index, and key affected by one retained resource mutation.
    * - :cpp:class:`ImageListResolution <gui_forms::ImageListResolution>`
      - ImageListResolution returns the exact registered ImageId plus source pixel size, chosen scale variant, revision, and stable entry identity.
+   * - :cpp:class:`NotifyIconCapabilities <gui_forms::NotifyIconCapabilities>`
+     - Every NotifyIcon capability, in the order the declaring class takes them.
    * - :cpp:class:`NotifyIconClick <gui_forms::NotifyIconClick>`
      - A click on the icon: ``button`` is primary for a click and secondary for the platform's context gesture.
+   * - :cpp:class:`NotifyIconContextMenuCapability <gui_forms::NotifyIconContextMenuCapability>`
+     - The menu shown on the icon's context gesture.
+   * - :cpp:class:`NotifyIconIconCapability <gui_forms::NotifyIconIconCapability>`
+     - The icon at one or more sizes, premultiplied BGRA8 (HostImage).
+   * - :cpp:class:`NotifyIconVisibleCapability <gui_forms::NotifyIconVisibleCapability>`
+     - Whether the application wants the icon shown.
+   * - :cpp:class:`OpenFileDialogCapabilities <gui_forms::OpenFileDialogCapabilities>`
+     - Every OpenFileDialog capability, in the order the declaring class takes them.
+   * - :cpp:class:`OpenFileDialogFileNameCapability <gui_forms::OpenFileDialogFileNameCapability>`
+     - The first chosen path, or empty.
+   * - :cpp:class:`OpenFileDialogFilterCapability <gui_forms::OpenFileDialogFilterCapability>`
+     - The filter in Windows Forms' syntax, as set; filters() holds the host filters it parsed into.
+   * - :cpp:class:`OpenFileDialogFilterIndexCapability <gui_forms::OpenFileDialogFilterIndexCapability>`
+     - The filter the dialog starts with, an index into filters() (Windows Forms' FilterIndex, which counts from one; this counts from zero).
+   * - :cpp:class:`OpenFileDialogInitialDirectoryCapability <gui_forms::OpenFileDialogInitialDirectoryCapability>`
+     - The directory the dialog starts in; empty lets the host choose.
+   * - :cpp:class:`OpenFileDialogMultiselectCapability <gui_forms::OpenFileDialogMultiselectCapability>`
+     - Whether the user may choose more than one file (Windows Forms' Multiselect).
+   * - :cpp:class:`OpenFileDialogTitleCapability <gui_forms::OpenFileDialogTitleCapability>`
+     - The dialog's title; empty gives the host's own.
 
 .. cpp:namespace:: gui_forms
 
@@ -368,6 +390,33 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> NotifyIconCapabilities : public NotifyIconIconCapability<Declaring>, public TextCapability<Declaring>, public NotifyIconVisibleCapability<Declaring>, public NotifyIconContextMenuCapability<Declaring>
+
+   ``#include <gui_forms/components/notify_icon/notify_icon_capabilities/notify_icon_capabilities.hpp>``
+
+   Every NotifyIcon capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::vector<HostImage> icon
+
+      The icon at one or more sizes, premultiplied BGRA8 (HostImage). Throws std::invalid_argument for more than 8 images or an image that is malformed or larger than 256 pixels a side. A write updates a shown icon, even when unchanged. UI thread only (std::logic_error).
+
+   .. cpp:member:: std::string text
+
+      The text the control shows (Text).
+
+   .. cpp:member:: bool visible
+
+      Whether the application wants the icon shown. Every write shows or removes the icon, even when unchanged, and status() then holds the host's answer: unsupported without a host or without the notification_area capability, invalid_argument while there is no icon image. A visible icon without an image is shown once an image is set. UI thread only (std::logic_error).
+
+   .. cpp:member:: std::shared_ptr<ContextMenu> context_menu
+
+      The menu shown on the icon's context gesture. Hosts with native tray menus (notification_area_menus) show its rows natively; choosing a row executes its command and raises menu_item_invoked. Submenus are left out. Without native tray menus only click is raised. UI thread only (std::logic_error).
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: NotifyIconClick final
 
    ``#include <gui_forms/components/notify_icon/notify_icon.hpp>``
@@ -377,6 +426,182 @@ Related types
    .. cpp:member:: PointerButton button
 
       Default: ``{PointerButton::primary}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> NotifyIconContextMenuCapability
+
+   ``#include <gui_forms/components/notify_icon/notify_icon_capabilities/notify_icon_capabilities.hpp>``
+
+   The menu shown on the icon's context gesture. Hosts with native tray menus (notification_area_menus) show its rows natively; choosing a row executes its command and raises menu_item_invoked. Submenus are left out. Without native tray menus only click is raised. UI thread only (std::logic_error).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(NotifyIconContextMenuCapability& capability, std::shared_ptr<ContextMenu> incoming)
+
+   .. cpp:member:: PropertyCell<std::shared_ptr<ContextMenu>, NotifyIconContextMenuCapability<Declaring>> context_menu
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> NotifyIconIconCapability
+
+   ``#include <gui_forms/components/notify_icon/notify_icon_capabilities/notify_icon_capabilities.hpp>``
+
+   The icon at one or more sizes, premultiplied BGRA8 (HostImage). Throws std::invalid_argument for more than 8 images or an image that is malformed or larger than 256 pixels a side. A write updates a shown icon, even when unchanged. UI thread only (std::logic_error).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(NotifyIconIconCapability& capability, std::vector<HostImage> incoming)
+
+   .. cpp:function:: static std::vector<HostImage> read(const NotifyIconIconCapability& capability)
+
+   .. cpp:member:: PropertyView<std::vector<HostImage>, NotifyIconIconCapability<Declaring>> icon
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> NotifyIconVisibleCapability
+
+   ``#include <gui_forms/components/notify_icon/notify_icon_capabilities/notify_icon_capabilities.hpp>``
+
+   Whether the application wants the icon shown. Every write shows or removes the icon, even when unchanged, and status() then holds the host's answer: unsupported without a host or without the notification_area capability, invalid_argument while there is no icon image. A visible icon without an image is shown once an image is set. UI thread only (std::logic_error).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(NotifyIconVisibleCapability& capability, bool incoming)
+
+   .. cpp:function:: static bool read(const NotifyIconVisibleCapability& capability)
+
+   .. cpp:member:: PropertyView<bool, NotifyIconVisibleCapability<Declaring>> visible
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> OpenFileDialogCapabilities : public OpenFileDialogTitleCapability<Declaring>, public OpenFileDialogInitialDirectoryCapability<Declaring>, public OpenFileDialogFilterCapability<Declaring>, public OpenFileDialogFilterIndexCapability<Declaring>, public OpenFileDialogMultiselectCapability<Declaring>, public OpenFileDialogFileNameCapability<Declaring>
+
+   ``#include <gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>``
+
+   Every OpenFileDialog capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string title
+
+      The dialog's title; empty gives the host's own. Valid UTF-8 without NUL (std::invalid_argument).
+
+   .. cpp:member:: std::string initial_directory
+
+      The directory the dialog starts in; empty lets the host choose. Valid UTF-8 without NUL (std::invalid_argument).
+
+   .. cpp:member:: std::string filter
+
+      The filter in Windows Forms' syntax, as set; filters() holds the host filters it parsed into. Anything but label|patterns pairs of *, *.* or *.extension throws std::invalid_argument.
+
+   .. cpp:member:: std::size_t filter_index
+
+      The filter the dialog starts with, an index into filters() (Windows Forms' FilterIndex, which counts from one; this counts from zero). After the user accepts it is the filter they had selected, where the host tells; an index past the filters starts the dialog on the first.
+
+   .. cpp:member:: bool multiselect
+
+      Whether the user may choose more than one file (Windows Forms' Multiselect).
+
+   .. cpp:member:: std::string file_name
+
+      The first chosen path, or empty. Before the dialog is shown, a name set here is the one the dialog suggests; writing it makes the chosen paths this one name (none for an empty name). Valid UTF-8 without NUL (std::invalid_argument).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> OpenFileDialogFileNameCapability
+
+   ``#include <gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>``
+
+   The first chosen path, or empty. Before the dialog is shown, a name set here is the one the dialog suggests; writing it makes the chosen paths this one name (none for an empty name). Valid UTF-8 without NUL (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(OpenFileDialogFileNameCapability& capability, std::string incoming)
+
+   .. cpp:function:: static std::string read(const OpenFileDialogFileNameCapability& capability)
+
+   .. cpp:member:: PropertyView<std::string, OpenFileDialogFileNameCapability<Declaring>> file_name
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> OpenFileDialogFilterCapability
+
+   ``#include <gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>``
+
+   The filter in Windows Forms' syntax, as set; filters() holds the host filters it parsed into. Anything but label|patterns pairs of *, *.* or *.extension throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(OpenFileDialogFilterCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, OpenFileDialogFilterCapability<Declaring>> filter
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> OpenFileDialogFilterIndexCapability
+
+   ``#include <gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>``
+
+   The filter the dialog starts with, an index into filters() (Windows Forms' FilterIndex, which counts from one; this counts from zero). After the user accepts it is the filter they had selected, where the host tells; an index past the filters starts the dialog on the first.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(OpenFileDialogFilterIndexCapability& capability, std::size_t incoming)
+
+   .. cpp:member:: PropertyCell<std::size_t, OpenFileDialogFilterIndexCapability<Declaring>> filter_index
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> OpenFileDialogInitialDirectoryCapability
+
+   ``#include <gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>``
+
+   The directory the dialog starts in; empty lets the host choose. Valid UTF-8 without NUL (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(OpenFileDialogInitialDirectoryCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, OpenFileDialogInitialDirectoryCapability<Declaring>> initial_directory
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> OpenFileDialogMultiselectCapability
+
+   ``#include <gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>``
+
+   Whether the user may choose more than one file (Windows Forms' Multiselect).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(OpenFileDialogMultiselectCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, OpenFileDialogMultiselectCapability<Declaring>> multiselect
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> OpenFileDialogTitleCapability
+
+   ``#include <gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>``
+
+   The dialog's title; empty gives the host's own. Valid UTF-8 without NUL (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(OpenFileDialogTitleCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, OpenFileDialogTitleCapability<Declaring>> title
 
 Enumerations
 ------------

@@ -67,21 +67,21 @@ const HostColorDialogRequest* color_request(const HostDialogRequest& request) {
 
 void settings() {
     ColorDialog dialog;
-    require(dialog.title().empty() && dialog.color() == Color::rgba(0U, 0U, 0U, 255U) && !dialog.allow_alpha() &&
+    require(dialog.title.read().empty() && dialog.color.read() == Color::rgba(0U, 0U, 0U, 255U) && !dialog.allow_alpha.read() &&
                 dialog.status().accepted(),
             "a new dialog has the defaults: opaque black, no alpha");
-    dialog.set_title("Accent");
-    dialog.set_color(Color::rgba(0x27U, 0x74U, 0xB8U, 255U));
-    dialog.set_allow_alpha(true);
+    dialog.title = "Accent";
+    dialog.color = Color::rgba(0x27U, 0x74U, 0xB8U, 255U);
+    dialog.allow_alpha = true;
     bool refused = false;
     try {
-        dialog.set_title(std::string("a\0b", 3U));
+        dialog.title = std::string("a\0b", 3U);
     } catch (const std::invalid_argument&) {
         refused = true;
     }
-    require(refused && dialog.title() == "Accent", "a title holding NUL is refused and the old one kept");
+    require(refused && dialog.title.read() == "Accent", "a title holding NUL is refused and the old one kept");
     dialog.reset();
-    require(dialog.title().empty() && dialog.color() == Color::rgba(0U, 0U, 0U, 255U) && !dialog.allow_alpha(),
+    require(dialog.title.read().empty() && dialog.color.read() == Color::rgba(0U, 0U, 0U, 255U) && !dialog.allow_alpha.read(),
             "reset restores the defaults");
 }
 
@@ -89,10 +89,10 @@ void without_host() {
     std::shared_ptr<Panel> root = make_control<Panel>(StableId("color.unhosted"));
     Window window(root, {320.0, 200.0});
     ColorDialog dialog;
-    dialog.set_color(Color::rgba(1U, 2U, 3U, 255U));
+    dialog.color = Color::rgba(1U, 2U, 3U, 255U);
     require(dialog.show_dialog(window) == DialogResult::none &&
                 dialog.status().error == HostServiceError::unsupported &&
-                dialog.color() == Color::rgba(1U, 2U, 3U, 255U),
+                dialog.color.read() == Color::rgba(1U, 2U, 3U, 255U),
             "without a host the dialog is not shown and the color stays");
 }
 
@@ -105,8 +105,8 @@ void shown_through_host() {
     services.set_dialog_handler(ScriptedDialogs{&script});
 
     ColorDialog dialog;
-    dialog.set_title("Choose an accent color");
-    dialog.set_color(Color::rgba(0x27U, 0x74U, 0xB8U, 255U));
+    dialog.title = "Choose an accent color";
+    dialog.color = Color::rgba(0x27U, 0x74U, 0xB8U, 255U);
     script.answers.push_back(accepted(0x315F8980U));
     require(dialog.show_dialog(window) == DialogResult::ok && dialog.status().accepted(),
             "an accepted dialog returns ok");
@@ -115,12 +115,12 @@ void shown_through_host() {
                 (*first).title == "Choose an accent color" && (*first).initial_rgba == 0x2774B8FFU &&
                 !(*first).allow_alpha,
             "the request carries the title, the starting color as RRGGBBAA and no alpha");
-    require(dialog.color() == Color::rgba(0x31U, 0x5FU, 0x89U, 255U),
+    require(dialog.color.read() == Color::rgba(0x31U, 0x5FU, 0x89U, 255U),
             "without alpha the chosen color is taken as opaque");
 
-    dialog.set_allow_alpha(true);
+    dialog.allow_alpha = true;
     script.answers.push_back(accepted(0x315F8980U));
-    require(dialog.show_dialog(window) == DialogResult::ok && dialog.color() == Color::rgba(0x31U, 0x5FU, 0x89U, 0x80U),
+    require(dialog.show_dialog(window) == DialogResult::ok && dialog.color.read() == Color::rgba(0x31U, 0x5FU, 0x89U, 0x80U),
             "with alpha the chosen color keeps its alpha");
     const HostColorDialogRequest* const second = color_request(script.requests[1]);
     require(second != nullptr && (*second).allow_alpha && (*second).initial_rgba == 0x315F89FFU &&
@@ -128,7 +128,7 @@ void shown_through_host() {
             "the next request starts at the chosen color, with a new identity");
 
     require(dialog.show_dialog(window) == DialogResult::cancel &&
-                dialog.color() == Color::rgba(0x31U, 0x5FU, 0x89U, 0x80U),
+                dialog.color.read() == Color::rgba(0x31U, 0x5FU, 0x89U, 0x80U),
             "a cancelled dialog keeps the color");
     script.error = HostServiceError::backend_failure;
     require(dialog.show_dialog(window) == DialogResult::none &&
@@ -188,12 +188,12 @@ void ended_while_showing() {
 
     services.set_dialog_handler(EndingDialogs{&dialog, &window, &reentry_refused, 2});
     require((*dialog).show_dialog(window) == DialogResult::ok && reentry_refused &&
-                (*dialog).color() == Color::rgba(0x11U, 0x22U, 0x33U, 255U),
+                (*dialog).color.read() == Color::rgba(0x11U, 0x22U, 0x33U, 255U),
             "showing a dialog that is already showing is refused");
 
-    (*dialog).set_color(Color::rgba(9U, 9U, 9U, 255U));
+    (*dialog).color = Color::rgba(9U, 9U, 9U, 255U);
     services.set_dialog_handler(EndingDialogs{&dialog, &window, &reentry_refused, 1});
-    require((*dialog).show_dialog(window) == DialogResult::cancel && (*dialog).color() == Color::rgba(9U, 9U, 9U, 255U),
+    require((*dialog).show_dialog(window) == DialogResult::cancel && (*dialog).color.read() == Color::rgba(9U, 9U, 9U, 255U),
             "a dialog disposed while showing returns cancel and takes nothing");
 
     dialog = std::make_shared<ColorDialog>();

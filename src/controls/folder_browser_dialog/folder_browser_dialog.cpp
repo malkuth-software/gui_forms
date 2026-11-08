@@ -21,24 +21,21 @@ FolderBrowserDialog::FolderBrowserDialog() = default;
 
 FolderBrowserDialog::~FolderBrowserDialog() = default;
 
-void FolderBrowserDialog::set_description(std::string description) {
-    require_dialog_text(description, "FolderBrowserDialog description must be valid UTF-8 without NUL");
-    description_ = std::move(description);
+// selected_path is a view onto selected_path_, which an accepted show_dialog
+// moves.
+std::string FolderBrowserDialog::read_view(const decltype(selected_path)&) const {
+    std::string current = selected_path_;
+    return current;
 }
 
-void FolderBrowserDialog::set_initial_directory(std::string directory) {
-    require_dialog_text(directory, "FolderBrowserDialog initial directory must be valid UTF-8 without NUL");
-    initial_directory_ = std::move(directory);
-}
-
-void FolderBrowserDialog::set_selected_path(std::string path) {
-    require_dialog_text(path, "FolderBrowserDialog selected path must be valid UTF-8 without NUL");
-    selected_path_ = std::move(path);
+void FolderBrowserDialog::write_view(const decltype(selected_path)&, std::string incoming) {
+    require_dialog_text(incoming, "FolderBrowserDialog selected path must be valid UTF-8 without NUL");
+    selected_path_ = std::move(incoming);
 }
 
 void FolderBrowserDialog::reset() {
-    description_.clear();
-    initial_directory_.clear();
+    description = std::string{};
+    initial_directory = std::string{};
     selected_path_.clear();
     status_ = {};
 }
@@ -55,9 +52,9 @@ DialogResult FolderBrowserDialog::show_dialog(Window& owner) {
         return DialogResult::none;
     }
     HostFolderDialogRequest payload;
-    payload.title = description_;
+    payload.title = description.read();
     // A selected folder is where the dialog starts, as in Windows Forms.
-    payload.initial_directory = selected_path_.empty() ? initial_directory_ : selected_path_;
+    payload.initial_directory = selected_path_.empty() ? initial_directory.read() : selected_path_;
     HostDialogRequest host_request;
     host_request.request_id = detail::take_dialog_request_id();
     const Control::Ptr root = owner.root();
@@ -75,5 +72,21 @@ DialogResult FolderBrowserDialog::show_dialog(Window& owner) {
     selected_path_ = (*paths).paths.front();
     return DialogResult::ok;
 }
+
+// property_codemod begin FolderBrowserDialog (tools/property_families/folder_browser_dialog.json; generated, do not edit)
+
+void FolderBrowserDialog::prepare_write(const decltype(description)&, std::string& incoming) {
+    require_dialog_text(incoming, "FolderBrowserDialog description must be valid UTF-8 without NUL");
+}
+
+void FolderBrowserDialog::written(const decltype(description)&) {}
+
+void FolderBrowserDialog::prepare_write(const decltype(initial_directory)&, std::string& incoming) {
+    require_dialog_text(incoming, "FolderBrowserDialog initial directory must be valid UTF-8 without NUL");
+}
+
+void FolderBrowserDialog::written(const decltype(initial_directory)&) {}
+
+// property_codemod end FolderBrowserDialog
 
 } // namespace gui_forms
