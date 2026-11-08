@@ -88,6 +88,10 @@ Related types
      - Stage T1 anatomy, as dot members; its states are Control's.
    * - :cpp:class:`BindingNavigatorAddNew <gui_forms::BindingNavigatorAddNew>`
      - Raised by a BindingNavigator's add command.
+   * - :cpp:class:`BindingNavigatorBindingSourceCapability <gui_forms::BindingNavigatorBindingSourceCapability>`
+     - The source the navigator moves through, or null (Windows Forms' BindingSource).
+   * - :cpp:class:`BindingNavigatorCapabilities <gui_forms::BindingNavigatorCapabilities>`
+     - Every BindingNavigator capability, in the order the declaring class takes them.
    * - :cpp:class:`FontChoice <gui_forms::FontChoice>`
      - A font as a font control shows and chooses it: a family name and a size in points.
    * - :cpp:class:`GalleryPreview <gui_forms::GalleryPreview>`
@@ -332,6 +336,38 @@ Related types
    .. cpp:member:: std::string navigator_id
 
    .. cpp:member:: std::optional<BindingRecord> record
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> BindingNavigatorBindingSourceCapability
+
+   ``#include <gui_forms/controls/binding_navigator/binding_navigator_capabilities/binding_navigator_capabilities.hpp>``
+
+   The source the navigator moves through, or null (Windows Forms' BindingSource). A write subscribes to the new source's list, position and disposal and shows its position and count at once; the source's disposal clears it.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(BindingNavigatorBindingSourceCapability& capability, std::shared_ptr<BindingSource> incoming)
+
+   .. cpp:function:: static std::shared_ptr<BindingSource> read(const BindingNavigatorBindingSourceCapability& capability)
+
+   .. cpp:member:: PropertyView<std::shared_ptr<BindingSource>, BindingNavigatorBindingSourceCapability<Declaring>> binding_source
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> BindingNavigatorCapabilities : public BindingNavigatorBindingSourceCapability<Declaring>
+
+   ``#include <gui_forms/controls/binding_navigator/binding_navigator_capabilities/binding_navigator_capabilities.hpp>``
+
+   Every BindingNavigator capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::shared_ptr<BindingSource> binding_source
+
+      The source the navigator moves through, or null (Windows Forms' BindingSource). A write subscribes to the new source's list, position and disposal and shows its position and count at once; the source's disposal clears it.
 
 .. cpp:namespace:: gui_forms
 

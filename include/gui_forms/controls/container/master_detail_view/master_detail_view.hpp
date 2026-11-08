@@ -1,18 +1,13 @@
 #pragma once
 
 #include "gui_forms/container_controls.hpp"
+#include "gui_forms/controls/container/master_detail_view/master_detail_view_values/master_detail_view_values.hpp"
+#include "gui_forms/controls/container/master_detail_view/master_detail_view_capabilities/master_detail_view_capabilities.hpp"
 
 #include <cstdint>
 #include <memory>
 
 namespace gui_forms {
-
-enum class MasterDetailDisplayMode : std::uint8_t {
-    automatic,
-    side_by_side,
-    master_only,
-    detail_only,
-};
 
 struct MasterDetailLayout final {
     Orientation orientation{Orientation::vertical};
@@ -48,7 +43,7 @@ struct MasterDetailPresentationChange final {
 // draggable/keyboard splitter, focus transfer on collapse, and compact
 // master/detail navigation. This is intentionally content-agnostic so decision
 // browsers, settings panes, inspectors, and navigation stacks share one law.
-class MasterDetailView final : public ContainerControl {
+class MasterDetailView final : public ContainerControl, public MasterDetailViewCapabilities<MasterDetailView> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
     explicit MasterDetailView(StableId stable_id);
@@ -71,17 +66,9 @@ public:
     [[nodiscard]] MasterDetailLayout effective_master_detail_layout() const noexcept;
     void set_master_detail_layout(MasterDetailLayout layout);
     void reset_master_detail_layout_to_theme();
-    [[nodiscard]] MasterDetailDisplayMode display_mode() const noexcept {
-        return display_mode_;
-    }
-    void set_display_mode(MasterDetailDisplayMode mode);
     [[nodiscard]] MasterDetailDisplayMode effective_display_mode() const noexcept {
         return effective_display_mode_;
     }
-    [[nodiscard]] bool compact_detail_visible() const noexcept {
-        return compact_detail_visible_;
-    }
-    void set_compact_detail_visible(bool visible);
     void show_master();
     void show_detail();
 
@@ -110,12 +97,20 @@ private:
     Control::Ptr detail_;
     MasterDetailLayout layout_;
     Event<const MasterDetailPresentationChange&> presentation_changed_;
-    MasterDetailDisplayMode display_mode_{MasterDetailDisplayMode::automatic};
     MasterDetailDisplayMode effective_display_mode_{
         MasterDetailDisplayMode::side_by_side};
-    bool compact_detail_visible_{};
     bool initialized_{};
     bool uses_theme_layout_{true};
+    // property_codemod begin MasterDetailView (tools/property_families/master_detail_view.json; generated, do not edit)
+private:
+    friend struct MasterDetailViewDisplayModeCapability<MasterDetailView>;
+    friend struct MasterDetailViewCompactDetailVisibleCapability<MasterDetailView>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(display_mode)& cell, MasterDetailDisplayMode& incoming);
+    void written(const decltype(display_mode)& cell);
+    void prepare_write(const decltype(compact_detail_visible)& cell, bool& incoming);
+    void written(const decltype(compact_detail_visible)& cell);
+    // property_codemod end MasterDetailView
 };
 
 } // namespace gui_forms

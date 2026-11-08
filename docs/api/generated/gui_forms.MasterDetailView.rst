@@ -7,7 +7,7 @@ gui_forms::MasterDetailView
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: MasterDetailView final : public ContainerControl
+.. cpp:class:: MasterDetailView final : public ContainerControl, public MasterDetailViewCapabilities<MasterDetailView>
 
    ``#include <gui_forms/controls/container/master_detail_view/master_detail_view.hpp>``
 
@@ -30,6 +30,16 @@ gui_forms::MasterDetailView
          takes the identity ``<stable_id>.split``.
 
    :Properties:
+
+      **display_mode** : ``MasterDetailDisplayMode``, default ``MasterDetailDisplayMode::automatic``
+         :cpp:enumerator:`MasterDetailDisplayMode::automatic <gui_forms::MasterDetailDisplayMode::automatic>` chooses the presentation from the
+         view's size. ``side_by_side``, ``master_only`` and ``detail_only`` force one
+         presentation whatever the size. An unknown value throws
+         ``std::invalid_argument``.
+
+      **compact_detail_visible** : ``bool``, default ``false``
+         Which role the automatic mode shows when the view is compact: the detail
+         when true, the master when false. :cpp:func:`show_detail <gui_forms::MasterDetailView::show_detail>` and :cpp:func:`show_master <gui_forms::MasterDetailView::show_master>` set it.
 
       **master** : ``Control::Ptr``
          The control in the master role, or null. ``set_master(control)`` docks the
@@ -67,26 +77,16 @@ gui_forms::MasterDetailView
          The layout in use: the theme's while :cpp:func:`uses_theme_layout <gui_forms::MasterDetailView::uses_theme_layout>` is true,
          otherwise :cpp:func:`master_detail_layout <gui_forms::MasterDetailView::master_detail_layout>`.
 
-      **display_mode** : ``MasterDetailDisplayMode``, default ``MasterDetailDisplayMode::automatic``
-         :cpp:enumerator:`MasterDetailDisplayMode::automatic <gui_forms::MasterDetailDisplayMode::automatic>` chooses the presentation from the
-         view's size. ``side_by_side``, ``master_only`` and ``detail_only`` force one
-         presentation whatever the size. An unknown value throws
-         ``std::invalid_argument``.
-
       **effective_display_mode** : ``MasterDetailDisplayMode``, default ``MasterDetailDisplayMode::side_by_side``, read-only
          The presentation applied by the last layout: ``side_by_side``,
          ``master_only`` or ``detail_only``.
-
-      **compact_detail_visible** : ``bool``, default ``false``
-         Which role the automatic mode shows when the view is compact: the detail
-         when true, the master when false. :cpp:func:`show_detail <gui_forms::MasterDetailView::show_detail>` and :cpp:func:`show_master <gui_forms::MasterDetailView::show_master>` set it.
 
    :Events:
 
       **presentation_changed** : ``Event<const MasterDetailPresentationChange&>``
          Raised during layout when :cpp:func:`effective_display_mode <gui_forms::MasterDetailView::effective_display_mode>` changes, after the
          panes have been collapsed or restored. It carries the previous and the
-         current presentation, and ``automatic`` is true when :cpp:func:`display_mode <gui_forms::MasterDetailView::display_mode>` is
+         current presentation, and ``automatic`` is true when :cpp:member:`display_mode <gui_forms::MasterDetailView::display_mode>` is
          ``automatic``.
 
    :Inherited:
@@ -108,9 +108,9 @@ gui_forms::MasterDetailView
       * - :cpp:func:`reset_master_detail_layout_to_theme <gui_forms::MasterDetailView::reset_master_detail_layout_to_theme>`
         - Makes the view follow the theme's layout again.
       * - :cpp:func:`show_master <gui_forms::MasterDetailView::show_master>`
-        - Shows the master when the view is compact; sets :cpp:func:`compact_detail_visible <gui_forms::MasterDetailView::compact_detail_visible>` to false.
+        - Shows the master when the view is compact; sets :cpp:member:`compact_detail_visible <gui_forms::MasterDetailView::compact_detail_visible>` to false.
       * - :cpp:func:`show_detail <gui_forms::MasterDetailView::show_detail>`
-        - Shows the detail when the view is compact; sets :cpp:func:`compact_detail_visible <gui_forms::MasterDetailView::compact_detail_visible>` to true.
+        - Shows the detail when the view is compact; sets :cpp:member:`compact_detail_visible <gui_forms::MasterDetailView::compact_detail_visible>` to true.
 
    .. seealso::
 
@@ -125,7 +125,7 @@ gui_forms::MasterDetailView
    In automatic mode the view is side by side while its width, or its height
    for a horizontal layout, is at least the larger of the compact threshold and
    the master minimum plus seam width plus detail minimum. Below that it shows
-   the master, or the detail if :cpp:func:`compact_detail_visible <gui_forms::MasterDetailView::compact_detail_visible>` is true. The mode is
+   the master, or the detail if :cpp:member:`compact_detail_visible <gui_forms::MasterDetailView::compact_detail_visible>` is true. The mode is
    applied when the view is arranged, so :cpp:func:`effective_display_mode <gui_forms::MasterDetailView::effective_display_mode>` and
    :cpp:func:`presentation_changed <gui_forms::MasterDetailView::presentation_changed>` follow the next layout pass, not the call that
    changed the size or the mode.
@@ -192,6 +192,18 @@ gui_forms::MasterDetailView
 
    .. rubric:: Properties
 
+   .. cpp:member:: MasterDetailDisplayMode display_mode
+
+      :cpp:enumerator:`MasterDetailDisplayMode::automatic <gui_forms::MasterDetailDisplayMode::automatic>` chooses the presentation from the
+      view's size. ``side_by_side``, ``master_only`` and ``detail_only`` force one
+      presentation whatever the size. An unknown value throws
+      ``std::invalid_argument``.
+
+   .. cpp:member:: bool compact_detail_visible
+
+      Which role the automatic mode shows when the view is compact: the detail
+      when true, the master when false. :cpp:func:`show_detail <gui_forms::MasterDetailView::show_detail>` and :cpp:func:`show_master <gui_forms::MasterDetailView::show_master>` set it.
+
    .. cpp:function:: Control::Ptr master() const noexcept
 
       The control in the master role, or null. ``set_master(control)`` docks the
@@ -246,30 +258,10 @@ gui_forms::MasterDetailView
       The layout in use: the theme's while :cpp:func:`uses_theme_layout <gui_forms::MasterDetailView::uses_theme_layout>` is true,
       otherwise :cpp:func:`master_detail_layout <gui_forms::MasterDetailView::master_detail_layout>`.
 
-   .. cpp:function:: MasterDetailDisplayMode display_mode() const noexcept
-
-      :cpp:enumerator:`MasterDetailDisplayMode::automatic <gui_forms::MasterDetailDisplayMode::automatic>` chooses the presentation from the
-      view's size. ``side_by_side``, ``master_only`` and ``detail_only`` force one
-      presentation whatever the size. An unknown value throws
-      ``std::invalid_argument``.
-
-   .. cpp:function:: void set_display_mode(MasterDetailDisplayMode mode)
-
-      Sets :cpp:func:`display_mode <gui_forms::MasterDetailView::display_mode>`; see the property's description above.
-
    .. cpp:function:: MasterDetailDisplayMode effective_display_mode() const noexcept
 
       The presentation applied by the last layout: ``side_by_side``,
       ``master_only`` or ``detail_only``.
-
-   .. cpp:function:: bool compact_detail_visible() const noexcept
-
-      Which role the automatic mode shows when the view is compact: the detail
-      when true, the master when false. :cpp:func:`show_detail <gui_forms::MasterDetailView::show_detail>` and :cpp:func:`show_master <gui_forms::MasterDetailView::show_master>` set it.
-
-   .. cpp:function:: void set_compact_detail_visible(bool visible)
-
-      Sets :cpp:func:`compact_detail_visible <gui_forms::MasterDetailView::compact_detail_visible>`; see the property's description above.
 
 
    .. rubric:: Events
@@ -278,7 +270,7 @@ gui_forms::MasterDetailView
 
       Raised during layout when :cpp:func:`effective_display_mode <gui_forms::MasterDetailView::effective_display_mode>` changes, after the
       panes have been collapsed or restored. It carries the previous and the
-      current presentation, and ``automatic`` is true when :cpp:func:`display_mode <gui_forms::MasterDetailView::display_mode>` is
+      current presentation, and ``automatic`` is true when :cpp:member:`display_mode <gui_forms::MasterDetailView::display_mode>` is
       ``automatic``.
 
 
@@ -295,12 +287,12 @@ gui_forms::MasterDetailView
 
    .. cpp:function:: void show_master()
 
-      Shows the master when the view is compact; sets :cpp:func:`compact_detail_visible <gui_forms::MasterDetailView::compact_detail_visible>`
+      Shows the master when the view is compact; sets :cpp:member:`compact_detail_visible <gui_forms::MasterDetailView::compact_detail_visible>`
       to false.
 
    .. cpp:function:: void show_detail()
 
-      Shows the detail when the view is compact; sets :cpp:func:`compact_detail_visible <gui_forms::MasterDetailView::compact_detail_visible>`
+      Shows the detail when the view is compact; sets :cpp:member:`compact_detail_visible <gui_forms::MasterDetailView::compact_detail_visible>`
       to true. A side-by-side view is not affected until it becomes compact.
 
 

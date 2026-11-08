@@ -459,7 +459,7 @@ void initialize_gallery_runtime(Window& window) {
                               {"enabled", true}, {"gain", 84.0}}},
     });
     if ((*context).binding_navigator) {
-        (*(*context).binding_navigator).set_binding_source((*context).binding_source);
+        (*(*context).binding_navigator).binding_source = (*context).binding_source;
     }
     BindingOptions validated_binding;
     validated_binding.formatting_enabled = true;

@@ -2,6 +2,7 @@
 
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <array>
 #include <charconv>
@@ -98,7 +99,10 @@ void BindingNavigator::connect_action(Command& command, Delegate<const CommandIn
     action_tokens_.push_back(std::move(token));
 }
 
-void BindingNavigator::set_binding_source(std::shared_ptr<BindingSource> source) {
+// The source is a view onto source_, so its disposal can drop it without a
+// write.
+void BindingNavigator::write_view(const decltype(binding_source)&,
+                                  std::shared_ptr<BindingSource> source) {
     require_mutable();
     if (source_ == source) return;
     list_changed_.disconnect();
@@ -115,6 +119,10 @@ void BindingNavigator::set_binding_source(std::shared_ptr<BindingSource> source)
             *this, Delegate<>::bind<BindingNavigator, &BindingNavigator::on_source_disposed>(*this));
     }
     refresh();
+}
+
+std::shared_ptr<BindingSource> BindingNavigator::read_view(const decltype(binding_source)&) const {
+    return source_;
 }
 
 // Shows the source's position and count and enables each action that can
@@ -261,5 +269,9 @@ void BindingNavigator::append_interactions(std::vector<InteractionDeclaration>& 
     interactions.insert(interactions.end(), binding_navigator_interactions.begin(),
                         binding_navigator_interactions.end());
 }
+
+// property_codemod begin BindingNavigator (tools/property_families/binding_navigator.json; generated, do not edit)
+
+// property_codemod end BindingNavigator
 
 } // namespace gui_forms

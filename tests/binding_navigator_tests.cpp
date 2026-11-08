@@ -78,7 +78,7 @@ void standard_items_and_states() {
 
     std::shared_ptr<BindingSource> source = std::make_shared<BindingSource>(window);
     (*source).set_records(records(3U));
-    (*navigator).set_binding_source(source);
+    (*navigator).binding_source = source;
     require(count_text(*navigator) == "of 3" && (*(*navigator).text_box("position")).text.read() == "1",
             "the navigator shows the count and the one-based position");
     require(!enabled((*navigator).move_first_command()) && !enabled((*navigator).move_previous_command()) &&
@@ -108,7 +108,7 @@ void position_box() {
     window.perform_layout();
     std::shared_ptr<BindingSource> source = std::make_shared<BindingSource>(window);
     (*source).set_records(records(5U));
-    (*navigator).set_binding_source(source);
+    (*navigator).binding_source = source;
     const std::shared_ptr<TextBox> box = (*navigator).text_box("position");
     require(window.request_focus(box), "the position box takes focus");
     (*box).text = "4";
@@ -132,7 +132,7 @@ void add_and_delete() {
     window.perform_layout();
     std::shared_ptr<BindingSource> source = std::make_shared<BindingSource>(window);
     (*source).set_records(records(2U));
-    (*navigator).set_binding_source(source);
+    (*navigator).binding_source = source;
     int requests = 0;
     bool supply = false;
     SubscriptionToken token = (*navigator).adding_new().subscribe(SupplyRecord{&requests, &supply});
@@ -153,8 +153,8 @@ void add_and_delete() {
     require(count_text(*navigator) == "of 0" && !enabled((*navigator).move_last_command()) &&
                 (*(*navigator).text_box("position")).text.read() == "0",
             "an empty source disables the moves");
-    (*navigator).set_binding_source(nullptr);
-    require(!enabled((*navigator).add_new_command()) && (*navigator).binding_source() == nullptr,
+    (*navigator).binding_source = nullptr;
+    require(!enabled((*navigator).add_new_command()) && (*navigator).binding_source.read() == nullptr,
             "removing the source disables every action");
     require((*navigator).semantic_descriptor().name == "Binding navigator" &&
                 (*navigator).semantic_descriptor().role == SemanticRole::toolbar,

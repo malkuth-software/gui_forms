@@ -10,6 +10,7 @@
 #include "gui_forms/controls/button_base/toggle_switch/toggle_switch.hpp"
 #include "gui_forms/controls/collections/choice_group.hpp"
 #include "gui_forms/controls/collections/expandable_sections.hpp"
+#include "gui_forms/controls/container/master_detail_view/master_detail_view.hpp"
 #include "gui_forms/controls/data_grid_view/data_grid_view.hpp"
 #include "gui_forms/controls/docking/dock_navigator/dock_navigator.hpp"
 #include "gui_forms/controls/docking/dock_site/dock_site.hpp"
@@ -1039,6 +1040,20 @@ void test_masked_text_box_properties() {
     }
 }
 
+void test_master_detail_view_properties() {
+    std::shared_ptr<MasterDetailView> control = make_control<MasterDetailView>(StableId("generated.masterdetailview"));
+    {
+        const MasterDetailDisplayMode sample = MasterDetailDisplayMode::detail_only;
+        (*control).display_mode = sample;
+        expect((*control).display_mode.read() == sample, "MasterDetailView.display_mode: a write stores");
+    }
+    {
+        const bool sample = !(*control).compact_detail_visible.read();
+        (*control).compact_detail_visible = sample;
+        expect((*control).compact_detail_visible.read() == sample, "MasterDetailView.compact_detail_visible: a write stores");
+    }
+}
+
 void test_material_panel_properties() {
     std::shared_ptr<MaterialPanel> control = make_control<MaterialPanel>(StableId("generated.materialpanel"));
     // material: no sample for SurfaceMaterial; give the property a "sample".
@@ -1724,6 +1739,7 @@ int main() {
     test_list_box_properties();
     test_list_view_properties();
     test_masked_text_box_properties();
+    test_master_detail_view_properties();
     test_material_panel_properties();
     test_metrics_view_properties();
     test_month_calendar_properties();

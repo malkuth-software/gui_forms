@@ -2,6 +2,7 @@
 
 #include "gui_forms/binding/binding_source/binding_source.hpp"
 #include "gui_forms/controls/tool_strip/tool_strip.hpp"
+#include "gui_forms/controls/binding_navigator/binding_navigator_capabilities/binding_navigator_capabilities.hpp"
 
 #include <memory>
 #include <optional>
@@ -27,16 +28,11 @@ struct BindingNavigatorAddNew final {
 // The standard items have the IDs move_first, move_previous, position,
 // count, move_next, move_last, add_new and delete, with separators between
 // the groups. Replacing the items with set_items drops the ones left out.
-class BindingNavigator final : public ToolStrip {
+class BindingNavigator final : public ToolStrip, public BindingNavigatorCapabilities<BindingNavigator> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
     explicit BindingNavigator(StableId stable_id);
     void initialize_control_tree();
-
-    // The source the navigator moves through, or null. Setting a source
-    // shows its position and count at once.
-    [[nodiscard]] const std::shared_ptr<BindingSource>& binding_source() const noexcept { return source_; }
-    void set_binding_source(std::shared_ptr<BindingSource> source);
 
     [[nodiscard]] const std::shared_ptr<Command>& move_first_command() const noexcept { return move_first_; }
     [[nodiscard]] const std::shared_ptr<Command>& move_previous_command() const noexcept { return move_previous_; }
@@ -84,6 +80,13 @@ private:
     SubscriptionToken position_changed_{};
     SubscriptionToken source_disposed_{};
     Event<BindingNavigatorAddNew&> adding_new_{};
+    // property_codemod begin BindingNavigator (tools/property_families/binding_navigator.json; generated, do not edit)
+private:
+    friend struct BindingNavigatorBindingSourceCapability<BindingNavigator>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void write_view(const decltype(binding_source)& cell, std::shared_ptr<BindingSource> incoming);
+    [[nodiscard]] std::shared_ptr<BindingSource> read_view(const decltype(binding_source)& cell) const;
+    // property_codemod end BindingNavigator
 };
 
 } // namespace gui_forms

@@ -7,7 +7,7 @@ gui_forms::BindingNavigator
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: BindingNavigator final : public ToolStrip
+.. cpp:class:: BindingNavigator final : public ToolStrip, public BindingNavigatorCapabilities<BindingNavigator>
 
    ``#include <gui_forms/controls/binding_navigator/binding_navigator.hpp>``
 
@@ -125,15 +125,11 @@ gui_forms::BindingNavigator
 
    .. rubric:: Properties
 
-   .. cpp:function:: const std::shared_ptr<BindingSource>& binding_source() const noexcept
+   .. cpp:member:: std::shared_ptr<BindingSource> binding_source
 
       The :cpp:class:`BindingSource <gui_forms::BindingSource>` the navigator moves through, or null. Setting it
       shows the source's position and count at once; when the source is
       disposed the navigator lets it go and disables every action.
-
-   .. cpp:function:: void set_binding_source(std::shared_ptr<BindingSource> source)
-
-      Sets :cpp:func:`binding_source <gui_forms::BindingNavigator::binding_source>`; see the property's description above.
 
    .. cpp:function:: const std::shared_ptr<Command>& move_first_command() const noexcept
 

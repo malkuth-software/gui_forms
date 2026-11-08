@@ -141,6 +141,12 @@ Related types
      - MasterDetailLayout defines bounded navigation width and inter-pane gap for deterministic responsive projection.
    * - :cpp:class:`MasterDetailPresentationChange <gui_forms::MasterDetailPresentationChange>`
      - MasterDetailPresentationChange reports previous/current compact or expanded presentation and active pane.
+   * - :cpp:class:`MasterDetailViewCapabilities <gui_forms::MasterDetailViewCapabilities>`
+     - Every MasterDetailView capability, in the order the declaring class takes them.
+   * - :cpp:class:`MasterDetailViewCompactDetailVisibleCapability <gui_forms::MasterDetailViewCompactDetailVisibleCapability>`
+     - In a compact automatic presentation, whether the detail role is shown instead of the master; show_master and show_detail write it.
+   * - :cpp:class:`MasterDetailViewDisplayModeCapability <gui_forms::MasterDetailViewDisplayModeCapability>`
+     - The requested presentation: automatic (side by side above the layout's compact threshold, else one role at a time), side_by_side, master_only or detail_only; effective_display_mode is the one in use.
    * - :cpp:class:`ResponsiveLayoutSnapshot <gui_forms::ResponsiveLayoutSnapshot>`
      -  
    * - :cpp:class:`ResponsiveTrackResolution <gui_forms::ResponsiveTrackResolution>`
@@ -1011,6 +1017,57 @@ Related types
       Default: ``{MasterDetailDisplayMode::side_by_side}``.
 
    .. cpp:member:: bool automatic
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MasterDetailViewCapabilities : public MasterDetailViewDisplayModeCapability<Declaring>, public MasterDetailViewCompactDetailVisibleCapability<Declaring>
+
+   ``#include <gui_forms/controls/container/master_detail_view/master_detail_view_capabilities/master_detail_view_capabilities.hpp>``
+
+   Every MasterDetailView capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: MasterDetailDisplayMode display_mode
+
+      The requested presentation: automatic (side by side above the layout's compact threshold, else one role at a time), side_by_side, master_only or detail_only; effective_display_mode is the one in use. An unknown mode throws std::invalid_argument and changes nothing.
+
+   .. cpp:member:: bool compact_detail_visible
+
+      In a compact automatic presentation, whether the detail role is shown instead of the master; show_master and show_detail write it.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MasterDetailViewCompactDetailVisibleCapability
+
+   ``#include <gui_forms/controls/container/master_detail_view/master_detail_view_capabilities/master_detail_view_capabilities.hpp>``
+
+   In a compact automatic presentation, whether the detail role is shown instead of the master; show_master and show_detail write it.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MasterDetailViewCompactDetailVisibleCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, MasterDetailViewCompactDetailVisibleCapability<Declaring>> compact_detail_visible
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MasterDetailViewDisplayModeCapability
+
+   ``#include <gui_forms/controls/container/master_detail_view/master_detail_view_capabilities/master_detail_view_capabilities.hpp>``
+
+   The requested presentation: automatic (side by side above the layout's compact threshold, else one role at a time), side_by_side, master_only or detail_only; effective_display_mode is the one in use. An unknown mode throws std::invalid_argument and changes nothing.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MasterDetailViewDisplayModeCapability& capability, MasterDetailDisplayMode incoming)
+
+   .. cpp:member:: PropertyCell<MasterDetailDisplayMode, MasterDetailViewDisplayModeCapability<Declaring>> display_mode
+
+      Default: ``{MasterDetailDisplayMode::automatic}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -1978,7 +2035,7 @@ Enumerations
 
 .. cpp:enum-class:: MasterDetailDisplayMode
 
-   ``#include <gui_forms/controls/container/master_detail_view/master_detail_view.hpp>``
+   ``#include <gui_forms/controls/container/master_detail_view/master_detail_view_values/master_detail_view_values.hpp>``
 
    .. cpp:enumerator:: automatic
 
