@@ -1773,11 +1773,11 @@ void test_drop_down_button_routes_pointer_keyboard_and_semantics() {
 
     bool width_rejected{};
     try {
-        (*split).set_drop_down_width(8.0);
+        (*split).drop_down_width = 8.0;
     } catch (const std::invalid_argument&) {
         width_rejected = true;
     }
-    require(width_rejected && (*split).drop_down_width() == 16.0,
+    require(width_rejected && (*split).drop_down_width.read() == 16.0,
             "drop-down width must reject invalid geometry without mutation");
 }
 
@@ -1786,7 +1786,7 @@ void test_bottom_disclosure_and_multiline_button_content() {
     (*button).text = "Clipboard image";
     (*button).font = {FontRole::control,24,400,false};
     const Size right_size = (*button).measure({500, 500});
-    (*button).set_drop_down_edge(DropDownButtonEdge::bottom);
+    (*button).drop_down_edge = DropDownButtonEdge::bottom;
     const Size bottom_size = (*button).measure({500, 500});
     require(bottom_size.width == right_size.width - 16 && bottom_size.height == right_size.height + 16,
         "bottom disclosure must move its content reservation to the vertical axis");

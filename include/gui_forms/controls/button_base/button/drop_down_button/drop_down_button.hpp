@@ -1,38 +1,21 @@
 #pragma once
 
 #include "gui_forms/controls/button_base/button/button.hpp"
+#include "gui_forms/controls/button_base/button/drop_down_button/drop_down_button_values/drop_down_button_values.hpp"
+#include "gui_forms/controls/button_base/button/drop_down_button/drop_down_button_capabilities/drop_down_button_capabilities.hpp"
 
 #include <cstdint>
 
 namespace gui_forms {
 
-enum class DropDownButtonMode : std::uint8_t {
-    menu,
-    split,
-};
-
-enum class DropDownButtonEdge : std::uint8_t { right, bottom };
-
 // Retained desktop command button with an explicit disclosure actuator.
 // Menu mode routes the whole button to the owned overlay. Split mode retains a
 // primary Click region and a bounded disclosure region at the trailing edge.
-class DropDownButton final : public Button {
+class DropDownButton final : public Button, public DropDownButtonCapabilities<DropDownButton> {
 public:
     explicit DropDownButton(StableId stable_id, std::string text = {},
                             DropDownButtonMode mode = DropDownButtonMode::menu);
 
-    [[nodiscard]] DropDownButtonMode drop_down_mode() const noexcept {
-        return mode_;
-    }
-    void set_drop_down_mode(DropDownButtonMode mode);
-    // Disclosure extent on the selected edge; setters move the reserved
-    // content inset with it. Author primary-content padding after these setters.
-    [[nodiscard]] double drop_down_width() const noexcept {
-        return drop_down_width_;
-    }
-    void set_drop_down_width(double width);
-    [[nodiscard]] DropDownButtonEdge drop_down_edge() const noexcept { return edge_; }
-    void set_drop_down_edge(DropDownButtonEdge edge);
     [[nodiscard]] bool drop_down_open() const noexcept {
         return drop_down_open_;
     }
@@ -90,13 +73,25 @@ protected:
 private:
     [[nodiscard]] bool point_in_drop_down(Point window_point) const noexcept;
 
-    DropDownButtonMode mode_{DropDownButtonMode::menu};
     DropDownButtonEdge edge_{DropDownButtonEdge::right};
     double drop_down_width_{16.0};
     bool drop_down_open_{};
     bool pointer_drop_down_{};
     Event<DropDownButton&> drop_down_requested_;
     Event<DropDownButton&> drop_down_close_requested_;
+    // property_codemod begin DropDownButton (tools/property_families/drop_down_button.json; generated, do not edit)
+private:
+    friend struct DropDownButtonDropDownModeCapability<DropDownButton>;
+    friend struct DropDownButtonDropDownWidthCapability<DropDownButton>;
+    friend struct DropDownButtonDropDownEdgeCapability<DropDownButton>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(drop_down_mode)& cell, DropDownButtonMode& incoming);
+    void written(const decltype(drop_down_mode)& cell);
+    void write_view(const decltype(drop_down_width)& cell, double incoming);
+    [[nodiscard]] double read_view(const decltype(drop_down_width)& cell) const;
+    void write_view(const decltype(drop_down_edge)& cell, DropDownButtonEdge incoming);
+    [[nodiscard]] DropDownButtonEdge read_view(const decltype(drop_down_edge)& cell) const;
+    // property_codemod end DropDownButton
 };
 
 } // namespace gui_forms

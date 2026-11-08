@@ -66,6 +66,14 @@ Related types
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`DropDownButton::States <gui_forms::DropDownButton::States>`
      -  
+   * - :cpp:class:`DropDownButtonCapabilities <gui_forms::DropDownButtonCapabilities>`
+     - Every DropDownButton capability, in the order the declaring class takes them.
+   * - :cpp:class:`DropDownButtonDropDownEdgeCapability <gui_forms::DropDownButtonDropDownEdgeCapability>`
+     - The edge holding the disclosure region, right (default) or bottom; a write moves the reserved content inset to it.
+   * - :cpp:class:`DropDownButtonDropDownModeCapability <gui_forms::DropDownButtonDropDownModeCapability>`
+     - Menu mode routes the whole button to the drop-down; split mode keeps a primary Click region and a disclosure region at drop_down_edge.
+   * - :cpp:class:`DropDownButtonDropDownWidthCapability <gui_forms::DropDownButtonDropDownWidthCapability>`
+     - The disclosure extent on drop_down_edge, 12 to 64 (default 16); a write moves the reserved content inset with it, so author primary-content padding after it.
    * - :cpp:class:`ExpandableSectionsCapabilities <gui_forms::ExpandableSectionsCapabilities>`
      - Every ExpandableSections capability, in the order the declaring class takes them.
    * - :cpp:class:`ExpandableSectionsSingleOpenCapability <gui_forms::ExpandableSectionsSingleOpenCapability>`
@@ -409,6 +417,80 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> DropDownButtonCapabilities : public DropDownButtonDropDownModeCapability<Declaring>, public DropDownButtonDropDownWidthCapability<Declaring>, public DropDownButtonDropDownEdgeCapability<Declaring>
+
+   ``#include <gui_forms/controls/button_base/button/drop_down_button/drop_down_button_capabilities/drop_down_button_capabilities.hpp>``
+
+   Every DropDownButton capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: DropDownButtonMode drop_down_mode
+
+      Menu mode routes the whole button to the drop-down; split mode keeps a primary Click region and a disclosure region at drop_down_edge. An unknown mode throws std::invalid_argument and changes nothing.
+
+   .. cpp:member:: double drop_down_width
+
+      The disclosure extent on drop_down_edge, 12 to 64 (default 16); a write moves the reserved content inset with it, so author primary-content padding after it. A value outside that range throws std::invalid_argument and changes nothing.
+
+   .. cpp:member:: DropDownButtonEdge drop_down_edge
+
+      The edge holding the disclosure region, right (default) or bottom; a write moves the reserved content inset to it. An unknown edge throws std::invalid_argument and changes nothing.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DropDownButtonDropDownEdgeCapability
+
+   ``#include <gui_forms/controls/button_base/button/drop_down_button/drop_down_button_capabilities/drop_down_button_capabilities.hpp>``
+
+   The edge holding the disclosure region, right (default) or bottom; a write moves the reserved content inset to it. An unknown edge throws std::invalid_argument and changes nothing.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DropDownButtonDropDownEdgeCapability& capability, DropDownButtonEdge incoming)
+
+   .. cpp:function:: static DropDownButtonEdge read(const DropDownButtonDropDownEdgeCapability& capability)
+
+   .. cpp:member:: PropertyView<DropDownButtonEdge, DropDownButtonDropDownEdgeCapability<Declaring>> drop_down_edge
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DropDownButtonDropDownModeCapability
+
+   ``#include <gui_forms/controls/button_base/button/drop_down_button/drop_down_button_capabilities/drop_down_button_capabilities.hpp>``
+
+   Menu mode routes the whole button to the drop-down; split mode keeps a primary Click region and a disclosure region at drop_down_edge. An unknown mode throws std::invalid_argument and changes nothing.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DropDownButtonDropDownModeCapability& capability, DropDownButtonMode incoming)
+
+   .. cpp:member:: PropertyCell<DropDownButtonMode, DropDownButtonDropDownModeCapability<Declaring>> drop_down_mode
+
+      Default: ``{DropDownButtonMode::menu}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DropDownButtonDropDownWidthCapability
+
+   ``#include <gui_forms/controls/button_base/button/drop_down_button/drop_down_button_capabilities/drop_down_button_capabilities.hpp>``
+
+   The disclosure extent on drop_down_edge, 12 to 64 (default 16); a write moves the reserved content inset with it, so author primary-content padding after it. A value outside that range throws std::invalid_argument and changes nothing.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DropDownButtonDropDownWidthCapability& capability, double incoming)
+
+   .. cpp:function:: static double read(const DropDownButtonDropDownWidthCapability& capability)
+
+   .. cpp:member:: PropertyView<double, DropDownButtonDropDownWidthCapability<Declaring>> drop_down_width
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: template <typename Declaring> ExpandableSectionsCapabilities : public ExpandableSectionsSingleOpenCapability<Declaring>
 
    ``#include <gui_forms/controls/collections/expandable_sections_capabilities/expandable_sections_capabilities.hpp>``
@@ -692,7 +774,7 @@ Enumerations
 
 .. cpp:enum-class:: DropDownButtonEdge
 
-   ``#include <gui_forms/controls/button_base/button/drop_down_button/drop_down_button.hpp>``
+   ``#include <gui_forms/controls/button_base/button/drop_down_button/drop_down_button_values/drop_down_button_values.hpp>``
 
    .. cpp:enumerator:: right
 
@@ -702,7 +784,7 @@ Enumerations
 
 .. cpp:enum-class:: DropDownButtonMode
 
-   ``#include <gui_forms/controls/button_base/button/drop_down_button/drop_down_button.hpp>``
+   ``#include <gui_forms/controls/button_base/button/drop_down_button/drop_down_button_values/drop_down_button_values.hpp>``
 
    .. cpp:enumerator:: menu
 

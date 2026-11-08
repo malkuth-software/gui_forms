@@ -1,5 +1,6 @@
 #include "gui_forms/controls/button_base/button/drop_down_button/drop_down_button.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
 #include <array>
@@ -11,46 +12,52 @@ namespace gui_forms {
 
 DropDownButton::DropDownButton(StableId stable_id, std::string text,
                                const DropDownButtonMode mode)
-    : Button(std::move(stable_id), std::move(text)), mode_(mode) {
-    if (mode_ != DropDownButtonMode::menu &&
-        mode_ != DropDownButtonMode::split) {
-        throw std::invalid_argument("drop-down button mode is unknown");
-    }
+    : Button(std::move(stable_id), std::move(text)) {
+    drop_down_mode = mode;
     content_padding = {6.0, 4.0, 22.0, 4.0};
 }
 
-void DropDownButton::set_drop_down_mode(const DropDownButtonMode mode) {
+void DropDownButton::prepare_write(const decltype(drop_down_mode)&,
+                                   DropDownButtonMode& incoming) {
     require_mutable();
-    if (mode != DropDownButtonMode::menu && mode != DropDownButtonMode::split) {
+    if (incoming != DropDownButtonMode::menu && incoming != DropDownButtonMode::split) {
         throw std::invalid_argument("drop-down button mode is unknown");
     }
-    if (mode_ == mode) return;
-    mode_ = mode;
+}
+
+// A new mode forgets a drop-down the pointer opened.
+void DropDownButton::written(const decltype(drop_down_mode)&) {
     pointer_drop_down_ = false;
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
 }
 
-void DropDownButton::set_drop_down_width(const double width) {
+// The width and edge are views onto drop_down_width_ and edge_: each write
+// moves the reserved content inset by the change from the old value.
+void DropDownButton::write_view(const decltype(drop_down_width)&, double incoming) {
     require_mutable();
-    if (!std::isfinite(width) || width < 12.0 || width > 64.0) {
+    if (!std::isfinite(incoming) || incoming < 12.0 || incoming > 64.0) {
         throw std::invalid_argument(
             "drop-down button width must be finite and between 12 and 64");
     }
-    if (drop_down_width_ == width) return;
+    if (drop_down_width_ == incoming) return;
     Insets padding = content_padding.read();
-    if (edge_ == DropDownButtonEdge::bottom) padding.bottom = std::max(0.0, padding.bottom - drop_down_width_) + width;
-    else padding.right = std::max(0.0, padding.right - drop_down_width_) + width;
+    if (edge_ == DropDownButtonEdge::bottom) padding.bottom = std::max(0.0, padding.bottom - drop_down_width_) + incoming;
+    else padding.right = std::max(0.0, padding.right - drop_down_width_) + incoming;
     content_padding = padding;
-    drop_down_width_ = width;
+    drop_down_width_ = incoming;
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
 }
 
-void DropDownButton::set_drop_down_edge(const DropDownButtonEdge edge) {
+double DropDownButton::read_view(const decltype(drop_down_width)&) const {
+    return drop_down_width_;
+}
+
+void DropDownButton::write_view(const decltype(drop_down_edge)&, DropDownButtonEdge incoming) {
     require_mutable();
-    if (edge != DropDownButtonEdge::right && edge != DropDownButtonEdge::bottom) {
+    if (incoming != DropDownButtonEdge::right && incoming != DropDownButtonEdge::bottom) {
         throw std::invalid_argument("drop-down button edge is unknown");
     }
-    if (edge_ == edge) return;
+    if (edge_ == incoming) return;
     Insets padding = content_padding.read();
     if (edge_ == DropDownButtonEdge::right) {
         padding.right = std::max(0.0, padding.right - drop_down_width_);
@@ -60,9 +67,13 @@ void DropDownButton::set_drop_down_edge(const DropDownButtonEdge edge) {
         padding.right += drop_down_width_;
     }
     content_padding = padding;
-    edge_ = edge;
+    edge_ = incoming;
     pointer_drop_down_ = false;
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
+}
+
+DropDownButtonEdge DropDownButton::read_view(const decltype(drop_down_edge)&) const {
+    return edge_;
 }
 
 void DropDownButton::set_drop_down_open(const bool open) {
@@ -214,7 +225,7 @@ void DropDownButton::on_paint(Painter& painter, const Rect local_damage) {
     const AnatomyStateSet states = anatomy_states();
     std::optional<Color> ink{};
     if (has_style_override()) ink = style().text;
-    if (mode_ == DropDownButtonMode::split && start > 0.0 &&
+    if (drop_down_mode.read() == DropDownButtonMode::split && start > 0.0 &&
         (hovered_visual() || pressed_visual() || drop_down_open_)) {
         PartPaint divider;
         divider.family = ControlVisualRole::button;
@@ -249,7 +260,7 @@ void DropDownButton::on_paint(Painter& painter, const Rect local_damage) {
 }
 
 bool DropDownButton::point_in_drop_down(const Point window_point) const noexcept {
-    if (mode_ == DropDownButtonMode::menu) return true;
+    if (drop_down_mode.read() == DropDownButtonMode::menu) return true;
     const Point local = point_from_window(window_point);
     const Rect bounds = local_bounds();
     if (edge_ == DropDownButtonEdge::bottom) {
@@ -285,7 +296,7 @@ SemanticDescriptor DropDownButton::semantic_descriptor() const {
     SemanticDescriptor descriptor = Button::semantic_descriptor();
     // Split mode keeps a primary click beside the menu arrow; menu mode is
     // one button that opens the menu.
-    descriptor.role = mode_ == DropDownButtonMode::split ? SemanticRole::split_button
+    descriptor.role = drop_down_mode.read() == DropDownButtonMode::split ? SemanticRole::split_button
                                                          : SemanticRole::menu_button;
     descriptor.has_popup = true;
     descriptor.actions.push_back(SemanticAction::show_menu);
@@ -309,7 +320,7 @@ bool DropDownButton::on_semantic_action(const SemanticAction action,
 }
 
 void DropDownButton::on_activate() {
-    if (mode_ == DropDownButtonMode::menu || pointer_drop_down_) {
+    if (drop_down_mode.read() == DropDownButtonMode::menu || pointer_drop_down_) {
         pointer_drop_down_ = false;
         static_cast<void>(perform_drop_down());
         return;
@@ -332,5 +343,9 @@ void DropDownButton::append_interactions(std::vector<InteractionDeclaration>& in
     Button::append_interactions(interactions);
     interactions.insert(interactions.end(), drop_down_button_interactions.begin(), drop_down_button_interactions.end());
 }
+
+// property_codemod begin DropDownButton (tools/property_families/drop_down_button.json; generated, do not edit)
+
+// property_codemod end DropDownButton
 
 } // namespace gui_forms

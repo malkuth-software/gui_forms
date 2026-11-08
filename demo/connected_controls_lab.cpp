@@ -265,7 +265,7 @@ std::unique_ptr<Window> make_connected_controls_lab() {
         "connected-controls.two.primary", "Move", {24.0, 181.0, 142.0, 42.0}, root);
     std::shared_ptr<DropDownButton> two_split = segment<DropDownButton>(
         "connected-controls.two.split", "Copy", {166.0, 181.0, 164.0, 42.0}, root);
-    (*two_split).set_drop_down_mode(DropDownButtonMode::split);
+    (*two_split).drop_down_mode = DropDownButtonMode::split;
     const std::array<std::shared_ptr<ButtonBase>, 2U> two_group{
         two_primary, two_split};
     connect_button_group(two_group, ConnectedControlAxis::horizontal);
@@ -305,7 +305,7 @@ std::unique_ptr<Window> make_connected_controls_lab() {
     }
     std::shared_ptr<DropDownButton> five_menu = segment<DropDownButton>(
         "connected-controls.five.menu", "More", {472.0, 343.0, 128.0, 42.0}, root);
-    (*five_menu).set_drop_down_mode(DropDownButtonMode::menu);
+    (*five_menu).drop_down_mode = DropDownButtonMode::menu;
     five_group[4] = five_menu;
     connect_button_group(five_group, ConnectedControlAxis::horizontal);
 

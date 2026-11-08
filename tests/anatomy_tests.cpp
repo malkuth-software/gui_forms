@@ -632,7 +632,7 @@ void test_drop_down_button_disclosure() {
     const Rect region = (*button).client_rectangle();
     require(segment.present && segment.bounds == (*button).drop_down_bounds() &&
                 near(segment.bounds.right(), region.right()) &&
-                near(segment.bounds.width, (*button).drop_down_width()),
+                near(segment.bounds.width, (*button).drop_down_width.read()),
             "the drop-down segment sits at the trailing edge");
     require(arrow.present && segment.bounds.contains(arrow.bounds),
             "the disclosure arrow lies inside its segment");

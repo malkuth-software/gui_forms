@@ -5,6 +5,7 @@
 #include "gui_forms/gui_forms.hpp"
 #include "gui_forms/controls/badge/badge.hpp"
 #include "gui_forms/controls/button_base/button/button.hpp"
+#include "gui_forms/controls/button_base/button/drop_down_button/drop_down_button.hpp"
 #include "gui_forms/controls/button_base/link_label/link_label.hpp"
 #include "gui_forms/controls/button_base/toggle_switch/toggle_switch.hpp"
 #include "gui_forms/controls/collections/choice_group.hpp"
@@ -705,6 +706,15 @@ void test_drawing_surface_properties() {
         const Color sample = Color::rgba(250, 240, 200);
         (*control).background = sample;
         expect((*control).background.read() == sample, "DrawingSurface.background: a write stores");
+    }
+}
+
+void test_drop_down_button_properties() {
+    std::shared_ptr<DropDownButton> control = make_control<DropDownButton>(StableId("generated.dropdownbutton"));
+    {
+        const DropDownButtonMode sample = DropDownButtonMode::split;
+        (*control).drop_down_mode = sample;
+        expect((*control).drop_down_mode.read() == sample, "DropDownButton.drop_down_mode: a write stores");
     }
 }
 
@@ -1676,6 +1686,7 @@ int main() {
     test_dock_site_properties();
     test_domain_up_down_properties();
     test_drawing_surface_properties();
+    test_drop_down_button_properties();
     test_empty_state_properties();
     test_expandable_sections_properties();
     test_flags_value_editor_properties();

@@ -7,7 +7,7 @@ gui_forms::DropDownButton
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: DropDownButton final : public Button
+.. cpp:class:: DropDownButton final : public Button, public DropDownButtonCapabilities<DropDownButton>
 
    ``#include <gui_forms/controls/button_base/button/drop_down_button/drop_down_button.hpp>``
 
@@ -46,7 +46,7 @@ gui_forms::DropDownButton
          unknown value throws ``std::invalid_argument``.
 
       **drop_down_width** : ``double``, default ``16.0``
-         Extent of the arrow strip on :cpp:func:`drop_down_edge <gui_forms::DropDownButton::drop_down_edge>`, between 12 and 64; other
+         Extent of the arrow strip on :cpp:member:`drop_down_edge <gui_forms::DropDownButton::drop_down_edge>`, between 12 and 64; other
          values throw ``std::invalid_argument``. Changing it moves the reserved
          ``content_padding`` with it, so set your own padding after this property.
 
@@ -199,34 +199,22 @@ gui_forms::DropDownButton
 
    .. rubric:: Properties
 
-   .. cpp:function:: DropDownButtonMode drop_down_mode() const noexcept
+   .. cpp:member:: DropDownButtonMode drop_down_mode
 
       Whether the whole button opens the menu or only its arrow strip. An
       unknown value throws ``std::invalid_argument``.
 
-   .. cpp:function:: void set_drop_down_mode(DropDownButtonMode mode)
+   .. cpp:member:: double drop_down_width
 
-      Sets :cpp:func:`drop_down_mode <gui_forms::DropDownButton::drop_down_mode>`; see the property's description above.
-
-   .. cpp:function:: double drop_down_width() const noexcept
-
-      Extent of the arrow strip on :cpp:func:`drop_down_edge <gui_forms::DropDownButton::drop_down_edge>`, between 12 and 64; other
+      Extent of the arrow strip on :cpp:member:`drop_down_edge <gui_forms::DropDownButton::drop_down_edge>`, between 12 and 64; other
       values throw ``std::invalid_argument``. Changing it moves the reserved
       ``content_padding`` with it, so set your own padding after this property.
 
-   .. cpp:function:: void set_drop_down_width(double width)
-
-      Sets :cpp:func:`drop_down_width <gui_forms::DropDownButton::drop_down_width>`; see the property's description above.
-
-   .. cpp:function:: DropDownButtonEdge drop_down_edge() const noexcept
+   .. cpp:member:: DropDownButtonEdge drop_down_edge
 
       ``right`` puts the arrow strip at the trailing edge; ``bottom`` puts it below
       the caption, as on a ribbon button. Changing it moves the reserved
       padding to the other axis.
-
-   .. cpp:function:: void set_drop_down_edge(DropDownButtonEdge edge)
-
-      Sets :cpp:func:`drop_down_edge <gui_forms::DropDownButton::drop_down_edge>`; see the property's description above.
 
    .. cpp:function:: bool drop_down_open() const noexcept
 
