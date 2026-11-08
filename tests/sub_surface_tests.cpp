@@ -238,6 +238,89 @@ void thread_produces_tagged_frames() {
     require(!thread.dispatcher().window_alive(), "the dispatcher is closed after stop");
 }
 
+// Raises a flag on the thread that runs it: a posted call's completion.
+class RaiseFlag final {
+public:
+    explicit RaiseFlag(std::shared_ptr<std::atomic<bool>> flag) : flag_(std::move(flag)) {}
+    void operator()() const { (*flag_).store(true, std::memory_order_release); }
+
+private:
+    std::shared_ptr<std::atomic<bool>> flag_;
+};
+
+[[nodiscard]] bool wait_for_flag(const std::atomic<bool>& flag) {
+    const std::chrono::steady_clock::time_point limit = std::chrono::steady_clock::now() + wait_limit;
+    while (std::chrono::steady_clock::now() < limit) {
+        if (flag.load(std::memory_order_acquire)) return true;
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    return false;
+}
+
+// Posts `call` to the host's sub-surface thread, then a flag after it, and
+// waits until the flag is raised: `call` has run, in that turn or before.
+[[nodiscard]] bool run_on_sub_surface(SubSurfaceHost& host, const Recolour& call) {
+    static_cast<void>(host.dispatcher().begin_invoke(call));
+    std::shared_ptr<std::atomic<bool>> done = std::make_shared<std::atomic<bool>>(false);
+    static_cast<void>(host.dispatcher().begin_invoke(RaiseFlag(done)));
+    const bool ran = wait_for_flag(*done);
+    return ran;
+}
+
+// Waits until a call posted now has run: every turn before it has ended.
+[[nodiscard]] bool finish_turn(SubSurfaceHost& host) {
+    std::shared_ptr<std::atomic<bool>> done = std::make_shared<std::atomic<bool>>(false);
+    static_cast<void>(host.dispatcher().begin_invoke(RaiseFlag(done)));
+    const bool ran = wait_for_flag(*done);
+    return ran;
+}
+
+// Pairing (design note section 6): a newly configured epoch is produced at
+// once, not at the pacer's next tick, and once per configuration. The
+// presenter reports an hour's refresh period, so while a published frame is
+// unshown the pacer holds the next for an hour and a half: anything
+// produced within the test's wait went out without pacing.
+void new_epochs_are_produced_without_pacing() {
+    std::shared_ptr<Panel> root = std::make_shared<Panel>(StableId("paced.root"));
+    std::shared_ptr<SubSurfaceHost> host = std::make_shared<SubSurfaceHost>(StableId("paced.host"));
+    (*host).set_requested_bounds(Rect{10.0, 10.0, 60.0, 30.0});
+    std::shared_ptr<Probe> probe = std::make_shared<Probe>();
+    (*host).set_content(std::make_unique<SolidContent>(probe, red), true);
+    (*root).add_child(host);
+    FillRaster raster;
+    Window window(root, Size{200.0, 100.0});
+    window.set_framebuffer_painter(&raster);
+    window.flush();
+    const std::shared_ptr<LiveSurface> surface = (*host).live_surface();
+    require(static_cast<bool>(surface) && wait_for_content_tag(*surface, 1U), "the first epoch is published");
+
+    // The first frame is shown; the second epoch's frame is left unshown.
+    LiveDisplayTiming slow{};
+    slow.refresh_period = std::chrono::duration_cast<FrameInterval>(std::chrono::hours(1));
+    slow.last_vblank = FrameClock::now();
+    slow.source = LiveTimingSource::display_phased;
+    const LiveSurfaceFrame first = (*surface).acquire_latest();
+    require(static_cast<bool>(first), "the first frame can be read");
+    (*surface).notify_presented(first.generation(), slow);
+    const std::uint64_t second = (*host).redraw_all(nullptr);
+    require(second == 2U && wait_for_content_tag(*surface, second), "the second epoch is published");
+
+    // The pacer now waits on an unshown frame; a third epoch does not.
+    const SubSurfaceStatistics before = (*host).statistics();
+    const std::uint64_t third = (*host).redraw_all(nullptr);
+    require(third == 3U && wait_for_content_tag(*surface, third), "a new epoch is produced without waiting for the pacer");
+
+    // Dirt without a configuration waits for the pacer: a recolour posted
+    // after the third epoch, and a call after it, leave one frame only.
+    require(run_on_sub_surface(*host, Recolour(probe, green)), "the recolour runs");
+    require(finish_turn(*host), "a later turn runs");
+    const SubSurfaceStatistics after = (*host).statistics();
+    require(after.frames_published == before.frames_published + 1U, "one frame for the configuration");
+    require(after.deadline_wakes == before.deadline_wakes, "no pacer deadline passed");
+    require((*surface).snapshot().content_tag == third, "the newest frame is the third epoch's");
+    static_cast<void>((*root).remove_child((*host).runtime_id()));
+}
+
 void content_failure_is_reported() {
     std::shared_ptr<LiveSurface> surface = LiveSurface::create({8U, 8U});
     SubSurfaceThread thread(std::make_unique<NullContent>(), surface, default_theme(), nullptr);
@@ -1865,6 +1948,7 @@ void tool_tips_without_a_parent_ask_nowhere() {
 int run_all() {
     thread_produces_tagged_frames();
     content_failure_is_reported();
+    new_epochs_are_produced_without_pacing();
     start_stop_stress();
     host_in_window();
     caret_falls_back_to_left_edge();
