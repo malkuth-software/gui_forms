@@ -323,10 +323,46 @@ constexpr std::string_view floor_sheet = R"css(/* gui-forms: the default theme's
   glyph-color: #5d4191;
 }
 
-/* Disabled text on the stock, wells, rows and links. */
+/* A notice (the face of an InfoBanner or a Toast, W-4) is a stock plate
+   on paper with the card's line, radius 2. Its severity is the control's
+   own custom state, :state(information), :state(warning), :state(success)
+   or :state(error): the control draws the keyline and icon in the
+   severity's colour as an authored foreground, so the plate is the same
+   for every severity and the floor has no severity records. */
+:family(notice) {
+  background: #ffffff;
+  border: 1px solid #70829c;
+  border-radius: 2px;
+  color: #1b2733;
+  glyph-color: #1b2733;
+}
+:family(notice):state(selected) {
+  background: #cfe2fa;
+  border-color: #6384b2;
+}
+
+/* A badge (W-4) is the accent blue chip with white text in every state but
+   disabled, which takes the disabled accent face; it takes no input, so it
+   has no hot or pressed look. The control rounds the chip to a pill
+   (PartPaint::corner_radius). */
+:family(badge) {
+  background: #2f69be;
+  border: 1px solid #2f69be;
+  border-radius: 0;
+  color: #ffffff;
+  muted-color: #f4f7fc;
+  glyph-color: #ffffff;
+}
+:family(badge):disabled {
+  background: #becfe4;
+  border-color: #becfe4;
+}
+
+/* Disabled text on the stock, wells, rows, links, notices and badges. */
 :family(window):disabled, :family(panel):disabled, :family(card):disabled, :family(tool-tip):disabled,
 :family(choice):disabled, :family(editor):disabled, :family(progress):disabled, :family(menu-item):disabled,
-:family(selection):disabled, :family(link):disabled, :family(visited-link):disabled {
+:family(selection):disabled, :family(link):disabled, :family(visited-link):disabled, :family(notice):disabled,
+:family(badge):disabled {
   color: #52637a;
   muted-color: #52637a;
   glyph-color: #52637a;
