@@ -1693,6 +1693,14 @@ bool SurfaceRoot::route_pointer(PointerEvent& event, Control::Ptr& pressed_for_r
         release_pointer();
         defer_capture_changed_ = false;
     }
+    // The secondary and middle buttons click too (WinForms' Click on any
+    // button); their presses hold no capture.
+    const bool other_button = event.button == PointerButton::secondary || event.button == PointerButton::middle;
+    const std::size_t other_index = event.button == PointerButton::middle ? 1U : 0U;
+    if (other_button && event.action == PointerAction::up) {
+        pressed_for_release = pressed_other_[other_index].lock();
+        pressed_other_[other_index].reset();
+    }
 
     const std::vector<Control::Ptr> route = route_to(target);
     event.phase = EventPhase::preview;
@@ -1727,6 +1735,9 @@ bool SurfaceRoot::route_pointer(PointerEvent& event, Control::Ptr& pressed_for_r
             pressed_ = target;
             capture_pointer(target, event.pointer_id == 0 ? 1 : event.pointer_id);
         }
+    }
+    if (other_button && event.action == PointerAction::down) {
+        pressed_other_[other_index] = target;
     }
 
     if (eligible(target)) {
@@ -1787,14 +1798,17 @@ void SurfaceRoot::raise_mouse_events(const PointerEvent& event, const Control::P
         return;
     }
     if (!release) return;
-    // The primary release over the pressed control is its click: Click and
-    // MouseClick, or DoubleClick and MouseDoubleClick for a press the host
-    // counted as a double-click's second on a control with
-    // standard_double_click; then MouseUp. Click is followed by
-    // on_activate.
+    // A release over the control the same button pressed is its click, for
+    // any button as in WinForms (unless the control raises clicks for the
+    // primary button only, as ButtonBase does): Click and MouseClick, or
+    // DoubleClick and MouseDoubleClick for a press the host counted as a
+    // double-click's second on a control with standard_double_click; then
+    // MouseUp. A primary Click is followed by on_activate.
     const Control::Ptr released_over = hit_test(event.position);
+    const bool primary = event.button == PointerButton::primary;
     const bool clicked = pressed_for_release && pressed_for_release == released_over &&
-                         eligible(pressed_for_release);
+                         eligible(pressed_for_release) &&
+                         (primary || !(*pressed_for_release).clicks_primary_button_only());
     // A click handler may close and destroy this window (a dialog's OK):
     // its lifetime record then names no window, and nothing more is raised.
     // The record is held so it outlives the window; it is checked after
@@ -1818,7 +1832,7 @@ void SurfaceRoot::raise_mouse_events(const PointerEvent& event, const Control::P
                 if (eligible(pressed_for_release)) (*control.mouse_events_).mouse_click.emit(args);
                 if ((*lifetime).window != presenting) return;
             }
-            if (eligible(pressed_for_release)) {
+            if (primary && eligible(pressed_for_release)) {
                 metrics_.record_callback_emitted();
                 metrics_.record_activation();
                 control.on_activate();
@@ -2476,6 +2490,9 @@ void SurfaceRoot::revoke_interaction_for_subtree(const Control::Ptr& control,
         pressed_.reset();
         metrics_.record_press_revocation();
     }
+    for (Control::WeakPtr& other : pressed_other_) {
+        if (contains_control(control, other.lock())) other.reset();
+    }
     if (contains_control(control, hovered_.lock())) {
         forget_hover();
     }
@@ -2540,6 +2557,9 @@ void SurfaceRoot::on_hit_test_transparency_changed(const Control::Ptr& control) 
     if (contains_control(control, pressed_.lock())) {
         pressed_.reset();
         metrics_.record_press_revocation();
+    }
+    for (Control::WeakPtr& other : pressed_other_) {
+        if (contains_control(control, other.lock())) other.reset();
     }
     if (contains_control(control, hovered_.lock())) forget_hover();
     if (contains_control(control, drag_target_.lock())) cancel_drag();

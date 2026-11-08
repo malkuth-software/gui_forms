@@ -3820,6 +3820,10 @@ void Control::on_context_menu_requested(ContextMenuRequest& request) {
     static_cast<void>(request);
 }
 
+bool Control::clicks_primary_button_only() const noexcept {
+    return false;
+}
+
 Control::MouseEvents& Control::mouse_events() {
     if (!mouse_events_) mouse_events_ = std::make_unique<MouseEvents>();
     return *mouse_events_;

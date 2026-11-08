@@ -1163,8 +1163,8 @@ private:
     // Raises MouseHover on `control` when it is still eligible.
     void raise_mouse_hover(const Control::Ptr& control);
     // dispatch_pointer's route of one event to its target: preview, target
-    // and bubble. Sets `pressed_for_release` to the control a primary
-    // release ends the press of, and `target_out` to the event's target.
+    // and bubble. Sets `pressed_for_release` to the control a release ends
+    // the press of (any button), and `target_out` to the event's target.
     bool route_pointer(PointerEvent& event, Control::Ptr& pressed_for_release, Control::Ptr& target_out);
     // Raises the WinForms mouse events for one routed pointer event on its
     // target (Control's mouse_down and the rest), in WinForms' order.
@@ -1814,6 +1814,10 @@ private:
     // targets, in that order; observed, never owned.
     std::array<std::weak_ptr<CommandTarget>, 3> command_targets_{};
     Control::WeakPtr pressed_;
+    // The control the secondary and the middle button were last pressed
+    // over (index 0 and 1), for WinForms' Click on any button. These presses
+    // take no focus and no capture.
+    std::array<Control::WeakPtr, 2> pressed_other_{};
     Control::WeakPtr hovered_;
     // The input state (detail::InteractionState), made by the first pointer
     // or key event; the clock it reads, borrowed (null for the steady

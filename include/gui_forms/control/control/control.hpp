@@ -961,6 +961,11 @@ public:
     // shows its own menu sets `request.handled`, which also stops the
     // request reaching its ancestors. The base does nothing.
     virtual void on_context_menu_requested(ContextMenuRequest& request);
+    // Whether Click, MouseClick, DoubleClick and MouseDoubleClick are raised
+    // for the primary button only. The base answers false: as in WinForms, a
+    // release of any button over the control it pressed is a click.
+    // ButtonBase answers true.
+    [[nodiscard]] virtual bool clicks_primary_button_only() const noexcept;
 
     // Anatomy (stage T1). A control type opts in by overriding anatomy(),
     // publish_part_geometry() and anatomy_states() together; the defaults

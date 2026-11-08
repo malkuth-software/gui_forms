@@ -1287,4 +1287,8 @@ void ButtonBase::written(const decltype(expanded_state)&) {
 
 // property_codemod end ButtonBase
 
+bool ButtonBase::clicks_primary_button_only() const noexcept {
+    return true;
+}
+
 } // namespace gui_forms

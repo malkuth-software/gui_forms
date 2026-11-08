@@ -87,6 +87,8 @@ public:
     [[nodiscard]] Insets visual_outsets() const noexcept override;
     void on_pointer(PointerEvent& event) override;
     void on_key(KeyEvent& event) override;
+    // As in WinForms, a button clicks for the primary button only.
+    [[nodiscard]] bool clicks_primary_button_only() const noexcept override;
     void on_focus_changed(bool focused) override;
     void on_activate() override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;

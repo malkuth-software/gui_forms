@@ -165,7 +165,21 @@ void test_release_elsewhere_and_other_buttons() {
     log.clear();
     fixture.pointer(PointerAction::down, PointerButton::secondary, {20.0, 20.0});
     fixture.pointer(PointerAction::up, PointerButton::secondary, {20.0, 20.0});
-    require(log == Log{"down:1", "up:1"}, "the secondary button raises MouseDown and MouseUp, no Click");
+    require(log == Log{"down:1", "click", "mouse_click:1", "up:1"} && (*fixture.probe).activations == 1,
+            "as in WinForms the secondary button clicks too, with no capture and no activation");
+
+    log.clear();
+    fixture.pointer(PointerAction::down, PointerButton::middle, {20.0, 20.0});
+    fixture.pointer(PointerAction::up, PointerButton::middle, {20.0, 20.0});
+    require(log == Log{"down:1", "click", "mouse_click:1", "up:1"} && (*fixture.probe).activations == 1,
+            "the middle button clicks too, with no activation");
+
+    log.clear();
+    fixture.pointer(PointerAction::down, PointerButton::secondary, {20.0, 20.0});
+    fixture.pointer(PointerAction::up, PointerButton::secondary, {150.0, 80.0});
+    fixture.pointer(PointerAction::up, PointerButton::secondary, {20.0, 20.0});
+    require(log == Log{"down:1", "up:1"},
+            "a secondary release away from the control is no click, and the press is spent");
 }
 
 void test_button_has_no_double_click() {
@@ -189,6 +203,13 @@ void test_button_has_no_double_click() {
     require(log == Log{"down:1", "click", "mouse_click:1", "up:1", "capture_changed", "down:2", "click",
                         "mouse_click:2", "up:2", "capture_changed"},
             "a button's double-click is two clicks");
+
+    log.clear();
+    PointerEvent secondary_down{PointerAction::down, PointerButton::secondary, {20.0, 20.0}};
+    PointerEvent secondary_up{PointerAction::up, PointerButton::secondary, {20.0, 20.0}};
+    window.dispatch_pointer(secondary_down);
+    window.dispatch_pointer(secondary_up);
+    require(log == Log{"down:1", "up:1"}, "a button clicks for the primary button only");
 }
 
 void test_enter_leave_wheel_and_capture() {
