@@ -84,13 +84,13 @@ void CheckBox::write_view(const decltype(check_state)&, CheckState incoming) {
     const bool previous_checked = check_state_ == CheckState::checked;
     check_state_ = incoming;
     invalidate(Dirty::paint | Dirty::semantics);
-    publish_change(check_state_changed_, check_state_);
+    on_check_state_changed();
     if (!is_alive()) {
         return;
     }
     const bool now_checked = check_state_ == CheckState::checked;
     if (previous_checked != now_checked) {
-        publish_change(checked_changed_, now_checked);
+        on_checked_changed();
     }
 }
 
@@ -551,6 +551,7 @@ void CheckBox::prepare_write(const decltype(appearance)&, CheckBoxAppearance& in
 
 void CheckBox::written(const decltype(appearance)&) {
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
+    on_appearance_changed();
 }
 
 void CheckBox::prepare_write(const decltype(indicator_style)&, ChoiceIndicatorStyle& incoming) {
@@ -561,6 +562,16 @@ void CheckBox::prepare_write(const decltype(indicator_style)&, ChoiceIndicatorSt
 void CheckBox::written(const decltype(indicator_style)&) {
     invalidate(Dirty::paint | Dirty::semantics);
 }
+
+void CheckBox::on_check_state_changed() {
+    publish_change(check_state_changed_, check_state.read());
+}
+
+void CheckBox::on_checked_changed() {
+    publish_change(checked_changed_, checked.read());
+}
+
+void CheckBox::on_appearance_changed() {}
 
 // property_codemod end CheckBox
 

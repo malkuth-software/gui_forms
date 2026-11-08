@@ -161,7 +161,7 @@ void RichTextBox::source_changed() {
     reset_caret_blink();
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
     publish_change(content_changed_);
-    if (previous != plain_text_) publish_change(text_changed_, plain_text_);
+    if (previous != plain_text_) on_text_changed();
     publish_change(selection_changed_, (*editing_).selection());
 }
 
@@ -228,6 +228,7 @@ void RichTextBox::write_view(const decltype(read_only)&, bool incoming) {
     if ((*editing_).read_only() == incoming) return;
     (*editing_).set_read_only(incoming);
     invalidate(Dirty::paint | Dirty::semantics);
+    on_read_only_changed();
 }
 
 void RichTextBox::prepare_write(const decltype(word_wrap)&, bool&) {
@@ -262,6 +263,7 @@ void RichTextBox::prepare_write(const decltype(font)&, FontSpec& incoming) {
 
 void RichTextBox::written(const decltype(font)&) {
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
+    on_font_changed();
 }
 
 void RichTextBox::on_auto_scroll_changed(const Point previous_position) {
@@ -953,7 +955,18 @@ void RichTextBox::prepare_write(const decltype(accepts_tab)&, bool&) {
 }
 
 void RichTextBox::written(const decltype(accepts_tab)&) {
+    on_accepts_tab_changed();
 }
+
+void RichTextBox::on_text_changed() {
+    publish_change(text_changed_, text.read());
+}
+
+void RichTextBox::on_read_only_changed() {}
+
+void RichTextBox::on_accepts_tab_changed() {}
+
+void RichTextBox::on_font_changed() {}
 
 // property_codemod end RichTextBox
 

@@ -170,6 +170,7 @@ void ComboBox::written(const decltype(drop_down_style)&) {
     }
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test |
                Dirty::semantics);
+    on_drop_down_style_changed();
 }
 
 void ComboBox::create_editor() {
@@ -363,7 +364,7 @@ void ComboBox::written(const decltype(auto_complete_custom_source)&) {
 }
 
 void ComboBox::editor_text_changed(const std::string& typed_text) {
-    publish_change(text_changed_, typed_text);
+    on_text_changed();
     if (!is_alive() || synchronizing_text_) return;
     match_editor_text();
     if (!is_alive() || programmatic_text_ || drop_down_filter.read() == ComboBoxFilter::none) return;
@@ -410,7 +411,7 @@ void ComboBox::match_editor_text() {
         synchronizing_list_ = false;
     }
     invalidate(Dirty::paint | Dirty::semantics);
-    publish_change(selected_index_changed_, selected_index_);
+    on_selected_index_changed();
 }
 
 void ComboBox::overlay_selection_changed(const ListSelectionChange& change) {
@@ -477,11 +478,11 @@ void ComboBox::written(const decltype(items)&, const CollectionEdit&) {
     if (!is_alive()) return;
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
     if (selection_moved) {
-        publish_change(selected_index_changed_, selected_index_);
+        on_selected_index_changed();
         if (!is_alive()) return;
     }
     if (text_changed) {
-        publish_change(text_changed_, std::string(selected_text()));
+        on_text_changed();
         if (!is_alive()) return;
     }
     publish_change(items_changed_);
@@ -515,9 +516,9 @@ void ComboBox::write_view(const decltype(selected_index)&, std::optional<std::si
         synchronizing_list_ = false;
     }
     invalidate(Dirty::paint | Dirty::semantics);
-    publish_change(selected_index_changed_, selected_index_);
+    on_selected_index_changed();
     if (editor_ || !is_alive()) return;
-    publish_change(text_changed_, std::string(selected_text()));
+    on_text_changed();
 }
 
 std::string_view ComboBox::selected_text() const noexcept {
@@ -568,6 +569,7 @@ void ComboBox::written(const decltype(font)&) {
     if (editor_) (*editor_).font = font.read();
     if (overlay_list_) (*overlay_list_).font = font.read();
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
+    on_font_changed();
 }
 
 bool ComboBox::read_view(const decltype(dropped_down)&) const {
@@ -1321,6 +1323,16 @@ void ComboBox::prepare_write(const decltype(drop_down_width)&, double& incoming)
 void ComboBox::written(const decltype(drop_down_width)&) {
     invalidate(Dirty::paint | Dirty::semantics);
 }
+
+void ComboBox::on_selected_index_changed() {}
+
+void ComboBox::on_text_changed() {
+    publish_change(text_changed_, text.read());
+}
+
+void ComboBox::on_font_changed() {}
+
+void ComboBox::on_drop_down_style_changed() {}
 
 // property_codemod end ComboBox
 

@@ -23,7 +23,6 @@
       "field": "severity_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": {
         "kind": "enumeration",
@@ -55,7 +54,6 @@
       "field": "title_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": "title",
       "table": {
         "kind": "text",
@@ -92,7 +90,6 @@
       "field": "message_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": "message",
       "table": {
         "kind": "text",
@@ -129,7 +126,6 @@
       "field": "closable_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": {
         "kind": "boolean",

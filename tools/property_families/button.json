@@ -22,7 +22,6 @@
       "field": "visual_style_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": {
         "kind": "enumeration",
@@ -53,7 +52,6 @@
       "field": "flat_border_width_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": {
         "kind": "number",

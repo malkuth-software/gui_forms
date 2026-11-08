@@ -172,8 +172,7 @@ void TextBox::write_view(const decltype(text)&, std::string incoming) {
     vertical_offset_ = 0.0;
     reset_caret_blink();
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
-    const std::string value((*editing_).text());
-    publish_change(text_changed_, value);
+    on_text_changed();
     publish_change(selection_changed_, (*editing_).selection());
 }
 
@@ -182,8 +181,7 @@ void TextBox::text_edited() {
     layout_offsets_.clear();
     reset_caret_blink();
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
-    const std::string value((*editing_).text());
-    publish_change(text_changed_, value);
+    on_text_changed();
     publish_change(selection_changed_, (*editing_).selection());
 }
 
@@ -206,6 +204,7 @@ void TextBox::write_view(const decltype(read_only)&, bool incoming) {
     end_auto_complete(false);
     (*editing_).set_read_only(incoming);
     invalidate(Dirty::paint | Dirty::semantics);
+    on_read_only_changed();
 }
 
 void TextBox::prepare_write(const decltype(multiline)&, bool& incoming) {
@@ -226,6 +225,7 @@ void TextBox::written(const decltype(multiline)&) {
     vertical_offset_ = 0.0;
     reset_caret_blink();
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
+    on_multiline_changed();
 }
 
 void TextBox::prepare_write(const decltype(word_wrap)&, bool&) {
@@ -301,6 +301,7 @@ void TextBox::written(const decltype(font)&) {
     layout_positions_.clear();
     layout_offsets_.clear();
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
+    on_font_changed();
 }
 
 void TextBox::select(Utf8Offset anchor, Utf8Offset caret) {
@@ -1630,7 +1631,9 @@ void TextBox::prepare_write(const decltype(accepts_tab)&, bool&) {
     require_mutable();
 }
 
-void TextBox::written(const decltype(accepts_tab)&) {}
+void TextBox::written(const decltype(accepts_tab)&) {
+    on_accepts_tab_changed();
+}
 
 void TextBox::prepare_write(const decltype(accepts_enter)&, bool&) {
     require_mutable();
@@ -1643,6 +1646,18 @@ void TextBox::prepare_write(const decltype(accepts_escape)&, bool&) {
 }
 
 void TextBox::written(const decltype(accepts_escape)&) {}
+
+void TextBox::on_text_changed() {
+    publish_change(text_changed_, text.read());
+}
+
+void TextBox::on_read_only_changed() {}
+
+void TextBox::on_multiline_changed() {}
+
+void TextBox::on_accepts_tab_changed() {}
+
+void TextBox::on_font_changed() {}
 
 // property_codemod end TextBox
 

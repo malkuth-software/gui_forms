@@ -808,20 +808,16 @@ void ListBox::prepare_write(const decltype(item_height)&, double& incoming) {
     if (!std::isfinite(incoming) || incoming < 12.0 || incoming > 256.0) {
         throw std::invalid_argument("ListBox item height must be finite and between 12 and 256");
     }
-    coerce_item_height(incoming);
 }
 
 void ListBox::written(const decltype(item_height)&) {
     invalidate(Dirty::measure | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
-void ListBox::coerce_item_height(double&) {}
-
 void ListBox::prepare_write(const decltype(font)&, FontSpec& incoming) {
     require_mutable();
     if (!valid_font_spec(incoming)) throw std::invalid_argument("ListBox font specification is invalid");
     set_font_from_code(true);
-    coerce_font(incoming);
 }
 
 void ListBox::written(const decltype(font)&) {
@@ -830,8 +826,6 @@ void ListBox::written(const decltype(font)&) {
 }
 
 void ListBox::on_font_changed() {}
-
-void ListBox::coerce_font(FontSpec&) {}
 
 // property_codemod end ListBox
 

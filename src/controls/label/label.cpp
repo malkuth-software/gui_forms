@@ -151,9 +151,8 @@ PropertyValueOrigin Label::fore_color_property_origin() const noexcept {
 // Text only changes retained geometry when this label is content-sized.
 // Fixed labels are a common high-rate telemetry surface; making every text
 // update a measure request needlessly invalidates every layout ancestor.
-void Label::prepare_write(const decltype(text)&, std::string& incoming) {
+void Label::prepare_write(const decltype(text)&, std::string&) {
     require_mutable();
-    coerce_text(incoming);
 }
 
 void Label::written(const decltype(text)&) {
@@ -178,6 +177,7 @@ void Label::prepare_write(const decltype(font)&, std::optional<FontSpec>& incomi
 
 void Label::written(const decltype(font)&) {
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
+    on_font_changed();
 }
 
 void Label::prepare_write(const decltype(text_style_role)&, TextStyleRole& incoming) {
@@ -726,8 +726,6 @@ void Label::on_text_changed() {
     publish_change(text_changed_, text.read());
 }
 
-void Label::coerce_text(std::string&) {}
-
 void Label::prepare_write(const decltype(alignment)&, HorizontalAlignment& incoming) {
     require_mutable();
     if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(HorizontalAlignment::far)) throw std::invalid_argument("Label horizontal alignment is invalid");
@@ -735,6 +733,7 @@ void Label::prepare_write(const decltype(alignment)&, HorizontalAlignment& incom
 
 void Label::written(const decltype(alignment)&) {
     invalidate(Dirty::paint | Dirty::semantics);
+    on_alignment_changed();
 }
 
 void Label::prepare_write(const decltype(vertical_alignment)&, VerticalAlignment& incoming) {
@@ -789,6 +788,10 @@ void Label::prepare_write(const decltype(use_mnemonic)&, bool&) {
 void Label::written(const decltype(use_mnemonic)&) {
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
 }
+
+void Label::on_font_changed() {}
+
+void Label::on_alignment_changed() {}
 
 // property_codemod end Label
 

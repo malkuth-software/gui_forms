@@ -340,8 +340,7 @@ void MaskedTextBox::write_view(const decltype(mask)&, std::string incoming) {
     if (incoming == provider_.mask()) return;
     MaskedTextProvider next = configured_provider(std::move(incoming), provider_.culture());
     replace_provider(std::move(next));
-    const std::string published(provider_.mask());
-    publish_change(mask_changed_, published);
+    on_mask_changed();
 }
 
 MaskCulture MaskedTextBox::read_view(const decltype(culture)&) const {
@@ -486,6 +485,7 @@ void MaskedTextBox::prepare_write(const decltype(read_only)&, bool&) {
 void MaskedTextBox::written(const decltype(read_only)&) {
     if (editor_) (*editor_).read_only = read_only.read();
     invalidate(Dirty::paint | Dirty::semantics);
+    on_read_only_changed();
 }
 
 // -- validation ------------------------------------------------------------------
@@ -692,6 +692,12 @@ void MaskedTextBox::prepare_write(const decltype(reject_input_on_first_failure)&
 
 void MaskedTextBox::written(const decltype(reject_input_on_first_failure)&) {
 }
+
+void MaskedTextBox::on_mask_changed() {
+    publish_change(mask_changed_, mask.read());
+}
+
+void MaskedTextBox::on_read_only_changed() {}
 
 // property_codemod end MaskedTextBox
 

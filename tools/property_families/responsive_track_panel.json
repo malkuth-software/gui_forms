@@ -23,7 +23,6 @@
       "field": "orientation_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": {
         "kind": "enumeration",
@@ -57,7 +56,6 @@
       "field": "track_gap_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": {
         "kind": "number",

@@ -60,7 +60,7 @@ void RangeControl::set_range(double minimum_value, double maximum_value) {
     invalidate(Dirty::paint | Dirty::semantics);
     publish_change(range_changed_, minimum_, maximum_);
     if (is_alive() && old_value != value_) {
-        publish_change(value_changed_, value_);
+        on_value_changed();
     }
 }
 
@@ -84,7 +84,7 @@ void RangeControl::write_view(const decltype(value)&, double incoming) {
     if (!is_alive()) return;
     value_ = incoming;
     invalidate(Dirty::paint | Dirty::semantics);
-    publish_change(value_changed_, value_);
+    on_value_changed();
 }
 
 double RangeControl::read_view(const decltype(value)&) const {
@@ -142,7 +142,7 @@ bool RangeControl::set_value_from_input(double requested, RangeAction action) {
     invalidate(Dirty::paint | Dirty::semantics);
     scroll_.emit(event);
     if (is_alive()) {
-        publish_change(value_changed_, value_);
+        on_value_changed();
     }
     return true;
 }
@@ -337,6 +337,10 @@ void RangeControl::prepare_write(const decltype(orientation)&, Orientation&) {
 
 void RangeControl::written(const decltype(orientation)&) {
     invalidate(Dirty::measure | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+void RangeControl::on_value_changed() {
+    publish_change(value_changed_, value.read());
 }
 
 // property_codemod end RangeControl

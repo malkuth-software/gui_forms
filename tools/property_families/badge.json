@@ -23,7 +23,6 @@
       "field": "count_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": {
         "kind": "unsigned_integer",
@@ -55,7 +54,6 @@
       "field": "maximum_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": {
         "kind": "unsigned_integer",
@@ -90,7 +88,6 @@
       "field": "mode_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": {
         "kind": "enumeration",
@@ -122,7 +119,6 @@
       "field": "show_zero_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": {
         "kind": "boolean",

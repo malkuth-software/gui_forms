@@ -21,11 +21,11 @@ namespace gui_forms {
 // Each is a standard-layout struct whose only member is its property's
 // cell, taken by the declaring class as a base. A write
 // `(*control).x = value;` runs `assign`: the declaring class's
-// prepare_write hook (require_mutable first, then the value's checks and,
-// where C# lets a subclass rewrite the value, the protected virtual coerce
-// hook), the compare and store, then the written hook (the touch, side
-// effects and the change event, through the protected virtual
-// on_<property>_changed() where Windows Forms has OnXChanged). A read is
+// prepare_write hook (require_mutable first, then the value's checks), the
+// compare and store, then the written hook (the touch, side effects and the
+// change event, through the protected virtual on_<property>_changed() where
+// Windows Forms has an overridable On<Property>Changed; other properties
+// have no hook, and a subclass subscribes to their change events instead). A read is
 // `(*control).x.read()`.
 
 // The selected item (SelectedIndex), or none; a view onto the selection. A write shows the item in the editor, moves the open list's row and raises selected_index_changed, then (drop_down_list) text_changed. An index past the end throws std::out_of_range.

@@ -127,6 +127,12 @@ private:
     Event<const PropertyRowExpansionChange&> row_expansion_changed_;
     Event<const PropertyResetRequest&> reset_requested_;
     // property_codemod begin PropertyList (tools/property_families/property_list.json; generated, do not edit)
+protected:
+    // on_<property>_changed runs after a changed write's store and touch and
+    // raises the change event; an override calls the base. Only the
+    // properties with a Windows Forms On<Property>Changed have one.
+    virtual void on_font_changed();
+
 private:
     friend struct PropertyListHeaderHeightCapability<PropertyList>;
     friend struct PropertyListLabelWidthCapability<PropertyList>;

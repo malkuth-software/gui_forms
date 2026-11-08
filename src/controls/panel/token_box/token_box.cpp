@@ -176,6 +176,7 @@ void TokenBox::prepare_write(const decltype(font)&, FontSpec& incoming) {
 void TokenBox::written(const decltype(font)&) {
     if (editor_) (*editor_).font = font.read();
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+    on_font_changed();
 }
 
 // The auto-complete views: the inner editor owns the settings (see TextBox).
@@ -781,6 +782,8 @@ void TokenBox::prepare_write(const decltype(delimiters)&, std::string& incoming)
 
 void TokenBox::written(const decltype(delimiters)&) {
 }
+
+void TokenBox::on_font_changed() {}
 
 // property_codemod end TokenBox
 

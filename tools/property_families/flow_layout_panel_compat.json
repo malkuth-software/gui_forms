@@ -23,7 +23,6 @@
       "field": "flow_direction_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": {
         "kind": "enumeration",
@@ -54,7 +53,6 @@
       "field": "wrap_contents_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": {
         "kind": "boolean",
@@ -85,7 +83,6 @@
       "field": "item_spacing_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": {
         "kind": "size",
@@ -119,7 +116,6 @@
       "field": "main_alignment_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": {
         "kind": "enumeration",
@@ -153,7 +149,6 @@
       "field": "cross_alignment_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": {
         "kind": "enumeration",

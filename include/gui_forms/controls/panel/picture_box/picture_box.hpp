@@ -52,9 +52,9 @@ public:
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
 
 protected:
-    // on_<property>_changed runs after a changed write's touch and raises the
-    // change event; an override calls the base. coerce_<property> runs last
-    // before the compare and may rewrite the incoming value.
+    // on_<property>_changed runs after a changed write's store and touch and
+    // raises the change event; an override calls the base. Only the
+    // properties with a Windows Forms On<Property>Changed have one.
     virtual void on_size_mode_changed();
 
 private:

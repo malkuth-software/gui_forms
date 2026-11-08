@@ -24,7 +24,6 @@
       "field": "image_",
       "event": "image_changed_",
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": {
         "kind": "image",
@@ -60,7 +59,6 @@
       "field": "size_mode_",
       "event": null,
       "on_changed": true,
-      "coerce": false,
       "localizable": null,
       "table": {
         "kind": "enumeration",
@@ -92,7 +90,6 @@
       "field": "image_opacity_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": {
         "kind": "number",

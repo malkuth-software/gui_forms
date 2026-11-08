@@ -22,8 +22,7 @@
       "clear": null,
       "field": null,
       "event": "checked_changed_",
-      "on_changed": false,
-      "coerce": false,
+      "on_changed": true,
       "localizable": null,
       "table": {
         "kind": "boolean",
@@ -58,7 +57,6 @@
       "field": "group_name_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": {
         "kind": "text",
@@ -92,7 +90,6 @@
       "field": "auto_check_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": null,
       "hooks": "generated",
@@ -110,7 +107,6 @@
       "field": "indicator_style_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": {
         "kind": "enumeration",

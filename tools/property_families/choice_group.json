@@ -23,7 +23,6 @@
       "field": "presentation_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": {
         "kind": "enumeration",
@@ -57,7 +56,6 @@
       "field": "selection_",
       "event": "selected_index_changed_",
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": null,
       "hooks": "hand",

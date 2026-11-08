@@ -1583,6 +1583,34 @@ private:
     mutable Event<DataGridViewCellErrorTextNeededEvent&> cell_error_text_needed_{};
     mutable Event<DataGridViewRowErrorTextNeededEvent&> row_error_text_needed_{};
     // property_codemod begin DataGridView (tools/property_families/data_grid_view.json; generated, do not edit)
+protected:
+    // on_<property>_changed runs after a changed write's store and touch and
+    // raises the change event; an override calls the base. Only the
+    // properties with a Windows Forms On<Property>Changed have one.
+    virtual void on_auto_size_columns_mode_changed();
+    virtual void on_auto_size_rows_mode_changed();
+    virtual void on_allow_user_to_delete_rows_changed();
+    virtual void on_default_cell_style_changed();
+    virtual void on_rows_default_cell_style_changed();
+    virtual void on_alternating_rows_default_cell_style_changed();
+    virtual void on_column_headers_default_cell_style_changed();
+    virtual void on_row_headers_default_cell_style_changed();
+    virtual void on_grid_color_changed();
+    virtual void on_background_color_changed();
+    virtual void on_border_style_changed();
+    virtual void on_cell_border_style_changed();
+    virtual void on_column_headers_border_style_changed();
+    virtual void on_row_headers_border_style_changed();
+    virtual void on_column_headers_height_changed();
+    virtual void on_row_headers_width_changed();
+    virtual void on_font_changed();
+    virtual void on_read_only_changed();
+    virtual void on_allow_user_to_resize_columns_changed();
+    virtual void on_allow_user_to_resize_rows_changed();
+    virtual void on_allow_user_to_order_columns_changed();
+    virtual void on_multi_select_changed();
+    virtual void on_edit_mode_changed();
+
 private:
     friend struct DataGridViewRowsCapability<DataGridView>;
     // The rows' hooks (data_grid_view_rows.cpp): require_mutable, not

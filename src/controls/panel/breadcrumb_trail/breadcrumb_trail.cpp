@@ -839,6 +839,7 @@ void BreadcrumbTrail::written(const decltype(font)&) {
     normalize_active();
     invalidate(Dirty::measure | Dirty::layout | Dirty::paint | Dirty::hit_test |
                Dirty::semantics | Dirty::accessibility);
+    on_font_changed();
 }
 
 void BreadcrumbTrail::prepare_write(const decltype(appearance)&, BreadcrumbAppearance& incoming) {
@@ -891,6 +892,8 @@ void BreadcrumbTrail::prepare_write(const decltype(tab_completion_available)&, b
 void BreadcrumbTrail::written(const decltype(tab_completion_available)&) {
     invalidate(Dirty::semantics | Dirty::accessibility);
 }
+
+void BreadcrumbTrail::on_font_changed() {}
 
 // property_codemod end BreadcrumbTrail
 

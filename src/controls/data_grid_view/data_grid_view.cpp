@@ -996,6 +996,7 @@ void DataGridView::prepare_write(const decltype(allow_user_to_order_columns)&, b
 void DataGridView::written(const decltype(allow_user_to_order_columns)&) {
     if (!allow_user_to_order_columns.read()) end_column_order();
     invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
+    on_allow_user_to_order_columns_changed();
 }
 
 void DataGridView::end_column_order() {
@@ -1659,6 +1660,7 @@ void DataGridView::prepare_write(const decltype(column_headers_height)&, double&
 
 void DataGridView::written(const decltype(column_headers_height)&) {
     structure_changed();
+    on_column_headers_height_changed();
 }
 
 void DataGridView::prepare_write(const decltype(row_headers_width)&, double& incoming) {
@@ -1670,6 +1672,7 @@ void DataGridView::prepare_write(const decltype(row_headers_width)&, double& inc
 
 void DataGridView::written(const decltype(row_headers_width)&) {
     structure_changed();
+    on_row_headers_width_changed();
 }
 
 void DataGridView::prepare_write(const decltype(row_height)&, double& incoming) {
@@ -1733,6 +1736,7 @@ void DataGridView::prepare_write(const decltype(font)&, FontSpec& incoming) {
 void DataGridView::written(const decltype(font)&) {
     if (editor_) (*editor_).font = font.read();
     structure_changed();
+    on_font_changed();
 }
 
 void DataGridView::prepare_write(const decltype(read_only)&, bool& incoming) {
@@ -1743,6 +1747,7 @@ void DataGridView::prepare_write(const decltype(read_only)&, bool& incoming) {
 
 void DataGridView::written(const decltype(read_only)&) {
     invalidate(Dirty::paint | Dirty::semantics);
+    on_read_only_changed();
 }
 
 void DataGridView::set_first_displayed_row(DataGridViewRowPosition row) {
@@ -2130,11 +2135,14 @@ void DataGridView::prepare_write(const decltype(multi_select)&, bool&) {
 }
 
 void DataGridView::written(const decltype(multi_select)&) {
-    if (multi_select.read()) return;
-    const std::uint64_t before = selection_revision_;
-    const std::size_t selected = selected_cell_count() + selected_rows_.size();
-    if (selected > 1U) select_current_alone();
-    publish_selection(before);
+    if (!multi_select.read()) {
+        const std::uint64_t before = selection_revision_;
+        const std::size_t selected = selected_cell_count() + selected_rows_.size();
+        if (selected > 1U) select_current_alone();
+        publish_selection(before);
+        if (!is_alive()) return;
+    }
+    on_multi_select_changed();
 }
 
 std::optional<DataGridViewCellAddress> DataGridView::current_cell() const {
@@ -3061,6 +3069,7 @@ void DataGridView::prepare_write(const decltype(default_cell_style)&, DataGridVi
 
 void DataGridView::written(const decltype(default_cell_style)&) {
     structure_changed();
+    on_default_cell_style_changed();
 }
 
 void DataGridView::prepare_write(const decltype(rows_default_cell_style)&, DataGridViewCellStyle& incoming) {
@@ -3070,6 +3079,7 @@ void DataGridView::prepare_write(const decltype(rows_default_cell_style)&, DataG
 
 void DataGridView::written(const decltype(rows_default_cell_style)&) {
     structure_changed();
+    on_rows_default_cell_style_changed();
 }
 
 void DataGridView::prepare_write(const decltype(alternating_rows_default_cell_style)&, DataGridViewCellStyle& incoming) {
@@ -3079,6 +3089,7 @@ void DataGridView::prepare_write(const decltype(alternating_rows_default_cell_st
 
 void DataGridView::written(const decltype(alternating_rows_default_cell_style)&) {
     structure_changed();
+    on_alternating_rows_default_cell_style_changed();
 }
 
 void DataGridView::prepare_write(const decltype(column_headers_default_cell_style)&, DataGridViewCellStyle& incoming) {
@@ -3088,6 +3099,7 @@ void DataGridView::prepare_write(const decltype(column_headers_default_cell_styl
 
 void DataGridView::written(const decltype(column_headers_default_cell_style)&) {
     structure_changed();
+    on_column_headers_default_cell_style_changed();
 }
 
 void DataGridView::prepare_write(const decltype(row_headers_default_cell_style)&, DataGridViewCellStyle& incoming) {
@@ -3097,6 +3109,7 @@ void DataGridView::prepare_write(const decltype(row_headers_default_cell_style)&
 
 void DataGridView::written(const decltype(row_headers_default_cell_style)&) {
     structure_changed();
+    on_row_headers_default_cell_style_changed();
 }
 
 void DataGridView::set_column_default_cell_style(std::size_t column, DataGridViewCellStyle style) {
@@ -3208,6 +3221,7 @@ void DataGridView::prepare_write(const decltype(border_style)&, BorderStyle& inc
 
 void DataGridView::written(const decltype(border_style)&) {
     structure_changed();
+    on_border_style_changed();
 }
 
 void DataGridView::prepare_write(const decltype(cell_border_style)&, DataGridViewCellBorderStyle& incoming) {
@@ -3219,6 +3233,7 @@ void DataGridView::prepare_write(const decltype(cell_border_style)&, DataGridVie
 
 void DataGridView::written(const decltype(cell_border_style)&) {
     structure_changed();
+    on_cell_border_style_changed();
 }
 
 void DataGridView::prepare_write(const decltype(column_headers_border_style)&, DataGridViewHeaderBorderStyle& incoming) {
@@ -3230,6 +3245,7 @@ void DataGridView::prepare_write(const decltype(column_headers_border_style)&, D
 
 void DataGridView::written(const decltype(column_headers_border_style)&) {
     structure_changed();
+    on_column_headers_border_style_changed();
 }
 
 void DataGridView::prepare_write(const decltype(row_headers_border_style)&, DataGridViewHeaderBorderStyle& incoming) {
@@ -3241,6 +3257,7 @@ void DataGridView::prepare_write(const decltype(row_headers_border_style)&, Data
 
 void DataGridView::written(const decltype(row_headers_border_style)&) {
     structure_changed();
+    on_row_headers_border_style_changed();
 }
 
 // -- input ---------------------------------------------------------------------
@@ -4055,6 +4072,7 @@ void DataGridView::prepare_write(const decltype(allow_user_to_delete_rows)&, boo
 }
 
 void DataGridView::written(const decltype(allow_user_to_delete_rows)&) {
+    on_allow_user_to_delete_rows_changed();
 }
 
 void DataGridView::prepare_write(const decltype(show_cell_errors)&, bool&) {
@@ -4095,6 +4113,7 @@ void DataGridView::prepare_write(const decltype(grid_color)&, std::optional<Colo
 
 void DataGridView::written(const decltype(grid_color)&) {
     invalidate(Dirty::paint);
+    on_grid_color_changed();
 }
 
 void DataGridView::prepare_write(const decltype(background_color)&, std::optional<Color>&) {
@@ -4103,6 +4122,7 @@ void DataGridView::prepare_write(const decltype(background_color)&, std::optiona
 
 void DataGridView::written(const decltype(background_color)&) {
     invalidate(Dirty::paint);
+    on_background_color_changed();
 }
 
 void DataGridView::prepare_write(const decltype(draw_mode)&, ItemDrawMode& incoming) {
@@ -4120,6 +4140,7 @@ void DataGridView::prepare_write(const decltype(allow_user_to_resize_columns)&, 
 
 void DataGridView::written(const decltype(allow_user_to_resize_columns)&) {
     invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
+    on_allow_user_to_resize_columns_changed();
 }
 
 void DataGridView::prepare_write(const decltype(allow_user_to_resize_rows)&, bool&) {
@@ -4128,6 +4149,7 @@ void DataGridView::prepare_write(const decltype(allow_user_to_resize_rows)&, boo
 
 void DataGridView::written(const decltype(allow_user_to_resize_rows)&) {
     invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
+    on_allow_user_to_resize_rows_changed();
 }
 
 void DataGridView::prepare_write(const decltype(edit_mode)&, DataGridViewEditMode& incoming) {
@@ -4136,7 +4158,54 @@ void DataGridView::prepare_write(const decltype(edit_mode)&, DataGridViewEditMod
 }
 
 void DataGridView::written(const decltype(edit_mode)&) {
+    on_edit_mode_changed();
 }
+
+void DataGridView::on_auto_size_columns_mode_changed() {}
+
+void DataGridView::on_auto_size_rows_mode_changed() {}
+
+void DataGridView::on_allow_user_to_delete_rows_changed() {}
+
+void DataGridView::on_default_cell_style_changed() {}
+
+void DataGridView::on_rows_default_cell_style_changed() {}
+
+void DataGridView::on_alternating_rows_default_cell_style_changed() {}
+
+void DataGridView::on_column_headers_default_cell_style_changed() {}
+
+void DataGridView::on_row_headers_default_cell_style_changed() {}
+
+void DataGridView::on_grid_color_changed() {}
+
+void DataGridView::on_background_color_changed() {}
+
+void DataGridView::on_border_style_changed() {}
+
+void DataGridView::on_cell_border_style_changed() {}
+
+void DataGridView::on_column_headers_border_style_changed() {}
+
+void DataGridView::on_row_headers_border_style_changed() {}
+
+void DataGridView::on_column_headers_height_changed() {}
+
+void DataGridView::on_row_headers_width_changed() {}
+
+void DataGridView::on_font_changed() {}
+
+void DataGridView::on_read_only_changed() {}
+
+void DataGridView::on_allow_user_to_resize_columns_changed() {}
+
+void DataGridView::on_allow_user_to_resize_rows_changed() {}
+
+void DataGridView::on_allow_user_to_order_columns_changed() {}
+
+void DataGridView::on_multi_select_changed() {}
+
+void DataGridView::on_edit_mode_changed() {}
 
 // property_codemod end DataGridView
 

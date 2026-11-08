@@ -24,8 +24,7 @@
       "clear": null,
       "field": "text_",
       "event": null,
-      "on_changed": false,
-      "coerce": false,
+      "on_changed": true,
       "localizable": "text",
       "table": {
         "kind": "text",
@@ -56,8 +55,7 @@
       "clear": null,
       "field": "font_",
       "event": null,
-      "on_changed": false,
-      "coerce": false,
+      "on_changed": true,
       "localizable": null,
       "table": {
         "kind": "font",
@@ -93,7 +91,6 @@
       "field": "caption_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": {
         "kind": "text",
@@ -124,7 +121,6 @@
       "field": "diagnostics_visible_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": null,
       "hooks": "generated",
@@ -142,7 +138,6 @@
       "field": "wrap_text_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": {
         "kind": "boolean",

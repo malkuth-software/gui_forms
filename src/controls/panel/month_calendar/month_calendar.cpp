@@ -1238,7 +1238,6 @@ void MonthCalendar::prepare_write(const decltype(font)&, FontSpec& incoming) {
     require_mutable();
     if (!valid_font_spec(incoming)) throw std::invalid_argument("MonthCalendar font specification is invalid");
     set_font_from_code(true);
-    coerce_font(incoming);
 }
 
 void MonthCalendar::written(const decltype(font)&) {
@@ -1247,8 +1246,6 @@ void MonthCalendar::written(const decltype(font)&) {
 }
 
 void MonthCalendar::on_font_changed() {}
-
-void MonthCalendar::coerce_font(FontSpec&) {}
 
 // property_codemod end MonthCalendar
 

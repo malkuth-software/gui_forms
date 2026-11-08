@@ -192,6 +192,12 @@ private:
     Event<const Token&> token_removed_;
     Event<std::optional<TokenId>> selected_token_changed_;
     // property_codemod begin TokenBox (tools/property_families/token_box.json; generated, do not edit)
+protected:
+    // on_<property>_changed runs after a changed write's store and touch and
+    // raises the change event; an override calls the base. Only the
+    // properties with a Windows Forms On<Property>Changed have one.
+    virtual void on_font_changed();
+
 private:
     friend struct DelimitersCapability<TokenBox>;
     friend struct FontCapability<TokenBox>;

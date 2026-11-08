@@ -21,7 +21,6 @@
       "field": "checked_",
       "event": "checked_changed_",
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": {
         "kind": "boolean",
@@ -55,7 +54,6 @@
       "field": "on_text_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": "on_text",
       "table": {
         "kind": "text",
@@ -92,7 +90,6 @@
       "field": "off_text_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": "off_text",
       "table": {
         "kind": "text",

@@ -26,7 +26,6 @@
       "field": "text_",
       "event": "text_changed_",
       "on_changed": true,
-      "coerce": true,
       "localizable": "text",
       "table": {
         "kind": "text",
@@ -57,7 +56,6 @@
       "field": "font_",
       "event": null,
       "on_changed": true,
-      "coerce": true,
       "localizable": null,
       "table": {
         "kind": "font",
@@ -92,7 +90,6 @@
       "field": "use_mnemonic_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": null,
       "effects": "Dirty::measure | Dirty::paint | Dirty::semantics",

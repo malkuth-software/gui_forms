@@ -168,7 +168,7 @@ void SearchField::editor_text_changed(const std::string& value) {
         pressed_clear_ = false;
     }
     invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
-    publish_change(text_changed_, value);
+    on_text_changed();
     if (!is_alive()) return;
     schedule_search();
 }
@@ -601,6 +601,10 @@ void SearchField::prepare_write(const decltype(search_delay)&, std::chrono::mill
 }
 
 void SearchField::written(const decltype(search_delay)&) {}
+
+void SearchField::on_text_changed() {
+    publish_change(text_changed_, text.read());
+}
 
 // property_codemod end SearchField
 

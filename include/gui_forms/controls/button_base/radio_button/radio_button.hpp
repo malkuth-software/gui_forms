@@ -64,6 +64,12 @@ public:
     [[nodiscard]] static const std::array<PropertyEntry, radio_button_property_count>& radio_button_property_entries() noexcept;
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
 
+protected:
+    // on_<property>_changed runs after a changed write's store and touch and
+    // raises the change event; an override calls the base. Only the
+    // properties with a Windows Forms On<Property>Changed have one.
+    virtual void on_checked_changed();
+
 private:
     friend struct RadioButtonCheckedCapability<RadioButton>;
     friend struct RadioButtonGroupNameCapability<RadioButton>;

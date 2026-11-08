@@ -277,6 +277,12 @@ private:
     Event<const std::string&> item_activated_;
     Event<const ObjectContextRequest&> context_requested_;
     // property_codemod begin CorrespondenceView (tools/property_families/correspondence_view.json; generated, do not edit)
+protected:
+    // on_<property>_changed runs after a changed write's store and touch and
+    // raises the change event; an override calls the base. Only the
+    // properties with a Windows Forms On<Property>Changed have one.
+    virtual void on_font_changed();
+
 private:
     friend struct CorrespondenceViewSelectedIdCapability<CorrespondenceView>;
     friend struct CorrespondenceViewPinnedIdCapability<CorrespondenceView>;

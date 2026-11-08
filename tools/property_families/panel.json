@@ -19,7 +19,6 @@
       "field": "border_style_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": {
         "kind": "enumeration",
@@ -54,7 +53,6 @@
       "field": "visual_role_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": null,
       "effects": "Dirty::style | Dirty::paint | Dirty::semantics",

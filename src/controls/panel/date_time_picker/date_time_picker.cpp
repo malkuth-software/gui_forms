@@ -681,7 +681,7 @@ void DateTimePicker::prepare_write(const decltype(value)&, DateTimeValue& incomi
 
 void DateTimePicker::written(const decltype(value)&) {
     invalidate(Dirty::paint | Dirty::semantics);
-    publish_change(value_changed_, value.read());
+    on_value_changed();
 }
 
 void DateTimePicker::prepare_write(const decltype(format)&, DateTimePickerFormat& incoming) {
@@ -699,6 +699,7 @@ void DateTimePicker::prepare_write(const decltype(format)&, DateTimePickerFormat
 
 void DateTimePicker::written(const decltype(format)&) {
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
+    on_format_changed();
 }
 
 void DateTimePicker::prepare_write(const decltype(show_check_box)&, bool&) {
@@ -737,7 +738,16 @@ void DateTimePicker::prepare_write(const decltype(font)&, FontSpec& incoming) {
 
 void DateTimePicker::written(const decltype(font)&) {
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
+    on_font_changed();
 }
+
+void DateTimePicker::on_value_changed() {
+    publish_change(value_changed_, value.read());
+}
+
+void DateTimePicker::on_format_changed() {}
+
+void DateTimePicker::on_font_changed() {}
 
 // property_codemod end DateTimePicker
 

@@ -22,7 +22,6 @@
       "field": "target_stable_id_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": {
         "kind": "text",

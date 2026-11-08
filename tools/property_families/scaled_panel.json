@@ -23,7 +23,6 @@
       "field": "design_size_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": {
         "kind": "size",

@@ -104,7 +104,7 @@ void NumericUpDown::prepare_write(const decltype(value)&, double& incoming) {
 void NumericUpDown::written(const decltype(value)&) {
     if (!committing_) synchronize_editor();
     invalidate(Dirty::paint | Dirty::semantics);
-    publish_change(value_changed_, value.read());
+    on_value_changed();
 }
 
 void NumericUpDown::prepare_write(const decltype(decimal_places)&, std::uint8_t& incoming) {
@@ -441,6 +441,10 @@ void NumericUpDown::prepare_write(const decltype(button_width)&, double& incomin
 
 void NumericUpDown::written(const decltype(button_width)&) {
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+void NumericUpDown::on_value_changed() {
+    publish_change(value_changed_, value.read());
 }
 
 // property_codemod end NumericUpDown

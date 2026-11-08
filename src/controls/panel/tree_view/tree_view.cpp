@@ -810,7 +810,10 @@ void TreeView::prepare_write(const decltype(font)&, FontSpec& incoming) {
 
 void TreeView::written(const decltype(font)&) {
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
+    on_font_changed();
 }
+
+void TreeView::on_font_changed() {}
 
 // property_codemod end TreeView
 

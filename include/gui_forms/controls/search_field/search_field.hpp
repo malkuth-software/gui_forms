@@ -162,6 +162,12 @@ public:
     [[nodiscard]] static const std::array<PropertyEntry, search_field_property_count>& search_field_property_entries() noexcept;
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
 
+protected:
+    // on_<property>_changed runs after a changed write's store and touch and
+    // raises the change event; an override calls the base. Only the
+    // properties with a Windows Forms On<Property>Changed have one.
+    virtual void on_text_changed();
+
 private:
     friend struct SearchFieldTextCapability<SearchField>;
     friend struct SearchFieldPlaceholderTextCapability<SearchField>;

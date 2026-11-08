@@ -46,9 +46,8 @@ void ScrollableControl::validate_axis_value(double value,
 
 // The capabilities' hooks (study section 14; G9).
 
-void ScrollableControl::prepare_write(const decltype(auto_scroll)&, bool& incoming) {
+void ScrollableControl::prepare_write(const decltype(auto_scroll)&, bool&) {
     require_mutable();
-    coerce_auto_scroll(incoming);
 }
 
 // Turning auto scroll off returns the content to its origin; a moved
@@ -1056,8 +1055,6 @@ std::span<const PropertyEntry> ScrollableControl::property_table() const noexcep
     const std::array<PropertyEntry, scrollable_control_property_count>& entries = scrollable_control_property_entries();
     return std::span<const PropertyEntry>(entries);
 }
-
-void ScrollableControl::coerce_auto_scroll(bool&) {}
 
 // property_codemod end ScrollableControl
 

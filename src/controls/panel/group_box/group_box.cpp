@@ -238,9 +238,8 @@ std::span<const PropertyEntry> GroupBox::property_table() const noexcept {
     return std::span<const PropertyEntry>(entries);
 }
 
-void GroupBox::prepare_write(const decltype(text)&, std::string& incoming) {
+void GroupBox::prepare_write(const decltype(text)&, std::string&) {
     require_mutable();
-    coerce_text(incoming);
 }
 
 void GroupBox::written(const decltype(text)&) {
@@ -252,13 +251,10 @@ void GroupBox::on_text_changed() {
     publish_change(text_changed_, text.read());
 }
 
-void GroupBox::coerce_text(std::string&) {}
-
 void GroupBox::prepare_write(const decltype(font)&, FontSpec& incoming) {
     require_mutable();
     if (!valid_font_spec(incoming)) throw std::invalid_argument("GroupBox font specification is invalid");
     set_font_from_code(true);
-    coerce_font(incoming);
 }
 
 void GroupBox::written(const decltype(font)&) {
@@ -267,8 +263,6 @@ void GroupBox::written(const decltype(font)&) {
 }
 
 void GroupBox::on_font_changed() {}
-
-void GroupBox::coerce_font(FontSpec&) {}
 
 void GroupBox::prepare_write(const decltype(use_mnemonic)&, bool&) {
     require_mutable();

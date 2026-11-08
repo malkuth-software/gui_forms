@@ -25,7 +25,6 @@
       "field": null,
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": {
         "kind": "enumeration",
@@ -59,7 +58,6 @@
       "field": null,
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": null,
       "hooks": "hand",
@@ -81,7 +79,6 @@
       "field": null,
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": null,
       "hooks": "hand",

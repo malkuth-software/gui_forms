@@ -18,11 +18,11 @@ namespace gui_forms {
 // Each is a standard-layout struct whose only member is its property's
 // cell, taken by the declaring class as a base. A write
 // `(*control).x = value;` runs `assign`: the declaring class's
-// prepare_write hook (require_mutable first, then the value's checks and,
-// where C# lets a subclass rewrite the value, the protected virtual coerce
-// hook), the compare and store, then the written hook (the touch, side
-// effects and the change event, through the protected virtual
-// on_<property>_changed() where Windows Forms has OnXChanged). A read is
+// prepare_write hook (require_mutable first, then the value's checks), the
+// compare and store, then the written hook (the touch, side effects and the
+// change event, through the protected virtual on_<property>_changed() where
+// Windows Forms has an overridable On<Property>Changed; other properties
+// have no hook, and a subclass subscribes to their change events instead). A read is
 // `(*control).x.read()`.
 
 // The plain text (Text): the source's blocks with the markup removed, joined by line feeds (markdown_plain_text); a view onto the parsed document. A write replaces the document with markdown that reads back as that text (punctuation escaped, each line feed a hard line break; leading white space on a line and trailing line feeds are not kept), clears the history and raises content_changed, text_changed when the plain text changes, then selection_changed. Throws std::invalid_argument for invalid UTF-8 and std::length_error past maximum_bytes.

@@ -1395,7 +1395,10 @@ void CorrespondenceView::prepare_write(const decltype(font)&, FontSpec& incoming
 
 void CorrespondenceView::written(const decltype(font)&) {
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
+    on_font_changed();
 }
+
+void CorrespondenceView::on_font_changed() {}
 
 // property_codemod end CorrespondenceView
 

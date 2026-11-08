@@ -23,7 +23,6 @@
       "field": "image_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": {
         "kind": "image",
@@ -55,7 +54,6 @@
       "field": "title_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": "title",
       "table": {
         "kind": "text",
@@ -92,7 +90,6 @@
       "field": "description_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": "description",
       "table": {
         "kind": "text",

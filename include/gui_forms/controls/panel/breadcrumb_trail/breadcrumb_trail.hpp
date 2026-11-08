@@ -165,6 +165,12 @@ private:
     static constexpr double edge_overlap_ = 9.0;
     static constexpr double edit_width_ = 30.0;
     // property_codemod begin BreadcrumbTrail (tools/property_families/breadcrumb_trail.json; generated, do not edit)
+protected:
+    // on_<property>_changed runs after a changed write's store and touch and
+    // raises the change event; an override calls the base. Only the
+    // properties with a Windows Forms On<Property>Changed have one.
+    virtual void on_font_changed();
+
 private:
     friend struct FontCapability<BreadcrumbTrail>;
     friend struct BreadcrumbTrailAppearanceCapability<BreadcrumbTrail>;

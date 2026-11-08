@@ -94,7 +94,9 @@ DomainUpDown::~DomainUpDown() {
 
 void DomainUpDown::EditorChangeCallback::operator()(const std::string&) const {
     const std::shared_ptr<DomainUpDown> domain = target.lock();
-    if (domain && !(*domain).synchronizing_) (*domain).match_text();
+    if (!domain) return;
+    if (!(*domain).synchronizing_) (*domain).match_text();
+    if ((*domain).is_alive()) (*domain).on_text_changed();
 }
 
 void DomainUpDown::SpinnerStepCallback::operator()(int direction) const {
@@ -531,6 +533,8 @@ void DomainUpDown::prepare_write(const decltype(button_width)&, double& incoming
 void DomainUpDown::written(const decltype(button_width)&) {
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
+
+void DomainUpDown::on_text_changed() {}
 
 // property_codemod end DomainUpDown
 

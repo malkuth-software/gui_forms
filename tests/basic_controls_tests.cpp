@@ -227,24 +227,42 @@ private:
     Rect& damage_;
 };
 
-// A GroupBox subclass using the protected hooks of the text capability
-// (P-8): coerce_text upper-cases the incoming caption before the compare,
-// and on_text_changed counts each changed write after the touch.
-class UpperCaseGroupBox final : public GroupBox {
+// A GroupBox subclass using the protected hook of the text capability
+// (P-8): on_text_changed counts each changed write after the touch.
+class CountingGroupBox final : public GroupBox {
 public:
     using GroupBox::GroupBox;
     int text_changes{};
 
 protected:
-    void coerce_text(std::string& incoming) override {
-        for (char& byte : incoming) {
-            if (byte >= 'a' && byte <= 'z') byte = static_cast<char>(byte - 'a' + 'A');
-        }
-    }
     void on_text_changed() override {
         GroupBox::on_text_changed();
         ++text_changes;
     }
+};
+
+// The Windows Forms MyButton pattern (P-8): a subclass overrides
+// on_text_changed (OnTextChanged), sees the stored text, and calls the base,
+// which raises text_changed. `raised_before_base` and `raised_after_base`
+// hold the subscriber's count on either side of the base call.
+class MyButton final : public Button {
+public:
+    MyButton(StableId stable_id, std::string text, const std::vector<std::string>& raised)
+        : Button(std::move(stable_id), std::move(text)), raised_(raised) {}
+    std::vector<std::string> seen_text;
+    std::vector<std::size_t> raised_before_base;
+    std::vector<std::size_t> raised_after_base;
+
+protected:
+    void on_text_changed() override {
+        seen_text.push_back(text.read());
+        raised_before_base.push_back(raised_.size());
+        Button::on_text_changed();
+        raised_after_base.push_back(raised_.size());
+    }
+
+private:
+    const std::vector<std::string>& raised_;
 };
 
 // on_size_mode_changed counts each changed SizeMode write after the touch.
@@ -1916,21 +1934,21 @@ void test_image_list_state_density_ownership_and_button_layout() {
 } // namespace
 
 void test_group_box_capability_hooks() {
-    std::shared_ptr<UpperCaseGroupBox> group = make_control<UpperCaseGroupBox>(StableId("hooks.group"), "Mode");
+    std::shared_ptr<CountingGroupBox> group = make_control<CountingGroupBox>(StableId("hooks.group"), "Mode");
     require((*group).text.read() == "Mode" && (*group).text_changes == 0,
             "construction stores the caption through GroupBox's own hooks");
     std::vector<std::string> captions;
     const SubscriptionToken caption_token = (*group).text_changed().subscribe(
         callbacks::PushBack<std::vector<std::string>, const std::string&>(captions));
-    (*group).text = "options";
-    require((*group).text.read() == "OPTIONS" && (*group).text_changes == 1 && captions.size() == 1U &&
-                captions[0] == "OPTIONS",
-            "coerce_text rewrites the caption; on_text_changed runs once and raises text_changed");
+    (*group).text = "Options";
+    require((*group).text.read() == "Options" && (*group).text_changes == 1 && captions.size() == 1U &&
+                captions[0] == "Options",
+            "on_text_changed runs once per changed caption and its base raises text_changed");
     (*group).text = "Options";
     require((*group).text_changes == 1 && captions.size() == 1U,
-            "a write coerced to the stored caption changes nothing and raises nothing");
-    (*group).set_property_value("text", BindingValue{std::string("table")});
-    require((*group).text.read() == "TABLE" && (*group).text_changes == 2 && captions.size() == 2U,
+            "an equal caption changes nothing and raises nothing");
+    (*group).set_property_value("text", BindingValue{std::string("Table")});
+    require((*group).text.read() == "Table" && (*group).text_changes == 2 && captions.size() == 2U,
             "a table write runs the same hooks");
     const std::optional<PropertyDescriptor> text_descriptor = (*group).property_descriptor("text");
     require(text_descriptor && (*text_descriptor).change_notifications,
@@ -2002,10 +2020,31 @@ void test_picture_box_property_capabilities() {
     static_cast<void>(changed);
 }
 
+void test_button_text_changed_override() {
+    std::vector<std::string> raised;
+    std::shared_ptr<MyButton> button = make_control<MyButton>(StableId("hooks.my_button"), "Run", raised);
+    const SubscriptionToken token = (*button).text_changed().subscribe(
+        callbacks::PushBack<std::vector<std::string>, const std::string&>(raised));
+    (*button).text = "Stop";
+    require((*button).seen_text.size() == 1U && (*button).seen_text[0] == "Stop",
+            "on_text_changed runs once, after the store");
+    require((*button).raised_before_base[0] == 0U && (*button).raised_after_base[0] == 1U &&
+                raised.size() == 1U && raised[0] == "Stop",
+            "the base on_text_changed raises text_changed with the stored text");
+    (*button).text = "Stop";
+    require((*button).seen_text.size() == 1U && raised.size() == 1U,
+            "an equal write calls no hook and raises nothing");
+    (*button).set_property_value("text", BindingValue{std::string("Pause")});
+    require((*button).seen_text.size() == 2U && (*button).seen_text[1] == "Pause" && raised.size() == 2U,
+            "a table write reaches the same override");
+    static_cast<void>(token);
+}
+
 int main() {
     try {
         test_public_controls_render_with_role_policy();
         test_group_box_capability_hooks();
+        test_button_text_changed_override();
         test_button_pointer_and_keyboard_activation();
         test_button_focus_cue_tracks_input_modality();
         test_button_authored_state_recipes_are_owned_and_retained();

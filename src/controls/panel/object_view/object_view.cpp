@@ -2269,7 +2269,10 @@ void ObjectView::prepare_write(const decltype(font)&, FontSpec& incoming) {
 
 void ObjectView::written(const decltype(font)&) {
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
+    on_font_changed();
 }
+
+void ObjectView::on_font_changed() {}
 
 // property_codemod end ObjectView
 

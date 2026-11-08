@@ -158,6 +158,7 @@ void TextBlock::prepare_write(const decltype(font)&, std::optional<FontSpec>& in
 
 void TextBlock::written(const decltype(font)&) {
     invalidate(invalidation::text_content);
+    on_font_changed();
 }
 
 void TextBlock::prepare_text(Workspace& workspace) const {
@@ -568,7 +569,7 @@ void TextBlock::prepare_write(const decltype(text)&, std::string&) {
 
 void TextBlock::written(const decltype(text)&) {
     invalidate(invalidation::text_content);
-    publish_change(text_changed_, text.read());
+    on_text_changed();
 }
 
 void TextBlock::prepare_write(const decltype(text_align)&, TextAlignment& incoming) {
@@ -588,6 +589,12 @@ void TextBlock::prepare_write(const decltype(line_height)&, std::optional<double
 void TextBlock::written(const decltype(line_height)&) {
     invalidate(invalidation::text_content);
 }
+
+void TextBlock::on_text_changed() {
+    publish_change(text_changed_, text.read());
+}
+
+void TextBlock::on_font_changed() {}
 
 // property_codemod end TextBlock
 

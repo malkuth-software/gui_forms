@@ -29,7 +29,6 @@
       "field": "text_",
       "event": "text_changed_",
       "on_changed": true,
-      "coerce": true,
       "localizable": "text",
       "table": {
         "kind": "text",
@@ -62,8 +61,7 @@
       "clear": "clear_font",
       "field": "font_override_",
       "event": null,
-      "on_changed": false,
-      "coerce": false,
+      "on_changed": true,
       "localizable": null,
       "table": {
         "kind": "font",
@@ -102,8 +100,7 @@
       "clear": null,
       "field": "alignment_",
       "event": null,
-      "on_changed": false,
-      "coerce": false,
+      "on_changed": true,
       "localizable": null,
       "table": {
         "kind": "enumeration",
@@ -137,7 +134,6 @@
       "field": "vertical_alignment_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": {
         "kind": "enumeration",
@@ -171,7 +167,6 @@
       "field": "text_wrapping_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": {
         "kind": "enumeration",
@@ -205,7 +200,6 @@
       "field": "maximum_lines_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": {
         "kind": "unsigned_integer",
@@ -239,7 +233,6 @@
       "field": "text_style_role_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": null,
       "hooks": "hand",
@@ -261,7 +254,6 @@
       "field": "line_spacing_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": null,
       "hooks": "generated",
@@ -283,7 +275,6 @@
       "field": "text_case_transform_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": null,
       "hooks": "generated",
@@ -305,7 +296,6 @@
       "field": "use_mnemonic_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": null,
       "hooks": "generated",

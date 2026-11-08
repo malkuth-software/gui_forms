@@ -23,7 +23,6 @@
       "field": "material_",
       "event": "material_changed_",
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": null,
       "hooks": "generated",

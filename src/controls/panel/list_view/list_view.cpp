@@ -906,6 +906,7 @@ void ListView::prepare_write(const decltype(font)&, FontSpec& incoming) {
 void ListView::written(const decltype(font)&) {
     if (label_editor_) (*label_editor_).font = font.read();
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+    on_font_changed();
 }
 
 void ListView::prepare_write(const decltype(tile_size)&, Size& incoming) {
@@ -3286,6 +3287,8 @@ void ListView::prepare_write(const decltype(default_group_header)&, std::string&
 void ListView::written(const decltype(default_group_header)&) {
     invalidate(Dirty::paint | Dirty::semantics);
 }
+
+void ListView::on_font_changed() {}
 
 // property_codemod end ListView
 

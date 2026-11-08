@@ -23,7 +23,6 @@
       "field": "caption_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": {
         "kind": "text",
@@ -54,7 +53,6 @@
       "field": "sweep_period_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": {
         "kind": "number",

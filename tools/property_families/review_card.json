@@ -23,7 +23,6 @@
       "field": "record_",
       "event": "record_changed_",
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": null,
       "hooks": "hand",

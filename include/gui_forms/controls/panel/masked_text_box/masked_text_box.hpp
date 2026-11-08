@@ -177,6 +177,13 @@ private:
     Event<bool> overwrite_mode_changed_;
     Event<const MaskValidation&> type_validation_completed_;
     // property_codemod begin MaskedTextBox (tools/property_families/masked_text_box.json; generated, do not edit)
+protected:
+    // on_<property>_changed runs after a changed write's store and touch and
+    // raises the change event; an override calls the base. Only the
+    // properties with a Windows Forms On<Property>Changed have one.
+    virtual void on_mask_changed();
+    virtual void on_read_only_changed();
+
 private:
     friend struct MaskedTextBoxMaskCapability<MaskedTextBox>;
     friend struct MaskedTextBoxCultureCapability<MaskedTextBox>;

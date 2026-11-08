@@ -91,17 +91,13 @@ private:
     std::string& values_;
 };
 
-// coerce_item_height rounds a row height up to an even pixel count, and
 // on_font_changed counts each changed font write after the touch.
-class EvenRowListBox final : public ListBox {
+class FontCountingListBox final : public ListBox {
 public:
     using ListBox::ListBox;
     int font_changes{};
 
 protected:
-    void coerce_item_height(double& incoming) override {
-        incoming = 2.0 * std::ceil(incoming * 0.5);
-    }
     void on_font_changed() override {
         ListBox::on_font_changed();
         ++font_changes;
@@ -789,7 +785,7 @@ void test_numeric_up_down_property_capabilities() {
 }
 
 void test_list_box_property_capabilities() {
-    std::shared_ptr<EvenRowListBox> list = make_control<EvenRowListBox>(StableId("input.list.caps"));
+    std::shared_ptr<FontCountingListBox> list = make_control<FontCountingListBox>(StableId("input.list.caps"));
     (*list).items = {"one", "two", "three", "four"};
     std::size_t changes{};
     const SubscriptionToken changed = (*list).selection_changed().subscribe(
@@ -816,8 +812,8 @@ void test_list_box_property_capabilities() {
     (*list).items = {"only"};
     require((*list).top_index.read() == 0U, "shrinking the items moves top_index back into range");
 
-    (*list).item_height = 27.0;
-    require((*list).item_height.read() == 28.0, "coerce_item_height rewrites the incoming height");
+    (*list).item_height = 28.0;
+    require((*list).item_height.read() == 28.0, "item_height is written");
     refused = false;
     try {
         (*list).item_height = 8.0;

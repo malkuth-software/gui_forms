@@ -1173,9 +1173,8 @@ std::span<const PropertyEntry> ButtonBase::property_table() const noexcept {
     return std::span<const PropertyEntry>(entries);
 }
 
-void ButtonBase::prepare_write(const decltype(text)&, std::string& incoming) {
+void ButtonBase::prepare_write(const decltype(text)&, std::string&) {
     require_mutable();
-    coerce_text(incoming);
 }
 
 void ButtonBase::written(const decltype(text)&) {
@@ -1186,8 +1185,6 @@ void ButtonBase::written(const decltype(text)&) {
 void ButtonBase::on_text_changed() {
     publish_change(text_changed_, text.read());
 }
-
-void ButtonBase::coerce_text(std::string&) {}
 
 void ButtonBase::prepare_write(const decltype(text_alignment)&, ContentAlignment& incoming) {
     require_mutable();
@@ -1202,7 +1199,6 @@ void ButtonBase::prepare_write(const decltype(font)&, FontSpec& incoming) {
     require_mutable();
     if (!valid_font_spec(incoming)) throw std::invalid_argument("Button font specification is invalid");
     set_font_from_code(true);
-    coerce_font(incoming);
 }
 
 void ButtonBase::written(const decltype(font)&) {
@@ -1211,8 +1207,6 @@ void ButtonBase::written(const decltype(font)&) {
 }
 
 void ButtonBase::on_font_changed() {}
-
-void ButtonBase::coerce_font(FontSpec&) {}
 
 void ButtonBase::prepare_write(const decltype(content_padding)&, Insets& incoming) {
     require_mutable();

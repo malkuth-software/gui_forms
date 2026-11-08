@@ -29,8 +29,7 @@
       "clear": null,
       "field": "text_",
       "event": "text_changed_",
-      "on_changed": false,
-      "coerce": false,
+      "on_changed": true,
       "localizable": "text",
       "table": {
         "kind": "text",
@@ -60,8 +59,7 @@
       "clear": "clear_font",
       "field": "font_override_",
       "event": null,
-      "on_changed": false,
-      "coerce": false,
+      "on_changed": true,
       "localizable": null,
       "table": {
         "kind": "font",
@@ -101,7 +99,6 @@
       "field": "text_align_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": {
         "kind": "enumeration",
@@ -135,7 +132,6 @@
       "field": "line_height_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": {
         "kind": "number",

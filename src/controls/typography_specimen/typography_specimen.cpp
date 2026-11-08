@@ -383,6 +383,7 @@ void TypographySpecimen::prepare_write(const decltype(text)&, std::string&) {
 
 void TypographySpecimen::written(const decltype(text)&) {
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics | Dirty::accessibility);
+    on_text_changed();
 }
 
 void TypographySpecimen::prepare_write(const decltype(font)&, FontSpec& incoming) {
@@ -393,6 +394,7 @@ void TypographySpecimen::prepare_write(const decltype(font)&, FontSpec& incoming
 
 void TypographySpecimen::written(const decltype(font)&) {
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
+    on_font_changed();
 }
 
 void TypographySpecimen::prepare_write(const decltype(caption)&, std::string&) {
@@ -418,6 +420,10 @@ void TypographySpecimen::prepare_write(const decltype(wrap_text)&, bool&) {
 void TypographySpecimen::written(const decltype(wrap_text)&) {
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
 }
+
+void TypographySpecimen::on_text_changed() {}
+
+void TypographySpecimen::on_font_changed() {}
 
 // property_codemod end TypographySpecimen
 

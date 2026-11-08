@@ -876,6 +876,7 @@ void PropertyList::write_view(const decltype(font)&, FontSpec incoming) {
     (*impl_).arrange_editors();
     invalidate(Dirty::measure | Dirty::layout | Dirty::paint |
                Dirty::hit_test | Dirty::semantics);
+    on_font_changed();
 }
 
 double PropertyList::read_view(const decltype(row_height)&) const { return (*impl_).row_height; }
@@ -1467,6 +1468,8 @@ void PropertyList::append_interactions(std::vector<InteractionDeclaration>& inte
 }
 
 // property_codemod begin PropertyList (tools/property_families/property_list.json; generated, do not edit)
+
+void PropertyList::on_font_changed() {}
 
 // property_codemod end PropertyList
 

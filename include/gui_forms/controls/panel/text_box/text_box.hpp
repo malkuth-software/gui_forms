@@ -402,6 +402,16 @@ public:
     [[nodiscard]] static const std::array<PropertyEntry, text_box_property_count>& text_box_property_entries() noexcept;
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
 
+protected:
+    // on_<property>_changed runs after a changed write's store and touch and
+    // raises the change event; an override calls the base. Only the
+    // properties with a Windows Forms On<Property>Changed have one.
+    virtual void on_text_changed();
+    virtual void on_read_only_changed();
+    virtual void on_multiline_changed();
+    virtual void on_accepts_tab_changed();
+    virtual void on_font_changed();
+
 private:
     friend struct TextBoxTextCapability<TextBox>;
     friend struct TextBoxPlaceholderTextCapability<TextBox>;

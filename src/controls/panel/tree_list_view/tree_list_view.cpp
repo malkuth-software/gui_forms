@@ -2011,7 +2011,10 @@ void TreeListView::prepare_write(const decltype(font)&, FontSpec& incoming) {
 
 void TreeListView::written(const decltype(font)&) {
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+    on_font_changed();
 }
+
+void TreeListView::on_font_changed() {}
 
 // property_codemod end TreeListView
 

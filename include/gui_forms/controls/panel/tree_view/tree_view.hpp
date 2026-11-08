@@ -165,6 +165,12 @@ private:
     Event<const TreeExpansionChange&> expansion_changed_;
     Event<const std::string&> item_activated_;
     // property_codemod begin TreeView (tools/property_families/tree_view.json; generated, do not edit)
+protected:
+    // on_<property>_changed runs after a changed write's store and touch and
+    // raises the change event; an override calls the base. Only the
+    // properties with a Windows Forms On<Property>Changed have one.
+    virtual void on_font_changed();
+
 private:
     friend struct TreeViewSelectedIdCapability<TreeView>;
     friend struct TreeViewItemHeightCapability<TreeView>;

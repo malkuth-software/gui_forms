@@ -50,7 +50,7 @@ Config keys are the study's (section 15.2) plus these, all optional:
   table      "binding_direction": a form binding's default direction
              (PropertyBindingDirection; "two_way" for what the user edits).
   property   "prepare": C++ statements a generated prepare_write runs after
-             require_mutable and before coerce (`incoming` is the incoming value).
+             require_mutable and before the compare (`incoming` is the incoming value).
              "written_effects": the dirty mask a generated written touches
              when it differs from the descriptor's (table.effects).
              "traits": "hand" when the value type's PropertyValueTraits are
@@ -69,7 +69,7 @@ import sys
 
 PROPERTY_KEYS = {
     "name", "capability", "value", "initial", "comment", "getter", "setter", "clear", "field", "event",
-    "on_changed", "coerce", "localizable", "table", "hooks", "storage", "effects", "thunks", "hand",
+    "on_changed", "localizable", "table", "hooks", "storage", "effects", "thunks", "hand",
     "comment_generated", "prepare", "written_effects", "traits", "sample",
 }
 TOP_KEYS = {
@@ -275,11 +275,11 @@ HEADER_COMMENT = """
 // Each is a standard-layout struct whose only member is its property's
 // cell, taken by the declaring class as a base. A write
 // `(*control).x = value;` runs `assign`: the declaring class's
-// prepare_write hook (require_mutable first, then the value's checks and,
-// where C# lets a subclass rewrite the value, the protected virtual coerce
-// hook), the compare and store, then the written hook (the touch, side
-// effects and the change event, through the protected virtual
-// on_<property>_changed() where Windows Forms has OnXChanged). A read is
+// prepare_write hook (require_mutable first, then the value's checks), the
+// compare and store, then the written hook (the touch, side effects and the
+// change event, through the protected virtual on_<property>_changed() where
+// Windows Forms has an overridable On<Property>Changed; other properties
+// have no hook, and a subclass subscribes to their change events instead). A read is
 // `(*control).x.read()`.
 """
 
@@ -637,13 +637,11 @@ def header_block(config):
     for prop in config["properties"]:
         if prop.get("on_changed"):
             virtuals.append(f"    virtual void on_{prop['name']}_changed();")
-        if prop.get("coerce"):
-            virtuals.append(f"    virtual void coerce_{prop['name']}({prop['value']}& incoming);")
     if virtuals:
         lines += ["protected:",
-                  "    // on_<property>_changed runs after a changed write's touch and raises the",
-                  "    // change event; an override calls the base. coerce_<property> runs last",
-                  "    // before the compare and may rewrite the incoming value.",
+                  "    // on_<property>_changed runs after a changed write's store and touch and",
+                  "    // raises the change event; an override calls the base. Only the",
+                  "    // properties with a Windows Forms On<Property>Changed have one.",
                   *virtuals, ""]
     if not config["properties"]:
         # A family of hand entries only (extra_entries) has no cells, so no
@@ -835,15 +833,13 @@ def generated_hooks(config, prop):
     member = prop["name"]
     value = prop["value"]
     statements = prop.get("prepare") or []
-    uses_value = bool(statements) or prop.get("coerce")
+    uses_value = bool(statements)
     parameter = f"{value}& incoming" if uses_value else f"{value}&"
     lines = [f"void {declaring}::prepare_write(const decltype({member})&, {parameter}) {{"]
     check = config.get("mutation_check", "require_mutable();")
     if check:
         lines.append("    " + check)
     lines += ["    " + statement for statement in statements]
-    if prop.get("coerce"):
-        lines.append(f"    coerce_{member}(incoming);")
     lines += ["}", "", f"void {declaring}::written(const decltype({member})&) {{"]
     mask = written_mask(prop)
     table = prop.get("table") or {}
@@ -874,8 +870,6 @@ def virtual_bodies(config, prop):
                       f"    publish_change({prop['event']}, {member}.read());", "}", ""]
         else:
             lines += [f"void {declaring}::on_{member}_changed() {{}}", ""]
-    if prop.get("coerce"):
-        lines += [f"void {declaring}::coerce_{member}({prop['value']}&) {{}}", ""]
     return "\n".join(lines) + ("\n" if lines else "")
 
 

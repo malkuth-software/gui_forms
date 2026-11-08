@@ -225,6 +225,7 @@ void DataGridView::prepare_write(const decltype(auto_size_columns_mode)&, DataGr
 
 void DataGridView::written(const decltype(auto_size_columns_mode)&) {
     structure_changed();
+    on_auto_size_columns_mode_changed();
 }
 
 DataGridViewAutoSizeColumnMode DataGridView::column_auto_size_mode(std::size_t column) const {
@@ -671,6 +672,7 @@ void DataGridView::prepare_write(const decltype(auto_size_rows_mode)&, DataGridV
 void DataGridView::written(const decltype(auto_size_rows_mode)&) {
     // The index is rebuilt from the own heights, and measured again.
     rows_changed();
+    on_auto_size_rows_mode_changed();
 }
 
 void DataGridView::auto_resize_row(DataGridViewRowPosition row, DataGridViewAutoSizeRowMode mode) {

@@ -22,8 +22,7 @@
       "clear": null,
       "field": null,
       "event": "check_state_changed_",
-      "on_changed": false,
-      "coerce": false,
+      "on_changed": true,
       "localizable": null,
       "table": {
         "kind": "enumeration",
@@ -57,8 +56,7 @@
       "clear": null,
       "field": null,
       "event": "checked_changed_",
-      "on_changed": false,
-      "coerce": false,
+      "on_changed": true,
       "localizable": null,
       "table": {
         "kind": "boolean",
@@ -94,7 +92,6 @@
       "field": "three_state_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": {
         "kind": "boolean",
@@ -128,7 +125,6 @@
       "field": "auto_check_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": null,
       "hooks": "generated",
@@ -145,8 +141,7 @@
       "clear": null,
       "field": "appearance_",
       "event": null,
-      "on_changed": false,
-      "coerce": false,
+      "on_changed": true,
       "localizable": null,
       "table": null,
       "hooks": "generated",
@@ -167,7 +162,6 @@
       "field": "indicator_style_",
       "event": null,
       "on_changed": false,
-      "coerce": false,
       "localizable": null,
       "table": {
         "kind": "enumeration",

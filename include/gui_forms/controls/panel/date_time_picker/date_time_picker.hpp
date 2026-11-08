@@ -111,6 +111,14 @@ private:
     Event<bool> checked_changed_;
     Event<bool> drop_down_changed_;
     // property_codemod begin DateTimePicker (tools/property_families/date_time_picker.json; generated, do not edit)
+protected:
+    // on_<property>_changed runs after a changed write's store and touch and
+    // raises the change event; an override calls the base. Only the
+    // properties with a Windows Forms On<Property>Changed have one.
+    virtual void on_value_changed();
+    virtual void on_format_changed();
+    virtual void on_font_changed();
+
 private:
     friend struct DateTimePickerValueCapability<DateTimePicker>;
     friend struct DateTimePickerMinimumCapability<DateTimePicker>;
