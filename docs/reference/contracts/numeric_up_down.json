@@ -23,57 +23,9 @@
       "reviewed": false,
       "summary": "Attaches owned children and subscriptions exactly once, then synchronizes presentation."
     },
-    "gui_forms::NumericUpDown::minimum|double () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the inclusive lower value bound."
-    },
-    "gui_forms::NumericUpDown::maximum|double () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the inclusive upper value bound."
-    },
     "gui_forms::NumericUpDown::set_range|void (double, double)": {
       "reviewed": false,
       "summary": "Validates finite ordered bounds, constrains the current value, and refreshes editor and semantics atomically."
-    },
-    "gui_forms::NumericUpDown::value|double () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the authoritative constrained numeric value."
-    },
-    "gui_forms::NumericUpDown::set_value|void (double)": {
-      "reviewed": false,
-      "summary": "Validates finiteness, clamps to the range, synchronizes text, and publishes a real value change."
-    },
-    "gui_forms::NumericUpDown::increment|double () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the positive step magnitude."
-    },
-    "gui_forms::NumericUpDown::set_increment|void (double)": {
-      "reviewed": false,
-      "summary": "Accepts a finite positive increment and refreshes semantic range metadata."
-    },
-    "gui_forms::NumericUpDown::decimal_places|std::uint8_t () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the bounded fixed-point precision used outside hexadecimal mode."
-    },
-    "gui_forms::NumericUpDown::set_decimal_places|void (std::uint8_t)": {
-      "reviewed": false,
-      "summary": "Accepts supported precision and reformats the owned editor."
-    },
-    "gui_forms::NumericUpDown::hexadecimal|bool () const noexcept": {
-      "reviewed": false,
-      "summary": "Reports whether integral hexadecimal presentation and parsing are active."
-    },
-    "gui_forms::NumericUpDown::set_hexadecimal|void (bool)": {
-      "reviewed": false,
-      "summary": "Toggles hexadecimal policy and synchronizes editor projection."
-    },
-    "gui_forms::NumericUpDown::button_width|double () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the logical allocation reserved for the spin-button column."
-    },
-    "gui_forms::NumericUpDown::set_button_width|void (double)": {
-      "reviewed": false,
-      "summary": "Accepts a finite 12–64 logical-pixel width and invalidates composite layout."
     },
     "gui_forms::NumericUpDown::editor|std::shared_ptr<TextBox> () const noexcept": {
       "reviewed": false,

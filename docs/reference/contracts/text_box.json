@@ -21,65 +21,9 @@
       "reviewed": false,
       "summary": "Constructs a focusable text editor with I-beam cursor, text-input intent, and retained caret state."
     },
-    "gui_forms::TextBox::text|std::string_view () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the authoritative unmasked UTF-8 value."
-    },
-    "gui_forms::TextBox::set_text|void (std::string)": {
-      "reviewed": false,
-      "summary": "Validates UTF-8, replaces the value programmatically, clears edit history, constrains selection, and publishes changed state."
-    },
-    "gui_forms::TextBox::placeholder_text|std::string_view () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the hint rendered only while the authoritative value is empty."
-    },
-    "gui_forms::TextBox::set_placeholder_text|void (std::string)": {
-      "reviewed": false,
-      "summary": "Commits hint text and invalidates paint without entering it into the value model."
-    },
-    "gui_forms::TextBox::read_only|bool () const noexcept": {
-      "reviewed": false,
-      "summary": "Reports whether user-originated mutations are rejected while selection and copy remain available."
-    },
-    "gui_forms::TextBox::set_read_only|void (bool)": {
-      "reviewed": false,
-      "summary": "Toggles the user-edit gate and refreshes paint and semantics."
-    },
-    "gui_forms::TextBox::maximum_length|std::size_t () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the maximum admitted Unicode scalar count for user edits, or zero for unlimited."
-    },
-    "gui_forms::TextBox::set_maximum_length|void (std::size_t)": {
-      "reviewed": false,
-      "summary": "Accepts zero or a bounded scalar limit, constrains future user edits, and leaves programmatic assignment explicit."
-    },
-    "gui_forms::TextBox::password_character|char32_t () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the explicit masking scalar, or an empty value when none is selected."
-    },
-    "gui_forms::TextBox::set_password_character|void (char32_t)": {
-      "reviewed": false,
-      "summary": "Validates a single UTF-8 scalar and updates masked display without changing authoritative text."
-    },
-    "gui_forms::TextBox::use_system_password_character|bool () const noexcept": {
-      "reviewed": false,
-      "summary": "Reports whether the platform-neutral default bullet masks displayed text."
-    },
-    "gui_forms::TextBox::set_use_system_password_character|void (bool)": {
-      "reviewed": false,
-      "summary": "Toggles default password masking and invalidates visual and semantic projection."
-    },
     "gui_forms::TextBox::password_protected|bool () const noexcept": {
       "reviewed": false,
       "summary": "Reports whether either explicit or system masking policy is active."
-    },
-    "gui_forms::TextBox::font|FontSpec () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the retained editor FontSpec."
-    },
-    "gui_forms::TextBox::set_font|void (FontSpec)": {
-      "reviewed": false,
-      "summary": "Validates typography, then invalidates measurement, paint, and caret geometry."
     },
     "gui_forms::TextBox::selection|TextSelection () const noexcept": {
       "reviewed": false,
