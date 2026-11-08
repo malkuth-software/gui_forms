@@ -28,14 +28,6 @@
       "reviewed": false,
       "summary": "Validates stable identities and parent relationships, rebuilds the visible preorder, and reconciles selection, focus, and scrolling."
     },
-    "gui_forms::TreeView::selected_id|std::string_view () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the selected stable item identity, or no value when selection is empty."
-    },
-    "gui_forms::TreeView::set_selected_id|void (std::string_view)": {
-      "reviewed": false,
-      "summary": "Selects an admitted identity, makes it visible, and publishes only a real selection transition."
-    },
     "gui_forms::TreeView::active_id|std::string_view () const noexcept": {
       "reviewed": false,
       "summary": "Returns the keyboard-active visible item independently of selection."
@@ -48,30 +40,6 @@
       "reviewed": false,
       "summary": "Commits branch expansion, rebuilds visible rows, preserves valid focus/selection, and publishes the transition."
     },
-    "gui_forms::TreeView::item_height|double () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the logical height of each realized row."
-    },
-    "gui_forms::TreeView::set_item_height|void (double)": {
-      "reviewed": false,
-      "summary": "Validates positive bounded row geometry and invalidates layout, paint, and semantics."
-    },
-    "gui_forms::TreeView::indentation|double () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the logical horizontal offset applied per hierarchy depth."
-    },
-    "gui_forms::TreeView::set_indentation|void (double)": {
-      "reviewed": false,
-      "summary": "Validates bounded depth spacing and refreshes hierarchy geometry."
-    },
-    "gui_forms::TreeView::show_expanders|bool () const noexcept": {
-      "reviewed": false,
-      "summary": "Reports whether expandable rows paint disclosure affordances."
-    },
-    "gui_forms::TreeView::set_show_expanders|void (bool)": {
-      "reviewed": false,
-      "summary": "Toggles disclosure painting without changing retained expansion authority."
-    },
     "gui_forms::TreeView::top_row|std::size_t () const noexcept": {
       "reviewed": false,
       "summary": "Returns the first visible preorder row projected into the viewport."
@@ -79,22 +47,6 @@
     "gui_forms::TreeView::set_top_row|void (std::size_t)": {
       "reviewed": false,
       "summary": "Clamps and commits the visible-row origin, then refreshes paint and virtual semantics."
-    },
-    "gui_forms::TreeView::font|FontSpec () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the retained typography used for tree rows."
-    },
-    "gui_forms::TreeView::set_font|void (FontSpec)": {
-      "reviewed": false,
-      "summary": "Validates typography and invalidates row measurement, paint, and semantics."
-    },
-    "gui_forms::TreeView::image_list|std::shared_ptr<ImageList> () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the optional shared image source used by item image keys."
-    },
-    "gui_forms::TreeView::set_image_list|void (std::shared_ptr<ImageList>)": {
-      "reviewed": false,
-      "summary": "Rebinds item imagery and refreshes visual and semantic projections."
     },
     "gui_forms::TreeView::selection_changed|Event<const TreeSelectionChange &> &() noexcept": {
       "reviewed": false,
