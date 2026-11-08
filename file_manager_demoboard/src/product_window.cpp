@@ -896,7 +896,7 @@ std::shared_ptr<Panel> make_selection_pane(ProductRefs& refs) {
     std::shared_ptr<gui_forms::PropertyList> properties = std::make_shared<PropertyList>(
         StableId("fm.selection.properties"));
     (*properties).accessible_name = "Selection properties";
-    (*properties).set_label_width(76.0);
+    (*properties).label_width = 76.0;
     (*properties).margin = Insets{};
     (*properties).dock = DockStyle::fill;
     std::shared_ptr<gui_forms::ScaledPanel> header = std::make_shared<ScaledPanel>(
@@ -3102,7 +3102,7 @@ struct PreviewDisclosureHandler final {
         const std::shared_ptr<Control> control = preview.lock();
         if (control) (*control).visible = *expanded;
         const std::shared_ptr<PropertyList> list = property_list.lock();
-        if (list) (*list).set_header_height(*expanded ? 212.0 : 34.0);
+        if (list) (*list).header_height = *expanded ? 212.0 : 34.0;
         const std::shared_ptr<Button> button = disclosure.lock();
         if (button) {
             (*button).text = std::string(*expanded ? "▼" : "▶");

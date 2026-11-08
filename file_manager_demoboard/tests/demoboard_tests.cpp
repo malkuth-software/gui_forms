@@ -830,9 +830,9 @@ int main() {
 
     require((*property_list).header_content() ==
                 (*product).find("fm.selection.summary") &&
-                (*property_list).header_height() == 212.0 &&
+                (*property_list).header_height.read() == 212.0 &&
                 (*property_list).content_height() >
-                    (*property_list).header_height() &&
+                    (*property_list).header_height.read() &&
                 (*property_name).parent() == property_list &&
                 (*(*property_list).header_content()).parent() == property_list,
             "Selection preview and grouped properties must share one owned scroll plane");
@@ -889,11 +889,11 @@ int main() {
                     "handler committed") != std::string::npos,
             "choice property must commit through the shared PropertyList model");
     (*preview_disclosure).perform_click();
-    require(!(*preview).visible.read() && (*property_list).header_height() == 34.0 &&
+    require(!(*preview).visible.read() && (*property_list).header_height.read() == 34.0 &&
                 (*preview_disclosure).text.read() == "▶",
             "preview disclosure must collapse retained header content without replacing it");
     (*preview_disclosure).perform_click();
-    require((*preview).visible.read() && (*property_list).header_height() == 212.0 &&
+    require((*preview).visible.read() && (*property_list).header_height.read() == 212.0 &&
                 (*preview_disclosure).text.read() == "▼" &&
                 (*property_list).header_content() ==
                     (*product).find("fm.selection.summary"),

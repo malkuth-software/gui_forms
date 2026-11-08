@@ -7,7 +7,7 @@ gui_forms::PropertyList
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: PropertyList final : public Panel
+.. cpp:class:: PropertyList final : public Panel, public PropertyListCapabilities<PropertyList>
 
    ``#include <gui_forms/controls/panel/property_list/property_list.hpp>``
 
@@ -32,16 +32,6 @@ gui_forms::PropertyList
          semantic actions address the control by this ID.
 
    :Properties:
-
-      **groups** : ``std::vector<PropertyGroupSpec>``
-         The groups and rows, as given to :cpp:func:`set_groups <gui_forms::PropertyList::set_groups>` and updated as values
-         and expansion states change. Setting it replaces every row and disposes
-         every editor, including editors returned earlier by :cpp:func:`editor <gui_forms::PropertyList::editor>`; see the
-         notes for the rules it checks.
-
-      **header_content** : ``Control::Ptr``
-         A control shown above the first group, which scrolls with the rows.
-         Set it with :cpp:func:`set_header_content <gui_forms::PropertyList::set_header_content>`. There is none by default.
 
       **header_height** : ``double``
          The height reserved for :cpp:func:`header_content <gui_forms::PropertyList::header_content>`, from 0 to 4096, and 0 when
@@ -68,6 +58,16 @@ gui_forms::PropertyList
          :cpp:func:`content_height <gui_forms::PropertyList::content_height>` minus the visible height. A value that is not finite
          throws ``std::invalid_argument``. Replacing the groups scrolls back to the
          top.
+
+      **groups** : ``std::vector<PropertyGroupSpec>``
+         The groups and rows, as given to :cpp:func:`set_groups <gui_forms::PropertyList::set_groups>` and updated as values
+         and expansion states change. Setting it replaces every row and disposes
+         every editor, including editors returned earlier by :cpp:func:`editor <gui_forms::PropertyList::editor>`; see the
+         notes for the rules it checks.
+
+      **header_content** : ``Control::Ptr``
+         A control shown above the first group, which scrolls with the rows.
+         Set it with :cpp:func:`set_header_content <gui_forms::PropertyList::set_header_content>`. There is none by default.
 
       **content_height** : ``double``, read-only
          The height of the header, the group headers and the visible rows.
@@ -259,6 +259,37 @@ gui_forms::PropertyList
 
    .. rubric:: Properties
 
+   .. cpp:member:: double header_height
+
+      The height reserved for :cpp:func:`header_content <gui_forms::PropertyList::header_content>`, from 0 to 4096, and 0 when
+      there is no header content; any other height throws
+      ``std::invalid_argument``. The default is 0.
+
+   .. cpp:member:: double label_width
+
+      The width of the name column, from 40 to 320; any other width throws
+      ``std::invalid_argument``. The default is 76.
+
+   .. cpp:member:: FontSpec font
+
+      The font of the rows. Setting it also sets the font of the stock editors
+      and Reset buttons and overrides the group, name and validation fonts. The
+      default is the content font at 9.5 points.
+
+   .. cpp:member:: double row_height
+
+      The minimum height of a row; rows with an editor or a Reset button are
+      five units taller, and a larger font, a stacked layout or a validation
+      message adds more. It must be positive and at most 4096, or the setter
+      throws ``std::invalid_argument``. The default is 29.
+
+   .. cpp:member:: double scroll_offset
+
+      How far the content is scrolled, clamped between 0 and
+      :cpp:func:`content_height <gui_forms::PropertyList::content_height>` minus the visible height. A value that is not finite
+      throws ``std::invalid_argument``. Replacing the groups scrolls back to the
+      top.
+
    .. cpp:function:: const std::vector<PropertyGroupSpec>& groups() const noexcept
 
       The groups and rows, as given to :cpp:func:`set_groups <gui_forms::PropertyList::set_groups>` and updated as values
@@ -278,57 +309,6 @@ gui_forms::PropertyList
    .. cpp:function:: void set_header_content(Control::Ptr content, double height)
 
       Sets :cpp:func:`header_content <gui_forms::PropertyList::header_content>`; see the property's description above.
-
-   .. cpp:function:: double header_height() const noexcept
-
-      The height reserved for :cpp:func:`header_content <gui_forms::PropertyList::header_content>`, from 0 to 4096, and 0 when
-      there is no header content; any other height throws
-      ``std::invalid_argument``. The default is 0.
-
-   .. cpp:function:: void set_header_height(double height)
-
-      Sets :cpp:func:`header_height <gui_forms::PropertyList::header_height>`; see the property's description above.
-
-   .. cpp:function:: double label_width() const noexcept
-
-      The width of the name column, from 40 to 320; any other width throws
-      ``std::invalid_argument``. The default is 76.
-
-   .. cpp:function:: void set_label_width(double width)
-
-      Sets :cpp:func:`label_width <gui_forms::PropertyList::label_width>`; see the property's description above.
-
-   .. cpp:function:: FontSpec font() const noexcept
-
-      The font of the rows. Setting it also sets the font of the stock editors
-      and Reset buttons and overrides the group, name and validation fonts. The
-      default is the content font at 9.5 points.
-
-   .. cpp:function:: void set_font(FontSpec font)
-
-      Sets :cpp:func:`font <gui_forms::PropertyList::font>`; see the property's description above.
-
-   .. cpp:function:: double row_height() const noexcept
-
-      The minimum height of a row; rows with an editor or a Reset button are
-      five units taller, and a larger font, a stacked layout or a validation
-      message adds more. It must be positive and at most 4096, or the setter
-      throws ``std::invalid_argument``. The default is 29.
-
-   .. cpp:function:: void set_row_height(double height)
-
-      Sets :cpp:func:`row_height <gui_forms::PropertyList::row_height>`; see the property's description above.
-
-   .. cpp:function:: double scroll_offset() const noexcept
-
-      How far the content is scrolled, clamped between 0 and
-      :cpp:func:`content_height <gui_forms::PropertyList::content_height>` minus the visible height. A value that is not finite
-      throws ``std::invalid_argument``. Replacing the groups scrolls back to the
-      top.
-
-   .. cpp:function:: void set_scroll_offset(double offset)
-
-      Sets :cpp:func:`scroll_offset <gui_forms::PropertyList::scroll_offset>`; see the property's description above.
 
    .. cpp:function:: double content_height() const noexcept
 

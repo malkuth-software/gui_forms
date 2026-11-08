@@ -1229,7 +1229,7 @@ void PropertyGrid::initialize_control_tree() {
     if ((*impl_).list) return;
     (*impl_).list = make_control<PropertyList>(
         StableId(std::string(stable_id().value()) + ".list"));
-    (*(*impl_).list).set_label_width(112.0);
+    (*(*impl_).list).label_width = 112.0;
     add_child((*impl_).list);
     (*impl_).list_commit = (*(*impl_).list).value_committed().subscribe(
         *this, Impl::ListCommit{impl_.get()});

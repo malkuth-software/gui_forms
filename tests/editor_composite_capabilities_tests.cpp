@@ -46,10 +46,38 @@ void test_property_grid() {
     require(refused && (*grid).editor_registry.read(), "a null editor registry is refused");
 }
 
+void test_property_list() {
+    std::shared_ptr<PropertyList> list = make_control<PropertyList>(StableId("caps.list"));
+    (*list).label_width = 120.0;
+    (*list).row_height = 30.0;
+    require((*list).label_width.read() == 120.0 && (*list).row_height.read() == 30.0,
+            "layout writes are read back");
+    bool refused = false;
+    try {
+        (*list).label_width = 20.0;
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*list).label_width.read() == 120.0, "a label column under 40 is refused");
+    refused = false;
+    try {
+        (*list).header_height = 40.0;
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*list).header_height.read() == 0.0, "a header height without header content is refused");
+    (*list).scroll_offset = 500.0;
+    require((*list).scroll_offset.read() == 0.0, "a scroll write is clamped to the overflow (none here)");
+    const FontSpec larger{FontRole::content, 15.0, 400, false};
+    (*list).font = larger;
+    require((*list).font.read() == larger, "a font write overrides the theme's");
+}
+
 } // namespace
 
 int main() {
     test_property_grid();
+    test_property_list();
     std::cout << "gui_forms_editor_composite_capabilities_tests: all tests passed\n";
     return EXIT_SUCCESS;
 }

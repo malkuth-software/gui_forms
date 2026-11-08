@@ -1,0 +1,143 @@
+{
+  "family": "PropertyList",
+  "step": "B6",
+  "declaring": "PropertyList",
+  "header": "include/gui_forms/controls/panel/property_list/property_list.hpp",
+  "source": "src/controls/panel/property_list/property_list.cpp",
+  "capabilities_header": "include/gui_forms/controls/panel/property_list/property_list_capabilities/property_list_capabilities.hpp",
+  "base": "Panel",
+  "shared": [],
+  "includes": [
+    "gui_forms/types.hpp"
+  ],
+  "properties": [
+    {
+      "name": "header_height",
+      "capability": "PropertyListHeaderHeight",
+      "value": "double",
+      "initial": null,
+      "comment": "The header content's height, 0 to 4096 (std::invalid_argument otherwise; nonzero needs header content); a view onto the list's layout. A change re-lays out the rows.",
+      "getter": "header_height",
+      "setter": "set_header_height",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto the layout state; write_view keeps the refusal and re-lays out"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "label_width",
+      "capability": "PropertyListLabelWidth",
+      "value": "double",
+      "initial": null,
+      "comment": "The label column's width, 40 to 320 (std::invalid_argument otherwise); a view onto the list's layout. A change re-lays out the rows.",
+      "getter": "label_width",
+      "setter": "set_label_width",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto the layout state; write_view keeps the refusal and re-lays out"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "font",
+      "capability": "PropertyListFont",
+      "value": "FontSpec",
+      "initial": null,
+      "comment": "The rows' font (Font); a view onto the list's typography, which follows the theme until written. A write marks the font as set from code, passes it to the editors and re-lays out; an invalid FontSpec throws std::invalid_argument.",
+      "getter": "font",
+      "setter": "set_font",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto the typography (the theme's until overridden); write_view applies it to the editors"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "row_height",
+      "capability": "PropertyListRowHeight",
+      "value": "double",
+      "initial": null,
+      "comment": "Each row's height, above 0 and at most 4096 (std::invalid_argument otherwise); a view onto the list's layout. A change re-lays out the rows.",
+      "getter": "row_height",
+      "setter": "set_row_height",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto the layout state; write_view keeps the refusal and re-lays out"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "scroll_offset",
+      "capability": "PropertyListScrollOffset",
+      "value": "double",
+      "initial": null,
+      "comment": "How far the rows are scrolled; a view onto the list's scroll state. A write is clamped to the content's overflow; a value that is not finite throws std::invalid_argument.",
+      "getter": "scroll_offset",
+      "setter": "set_scroll_offset",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto the scroll state, which the list also moves itself; write_view clamps"
+      ],
+      "effects": null,
+      "storage": "view"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "groups",
+      "reason": "a collection; stays methods (W owns collections)"
+    },
+    {
+      "name": "header_content",
+      "reason": "a child slot set with its height"
+    },
+    {
+      "name": "value",
+      "reason": "per-row state with a row argument"
+    }
+  ],
+  "test": {
+    "type": "PropertyList",
+    "include": "gui_forms/controls/panel/property_list/property_list.hpp"
+  }
+}

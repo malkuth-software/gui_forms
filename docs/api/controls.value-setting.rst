@@ -152,6 +152,18 @@ Related types
      -  
    * - :cpp:class:`PropertyList::Parts <gui_forms::PropertyList::Parts>`
      - Stage T1 anatomy, as dot members.
+   * - :cpp:class:`PropertyListCapabilities <gui_forms::PropertyListCapabilities>`
+     - Every PropertyList capability, in the order the declaring class takes them.
+   * - :cpp:class:`PropertyListFontCapability <gui_forms::PropertyListFontCapability>`
+     - The rows' font (Font); a view onto the list's typography, which follows the theme until written.
+   * - :cpp:class:`PropertyListHeaderHeightCapability <gui_forms::PropertyListHeaderHeightCapability>`
+     - The header content's height, 0 to 4096 (std::invalid_argument otherwise; nonzero needs header content); a view onto the list's layout.
+   * - :cpp:class:`PropertyListLabelWidthCapability <gui_forms::PropertyListLabelWidthCapability>`
+     - The label column's width, 40 to 320 (std::invalid_argument otherwise); a view onto the list's layout.
+   * - :cpp:class:`PropertyListRowHeightCapability <gui_forms::PropertyListRowHeightCapability>`
+     - Each row's height, above 0 and at most 4096 (std::invalid_argument otherwise); a view onto the list's layout.
+   * - :cpp:class:`PropertyListScrollOffsetCapability <gui_forms::PropertyListScrollOffsetCapability>`
+     - How far the rows are scrolled; a view onto the list's scroll state.
    * - :cpp:class:`PropertyResetRequest <gui_forms::PropertyResetRequest>`
      - PropertyResetRequest identifies the stable authored row whose reset action the consumer must authorize.
    * - :cpp:class:`PropertyRowExpansionChange <gui_forms::PropertyRowExpansionChange>`
@@ -1126,6 +1138,122 @@ Related types
    .. cpp:member:: ScrollableControl::Parts scrollable
 
    .. cpp:member:: PartGeometry face
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PropertyListCapabilities : public PropertyListHeaderHeightCapability<Declaring>, public PropertyListLabelWidthCapability<Declaring>, public PropertyListFontCapability<Declaring>, public PropertyListRowHeightCapability<Declaring>, public PropertyListScrollOffsetCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/property_list/property_list_capabilities/property_list_capabilities.hpp>``
+
+   Every PropertyList capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: double header_height
+
+      The header content's height, 0 to 4096 (std::invalid_argument otherwise; nonzero needs header content); a view onto the list's layout. A change re-lays out the rows.
+
+   .. cpp:member:: double label_width
+
+      The label column's width, 40 to 320 (std::invalid_argument otherwise); a view onto the list's layout. A change re-lays out the rows.
+
+   .. cpp:member:: FontSpec font
+
+      The rows' font (Font); a view onto the list's typography, which follows the theme until written. A write marks the font as set from code, passes it to the editors and re-lays out; an invalid FontSpec throws std::invalid_argument.
+
+   .. cpp:member:: double row_height
+
+      Each row's height, above 0 and at most 4096 (std::invalid_argument otherwise); a view onto the list's layout. A change re-lays out the rows.
+
+   .. cpp:member:: double scroll_offset
+
+      How far the rows are scrolled; a view onto the list's scroll state. A write is clamped to the content's overflow; a value that is not finite throws std::invalid_argument.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PropertyListFontCapability
+
+   ``#include <gui_forms/controls/panel/property_list/property_list_capabilities/property_list_capabilities.hpp>``
+
+   The rows' font (Font); a view onto the list's typography, which follows the theme until written. A write marks the font as set from code, passes it to the editors and re-lays out; an invalid FontSpec throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PropertyListFontCapability& capability, FontSpec incoming)
+
+   .. cpp:function:: static FontSpec read(const PropertyListFontCapability& capability)
+
+   .. cpp:member:: PropertyView<FontSpec, PropertyListFontCapability<Declaring>> font
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PropertyListHeaderHeightCapability
+
+   ``#include <gui_forms/controls/panel/property_list/property_list_capabilities/property_list_capabilities.hpp>``
+
+   The header content's height, 0 to 4096 (std::invalid_argument otherwise; nonzero needs header content); a view onto the list's layout. A change re-lays out the rows.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PropertyListHeaderHeightCapability& capability, double incoming)
+
+   .. cpp:function:: static double read(const PropertyListHeaderHeightCapability& capability)
+
+   .. cpp:member:: PropertyView<double, PropertyListHeaderHeightCapability<Declaring>> header_height
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PropertyListLabelWidthCapability
+
+   ``#include <gui_forms/controls/panel/property_list/property_list_capabilities/property_list_capabilities.hpp>``
+
+   The label column's width, 40 to 320 (std::invalid_argument otherwise); a view onto the list's layout. A change re-lays out the rows.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PropertyListLabelWidthCapability& capability, double incoming)
+
+   .. cpp:function:: static double read(const PropertyListLabelWidthCapability& capability)
+
+   .. cpp:member:: PropertyView<double, PropertyListLabelWidthCapability<Declaring>> label_width
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PropertyListRowHeightCapability
+
+   ``#include <gui_forms/controls/panel/property_list/property_list_capabilities/property_list_capabilities.hpp>``
+
+   Each row's height, above 0 and at most 4096 (std::invalid_argument otherwise); a view onto the list's layout. A change re-lays out the rows.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PropertyListRowHeightCapability& capability, double incoming)
+
+   .. cpp:function:: static double read(const PropertyListRowHeightCapability& capability)
+
+   .. cpp:member:: PropertyView<double, PropertyListRowHeightCapability<Declaring>> row_height
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PropertyListScrollOffsetCapability
+
+   ``#include <gui_forms/controls/panel/property_list/property_list_capabilities/property_list_capabilities.hpp>``
+
+   How far the rows are scrolled; a view onto the list's scroll state. A write is clamped to the content's overflow; a value that is not finite throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PropertyListScrollOffsetCapability& capability, double incoming)
+
+   .. cpp:function:: static double read(const PropertyListScrollOffsetCapability& capability)
+
+   .. cpp:member:: PropertyView<double, PropertyListScrollOffsetCapability<Declaring>> scroll_offset
 
 .. cpp:namespace:: gui_forms
 

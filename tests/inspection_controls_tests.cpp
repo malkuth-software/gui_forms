@@ -551,11 +551,11 @@ void test_scrolling_responsive_layout_and_validation_bounds() {
     require((*properties).content_height() > 120.0,
             "constrained PropertyList fixture must require its one scroll plane");
     require((*properties).header_content() == preview &&
-                (*properties).header_height() == 72.0,
+                (*properties).header_height.read() == 72.0,
             "preview/header content must participate in the PropertyList scroll owner");
-    (*properties).set_scroll_offset(10000.0);
-    require((*properties).scroll_offset() > 0.0 &&
-                (*properties).scroll_offset() <=
+    (*properties).scroll_offset = 10000.0;
+    require((*properties).scroll_offset.read() > 0.0 &&
+                (*properties).scroll_offset.read() <=
                     (*properties).content_height() - 120.0,
             "PropertyList scrolling must clamp to its content extent");
     const Control::Ptr name = (*properties).editor("inspection.name");
@@ -1101,8 +1101,8 @@ void test_property_typography_preserves_editors_and_updates_geometry() {
     const std::shared_ptr<PropertyList> properties = make_properties();
     Window window(properties, {440.0, 500.0});
     window.perform_layout();
-    require((*properties).font() == FontSpec{FontRole::content, 9.5, 400, false} &&
-                (*properties).row_height() == 29.0,
+    require((*properties).font.read() == FontSpec{FontRole::content, 9.5, 400, false} &&
+                (*properties).row_height.read() == 29.0,
             "property list must retain its existing font and row defaults");
     const std::shared_ptr<TextBox> name = std::dynamic_pointer_cast<TextBox>(
         (*properties).editor("inspection.name"));
@@ -1114,9 +1114,9 @@ void test_property_typography_preserves_editors_and_updates_geometry() {
     (*name).select(Utf8Offset(2U), Utf8Offset(7U));
     const TextSelection selection = (*name).selection();
     const double old_height = (*properties).content_height();
-    (*properties).set_row_height(40.0);
+    (*properties).row_height = 40.0;
     window.perform_layout();
-    require((*properties).row_height() == 40.0 &&
+    require((*properties).row_height.read() == 40.0 &&
                 (*properties).content_height() == old_height + 44.0,
             "four property rows must reflect the explicit row-height increase");
 
@@ -1133,9 +1133,9 @@ void test_property_typography_preserves_editors_and_updates_geometry() {
     SubscriptionToken changed = (*properties).value_changed().subscribe(
         callbacks::IncrementCounter<std::uint64_t, const PropertyValueChange&>(changes));
     const FontSpec chosen{FontRole::content, 17.0, 500, true, 0.5};
-    (*properties).set_font(chosen);
+    (*properties).font = chosen;
     window.perform_layout();
-    require((*properties).font() == chosen && (*name).font.read() == chosen &&
+    require((*properties).font.read() == chosen && (*name).font.read() == chosen &&
                 (*numeric_text).font.read() == chosen &&
                 (*properties).editor("inspection.name") == name &&
                 (*properties).editor("inspection.location") == numeric,
@@ -1178,22 +1178,22 @@ void test_property_typography_preserves_editors_and_updates_geometry() {
         bool font_rejected{};
         FontSpec malformed = chosen;
         malformed.size = metric;
-        try { (*properties).set_font(malformed); }
+        try { (*properties).font = malformed; }
         catch (const std::invalid_argument&) { font_rejected = true; }
         bool height_rejected{};
-        try { (*properties).set_row_height(metric); }
+        try { (*properties).row_height = metric; }
         catch (const std::invalid_argument&) { height_rejected = true; }
-        require(font_rejected && height_rejected && (*properties).font() == chosen &&
-                    (*properties).row_height() == 40.0,
+        require(font_rejected && height_rejected && (*properties).font.read() == chosen &&
+                    (*properties).row_height.read() == 40.0,
                 "invalid property font and row metrics must be rejected without mutation");
     }
     FontSpec malformed = chosen;
     malformed.letter_spacing = std::numeric_limits<double>::quiet_NaN();
     bool tracking_rejected{};
-    try { (*properties).set_font(malformed); }
+    try { (*properties).font = malformed; }
     catch (const std::invalid_argument&) { tracking_rejected = true; }
     bool height_rejected{};
-    try { (*properties).set_row_height(4097.0); }
+    try { (*properties).row_height = 4097.0; }
     catch (const std::invalid_argument&) { height_rejected = true; }
     require(tracking_rejected && height_rejected,
             "property typography must reject invalid tracking and excessive row height");

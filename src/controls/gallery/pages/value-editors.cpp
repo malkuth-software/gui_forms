@@ -100,7 +100,7 @@ private:
     }
 
     void build_properties() {
-        (*properties_).set_label_width(96.0);
+        (*properties_).label_width = 96.0;
         (*properties_).set_groups({
             {"gallery.value-editors.properties.identity", "IDENTITY", {
                 {std::string(name_row), "Name", std::string(fixture_name),

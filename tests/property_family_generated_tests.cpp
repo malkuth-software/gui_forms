@@ -18,6 +18,7 @@
 #include "gui_forms/controls/panel/panel.hpp"
 #include "gui_forms/controls/panel/picture_box/picture_box.hpp"
 #include "gui_forms/controls/panel/property_grid/property_grid.hpp"
+#include "gui_forms/controls/panel/property_list/property_list.hpp"
 #include "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp"
 #include "gui_forms/controls/panel/scaled_panel/scaled_panel.hpp"
 #include "gui_forms/controls/panel/text_box/text_box.hpp"
@@ -686,6 +687,10 @@ void test_property_grid_properties() {
     std::shared_ptr<PropertyGrid> control = make_control<PropertyGrid>(StableId("generated.propertygrid"));
 }
 
+void test_property_list_properties() {
+    std::shared_ptr<PropertyList> control = make_control<PropertyList>(StableId("generated.propertylist"));
+}
+
 void test_rich_text_box_properties() {
     std::shared_ptr<RichTextBox> control = make_control<RichTextBox>(StableId("generated.richtextbox"));
     {
@@ -884,6 +889,7 @@ int main() {
     test_panel_properties();
     test_picture_box_properties();
     test_property_grid_properties();
+    test_property_list_properties();
     test_rich_text_box_properties();
     test_scaled_group_box_properties();
     test_scaled_panel_properties();

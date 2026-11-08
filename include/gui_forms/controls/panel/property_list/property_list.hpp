@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/inspection/inspection_types.hpp"
+#include "gui_forms/controls/panel/property_list/property_list_capabilities/property_list_capabilities.hpp"
 
 #include <memory>
 #include <optional>
@@ -11,7 +12,7 @@
 
 namespace gui_forms {
 
-class PropertyList final : public Panel {
+class PropertyList final : public Panel, public PropertyListCapabilities<PropertyList> {
 public:
     explicit PropertyList(StableId stable_id);
     ~PropertyList() override;
@@ -34,19 +35,7 @@ public:
         std::string_view row_id) const;
     void set_header_content(Control::Ptr content, double height);
     [[nodiscard]] Control::Ptr header_content() const noexcept;
-    [[nodiscard]] double header_height() const noexcept;
-    void set_header_height(double height);
 
-    [[nodiscard]] double label_width() const noexcept;
-    void set_label_width(double width);
-    [[nodiscard]] FontSpec font() const noexcept;
-    void set_font(FontSpec font);
-    // Minimum logical row height; editable rows retain five extra pixels.
-    // Font-fit and stacked/validation content may require more space.
-    [[nodiscard]] double row_height() const noexcept;
-    void set_row_height(double height);
-    [[nodiscard]] double scroll_offset() const noexcept;
-    void set_scroll_offset(double offset);
     [[nodiscard]] double content_height() const noexcept;
 
     [[nodiscard]] Event<const PropertyValueChange&>& value_changed() noexcept {
@@ -137,6 +126,25 @@ private:
     Event<const PropertyGroupChange&> group_changed_;
     Event<const PropertyRowExpansionChange&> row_expansion_changed_;
     Event<const PropertyResetRequest&> reset_requested_;
+    // property_codemod begin PropertyList (tools/property_families/property_list.json; generated, do not edit)
+private:
+    friend struct PropertyListHeaderHeightCapability<PropertyList>;
+    friend struct PropertyListLabelWidthCapability<PropertyList>;
+    friend struct PropertyListFontCapability<PropertyList>;
+    friend struct PropertyListRowHeightCapability<PropertyList>;
+    friend struct PropertyListScrollOffsetCapability<PropertyList>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void write_view(const decltype(header_height)& cell, double incoming);
+    [[nodiscard]] double read_view(const decltype(header_height)& cell) const;
+    void write_view(const decltype(label_width)& cell, double incoming);
+    [[nodiscard]] double read_view(const decltype(label_width)& cell) const;
+    void write_view(const decltype(font)& cell, FontSpec incoming);
+    [[nodiscard]] FontSpec read_view(const decltype(font)& cell) const;
+    void write_view(const decltype(row_height)& cell, double incoming);
+    [[nodiscard]] double read_view(const decltype(row_height)& cell) const;
+    void write_view(const decltype(scroll_offset)& cell, double incoming);
+    [[nodiscard]] double read_view(const decltype(scroll_offset)& cell) const;
+    // property_codemod end PropertyList
 };
 
 } // namespace gui_forms

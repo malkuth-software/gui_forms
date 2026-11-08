@@ -5,6 +5,7 @@
 #include "gui_forms/window.hpp"
 #include "../panel_anatomy.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <vector>
 #include <string>
@@ -838,34 +839,34 @@ Control::Ptr PropertyList::header_content() const noexcept {
     return (*impl_).header;
 }
 
-double PropertyList::header_height() const noexcept { return (*impl_).header_height; }
+double PropertyList::read_view(const decltype(header_height)&) const { return (*impl_).header_height; }
 
-void PropertyList::set_header_height(double height) {
+void PropertyList::write_view(const decltype(header_height)&, double incoming) {
     require_mutable();
-    if (!std::isfinite(height) || height < 0.0 || height > 4096.0 ||
-        (!(*impl_).header && height != 0.0)) {
+    if (!std::isfinite(incoming) || incoming < 0.0 || incoming > 4096.0 ||
+        (!(*impl_).header && incoming != 0.0)) {
         throw std::invalid_argument("PropertyList header height must be 0 through 4096");
     }
-    if ((*impl_).header_height == height) return;
-    (*impl_).header_height = height;
+    if ((*impl_).header_height == incoming) return;
+    (*impl_).header_height = incoming;
     (*impl_).recompute_geometry();
     (*impl_).arrange_editors();
     invalidate(Dirty::measure | Dirty::layout | Dirty::paint | Dirty::hit_test |
                Dirty::semantics);
 }
 
-double PropertyList::label_width() const noexcept { return (*impl_).label_width; }
+double PropertyList::read_view(const decltype(label_width)&) const { return (*impl_).label_width; }
 
-FontSpec PropertyList::font() const noexcept { return (*impl_).font; }
+FontSpec PropertyList::read_view(const decltype(font)&) const { return (*impl_).font; }
 
-void PropertyList::set_font(FontSpec font) {
+void PropertyList::write_view(const decltype(font)&, FontSpec incoming) {
     require_mutable();
-    if (!valid_font_spec(font)) {
+    if (!valid_font_spec(incoming)) {
         throw std::invalid_argument("PropertyList font specification is invalid");
     }
     set_font_from_code(true);
-    if ((*impl_).font_overridden && (*impl_).font == font) return;
-    (*impl_).font = font;
+    if ((*impl_).font_overridden && (*impl_).font == incoming) return;
+    (*impl_).font = incoming;
     (*impl_).font_overridden = true;
     for (const Impl::RowState& row : (*impl_).rows) {
         (*impl_).apply_editor_font(row.editor);
@@ -877,44 +878,44 @@ void PropertyList::set_font(FontSpec font) {
                Dirty::hit_test | Dirty::semantics);
 }
 
-double PropertyList::row_height() const noexcept { return (*impl_).row_height; }
+double PropertyList::read_view(const decltype(row_height)&) const { return (*impl_).row_height; }
 
-void PropertyList::set_row_height(double height) {
+void PropertyList::write_view(const decltype(row_height)&, double incoming) {
     require_mutable();
-    if (!std::isfinite(height) || height <= 0.0 || height > 4096.0) {
+    if (!std::isfinite(incoming) || incoming <= 0.0 || incoming > 4096.0) {
         throw std::invalid_argument("PropertyList row height must be positive and at most 4096");
     }
-    if ((*impl_).row_height == height) return;
-    (*impl_).row_height = height;
+    if ((*impl_).row_height == incoming) return;
+    (*impl_).row_height = incoming;
     (*impl_).recompute_geometry();
     (*impl_).arrange_editors();
     invalidate(Dirty::measure | Dirty::layout | Dirty::paint |
                Dirty::hit_test | Dirty::semantics);
 }
 
-void PropertyList::set_label_width(double width) {
+void PropertyList::write_view(const decltype(label_width)&, double incoming) {
     require_mutable();
-    if (!std::isfinite(width) || width < 40.0 || width > 320.0) {
+    if (!std::isfinite(incoming) || incoming < 40.0 || incoming > 320.0) {
         throw std::invalid_argument("PropertyList label width must be 40 through 320");
     }
-    if ((*impl_).label_width == width) return;
-    (*impl_).label_width = width;
+    if ((*impl_).label_width == incoming) return;
+    (*impl_).label_width = incoming;
     (*impl_).recompute_geometry();
     (*impl_).arrange_editors();
     invalidate(Dirty::measure | Dirty::layout | Dirty::paint | Dirty::hit_test |
                Dirty::semantics);
 }
 
-double PropertyList::scroll_offset() const noexcept { return (*impl_).scroll_offset; }
+double PropertyList::read_view(const decltype(scroll_offset)&) const { return (*impl_).scroll_offset; }
 
-void PropertyList::set_scroll_offset(double offset) {
+void PropertyList::write_view(const decltype(scroll_offset)&, double incoming) {
     require_mutable();
-    if (!std::isfinite(offset)) {
+    if (!std::isfinite(incoming)) {
         throw std::invalid_argument("PropertyList scroll offset must be finite");
     }
     const double maximum = std::max(0.0, (*impl_).content_height -
                                           committed_arranged_bounds().height);
-    const double next = std::clamp(offset, 0.0, maximum);
+    const double next = std::clamp(incoming, 0.0, maximum);
     if (next == (*impl_).scroll_offset) return;
     (*impl_).scroll_offset = next;
     (*impl_).arrange_editors();
@@ -1097,7 +1098,7 @@ void PropertyList::on_paint(Painter& painter, Rect) {
 
 void PropertyList::on_pointer(PointerEvent& event) {
     if (event.action == PointerAction::wheel && event.wheel_delta.y != 0.0) {
-        set_scroll_offset((*impl_).scroll_offset +
+        scroll_offset = ((*impl_).scroll_offset +
             (event.wheel_delta.y > 0.0 ? -54.0 : 54.0) *
                 effective_text_scale());
         event.handled = true;
@@ -1132,7 +1133,7 @@ void PropertyList::on_key(KeyEvent& event) {
     } else if (event.physical_key == PhysicalKey::page_down) {
         next += committed_arranged_bounds().height;
     } else return;
-    set_scroll_offset(next);
+    scroll_offset = next;
     event.handled = true;
 }
 
@@ -1238,7 +1239,6 @@ void PropertyList::on_dispose() noexcept {
     (*impl_).header.reset();
     Control::on_dispose();
 }
-
 
 namespace {
 
@@ -1423,7 +1423,6 @@ std::vector<PropertyList::Item> PropertyList::realized_items() const {
     return records;
 }
 
-
 std::vector<PropertyList::ItemEntry> PropertyList::item_entries() const {
     // The walk on_paint makes: each group header, then its visible rows
     // while the group is expanded.
@@ -1466,5 +1465,9 @@ void PropertyList::append_interactions(std::vector<InteractionDeclaration>& inte
     Panel::append_interactions(interactions);
     interactions.insert(interactions.end(), property_list_interactions.begin(), property_list_interactions.end());
 }
+
+// property_codemod begin PropertyList (tools/property_families/property_list.json; generated, do not edit)
+
+// property_codemod end PropertyList
 
 } // namespace gui_forms
