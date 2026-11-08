@@ -20,11 +20,13 @@
 namespace {
 
 using gui_forms::AnatomyState;
+using gui_forms::AncestorCombinator;
 using gui_forms::CascadeLevel;
 using gui_forms::ControlAnatomy;
 using gui_forms::ItemSystemDeclaration;
 using gui_forms::PartDeclaration;
 using gui_forms::PartRole;
+using gui_forms::RuleAncestor;
 using gui_forms::RuleSpecificity;
 using gui_forms::theme_language::ColumnNumber;
 using gui_forms::theme_language::DiagnosticCode;
@@ -296,6 +298,70 @@ void test_expansion() {
             "32 arguments in one :is()");
 }
 
+// :where(), :not() and :family() (selector step 2).
+void test_step_two() {
+    const Lowering where = lower("button:where(.a, #b)");
+    require(where.outcome == SelectorOutcome::lowered && where.selectors.size() == 2U, ":where() expands as :is()");
+    if (where.selectors.size() == 2U) {
+        require(where.selectors[0].specificity == specificity(0U, 0U, 1U) &&
+                    where.selectors[1].specificity == specificity(0U, 0U, 1U) &&
+                    where.selectors[1].selector.stable_id == "b",
+                "a :where() counts nothing");
+    }
+
+    const LoweredSelector negated = lower_one("button:not(.a, :hover)");
+    require(negated.selector.control_type == "button" && negated.selector.excluded.size() == 2U &&
+                negated.specificity == specificity(0U, 1U, 1U),
+            "a :not() is one selector excluding each argument, counting its most specific");
+    if (negated.selector.excluded.size() == 2U) {
+        require(negated.selector.excluded[0].classes == std::vector<std::string>{"a"} &&
+                    negated.selector.excluded[1].states.size() == 1U,
+                "each argument its own exclusion");
+    }
+    const LoweredSelector by_id = lower_one(":not(#x.y)");
+    require(by_id.specificity == specificity(1U, 1U, 0U) && by_id.selector.excluded.size() == 1U &&
+                by_id.selector.excluded[0].stable_id == "x",
+            "a compound argument counts as a compound");
+    const Lowering spread = lower(":not(:is(.a, .b))");
+    require(spread.outcome == SelectorOutcome::lowered && spread.selectors.size() == 1U &&
+                spread.selectors[0].selector.excluded.size() == 2U,
+            "an :is() inside a :not() gives an exclusion each");
+
+    const LoweredSelector family = lower_one(":family(accent-button):hover");
+    require(family.selector.family == "accent_button" && family.specificity == specificity(0U, 2U, 0U),
+            "a family counts as a pseudo-class");
+    const LoweredSelector not_family = lower_one("button:not(:family(command-button))");
+    require(not_family.selector.excluded.size() == 1U &&
+                not_family.selector.excluded[0].family == "command_button",
+            "a family inside a :not()");
+}
+
+// Descendant and child combinators (selector step 4).
+void test_combinators() {
+    const LoweredSelector descendant = lower_one("#form .row button:hover");
+    require(descendant.selector.control_type == "button" && descendant.selector.ancestors.size() == 2U &&
+                descendant.specificity == specificity(1U, 2U, 1U),
+            "a descendant chain: two ancestor compounds, every compound counted");
+    if (descendant.selector.ancestors.size() == 2U) {
+        const RuleAncestor& nearest = descendant.selector.ancestors[0];
+        const RuleAncestor& farthest = descendant.selector.ancestors[1];
+        require(nearest.classes == std::vector<std::string>{"row"} &&
+                    nearest.combinator == AncestorCombinator::descendant && farthest.stable_id == "form",
+                "the ancestors nearest first");
+    }
+    const LoweredSelector child = lower_one("track-bar > button");
+    require(child.selector.ancestors.size() == 1U && child.selector.ancestors[0].control_type == "track_bar" &&
+                child.selector.ancestors[0].combinator == AncestorCombinator::child,
+            "a child combinator, the type in its registered spelling");
+    const LoweredSelector tight = lower_one("*>button");
+    require(tight.selector.ancestors.size() == 1U && tight.selector.ancestors[0].control_type.empty(),
+            "'*' as an ancestor, no whitespace needed around '>'");
+    const Lowering list = lower(".a button, check-box");
+    require(list.outcome == SelectorOutcome::lowered && list.selectors.size() == 2U &&
+                list.selectors[1].selector.ancestors.empty(),
+            "each selector of a list has its own ancestors");
+}
+
 // -- refused and dropped forms --------------------------------------------------
 
 struct RefusedCase final {
@@ -313,15 +379,17 @@ void test_refused() {
     too_wide += ")";
     std::string too_long{};
     for (std::size_t index = 0U; index <= maximum_simple_selectors; ++index) too_long += ".c";
-    const std::array<RefusedCase, 21> cases{{
-        {"button label", DiagnosticCode::combinator_not_admitted, 8U},
-        {"button > label", DiagnosticCode::combinator_not_admitted, 8U},
-        {"button>label", DiagnosticCode::combinator_not_admitted, 7U},
+    const std::array<RefusedCase, 23> cases{{
+        {":is(button label)", DiagnosticCode::combinator_not_admitted, 12U},
+        {"button > :hover > label", DiagnosticCode::selector_syntax, 11U},
+        {"> label", DiagnosticCode::selector_syntax, 1U},
         {"button+check-box", DiagnosticCode::combinator_not_admitted, 7U},
         {"button ~ check-box", DiagnosticCode::combinator_not_admitted, 8U},
         {"&:hover", DiagnosticCode::combinator_not_admitted, 1U},
-        {"button:not(:hover)", DiagnosticCode::pseudo_class_not_admitted, 7U},
-        {":where(.a)", DiagnosticCode::pseudo_class_not_admitted, 1U},
+        {":not(:not(.a))", DiagnosticCode::pseudo_class_not_admitted, 6U},
+        {":not(::part(face))", DiagnosticCode::selector_syntax, 13U},
+        {"button:not", DiagnosticCode::selector_syntax, 8U},
+        {":family(button, card)", DiagnosticCode::selector_syntax, 15U},
         {"button:has(.a)", DiagnosticCode::pseudo_class_not_admitted, 7U},
         {"button:first-child", DiagnosticCode::pseudo_class_not_admitted, 7U},
         {"button::before", DiagnosticCode::pseudo_class_not_admitted, 7U},
@@ -388,8 +456,10 @@ void test_refused() {
 }
 
 void test_dropped() {
-    const std::array<std::string_view, 9> unknown{{
+    const std::array<std::string_view, 11> unknown{{
         "slider",
+        ":family(nothing)",
+        ":not(slider)",
         "Button",
         "track_bar",
         "button:frobnicate",
@@ -410,7 +480,7 @@ void test_dropped() {
     const Lowering in_list = lower("button, slider:hover, .a");
     require(in_list.outcome == SelectorOutcome::dropped && in_list.selectors.empty(),
             "an unknown name drops the whole rule, not one selector");
-    const Lowering then_error = lower("slider > a");
+    const Lowering then_error = lower("slider + a");
     require(then_error.outcome == SelectorOutcome::refused && then_error.diagnostics.size() == 2U &&
                 then_error.diagnostics[1].code == DiagnosticCode::combinator_not_admitted,
             "an error after an unknown name still refuses");
@@ -459,6 +529,8 @@ void test_appending() {
 int main() {
     test_forms();
     test_expansion();
+    test_step_two();
+    test_combinators();
     test_refused();
     test_dropped();
     test_appending();

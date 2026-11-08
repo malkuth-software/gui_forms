@@ -67,8 +67,13 @@ per rule, 32 levels of nesting and 4 KiB strings.
 
 ## Selectors
 
-A selector is one compound selector naming one part of one control. There
-are no combinators.
+A selector is a compound selector naming one part of one control, after
+at most eight ancestor compounds joined by the descendant combinator
+(whitespace) or the child combinator (`>`): `#settings .row > button`. An
+ancestor compound names only a control type, a stable ID and classes (or
+`*`), so a rule changes only when an ancestor's type, ID or classes do, or
+a control moves; the control's subtree is then resolved again. Ancestors
+more than 256 levels up are not matched.
 
 | Form | Example |
 |---|---|
@@ -80,15 +85,22 @@ are no combinators.
 | part role | `::role(face)` |
 | state | `:hover` `:active` `:focus` `:focus-visible` `:checked` `:indeterminate` `:disabled` `:enabled` `:read-only` `:invalid` `:open` `:default`, and every other published state as `:state(drag-proximate)` |
 | either of | `button:is(:hover, :focus-visible)::part(face)` (at most 32 arguments) |
+| either of, counting nothing | `button:where(.primary, #save)` |
+| none of | `button:not(.primary, :hover)`: compounds of types, stable IDs, classes, states and families, not nested |
+| family | `:family(accent-button)`, a control visual family: the parts a control draws for that family (`window`, `panel`, `card`, `button`, `accent-button`, `command-button`, `choice`, `editor`, `menu-item`, `selection`, `progress`, `tool-tip`, `link`, `visited-link`) |
 | selector list | `button, check-box { ... }` |
 | surface | `window`, `popup`, with the surface root's classes and stable ID: `window#settings`, `popup.alert` |
 
-`:not()`, `:where()`, `:has()`, attribute selectors, combinators and `&`
-are errors. An unknown control type, part, state or pseudo-class is a
+`:has()`, `:nth-*()`, attribute selectors, the sibling combinators `+`
+and `~`, a combinator inside a group, and `&` are errors, as are a
+`:not()` inside a `:not()` and a part, role or surface in one. An unknown control type, part, state or pseudo-class is a
 warning that drops the rule. Specificity is CSS's: stable IDs, then
 classes and states (pseudo-classes) together, then control types and parts
-(the part's name and role, as pseudo-elements). So `button:hover` beats
-`.primary`, as in CSS.
+(the part's name and role, as pseudo-elements). `:family()` counts as a
+pseudo-class, `:is()` and `:not()` as their most specific argument and
+`:where()` as nothing. So `button:hover` beats `.primary`, as in CSS.
+A control's fonts are resolved for no family, so a font property in a
+`:family()` rule is a warning that drops it.
 
 A package compiled onto the GUI.Forms base (`ThemeBase::gui_forms`) sits
 above the base sheet as CSS's author origin sits above the user-agent

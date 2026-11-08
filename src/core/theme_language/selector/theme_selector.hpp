@@ -106,7 +106,10 @@ struct Alternative final {
 // A simple selector read from the list.
 // `surface` is `window` or `popup` (owner decision 2026-11-04), written
 // where a control type would be.
-enum class SimpleKind : std::uint8_t { control_type, stable_id, style_class, state, part, role, surface };
+// `family` is `:family(<name>)`, a control visual family (selector step
+// 2); `negation` is a whole `:not()`, its arguments held in
+// SelectorWorkspace::negated.
+enum class SimpleKind : std::uint8_t { control_type, stable_id, style_class, state, part, role, surface, family, negation };
 struct Simple final {
     SimpleKind kind{SimpleKind::control_type};
     // The token that wrote it, for diagnostics.
@@ -117,7 +120,16 @@ struct Simple final {
     AnatomyState state{AnatomyState::normal};
     PartRole role{PartRole::region};
     SurfaceKind surface{SurfaceKind::none};
+    // A negation's arguments: `negated_count` alternatives from
+    // `negated_first` in SelectorWorkspace::negated.
+    std::uint32_t negated_first{};
+    std::uint32_t negated_count{};
 };
+
+// What an open group is: `:is()`, which counts as its most specific
+// argument; `:where()`, which counts nothing; or `:not()`, whose arguments
+// exclude parts and count as its most specific one (selector step 2).
+enum class GroupKind : std::uint8_t { is, where, negation };
 
 // One compound selector being read, and, for an `:is()`, the union of
 // its finished arguments.
@@ -132,6 +144,7 @@ struct Frame final {
     std::vector<Alternative> arguments{};
     RuleSpecificity arguments_specificity{};
     std::size_t argument_count{};
+    GroupKind group{GroupKind::is};
 };
 
 // The storage one lowering works in, kept from rule to rule: the simple
@@ -153,6 +166,12 @@ struct SelectorWorkspace final {
     std::vector<DecodedName> decoded_names{};
     std::array<Frame, maximum_nesting_depth + 1U> frames{};
     std::vector<Alternative> product{};
+    // The arguments of the list's `:not()`s, each negation a run of them.
+    std::vector<Alternative> negated{};
+    // The ancestor compounds of the selector being read, farthest first,
+    // and what they count (selector step 4).
+    std::vector<RuleAncestor> ancestors{};
+    RuleSpecificity ancestors_specificity{};
 };
 
 } // namespace selector_detail

@@ -186,10 +186,15 @@ property.transform	not-admitted
 property.translate	transforms-text
 selector.any	selectors-basic
 selector.any-implied	selectors-basic
+selector.child	selectors-functional
 selector.class	selectors-basic
 selector.custom-state	selectors-states
+selector.descendant	selectors-functional
+selector.family	selectors-functional
 selector.is	selectors-basic
 selector.list	selectors-basic
+selector.not	selectors-functional
+selector.not-family	selectors-functional
 selector.part	selectors-basic
 selector.part-state	selectors-states
 selector.role	selectors-basic
@@ -211,6 +216,7 @@ selector.surface	backdrop
 selector.surface-alone	surface-alone
 selector.type	selectors-basic
 selector.type-kebab	selectors-basic
+selector.where	selectors-functional
 source.bom	source-and-tokens
 source.cr	source-and-tokens
 source.crlf	source-and-tokens

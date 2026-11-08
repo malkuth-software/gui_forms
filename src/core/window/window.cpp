@@ -2386,6 +2386,12 @@ void SurfaceRoot::attach_subtree(const Control::Ptr& control, const Control::Wea
         // The theme in effect may have changed with the window or the parent
         // (P12b).
         for (const Control::Ptr& current : controls) (*current).refresh_inline_style();
+        // Rules with ancestor compounds read the new ancestors (selector
+        // step 4): a cached font is resolved again; the subtree's paint and
+        // layout are marked below.
+        for (const Control::Ptr& current : controls) {
+            if ((*current).reads_ancestors()) static_cast<void>((*current).refresh_text_font());
+        }
         for (const Control::Ptr& current : controls) {
             notified.push_back(current);
             if ((*current).authored_surface_material_) {

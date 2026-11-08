@@ -7,6 +7,7 @@
 #include "gui_forms/window/window.hpp"
 #include "../../theme/part_painting/built_in_recipe.hpp"
 #include "../../theme/dark_variant/dark_variant.hpp"
+#include "../../theme/theme/ancestor_facts.hpp"
 #include "../../theme/theme/forced_high_contrast.hpp"
 
 #include <algorithm>
@@ -786,6 +787,8 @@ TextRole resolved_text_role(const Control& control, FontDeclaration font) {
         const SurfaceRoot* const window = above.attached_surface_root();
         if (window != nullptr) facts.media = window_media_facts(*window);
         if (window != nullptr) facts.user_rules = (*window).user_theme_rules();
+        std::vector<AncestorFacts> ancestors{};
+        detail::attach_ancestor_facts(above, above.effective_theme().engine().rules(), ancestors, facts);
         font = above.effective_theme().engine().rules().resolve(facts).font;
         parent = above.parent();
     }
@@ -840,8 +843,11 @@ ThemeEngine::PartPlan ThemeEngine::plan(const Control& control, const PartPaint&
     if (part.key) facts.part = (*part.key).part;
     facts.role = part.role;
     facts.states = part.states;
+    facts.family = control_visual_role_name(part.family);
     facts.media = window_media_facts(*window);
     facts.user_rules = (*window).user_theme_rules();
+    std::vector<AncestorFacts> ancestors{};
+    detail::attach_ancestor_facts(control, rules_, ancestors, facts);
     // Forced high contrast's pass (E1): only an important inline style's
     // drawing stands over it.
     const ControlVisualContext context = part_visual_context(control, part.states);

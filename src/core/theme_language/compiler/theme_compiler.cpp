@@ -522,6 +522,9 @@ private:
     // fields are the control's (P6f).
     [[nodiscard]] bool rule_selects_part() const noexcept;
     [[nodiscard]] bool rule_has_states() const noexcept;
+    // Whether a selector of the rule names a family, its own or a `:not()`
+    // argument's (a control's fonts are resolved for no family).
+    [[nodiscard]] bool rule_has_family() const noexcept;
     // Whether any of the rule's selectors names a window or popup, and
     // whether all of them do.
     [[nodiscard]] bool rule_selects_surface() const noexcept;
@@ -2658,6 +2661,11 @@ bool CompilePass::lower_material(const SyntaxNode& node) {
         report(DiagnosticCode::property_not_admitted, node.tokens.first.value, property_ + " in a state rule");
         return true;
     }
+    // A control's fonts are resolved once for the control, for no family.
+    if (font_property_of(property) && rule_has_family()) {
+        report(DiagnosticCode::property_not_admitted, node.tokens.first.value, property_ + " in a :family() rule");
+        return true;
+    }
     parameter_names_.clear();
     // role(<pair>) gives its foreground in `color`, its background in
     // `background` and `background-color`.
@@ -3289,6 +3297,19 @@ void CompilePass::add_recipe_field(const RecipeDeclaration& declaration) {
 bool CompilePass::rule_has_states() const noexcept {
     for (const LoweredSelector& lowered : lowered_selectors_) {
         if (!lowered.selector.states.empty()) return true;
+        for (const RuleExclusion& exclusion : lowered.selector.excluded) {
+            if (!exclusion.states.empty()) return true;
+        }
+    }
+    return false;
+}
+
+bool CompilePass::rule_has_family() const noexcept {
+    for (const LoweredSelector& lowered : lowered_selectors_) {
+        if (!lowered.selector.family.empty()) return true;
+        for (const RuleExclusion& exclusion : lowered.selector.excluded) {
+            if (!exclusion.family.empty()) return true;
+        }
     }
     return false;
 }

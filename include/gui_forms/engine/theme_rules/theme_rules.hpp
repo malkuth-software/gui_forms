@@ -108,6 +108,76 @@ enum class ThemeRuleSet : std::uint8_t { program, user };
 // the surface's own pixels, styled by control rules, never a popup.
 enum class SurfaceKind : std::uint8_t { none, window, popup };
 
+// One argument of a selector's `:not()` (selector step 2): a compound of a
+// control type, a stable ID, classes, states and a family, each optional;
+// it excludes the parts it matches. It names no part, role or surface.
+struct RuleExclusion final {
+    std::string control_type{};
+    std::string stable_id{};
+    std::vector<std::string> classes{};
+    std::vector<AnatomyState> states{};
+    std::string family{};
+
+    friend bool operator==(const RuleExclusion& left, const RuleExclusion& right) noexcept {
+        return left.control_type == right.control_type && left.stable_id == right.stable_id &&
+               left.classes == right.classes && left.states == right.states && left.family == right.family;
+    }
+};
+
+// How a selector's ancestor compound relates to the compound on its right
+// (selector step 4): CSS's descendant combinator (whitespace) or child
+// combinator (`>`).
+enum class AncestorCombinator : std::uint8_t { descendant, child };
+
+// One ancestor compound of a selector (selector step 4): a control type, a
+// stable ID and classes, each optional, matched against an ancestor
+// control. `combinator` relates it to the compound on its right: the
+// subject's for the nearest, else the next nearer ancestor compound's.
+// Ancestor compounds name no state, family, part, role or surface, so a
+// rule's ancestors change only when an ancestor's type, ID or classes do,
+// or a control moves.
+struct RuleAncestor final {
+    std::string control_type{};
+    std::string stable_id{};
+    std::vector<std::string> classes{};
+    AncestorCombinator combinator{AncestorCombinator::descendant};
+
+    friend bool operator==(const RuleAncestor& left, const RuleAncestor& right) noexcept {
+        return left.control_type == right.control_type && left.stable_id == right.stable_id &&
+               left.classes == right.classes && left.combinator == right.combinator;
+    }
+};
+
+// At most this many ancestor compounds in one selector, and ancestors are
+// matched within this depth of the subject: a control nested deeper than
+// maximum_ancestor_depth below an ancestor is not matched against it.
+inline constexpr std::size_t maximum_rule_ancestors = 8U;
+inline constexpr std::size_t maximum_ancestor_depth = 256U;
+
+// One ancestor control as a selector's ancestor compounds read it:
+// borrowed from the control for the resolution.
+struct AncestorFacts final {
+    std::string_view control_type{};
+    std::string_view stable_id{};
+    std::span<const std::string> classes{};
+};
+
+// The keys an ancestor chain holds, hashed into 256 bits: a rule whose
+// ancestor keys are not all present cannot match, and is rejected without
+// walking the chain (CSS engines' ancestor Bloom filter).
+struct AncestorBloom final {
+    std::array<std::uint64_t, 4> bits{};
+
+    // Adds `key`, written as a selector writes it: `type`, `#id` or `.class`.
+    void add(std::string_view prefix, std::string_view key) noexcept;
+    [[nodiscard]] bool holds(const AncestorBloom& needed) const noexcept;
+};
+
+// `family`, when set, is a control visual family's registered name (the
+// theme's ControlVisualRole, such as `accent_button`): the selector matches
+// only parts resolved for that family (PartFacts::family). `excluded`
+// holds the arguments of its `:not()`s: it matches no part any of them
+// matches.
 struct RuleSelector final {
     std::string control_type{};
     std::string stable_id{};
@@ -116,17 +186,24 @@ struct RuleSelector final {
     std::optional<PartRole> role{};
     std::vector<AnatomyState> states{};
     SurfaceKind surface{SurfaceKind::none};
+    std::string family{};
+    std::vector<RuleExclusion> excluded{};
+    // The selector's ancestor compounds, nearest first (selector step 4).
+    std::vector<RuleAncestor> ancestors{};
 
     friend bool operator==(const RuleSelector& left, const RuleSelector& right) noexcept {
         return left.control_type == right.control_type && left.stable_id == right.stable_id &&
                left.classes == right.classes && left.part == right.part && left.role == right.role &&
-               left.states == right.states && left.surface == right.surface;
+               left.states == right.states && left.surface == right.surface && left.family == right.family &&
+               left.excluded == right.excluded && left.ancestors == right.ancestors;
     }
 };
 
 // A selector's specificity, CSS's three columns compared in order: the
-// stable ID; the classes and the states (pseudo-classes); the control type
-// or surface and the part (its name or role, one each, as pseudo-elements).
+// stable ID; the classes, the states and the family (pseudo-classes); the
+// control type or surface and the part (its name or role, one each, as
+// pseudo-elements). A `:not()` adds its most specific argument's, and each
+// ancestor compound its own.
 struct RuleSpecificity final {
     std::uint32_t ids{};
     std::uint32_t classes{};
@@ -1327,6 +1404,11 @@ public:
     // How many of the rules are the engine's built-in rules.
     [[nodiscard]] std::size_t built_in_rule_count() const noexcept { return built_in_rules_; }
 
+    // Whether a rule has ancestor compounds (selector step 4): its facts
+    // need the control's ancestors, and a change to an ancestor's type, ID
+    // or classes, or a move, re-resolves the control's subtree.
+    [[nodiscard]] bool uses_ancestors() const noexcept { return uses_ancestors_; }
+
     [[nodiscard]] bool empty() const noexcept { return rules_.empty(); }
     [[nodiscard]] std::size_t rule_count() const noexcept { return rules_.size(); }
     // How many scoped custom property names the rules' conditions read
@@ -1376,6 +1458,15 @@ public:
         // The surface whose rules are resolved, or none for a control's
         // part: a rule matches only facts of its own surface kind.
         SurfaceKind surface{SurfaceKind::none};
+        // The control visual family the part is resolved for (RuleSelector::
+        // family), or empty where none is known: a `:family()` rule then
+        // does not match.
+        std::string_view family{};
+        // The part's control's ancestors, its parent first, and their keys
+        // (fill_ancestor_facts): read only by rules with ancestor compounds
+        // (uses_ancestors). Borrowed for the call.
+        std::span<const AncestorFacts> ancestors{};
+        AncestorBloom ancestor_bloom{};
     };
 
     // Why a part resolved as it did.
@@ -1556,6 +1647,8 @@ private:
         std::size_t order{};
         RuleSelector selector{};
         AnatomyStateSet states{};
+        // The keys the selector's ancestor compounds name (selector step 4).
+        AncestorBloom ancestor_keys{};
         // The primitive the rule selects, null when it selects built_in or
         // none; `selects` tells the two apart.
         bool selects{};
@@ -1652,6 +1745,11 @@ private:
                              CompiledRule& compiled);
 
     [[nodiscard]] static bool matches(const CompiledRule& rule, const PartFacts& facts) noexcept;
+    // Whether one `:not()` argument matches the part: every field it names
+    // holds.
+    [[nodiscard]] static bool exclusion_matches(const RuleExclusion& exclusion, const PartFacts& facts) noexcept;
+    // Whether the selector's ancestor compounds match the part's ancestors.
+    [[nodiscard]] static bool ancestors_match(const CompiledRule& rule, const PartFacts& facts) noexcept;
     // These rules, a part's user theme's and its inline style's, merged in
     // ascending precedence.
     class RuleWalk;
@@ -1672,6 +1770,7 @@ private:
     bool inline_style_{};
     // Whether the rules are a user theme.
     bool user_theme_{};
+    bool uses_ancestors_{};
     // The scoped custom property names the rules' conditions read (P12),
     // at most maximum_scoped_custom_properties.
     std::vector<std::string> scoped_names_{};

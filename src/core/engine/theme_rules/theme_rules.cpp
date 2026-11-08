@@ -87,6 +87,20 @@ std::optional<RuleDiagnosticKind> selector_defect(const ThemeRule& rule, bool ow
     for (const AnatomyState state : selector.states) {
         if (static_cast<std::size_t>(state) >= anatomy_state_count) return RuleDiagnosticKind::selector_invalid;
     }
+    if (selector.ancestors.size() > maximum_rule_ancestors) return RuleDiagnosticKind::selector_invalid;
+    for (const RuleAncestor& ancestor : selector.ancestors) {
+        for (const std::string& name : ancestor.classes) {
+            if (!valid_style_class_name(name)) return RuleDiagnosticKind::selector_invalid;
+        }
+    }
+    for (const RuleExclusion& exclusion : selector.excluded) {
+        for (const std::string& name : exclusion.classes) {
+            if (!valid_style_class_name(name)) return RuleDiagnosticKind::selector_invalid;
+        }
+        for (const AnatomyState state : exclusion.states) {
+            if (static_cast<std::size_t>(state) >= anatomy_state_count) return RuleDiagnosticKind::selector_invalid;
+        }
+    }
     if (selector.role && static_cast<std::size_t>(*selector.role) >= part_role_count) {
         return RuleDiagnosticKind::selector_invalid;
     }
@@ -201,11 +215,27 @@ bool valid_style_class_name(std::string_view name) noexcept {
     return true;
 }
 
+namespace {
+
+// What one `:not()` argument counts, as a compound selector would.
+RuleSpecificity exclusion_specificity(const RuleExclusion& exclusion) noexcept {
+    RuleSpecificity result{};
+    result.ids = exclusion.stable_id.empty() ? 0U : 1U;
+    const std::size_t family = exclusion.family.empty() ? 0U : 1U;
+    result.classes = static_cast<std::uint32_t>(exclusion.classes.size() + exclusion.states.size() + family);
+    result.types = exclusion.control_type.empty() ? 0U : 1U;
+    return result;
+}
+
+} // namespace
+
 RuleSpecificity rule_specificity(const RuleSelector& selector) noexcept {
     RuleSpecificity result{};
     result.ids = selector.stable_id.empty() ? 0U : 1U;
-    // Each class and each state, as CSS counts classes and pseudo-classes.
-    result.classes = static_cast<std::uint32_t>(selector.classes.size() + selector.states.size());
+    // Each class, each state and the family, as CSS counts classes and
+    // pseudo-classes.
+    const std::size_t family = selector.family.empty() ? 0U : 1U;
+    result.classes = static_cast<std::uint32_t>(selector.classes.size() + selector.states.size() + family);
     // A surface selector counts as a type selector, as CSS's `window` would;
     // the part's name and role each as a pseudo-element.
     const bool typed = !selector.control_type.empty() || selector.surface != SurfaceKind::none;
@@ -213,7 +243,57 @@ RuleSpecificity rule_specificity(const RuleSelector& selector) noexcept {
     const std::uint32_t named = selector.part.empty() ? 0U : 1U;
     const std::uint32_t role = selector.role ? 1U : 0U;
     result.types = type + named + role;
+    // CSS: a `:not()` counts as its most specific argument. The selector's
+    // exclusions are one `:not()`'s arguments (the lowering merges them).
+    RuleSpecificity most{};
+    for (const RuleExclusion& exclusion : selector.excluded) {
+        const RuleSpecificity counted = exclusion_specificity(exclusion);
+        if (most < counted) most = counted;
+    }
+    result.ids += most.ids;
+    result.classes += most.classes;
+    result.types += most.types;
+    // Each ancestor compound counts as CSS counts every compound.
+    for (const RuleAncestor& ancestor : selector.ancestors) {
+        result.ids += ancestor.stable_id.empty() ? 0U : 1U;
+        result.classes += static_cast<std::uint32_t>(ancestor.classes.size());
+        result.types += ancestor.control_type.empty() ? 0U : 1U;
+    }
     return result;
+}
+
+namespace {
+
+// FNV-1a over a key's prefix and text, for the ancestor Bloom filter.
+std::uint64_t ancestor_key_hash(std::string_view prefix, std::string_view key) noexcept {
+    std::uint64_t hash = 14695981039346656037ULL;
+    for (const char character : prefix) {
+        hash ^= static_cast<std::uint8_t>(character);
+        hash *= 1099511628211ULL;
+    }
+    for (const char character : key) {
+        hash ^= static_cast<std::uint8_t>(character);
+        hash *= 1099511628211ULL;
+    }
+    return hash;
+}
+
+} // namespace
+
+void AncestorBloom::add(std::string_view prefix, std::string_view key) noexcept {
+    // Two bits a key, from the hash's two halves: 256 bits in 4 words.
+    const std::uint64_t hash = ancestor_key_hash(prefix, key);
+    const std::uint64_t first = hash & 255U;
+    const std::uint64_t second = (hash >> 32U) & 255U;
+    bits[first >> 6U] |= std::uint64_t{1} << (first & 63U);
+    bits[second >> 6U] |= std::uint64_t{1} << (second & 63U);
+}
+
+bool AncestorBloom::holds(const AncestorBloom& needed) const noexcept {
+    for (std::size_t word = 0U; word < bits.size(); ++word) {
+        if ((bits[word] & needed.bits[word]) != needed.bits[word]) return false;
+    }
+    return true;
 }
 
 namespace {
@@ -1383,6 +1463,12 @@ void CompiledThemeRules::add_rules(CompiledThemeRules& result, const ThemeRuleSh
         compiled.source_position = rule.source_position;
         compiled.selector = rule.selector;
         for (const AnatomyState state : rule.selector.states) compiled.states.insert(state);
+        for (const RuleAncestor& ancestor : rule.selector.ancestors) {
+            if (!ancestor.control_type.empty()) compiled.ancestor_keys.add({}, ancestor.control_type);
+            if (!ancestor.stable_id.empty()) compiled.ancestor_keys.add("#", ancestor.stable_id);
+            for (const std::string& name : ancestor.classes) compiled.ancestor_keys.add(".", name);
+        }
+        if (!rule.selector.ancestors.empty()) result.uses_ancestors_ = true;
         // The primitive first, so that the parameters can be checked against
         // its declarations.
         for (const RuleDeclaration& declaration : rule.declarations) {
@@ -1988,6 +2074,7 @@ CompiledThemeRules::CompiledThemeRules(const CompiledThemeRules& other)
       recipe_fields_set_(other.recipe_fields_set_),
       inline_style_(other.inline_style_),
       user_theme_(other.user_theme_),
+      uses_ancestors_(other.uses_ancestors_),
       scoped_names_(other.scoped_names_),
       read_names_(other.read_names_),
       theme_serial_(other.theme_serial_),
@@ -2004,6 +2091,7 @@ CompiledThemeRules& CompiledThemeRules::operator=(const CompiledThemeRules& othe
     recipe_fields_set_ = other.recipe_fields_set_;
     inline_style_ = other.inline_style_;
     user_theme_ = other.user_theme_;
+    uses_ancestors_ = other.uses_ancestors_;
     scoped_names_ = other.scoped_names_;
     read_names_ = other.read_names_;
     theme_serial_ = other.theme_serial_;
@@ -2159,6 +2247,97 @@ bool CompiledThemeRules::matches(const CompiledRule& rule, const PartFacts& fact
     const std::uint64_t needed = rule.states.standard_bits();
     if ((facts.states.standard_bits() & needed) != needed) return false;
     for (const std::string& name : selector.classes) {
+        bool present = false;
+        for (const std::string& held : facts.classes) {
+            if (held == name) present = true;
+        }
+        if (!present) return false;
+    }
+    if (!selector.family.empty() && selector.family != facts.family) return false;
+    for (const RuleExclusion& exclusion : selector.excluded) {
+        if (exclusion_matches(exclusion, facts)) return false;
+    }
+    if (!selector.ancestors.empty() && !ancestors_match(rule, facts)) return false;
+    return true;
+}
+
+namespace {
+
+// Whether one ancestor compound matches one ancestor control.
+bool ancestor_matches(const RuleAncestor& ancestor, const AncestorFacts& facts) noexcept {
+    if (!ancestor.control_type.empty() && ancestor.control_type != facts.control_type) return false;
+    if (!ancestor.stable_id.empty() && ancestor.stable_id != facts.stable_id) return false;
+    for (const std::string& name : ancestor.classes) {
+        bool present = false;
+        for (const std::string& held : facts.classes) {
+            if (held == name) present = true;
+        }
+        if (!present) return false;
+    }
+    return true;
+}
+
+// A set of ancestor positions, one bit each, below maximum_ancestor_depth.
+using AncestorPositions = std::array<std::uint64_t, maximum_ancestor_depth / 64U>;
+
+bool position_held(const AncestorPositions& positions, std::size_t position) noexcept {
+    return (positions[position >> 6U] >> (position & 63U) & 1U) != 0U;
+}
+
+void hold_position(AncestorPositions& positions, std::size_t position) noexcept {
+    positions[position >> 6U] |= std::uint64_t{1} << (position & 63U);
+}
+
+} // namespace
+
+// Matched from the farthest compound to the nearest, one set of positions
+// a compound: `reach` holds the positions where a compound matches with
+// every farther one matched beyond it. A child combinator needs the
+// farther compound at the next position; a descendant one at any farther
+// position, so the farthest held position decides it. The work is the
+// compounds times the depth, with no backtracking.
+bool CompiledThemeRules::ancestors_match(const CompiledRule& rule, const PartFacts& facts) noexcept {
+    if (!facts.ancestor_bloom.holds(rule.ancestor_keys)) return false;
+    const std::vector<RuleAncestor>& ancestors = rule.selector.ancestors;
+    const std::size_t depth = std::min(facts.ancestors.size(), maximum_ancestor_depth);
+    if (depth == 0U) return false;
+    AncestorPositions reach{};
+    // The farthest compound alone.
+    const std::size_t farthest = ancestors.size() - 1U;
+    for (std::size_t position = 0U; position < depth; ++position) {
+        if (ancestor_matches(ancestors[farthest], facts.ancestors[position])) hold_position(reach, position);
+    }
+    for (std::size_t index = farthest; index > 0U; --index) {
+        // The compound nearer than `index`, related to it by its combinator.
+        const RuleAncestor& nearer = ancestors[index - 1U];
+        const bool child = ancestors[index].combinator == AncestorCombinator::child;
+        AncestorPositions next{};
+        // Whether `reach` holds a position beyond `position`, walked from
+        // the farthest position down.
+        bool beyond = false;
+        for (std::size_t step = depth; step > 0U; --step) {
+            const std::size_t position = step - 1U;
+            const bool linked = child ? position + 1U < depth && position_held(reach, position + 1U) : beyond;
+            if (linked && ancestor_matches(nearer, facts.ancestors[position])) hold_position(next, position);
+            if (position_held(reach, position)) beyond = true;
+        }
+        reach = next;
+    }
+    if (ancestors.front().combinator == AncestorCombinator::child) return position_held(reach, 0U);
+    for (const std::uint64_t word : reach) {
+        if (word != 0U) return true;
+    }
+    return false;
+}
+
+bool CompiledThemeRules::exclusion_matches(const RuleExclusion& exclusion, const PartFacts& facts) noexcept {
+    if (!exclusion.control_type.empty() && exclusion.control_type != facts.control_type) return false;
+    if (!exclusion.stable_id.empty() && exclusion.stable_id != facts.stable_id) return false;
+    if (!exclusion.family.empty() && exclusion.family != facts.family) return false;
+    for (const AnatomyState state : exclusion.states) {
+        if (!facts.states.contains(state)) return false;
+    }
+    for (const std::string& name : exclusion.classes) {
         bool present = false;
         for (const std::string& held : facts.classes) {
             if (held == name) present = true;

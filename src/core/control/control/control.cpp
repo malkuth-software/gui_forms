@@ -2899,6 +2899,24 @@ void Control::set_classes(std::vector<std::string> classes) {
     if (unique == classes_) return;
     classes_ = std::move(unique);
     invalidate(Dirty::style | Dirty::paint | refresh_text_font());
+    // A rule with ancestor compounds reads these classes from every
+    // descendant (selector step 4): they resolve again.
+    if (!children_.empty() && reads_ancestors()) restyle_descendants();
+}
+
+bool Control::reads_ancestors() const noexcept {
+    if (effective_theme().engine().rules().uses_ancestors()) return true;
+    const CompiledThemeRules* const user = surface_root_ == nullptr ? nullptr : (*surface_root_).user_theme_rules();
+    return user != nullptr && (*user).uses_ancestors();
+}
+
+void Control::restyle_descendants() {
+    // The tree is finite and acyclic, so the walk ends; each child's own
+    // font is resolved again, as set_classes does for the control itself.
+    for (const Ptr& child : children_) {
+        (*child).invalidate(Dirty::style | Dirty::paint | (*child).refresh_text_font());
+        (*child).restyle_descendants();
+    }
 }
 
 void Control::set_ceremonial(bool ceremonial) {

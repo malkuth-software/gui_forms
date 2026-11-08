@@ -1,2 +1,2 @@
 /* forms: diagnostic.E302 */
-button > button { opacity: 1 }
+button + button { opacity: 1 }

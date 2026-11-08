@@ -3,6 +3,7 @@
 #include "gui_forms/surface_material/presets/material_presets.hpp"
 #include "gui_forms/window/window.hpp"
 
+#include "ancestor_facts.hpp"
 #include "forced_high_contrast.hpp"
 #include "material_layers.hpp"
 #include "theme_access.hpp"
@@ -1526,6 +1527,37 @@ std::unique_ptr<Theme> Theme::validated(const ThemeDefinition& definition) {
     return theme;
 }
 
+namespace detail {
+
+void fill_ancestor_facts(const Control& control, std::vector<AncestorFacts>& chain, AncestorBloom& bloom) {
+    chain.clear();
+    bloom = AncestorBloom{};
+    Control::Ptr parent = control.parent();
+    while (parent != nullptr && chain.size() < maximum_ancestor_depth) {
+        const Control& above = *parent;
+        AncestorFacts facts{};
+        facts.control_type = above.anatomy().control_id;
+        facts.stable_id = above.stable_id().value();
+        facts.classes = above.classes();
+        chain.push_back(facts);
+        bloom.add({}, facts.control_type);
+        if (!facts.stable_id.empty()) bloom.add("#", facts.stable_id);
+        for (const std::string& name : facts.classes) bloom.add(".", name);
+        parent = above.parent();
+    }
+}
+
+void attach_ancestor_facts(const Control& control, const CompiledThemeRules& rules,
+                           std::vector<AncestorFacts>& chain, CompiledThemeRules::PartFacts& facts) {
+    const bool user = facts.user_rules != nullptr && (*facts.user_rules).uses_ancestors();
+    const bool owned = facts.inline_rules != nullptr && (*facts.inline_rules).uses_ancestors();
+    if (!rules.uses_ancestors() && !user && !owned) return;
+    fill_ancestor_facts(control, chain, facts.ancestor_bloom);
+    facts.ancestors = chain;
+}
+
+} // namespace detail
+
 std::string_view control_visual_role_name(ControlVisualRole role) noexcept {
     switch (role) {
     case ControlVisualRole::window: return "window";
@@ -1625,6 +1657,8 @@ Color inherited_text(const Control& control, Color fallback) {
         const SurfaceRoot* const window = above.attached_surface_root();
         if (window != nullptr) facts.media = window_media_facts(*window);
         if (window != nullptr) facts.user_rules = (*window).user_theme_rules();
+        std::vector<AncestorFacts> ancestors{};
+        detail::attach_ancestor_facts(above, above.effective_theme().engine().rules(), ancestors, facts);
         const CompiledThemeRules::RecipeResolution fields =
             above.effective_theme().engine().rules().resolve_recipe_fields(facts);
         const RecipeDeclaration* const text = fields.fields[static_cast<std::size_t>(RecipeField::text)];
@@ -1704,6 +1738,8 @@ ResolvedFont Theme::resolve_font(const Control& control, FontSpec own) const noe
     const Window* const window = control.attached_window();
     if (window != nullptr) facts.media = window_media_facts(*window);
     if (window != nullptr) facts.user_rules = (*window).user_theme_rules();
+    std::vector<AncestorFacts> ancestors{};
+    detail::attach_ancestor_facts(control, engine_.rules(), ancestors, facts);
     const CompiledThemeRules::RecipeResolution fields = engine_.rules().resolve_recipe_fields(facts);
     if (!fields.authored) return result;
     ResolvedFont themed = result;
@@ -1775,6 +1811,8 @@ bool Theme::declares_clarity(const Control& control) const noexcept {
     const Window* const window = control.attached_window();
     if (window != nullptr) facts.media = window_media_facts(*window);
     if (window != nullptr) facts.user_rules = (*window).user_theme_rules();
+    std::vector<AncestorFacts> ancestors{};
+    detail::attach_ancestor_facts(control, engine_.rules(), ancestors, facts);
     const CompiledThemeRules::Resolution resolution = engine_.rules().resolve(facts);
     if (!resolution.materials_authored) return false;
     const MaterialDeclaration* const colour =
@@ -1805,9 +1843,12 @@ ResolvedControlRecipe Theme::resolve(const Control& control, ControlVisualRole r
     facts.inline_rules = control.inline_style_rules();
     facts.states = states;
     facts.forced_high_contrast = forced;
+    facts.family = control_visual_role_name(role);
     const SurfaceRoot* const window = control.attached_surface_root();
     if (window != nullptr) facts.media = window_media_facts(*window);
     if (window != nullptr) facts.user_rules = (*window).user_theme_rules();
+    std::vector<AncestorFacts> ancestors{};
+    detail::attach_ancestor_facts(control, engine_.rules(), ancestors, facts);
     CompiledThemeRules::RecipeResolution fields = engine_.rules().resolve_recipe_fields(facts);
     if (forced) {
         // The pass's colours stand over every declaration's, and it draws

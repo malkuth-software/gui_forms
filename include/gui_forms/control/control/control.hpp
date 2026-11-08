@@ -1225,6 +1225,12 @@ private:
     // primary font, and returns Dirty::layout where it resolves differently
     // now (a font is a layout input), else Dirty::none.
     [[nodiscard]] Dirty refresh_text_font() noexcept;
+    // Whether the control's theme or its window's user theme has rules with
+    // ancestor compounds (CompiledThemeRules::uses_ancestors).
+    [[nodiscard]] bool reads_ancestors() const noexcept;
+    // Invalidates every descendant's style, paint and font, after a change
+    // to this control's classes that rules with ancestor compounds read.
+    void restyle_descendants();
     // P12b: compiles again, against `theme`, each inline style of this
     // subtree that defines custom properties and was compiled against
     // another theme, appending each to `restyles` uninstalled; a control

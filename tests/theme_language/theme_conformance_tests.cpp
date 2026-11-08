@@ -161,6 +161,25 @@ std::string selector_text(const RuleSelector& selector) {
     if (!selector.part.empty()) text += "part=" + selector.part + " ";
     if (selector.role) text += "role=" + std::string(part_role_name(*selector.role)) + " ";
     if (!selector.states.empty()) text += "states=" + states_text(selector.states) + " ";
+    if (!selector.family.empty()) text += "family=" + selector.family + " ";
+    for (const RuleExclusion& exclusion : selector.excluded) {
+        text += "not(";
+        if (!exclusion.control_type.empty()) text += "type=" + exclusion.control_type + " ";
+        if (!exclusion.stable_id.empty()) text += "id=" + exclusion.stable_id + " ";
+        for (const std::string& name : exclusion.classes) text += "class=" + name + " ";
+        if (!exclusion.states.empty()) text += "states=" + states_text(exclusion.states) + " ";
+        if (!exclusion.family.empty()) text += "family=" + exclusion.family + " ";
+        if (text.back() == ' ') text.pop_back();
+        text += ") ";
+    }
+    for (const RuleAncestor& ancestor : selector.ancestors) {
+        text += ancestor.combinator == AncestorCombinator::child ? "parent(" : "ancestor(";
+        if (!ancestor.control_type.empty()) text += "type=" + ancestor.control_type + " ";
+        if (!ancestor.stable_id.empty()) text += "id=" + ancestor.stable_id + " ";
+        for (const std::string& name : ancestor.classes) text += "class=" + name + " ";
+        if (text.back() == ' ') text.pop_back();
+        text += ") ";
+    }
     if (text.empty()) return "*";
     text.pop_back();
     return text;

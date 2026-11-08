@@ -1,2 +1,2 @@
 /* forms: diagnostic.E303 */
-button:not(:hover) { opacity: 1 }
+button:has(:hover) { opacity: 1 }
