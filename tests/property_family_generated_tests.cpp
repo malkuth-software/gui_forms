@@ -20,6 +20,7 @@
 #include "gui_forms/controls/label/label.hpp"
 #include "gui_forms/controls/menu_strip/menu_strip.hpp"
 #include "gui_forms/controls/metrics_view/metrics_view.hpp"
+#include "gui_forms/controls/pages/navigation_pane/navigation_pane.hpp"
 #include "gui_forms/controls/pages/page_strip/page_strip.hpp"
 #include "gui_forms/controls/pages/page_view/page_view.hpp"
 #include "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp"
@@ -1150,6 +1151,21 @@ void test_month_calendar_properties() {
     }
 }
 
+void test_navigation_pane_properties() {
+    std::shared_ptr<NavigationPane> control = make_control<NavigationPane>(StableId("generated.navigationpane"));
+    {
+        const double sample = 300.0;
+        (*control).expanded_width = sample;
+        expect((*control).expanded_width.read() == sample, "NavigationPane.expanded_width: a write stores");
+    }
+    // image_list: no sample for std::shared_ptr<ImageList>; give the property a "sample".
+    {
+        const bool sample = false;
+        (*control).focus_region = sample;
+        expect((*control).focus_region.read() == sample, "NavigationPane.focus_region: a write stores");
+    }
+}
+
 void test_numeric_up_down_properties() {
     std::shared_ptr<NumericUpDown> control = make_control<NumericUpDown>(StableId("generated.numericupdown"));
     {
@@ -1957,6 +1973,7 @@ int main() {
     test_menu_strip_properties();
     test_metrics_view_properties();
     test_month_calendar_properties();
+    test_navigation_pane_properties();
     test_numeric_up_down_properties();
     test_object_view_properties();
     test_page_strip_properties();

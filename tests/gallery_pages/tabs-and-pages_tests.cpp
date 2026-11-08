@@ -106,11 +106,11 @@ void test_tabs_and_pages(gui_forms::Window& window) {
                 (*window.find("gallery.tabs.navigation.content.contacts")).effectively_visible(),
             "selecting a navigation page shows its control");
     require(window.perform_semantic_action("gallery.tabs.navigation.collapse", SemanticAction::press) &&
-                (*navigation).collapsed() &&
+                (*navigation).collapsed.read() &&
                 (*navigation_status).text.read().find("Collapsed") != std::string::npos,
             "collapsing the gallery's NavigationPane reports its state");
     require(window.perform_semantic_action("gallery.tabs.navigation.collapse", SemanticAction::press) &&
-                !(*navigation).collapsed(),
+                !(*navigation).collapsed.read(),
             "and it expands again");
 }
 

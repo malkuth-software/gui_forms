@@ -305,7 +305,7 @@ private:
     // overflow icons and the configure menu; collapsing it shows the bar and
     // the overlay. Its state is shown as the program would save it.
     void build_navigation() {
-        (*document_.gallery_tabs_navigation).set_expanded_width(240.0);
+        (*document_.gallery_tabs_navigation).expanded_width = 240.0;
         PageSet& pages = (*document_.gallery_tabs_navigation).pages();
         constexpr std::array<std::string_view, 6> ids{"mail", "calendar", "contacts", "tasks", "notes", "folders"};
         constexpr std::array<std::string_view, 6> titles{"Mail", "Calendar", "Contacts", "Tasks", "Notes", "Folders"};

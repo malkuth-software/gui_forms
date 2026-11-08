@@ -102,6 +102,18 @@ Related types
      - Item system nav_overflow: an icon.
    * - :cpp:class:`NavigationPane::Parts <gui_forms::NavigationPane::Parts>`
      - Stage T1 anatomy, as dot members; its states are Control's.
+   * - :cpp:class:`NavigationPaneButtonCountCapability <gui_forms::NavigationPaneButtonCountCapability>`
+     - The number of large buttons the user chose; 4 by default.
+   * - :cpp:class:`NavigationPaneCapabilities <gui_forms::NavigationPaneCapabilities>`
+     - Every NavigationPane capability, in the order the declaring class takes them.
+   * - :cpp:class:`NavigationPaneCollapsedCapability <gui_forms::NavigationPaneCollapsedCapability>`
+     - Whether the pane shows only its collapsed bar.
+   * - :cpp:class:`NavigationPaneExpandedWidthCapability <gui_forms::NavigationPaneExpandedWidthCapability>`
+     - The width the pane asks for while expanded, and the overlay's width; 220 by default.
+   * - :cpp:class:`NavigationPaneFocusRegionCapability <gui_forms::NavigationPaneFocusRegionCapability>`
+     - Whether the pane registers itself as an F6 region of its window while attached (owner decision RB-17); on by default.
+   * - :cpp:class:`NavigationPaneImageListCapability <gui_forms::NavigationPaneImageListCapability>`
+     - Images for the pages' image_keys, or null.
    * - :cpp:class:`NavigationPaneOptionsRequest <gui_forms::NavigationPaneOptionsRequest>`
      - "Navigation pane options..." was chosen from the configure menu.
    * - :cpp:class:`NavigationPaneRestore <gui_forms::NavigationPaneRestore>`
@@ -611,6 +623,120 @@ Related types
    .. cpp:member:: PartGeometry overlay_content
 
    .. cpp:member:: PartGeometry focus
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> NavigationPaneButtonCountCapability
+
+   ``#include <gui_forms/controls/pages/navigation_pane/navigation_pane_capabilities/navigation_pane_capabilities.hpp>``
+
+   The number of large buttons the user chose; 4 by default. A count above PageSetLimits::maximum_capacity throws std::out_of_range.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(NavigationPaneButtonCountCapability& capability, std::size_t incoming)
+
+   .. cpp:function:: static std::size_t read(const NavigationPaneButtonCountCapability& capability)
+
+   .. cpp:member:: PropertyView<std::size_t, NavigationPaneButtonCountCapability<Declaring>> button_count
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> NavigationPaneCapabilities : public NavigationPaneCollapsedCapability<Declaring>, public NavigationPaneButtonCountCapability<Declaring>, public NavigationPaneExpandedWidthCapability<Declaring>, public NavigationPaneImageListCapability<Declaring>, public NavigationPaneFocusRegionCapability<Declaring>
+
+   ``#include <gui_forms/controls/pages/navigation_pane/navigation_pane_capabilities/navigation_pane_capabilities.hpp>``
+
+   Every NavigationPane capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: bool collapsed
+
+      Whether the pane shows only its collapsed bar. Collapsing closes the configure menu; expanding closes the overlay.
+
+   .. cpp:member:: std::size_t button_count
+
+      The number of large buttons the user chose; 4 by default. A count above PageSetLimits::maximum_capacity throws std::out_of_range.
+
+   .. cpp:member:: double expanded_width
+
+      The width the pane asks for while expanded, and the overlay's width; 220 by default. A width outside 80 to 1024 throws std::out_of_range.
+
+   .. cpp:member:: std::shared_ptr<ImageList> image_list
+
+      Images for the pages' image_keys, or null. A disposed list or one bound to another window throws std::invalid_argument.
+
+   .. cpp:member:: bool focus_region
+
+      Whether the pane registers itself as an F6 region of its window while attached (owner decision RB-17); on by default.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> NavigationPaneCollapsedCapability
+
+   ``#include <gui_forms/controls/pages/navigation_pane/navigation_pane_capabilities/navigation_pane_capabilities.hpp>``
+
+   Whether the pane shows only its collapsed bar. Collapsing closes the configure menu; expanding closes the overlay.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(NavigationPaneCollapsedCapability& capability, bool incoming)
+
+   .. cpp:function:: static bool read(const NavigationPaneCollapsedCapability& capability)
+
+   .. cpp:member:: PropertyView<bool, NavigationPaneCollapsedCapability<Declaring>> collapsed
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> NavigationPaneExpandedWidthCapability
+
+   ``#include <gui_forms/controls/pages/navigation_pane/navigation_pane_capabilities/navigation_pane_capabilities.hpp>``
+
+   The width the pane asks for while expanded, and the overlay's width; 220 by default. A width outside 80 to 1024 throws std::out_of_range.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(NavigationPaneExpandedWidthCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, NavigationPaneExpandedWidthCapability<Declaring>> expanded_width
+
+      Default: ``{220.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> NavigationPaneFocusRegionCapability
+
+   ``#include <gui_forms/controls/pages/navigation_pane/navigation_pane_capabilities/navigation_pane_capabilities.hpp>``
+
+   Whether the pane registers itself as an F6 region of its window while attached (owner decision RB-17); on by default.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(NavigationPaneFocusRegionCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, NavigationPaneFocusRegionCapability<Declaring>> focus_region
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> NavigationPaneImageListCapability
+
+   ``#include <gui_forms/controls/pages/navigation_pane/navigation_pane_capabilities/navigation_pane_capabilities.hpp>``
+
+   Images for the pages' image_keys, or null. A disposed list or one bound to another window throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(NavigationPaneImageListCapability& capability, std::shared_ptr<ImageList> incoming)
+
+   .. cpp:member:: PropertyCell<std::shared_ptr<ImageList>, NavigationPaneImageListCapability<Declaring>> image_list
 
 .. cpp:namespace:: gui_forms
 
