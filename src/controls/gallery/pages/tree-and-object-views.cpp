@@ -1,5 +1,7 @@
 #include "pages.hpp"
 
+#include "tree-and-object-views_form.hpp"
+
 #include <algorithm>
 #include <array>
 #include <string>
@@ -147,59 +149,67 @@ private:
     std::vector<DataGridViewRowId> order_{};
 };
 
+// Owns the trees-and-object-views page: the controls
+// demo/pages/tree-and-object-views.form describes, and their behaviour.
 class TreeAndObjectViewsPage final : public Component {
 public:
     TreeAndObjectViewsPage(const std::shared_ptr<Surface>& body,
                            const std::shared_ptr<PageContext>& context) {
         static_cast<void>(context);
-        (*body).add_at(label("gallery.tree-and-object-views.heading", "TREES AND OBJECT VIEWS",
-                             22.0, 700, shell_blue_dark), {24.0, 18.0, 620.0, 34.0});
-        (*body).add_at(label("gallery.tree-and-object-views.lead",
-                             "One project fixture: the TreeView selects a folder, the BreadcrumbTrail follows it, the ObjectView lists its children, the CorrespondenceView ledgers its files, the DataGridView edits them and the TreeListView shows the whole tree with columns.",
-                             12.0, 400, muted), {26.0, 52.0, 920.0, 24.0});
-        build_location(body);
-        build_tree(body);
-        build_objects(body);
-        build_ledger(body);
-        build_grid(body);
-        build_tree_list(body);
-        status_ = label("gallery.tree.status", "Ready", 11.0, 600, green);
-        (*body).add_at(status_, {24.0, 634.0, 930.0, 22.0});
+        document_.initialize_component(*this);
+        mount_document(body);
+        build_location();
+        build_tree();
+        build_objects();
+        build_ledger();
+        build_grid();
+        build_tree_list();
         on(view_mode_.changed(), *this, &TreeAndObjectViewsPage::on_view_mode_changed);
         select_folder(node_index("controls"));
     }
 
 private:
-    void build_location(const std::shared_ptr<Surface>& body) {
-        std::shared_ptr<LayoutGroup> location = group(
-            "gallery.tree.location", "BreadcrumbTrail · follows the tree selection; F2 edits the exact path",
-            {930.0, 72.0});
-        (*body).add_at(location, {24.0, 88.0, 930.0, 72.0});
-        trail_ = make_control<BreadcrumbTrail>(StableId("gallery.tree.trail"),
-                                               "gallery.tree.trail.editor");
+    void mount_document(const std::shared_ptr<Surface>& body) {
+        // The document's root is a declared boundary only: its children move
+        // into the shell's page body, where each is placed by its bounds in
+        // design coordinates. The copy of the child list keeps the iteration
+        // valid while the root shrinks.
+        Control& root = *document_.gallery_tree_document;
+        const std::vector<Control::Ptr> children(root.children().begin(), root.children().end());
+        for (const Control::Ptr& child : children) {
+            Control::Ptr moved = root.remove_child((*child).runtime_id());
+            (*body).add_child(std::move(moved));
+        }
+        const std::array<std::shared_ptr<ScaledGroupBox>, 6> groups{
+            document_.gallery_tree_location, document_.gallery_tree_folders_group,
+            document_.gallery_tree_objects_group, document_.gallery_tree_ledger_group,
+            document_.gallery_tree_grid_group, document_.gallery_tree_tree_list_group};
+        for (const std::shared_ptr<ScaledGroupBox>& group : groups) {
+            (*group).set_style(page_style());
+        }
+        trail_ = document_.gallery_tree_trail;
+        tree_ = document_.gallery_tree_folders;
+        objects_ = document_.gallery_tree_objects;
+        ledger_ = document_.gallery_tree_ledger;
+        grid_ = document_.gallery_tree_grid;
+        tree_list_ = document_.gallery_tree_tree_list;
+        status_ = document_.gallery_tree_status;
+    }
+
+    void build_location() {
         (*trail_).set_appearance(BreadcrumbAppearance::raised);
-        (*trail_).accessible_name = "Current folder";
-        (*location).add_at(trail_, {22.0, 32.0, 690.0, 28.0});
         on((*trail_).segment_activated(), *this, &TreeAndObjectViewsPage::on_segment_activated);
         on((*trail_).edit_started(), *this, &TreeAndObjectViewsPage::on_edit_started);
         on((*trail_).edit_committed(), *this, &TreeAndObjectViewsPage::on_edit_committed);
         on((*trail_).edit_cancelled(), *this, &TreeAndObjectViewsPage::on_edit_cancelled);
         // The view-mode row is a ChoiceGroup bound to a page-owned Value.
-        std::shared_ptr<ChoiceGroup> view_mode = make_control<ChoiceGroup>(
-            StableId("gallery.tree.view-mode"));
-        (*view_mode).set_style(page_style());
-        (*view_mode).accessible_name = "Object view mode";
-        (*view_mode).set_items({{.id = 0, .label = "Icons"}, {.id = 1, .label = "Details"}});
-        (*view_mode).bind(view_mode_);
-        (*location).add_at(view_mode, {732.0, 30.0, 176.0, 32.0});
+        ChoiceGroup& view_mode = *document_.gallery_tree_view_mode;
+        view_mode.set_style(page_style());
+        view_mode.set_items({{.id = 0, .label = "Icons"}, {.id = 1, .label = "Details"}});
+        view_mode.bind(view_mode_);
     }
 
-    void build_tree(const std::shared_ptr<Surface>& body) {
-        std::shared_ptr<LayoutGroup> tree_group = group(
-            "gallery.tree.folders-group", "TreeView · folders", {300.0, 456.0});
-        (*body).add_at(tree_group, {24.0, 172.0, 300.0, 456.0});
-        tree_ = make_control<TreeView>(StableId("gallery.tree.folders"));
-        (*tree_).accessible_name = "Project folders";
+    void build_tree() {
         (*tree_).set_style(page_style());
         std::vector<TreeViewItem> items;
         for (std::size_t index = 0; index < project.size(); ++index) {
@@ -214,39 +224,24 @@ private:
             items.push_back(std::move(item));
         }
         (*tree_).set_items(std::move(items));
-        (*tree_group).add_at(tree_, {18.0, 36.0, 264.0, 404.0});
         on((*tree_).selection_changed(), *this, &TreeAndObjectViewsPage::on_folder_selected);
         on((*tree_).expansion_changed(), *this, &TreeAndObjectViewsPage::on_expansion_changed);
         on((*tree_).item_activated(), *this, &TreeAndObjectViewsPage::on_folder_activated);
     }
 
-    void build_objects(const std::shared_ptr<Surface>& body) {
-        std::shared_ptr<LayoutGroup> objects_group = group(
-            "gallery.tree.objects-group", "ObjectView · children of the selected folder",
-            {330.0, 456.0});
-        (*body).add_at(objects_group, {338.0, 172.0, 330.0, 456.0});
-        objects_ = make_control<ObjectView>(StableId("gallery.tree.objects"));
-        (*objects_).accessible_name = "Folder contents";
+    void build_objects() {
         (*objects_).set_style(page_style());
         (*objects_).set_icon_cell_size({94.0, 84.0});
         (*objects_).set_view_mode(ObjectViewMode::details);
-        (*objects_group).add_at(objects_, {18.0, 36.0, 294.0, 404.0});
         on((*objects_).selection_changed(), *this, &TreeAndObjectViewsPage::on_object_selected);
         on((*objects_).item_activated(), *this, &TreeAndObjectViewsPage::on_object_activated);
         on((*objects_).sort_requested(), *this, &TreeAndObjectViewsPage::on_sort_requested);
     }
 
-    void build_ledger(const std::shared_ptr<Surface>& body) {
-        std::shared_ptr<LayoutGroup> ledger_group = group(
-            "gallery.tree.ledger-group", "CorrespondenceView · files under the folder",
-            {272.0, 456.0});
-        (*body).add_at(ledger_group, {682.0, 172.0, 272.0, 456.0});
-        ledger_ = make_control<CorrespondenceView>(StableId("gallery.tree.ledger"));
-        (*ledger_).accessible_name = "Recent files";
+    void build_ledger() {
         (*ledger_).set_style(page_style());
         (*ledger_).set_compact_height(44.0);
         (*ledger_).set_expanded_height(124.0);
-        (*ledger_group).add_at(ledger_, {18.0, 36.0, 236.0, 404.0});
         on((*ledger_).selection_changed(), *this, &TreeAndObjectViewsPage::on_file_selected);
         on((*ledger_).pin_changed(), *this, &TreeAndObjectViewsPage::on_pin_changed);
         on((*ledger_).expansion_changed(), *this, &TreeAndObjectViewsPage::on_file_expansion);
@@ -256,13 +251,7 @@ private:
     // A DataGridView over the fixture's files in virtual mode: a text name, a
     // combo box kind, a read-only size, a check box, a button, an image and
     // a link column. The rows are the page's, by stable row ID.
-    void build_grid(const std::shared_ptr<Surface>& body) {
-        std::shared_ptr<LayoutGroup> grid_group = group(
-            "gallery.tree.grid-group", "DataGridView · the project's files as typed, editable columns",
-            {930.0, 236.0});
-        (*body).add_at(grid_group, {24.0, 668.0, 930.0, 236.0});
-        grid_ = make_control<DataGridView>(StableId("gallery.tree.grid"));
-        (*grid_).accessible_name = "Project files";
+    void build_grid() {
         std::vector<std::string> kinds;
         for (const ProjectNode& node : project) {
             const std::string kind(node.kind);
@@ -285,23 +274,16 @@ private:
         });
         grid_rows_ = std::make_shared<ProjectFileRows>();
         (*grid_).set_virtual_rows(grid_rows_, (*grid_rows_).order());
-        (*grid_group).add_at(grid_, {18.0, 36.0, 894.0, 184.0});
         on((*grid_).cell_value_changed(), *this, &TreeAndObjectViewsPage::on_grid_value_changed);
         on((*grid_).cell_content_click(), *this, &TreeAndObjectViewsPage::on_grid_content_click);
         on((*grid_).column_header_click(), *this, &TreeAndObjectViewsPage::on_grid_header_click);
     }
 
     // A TreeListView over the whole fixture: folders and files in one tree
-    // with Kind, Size and Modified columns. A header click sorts siblings;
+    // with Kind, Size and Modified columns; the note beside it is in the
+    // document. A header click sorts siblings;
     // dragging a header moves its column.
-    void build_tree_list(const std::shared_ptr<Surface>& body) {
-        std::shared_ptr<LayoutGroup> tree_list_group = group(
-            "gallery.tree.tree-list-group",
-            "TreeListView · the whole project as a tree with columns, sorted within siblings",
-            {930.0, 300.0});
-        (*body).add_at(tree_list_group, {24.0, 918.0, 930.0, 300.0});
-        tree_list_ = make_control<TreeListView>(StableId("gallery.tree.tree-list"));
-        (*tree_list_).accessible_name = "Project tree with details";
+    void build_tree_list() {
         (*tree_list_).set_columns({
             {.stable_id = std::string(column_name), .text = "Name", .width = 260.0},
             {.stable_id = std::string(column_kind), .text = "Kind", .width = 120.0},
@@ -321,17 +303,9 @@ private:
             nodes.push_back(std::move(item));
         }
         (*tree_list_).set_nodes(std::move(nodes));
-        (*tree_list_group).add_at(tree_list_, {18.0, 36.0, 640.0, 248.0});
         on((*tree_list_).selection_changed(), *this, &TreeAndObjectViewsPage::on_tree_list_selected);
         on((*tree_list_).sort_changed(), *this, &TreeAndObjectViewsPage::on_tree_list_sorted);
         on((*tree_list_).column_moved(), *this, &TreeAndObjectViewsPage::on_tree_list_column_moved);
-        std::shared_ptr<Label> note = label(
-            "gallery.tree.tree-list.note",
-            "Click a header to sort each folder's children; drag a header to move its column or a divider to resize. Left and Right collapse and expand; * expands a whole folder.",
-            10.0, 400, muted);
-        (*note).set_text_wrapping(TextWrapping::word);
-        (*note).set_vertical_alignment(VerticalAlignment::near);
-        (*tree_list_group).add_at(note, {680.0, 36.0, 228.0, 140.0});
     }
 
     [[nodiscard]] static std::size_t depth_of(std::size_t index) {
@@ -655,6 +629,8 @@ private:
     std::shared_ptr<TreeListView> tree_list_;
     std::shared_ptr<Label> status_;
     Value<int> view_mode_{1};
+    // Declared after the Value its view-mode row binds, so it is released first.
+    TreeAndObjectViewsDocument<TreeAndObjectViewsPage> document_{};
     ObjectDetailsSort sort_{};
     std::size_t folder_{no_parent};
 };

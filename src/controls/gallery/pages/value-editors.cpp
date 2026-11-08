@@ -1,8 +1,15 @@
 #include "pages.hpp"
 
-namespace gui_forms::gallery::pages {
+#include "value-editors_form.hpp"
 
-// One fixture record (a signal-lamp profile) is edited through four views:
+#include <array>
+#include <vector>
+
+namespace gui_forms::gallery::pages {
+namespace {
+
+// The controls demo/pages/value-editors.form describes, and their
+// behaviour. One fixture record (a signal-lamp profile) is edited through four views:
 // a ColorValueEditor and a FlagsValueEditor for its typed fields, a
 // PropertyList of grouped rows, and an InstrumentRack module. The owner
 // holds the record; each view reports a user commit through a named member
@@ -13,15 +20,12 @@ namespace gui_forms::gallery::pages {
 class ValueEditorsPage final : public gui_forms::Component {
 public:
     explicit ValueEditorsPage(const std::shared_ptr<Surface>& body) {
-        (*body).add_at(label("gallery.value-editors.heading", "VALUE EDITORS", 22.0, 700,
-                             shell_blue_dark), {24.0, 18.0, 620.0, 34.0});
-        (*body).add_at(label("gallery.value-editors.lead",
-                             "One record, four views: typed color and flags editors, a grouped PropertyList, and an InstrumentRack module, all kept equal by the owner.",
-                             12.0, 400, muted), {26.0, 52.0, 920.0, 24.0});
-        build_editors(body);
-        build_binding(body);
-        build_properties(body);
-        build_rack(body);
+        document_.initialize_component(*this);
+        mount_document(body);
+        build_editors();
+        build_binding();
+        build_properties();
+        build_rack();
         on((*color_).value_changed(), *this, &ValueEditorsPage::color_changed);
         on((*color_).edit_failed(), *this, &ValueEditorsPage::color_failed);
         on((*flags_).value_changed(), *this, &ValueEditorsPage::flags_changed);
@@ -56,69 +60,66 @@ private:
                 true};
     }
 
-    void build_editors(const std::shared_ptr<Surface>& body) {
-        std::shared_ptr<LayoutGroup> editors = group(
-            "gallery.value-editors.editors",
-            "ColorValueEditor · FlagsValueEditor · typed fields of the record", {450.0, 170.0});
-        (*body).add_at(editors, {24.0, 92.0, 450.0, 170.0});
-        (*editors).add_at(label("gallery.value-editors.color.caption", "Tint", 10.0, 700,
-                                shell_blue_dark), {20.0, 42.0, 60.0, 22.0});
-        color_ = make_control<ColorValueEditor>(StableId("gallery.value-editors.color"),
-                                                fixture_tint);
-        (*color_).accessible_name = "Lamp tint";
-        (*editors).add_at(color_, {84.0, 37.0, 236.0, 30.0});
-        preview_ = make_control<Panel>(StableId("gallery.value-editors.preview"));
-        (*preview_).set_background(fixture_tint);
-        (*preview_).accessible_name = "Tint preview";
-        (*editors).add_at(preview_, {336.0, 37.0, 92.0, 30.0});
+    void mount_document(const std::shared_ptr<Surface>& body) {
+        // The document's root is a declared boundary only: its children move
+        // into the shell's page body, where each is placed by its bounds in
+        // design coordinates. The copy of the child list keeps the iteration
+        // valid while the root shrinks.
+        Control& root = *document_.gallery_value_editors_document;
+        const std::vector<Control::Ptr> children(root.children().begin(), root.children().end());
+        for (const Control::Ptr& child : children) {
+            Control::Ptr moved = root.remove_child((*child).runtime_id());
+            (*body).add_child(std::move(moved));
+        }
+        const std::array<std::shared_ptr<ScaledGroupBox>, 4> groups{
+            document_.gallery_value_editors_editors, document_.gallery_value_editors_binding,
+            document_.gallery_value_editors_record, document_.gallery_value_editors_rack_group};
+        for (const std::shared_ptr<ScaledGroupBox>& group : groups) {
+            (*group).set_style(page_style());
+        }
+        color_ = document_.gallery_value_editors_color;
+        preview_ = document_.gallery_value_editors_preview;
+        binding_commands_ = document_.gallery_value_editors_binding_commands;
+        binding_status_ = document_.gallery_value_editors_binding_status;
+        properties_ = document_.gallery_value_editors_properties;
+        rack_ = document_.gallery_value_editors_rack;
+    }
 
-        (*editors).add_at(label("gallery.value-editors.flags.caption", "Edges", 10.0, 700,
-                                shell_blue_dark), {20.0, 96.0, 60.0, 22.0});
+    // The flags row ends the editors group, so appending it keeps the
+    // retired page's order.
+    void build_editors() {
+        (*color_).set_value(fixture_tint);
+        (*preview_).set_background(fixture_tint);
+        ScaledGroupBox& editors = *document_.gallery_value_editors_editors;
+        editors.add_at(label("gallery.value-editors.flags.caption", "Edges", 10.0, 700,
+                             shell_blue_dark), {20.0, 96.0, 60.0, 22.0});
         flags_ = make_control<FlagsValueEditor>(StableId("gallery.value-editors.flags"),
                                                 edges_descriptor(),
                                                 PropertyEnumValue{"Edges", "Top, Left", 3});
         (*flags_).accessible_name = "Lamp edges";
         (*flags_).set_overlay_width(236.0);
-        (*editors).add_at(flags_, {84.0, 91.0, 236.0, 30.0});
+        editors.add_at(flags_, {84.0, 91.0, 236.0, 30.0});
         editor_status_ = label("gallery.value-editors.editor-status",
                                "Enter commits · Esc restores · F4 drops the flags list down",
                                10.0, 600, green);
         (*editor_status_).set_text_wrapping(TextWrapping::word);
         (*editor_status_).set_vertical_alignment(VerticalAlignment::near);
-        (*editors).add_at(editor_status_, {20.0, 130.0, 410.0, 34.0});
+        editors.add_at(editor_status_, {20.0, 130.0, 410.0, 34.0});
     }
 
-    void build_binding(const std::shared_ptr<Surface>& body) {
-        std::shared_ptr<LayoutGroup> binding = group(
-            "gallery.value-editors.binding",
-            "BindingContext · Window-scoped membership of one BindingSource", {450.0, 142.0});
-        (*body).add_at(binding, {24.0, 280.0, 450.0, 142.0});
+    void build_binding() {
         register_.set_text("Register source");
         register_.set_description("Add the record's BindingSource to the Window's BindingContext");
         release_.set_text("Release source");
         release_.set_description("Remove the BindingSource from the BindingContext");
-        binding_commands_ = make_control<CommandBar>(
-            StableId("gallery.value-editors.binding-commands"));
-        (*binding_commands_).accessible_name = "Binding context commands";
         (*binding_commands_).set_items({
             {.id = command_register, .label = "Register source",
              .accessible_name = "Register source", .command = &register_},
             {.id = command_release, .label = "Release source",
              .accessible_name = "Release source", .command = &release_}});
-        (*binding).add_at(binding_commands_, {20.0, 38.0, 410.0, 32.0});
-        binding_status_ = label("gallery.value-editors.binding-status", "", 10.0, 600, green);
-        (*binding_status_).set_text_wrapping(TextWrapping::word);
-        (*binding_status_).set_vertical_alignment(VerticalAlignment::near);
-        (*binding).add_at(binding_status_, {20.0, 84.0, 410.0, 48.0});
     }
 
-    void build_properties(const std::shared_ptr<Surface>& body) {
-        std::shared_ptr<LayoutGroup> record = group(
-            "gallery.value-editors.record", "PropertyList · the record as grouped rows",
-            {460.0, 330.0});
-        (*body).add_at(record, {494.0, 92.0, 460.0, 330.0});
-        properties_ = make_control<PropertyList>(StableId("gallery.value-editors.properties"));
-        (*properties_).accessible_name = "Lamp profile properties";
+    void build_properties() {
         (*properties_).set_label_width(96.0);
         (*properties_).set_groups({
             {"gallery.value-editors.properties.identity", "IDENTITY", {
@@ -138,20 +139,13 @@ private:
                  "Projected from the FlagsValueEditor"},
             }},
         });
-        (*record).add_at(properties_, {20.0, 36.0, 420.0, 274.0});
         if (const std::shared_ptr<CheckBox> enabled =
                 std::dynamic_pointer_cast<CheckBox>((*properties_).editor(enabled_row))) {
             (*enabled).bind(enabled_);
         }
     }
 
-    void build_rack(const std::shared_ptr<Surface>& body) {
-        std::shared_ptr<LayoutGroup> rack_group = group(
-            "gallery.value-editors.rack-group",
-            "InstrumentRack · the same record as one compact module", {930.0, 190.0});
-        (*body).add_at(rack_group, {24.0, 440.0, 930.0, 190.0});
-        rack_ = make_control<InstrumentRack>(StableId("gallery.value-editors.rack"));
-        (*rack_).accessible_name = "Lamp profile rack";
+    void build_rack() {
         (*rack_).set_module_width(640.0);
         (*rack_).set_modules({{
             std::string(module_id), "Lamp profile",
@@ -169,7 +163,6 @@ private:
         (*reset).set_visual_style(ButtonVisualStyle::command);
         (*reset).bind(reset_);
         (*rack_).set_action_content(reset, 170.0);
-        (*rack_group).add_at(rack_, {20.0, 36.0, 890.0, 140.0});
     }
 
     // ColorValueEditor commit: project the typed color into the list row, the
@@ -337,7 +330,12 @@ private:
     std::shared_ptr<BindingContext> binding_context_;
     std::shared_ptr<BindingSource> source_;
     std::string trace_;
+    // Declared after the Value and Commands its controls bind, so it is
+    // released first.
+    ValueEditorsDocument<ValueEditorsPage> document_{};
 };
+
+} // namespace
 
 void add_value_editors(const std::shared_ptr<Surface>& page,
                        const std::shared_ptr<PageContext>& context) {

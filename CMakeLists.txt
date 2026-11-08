@@ -1626,6 +1626,24 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         CLASS RangesDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/checked-collections.form
         CLASS CheckedCollectionsDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/choices-and-sections.form
+        CLASS ChoicesDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/tree-and-object-views.form
+        CLASS TreeAndObjectViewsDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/text-and-input.form
+        CLASS TextAndInputDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/states-and-diagnostics.form
+        CLASS StatesDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/timing-and-tooltips.form
+        CLASS TimingDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/dates-and-calendar.form
+        CLASS DatesDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/values-and-spinners.form
+        CLASS ValuesDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/value-editors.form
+        CLASS ValueEditorsDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/dialogs-and-host-services.form
+        CLASS HostServicesDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/semantic-feedback.form
         CLASS SemanticFeedbackDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/control-spectrum.form
@@ -1646,7 +1664,11 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
             demo/pages/semantic-feedback.form demo/pages/control-spectrum.form
             demo/pages/retained-layout-panels.form demo/pages/responsive-layouts.form
             demo/pages/css-layout-panels.form
-            demo/pages/checked-collections.form)
+            demo/pages/checked-collections.form demo/pages/choices-and-sections.form
+            demo/pages/tree-and-object-views.form demo/pages/text-and-input.form
+            demo/pages/states-and-diagnostics.form demo/pages/timing-and-tooltips.form
+            demo/pages/dates-and-calendar.form demo/pages/values-and-spinners.form
+            demo/pages/value-editors.form demo/pages/dialogs-and-host-services.form)
     target_include_directories(gui_forms_gallery_model PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/gui_forms_forms>)
     # The Gallery is compiled with the localizable-literal plugin: its own

@@ -1,0 +1,142 @@
+/* The Gallery's states-and-diagnostics page (stage FD, phase FD6.3): four
+   bordered panels, lifecycle and interaction states, the retained-runtime
+   DiagnosticsCard and the UI dispatcher demonstration. gui_forms_add_form()
+   compiles this document into states-and-diagnostics_form.hpp at build time.
+
+   gallery.states.document is a declared boundary only: the page moves its
+   children into the shell's page body, where each is placed by its bounds
+   in design coordinates. The page keeps in code the panels' backgrounds,
+   the visited link state, the DiagnosticsCard (a Gallery control the form
+   catalogue does not name; it is placed after the lifecycle group), the
+   dispatcher's Commands and their bindings, every event handler, the status
+   line's reports and the page style. */
+scaled-panel gallery.states.document {
+  design-size: 1000 640;
+
+  label gallery.states.heading {
+    text: "STATES AND DIAGNOSTICS";
+    classes: "heading" "page-title";
+    bounds: 24 18 560 34;
+  }
+  label gallery.states.lead {
+    text: "Focus, disabled, checked, indeterminate, visited, border, and runtime accounting.";
+    classes: "muted" "body";
+    bounds: 26 52 900 24;
+  }
+
+  panel gallery.states.border.0 {
+    border-style: none;
+    bounds: 24 98 210 104;
+    label gallery.states.border.caption.0 {
+      text: "No border";
+      classes: "heading" "body-emphasis";
+      bounds: 16 18 170 24;
+    }
+    label gallery.states.border.state.0 {
+      text: "Retained panel";
+      classes: "muted" "small";
+      bounds: 16 52 170 24;
+    }
+  }
+  panel gallery.states.border.1 {
+    border-style: line;
+    bounds: 256 98 210 104;
+    label gallery.states.border.caption.1 {
+      text: "Line";
+      classes: "heading" "body-emphasis";
+      bounds: 16 18 170 24;
+    }
+    label gallery.states.border.state.1 {
+      text: "Retained panel";
+      classes: "muted" "small";
+      bounds: 16 52 170 24;
+    }
+  }
+  panel gallery.states.border.2 {
+    border-style: sunken;
+    bounds: 488 98 210 104;
+    label gallery.states.border.caption.2 {
+      text: "Sunken";
+      classes: "heading" "body-emphasis";
+      bounds: 16 18 170 24;
+    }
+    label gallery.states.border.state.2 {
+      text: "Retained panel";
+      classes: "muted" "small";
+      bounds: 16 52 170 24;
+    }
+  }
+  panel gallery.states.border.3 {
+    border-style: raised;
+    bounds: 720 98 210 104;
+    label gallery.states.border.caption.3 {
+      text: "Raised";
+      classes: "heading" "body-emphasis";
+      bounds: 16 18 170 24;
+    }
+    label gallery.states.border.state.3 {
+      text: "Retained panel";
+      classes: "muted" "small";
+      bounds: 16 52 170 24;
+    }
+  }
+
+  scaled-group-box gallery.states.lifecycle {
+    text: "Lifecycle and interaction states";
+    design-size: 450 240;
+    bounds: 24 226 450 240;
+    classes: "paper" "group-caption";
+    check-box gallery.states.checked {
+      text: "Checked";
+      checked: true;
+      bounds: 24 42 180 28;
+    }
+    check-box gallery.states.indeterminate {
+      text: "Indeterminate";
+      three-state: true;
+      check-state: indeterminate;
+      bounds: 24 82 180 28;
+    }
+    button gallery.states.unavailable {
+      text: "Unavailable action";
+      enabled: false;
+      bounds: 230 42 180 34;
+    }
+    link-label gallery.states.visited {
+      text: "Visited link state";
+      bounds: 230 88 180 28;
+    }
+    label gallery.states.cursor {
+      text: "Cursor roles: arrow · text · hand · resize · wait · forbidden";
+      classes: "muted" "small";
+      bounds: 24 142 390 42;
+    }
+  }
+
+  scaled-group-box gallery.states.dispatcher {
+    text: "UI dispatcher · posted, bounded, cancellable";
+    design-size: 930 134;
+    bounds: 24 488 930 134;
+    classes: "paper" "group-caption";
+    button gallery.dispatcher.post {
+      text: "Post A · B · C → D";
+      visual-style: accent;
+      bounds: 22 40 174 36;
+    }
+    button gallery.dispatcher.cancel {
+      text: "Post then cancel";
+      bounds: 208 40 154 36;
+    }
+    button gallery.dispatcher.invoke {
+      text: "Worker Invoke";
+      bounds: 374 40 170 36;
+    }
+    label gallery.dispatcher.status {
+      text: "Ready · BeginInvoke never executes inside the click callback";
+      classes: "positive" "emphasis";
+      text-wrapping: word;
+      vertical-alignment: near;
+      bounds: 566 36 328 58;
+    }
+  }
+}

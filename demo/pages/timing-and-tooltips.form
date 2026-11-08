@@ -1,0 +1,177 @@
+/* The Gallery's timing-and-tooltips page (stage FD, phase FD6.3): the UI
+   Timer with its start and stop buttons, interval TrackBar, cycle
+   ProgressBar and moving target; tooltip, ErrorProvider and HelpProvider
+   targets; and a BackgroundWorker. gui_forms_add_form() compiles this
+   document into timing-and-tooltips_form.hpp at build time.
+
+   gallery.timing.document is a declared boundary only: the page moves its
+   children into the shell's page body, where each is placed by its bounds
+   in design coordinates. The page keeps in code the Commands and their
+   bindings, the interval Value and the ranges, the motion panel's and
+   rule's backgrounds, the two-line texts, the hand-off of the timer and tooltip targets to the
+   shell through PageContext, the BackgroundWorker, every event handler,
+   the status lines' reports and the page style. */
+scaled-panel gallery.timing.document {
+  design-size: 1000 780;
+
+  label gallery.timing.heading {
+    text: "TIMING AND TOOLTIPS";
+    classes: "heading" "page-title";
+    bounds: 24 18 620 34;
+  }
+  label gallery.timing.lead {
+    text: "UI-thread component deadlines, coalesced cadence, focus/hover help, owner revocation, and retained overlays.";
+    classes: "muted" "body";
+    bounds: 26 52 920 24;
+  }
+
+  scaled-group-box gallery.timing.timer.group {
+    text: "Timer · deterministic UI-loop component";
+    design-size: 930 248;
+    bounds: 24 92 930 248;
+    classes: "paper" "group-caption";
+    label gallery.timing.tick.status {
+      text: "Idle · enter this page to start";
+      classes: "positive" "body-strong";
+      bounds: 22 38 510 28;
+    }
+    button gallery.timing.start {
+      text: "Start timer";
+      visual-style: accent;
+      bounds: 22 78 132 34;
+    }
+    button gallery.timing.stop {
+      text: "Stop timer";
+      bounds: 166 78 132 34;
+    }
+    label gallery.timing.interval.label {
+      text: "Interval";
+      classes: "heading" "note-strong";
+      bounds: 326 76 80 20;
+    }
+    track-bar gallery.timing.interval {
+      accessible-name: "UI timer interval in milliseconds";
+      tick-frequency: 4;
+      bounds: 326 98 260 44;
+    }
+    progress-bar gallery.timing.progress {
+      accessible-name: "Timer cycle";
+      bounds: 22 164 564 24;
+    }
+    scaled-panel gallery.timing.motion {
+      design-size: 294 170;
+      border-style: line;
+      bounds: 612 38 294 170;
+      label gallery.timing.motion.caption {
+        text: "WINDOW-QUEUE MOTION · 4 Hz";
+        classes: "muted" "note-strong";
+        bounds: 14 8 266 24;
+      }
+      panel gallery.timing.motion.rule {
+        bounds: 14 84 266 1;
+      }
+      button gallery.timing.motion.target {
+        text: "Moving tooltip target";
+        visual-style: accent;
+        bounds: 14 39 168 34;
+      }
+    }
+    label gallery.timing.cadence.note {
+      text: "Late deadlines coalesce to one ordered tick; no catch-up burst and no hidden paint control.";
+      classes: "muted" "note";
+      text-wrapping: word;
+      vertical-alignment: near;
+      bounds: 22 200 564 36;
+    }
+  }
+
+  scaled-group-box gallery.timing.tooltip.group {
+    text: "ToolTip · text on each control, one presenter per window";
+    design-size: 930 264;
+    bounds: 24 362 930 264;
+    classes: "paper" "group-caption";
+    button gallery.timing.tooltip.hover {
+      text: "Hover for detail";
+      bounds: 22 44 176 36;
+    }
+    button gallery.timing.tooltip.focus {
+      text: "Tab here for help";
+      visual-style: command;
+      bounds: 214 44 176 36;
+    }
+    button gallery.timing.tooltip.persistent {
+      text: "Show persistent help";
+      visual-style: accent;
+      bounds: 406 44 190 36;
+    }
+    button gallery.timing.tooltip.disabled {
+      text: "Disabled target";
+      enabled: false;
+      bounds: 22 102 176 36;
+    }
+    button gallery.timing.tooltip.show-disabled {
+      text: "Explain disabled control";
+      bounds: 214 102 206 36;
+    }
+    label gallery.timing.tooltip.policy {
+      /* Two lines: the page sets the text, since the language has no
+         line-break escape. */
+      classes: "muted" "note";
+      text-wrapping: word;
+      vertical-alignment: near;
+      bounds: 22 166 574 70;
+    }
+    label gallery.timing.tooltip.proof {
+      /* Two lines: the page sets the text. */
+      classes: "heading" "strong";
+      text-wrapping: word;
+      vertical-alignment: near;
+      bounds: 628 44 270 126;
+    }
+    text-box gallery.timing.provider.field {
+      text: "192.168.1.96:5555";
+      accessible-name: "Remote endpoint";
+      bounds: 628 174 204 32;
+    }
+    button gallery.timing.provider.toggle {
+      text: "Clear";
+      visual-style: command;
+      bounds: 840 174 66 32;
+    }
+    label gallery.timing.provider.note {
+      text: "ErrorProvider adornment · focus the field and press F1";
+      classes: "muted" "fine";
+      bounds: 628 210 278 22;
+    }
+  }
+
+  scaled-group-box gallery.timing.worker.group {
+    text: "BackgroundWorker · work off the UI thread, results on it";
+    design-size: 930 118;
+    bounds: 24 648 930 118;
+    classes: "paper" "group-caption";
+    button gallery.timing.worker.run {
+      text: "Run in background";
+      visual-style: accent;
+      bounds: 22 38 160 34;
+    }
+    button gallery.timing.worker.cancel {
+      text: "Cancel";
+      bounds: 194 38 104 34;
+    }
+    progress-bar gallery.timing.worker.progress {
+      accessible-name: "Background work";
+      bounds: 322 44 264 24;
+    }
+    label gallery.timing.worker.status {
+      text: "Idle";
+      classes: "heading" "strong";
+      bounds: 612 40 294 28;
+    }
+    label gallery.timing.worker.note {
+      text: "progress_changed and run_worker_completed arrive through the window's dispatcher.";
+      classes: "muted" "note";
+      bounds: 22 80 884 22;
+    }
+  }
+}

@@ -1,5 +1,7 @@
 #include "pages.hpp"
 
+#include "dialogs-and-host-services_form.hpp"
+
 #include <array>
 #include <cstdint>
 #include <cstdio>
@@ -8,10 +10,12 @@
 #include <string>
 #include <utility>
 #include <variant>
+#include <vector>
 
 namespace gui_forms::gallery::pages {
 
-// Owns the host-services page: one Command per message dialog, path/color
+// Owns the host-services page: the controls
+// demo/pages/dialogs-and-host-services.form describes; one Command per message dialog, path/color
 // dialog and host service, each bound to its button; the typed dialog results
 // and the last accepted value are page state, not shell state.
 class HostServicesPage final : public gui_forms::Component {
@@ -45,20 +49,21 @@ private:
         "Copy to host", "Paste from host", "Inspect monitors",
         "Completion cue", "Warning cue"};
 
-    void build_messages(const std::shared_ptr<Surface>& body);
-    void build_paths(const std::shared_ptr<Surface>& body);
-    void build_services(const std::shared_ptr<Surface>& body);
-    void build_font_dialog(const std::shared_ptr<LayoutGroup>& services_group);
+    void mount_document(const std::shared_ptr<Surface>& body);
+    void build_messages();
+    void build_paths();
+    void build_services();
+    void build_font_dialog();
     void on_choose_font();
     void on_font_closed(const FontDialogResult& result);
     void on_font_applied(const FontSpec& font);
-    void build_task_dialog(const std::shared_ptr<Surface>& body);
+    void build_task_dialog();
     void on_show_task_dialog();
     void on_task_dialog_closed(const TaskDialogResult& result);
     void on_native_dialogs_changed(bool native);
     void on_show_exception_dialog();
     void on_exception_dialog_closed(DialogResult result);
-    void build_notify_icon(const std::shared_ptr<Surface>& body);
+    void build_notify_icon();
     void on_toggle_notify_icon();
     void on_notify();
     void on_notify_icon_click(const NotifyIconClick& click);
@@ -115,49 +120,57 @@ private:
     std::shared_ptr<NotifyIcon> notify_icon_;
     std::string last_acceptance_{"No accepted dialog value yet"};
     std::uint64_t next_request_id_{1U};
+    // Declared after the Commands its buttons bind, so it is released first.
+    HostServicesDocument<HostServicesPage> document_{};
 };
 
 HostServicesPage::HostServicesPage(const std::shared_ptr<Surface>& body) {
-    (*body).add_at(label("gallery.host.heading", "DIALOGS AND HOST SERVICES", 22.0,
-                         700, shell_blue_dark), {24.0, 18.0, 620.0, 34.0});
-    (*body).add_at(label(
-        "gallery.host.lead",
-        "One portable contract for modal results, clipboard, monitor geometry, and semantic sound across native hosts.",
-        12.0, 400, muted), {26.0, 52.0, 900.0, 24.0});
-    build_messages(body);
-    build_paths(body);
-    build_services(body);
-    build_task_dialog(body);
-    build_notify_icon(body);
+    document_.initialize_component(*this);
+    mount_document(body);
+    build_messages();
+    build_paths();
+    build_services();
+    build_task_dialog();
+    build_notify_icon();
+}
+
+// The document's root is a declared boundary only: its children move into
+// the shell's page body, where each is placed by its bounds in design
+// coordinates. The copy of the child list keeps the iteration valid while
+// the root shrinks.
+void HostServicesPage::mount_document(const std::shared_ptr<Surface>& body) {
+    Control& root = *document_.gallery_host_document;
+    const std::vector<Control::Ptr> children(root.children().begin(), root.children().end());
+    for (const Control::Ptr& child : children) {
+        Control::Ptr moved = root.remove_child((*child).runtime_id());
+        (*body).add_child(std::move(moved));
+    }
+    const std::array<std::shared_ptr<ScaledGroupBox>, 5> groups{
+        document_.gallery_host_messages, document_.gallery_host_paths,
+        document_.gallery_host_services, document_.gallery_host_task_dialog,
+        document_.gallery_host_notify_icon};
+    for (const std::shared_ptr<ScaledGroupBox>& group : groups) {
+        (*group).set_style(page_style());
+    }
+    status_ = document_.gallery_host_status;
+    clipboard_ = document_.gallery_host_clipboard_editor;
+    font_button_ = document_.gallery_host_font_choose;
+    task_dialog_button_ = document_.gallery_host_task_dialog_show;
+    exception_dialog_button_ = document_.gallery_host_exception_dialog_show;
+    native_dialogs_ = document_.gallery_host_task_dialog_native;
+    notify_toggle_button_ = document_.gallery_host_notify_icon_toggle;
 }
 
 // A TaskDialog: an owned dialog built from GUI.Forms controls inside the
 // window, the same on every host; beside it, the ThreadExceptionDialog preset
 // over a TaskDialog, reporting an exception the specimen throws and catches.
-void HostServicesPage::build_task_dialog(const std::shared_ptr<Surface>& body) {
-    std::shared_ptr<LayoutGroup> group_box = group(
-        "gallery.host.task-dialog", "TaskDialog and ThreadExceptionDialog · in-window owned dialogs, the same on every host",
-        {930.0, 96.0});
-    (*body).add_at(group_box, {24.0, 648.0, 930.0, 96.0});
+void HostServicesPage::build_task_dialog() {
     task_dialog_command_.set_text("Show task dialog");
     task_dialog_command_.set_description("Show a TaskDialog over this window");
-    task_dialog_button_ = make_control<Button>(StableId("gallery.host.task-dialog.show"), "Show task dialog");
-    (*task_dialog_button_).set_visual_style(ButtonVisualStyle::accent);
     (*task_dialog_button_).bind(task_dialog_command_);
-    (*group_box).add_at(task_dialog_button_, {24.0, 40.0, 202.0, 38.0});
     exception_dialog_command_.set_text("Show exception dialog");
     exception_dialog_command_.set_description("Report a caught exception in a ThreadExceptionDialog");
-    exception_dialog_button_ =
-        make_control<Button>(StableId("gallery.host.exception-dialog.show"), "Show exception dialog");
-    (*exception_dialog_button_).set_visual_style(ButtonVisualStyle::command);
     (*exception_dialog_button_).bind(exception_dialog_command_);
-    (*group_box).add_at(exception_dialog_button_, {238.0, 40.0, 202.0, 38.0});
-    (*group_box).add_at(label("gallery.host.task-dialog.note",
-                              "Each reports its result in closed: a button ID, or cancel and abort.",
-                              11.0, 400, muted), {458.0, 36.0, 446.0, 24.0});
-    native_dialogs_ = make_control<CheckBox>(StableId("gallery.host.task-dialog.native"),
-                                             "Open the task and font dialogs as native popup windows");
-    (*group_box).add_at(native_dialogs_, {458.0, 60.0, 446.0, 26.0});
     on((*native_dialogs_).checked_changed(), *this, &HostServicesPage::on_native_dialogs_changed);
     task_dialog_ = make_control<TaskDialog>(StableId("gallery.host.task-dialog.dialog"));
     TaskDialogPage page;
@@ -223,16 +236,13 @@ void HostServicesPage::on_task_dialog_closed(const TaskDialogResult& result) {
 // The FontDialog specimen, beside the service status: a button opens the
 // in-window dialog over the page; OK and Apply restyle the sample label,
 // Cancel leaves it.
-void HostServicesPage::build_font_dialog(const std::shared_ptr<LayoutGroup>& fonts) {
+void HostServicesPage::build_font_dialog() {
     choose_font_.set_text("Choose font...");
     choose_font_.set_description("Open the in-window font dialog");
-    font_button_ = make_control<Button>(StableId("gallery.host.font.choose"), "Choose font...");
-    (*font_button_).set_visual_style(ButtonVisualStyle::command);
     (*font_button_).bind(choose_font_);
-    (*fonts).add_at(font_button_, {488.0, 142.0, 150.0, 36.0});
     font_sample_ = label("gallery.host.font.sample", "Sample text in the chosen font", 12.0, 400,
                          shell_blue_dark);
-    (*fonts).add_at(font_sample_, {650.0, 142.0, 246.0, 56.0});
+    (*document_.gallery_host_services).add_at(font_sample_, {650.0, 142.0, 246.0, 56.0});
     font_dialog_ = make_control<FontDialog>(StableId("gallery.host.font.dialog"));
     (*font_dialog_).set_font((*font_sample_).font());
     on(choose_font_.invoked(), *this, &HostServicesPage::on_choose_font);
@@ -302,23 +312,11 @@ std::string_view message_result_name(DialogResult result) {
 
 // A NotifyIcon: the page's icon in the notification area, where the host
 // has one, with a context menu and notification text.
-void HostServicesPage::build_notify_icon(const std::shared_ptr<Surface>& body) {
-    std::shared_ptr<LayoutGroup> group_box = group(
-        "gallery.host.notify-icon", "NotifyIcon · an icon in the notification area, where the host has one",
-        {930.0, 96.0});
-    (*body).add_at(group_box, {24.0, 756.0, 930.0, 96.0});
+void HostServicesPage::build_notify_icon() {
     notify_toggle_command_.set_text("Show tray icon");
     notify_message_command_.set_text("Notify");
-    notify_toggle_button_ = make_control<Button>(StableId("gallery.host.notify-icon.toggle"), "Show tray icon");
-    (*notify_toggle_button_).set_visual_style(ButtonVisualStyle::accent);
     (*notify_toggle_button_).bind(notify_toggle_command_);
-    std::shared_ptr<Button> notify = make_control<Button>(StableId("gallery.host.notify-icon.notify"), "Notify");
-    (*notify).bind(notify_message_command_);
-    (*group_box).add_at(notify_toggle_button_, {24.0, 40.0, 180.0, 38.0});
-    (*group_box).add_at(notify, {216.0, 40.0, 120.0, 38.0});
-    (*group_box).add_at(label("gallery.host.notify-icon.note",
-                              "Click, double-click or open the icon's menu; refusals report the host's capability.",
-                              11.0, 400, muted), {352.0, 46.0, 560.0, 24.0});
+    (*document_.gallery_host_notify_icon_notify).bind(notify_message_command_);
     notify_menu_command_ = std::make_shared<Command>("gallery.host.notify-icon.hello", "Say hello");
     on(notify_toggle_command_.invoked(), *this, &HostServicesPage::on_toggle_notify_icon);
     on(notify_message_command_.invoked(), *this, &HostServicesPage::on_notify);
@@ -364,46 +362,31 @@ void HostServicesPage::on_notify_icon_menu(const MenuItemInvocation& invocation)
     (*status_).set_text("Tray menu chose " + invocation.item_id);
 }
 
-void HostServicesPage::build_messages(const std::shared_ptr<Surface>& body) {
-    std::shared_ptr<LayoutGroup> messages = group(
-        "gallery.host.messages", "Message dialogs · buttons, icons, default choices",
-        {930.0, 132.0});
-    (*body).add_at(messages, {24.0, 92.0, 930.0, 132.0});
+void HostServicesPage::build_messages() {
+    const std::array<std::shared_ptr<Button>, 6> buttons{
+        document_.gallery_host_message_0, document_.gallery_host_message_1,
+        document_.gallery_host_message_2, document_.gallery_host_message_3,
+        document_.gallery_host_message_4, document_.gallery_host_message_5};
     for (std::size_t index = 0U; index < message_cases.size(); ++index) {
         Command& command = message_commands_[index];
         command.set_text(std::string(message_cases[index].label));
         command.set_description("Show a modal message dialog through HostServices");
-        std::shared_ptr<Button> button = make_control<Button>(
-            StableId("gallery.host.message." + std::to_string(index)),
-            std::string(message_cases[index].label));
-        (*button).set_visual_style(index == 2U ? ButtonVisualStyle::accent
-                                               : ButtonVisualStyle::command);
-        (*button).bind(command);
-        (*messages).add_at(button, {24.0 + static_cast<double>(index) * 148.0,
-                                    44.0, 138.0, 42.0});
+        (*buttons[index]).bind(command);
         on(command.invoked(), *this, &HostServicesPage::on_message_dialog,
            static_cast<int>(index));
     }
 }
 
-void HostServicesPage::build_paths(const std::shared_ptr<Surface>& body) {
-    std::shared_ptr<LayoutGroup> paths = group(
-        "gallery.host.paths",
-        "Path and color dialogs · file dialog components, typed requests and cancel preservation",
-        {930.0, 142.0});
-    (*body).add_at(paths, {24.0, 242.0, 930.0, 142.0});
+void HostServicesPage::build_paths() {
+    const std::array<std::shared_ptr<Button>, 5> buttons{
+        document_.gallery_host_dialog_0, document_.gallery_host_dialog_1,
+        document_.gallery_host_dialog_2, document_.gallery_host_dialog_3,
+        document_.gallery_host_dialog_4};
     for (std::size_t index = 0U; index < path_labels.size(); ++index) {
         Command& command = dialog_commands_[index];
         command.set_text(std::string(path_labels[index]));
         command.set_description("Show a typed path or color dialog through HostServices");
-        std::shared_ptr<Button> button = make_control<Button>(
-            StableId("gallery.host.dialog." + std::to_string(index)),
-            std::string(path_labels[index]));
-        (*button).set_visual_style(index == 4U ? ButtonVisualStyle::accent
-                                               : ButtonVisualStyle::standard);
-        (*button).bind(command);
-        (*paths).add_at(button, {24.0 + static_cast<double>(index) * 176.0,
-                                 44.0, 158.0, 40.0});
+        (*buttons[index]).bind(command);
         on(command.invoked(), *this, &HostServicesPage::on_path_dialog,
            static_cast<int>(index));
     }
@@ -419,42 +402,22 @@ void HostServicesPage::build_paths(const std::shared_ptr<Surface>& body) {
     (*color_dialog_).set_color(Color::rgba(0x27U, 0x74U, 0xB8U));
     folder_browser_dialog_ = std::make_shared<FolderBrowserDialog>();
     (*folder_browser_dialog_).set_description("Choose an evidence directory");
-    (*paths).add_at(label("gallery.host.paths.note",
-                          "Cancel never overwrites the last accepted path, choice, or color.",
-                          11.0, 400, muted), {24.0, 98.0, 700.0, 24.0});
 }
 
-void HostServicesPage::build_services(const std::shared_ptr<Surface>& body) {
-    std::shared_ptr<LayoutGroup> services_group = group(
-        "gallery.host.services", "Host services · clipboard, monitors, completion cue",
-        {930.0, 224.0});
-    (*body).add_at(services_group, {24.0, 402.0, 930.0, 224.0});
-    clipboard_ = make_control<TextBox>(StableId("gallery.host.clipboard.editor"));
-    (*clipboard_).set_text("GUI.Forms clipboard probe Ω");
-    (*clipboard_).accessible_name = "Clipboard probe text";
-    (*services_group).add_at(clipboard_, {24.0, 42.0, 432.0, 32.0});
-
+void HostServicesPage::build_services() {
+    const std::array<std::shared_ptr<Button>, 5> buttons{
+        document_.gallery_host_service_0, document_.gallery_host_service_1,
+        document_.gallery_host_service_2, document_.gallery_host_service_3,
+        document_.gallery_host_service_4};
     for (std::size_t index = 0U; index < service_labels.size(); ++index) {
         Command& command = service_commands_[index];
         command.set_text(std::string(service_labels[index]));
         command.set_description("Call one portable HostServices operation");
-        std::shared_ptr<Button> button = make_control<Button>(
-            StableId("gallery.host.service." + std::to_string(index)),
-            std::string(service_labels[index]));
-        (*button).set_visual_style(ButtonVisualStyle::command);
-        (*button).bind(command);
-        (*services_group).add_at(button,
-            {24.0 + static_cast<double>(index) * 176.0, 88.0, 158.0, 36.0});
+        (*buttons[index]).bind(command);
         on(command.invoked(), *this, &HostServicesPage::on_service,
            static_cast<int>(index));
     }
-    status_ = label("gallery.host.status",
-                    "Ready · native host results remain typed, bounded, and owner-modal",
-                    11.0, 600, green);
-    (*status_).set_text_wrapping(TextWrapping::word);
-    (*status_).set_vertical_alignment(VerticalAlignment::near);
-    (*services_group).add_at(status_, {24.0, 142.0, 440.0, 56.0});
-    build_font_dialog(services_group);
+    build_font_dialog();
 }
 
 HostServices* HostServicesPage::services() const {

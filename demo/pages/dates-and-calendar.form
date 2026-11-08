@@ -1,0 +1,153 @@
+/* The Gallery's dates-and-calendar page (stage FD, phase FD6.3):
+   DateTimePickers in four formats and four modes, an overlay lifecycle with
+   a bounded appointment picker and its CommandBar, and a two-month
+   MonthCalendar. gui_forms_add_form() compiles this document into
+   dates-and-calendar_form.hpp at build time.
+
+   gallery.date.document is a declared boundary only: the page moves its
+   children into the shell's page body, where each is placed by its bounds
+   in design coordinates. The page keeps in code the pickers' values,
+   formats, ranges, modes and provider, the CommandBar's items and Commands,
+   the calendar's dates, range, dimensions and bold dates, every event
+   handler, the status lines' reports and the page style. */
+scaled-panel gallery.date.document {
+  design-size: 1000 940;
+
+  label gallery.date.heading {
+    text: "DATES AND CALENDAR";
+    classes: "heading" "page-title";
+    bounds: 24 18 620 34;
+  }
+  label gallery.date.lead {
+    text: "Validated civil time, caller-owned formats, nullable and spinner modes, retained overlay focus, and semantic date cells.";
+    classes: "muted" "body";
+    bounds: 26 52 920 24;
+  }
+
+  scaled-group-box gallery.date.formats {
+    text: "Formatting · four modes and an owned provider";
+    design-size: 930 180;
+    bounds: 24 92 930 180;
+    classes: "paper" "group-caption";
+    label gallery.date.format.caption.0 {
+      text: "Long date";
+      classes: "heading" "note-strong";
+      bounds: 22 40 86 22;
+    }
+    date-time-picker gallery.date.format.0 {
+      accessible-name: "Long date picker";
+      bounds: 114 35 320 30;
+    }
+    label gallery.date.format.caption.1 {
+      text: "Short date";
+      classes: "heading" "note-strong";
+      bounds: 474 40 86 22;
+    }
+    date-time-picker gallery.date.format.1 {
+      accessible-name: "Short date picker";
+      bounds: 566 35 320 30;
+    }
+    label gallery.date.format.caption.2 {
+      text: "Time";
+      classes: "heading" "note-strong";
+      bounds: 22 102 86 22;
+    }
+    date-time-picker gallery.date.format.2 {
+      accessible-name: "Time picker";
+      bounds: 114 97 320 30;
+    }
+    label gallery.date.format.caption.3 {
+      text: "Custom";
+      classes: "heading" "note-strong";
+      bounds: 474 102 86 22;
+    }
+    date-time-picker gallery.date.format.3 {
+      accessible-name: "Custom picker";
+      bounds: 566 97 320 30;
+    }
+  }
+
+  scaled-group-box gallery.date.modes {
+    text: "Modes and states · nullable, spinner, provider, disabled";
+    design-size: 930 180;
+    bounds: 24 290 930 180;
+    classes: "paper" "group-caption";
+    label gallery.date.optional.caption {
+      text: "Optional value";
+      classes: "heading" "note-strong";
+      bounds: 22 40 106 22;
+    }
+    date-time-picker gallery.date.optional {
+      accessible-name: "Optional unchecked date";
+      bounds: 132 35 284 30;
+    }
+    label gallery.date.spinner.caption {
+      text: "Up/down date";
+      classes: "heading" "note-strong";
+      bounds: 474 40 106 22;
+    }
+    date-time-picker gallery.date.spinner {
+      accessible-name: "Date spinner";
+      bounds: 584 35 320 30;
+    }
+    label gallery.date.provider.caption {
+      text: "Owned provider";
+      classes: "heading" "note-strong";
+      bounds: 22 102 106 22;
+    }
+    date-time-picker gallery.date.provider {
+      accessible-name: "Caller-owned French date provider";
+      bounds: 132 97 284 30;
+    }
+    label gallery.date.disabled.caption {
+      text: "Disabled state";
+      classes: "heading" "note-strong";
+      bounds: 474 102 106 22;
+    }
+    date-time-picker gallery.date.disabled {
+      accessible-name: "Disabled date picker";
+      enabled: false;
+      bounds: 584 97 320 30;
+    }
+  }
+
+  scaled-group-box gallery.date.lifecycle {
+    text: "Overlay lifecycle · commit, cancel, bounds, semantics";
+    design-size: 930 138;
+    bounds: 24 488 930 138;
+    classes: "paper" "group-caption";
+    date-time-picker gallery.date.primary {
+      accessible-name: "Bounded appointment date";
+      bounds: 22 38 310 31;
+    }
+    command-bar gallery.date.commands {
+      accessible-name: "Appointment commands";
+      bounds: 352 38 454 32;
+    }
+    label gallery.date.status {
+      text: "Ready · August 1–31, 2026 · F4 or Alt+Down opens";
+      classes: "positive" "note-medium";
+      text-wrapping: word;
+      vertical-alignment: near;
+      bounds: 22 86 884 34;
+    }
+  }
+
+  scaled-group-box gallery.date.month {
+    text: "MonthCalendar · two months, week numbers, bold dates, bounded range";
+    design-size: 930 280;
+    bounds: 24 644 930 280;
+    classes: "paper" "group-caption";
+    month-calendar gallery.date.month.calendar {
+      accessible-name: "Appointment calendar";
+      bounds: 22 38 500 216;
+    }
+    label gallery.date.month.status {
+      text: "Drag to select up to seven days · arrows, Page Up/Down, Home, End";
+      classes: "positive" "note-medium";
+      text-wrapping: word;
+      vertical-alignment: near;
+      bounds: 546 44 360 60;
+    }
+  }
+}

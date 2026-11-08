@@ -1,0 +1,209 @@
+/* The Gallery's text-and-input page (stage FD, phase FD6.3): TextBox
+   states, a CommandBar of editing commands, MaskedTextBoxes, auto-complete
+   in a TextBox and an editable ComboBox, a TokenBox and a RichTextBox over
+   markdown. gui_forms_add_form() compiles this document into
+   text-and-input_form.hpp at build time.
+
+   gallery.text.document is a declared boundary only: the page moves its
+   children into the shell's page body, where each is placed by its bounds
+   in design coordinates. The page keeps in code the protected field's
+   password character, the CommandBar's items and Commands, the masks, the
+   auto-complete sources and modes, the ComboBox's items and style, the
+   initial token, the markdown, every event handler, the status lines'
+   reports and the page style. */
+scaled-panel gallery.text.document {
+  design-size: 1000 1400;
+
+  label gallery.text.heading {
+    text: "TEXT AND INPUT";
+    classes: "heading" "page-title";
+    bounds: 24 18 500 34;
+  }
+  label gallery.text.lead {
+    text: "Unicode editing, word navigation, host clipboard commands, protected text, captured drag, caret deadlines, and history.";
+    classes: "muted" "body";
+    bounds: 26 52 900 24;
+  }
+
+  scaled-group-box gallery.text.editing {
+    text: "Editable TextBox states";
+    design-size: 930 290;
+    bounds: 24 92 930 290;
+    classes: "paper" "group-caption";
+    label gallery.text.primary.caption {
+      text: "Primary field";
+      classes: "muted" "emphasis";
+      bounds: 24 42 130 24;
+    }
+    text-box gallery.text.primary {
+      accessible-name: "Primary field";
+      placeholder-text: "Click, type, drag-select, use Shift+Arrow, Cmd/Ctrl+A, Z, Y";
+      bounds: 154 36 700 36;
+    }
+    label gallery.text.unicode.caption {
+      text: "Unicode field";
+      classes: "muted" "emphasis";
+      bounds: 24 96 130 24;
+    }
+    text-box gallery.text.unicode {
+      text: "Graphemes: á · Ω · 日本語 · 🚀";
+      accessible-name: "Unicode field";
+      bounds: 154 90 700 36;
+    }
+    label gallery.text.readonly.caption {
+      text: "Read-only";
+      classes: "muted" "emphasis";
+      bounds: 24 150 130 24;
+    }
+    text-box gallery.text.readonly {
+      text: "Selection remains available; mutation is blocked.";
+      accessible-name: "Read-only field";
+      read-only: true;
+      bounds: 154 144 700 36;
+    }
+    label gallery.text.password.caption {
+      text: "Protected";
+      classes: "muted" "emphasis";
+      bounds: 24 204 130 24;
+    }
+    text-box gallery.text.password {
+      text: "Portsmouth-Ω-2026";
+      accessible-name: "Protected credential field";
+      accessible-description: "Password text is editable but excluded from paint traces, clipboard export, and semantic values.";
+      bounds: 154 198 700 36;
+    }
+    label gallery.text.state {
+      text: "Selection: empty · History: clean";
+      classes: "positive" "emphasis";
+      bounds: 154 250 700 26;
+    }
+  }
+
+  scaled-group-box gallery.text.commands {
+    text: "Programmatic editing surface";
+    design-size: 930 216;
+    bounds: 24 404 930 216;
+    classes: "paper" "group-caption";
+    /* Undo and Redo are Commands, so the field's history projects onto
+       the bar's retained buttons; the items are the page's. */
+    command-bar gallery.text.command {
+      accessible-name: "Editing commands";
+      bounds: 24 42 870 36;
+    }
+    label gallery.text.clipboard.status {
+      text: "Clipboard: select text, then use buttons or Cmd/Ctrl+C, X, V";
+      classes: "positive" "emphasis";
+      bounds: 24 92 830 26;
+    }
+    label gallery.text.guarantee {
+      text: "TextBox + TextStore own editing. HostServices only transports bounded UTF-8 clipboard data; protected fields never export values.";
+      classes: "heading" "emphasis";
+      text-wrapping: word;
+      vertical-alignment: near;
+      bounds: 24 132 830 52;
+    }
+  }
+
+  scaled-group-box gallery.text.masked {
+    text: "MaskedTextBox · input through a mask";
+    design-size: 930 132;
+    bounds: 24 640 930 132;
+    classes: "paper" "group-caption";
+    label gallery.text.masked.phone.caption {
+      text: "Telephone";
+      classes: "muted" "emphasis";
+      bounds: 24 42 130 24;
+    }
+    masked-text-box gallery.text.masked.phone {
+      accessible-name: "Telephone number";
+      bounds: 154 36 260 36;
+    }
+    label gallery.text.masked.code.caption {
+      text: "Part code";
+      classes: "muted" "emphasis";
+      bounds: 440 42 110 24;
+    }
+    masked-text-box gallery.text.masked.code {
+      accessible-name: "Part code";
+      bounds: 550 36 300 36;
+    }
+    label gallery.text.masked.status {
+      text: "Telephone: digits only; letters are refused and reported";
+      classes: "positive" "emphasis";
+      bounds: 154 86 700 26;
+    }
+  }
+
+  scaled-group-box gallery.text.complete {
+    text: "Auto-complete · suggest and append";
+    design-size: 930 132;
+    bounds: 24 792 930 132;
+    classes: "paper" "group-caption";
+    label gallery.text.complete.city.caption {
+      text: "City";
+      classes: "muted" "emphasis";
+      bounds: 24 42 130 24;
+    }
+    text-box gallery.text.complete.city {
+      accessible-name: "City";
+      placeholder-text: "Type a city: Ca, Ed, Lo";
+      bounds: 154 36 300 36;
+    }
+    label gallery.text.complete.band.caption {
+      text: "Band";
+      classes: "muted" "emphasis";
+      bounds: 480 42 70 24;
+    }
+    combo-box gallery.text.complete.band {
+      accessible-name: "Band";
+      bounds: 550 36 300 36;
+    }
+    label gallery.text.complete.status {
+      text: "Type to see suggestions; Up and Down choose, Enter or Tab accepts, Escape restores";
+      classes: "positive" "emphasis";
+      bounds: 154 86 700 26;
+    }
+  }
+
+  scaled-group-box gallery.text.tokens {
+    text: "TokenBox · entries become removable tokens";
+    design-size: 930 150;
+    bounds: 24 944 930 150;
+    classes: "paper" "group-caption";
+    label gallery.text.tokens.caption {
+      text: "Recipients";
+      classes: "muted" "emphasis";
+      bounds: 24 42 130 24;
+    }
+    token-box gallery.text.tokens.recipients {
+      accessible-name: "Recipients";
+      bounds: 154 36 700 58;
+    }
+    label gallery.text.tokens.status {
+      text: "Enter, a comma or a suggestion adds a token; Backspace selects and removes the last";
+      classes: "positive" "emphasis";
+      bounds: 154 104 700 26;
+    }
+  }
+
+  scaled-group-box gallery.text.rich {
+    text: "RichTextBox · markdown shown styled";
+    design-size: 930 270;
+    bounds: 24 1114 930 270;
+    classes: "paper" "group-caption";
+    label gallery.text.rich.caption {
+      text: "Note";
+      classes: "muted" "emphasis";
+      bounds: 24 42 130 24;
+    }
+    rich-text-box gallery.text.rich.note {
+      accessible-name: "Note";
+      bounds: 154 36 700 184;
+    }
+    label gallery.text.rich.status {
+      text: "Ctrl+click a link to open it";
+      classes: "positive" "emphasis";
+      bounds: 154 228 700 26;
+    }
+  }
+}

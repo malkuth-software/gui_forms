@@ -1,0 +1,110 @@
+/* The Gallery's trees-and-object-views page (stage FD, phase FD6.3): one
+   project fixture shown by a BreadcrumbTrail with a view-mode ChoiceGroup,
+   a TreeView of folders, an ObjectView of the selected folder's children,
+   a CorrespondenceView ledger of its files, a DataGridView of the files and
+   a TreeListView of the whole tree. gui_forms_add_form() compiles this
+   document into tree-and-object-views_form.hpp at build time.
+
+   gallery.tree.document is a declared boundary only: the page moves its
+   children into the shell's page body, where each is placed by its bounds
+   in design coordinates. The page keeps in code the fixture and every item,
+   column and row drawn from it, the trail's appearance, the view mode's
+   items and Value, the views' cell sizes and modes, every event handler,
+   the status line's reports and the page style. */
+scaled-panel gallery.tree.document {
+  design-size: 1000 1240;
+
+  label gallery.tree-and-object-views.heading {
+    text: "TREES AND OBJECT VIEWS";
+    classes: "heading" "page-title";
+    bounds: 24 18 620 34;
+  }
+  label gallery.tree-and-object-views.lead {
+    text: "One project fixture: the TreeView selects a folder, the BreadcrumbTrail follows it, the ObjectView lists its children, the CorrespondenceView ledgers its files, the DataGridView edits them and the TreeListView shows the whole tree with columns.";
+    classes: "muted" "body";
+    bounds: 26 52 920 24;
+  }
+
+  scaled-group-box gallery.tree.location {
+    text: "BreadcrumbTrail · follows the tree selection; F2 edits the exact path";
+    design-size: 930 72;
+    bounds: 24 88 930 72;
+    classes: "paper" "group-caption";
+    breadcrumb-trail gallery.tree.trail {
+      accessible-name: "Current folder";
+      bounds: 22 32 690 28;
+    }
+    choice-group gallery.tree.view-mode {
+      accessible-name: "Object view mode";
+      bounds: 732 30 176 32;
+    }
+  }
+
+  scaled-group-box gallery.tree.folders-group {
+    text: "TreeView · folders";
+    design-size: 300 456;
+    bounds: 24 172 300 456;
+    classes: "paper" "group-caption";
+    tree-view gallery.tree.folders {
+      accessible-name: "Project folders";
+      bounds: 18 36 264 404;
+    }
+  }
+
+  scaled-group-box gallery.tree.objects-group {
+    text: "ObjectView · children of the selected folder";
+    design-size: 330 456;
+    bounds: 338 172 330 456;
+    classes: "paper" "group-caption";
+    object-view gallery.tree.objects {
+      accessible-name: "Folder contents";
+      bounds: 18 36 294 404;
+    }
+  }
+
+  scaled-group-box gallery.tree.ledger-group {
+    text: "CorrespondenceView · files under the folder";
+    design-size: 272 456;
+    bounds: 682 172 272 456;
+    classes: "paper" "group-caption";
+    correspondence-view gallery.tree.ledger {
+      accessible-name: "Recent files";
+      bounds: 18 36 236 404;
+    }
+  }
+
+  scaled-group-box gallery.tree.grid-group {
+    text: "DataGridView · the project's files as typed, editable columns";
+    design-size: 930 236;
+    bounds: 24 668 930 236;
+    classes: "paper" "group-caption";
+    data-grid-view gallery.tree.grid {
+      accessible-name: "Project files";
+      bounds: 18 36 894 184;
+    }
+  }
+
+  scaled-group-box gallery.tree.tree-list-group {
+    text: "TreeListView · the whole project as a tree with columns, sorted within siblings";
+    design-size: 930 300;
+    bounds: 24 918 930 300;
+    classes: "paper" "group-caption";
+    tree-list-view gallery.tree.tree-list {
+      accessible-name: "Project tree with details";
+      bounds: 18 36 640 248;
+    }
+    label gallery.tree.tree-list.note {
+      text: "Click a header to sort each folder's children; drag a header to move its column or a divider to resize. Left and Right collapse and expand; * expands a whole folder.";
+      classes: "muted" "note";
+      text-wrapping: word;
+      vertical-alignment: near;
+      bounds: 680 36 228 140;
+    }
+  }
+
+  label gallery.tree.status {
+    text: "Ready";
+    classes: "positive" "emphasis";
+    bounds: 24 634 930 22;
+  }
+}

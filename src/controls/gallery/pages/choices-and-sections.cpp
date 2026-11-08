@@ -1,25 +1,29 @@
 #include "pages.hpp"
 
-namespace gui_forms::gallery::pages {
+#include "choices-and-sections_form.hpp"
 
-// A rollout review. The deployment ring is one Value<int> shown by two
-// ChoiceGroups (a labelled row and a glyph row); three Value<bool>s are each
-// borrowed by an ExpandableSections item and bound by a toggle CheckBox in a
-// GroupBox; a Card and a ReviewCard project the chosen ring. The owner
-// observes the state events (every change) separately from the input events
-// (user activation) and never copies state between controls.
+#include <array>
+#include <vector>
+
+namespace gui_forms::gallery::pages {
+namespace {
+
+// A rollout review: the controls demo/pages/choices-and-sections.form
+// describes, and their behaviour. The deployment ring is one Value<int> shown
+// by two ChoiceGroups (a labelled row and a glyph row); three Value<bool>s
+// are each borrowed by an ExpandableSections item and bound by a toggle
+// CheckBox in a GroupBox; a Card and a ReviewCard project the chosen ring.
+// The owner observes the state events (every change) separately from the
+// input events (user activation) and never copies state between controls.
 class ChoicesPage final : public gui_forms::Component {
 public:
     explicit ChoicesPage(const std::shared_ptr<Surface>& body) {
-        (*body).add_at(label("gallery.choices-and-sections.heading", "CHOICES AND SECTIONS", 22.0,
-                             700, shell_blue_dark), {24.0, 18.0, 620.0, 34.0});
-        (*body).add_at(label("gallery.choices-and-sections.lead",
-                             "One Value<int> behind two ChoiceGroups, three Value<bool>s behind sections and toggles, and cards that project the choice.",
-                             12.0, 400, muted), {26.0, 52.0, 920.0, 24.0});
-        build_choices(body);
-        build_sections(body);
-        build_state(body);
-        build_cards(body);
+        document_.initialize_component(*this);
+        mount_document(body);
+        build_choices();
+        build_sections();
+        build_state();
+        build_cards();
         on(ring_.changed(), *this, &ChoicesPage::ring_changed);
         on((*ring_row_).activated(), *this, &ChoicesPage::ring_activated);
         on((*sections_).toggled(), *this, &ChoicesPage::section_toggled);
@@ -33,26 +37,37 @@ private:
     static constexpr std::array<std::string_view, 3> section_names{
         "Checklist", "Notes", "History"};
 
-    void build_choices(const std::shared_ptr<Surface>& body) {
-        std::shared_ptr<LayoutGroup> choices = group(
-            "gallery.choices.ring-group", "ChoiceGroup · one Value<int>, two views", {930.0, 120.0});
-        (*body).add_at(choices, {24.0, 92.0, 930.0, 120.0});
-        ring_row_ = make_control<ChoiceGroup>(StableId("gallery.choices.ring"));
-        (*ring_row_).accessible_name = "Deployment ring";
+    void mount_document(const std::shared_ptr<Surface>& body) {
+        // The document's root is a declared boundary only: its children move
+        // into the shell's page body, where each is placed by its bounds in
+        // design coordinates. The copy of the child list keeps the iteration
+        // valid while the root shrinks.
+        Control& root = *document_.gallery_choices_document;
+        const std::vector<Control::Ptr> children(root.children().begin(), root.children().end());
+        for (const Control::Ptr& child : children) {
+            Control::Ptr moved = root.remove_child((*child).runtime_id());
+            (*body).add_child(std::move(moved));
+        }
+        (*document_.gallery_choices_ring_group).set_style(page_style());
+        ring_row_ = document_.gallery_choices_ring;
+        ring_status_ = document_.gallery_choices_ring_status;
+        sections_ = document_.gallery_choices_sections;
+        sections_status_ = document_.gallery_choices_sections_status;
+        state_ = document_.gallery_choices_state;
+        card_ = document_.gallery_choices_card;
+        review_ = document_.gallery_choices_review;
+    }
+
+    void build_choices() {
         (*ring_row_).set_items({{.id = 10, .label = "Canary", .accessible_name = "Canary ring"},
                                 {.id = 20, .label = "Staged", .accessible_name = "Staged ring"},
                                 {.id = 30, .label = "Full", .accessible_name = "Full ring"}});
         (*ring_row_).bind(ring_);
-        (*choices).add_at(ring_row_, {20.0, 38.0, 480.0, 32.0});
-        ring_chips_ = make_control<ChoiceGroup>(StableId("gallery.choices.ring-chips"));
-        (*ring_chips_).accessible_name = "Deployment ring (glyphs)";
-        (*ring_chips_).set_items({{.id = 10, .glyph = "◔", .accessible_name = "Canary ring"},
-                                  {.id = 20, .glyph = "◑", .accessible_name = "Staged ring"},
-                                  {.id = 30, .glyph = "●", .accessible_name = "Full ring"}});
-        (*ring_chips_).bind(ring_);
-        (*choices).add_at(ring_chips_, {540.0, 38.0, 180.0, 32.0});
-        ring_status_ = label("gallery.choices.ring-status", "", 10.0, 600, green);
-        (*choices).add_at(ring_status_, {20.0, 84.0, 890.0, 24.0});
+        ChoiceGroup& chips = *document_.gallery_choices_ring_chips;
+        chips.set_items({{.id = 10, .glyph = "◔", .accessible_name = "Canary ring"},
+                         {.id = 20, .glyph = "◑", .accessible_name = "Staged ring"},
+                         {.id = 30, .glyph = "●", .accessible_name = "Full ring"}});
+        chips.bind(ring_);
     }
 
     [[nodiscard]] static std::shared_ptr<Label> section_body(std::string id, std::string text,
@@ -64,9 +79,7 @@ private:
         return body;
     }
 
-    void build_sections(const std::shared_ptr<Surface>& body) {
-        sections_ = make_control<ExpandableSections>(StableId("gallery.choices.sections"));
-        (*sections_).accessible_name = "Review sections";
+    void build_sections() {
         (*sections_).set_items({
             {.id = 1, .label = "Checklist",
              .content = section_body("gallery.choices.sections.checklist",
@@ -83,38 +96,23 @@ private:
                                      "2026-08-03 canary ok · 2026-08-04 staged ok · 2026-08-05 pending review",
                                      60.0),
              .expanded = &history_open_}});
-        (*body).add_at(sections_, {24.0, 230.0, 450.0, 300.0});
-        sections_status_ = label("gallery.choices.sections-status",
-                                 "Checklist open · headers, Space and the toggles share one state",
-                                 10.0, 600, green);
-        (*body).add_at(sections_status_, {24.0, 540.0, 450.0, 24.0});
     }
 
-    void build_state(const std::shared_ptr<Surface>& body) {
-        state_ = make_control<GroupBox>(StableId("gallery.choices.state"), "Section state");
-        (*state_).set_background(paper);
+    // The toggles' indicator style and placement are in the document; each
+    // binds one section's open state.
+    void build_state() {
         (*state_).set_style(page_style());
-        (*state_).set_font({FontRole::control, 12.0, 700, false, 0.24});
-        (*state_).accessible_name = "Section state";
-        (*body).add_at(state_, {494.0, 230.0, 460.0, 120.0});
-        add_toggle("gallery.choices.state.checklist", "Checklist", checklist_open_, 0.0);
-        add_toggle("gallery.choices.state.notes", "Notes", notes_open_, 1.0);
-        add_toggle("gallery.choices.state.history", "History", history_open_, 2.0);
+        bind_toggle(*document_.gallery_choices_state_checklist, checklist_open_);
+        bind_toggle(*document_.gallery_choices_state_notes, notes_open_);
+        bind_toggle(*document_.gallery_choices_state_history, history_open_);
     }
 
-    void add_toggle(std::string id, std::string text, Value<bool>& model, const double column) {
-        std::shared_ptr<CheckBox> toggle = make_control<CheckBox>(StableId(std::move(id)),
-                                                                  std::move(text));
-        (*toggle).set_indicator_style(ChoiceIndicatorStyle::toggle);
-        (*toggle).set_style(page_style());
-        (*toggle).bind(model);
-        (*toggle).set_requested_bounds({20.0 + column * 140.0, 44.0, 130.0, 28.0});
-        (*state_).add_child(toggle);
+    static void bind_toggle(CheckBox& toggle, Value<bool>& model) {
+        toggle.set_style(page_style());
+        toggle.bind(model);
     }
 
-    void build_cards(const std::shared_ptr<Surface>& body) {
-        card_ = make_control<Card>(StableId("gallery.choices.card"));
-        (*card_).accessible_name = "Rollout plan card";
+    void build_cards() {
         (*card_).set_interactive(true);
         (*card_).set_selection_behavior(CardSelectionBehavior::select_on_activation);
         static_cast<void>((*card_).set_header(
@@ -126,11 +124,6 @@ private:
         card_footer_ = label("gallery.choices.card.footer", "Click or press Space to select",
                              10.0, 600, muted);
         static_cast<void>((*card_).set_footer(card_footer_));
-        (*body).add_at(card_, {494.0, 368.0, 220.0, 196.0});
-
-        review_ = make_control<ReviewCard>(StableId("gallery.choices.review"));
-        (*review_).accessible_name = "Rollout review";
-        (*body).add_at(review_, {730.0, 368.0, 224.0, 196.0});
     }
 
     // State: every change of the ring, from either ChoiceGroup or a setter.
@@ -207,8 +200,9 @@ private:
     Value<bool> checklist_open_{true};
     Value<bool> notes_open_{false};
     Value<bool> history_open_{false};
+    // Declared after the Values its controls bind, so it is released first.
+    ChoicesDocument<ChoicesPage> document_{};
     std::shared_ptr<ChoiceGroup> ring_row_;
-    std::shared_ptr<ChoiceGroup> ring_chips_;
     std::shared_ptr<Label> ring_status_;
     std::shared_ptr<ExpandableSections> sections_;
     std::shared_ptr<Label> sections_status_;
@@ -220,6 +214,8 @@ private:
     int activations_{};
     int card_activations_{};
 };
+
+} // namespace
 
 void add_choices_and_sections(const std::shared_ptr<Surface>& page,
                               const std::shared_ptr<PageContext>& context) {
