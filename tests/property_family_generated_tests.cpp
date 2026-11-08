@@ -22,6 +22,7 @@
 #include "gui_forms/controls/panel/material_panel/material_panel.hpp"
 #include "gui_forms/controls/panel/month_calendar/month_calendar.hpp"
 #include "gui_forms/controls/panel/numeric_up_down/numeric_up_down.hpp"
+#include "gui_forms/controls/panel/object_view/object_view.hpp"
 #include "gui_forms/controls/panel/panel.hpp"
 #include "gui_forms/controls/panel/picture_box/picture_box.hpp"
 #include "gui_forms/controls/panel/property_grid/property_grid.hpp"
@@ -737,6 +738,36 @@ void test_numeric_up_down_properties() {
     }
 }
 
+void test_object_view_properties() {
+    std::shared_ptr<ObjectView> control = make_control<ObjectView>(StableId("generated.objectview"));
+    {
+        const ObjectSelectionMode sample = ObjectSelectionMode::single;
+        (*control).selection_mode = sample;
+        expect((*control).selection_mode.read() == sample, "ObjectView.selection_mode: a write stores");
+    }
+    {
+        const Size sample = Size{120.0, 100.0};
+        (*control).icon_cell_size = sample;
+        expect((*control).icon_cell_size.read() == sample, "ObjectView.icon_cell_size: a write stores");
+    }
+    {
+        const double sample = 32.0;
+        (*control).details_row_height = sample;
+        expect((*control).details_row_height.read() == sample, "ObjectView.details_row_height: a write stores");
+    }
+    {
+        const bool sample = !(*control).show_secondary_text.read();
+        (*control).show_secondary_text = sample;
+        expect((*control).show_secondary_text.read() == sample, "ObjectView.show_secondary_text: a write stores");
+    }
+    {
+        const FontSpec sample = FontSpec{FontRole::content, 13.0, 400, false};
+        (*control).font = sample;
+        expect((*control).font.read() == sample, "ObjectView.font: a write stores");
+    }
+    // image_list: no sample for std::shared_ptr<ImageList>; give the property a "sample".
+}
+
 void test_panel_properties() {
     std::shared_ptr<Panel> control = make_control<Panel>(StableId("generated.panel"));
     {
@@ -1027,6 +1058,7 @@ int main() {
     test_material_panel_properties();
     test_month_calendar_properties();
     test_numeric_up_down_properties();
+    test_object_view_properties();
     test_panel_properties();
     test_picture_box_properties();
     test_property_grid_properties();

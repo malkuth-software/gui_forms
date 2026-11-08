@@ -413,7 +413,7 @@ void test_tree_and_object_view_consume_keyed_image_list() {
     std::shared_ptr<gui_forms::ImageList> images = std::make_shared<ImageList>(window, Size{18.0, 18.0});
     (*images).add_image("folder", loaded.image);
     (*tree).image_list = images;
-    (*objects).set_image_list(images);
+    (*objects).image_list = images;
     (*tree).set_items({{"tree.image", "Folder", 0U, false, false, true,
                       "FOLDER"}});
     (*objects).set_items({{"object.image",
@@ -439,8 +439,8 @@ void test_object_label_wrapping_focus_and_full_name_inspection() {
     std::shared_ptr<gui_forms::ObjectView> objects =
         make_control<ObjectView>(StableId("objects.labels"));
     (*objects).set_requested_bounds({0.0, 0.0, 190.0, 170.0});
-    (*objects).set_icon_cell_size({90.0, 78.0});
-    (*objects).set_show_secondary_text(false);
+    (*objects).icon_cell_size = {90.0, 78.0};
+    (*objects).show_secondary_text = false;
     const std::string complete_name =
         "Résumé資料 archive evidence package with immutable identity.txt";
     (*objects).set_items({
@@ -509,7 +509,7 @@ void test_object_label_wrapping_focus_and_full_name_inspection() {
     require(operation_check_30, "modified keyboard navigation must move focus independently of stable selection");
     const bool operation_check_31 = (*objects).focused_id() == "labels.wrap";
     require(operation_check_31, "modified keyboard navigation must move focus independently of stable selection");
-    const bool operation_check_32 = (*objects).selected_id() == "labels.long";
+    const bool operation_check_32 = (*objects).selected_id.read() == "labels.long";
     require(operation_check_32, "modified keyboard navigation must move focus independently of stable selection");
     ImageRecordingPainter keyboard_short{};
     window.paint(keyboard_short, {0.0, 0.0, 190.0, 170.0});
@@ -523,7 +523,7 @@ void test_object_label_wrapping_focus_and_full_name_inspection() {
     require(operation_check_33, "keyboard fixture must return independent focus without rewriting selection");
     const bool operation_check_34 = (*objects).focused_id() == "labels.long";
     require(operation_check_34, "keyboard fixture must return independent focus without rewriting selection");
-    const bool operation_check_35 = (*objects).selected_id() == "labels.long";
+    const bool operation_check_35 = (*objects).selected_id.read() == "labels.long";
     require(operation_check_35, "keyboard fixture must return independent focus without rewriting selection");
     static_cast<void>(window.dispatch_pointer(
         {PointerAction::move, PointerButton::none,
@@ -539,7 +539,7 @@ void test_object_label_wrapping_focus_and_full_name_inspection() {
                 keyboard_inspected_name == complete_name,
             "non-truncated hover must not suppress complete-name inspection for the keyboard-focused item");
 
-    (*objects).set_view_mode(ObjectViewMode::details);
+    (*objects).view_mode = ObjectViewMode::details;
     ImageRecordingPainter details{};
     window.paint(details, {0.0, 0.0, 190.0, 170.0});
     require(!details.texts.empty() && details.texts.front().ends_with("…") &&
@@ -549,8 +549,8 @@ void test_object_label_wrapping_focus_and_full_name_inspection() {
     std::shared_ptr<gui_forms::ObjectView> grapheme_objects =
         make_control<ObjectView>(StableId("objects.graphemes"));
     (*grapheme_objects).set_requested_bounds({0.0, 0.0, 94.0, 90.0});
-    (*grapheme_objects).set_icon_cell_size({90.0, 78.0});
-    (*grapheme_objects).set_show_secondary_text(false);
+    (*grapheme_objects).icon_cell_size = {90.0, 78.0};
+    (*grapheme_objects).show_secondary_text = false;
     const std::string joined_family =
         "👨‍👩‍👧‍👦‍👨‍👩‍👧‍👦";
     const TextStore joined_family_store(joined_family);
@@ -572,10 +572,10 @@ void test_object_label_wrapping_focus_and_full_name_inspection() {
 
 void test_object_virtualization_view_preservation_and_input() {
     std::shared_ptr<gui_forms::ObjectView> objects = make_control<ObjectView>(StableId("objects"));
-    (*objects).set_show_secondary_text(false);
-    require(!(*objects).show_secondary_text(),
+    (*objects).show_secondary_text = false;
+    require(!(*objects).show_secondary_text.read(),
             "ObjectView must retain secondary-text visibility policy");
-    (*objects).set_show_secondary_text(true);
+    (*objects).show_secondary_text = true;
     (*objects).set_requested_bounds({0.0, 0.0, 420.0, 190.0});
     std::vector<ObjectViewItem> model{};
     model.reserve(1000U);
@@ -589,7 +589,7 @@ void test_object_virtualization_view_preservation_and_input() {
                                           : ObjectGlyph::document});
     }
     (*objects).set_items(std::move(model));
-    (*objects).set_selected_id("object.5");
+    (*objects).selected_id = "object.5";
     Window window(objects, {420.0, 190.0});
     require((*objects).children().empty(),
             "ObjectView must not allocate one retained control per logical item");
@@ -599,14 +599,14 @@ void test_object_virtualization_view_preservation_and_input() {
     require(operation_check_36, "ObjectView must accept retained focus");
     const bool operation_check_37 = window.dispatch_key({KeyAction::down, PhysicalKey::right});
     require(operation_check_37, "ObjectView Right must use deterministic spatial navigation");
-    const bool operation_check_38 = (*objects).selected_id() == "object.6";
+    const bool operation_check_38 = (*objects).selected_id.read() == "object.6";
     require(operation_check_38, "ObjectView Right must use deterministic spatial navigation");
     const bool operation_check_39 = window.dispatch_text({"quartz"});
     require(operation_check_39, "ObjectView type-to-select must reach an unrealized stable item");
-    const bool operation_check_40 = (*objects).selected_id() == "object.777";
+    const bool operation_check_40 = (*objects).selected_id.read() == "object.777";
     require(operation_check_40, "ObjectView type-to-select must reach an unrealized stable item");
-    (*objects).set_view_mode(ObjectViewMode::details);
-    require((*objects).selected_id() == "object.777" &&
+    (*objects).view_mode = ObjectViewMode::details;
+    require((*objects).selected_id.read() == "object.777" &&
                 (*objects).semantic_virtual_children().size() <= 8U,
             "ObjectView mode changes must preserve stable selection and bounded semantics");
 
@@ -648,7 +648,7 @@ void test_object_virtualization_view_preservation_and_input() {
     require(operation_check_48, "ObjectView native double click must invoke exactly one default action");
     const bool operation_check_49 = (*objects).on_semantic_child_action("object.777", SemanticAction::select, {});
     require(operation_check_49, "ObjectView semantic selection must share the ordinary selection path");
-    const bool operation_check_50 = (*objects).selected_id() == "object.777";
+    const bool operation_check_50 = (*objects).selected_id.read() == "object.777";
     require(operation_check_50, "ObjectView semantic selection must share the ordinary selection path");
 }
 
@@ -688,7 +688,7 @@ void require_selection(const ObjectView& view,
 void test_object_multiselection_pointer_keyboard_and_semantics() {
     std::shared_ptr<gui_forms::ObjectView> objects = make_control<ObjectView>(StableId("objects.multi"));
     (*objects).set_requested_bounds({0.0, 0.0, 320.0, 270.0});
-    (*objects).set_icon_cell_size({100.0, 80.0});
+    (*objects).icon_cell_size = {100.0, 80.0};
     std::vector<ObjectViewItem> model{};
     for (std::size_t index = 0; index < 8U; ++index) {
         model.push_back({"multi." + std::to_string(index),
@@ -709,7 +709,7 @@ void test_object_multiselection_pointer_keyboard_and_semantics() {
                   PointerButton::primary);
     require_selection(*objects, {"multi.1"},
                       "plain click must establish one stable selection");
-    require((*objects).selected_id() == "multi.1" &&
+    require((*objects).selected_id.read() == "multi.1" &&
                 (*objects).selection_anchor_id() == "multi.1",
             "plain click must establish primary and range-anchor identities");
 
@@ -717,7 +717,7 @@ void test_object_multiselection_pointer_keyboard_and_semantics() {
                   PointerButton::primary, Modifier::meta);
     require_selection(*objects, {"multi.1", "multi.3"},
                       "Command-click must toggle without discarding selection");
-    require((*objects).selected_id() == "multi.3",
+    require((*objects).selected_id.read() == "multi.3",
             "newly toggled item must become the primary selection");
 
     pointer_click(window, semantic_center(*objects, "multi.6"),
@@ -783,7 +783,7 @@ void test_object_multiselection_pointer_keyboard_and_semantics() {
 
     const Point background{310.0, 266.0};
     pointer_click(window, background, PointerButton::primary);
-    require((*objects).selected_ids().empty() && (*objects).selected_id().empty(),
+    require((*objects).selected_ids().empty() && (*objects).selected_id.read().empty(),
             "plain background click must clear selection without losing focus");
 
     (*objects).set_selected_ids({"multi.6", "multi.2"}, "multi.6");
@@ -791,7 +791,7 @@ void test_object_multiselection_pointer_keyboard_and_semantics() {
     (*objects).set_items(model);
     require_selection(*objects, {"multi.6", "multi.2"},
                       "model replacement must retain selected stable IDs in new visual order");
-    (*objects).set_view_mode(ObjectViewMode::details);
+    (*objects).view_mode = ObjectViewMode::details;
     require_selection(*objects, {"multi.6", "multi.2"},
                       "view projection changes must preserve the complete selection set");
     require(!changes.empty() && changes.back().current_ids.size() == 2U,
@@ -1179,7 +1179,7 @@ void test_details_header_entry_reentrancy() {
             const std::shared_ptr<ObjectView> owner = make_control<ObjectView>(StableId("details.entry"));
             ObjectView& view = *owner;
             view.set_requested_bounds({0.0, 0.0, 230.0, 190.0});
-            view.set_view_mode(ObjectViewMode::details);
+            view.view_mode = ObjectViewMode::details;
             view.set_details_model(details_test_columns(), details_test_items(2U));
             (*root).add_child(owner);
             Window window(root, {230.0, 190.0});
@@ -1223,12 +1223,12 @@ struct DetailsModeReleaseMutator final {
     void operator()(const PointerCaptureChange& change) const {
         if (change.captured || invoked) return;
         invoked = true;
-        saw_committed_mode = view.view_mode() == ObjectViewMode::icons && !view.has_pointer_capture();
+        saw_committed_mode = view.view_mode.read() == ObjectViewMode::icons && !view.has_pointer_capture();
         if (mutation == DetailsModeMutation::dispose) view.dispose();
         else if (mutation == DetailsModeMutation::detach) {
             const Control::Ptr removed = parent.remove_child(view.runtime_id());
         } else if (mutation == DetailsModeMutation::mode) {
-            view.set_view_mode(ObjectViewMode::details);
+            view.view_mode = ObjectViewMode::details;
         } else {
             view.set_details_model(details_test_columns(), details_test_items(3U));
             view.set_top_row(1U);
@@ -1244,7 +1244,7 @@ void test_details_mode_release_reentrancy() {
         const std::shared_ptr<ObjectView> owner = make_control<ObjectView>(StableId("details.mode"));
         ObjectView& view = *owner;
         view.set_requested_bounds({0.0, 0.0, 230.0, 190.0});
-        view.set_view_mode(ObjectViewMode::details);
+        view.view_mode = ObjectViewMode::details;
         view.set_details_model(details_test_columns(), details_test_items(20U));
         (*root).add_child(owner);
         Window window(root, {230.0, 190.0});
@@ -1258,12 +1258,12 @@ void test_details_mode_release_reentrancy() {
         SubscriptionToken observer = window.pointer_capture_changed().subscribe(
             DetailsModeReleaseMutator{view, *root, mutation, invoked, saw_committed_mode});
         bool threw = false;
-        try { view.set_view_mode(ObjectViewMode::icons); }
+        try { view.view_mode = ObjectViewMode::icons; }
         catch (const std::logic_error&) { threw = true; }
         const ObjectViewMode expected_mode = mutation == DetailsModeMutation::mode ?
             ObjectViewMode::details : ObjectViewMode::icons;
         bool passed = invoked && saw_committed_mode && !threw &&
-            view.view_mode() == expected_mode && !view.has_pointer_capture();
+            view.view_mode.read() == expected_mode && !view.has_pointer_capture();
         if (mutation == DetailsModeMutation::model) {
             passed = passed && view.items().size() == 3U && view.top_row() == 1U;
         }
@@ -1294,7 +1294,7 @@ struct DetailsSortReleaseObserver final {
             const Control::Ptr removed = parent.remove_child(view.runtime_id());
         } else if (mutation == DetailsSortReleaseMutation::model) {
             view.set_details_model(details_test_columns(), details_test_items(2U));
-        } else if (mutation == DetailsSortReleaseMutation::mode) view.set_view_mode(ObjectViewMode::icons);
+        } else if (mutation == DetailsSortReleaseMutation::mode) view.view_mode = ObjectViewMode::icons;
     }
 };
 
@@ -1318,7 +1318,7 @@ void test_details_sort_retires_capture() {
         const std::shared_ptr<ObjectView> owner = make_control<ObjectView>(StableId("details.sort.release"));
         ObjectView& view = *owner;
         view.set_requested_bounds({0.0, 0.0, 230.0, 190.0});
-        view.set_view_mode(ObjectViewMode::details);
+        view.view_mode = ObjectViewMode::details;
         view.set_details_model(details_test_columns(), details_test_items(8U));
         (*root).add_child(owner);
         Window window(root, {230.0, 190.0});
@@ -1353,8 +1353,8 @@ struct DetailsCommitObserver final {
     void operator()(const ObjectSelectionChange&) const {
         called = true;
         require(view.items().front().stable_id == "detail.7" &&
-            view.details_sort().column.value == "replacement-name" &&
-            view.details_sort().direction == ObjectSortDirection::descending &&
+            view.details_sort.read().column.value == "replacement-name" &&
+            view.details_sort.read().direction == ObjectSortDirection::descending &&
             view.selected_ids().front() == "detail.6",
             "postcommit listener must see reordered rows and their accepted indicator together");
         throw DetailsCommitObserverFailure{};
@@ -1365,7 +1365,7 @@ void test_details_model_with_accepted_sort() {
     const std::shared_ptr<ObjectView> owner = make_control<ObjectView>(StableId("details.accepted.commit"));
     ObjectView& view = *owner;
     view.set_requested_bounds({0.0, 0.0, 230.0, 190.0});
-    view.set_view_mode(ObjectViewMode::details);
+    view.view_mode = ObjectViewMode::details;
     view.set_details_model(details_test_columns(), details_test_items(8U), {{"name"}, ObjectSortDirection::ascending});
     view.set_selected_ids({"detail.2", "detail.6"}, "detail.6");
     Window window(owner, {230.0, 190.0});
@@ -1384,8 +1384,8 @@ void test_details_model_with_accepted_sort() {
         try { view.set_details_model(details_test_columns(), details_test_items(3U), invalid); }
         catch (const std::invalid_argument&) { rejected = true; }
         require(rejected && view.items().size() == 8U && view.items().front().stable_id == "detail.0" &&
-            view.details_sort().column.value == "name" && view.details_sort().direction == ObjectSortDirection::ascending &&
-            view.selected_id() == "detail.6" && view.selected_ids().size() == 2U &&
+            view.details_sort.read().column.value == "name" && view.details_sort.read().direction == ObjectSortDirection::ascending &&
+            view.selected_id.read() == "detail.6" && view.selected_ids().size() == 2U &&
             view.focused_id() == "detail.6" && view.selection_anchor_id() == "detail.6" && view.top_row() == 2U,
             "invalid accepted state must preserve old model, indicator, selection, focus, anchor and top");
     }
@@ -1405,23 +1405,23 @@ void test_details_model_with_accepted_sort() {
         view.set_details_model(std::move(columns), std::move(items), {{"replacement-name"}, ObjectSortDirection::descending});
     } catch (const DetailsCommitObserverFailure&) { threw = true; }
     require(threw && called && view.items().front().stable_id == "detail.7" &&
-        view.details_sort().column.value == "replacement-name" &&
-        view.details_sort().direction == ObjectSortDirection::descending,
+        view.details_sort.read().column.value == "replacement-name" &&
+        view.details_sort.read().direction == ObjectSortDirection::descending,
         "throwing listener cannot leave the new model with the old accepted indicator");
     observer.disconnect();
     view.set_details_model(details_test_columns(), details_test_items(8U), {{"fact"}, ObjectSortDirection::descending});
     view.set_details_model(details_test_columns(), details_test_items(8U));
-    require(view.details_sort().column.value == "fact" && view.details_sort().direction == ObjectSortDirection::descending,
+    require(view.details_sort.read().column.value == "fact" && view.details_sort.read().direction == ObjectSortDirection::descending,
         "two-argument replacement retains surviving accepted sort");
     view.set_details_model(details_test_columns(), details_test_items(8U), {});
-    require(view.details_sort().column.value.empty(), "explicit empty accepted sort clears indicator");
+    require(view.details_sort.read().column.value.empty(), "explicit empty accepted sort clears indicator");
 }
 
 void test_details_transaction_and_identity() {
     const std::shared_ptr<ObjectView> owner = make_control<ObjectView>(StableId("details.transaction"));
     ObjectView& view = *owner;
     view.set_requested_bounds({0.0, 0.0, 280.0, 190.0});
-    view.set_view_mode(ObjectViewMode::details);
+    view.view_mode = ObjectViewMode::details;
     view.set_details_model(details_test_columns(), details_test_items(20U));
     Window window(owner, {280.0, 190.0});
     view.set_selected_ids({"detail.3", "detail.7"}, "detail.7");
@@ -1434,20 +1434,20 @@ void test_details_transaction_and_identity() {
     std::reverse(reversed.begin(), reversed.end());
     view.set_items(std::move(reversed));
     window.flush();
-    require(view.selected_id() == "detail.7" && view.selection_anchor_id() == "detail.7" &&
+    require(view.selected_id.read() == "detail.7" && view.selection_anchor_id() == "detail.7" &&
         view.focused_id() == "detail.8" && view.items()[view.top_row()].stable_id == "detail.5",
         "replacement must preserve independent primary, anchor, focus and top-visible identity");
     require(view.items().front().cells.front().column.value == "name",
         "ID-keyed cells must normalize independently of input order");
     view.set_selected_ids({"detail.3", "detail.7"});
-    require(view.selected_id() == "detail.7" && view.selection_anchor_id() == "detail.7",
+    require(view.selected_id.read() == "detail.7" && view.selection_anchor_id() == "detail.7",
         "a caller republishing selection without explicit primary must preserve surviving primary and anchor");
     std::vector<ObjectViewItem> malformed = details_test_items(2U);
     malformed[1U].cells[0U].column.value = "name";
     bool rejected = false;
     try { view.set_items(std::move(malformed)); }
     catch (const std::invalid_argument&) { rejected = true; }
-    require(rejected && view.items().size() == 20U && view.selected_id() == "detail.7" &&
+    require(rejected && view.items().size() == 20U && view.selected_id.read() == "detail.7" &&
         view.items()[view.top_row()].stable_id == "detail.5", "duplicate cell replacement must leave old state intact");
     std::vector<ObjectDetailsColumn> invalid_columns = details_test_columns();
     invalid_columns[1U].width = std::numeric_limits<double>::quiet_NaN();
@@ -1473,7 +1473,7 @@ void test_details_transaction_and_identity() {
     rejected = false;
     try { view.set_items(std::move(excessive)); }
     catch (const std::invalid_argument&) { rejected = true; }
-    require(rejected && view.items().size() == 20U && view.selected_id() == "detail.7" &&
+    require(rejected && view.items().size() == 20U && view.selected_id.read() == "detail.7" &&
         view.items()[view.top_row()].stable_id == "detail.5",
         "aggregate text above the development guard must preserve the complete prior model");
     // Each independent invalid input must fail before any retained publication.
@@ -1496,12 +1496,12 @@ void test_details_transaction_and_identity() {
         rejected = false;
         try { view.set_details_model(std::move(bad_columns), std::move(bad_items)); }
         catch (const std::invalid_argument&) { rejected = true; }
-        require(rejected && view.items().size() == 20U && view.selected_id() == "detail.7" &&
+        require(rejected && view.items().size() == 20U && view.selected_id.read() == "detail.7" &&
             view.items()[view.top_row()].stable_id == "detail.5", "invalid Details model must preserve previous state");
     }
-    view.set_view_mode(ObjectViewMode::icons);
-    view.set_view_mode(ObjectViewMode::details);
-    require(view.selected_id() == "detail.7" && view.focused_id() == "detail.8" &&
+    view.view_mode = ObjectViewMode::icons;
+    view.view_mode = ObjectViewMode::details;
+    require(view.selected_id.read() == "detail.7" && view.focused_id() == "detail.8" &&
         view.selection_anchor_id() == "detail.7", "mode changes must preserve independent selection state");
     const bool offscreen_context = view.on_semantic_child_action("detail.19", SemanticAction::show_menu, {});
     require(offscreen_context, "offscreen semantic action must safely reveal its item");
@@ -1511,7 +1511,7 @@ void test_details_scroll_fills_available_page() {
     const std::shared_ptr<ObjectView> owner = make_control<ObjectView>(StableId("details.full-page"));
     ObjectView& view = *owner;
     view.set_requested_bounds({0.0, 0.0, 400.0, 300.0});
-    view.set_view_mode(ObjectViewMode::details);
+    view.view_mode = ObjectViewMode::details;
     view.set_details_model(details_test_columns(), details_test_items(3U));
     Window window(owner, {400.0, 300.0});
     window.flush();
@@ -1531,7 +1531,7 @@ void test_details_scroll_fills_available_page() {
     require(view.top_row() < before_growth, "growing the viewport must expose earlier rows to fill it");
     view.set_details_model(details_test_columns(), details_test_items(3U));
     require(view.top_row() == 0U, "shrinking the model must retire an obsolete scroll offset");
-    view.set_details_row_height(28.0);
+    view.details_row_height = 28.0;
     window.resize({400.0, 102.0});
     window.flush();
     window.request_focus(owner);
@@ -1539,8 +1539,8 @@ void test_details_scroll_fills_available_page() {
     static_cast<void>(window.dispatch_key({KeyAction::down, PhysicalKey::down}));
     const bool moved = window.dispatch_key({KeyAction::down, PhysicalKey::down});
     std::cout << "Details fractional row: handled=" << moved << " top=" << view.top_row()
-              << " selected=" << view.selected_id() << " height=" << view.committed_arranged_bounds().height << '\n';
-    require(moved && view.top_row() == 1U && view.selected_id() == "detail.2",
+              << " selected=" << view.selected_id.read() << " height=" << view.committed_arranged_bounds().height << '\n';
+    require(moved && view.top_row() == 1U && view.selected_id.read() == "detail.2",
         "Down must scroll the clipped final row fully into view");
     view.set_top_row(0U);
     const bool ended = window.dispatch_key({KeyAction::down, PhysicalKey::end});
@@ -1552,7 +1552,7 @@ void test_details_keyboard_sort_with_pending_layout() {
     const std::shared_ptr<ObjectView> owner = make_control<ObjectView>(StableId("details.pending-layout"));
     ObjectView& view = *owner;
     view.set_requested_bounds({0.0, 0.0, 230.0, 190.0});
-    view.set_view_mode(ObjectViewMode::details);
+    view.view_mode = ObjectViewMode::details;
     view.set_details_model(details_test_columns(), details_test_items(8U));
     Window window(owner, {230.0, 190.0});
     std::vector<ObjectDetailsSort> requests{};
@@ -1569,7 +1569,7 @@ void test_details_semantic_item_returns_keyboard_to_body() {
     const std::shared_ptr<ObjectView> owner = make_control<ObjectView>(StableId("details.semantic-focus"));
     ObjectView& view = *owner;
     view.set_requested_bounds({0.0, 0.0, 400.0, 190.0});
-    view.set_view_mode(ObjectViewMode::details);
+    view.view_mode = ObjectViewMode::details;
     view.set_details_model(details_test_columns(), details_test_items(3U));
     Window window(owner, {400.0, 190.0});
     window.flush();
@@ -1605,7 +1605,7 @@ void test_details_header_semantic_press() {
     const std::shared_ptr<ObjectView> owner = make_control<ObjectView>(StableId("details.header-press"));
     ObjectView& view = *owner;
     view.set_requested_bounds({0.0, 0.0, 400.0, 190.0});
-    view.set_view_mode(ObjectViewMode::details);
+    view.view_mode = ObjectViewMode::details;
     view.set_details_model(details_test_columns(), details_test_items(3U));
     Window window(owner, {400.0, 190.0});
     window.flush();
@@ -1636,17 +1636,17 @@ void test_details_header_input_resize_and_cache() {
     const std::shared_ptr<ObjectView> owner = make_control<ObjectView>(StableId("details.input"));
     ObjectView& view = *owner;
     view.set_requested_bounds({0.0, 0.0, 230.0, 190.0});
-    view.set_view_mode(ObjectViewMode::details);
+    view.view_mode = ObjectViewMode::details;
     view.set_details_model(details_test_columns(), details_test_items(8U));
     Window window(owner, {230.0, 190.0});
     std::vector<ObjectDetailsSort> requests{};
     SubscriptionToken subscription = view.sort_requested().subscribe(DetailsSortRecorder{requests});
-    view.set_selected_id("detail.2");
+    view.selected_id = "detail.2";
     pointer_click(window, {40.0, 15.0}, PointerButton::primary);
     require(requests.size() == 1U && requests[0U].column.value == "name" &&
-        view.details_sort().column.value.empty() && view.selected_id() == "detail.2",
+        view.details_sort.read().column.value.empty() && view.selected_id.read() == "detail.2",
         "header sort request must not change accepted order state or body selection");
-    view.set_details_sort(requests.front());
+    view.details_sort = requests.front();
     pointer_click(window, {40.0, 15.0}, PointerButton::primary);
     require(requests.size() == 2U && requests.back().direction == ObjectSortDirection::descending,
         "accepted ascending state must request descending on next activation");
@@ -1673,7 +1673,7 @@ void test_details_header_input_resize_and_cache() {
     require(body, "Escape must leave header focus");
     view.set_horizontal_offset(0.0);
     pointer_click(window, {60.0, 44.0}, PointerButton::primary);
-    require(view.selected_id() == "detail.0" && requests.size() == 2U,
+    require(view.selected_id.read() == "detail.0" && requests.size() == 2U,
         "body hit geometry must subtract fixed header height");
     ImageRecordingPainter first{};
     window.paint(first, {0.0, 0.0, 230.0, 190.0});
@@ -1742,7 +1742,7 @@ void test_details_bounded_work() {
         const std::shared_ptr<ObjectView> owner = make_control<ObjectView>(StableId("details.scale"));
         ObjectView& view = *owner;
         view.set_requested_bounds({0.0, 0.0, 230.0, 190.0});
-        view.set_view_mode(ObjectViewMode::details);
+        view.view_mode = ObjectViewMode::details;
         view.set_details_model(details_test_columns(), details_test_items(count));
         Window window(owner, {230.0, 190.0});
         view.select_all();
@@ -1779,12 +1779,12 @@ void test_details_cold_long_text_measurement_bound() {
     std::vector<ObjectViewItem> items{};
     items.push_back(std::move(item));
     view.set_details_model(std::move(columns), std::move(items));
-    view.set_view_mode(ObjectViewMode::details);
+    view.view_mode = ObjectViewMode::details;
     Window window(owner, {140.0, 110.0});
     const std::array<bool, 2U> measurement_profiles{false, true};
     for (const bool nonmonotonic : measurement_profiles) {
-        view.set_view_mode(ObjectViewMode::icons);
-        view.set_view_mode(ObjectViewMode::details);
+        view.view_mode = ObjectViewMode::icons;
+        view.view_mode = ObjectViewMode::details;
         window.flush();
         ImageRecordingPainter cold{};
         cold.nonmonotonic_widths = nonmonotonic;

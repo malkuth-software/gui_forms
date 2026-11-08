@@ -1,7 +1,9 @@
 #pragma once
 
 #include "gui_forms/basic_controls.hpp"
+#include "gui_forms/controls/panel/object_view/object_view_values/object_view_values.hpp"
 #include "gui_forms/scheduler.hpp"
+#include "gui_forms/controls/panel/object_view/object_view_capabilities/object_view_capabilities.hpp"
 
 #include <chrono>
 #include <cstdint>
@@ -16,11 +18,6 @@
 
 namespace gui_forms {
 
-enum class ObjectViewMode : std::uint8_t {
-    icons,
-    details,
-};
-
 enum class ObjectGlyph : std::uint8_t {
     folder,
     document,
@@ -30,17 +27,8 @@ enum class ObjectGlyph : std::uint8_t {
     code,
 };
 
-struct ObjectColumnId final {
-    std::string value{};
-    friend bool operator==(const ObjectColumnId& left, const ObjectColumnId& right) {
-        const bool equal = left.value == right.value;
-        return equal;
-    }
-};
-
 enum class ObjectCellAvailability : std::uint8_t { available, unavailable, not_applicable };
 enum class ObjectColumnAlignment : std::uint8_t { left, right };
-enum class ObjectSortDirection : std::uint8_t { ascending, descending };
 
 struct ObjectDetailsColumn final {
     ObjectColumnId id{};
@@ -56,11 +44,6 @@ struct ObjectDetailsCell final {
     ObjectColumnId column{};
     std::string text{};
     ObjectCellAvailability availability{ObjectCellAvailability::available};
-};
-
-struct ObjectDetailsSort final {
-    ObjectColumnId column{}; // Empty means no accepted sort indicator.
-    ObjectSortDirection direction{ObjectSortDirection::ascending};
 };
 
 struct ObjectDetailsPaintWork final {
@@ -87,11 +70,6 @@ struct ObjectSelectionChange final {
     std::vector<std::string> current_ids{};
 };
 
-enum class ObjectSelectionMode : std::uint8_t {
-    single,
-    multiple,
-};
-
 struct ObjectContextRequest final {
     std::string stable_id{};
     Point screen_position{};
@@ -100,7 +78,7 @@ struct ObjectContextRequest final {
 // A stable-ID virtual object collection with icon and details projections.
 // It owns no per-item controls: paint, hit testing, keyboard spatial movement,
 // and semantic realization operate on a bounded visible window.
-class ObjectView final : public Panel {
+class ObjectView final : public Panel, public ObjectViewCapabilities<ObjectView> {
 public:
     explicit ObjectView(StableId stable_id);
     // Provisional development admission guard, not measured product capacity.
@@ -128,18 +106,10 @@ public:
         return details_columns_;
     }
     void set_details_column_width(const ObjectColumnId& column, double width);
-    void set_details_sort(ObjectDetailsSort state);
-    [[nodiscard]] const ObjectDetailsSort& details_sort() const noexcept { return details_sort_; }
     [[nodiscard]] Event<const ObjectDetailsSort&>& sort_requested() noexcept { return sort_requested_; }
     void set_horizontal_offset(double offset);
     [[nodiscard]] double horizontal_offset() const noexcept { return horizontal_offset_; }
     [[nodiscard]] ObjectDetailsPaintWork details_paint_work() const noexcept { return details_paint_work_; }
-    [[nodiscard]] ObjectViewMode view_mode() const noexcept { return view_mode_; }
-    void set_view_mode(ObjectViewMode mode);
-    [[nodiscard]] std::string_view selected_id() const noexcept {
-        return selected_id_;
-    }
-    void set_selected_id(std::string_view stable_id);
     [[nodiscard]] std::span<const std::string> selected_ids() const noexcept {
         return selected_ids_;
     }
@@ -147,34 +117,14 @@ public:
                           std::string_view primary_id = {});
     void clear_selection();
     void select_all();
-    [[nodiscard]] ObjectSelectionMode selection_mode() const noexcept {
-        return selection_mode_;
-    }
-    void set_selection_mode(ObjectSelectionMode mode);
     [[nodiscard]] std::string_view selection_anchor_id() const noexcept {
         return selection_anchor_id_;
     }
     [[nodiscard]] std::string_view focused_id() const noexcept {
         return focused_id_;
     }
-    [[nodiscard]] Size icon_cell_size() const noexcept { return icon_cell_size_; }
-    void set_icon_cell_size(Size size);
-    [[nodiscard]] double details_row_height() const noexcept {
-        return details_row_height_;
-    }
-    void set_details_row_height(double height);
-    [[nodiscard]] bool show_secondary_text() const noexcept {
-        return show_secondary_text_;
-    }
-    void set_show_secondary_text(bool show);
     [[nodiscard]] std::size_t top_row() const noexcept { return top_row_; }
     void set_top_row(std::size_t row);
-    [[nodiscard]] FontSpec font() const noexcept { return font_; }
-    void set_font(FontSpec font);
-    [[nodiscard]] std::shared_ptr<ImageList> image_list() const noexcept {
-        return image_list_;
-    }
-    void set_image_list(std::shared_ptr<ImageList> image_list);
 
     [[nodiscard]] Event<const ObjectSelectionChange&>& selection_changed() noexcept {
         return selection_changed_;
@@ -325,7 +275,7 @@ private:
     void clear_details_cache() noexcept;
     [[nodiscard]] const std::string& details_text(Painter& painter,
         std::size_t slot, std::size_t item, std::size_t column, bool header,
-        std::string_view text, double width, FontSpec font);
+        std::string_view text, double width, FontSpec text_face);
     std::vector<ObjectDetailsColumn> details_columns_{};
     std::uint64_t details_revision_{};
     ItemIndices item_indices_{};
@@ -380,21 +330,46 @@ private:
     std::optional<std::size_t> pressed_index_{};
     std::uint32_t pressed_click_count_{1U};
     PointerButton pressed_button_{PointerButton::none};
-    ObjectSelectionMode selection_mode_{ObjectSelectionMode::multiple};
     ObjectViewMode view_mode_{ObjectViewMode::icons};
-    Size icon_cell_size_{112.0, 91.0};
-    double details_row_height_{28.0};
-    bool show_secondary_text_{true};
     std::size_t top_row_{};
-    FontSpec font_{FontRole::content, 11.0, 400, false};
     std::string type_prefix_{};
     std::chrono::steady_clock::time_point last_type_time_{};
     bool focused_{};
-    std::shared_ptr<ImageList> image_list_{};
     SubscriptionToken image_list_changed_{};
     Event<const ObjectSelectionChange&> selection_changed_{};
     Event<const std::string&> item_activated_{};
     Event<const ObjectContextRequest&> context_requested_{};
+    // property_codemod begin ObjectView (tools/property_families/object_view.json; generated, do not edit)
+private:
+    friend struct ObjectViewViewModeCapability<ObjectView>;
+    friend struct ObjectViewSelectedIdCapability<ObjectView>;
+    friend struct ObjectViewSelectionModeCapability<ObjectView>;
+    friend struct ObjectViewIconCellSizeCapability<ObjectView>;
+    friend struct ObjectViewDetailsRowHeightCapability<ObjectView>;
+    friend struct ObjectViewShowSecondaryTextCapability<ObjectView>;
+    friend struct FontCapability<ObjectView>;
+    friend struct ObjectViewImageListCapability<ObjectView>;
+    friend struct ObjectViewDetailsSortCapability<ObjectView>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void write_view(const decltype(view_mode)& cell, ObjectViewMode incoming);
+    [[nodiscard]] ObjectViewMode read_view(const decltype(view_mode)& cell) const;
+    void write_view(const decltype(selected_id)& cell, std::string incoming);
+    [[nodiscard]] std::string read_view(const decltype(selected_id)& cell) const;
+    void prepare_write(const decltype(selection_mode)& cell, ObjectSelectionMode& incoming);
+    void written(const decltype(selection_mode)& cell);
+    void prepare_write(const decltype(icon_cell_size)& cell, Size& incoming);
+    void written(const decltype(icon_cell_size)& cell);
+    void prepare_write(const decltype(details_row_height)& cell, double& incoming);
+    void written(const decltype(details_row_height)& cell);
+    void prepare_write(const decltype(show_secondary_text)& cell, bool& incoming);
+    void written(const decltype(show_secondary_text)& cell);
+    void prepare_write(const decltype(font)& cell, FontSpec& incoming);
+    void written(const decltype(font)& cell);
+    void prepare_write(const decltype(image_list)& cell, std::shared_ptr<ImageList>& incoming);
+    void written(const decltype(image_list)& cell);
+    void write_view(const decltype(details_sort)& cell, ObjectDetailsSort incoming);
+    [[nodiscard]] ObjectDetailsSort read_view(const decltype(details_sort)& cell) const;
+    // property_codemod end ObjectView
 };
 
 } // namespace gui_forms

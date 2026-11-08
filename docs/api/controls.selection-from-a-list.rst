@@ -430,8 +430,26 @@ Related types
      -  
    * - :cpp:class:`ObjectView::Parts <gui_forms::ObjectView::Parts>`
      - Stage T1 anatomy, as dot members.
+   * - :cpp:class:`ObjectViewCapabilities <gui_forms::ObjectViewCapabilities>`
+     - Every ObjectView capability, in the order the declaring class takes them.
+   * - :cpp:class:`ObjectViewDetailsRowHeightCapability <gui_forms::ObjectViewDetailsRowHeightCapability>`
+     - The details mode's row height, 20 through 256 (std::invalid_argument otherwise).
+   * - :cpp:class:`ObjectViewDetailsSortCapability <gui_forms::ObjectViewDetailsSortCapability>`
+     - The accepted sort indicator: a sortable column and a direction, or an empty column for none; a view, since set_details_model carries or clears it.
+   * - :cpp:class:`ObjectViewIconCellSizeCapability <gui_forms::ObjectViewIconCellSizeCapability>`
+     - The icon mode's cell size, 86 by 78 through 512 by 512 (std::invalid_argument otherwise).
+   * - :cpp:class:`ObjectViewImageListCapability <gui_forms::ObjectViewImageListCapability>`
+     - The images that the items' image keys name; a list must be alive and belong to this view's Window (std::invalid_argument otherwise).
    * - :cpp:class:`ObjectViewItem <gui_forms::ObjectViewItem>`
      - ObjectViewItem owns stable identity, primary/secondary text, icon/status metadata, and optional command data for one flat object row.
+   * - :cpp:class:`ObjectViewSelectedIdCapability <gui_forms::ObjectViewSelectedIdCapability>`
+     - The primary selected item's stable ID, or empty; a view over the selection (G2).
+   * - :cpp:class:`ObjectViewSelectionModeCapability <gui_forms::ObjectViewSelectionModeCapability>`
+     - Whether one item or several may be selected.
+   * - :cpp:class:`ObjectViewShowSecondaryTextCapability <gui_forms::ObjectViewShowSecondaryTextCapability>`
+     - Whether icon cells show each item's secondary text under its name.
+   * - :cpp:class:`ObjectViewViewModeCapability <gui_forms::ObjectViewViewModeCapability>`
+     - Icons or details.
    * - :cpp:class:`ShowGroupsCapability <gui_forms::ShowGroupsCapability>`
      - Whether the items are shown in their groups (Windows Forms' ShowGroups; see groups).
    * - :cpp:class:`SmallImageListCapability <gui_forms::SmallImageListCapability>`
@@ -4052,7 +4070,7 @@ Related types
 
 .. cpp:struct:: ObjectColumnId final
 
-   ``#include <gui_forms/controls/panel/object_view/object_view.hpp>``
+   ``#include <gui_forms/controls/panel/object_view/object_view_values/object_view_values.hpp>``
 
    .. cpp:member:: std::string value
 
@@ -4128,7 +4146,7 @@ Related types
 
 .. cpp:struct:: ObjectDetailsSort final
 
-   ``#include <gui_forms/controls/panel/object_view/object_view.hpp>``
+   ``#include <gui_forms/controls/panel/object_view/object_view_values/object_view_values.hpp>``
 
    .. cpp:member:: ObjectColumnId column
 
@@ -4270,6 +4288,124 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> ObjectViewCapabilities : public ObjectViewViewModeCapability<Declaring>, public ObjectViewSelectedIdCapability<Declaring>, public ObjectViewSelectionModeCapability<Declaring>, public ObjectViewIconCellSizeCapability<Declaring>, public ObjectViewDetailsRowHeightCapability<Declaring>, public ObjectViewShowSecondaryTextCapability<Declaring>, public FontCapability<Declaring>, public ObjectViewImageListCapability<Declaring>, public ObjectViewDetailsSortCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/object_view/object_view_capabilities/object_view_capabilities.hpp>``
+
+   Every ObjectView capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: ObjectViewCapabilities()
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: ObjectViewMode view_mode
+
+      Icons or details. An undeclared mode throws std::invalid_argument; a change keeps the first visible item in view and ends a header interaction. A view, so the write can keep the first visible item.
+
+   .. cpp:member:: std::string selected_id
+
+      The primary selected item's stable ID, or empty; a view over the selection (G2). A write selects that item alone, or clears the selection, and raises selection_changed; an ID not in the model throws std::out_of_range. set_selected_ids sets several.
+
+   .. cpp:member:: ObjectSelectionMode selection_mode
+
+      Whether one item or several may be selected. Turning on single selection keeps only the primary item.
+
+   .. cpp:member:: Size icon_cell_size
+
+      The icon mode's cell size, 86 by 78 through 512 by 512 (std::invalid_argument otherwise).
+
+   .. cpp:member:: double details_row_height
+
+      The details mode's row height, 20 through 256 (std::invalid_argument otherwise).
+
+   .. cpp:member:: bool show_secondary_text
+
+      Whether icon cells show each item's secondary text under its name.
+
+   .. cpp:member:: FontSpec font
+
+      The font of the control's text (Font).
+
+   .. cpp:member:: std::shared_ptr<ImageList> image_list
+
+      The images that the items' image keys name; a list must be alive and belong to this view's Window (std::invalid_argument otherwise). A change follows the new list's changes.
+
+   .. cpp:member:: ObjectDetailsSort details_sort
+
+      The accepted sort indicator: a sortable column and a direction, or an empty column for none; a view, since set_details_model carries or clears it. Sorting the items is the application's work (sort_requested). An unknown or unsortable column or an undeclared direction throws std::invalid_argument.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ObjectViewDetailsRowHeightCapability
+
+   ``#include <gui_forms/controls/panel/object_view/object_view_capabilities/object_view_capabilities.hpp>``
+
+   The details mode's row height, 20 through 256 (std::invalid_argument otherwise).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ObjectViewDetailsRowHeightCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, ObjectViewDetailsRowHeightCapability<Declaring>> details_row_height
+
+      Default: ``{28.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ObjectViewDetailsSortCapability
+
+   ``#include <gui_forms/controls/panel/object_view/object_view_capabilities/object_view_capabilities.hpp>``
+
+   The accepted sort indicator: a sortable column and a direction, or an empty column for none; a view, since set_details_model carries or clears it. Sorting the items is the application's work (sort_requested). An unknown or unsortable column or an undeclared direction throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ObjectViewDetailsSortCapability& capability, ObjectDetailsSort incoming)
+
+   .. cpp:function:: static ObjectDetailsSort read(const ObjectViewDetailsSortCapability& capability)
+
+   .. cpp:member:: PropertyView<ObjectDetailsSort, ObjectViewDetailsSortCapability<Declaring>> details_sort
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ObjectViewIconCellSizeCapability
+
+   ``#include <gui_forms/controls/panel/object_view/object_view_capabilities/object_view_capabilities.hpp>``
+
+   The icon mode's cell size, 86 by 78 through 512 by 512 (std::invalid_argument otherwise).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ObjectViewIconCellSizeCapability& capability, Size incoming)
+
+   .. cpp:member:: PropertyCell<Size, ObjectViewIconCellSizeCapability<Declaring>> icon_cell_size
+
+      Default: ``{Size{112.0, 91.0}}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ObjectViewImageListCapability
+
+   ``#include <gui_forms/controls/panel/object_view/object_view_capabilities/object_view_capabilities.hpp>``
+
+   The images that the items' image keys name; a list must be alive and belong to this view's Window (std::invalid_argument otherwise). A change follows the new list's changes.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ObjectViewImageListCapability& capability, std::shared_ptr<ImageList> incoming)
+
+   .. cpp:member:: PropertyCell<std::shared_ptr<ImageList>, ObjectViewImageListCapability<Declaring>> image_list
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ObjectViewItem final
 
    ``#include <gui_forms/controls/panel/object_view/object_view.hpp>``
@@ -4295,6 +4431,74 @@ Related types
    .. cpp:member:: std::string image_key
 
    .. cpp:member:: std::vector<ObjectDetailsCell> cells
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ObjectViewSelectedIdCapability
+
+   ``#include <gui_forms/controls/panel/object_view/object_view_capabilities/object_view_capabilities.hpp>``
+
+   The primary selected item's stable ID, or empty; a view over the selection (G2). A write selects that item alone, or clears the selection, and raises selection_changed; an ID not in the model throws std::out_of_range. set_selected_ids sets several.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ObjectViewSelectedIdCapability& capability, std::string incoming)
+
+   .. cpp:function:: static std::string read(const ObjectViewSelectedIdCapability& capability)
+
+   .. cpp:member:: PropertyView<std::string, ObjectViewSelectedIdCapability<Declaring>> selected_id
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ObjectViewSelectionModeCapability
+
+   ``#include <gui_forms/controls/panel/object_view/object_view_capabilities/object_view_capabilities.hpp>``
+
+   Whether one item or several may be selected. Turning on single selection keeps only the primary item.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ObjectViewSelectionModeCapability& capability, ObjectSelectionMode incoming)
+
+   .. cpp:member:: PropertyCell<ObjectSelectionMode, ObjectViewSelectionModeCapability<Declaring>> selection_mode
+
+      Default: ``{ObjectSelectionMode::multiple}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ObjectViewShowSecondaryTextCapability
+
+   ``#include <gui_forms/controls/panel/object_view/object_view_capabilities/object_view_capabilities.hpp>``
+
+   Whether icon cells show each item's secondary text under its name.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ObjectViewShowSecondaryTextCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ObjectViewShowSecondaryTextCapability<Declaring>> show_secondary_text
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ObjectViewViewModeCapability
+
+   ``#include <gui_forms/controls/panel/object_view/object_view_capabilities/object_view_capabilities.hpp>``
+
+   Icons or details. An undeclared mode throws std::invalid_argument; a change keeps the first visible item in view and ends a header interaction. A view, so the write can keep the first visible item.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ObjectViewViewModeCapability& capability, ObjectViewMode incoming)
+
+   .. cpp:function:: static ObjectViewMode read(const ObjectViewViewModeCapability& capability)
+
+   .. cpp:member:: PropertyView<ObjectViewMode, ObjectViewViewModeCapability<Declaring>> view_mode
 
 .. cpp:namespace:: gui_forms
 
@@ -5380,7 +5584,7 @@ Enumerations
 
 .. cpp:enum-class:: ObjectSelectionMode
 
-   ``#include <gui_forms/controls/panel/object_view/object_view.hpp>``
+   ``#include <gui_forms/controls/panel/object_view/object_view_values/object_view_values.hpp>``
 
    .. cpp:enumerator:: single
 
@@ -5390,7 +5594,7 @@ Enumerations
 
 .. cpp:enum-class:: ObjectSortDirection
 
-   ``#include <gui_forms/controls/panel/object_view/object_view.hpp>``
+   ``#include <gui_forms/controls/panel/object_view/object_view_values/object_view_values.hpp>``
 
    .. cpp:enumerator:: ascending
 
@@ -5400,7 +5604,7 @@ Enumerations
 
 .. cpp:enum-class:: ObjectViewMode
 
-   ``#include <gui_forms/controls/panel/object_view/object_view.hpp>``
+   ``#include <gui_forms/controls/panel/object_view/object_view_values/object_view_values.hpp>``
 
    .. cpp:enumerator:: icons
 

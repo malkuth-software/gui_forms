@@ -77,6 +77,7 @@
 #include "gui_forms/controls/panel/month_calendar/month_calendar.hpp"
 #include "gui_forms/controls/panel/numeric_up_down/numeric_up_down.hpp"
 #include "gui_forms/controls/panel/object_view/object_view.hpp"
+#include "gui_forms/controls/panel/object_view/object_view_values/object_view_values.hpp"
 #include "gui_forms/controls/panel/picture_box/picture_box.hpp"
 #include "gui_forms/controls/panel/property_grid/property_grid.hpp"
 #include "gui_forms/controls/panel/property_list/property_list.hpp"

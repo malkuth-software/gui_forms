@@ -40,7 +40,7 @@ details_columns
 details_sort
     The sort indicator shown in the header: a column ID and an
     `ObjectSortDirection`. An empty column ID, the default, shows no
-    indicator. `set_details_sort` changes only the indicator and never
+    indicator. Writing `details_sort` changes only the indicator and never
     reorders the items. A column that does not exist or is not sortable, or
     an invalid direction, throws `std::invalid_argument`.
 horizontal_offset : default ``0.0``
@@ -110,7 +110,7 @@ sort_requested
     `ObjectDetailsSort`: that column, descending if the column is now
     sorted ascending and ascending otherwise. The view does not sort:
     reorder the items, then publish them with `set_details_model` and the
-    accepted sort, or call `set_details_sort`.
+    accepted sort, or write `details_sort`.
 selection_changed
     Raised after the selected IDs or the primary selection change, by
     input, by a setter, or by a model replacement that removed or reordered
@@ -270,7 +270,7 @@ is called directly:
                               .alignment = gf::ObjectColumnAlignment::right});
            rows.push_back(row("budget", "Budget.ods", "12 KB"));
            rows.push_back(row("agenda", "Agenda.txt", "1 KB"));
-           (*view).set_view_mode(gf::ObjectViewMode::details);
+           (*view).view_mode = gf::ObjectViewMode::details;
            (*view).set_details_model(columns, rows);
            gf::on((*view).sort_requested(), *this, &FileTable::on_sort);
        }
@@ -291,5 +291,5 @@ is called directly:
    void example() {
        FileTable table;
        table.on_sort({{"name"}, gf::ObjectSortDirection::ascending});
-       // (*table.view).details_sort() now shows Name, ascending
+       // (*table.view).details_sort.read() now shows Name, ascending
    }

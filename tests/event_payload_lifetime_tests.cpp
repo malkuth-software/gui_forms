@@ -71,7 +71,7 @@ void test_object_view_activation_outlives_replaced_items() {
     SubscriptionToken record = (*view).item_activated().subscribe(
         callbacks::PushBack<std::vector<std::string>, const std::string&>(activated));
     require(window.request_focus(view), "the object view takes focus");
-    (*view).set_selected_id(first_id);
+    (*view).selected_id = first_id;
     require(window.dispatch_key({KeyAction::down, PhysicalKey::enter}),
             "Enter activates the selected object");
     require(activated.size() == 1U && activated[0] == first_id,

@@ -2439,7 +2439,7 @@ struct FileTable final : gf::Component {
                            .alignment = gf::ObjectColumnAlignment::right});
         rows.push_back(row("budget", "Budget.ods", "12 KB"));
         rows.push_back(row("agenda", "Agenda.txt", "1 KB"));
-        (*view).set_view_mode(gf::ObjectViewMode::details);
+        (*view).view_mode = gf::ObjectViewMode::details;
         (*view).set_details_model(columns, rows);
         gf::on((*view).sort_requested(), *this, &FileTable::on_sort);
     }
@@ -2460,7 +2460,7 @@ struct FileTable final : gf::Component {
 void example() {
     FileTable table;
     table.on_sort({{"name"}, gf::ObjectSortDirection::ascending});
-    // (*table.view).details_sort() now shows Name, ascending
+    // (*table.view).details_sort.read() now shows Name, ascending
 }
 }  // namespace doc_example_ObjectView_2
 

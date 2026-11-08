@@ -221,7 +221,7 @@ int main() {
         gui_forms::SemanticAction::press);
     return window.find("installed.consumer.label") == label &&
         (*tree).selected_id.read() == "installed.node.child" &&
-        (*objects).selected_id() == "installed.object" &&
+        (*objects).selected_id.read() == "installed.object" &&
         (*objects).selected_ids().size() == 2U && menu_visible && strip_open &&
         accelerated && accelerator.connected() && accelerator_invocations == 1U &&
         property_edit && collapsed && restored && !(*split).second_collapsed() &&

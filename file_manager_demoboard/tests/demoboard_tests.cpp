@@ -554,7 +554,7 @@ int main() {
     require(criteria_rack && criteria_objects && criteria_apply &&
                 criteria_progress && (*criteria_rack).modules().size() == 3U &&
                 (*criteria_objects).items().size() == 31U &&
-                (*criteria_objects).selected_id() ==
+                (*criteria_objects).selected_id.read() ==
                     "fm.object.obj-facade-study" &&
                 (*(*criteria_product).find("fm.workspace.content-selection")).visible.read() &&
                 !(*(*criteria_product).find("fm.folder.objects")).visible.read() &&
@@ -589,7 +589,7 @@ int main() {
     require(!(*criteria_progress).animation_enabled() &&
                 (*criteria_progress).value() == 100.0 &&
                 (*criteria_objects).items().size() == 5U &&
-                (*criteria_objects).selected_id() ==
+                (*criteria_objects).selected_id.read() ==
                     "fm.object.obj-facade-study" &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
                     (*criteria_product).find("fm.status.summary"))).text() ==
@@ -859,7 +859,7 @@ int main() {
                 std::to_string(rename_commit_statistics.subscriptions_disconnected) +
                 "; selection count/id: " +
                 std::to_string((*objects).selected_ids().size()) + "/" +
-                std::string((*objects).selected_id()));
+                std::string((*objects).selected_id.read()));
     require((*property_name).accessible_description.read().find("already exists") !=
                 std::string::npos,
             "duplicate session rename must publish inline accessible validation; actual: " +
@@ -946,10 +946,10 @@ int main() {
             "Selection properties must expose reusable property grid/group semantics");
 
     (*view_command).perform_click();
-    require((*objects).view_mode() == gui_forms::ObjectViewMode::details &&
+    require((*objects).view_mode.read() == gui_forms::ObjectViewMode::details &&
                 (*std::dynamic_pointer_cast<gui_forms::Button>(
                     (*product).find("fm.status.view"))).text.read() == "Details  ▼" &&
-                (*objects).selected_id() == "fm.object.obj-facade-study",
+                (*objects).selected_id.read() == "fm.object.obj-facade-study",
             "shared view command did not preserve selection across presentations");
     require((*objects).on_semantic_child_action(
                 "fm.object.obj-file-manager", gui_forms::SemanticAction::select, {}) &&
@@ -973,7 +973,7 @@ int main() {
     (*sort_command).perform_click();
     require((*objects).items().front().stable_id ==
                 "fm.object.obj-delivery-archive" &&
-                (*objects).selected_id() == "fm.object.obj-file-manager" &&
+                (*objects).selected_id.read() == "fm.object.obj-file-manager" &&
                 (*objects).selected_ids().size() == 2U &&
                 (*sort_command).text.read() == "Sort Z→A  ▼",
             "shared sort command did not preserve the stable selection set");
@@ -1024,7 +1024,7 @@ int main() {
     require((*product).dispatch_key({gui_forms::KeyAction::down,
                                    gui_forms::PhysicalKey::enter}) &&
                 (*objects).items().size() == 15U &&
-                (*objects).selected_id() == "fm.object.session-new-folder-1" &&
+                (*objects).selected_id.read() == "fm.object.session-new-folder-1" &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
                     (*product).find("fm.selection.object-name"))).text() == "New Folder",
             "background New folder must create and project a session-only fixture");

@@ -6,6 +6,7 @@
 #include "gui_forms/window.hpp"
 #include "../panel_anatomy.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <vector>
 #include <string>
@@ -430,15 +431,19 @@ std::optional<std::size_t> ObjectView::item_index(const std::string_view id) con
     return {};
 }
 
-void ObjectView::set_view_mode(const ObjectViewMode mode) {
+ObjectViewMode ObjectView::read_view(const decltype(view_mode)&) const {
+    return view_mode_;
+}
+
+void ObjectView::write_view(const decltype(view_mode)&, ObjectViewMode incoming) {
     require_mutable();
-    if (mode != ObjectViewMode::icons && mode != ObjectViewMode::details) {
+    if (incoming != ObjectViewMode::icons && incoming != ObjectViewMode::details) {
         throw std::invalid_argument("ObjectView mode is invalid");
     }
-    if (view_mode_ == mode) return;
+    if (view_mode_ == incoming) return;
     const Control::Ptr lifetime = weak_from_this().lock();
     const std::size_t top_index = top_row_ * columns();
-    view_mode_ = mode;
+    view_mode_ = incoming;
     top_row_ = std::min(top_index / columns(), maximum_top_row());
     header_focused_ = false;
     clear_details_cache();
@@ -448,21 +453,26 @@ void ObjectView::set_view_mode(const ObjectViewMode mode) {
     cancel_header_interaction();
 }
 
-void ObjectView::set_selected_id(std::string_view id) {
+std::string ObjectView::read_view(const decltype(selected_id)&) const {
+    return selected_id_;
+}
+
+// A one-item selection, or none; apply_selection raises selection_changed.
+void ObjectView::write_view(const decltype(selected_id)&, std::string incoming) {
     require_mutable();
-    if (!id.empty() && !item_index(id)) {
+    if (!incoming.empty() && !item_index(incoming)) {
         throw std::out_of_range("ObjectView selection ID is not in the model");
     }
-    const std::string next(id);
-    apply_selection(next.empty() ? std::vector<std::string>{}
-                                 : std::vector<std::string>{next},
-                    next, next, false);
+    std::vector<std::string> ids;
+    if (!incoming.empty()) ids.push_back(incoming);
+    const std::string anchor = incoming;
+    apply_selection(std::move(ids), std::move(incoming), anchor, false);
 }
 
 void ObjectView::set_selected_ids(std::vector<std::string> ids,
                                   const std::string_view primary_id) {
     require_mutable();
-    if (selection_mode_ == ObjectSelectionMode::single && ids.size() > 1U) {
+    if (selection_mode.read() == ObjectSelectionMode::single && ids.size() > 1U) {
         throw std::invalid_argument(
             "ObjectView single-selection mode accepts at most one selected ID");
     }
@@ -487,22 +497,24 @@ void ObjectView::select_all() {
         return;
     }
     std::vector<std::string> ids;
-    ids.reserve(selection_mode_ == ObjectSelectionMode::single ? 1U : items_.size());
+    ids.reserve(selection_mode.read() == ObjectSelectionMode::single ? 1U : items_.size());
     for (const ObjectViewItem& item : items_) {
         if (item.enabled) {
             ids.push_back(item.stable_id);
-            if (selection_mode_ == ObjectSelectionMode::single) break;
+            if (selection_mode.read() == ObjectSelectionMode::single) break;
         }
     }
     const std::string primary = ids.empty() ? std::string{} : ids.front();
     apply_selection(std::move(ids), primary, primary, true);
 }
 
-void ObjectView::set_selection_mode(ObjectSelectionMode mode) {
+void ObjectView::prepare_write(const decltype(selection_mode)&, ObjectSelectionMode&) {
     require_mutable();
-    if (selection_mode_ == mode) return;
-    selection_mode_ = mode;
-    if (mode == ObjectSelectionMode::single && selected_ids_.size() > 1U) {
+}
+
+// Single selection keeps only the primary item of a multiple selection.
+void ObjectView::written(const decltype(selection_mode)&) {
+    if (selection_mode.read() == ObjectSelectionMode::single && selected_ids_.size() > 1U) {
         const std::string keep = selected_id_.empty() ? selected_ids_.front()
                                                        : selected_id_;
         apply_selection({keep}, keep, keep, false);
@@ -526,7 +538,7 @@ void ObjectView::apply_selection(std::vector<std::string> ids,
         }
         requested.insert(id);
     }
-    if (selection_mode_ == ObjectSelectionMode::single && requested.size() > 1U) {
+    if (selection_mode.read() == ObjectSelectionMode::single && requested.size() > 1U) {
         throw std::invalid_argument(
             "ObjectView single-selection mode accepts at most one selected ID");
     }
@@ -600,35 +612,6 @@ std::vector<std::string> ObjectView::range_selection(
     return result;
 }
 
-void ObjectView::set_icon_cell_size(Size size) {
-    require_mutable();
-    if (!std::isfinite(size.width) || !std::isfinite(size.height) ||
-        size.width < 86.0 || size.height < 78.0 ||
-        size.width > 512.0 || size.height > 512.0) {
-        throw std::invalid_argument("ObjectView icon cell must be 86x78 through 512x512");
-    }
-    if (icon_cell_size_ == size) return;
-    icon_cell_size_ = size;
-    invalidate(Dirty::measure | Dirty::paint | Dirty::hit_test | Dirty::semantics);
-}
-
-void ObjectView::set_details_row_height(double height) {
-    require_mutable();
-    if (!std::isfinite(height) || height < 20.0 || height > 256.0) {
-        throw std::invalid_argument("ObjectView details row height must be 20 through 256");
-    }
-    if (details_row_height_ == height) return;
-    details_row_height_ = height;
-    invalidate(Dirty::measure | Dirty::paint | Dirty::hit_test | Dirty::semantics);
-}
-
-void ObjectView::set_show_secondary_text(bool show) {
-    require_mutable();
-    if (show_secondary_text_ == show) return;
-    show_secondary_text_ = show;
-    invalidate(Dirty::paint | Dirty::semantics);
-}
-
 void ObjectView::set_top_row(const std::size_t row) {
     require_mutable();
     const std::size_t rows = items_.empty() ? 0U : (items_.size() + columns() - 1U) / columns();
@@ -641,28 +624,22 @@ void ObjectView::set_top_row(const std::size_t row) {
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
-void ObjectView::set_font(FontSpec font) {
+void ObjectView::prepare_write(const decltype(image_list)&, std::shared_ptr<ImageList>& incoming) {
     require_mutable();
-    if (!valid_font_spec(font)) throw std::invalid_argument("ObjectView font is invalid");
-    set_font_from_code(true);
-    if (font_ == font) return;
-    font_ = font;
-    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
-}
-
-void ObjectView::set_image_list(std::shared_ptr<ImageList> image_list) {
-    require_mutable();
-    if (image_list && !(*image_list).is_alive()) {
+    if (incoming && !(*incoming).is_alive()) {
         throw std::invalid_argument("ObjectView requires a live ImageList");
     }
-    if (image_list && window() && !(*image_list).belongs_to(*window())) {
+    if (incoming && window() && !(*incoming).belongs_to(*window())) {
         throw std::invalid_argument("ObjectView and ImageList must belong to one Window");
     }
-    if (image_list_ == image_list) return;
+}
+
+// A new list replaces the subscription to the old one's changes.
+void ObjectView::written(const decltype(image_list)&) {
     image_list_changed_.disconnect();
-    image_list_ = std::move(image_list);
-    if (image_list_) {
-        image_list_changed_ = (*image_list_).changed().subscribe(
+    const std::shared_ptr<ImageList>& images = image_list.read();
+    if (images) {
+        image_list_changed_ = (*images).changed().subscribe(
             *this, Delegate<const ImageListChange&>::bind<
                 ObjectView, &ObjectView::image_list_content_changed>(*this));
     }
@@ -676,7 +653,7 @@ void ObjectView::image_list_content_changed(const ImageListChange&) {
 bool ObjectView::paint_item_image(
     Painter& painter, const ObjectViewItem& item,
     std::size_t index, bool selected, Rect destination_bounds) {
-    if (!image_list_ || !(*image_list_).is_alive() || item.image_key.empty()) {
+    if (!image_list.read() || !(*image_list.read()).is_alive() || item.image_key.empty()) {
         return false;
     }
     const ImageVisualState state = !item.enabled
@@ -684,7 +661,7 @@ bool ObjectView::paint_item_image(
         : selected ? ImageVisualState::selected
         : hovered_index_ == index ? ImageVisualState::hot
                                   : ImageVisualState::normal;
-    const ImageListResolution resolved = (*image_list_).resolve(
+    const ImageListResolution resolved = (*image_list.read()).resolve(
         item.image_key, state, window() ? (*window()).scale() : 1.0);
     if (!resolved) return false;
     const Rect destination = fit_image_rect(
@@ -704,7 +681,7 @@ bool ObjectView::paint_item_image(
 
 void ObjectView::on_attached_to_window() {
     Panel::on_attached_to_window();
-    if (image_list_ && !(*image_list_).belongs_to(*window())) {
+    if (image_list.read() && !(*image_list.read()).belongs_to(*window())) {
         throw std::logic_error("ObjectView cannot attach to a different ImageList Window");
     }
 }
@@ -713,7 +690,7 @@ std::size_t ObjectView::columns() const noexcept {
     if (view_mode_ == ObjectViewMode::details) return 1U;
     double width = local_bounds().width;
     if (width <= 4.0) width = requested_bounds().width;
-    const double scaled_width = icon_cell_size_.width * effective_text_scale();
+    const double scaled_width = icon_cell_size.read().width * effective_text_scale();
     const double available = std::max(0.0, width - 8.0);
     const std::size_t count = static_cast<std::size_t>(std::floor(available / scaled_width));
     const std::size_t result = std::max<std::size_t>(1U, count);
@@ -721,7 +698,7 @@ std::size_t ObjectView::columns() const noexcept {
 }
 
 double ObjectView::row_height() const noexcept {
-    const double base = view_mode_ == ObjectViewMode::icons ? icon_cell_size_.height : details_row_height_;
+    const double base = view_mode_ == ObjectViewMode::icons ? icon_cell_size.read().height : details_row_height.read();
     const double result = base * effective_text_scale();
     return result;
 }
@@ -809,10 +786,10 @@ void ObjectView::select_index(std::size_t index, bool activate,
                               Modifier modifiers) {
     if (index >= items_.size() || !items_[index].enabled) return;
     const std::string target = items_[index].stable_id;
-    const bool toggle = selection_mode_ == ObjectSelectionMode::multiple &&
+    const bool toggle = selection_mode.read() == ObjectSelectionMode::multiple &&
         (has_modifier(modifiers, Modifier::control) ||
          has_modifier(modifiers, Modifier::meta));
-    const bool extend = selection_mode_ == ObjectSelectionMode::multiple &&
+    const bool extend = selection_mode.read() == ObjectSelectionMode::multiple &&
         has_modifier(modifiers, Modifier::shift);
     if (extend) {
         const std::string anchor = selection_anchor_id_.empty()
@@ -926,7 +903,7 @@ void ObjectView::on_paint(Painter& painter, Rect damage) {
         return;
     }
     const Rect bounds = local_bounds();
-    const FontSpec font = text_font(font_);
+    const FontSpec body_font = text_font(font.read());
     painter.save();
     painter.clip_rect({2.0, 2.0, std::max(0.0, bounds.width - 4.0),
                        std::max(0.0, bounds.height - 4.0)});
@@ -970,7 +947,7 @@ void ObjectView::on_paint(Painter& painter, Rect damage) {
         text.family = selected || hovered ? ControlVisualRole::selection : ControlVisualRole::editor;
         text.role = PartRole::content;
         text.states = item_states;
-        text.font = font;
+        text.font = body_font;
         if (view_mode_ == ObjectViewMode::icons) {
             const double glyph_width = std::min(46.0, cell.width - 18.0);
             const Rect glyph_bounds{cell.x + (cell.width - glyph_width) * .5,
@@ -980,13 +957,13 @@ void ObjectView::on_paint(Painter& painter, Rect damage) {
                 paint_glyph(painter, glyph_bounds, item.glyph, item.enabled);
             }
             const IconLabelLayout label = icon_label_layout(
-                painter, item.name, font, std::max(0.0, cell.width - 8.0));
+                painter, item.name, body_font, std::max(0.0, cell.width - 8.0));
             const double line_height = std::max(
-                font.size * 1.2,
-                painter.measure_text_utf8("Ag", font).height);
-            double baseline = cell.y + std::max(57.0, 47.0 + font.size);
+                body_font.size * 1.2,
+                painter.measure_text_utf8("Ag", body_font).height);
+            double baseline = cell.y + std::max(57.0, 47.0 + body_font.size);
             for (const std::string& line : label.lines) {
-                const Size measured = painter.measure_text_utf8(line, font);
+                const Size measured = painter.measure_text_utf8(line, body_font);
                 const double text_x = cell.x +
                     std::max(4.0, (cell.width - measured.width) * .5);
                 text.text = line;
@@ -999,10 +976,10 @@ void ObjectView::on_paint(Painter& painter, Rect damage) {
                     focused_truncated = index;
                 }
             }
-            if (show_secondary_text_ && !item.secondary_text.empty() &&
+            if (show_secondary_text.read() && !item.secondary_text.empty() &&
                 cell.height >= 90.0 && baseline + 8.0 < cell.y + cell.height) {
-                FontSpec authored_secondary{font_.role,
-                                            std::max(8.0, font_.size - 1.5),
+                FontSpec authored_secondary{font.read().role,
+                                            std::max(8.0, font.read().size - 1.5),
                                             400, false};
                 const FontSpec secondary = effective_font(authored_secondary);
                 const std::string display_secondary = elide_text_end(
@@ -1023,7 +1000,7 @@ void ObjectView::on_paint(Painter& painter, Rect damage) {
                     painter, item, index, selected, glyph_bounds)) {
                 paint_glyph(painter, glyph_bounds, item.glyph, item.enabled);
             }
-            const bool paint_secondary = show_secondary_text_ &&
+            const bool paint_secondary = show_secondary_text.read() &&
                 !item.secondary_text.empty() && cell.width >= 112.0;
             const double secondary_x = paint_secondary
                 ? std::max(cell.x + 92.0, cell.x + cell.width * .68)
@@ -1032,7 +1009,7 @@ void ObjectView::on_paint(Painter& painter, Rect damage) {
                 0.0, secondary_x - (cell.x + 38.0) -
                     (paint_secondary ? 8.0 : 0.0));
             const std::string display_name = elide_text_end(
-                painter, item.name, font, name_width);
+                painter, item.name, body_font, name_width);
             text.text = display_name;
             paint_text_part_at(painter, *this, text,
                                {cell.x + 38.0, cell.y + cell.height * .5 + 4.0}, name_width);
@@ -1045,7 +1022,7 @@ void ObjectView::on_paint(Painter& painter, Rect damage) {
             }
             if (paint_secondary) {
                 const std::string display_secondary = elide_text_end(
-                    painter, item.secondary_text, font,
+                    painter, item.secondary_text, body_font,
                     std::max(0.0, cell.x + cell.width - 6.0 - secondary_x));
                 PartPaint secondary_text = text;
                 secondary_text.tone = PartTextTone::secondary;
@@ -1070,7 +1047,7 @@ void ObjectView::on_paint(Painter& painter, Rect damage) {
     if (inspection && *inspection < items_.size()) {
         paint_complete_name_inspection(
             painter, *this, items_[*inspection], item_bounds(*inspection), bounds,
-            font);
+            body_font);
     }
     painter.restore();
 }
@@ -1161,7 +1138,7 @@ void ObjectView::on_key(KeyEvent& event) {
     const bool toggle_modifier = has_modifier(event.modifiers, Modifier::control) ||
                                  has_modifier(event.modifiers, Modifier::meta);
     if (event.physical_key == PhysicalKey::a && toggle_modifier &&
-        selection_mode_ == ObjectSelectionMode::multiple) {
+        selection_mode.read() == ObjectSelectionMode::multiple) {
         select_all();
         event.handled = true;
         return;
@@ -1248,7 +1225,7 @@ SemanticDescriptor ObjectView::semantic_descriptor() const {
     } else {
         descriptor.role = SemanticRole::list;
     }
-    if (selection_mode_ == ObjectSelectionMode::multiple) descriptor.states |= SemanticState::multiselectable;
+    if (selection_mode.read() == ObjectSelectionMode::multiple) descriptor.states |= SemanticState::multiselectable;
     descriptor.name = accessible_name.read();
     descriptor.description = accessible_description.read();
     descriptor.value = selected_ids_.size() <= 1U
@@ -1395,7 +1372,6 @@ bool ObjectView::on_semantic_child_action(std::string_view id,
     return true;
 }
 
-
 // A press sent to a sortable column header's node: the header takes focus,
 // as a click gives it, and requests the sort the click would. False for any
 // other node or action, a column that does not sort, or a disabled view.
@@ -1426,7 +1402,7 @@ bool ObjectView::has_details_columns() const noexcept {
 
 double ObjectView::header_height() const noexcept {
     if (!has_details_columns()) return 0.0;
-    const double result = details_row_height_ * effective_text_scale();
+    const double result = details_row_height.read() * effective_text_scale();
     return result;
 }
 
@@ -1486,14 +1462,18 @@ void ObjectView::set_details_column_width(const ObjectColumnId& id, const double
     invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
-void ObjectView::set_details_sort(ObjectDetailsSort state) {
+ObjectDetailsSort ObjectView::read_view(const decltype(details_sort)&) const {
+    return details_sort_;
+}
+
+void ObjectView::write_view(const decltype(details_sort)&, ObjectDetailsSort incoming) {
     require_mutable();
-    const std::optional<std::size_t> index = column_index(state.column);
-    if ((!state.column.value.empty() && (!index || !details_columns_[*index].sortable)) ||
-        (state.direction != ObjectSortDirection::ascending && state.direction != ObjectSortDirection::descending)) {
+    const std::optional<std::size_t> index = column_index(incoming.column);
+    if ((!incoming.column.value.empty() && (!index || !details_columns_[*index].sortable)) ||
+        (incoming.direction != ObjectSortDirection::ascending && incoming.direction != ObjectSortDirection::descending)) {
         throw std::invalid_argument("ObjectView accepted sort state is invalid");
     }
-    details_sort_ = std::move(state);
+    details_sort_ = std::move(incoming);
     clear_details_cache();
     invalidate(Dirty::paint | Dirty::semantics);
 }
@@ -1705,7 +1685,7 @@ bool ObjectView::details_key(KeyEvent& event) {
 
 const std::string& ObjectView::details_text(Painter& painter,
     const std::size_t slot, const std::size_t item, const std::size_t column, const bool header,
-    const std::string_view text, const double width, const FontSpec font) {
+    const std::string_view text, const double width, const FontSpec text_face) {
     DetailsTextCache& cached = details_cache_[slot];
     if (cached.valid && cached.item == item && cached.column == column &&
         cached.header == header && cached.width == width) return cached.text;
@@ -1715,8 +1695,8 @@ const std::string& ObjectView::details_text(Painter& painter,
     cached.header = header;
     cached.width = width;
     ++details_paint_work_.text_preparations;
-    details_detail::elide_to_width(painter, text, font, width, cached.text);
-    const Size measured = painter.measure_text_utf8(cached.text, font);
+    details_detail::elide_to_width(painter, text, text_face, width, cached.text);
+    const Size measured = painter.measure_text_utf8(cached.text, text_face);
     cached.measured = measured;
     cached.valid = true;
     return cached.text;
@@ -1725,10 +1705,10 @@ const std::string& ObjectView::details_text(Painter& painter,
 void ObjectView::paint_details(Painter& painter) {
     details_paint_work_ = {};
     clamp_horizontal_offset();
-    const FontSpec font = text_font(font_);
-    if (details_cache_font_ != font) {
+    const FontSpec body_font = text_font(font.read());
+    if (details_cache_font_ != body_font) {
         clear_details_cache();
-        details_cache_font_ = font;
+        details_cache_font_ = body_font;
     }
     const Rect bounds = local_bounds();
     const double header = header_height();
@@ -1774,7 +1754,7 @@ void ObjectView::paint_details(Painter& painter) {
         const bool sorted = column.id == details_sort_.column;
         const double reserved = sorted ? 22.0 : 12.0;
         const std::string& label = details_text(painter, cache_slot, 0U, index, true,
-            column.label, std::max(0.0, cell.width - reserved), font);
+            column.label, std::max(0.0, cell.width - reserved), body_font);
         const Size label_measured = details_cache_[cache_slot].measured;
         ++cache_slot;
         painter.save();
@@ -1784,10 +1764,10 @@ void ObjectView::paint_details(Painter& painter) {
         caption.role = PartRole::label;
         caption.states = states;
         caption.text = label;
-        caption.font = font;
+        caption.font = body_font;
         caption.measured_text = label_measured;
         paint_text_part_at(painter, *this, caption,
-                           {cell.x + 6.0, cell.y + cell.height * .5 + font.size * .35},
+                           {cell.x + 6.0, cell.y + cell.height * .5 + body_font.size * .35},
                            std::max(0.0, cell.width - reserved));
         PartPaint separator;
         separator.family = ControlVisualRole::panel;
@@ -1849,7 +1829,7 @@ void ObjectView::paint_details(Painter& painter) {
             const double text_width = std::max(0.0, cell.width - left_padding - 6.0);
             const std::size_t text_slot = cache_slot;
             ++cache_slot;
-            const std::string& text = details_text(painter, text_slot, item_index_value, index, false, value.text, text_width, font);
+            const std::string& text = details_text(painter, text_slot, item_index_value, index, false, value.text, text_width, body_font);
             ++details_paint_work_.cells;
             painter.save();
             painter.clip_rect(cell);
@@ -1869,10 +1849,10 @@ void ObjectView::paint_details(Painter& painter) {
                 content.states.insert(AnatomyState::unavailable);
             }
             content.text = text;
-            content.font = font;
+            content.font = body_font;
             content.measured_text = details_cache_[text_slot].measured;
             paint_text_part_at(painter, *this, content,
-                               {origin, cell.y + cell.height * .5 + font.size * .35},
+                               {origin, cell.y + cell.height * .5 + body_font.size * .35},
                                std::max(0.0, cell.x + cell.width - 6.0 - origin));
             painter.restore();
         }
@@ -1882,7 +1862,6 @@ void ObjectView::paint_details(Painter& painter) {
     }
     painter.restore();
 }
-
 
 namespace {
 
@@ -2126,14 +2105,14 @@ void ObjectView::publish_realized_item_geometry(std::size_t item,
         glyph = {cell.x + (cell.width - glyph_width) * 0.5, cell.y + 4.0, glyph_width, 43.0};
         name = {cell.x + 4.0, cell.y + 47.0, std::max(0.0, cell.width - 8.0),
                 std::max(0.0, cell.height - 49.0)};
-        if (show_secondary_text_ && !entry.secondary_text.empty() && cell.height >= 90.0) {
-            const double size = std::max(8.0, font_.size - 1.5);
+        if (show_secondary_text.read() && !entry.secondary_text.empty() && cell.height >= 90.0) {
+            const double size = std::max(8.0, font.read().size - 1.5);
             secondary = {cell.x + 5.0, cell.bottom() - 5.0 - size,
                          std::max(0.0, cell.width - 10.0), size};
         }
     } else {
         glyph = {cell.x + 6.0, cell.y + 3.0, 24.0, std::max(18.0, cell.height - 6.0)};
-        const bool shows_secondary = show_secondary_text_ &&
+        const bool shows_secondary = show_secondary_text.read() &&
             !entry.secondary_text.empty() && cell.width >= 112.0;
         const double secondary_x = shows_secondary
             ? std::max(cell.x + 92.0, cell.x + cell.width * 0.68)
@@ -2221,5 +2200,51 @@ void ObjectView::append_interactions(std::vector<InteractionDeclaration>& intera
     Panel::append_interactions(interactions);
     interactions.insert(interactions.end(), object_view_interactions.begin(), object_view_interactions.end());
 }
+
+// property_codemod begin ObjectView (tools/property_families/object_view.json; generated, do not edit)
+
+void ObjectView::prepare_write(const decltype(icon_cell_size)&, Size& incoming) {
+    require_mutable();
+    if (!std::isfinite(incoming.width) || !std::isfinite(incoming.height) ||
+        incoming.width < 86.0 || incoming.height < 78.0 ||
+        incoming.width > 512.0 || incoming.height > 512.0) {
+        throw std::invalid_argument("ObjectView icon cell must be 86x78 through 512x512");
+    }
+}
+
+void ObjectView::written(const decltype(icon_cell_size)&) {
+    invalidate(Dirty::measure | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+void ObjectView::prepare_write(const decltype(details_row_height)&, double& incoming) {
+    require_mutable();
+    if (!std::isfinite(incoming) || incoming < 20.0 || incoming > 256.0) {
+        throw std::invalid_argument("ObjectView details row height must be 20 through 256");
+    }
+}
+
+void ObjectView::written(const decltype(details_row_height)&) {
+    invalidate(Dirty::measure | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+void ObjectView::prepare_write(const decltype(show_secondary_text)&, bool&) {
+    require_mutable();
+}
+
+void ObjectView::written(const decltype(show_secondary_text)&) {
+    invalidate(Dirty::paint | Dirty::semantics);
+}
+
+void ObjectView::prepare_write(const decltype(font)&, FontSpec& incoming) {
+    require_mutable();
+    if (!valid_font_spec(incoming)) throw std::invalid_argument("ObjectView font is invalid");
+    set_font_from_code(true);
+}
+
+void ObjectView::written(const decltype(font)&) {
+    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
+}
+
+// property_codemod end ObjectView
 
 } // namespace gui_forms

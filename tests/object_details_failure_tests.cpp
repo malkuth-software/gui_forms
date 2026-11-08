@@ -199,12 +199,12 @@ struct Fixture final {
     explicit Fixture(const bool capture) {
         ObjectView& view = *owner;
         view.set_requested_bounds({0.0, 0.0, 230.0, 190.0});
-        view.set_view_mode(ObjectViewMode::details);
+        view.view_mode = ObjectViewMode::details;
         view.set_details_model(make_columns(false), make_items(false));
         view.set_selected_ids({row_id(2U), row_id(3U), row_id(8U)}, row_id(3U));
         require(window.request_focus(owner), "fixture focus");
         view.set_top_row(4U);
-        view.set_details_sort({{"failure.fixture.column.old"}, ObjectSortDirection::descending});
+        view.details_sort = {{"failure.fixture.column.old"}, ObjectSortDirection::descending};
         window.flush();
         key(view, PhysicalKey::f6);
         key(view, PhysicalKey::end);
@@ -261,13 +261,13 @@ std::string snapshot(ObjectView& view) {
     append_text(result, "end items");
     for (const std::string& id : view.selected_ids()) append_text(result, id);
     append_text(result, "end selection");
-    append_text(result, view.selected_id());
+    append_text(result, view.selected_id.read());
     append_text(result, view.focused_id());
     append_text(result, view.selection_anchor_id());
     append_text(result, std::to_string(view.top_row()));
     append_text(result, std::to_string(view.horizontal_offset()));
-    append_text(result, view.details_sort().column.value);
-    append_text(result, std::to_string(static_cast<unsigned int>(view.details_sort().direction)));
+    append_text(result, view.details_sort.read().column.value);
+    append_text(result, std::to_string(static_cast<unsigned int>(view.details_sort.read().direction)));
     append_text(result, view.has_pointer_capture() ? "captured" : "released");
     std::string header{};
     SubscriptionToken probe = view.sort_requested().subscribe(HeaderProbe{header});
@@ -424,8 +424,8 @@ void throwing_observer(const Operation operation, const bool reenter) {
     observer.disconnect();
     std::size_t later_calls = 0U;
     SubscriptionToken later = view.selection_changed().subscribe(SelectionCounter{later_calls});
-    view.set_selected_id(row_id(0U));
-    require(later_calls == 1U && view.selected_id() == row_id(0U),
+    view.selected_id = row_id(0U);
+    require(later_calls == 1U && view.selected_id.read() == row_id(0U),
         "selection publication must remain usable after observer exception unwinds");
 }
 } // namespace

@@ -355,8 +355,8 @@ std::shared_ptr<ObjectView> make_object_field(ProductRefs& refs) {
     (*field).set_requested_bounds({0.0, 0.0, 935.0, 657.0});
     (*field).set_background(paper);
     (*field).set_style(house_style());
-    (*field).set_font({FontRole::content, 9.5, 400, false});
-    (*field).set_icon_cell_size({112.0, 91.0});
+    (*field).font = FontSpec{FontRole::content, 9.5, 400, false};
+    (*field).icon_cell_size = {112.0, 91.0};
     (*field).accessible_name = "Projects objects";
     const std::span<const FixtureObject>& objects = FixtureCatalogue::instance().project_objects();
     std::vector<ObjectViewItem> items;
@@ -370,7 +370,7 @@ std::shared_ptr<ObjectView> make_object_field(ProductRefs& refs) {
         if (object.selected) selected = id;
     }
     (*field).set_items(std::move(items));
-    (*field).set_selected_id(selected);
+    (*field).selected_id = selected;
     refs.objects = field;
     return field;
 }
@@ -618,9 +618,9 @@ std::shared_ptr<CriteriaSurfacePanel> make_criteria_surface(ProductRefs& refs) {
     refs.criteria_results_summary = virtual_label;
     std::shared_ptr<gui_forms::ObjectView> objects = make_control<ObjectView>(StableId("fm.criteria.objects"));
     (*objects).set_items(criteria_object_items());
-    (*objects).set_selected_id("fm.object.obj-facade-study");
-    (*objects).set_icon_cell_size({112.0, 91.0});
-    (*objects).set_font({FontRole::content, 9.5, 400, false});
+    (*objects).selected_id = "fm.object.obj-facade-study";
+    (*objects).icon_cell_size = {112.0, 91.0};
+    (*objects).font = FontSpec{FontRole::content, 9.5, 400, false};
     (*objects).set_style(house_style());
     (*objects).set_background(paper);
     (*objects).accessible_name = "Criteria virtual folder objects";
@@ -2628,9 +2628,9 @@ struct ViewModeCommandHandler final {
         const std::shared_ptr<ObjectView> field = objects.lock();
         const std::shared_ptr<Command> authority = command.lock();
         if (!field || !authority) return;
-        const ObjectViewMode next = (*field).view_mode() == ObjectViewMode::icons
+        const ObjectViewMode next = (*field).view_mode.read() == ObjectViewMode::icons
             ? ObjectViewMode::details : ObjectViewMode::icons;
-        (*field).set_view_mode(next);
+        (*field).view_mode = next;
         (*authority).set_text(next == ObjectViewMode::icons ? "Icons  ▼"
                                                            : "Details  ▼");
         feedback(SemanticFeedbackKind::option_committed);
@@ -2912,7 +2912,7 @@ struct NewFolderHandler final {
                          "Folder", "Session-only fixture folder",
                          ObjectGlyph::folder});
         (*field).set_items(std::move(items));
-        (*field).set_selected_id(id);
+        (*field).selected_id = id;
         status("Fixture folder created · reset or restart restores catalogue");
     }
 };
@@ -3144,7 +3144,7 @@ public:
 private:
     void commit_handler(ObjectView& field, const std::string& handler) const {
         if (field.selected_ids().size() == 1U) {
-            (*handlers_)[std::string(field.selected_id())] = handler;
+            (*handlers_)[std::string(field.selected_id.read())] = handler;
         }
         const std::shared_ptr<Command> preview = preview_.lock();
         if (preview) (*preview).set_checked(handler == "Preview");
@@ -3159,7 +3159,7 @@ private:
         const std::string& candidate = change.current_value;
         const bool separator = candidate.find('/') != std::string::npos ||
                                candidate.find('\\') != std::string::npos;
-        const std::string selected_id(field.selected_id());
+        const std::string selected_id(field.selected_id.read());
         bool duplicate = false;
         for (const ObjectViewItem& item : field.items()) {
             if (item.stable_id != selected_id &&
@@ -3185,7 +3185,7 @@ private:
         if (selected == items.end()) return;
         (*selected).name = candidate;
         field.set_items(std::move(items));
-        field.set_selected_id(selected_id);
+        field.selected_id = selected_id;
         static_cast<void>(properties.set_validation("fm.property.name", {}));
         const std::shared_ptr<Label> label = name_label_.lock();
         if (label) (*label).set_text(candidate);

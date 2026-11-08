@@ -45,7 +45,7 @@ void test_tree_and_object_views(gui_forms::Window& window) {
     require((*tree).selected_id.read() == "controls" && (*trail).active_id.read() == "controls" &&
                 (*trail).segments().size() == 3U && (*objects).items().size() == 2U &&
                 (*ledger).items().size() == 2U && (*ledger).pinned_id.read() == "button.cpp" &&
-                (*objects).view_mode() == ObjectViewMode::details,
+                (*objects).view_mode.read() == ObjectViewMode::details,
             "the initial folder must be projected into the trail, the objects and the ledger");
 
     // TreeView: a pointer press on the fifth visible row (docs) selects it and
@@ -71,7 +71,7 @@ void test_tree_and_object_views(gui_forms::Window& window) {
     // drills the tree into that folder.
     click_at(window, virtual_child_center(*objects, "src"),
              "an ObjectView row must accept a pointer press");
-    require((*objects).selected_id() == "src" && window.focused_control() == objects,
+    require((*objects).selected_id.read() == "src" && window.focused_control() == objects,
             "a pointer press must select the object row and focus the view");
     require(window.dispatch_key({KeyAction::down, PhysicalKey::enter}) &&
                 (*tree).selected_id.read() == "src" && (*objects).items().size() == 2U &&
@@ -98,10 +98,10 @@ void test_tree_and_object_views(gui_forms::Window& window) {
 
     // ChoiceGroup bound to the page's Value<int> switches the ObjectView mode.
     click(window, window.find("gallery.tree.view-mode.item.0"));
-    require((*objects).view_mode() == ObjectViewMode::icons,
+    require((*objects).view_mode.read() == ObjectViewMode::icons,
             "the Icons choice must switch the ObjectView through the bound Value");
     click(window, window.find("gallery.tree.view-mode.item.1"));
-    require((*objects).view_mode() == ObjectViewMode::details,
+    require((*objects).view_mode.read() == ObjectViewMode::details,
             "the Details choice must switch the ObjectView back");
 
     // Keyboard on the tree: Left collapses the selected, expanded src folder.

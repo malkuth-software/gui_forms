@@ -1247,7 +1247,7 @@ void test_object_view_columns_are_items() {
     std::shared_ptr<Panel> root = make_control<Panel>(StableId("anatomy.objects.root"));
     std::shared_ptr<ObjectView> view = make_control<ObjectView>(StableId("anatomy.objects"));
     (*view).set_bounds({0.0, 0.0, 400.0, 200.0});
-    (*view).set_view_mode(ObjectViewMode::details);
+    (*view).view_mode = ObjectViewMode::details;
     std::vector<ObjectDetailsColumn> columns;
     columns.push_back({.id = {"name"}, .label = "Name", .width = 150.0});
     columns.push_back({.id = {"size"}, .label = "Size", .width = 120.0});

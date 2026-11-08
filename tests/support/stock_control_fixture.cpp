@@ -184,7 +184,7 @@ void place_lists(FixtureBuilder& builder) {
     std::shared_ptr<ObjectView> objects = builder.place(
         make_control<ObjectView>(StableId("object-view")), 100.0);
     (*objects).accessible_name = "Objects";
-    (*objects).set_view_mode(ObjectViewMode::details);
+    (*objects).view_mode = ObjectViewMode::details;
     std::vector<ObjectDetailsColumn> object_columns;
     object_columns.push_back({.id = {"name"}, .label = "Name", .width = 150.0});
     object_columns.push_back({.id = {"kind"}, .label = "Kind", .width = 100.0});

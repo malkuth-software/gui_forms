@@ -231,8 +231,8 @@ private:
 
     void build_objects() {
         (*objects_).set_style(page_style());
-        (*objects_).set_icon_cell_size({94.0, 84.0});
-        (*objects_).set_view_mode(ObjectViewMode::details);
+        (*objects_).icon_cell_size = {94.0, 84.0};
+        (*objects_).view_mode = ObjectViewMode::details;
         on((*objects_).selection_changed(), *this, &TreeAndObjectViewsPage::on_object_selected);
         on((*objects_).item_activated(), *this, &TreeAndObjectViewsPage::on_object_activated);
         on((*objects_).sort_requested(), *this, &TreeAndObjectViewsPage::on_sort_requested);
@@ -498,7 +498,7 @@ private:
         const std::size_t index = node_index(stable_id);
         if (index == no_parent) return;
         select_folder(project[index].parent);
-        (*objects_).set_selected_id(stable_id);
+        (*objects_).selected_id = stable_id;
         (*status_).set_text("Ledger entry " + stable_id + " activated · its folder is now selected");
     }
 
@@ -614,7 +614,7 @@ private:
 
     // Value
     void on_view_mode_changed(const int mode) {
-        (*objects_).set_view_mode(mode == 0 ? ObjectViewMode::icons : ObjectViewMode::details);
+        (*objects_).view_mode = mode == 0 ? ObjectViewMode::icons : ObjectViewMode::details;
         (*status_).set_text(std::string("ObjectView ") + (mode == 0 ? "icons" : "details") +
                             " · one ChoiceGroup bound to a Value<int>");
     }
