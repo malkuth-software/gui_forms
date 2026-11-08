@@ -90,6 +90,9 @@ gui_forms::SurfaceRoot
          changes nothing. The double-click interval and the pointer settings are
          the host's and have no override.
 
+      **overrides** : ``WindowOverrides*``, read-only
+         Everything the window overrides, or null when it overrides nothing (no record is allocated until the first override).
+
       **text_metrics_provider** : ``TextMetricsProvider*``
 
       **theme** : ``Theme``
@@ -380,6 +383,8 @@ gui_forms::SurfaceRoot
         - The live instrumentation counters, for hosts and renderers that record into them.
       * - :cpp:func:`reset_activity_metrics <gui_forms::SurfaceRoot::reset_activity_metrics>`
         - Zeroes the activity counters, keeping the population and depth values, so a test can measure one workload.
+      * - :cpp:func:`control <gui_forms::SurfaceRoot::control>`
+        - The control attached to the window with ``stable_id`` (stage B, B.3: a runtime-loaded form's controls, a rule's target), as find() gives it but with the reason when there is none.
       * - :cpp:func:`create_framebuffer <gui_forms::SurfaceRoot::create_framebuffer>`
         -  
       * - :cpp:func:`snapshot_control <gui_forms::SurfaceRoot::snapshot_control>`
@@ -396,10 +401,14 @@ gui_forms::SurfaceRoot
         - Compositor cooperation (stage T5, notes:planning/stages/T5-compositor/ PLAN.md §2).
       * - :cpp:func:`request_backdrop <gui_forms::SurfaceRoot::request_backdrop>`
         - Asks for a backdrop (owner decisions T5-Q3 and T5-Q5) and returns the grant now in force: the request's first entry this window may be given under the host's state and its presentation settings, else ``opaque``, with the reason the preferred entry was or was not given.
+      * - :cpp:func:`share_key_bindings <gui_forms::SurfaceRoot::share_key_bindings>`
+        - The table the window reads, made now (one allocation) when it reads the PC convention, so that another window can share it.
       * - :cpp:func:`rebind_key_command <gui_forms::SurfaceRoot::rebind_key_command>`
         - Binds a :cpp:enum:`KeyCommand <gui_forms::KeyCommand>` to a :cpp:class:`KeyBinding <gui_forms::KeyBinding>` (up to two chords) in the window's key bindings, so in every window sharing them, over the host's default; an empty binding leaves the command without keys.
       * - :cpp:func:`restore_key_command <gui_forms::SurfaceRoot::restore_key_command>`
         - Returns a command to the host's default.
+      * - :cpp:func:`clear_key_bindings <gui_forms::SurfaceRoot::clear_key_bindings>`
+        - Drops the table the window holds, so it reads its owner's again.
       * - :cpp:func:`begin_update <gui_forms::SurfaceRoot::begin_update>`
         - Opens an update scope and returns its :cpp:class:`UpdateScope <gui_forms::UpdateScope>` token.
       * - :cpp:func:`perform_layout <gui_forms::SurfaceRoot::perform_layout>`
@@ -525,11 +534,13 @@ gui_forms::SurfaceRoot
       * - :cpp:func:`perform_semantic_action <gui_forms::SurfaceRoot::perform_semantic_action>`
         - Performs an automation action, such as focus or press, and returns whether it was performed.
       * - :cpp:func:`semantic_text_layout <gui_forms::SurfaceRoot::semantic_text_layout>`
-        - Fills ``layout`` (caller-owned storage, emptied first and reused) with the text layout of the control with runtime identity ``control``: its visual lines, graphemes and word starts, built only now (owner decision A-T1, 12.13).
+        - Fills ``layout`` (caller-owned storage, emptied first and reused) with the text layout of the control with runtime identity :cpp:func:`control <gui_forms::SurfaceRoot::control>`: its visual lines, graphemes and word starts, built only now (owner decision A-T1, 12.13).
       * - :cpp:func:`set_dispatch_wake_handler <gui_forms::SurfaceRoot::set_dispatch_wake_handler>`
         - Installs the host's thread-safe wake.
       * - :cpp:func:`set_text_scale <gui_forms::SurfaceRoot::set_text_scale>`
         -  
+      * - :cpp:func:`set_theme_override <gui_forms::SurfaceRoot::set_theme_override>`
+        - Shows :cpp:func:`theme <gui_forms::SurfaceRoot::theme>` in this window alone, whatever its resources' theme (ApplicationResources::set_theme no longer reaches it); null returns to the resources' theme.
       * - :cpp:func:`set_framebuffer_painter <gui_forms::SurfaceRoot::set_framebuffer_painter>`
         - Native host borrows its painter until shutdown; clear before destroying it.
       * - :cpp:func:`set_paint_wake_handler <gui_forms::SurfaceRoot::set_paint_wake_handler>`
@@ -539,7 +550,7 @@ gui_forms::SurfaceRoot
       * - :cpp:func:`set_input_time_source <gui_forms::SurfaceRoot::set_input_time_source>`
         - Installs the clock the input state reads (:cpp:class:`InputTimeSource <gui_forms::InputTimeSource>`), borrowed, or null for the steady clock.
       * - :cpp:func:`set_semantic_text_selection <gui_forms::SurfaceRoot::set_semantic_text_selection>`
-        - Moves the text selection of the control with runtime identity ``control`` (A-T1); focus does not move.
+        - Moves the text selection of the control with runtime identity :cpp:func:`control <gui_forms::SurfaceRoot::control>` (A-T1); focus does not move.
 
    .. seealso::
 
@@ -641,6 +652,10 @@ gui_forms::SurfaceRoot
    .. cpp:function:: void set_presentation_overrides(const PresentationOverrides& overrides)
 
       Sets :cpp:func:`presentation_overrides <gui_forms::SurfaceRoot::presentation_overrides>`; see the property's description above.
+
+   .. cpp:function:: const WindowOverrides* overrides() const noexcept
+
+      Everything the window overrides, or null when it overrides nothing (no record is allocated until the first override).
 
    .. cpp:function:: TextMetricsProvider* text_metrics_provider() const noexcept
 
@@ -1060,6 +1075,10 @@ gui_forms::SurfaceRoot
       Zeroes the activity counters, keeping the population and depth values,
       so a test can measure one workload.
 
+   .. cpp:function:: ControlLookup control(std::string_view stable_id) const
+
+      The control attached to the window with ``stable_id`` (stage B, B.3: a runtime-loaded form's controls, a rule's target), as find() gives it but with the reason when there is none. Stable IDs are unique within a window (attaching a repeated one is refused). Changes nothing.
+
    .. cpp:function:: std::unique_ptr<PaintFramebuffer> create_framebuffer(Size logical_size, double scale)
 
    .. cpp:function:: std::optional<ControlSnapshot> snapshot_control(const Control::Ptr& control, double scale)
@@ -1096,6 +1115,10 @@ gui_forms::SurfaceRoot
 
       Asks for a backdrop (owner decisions T5-Q3 and T5-Q5) and returns the grant now in force: the request's first entry this window may be given under the host's state and its presentation settings, else ``opaque``, with the reason the preferred entry was or was not given. The request stands: the grant is resolved again whenever the state, the settings or the declaration change. Until the application makes one, the window makes its theme's (ThemeWindowBackdrop::request) and follows each new theme's. std::invalid_argument, changing nothing, for a request window_backdrop_request_valid refuses. UI thread.
 
+   .. cpp:function:: std::shared_ptr<KeyBindings> share_key_bindings()
+
+      The table the window reads, made now (one allocation) when it reads the PC convention, so that another window can share it. Root thread.
+
    .. cpp:function:: void rebind_key_command(KeyCommand command, KeyBinding binding)
 
       Binds a :cpp:enum:`KeyCommand <gui_forms::KeyCommand>` to a :cpp:class:`KeyBinding <gui_forms::KeyBinding>` (up to two chords) in the
@@ -1109,6 +1132,10 @@ gui_forms::SurfaceRoot
    .. cpp:function:: void restore_key_command(KeyCommand command)
 
       Returns a command to the host's default.
+
+   .. cpp:function:: void clear_key_bindings()
+
+      Drops the table the window holds, so it reads its owner's again.
 
    .. cpp:function:: UpdateScope begin_update()
 
@@ -1445,7 +1472,7 @@ gui_forms::SurfaceRoot
 
    .. cpp:function:: SemanticTextResult semantic_text_layout(RuntimeId control, SemanticTextLayout& layout)
 
-      Fills ``layout`` (caller-owned storage, emptied first and reused) with the text layout of the control with runtime identity ``control``: its visual lines, graphemes and word starts, built only now (owner decision A-T1, 12.13). Text is published on a control's own node, never on a virtual child. UI thread only, and not deferred: during paint it answers during_paint and the host asks again. A runtime identity no attached control holds answers stale_identity (interview GF017). Reading changes no text, selection or scroll position.
+      Fills ``layout`` (caller-owned storage, emptied first and reused) with the text layout of the control with runtime identity :cpp:func:`control <gui_forms::SurfaceRoot::control>`: its visual lines, graphemes and word starts, built only now (owner decision A-T1, 12.13). Text is published on a control's own node, never on a virtual child. UI thread only, and not deferred: during paint it answers during_paint and the host asks again. A runtime identity no attached control holds answers stale_identity (interview GF017). Reading changes no text, selection or scroll position.
 
    .. cpp:function:: void set_dispatch_wake_handler(std::function<void()> wake)
 
@@ -1456,6 +1483,10 @@ gui_forms::SurfaceRoot
       :cpp:func:`invoke <gui_forms::SurfaceRoot::invoke>` waits throws ``std::logic_error``.
 
    .. cpp:function:: void set_text_scale(double text_scale)
+
+   .. cpp:function:: void set_theme_override(std::shared_ptr<const Theme> theme)
+
+      Shows :cpp:func:`theme <gui_forms::SurfaceRoot::theme>` in this window alone, whatever its resources' theme (ApplicationResources::set_theme no longer reaches it); null returns to the resources' theme. Root thread.
 
    .. cpp:function:: void set_framebuffer_painter(Painter* painter)
 
@@ -1485,7 +1516,7 @@ gui_forms::SurfaceRoot
 
    .. cpp:function:: SemanticTextResult set_semantic_text_selection(RuntimeId control, SemanticTextSelection selection)
 
-      Moves the text selection of the control with runtime identity ``control`` (A-T1); focus does not move. Refused as semantic_text_layout refuses, and also for a control outside the active focus scope (outside_focus_scope) or an offset off a grapheme boundary (off_boundary); a refusal changes nothing. A done change reaches hosts through the next snapshot's text_selection field.
+      Moves the text selection of the control with runtime identity :cpp:func:`control <gui_forms::SurfaceRoot::control>` (A-T1); focus does not move. Refused as semantic_text_layout refuses, and also for a control outside the active focus scope (outside_focus_scope) or an offset off a grapheme boundary (off_boundary); a refusal changes nothing. A done change reaches hosts through the next snapshot's text_selection field.
 
 
    .. rubric:: Extension points

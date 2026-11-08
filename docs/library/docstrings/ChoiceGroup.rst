@@ -161,6 +161,6 @@ choice by the user raises `changed` when the selection moves, then
 
    void example() {
        ModeSwitch view;
-       (*view.modes).set_selected_index(1);     // shown is 1, choices is 0
+       (*view.modes).selected_index = 1;     // shown is 1, choices is 0
        (*view.modes).item(0).perform_click();   // shown is 0, choices is 1
    }

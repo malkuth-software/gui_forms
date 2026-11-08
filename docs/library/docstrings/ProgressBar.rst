@@ -107,6 +107,6 @@ Show activity of unknown length, and pause it while the work waits:
    std::shared_ptr<gf::ProgressBar> busy =
        gf::make_control<gf::ProgressBar>(gf::StableId("sync.busy"));
    (*busy).accessible_name = "Synchronizing";
-   (*busy).set_visual_style(gf::ProgressBarVisualStyle::marquee);
+   (*busy).visual_style = gf::ProgressBarVisualStyle::marquee;
    gf::Window window(busy, gf::Size{160.0, 20.0});   // the band now animates
    (*busy).set_animation_paused(true);               // it stops, keeping its phase

@@ -1980,6 +1980,8 @@ typedef struct gf_application_table {
     /* Whether an application is current. */
     gf_status (GF_CALL* state)(gf_application_state* state);
 } gf_application_table;
+
+/*
  * GF_TABLE_RULES (since 1.1): a window's rules (notes:planning
  * APP_WINDOW_RULES_DESIGN Part C), as C++ RuleSet keeps them. A rule has one
  * trigger, zero or more conditions that must all hold, and one or more

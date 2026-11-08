@@ -212,6 +212,9 @@ gui_forms::DataGridView
          with the header texts the copy mode includes; none when copying is
          disabled or nothing is selected.
 
+      **cells_text_provided** : ``bool``, read-only
+         Whether a cells text provider is set (held or moved to the region).
+
       **virtual_row_window_source** : ``std::shared_ptr<DataGridViewRowWindowSource>``, default none
          The :cpp:class:`DataGridViewRowWindowSource <gui_forms::DataGridViewRowWindowSource>` window mode asks for row IDs. Taking it
          away (null) in window mode first takes every ID from the old source and
@@ -535,6 +538,8 @@ gui_forms::DataGridView
         - Switches to virtual rows: the application's row IDs in presentation order, or a :cpp:class:`DataGridViewRowWindowSource <gui_forms::DataGridViewRowWindowSource>` that keeps the order, with values asked of a provider by ID.
       * - :cpp:func:`set_virtual_row_order <gui_forms::DataGridView::set_virtual_row_order>`
         - Replaces the virtual rows' order after the application inserted, removed, filtered or sorted rows.
+      * - :cpp:func:`set_cells_text_provider <gui_forms::DataGridView::set_cells_text_provider>`
+        - The cell region's own text model (threaded sub-surfaces decision 3(a), DataGridViewCellsTextProvider): owned by the grid until the region exists, then moved with the region's content to its thread, which alone calls it; a running region restarts with the new one.
       * - :cpp:func:`set_cell_error_text <gui_forms::DataGridView::set_cell_error_text>`
         -  
       * - :cpp:func:`set_row_error_text <gui_forms::DataGridView::set_row_error_text>`
@@ -1083,6 +1088,10 @@ gui_forms::DataGridView
       The selection as tab-separated text, one line per row ending ``\r\n``,
       with the header texts the copy mode includes; none when copying is
       disabled or nothing is selected.
+
+   .. cpp:function:: bool cells_text_provided() const noexcept
+
+      Whether a cells text provider is set (held or moved to the region).
 
    .. cpp:function:: std::shared_ptr<DataGridViewRowWindowSource> virtual_row_window_source() const noexcept
 
@@ -1645,6 +1654,10 @@ gui_forms::DataGridView
       the policy may move it to window mode again. Rows that are not virtual
       refuse it with ``std::logic_error``; an invalid ID throws
       ``std::invalid_argument`` and changes nothing.
+
+   .. cpp:function:: void set_cells_text_provider(std::unique_ptr<DataGridViewCellsTextProvider> provider)
+
+      The cell region's own text model (threaded sub-surfaces decision 3(a), DataGridViewCellsTextProvider): owned by the grid until the region exists, then moved with the region's content to its thread, which alone calls it; a running region restarts with the new one. While the rows are virtual and cells_on_sub_surface is on, the visible text cells (text columns, not wrapped, not the new row) reach the region without their values: the provider fills their text there. Null removes it; the region then shows those cells resolved on the UI thread again. The provider goes with the region: turning cells_on_sub_surface off releases it (on the region's thread).
 
    .. cpp:function:: void set_virtual_rows(std::shared_ptr<DataGridViewCellValueProvider> provider, std::shared_ptr<DataGridViewRowWindowSource> source)
 

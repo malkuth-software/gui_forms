@@ -105,5 +105,5 @@ owner, so it ends when the owner is destroyed:
 
    void example() {
        Options options;
-       (*options.wrap).set_checked(true);   // options.wrapping is now true
+       (*options.wrap).checked = true;   // options.wrapping is now true
    }

@@ -58,7 +58,7 @@ namespace host {
 // The platform host's splashscreen surface at `size` (logical units), or
 // null when it has none or cannot open one. Defined by the platform host
 // linked into GUIForms::Application (macOS, Windows, X11).
-[[nodiscard]] std::unique_ptr<detail::SplashscreenSurface> open_platform_splashscreen(Size size);
+[[nodiscard]] std::unique_ptr<gui_forms::detail::SplashscreenSurface> open_platform_splashscreen(Size size);
 
 } // namespace host
 

@@ -166,8 +166,8 @@ void test_styles_leave_the_other_events() {
     Fixture fixture;
     Log log;
     const Subscriptions subscriptions(*fixture.left, log);
-    (*fixture.left).set_style(ControlStyles::standard_click, false);
-    (*fixture.left).set_style(ControlStyles::standard_double_click, false);
+    (*fixture.left).Control::set_style(ControlStyles::standard_click, false);
+    (*fixture.left).Control::set_style(ControlStyles::standard_double_click, false);
     fixture.pointer(PointerAction::move, PointerButton::none, {20.0, 20.0});
     fixture.pointer(PointerAction::down, PointerButton::primary, {20.0, 20.0});
     fixture.pointer(PointerAction::up, PointerButton::primary, {20.0, 20.0});

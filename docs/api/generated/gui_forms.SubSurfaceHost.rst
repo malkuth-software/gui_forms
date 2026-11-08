@@ -21,6 +21,8 @@ gui_forms::SubSurfaceHost
 
    :Properties:
 
+      **publishes_semantics** : ``bool``
+
       **opaque** : ``bool``, read-only
 
       **started** : ``bool``, read-only
@@ -50,6 +52,14 @@ gui_forms::SubSurfaceHost
 
       **states** : ``States``, read-only
 
+   :Events:
+
+      **stopped** : ``Event<const SubSurfaceStopped&>``
+         A thread ended (see the class comment). Raised on the window's thread by a posted task.
+
+      **pairing_missed** : ``Event<std::uint64_t>``
+         The window presented a frame older than the epoch it required (the payload) once the one-frame wait ran out. Raised on the window's thread by a posted task, once per epoch.
+
    :Inherited:
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
@@ -74,6 +84,12 @@ gui_forms::SubSurfaceHost
 
 
    .. rubric:: Properties
+
+   .. cpp:function:: bool publishes_semantics() const noexcept
+
+   .. cpp:function:: void set_publishes_semantics(bool publishes)
+
+      Whether the host publishes the sub-surface in the window's semantic tree: its own pane and the sub-surface's nodes as its virtual children (the class comment). On by default. A control that publishes what the sub-surface draws itself (a DataGridView's cell region: the grid publishes its cells) turns it off; the host then publishes no node, takes no snapshot and performs no semantic action, and the sub-surface's own controls are reached only through its owner.
 
    .. cpp:function:: bool opaque() const noexcept
 
@@ -112,6 +128,17 @@ gui_forms::SubSurfaceHost
    .. cpp:function:: States states() const
 
 
+   .. rubric:: Events
+
+   .. cpp:function:: Event<const SubSurfaceStopped&>& stopped() noexcept
+
+      A thread ended (see the class comment). Raised on the window's thread by a posted task.
+
+   .. cpp:function:: Event<std::uint64_t>& pairing_missed() noexcept
+
+      The window presented a frame older than the epoch it required (the payload) once the one-frame wait ran out. Raised on the window's thread by a posted task, once per epoch.
+
+
    .. rubric:: Methods
 
    .. cpp:function:: std::uint64_t redraw_all(std::unique_ptr<SubSurfaceContentUpdate> update)
@@ -130,6 +157,8 @@ gui_forms::SubSurfaceHost
    .. cpp:function:: std::vector<SemanticNode> tool_tip_items() const override
 
       The sub-surface's open requests as tooltip parts, in window coordinates; a program request has no bounds (it is shown at once, never found under the pointer or focus).
+
+   .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 
    .. cpp:function:: void arrange(Rect final_bounds) override
 

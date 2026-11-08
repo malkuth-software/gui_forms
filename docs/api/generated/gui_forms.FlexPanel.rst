@@ -196,7 +196,7 @@ gui_forms::FlexPanel
 
       std::shared_ptr<gf::FlexPanel> bar =
           gf::make_control<gf::FlexPanel>(gf::StableId("bar"));
-      (*bar).set_align_items(gf::LayoutAlignment::center);
+      (*bar).align_items = gf::LayoutAlignment::center;
       std::shared_ptr<gf::Button> save =
           gf::make_control<gf::Button>(gf::StableId("bar.save"), "Save");
       std::shared_ptr<gf::Button> close =

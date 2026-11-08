@@ -242,6 +242,10 @@ Types
 
    .. cpp:function:: bool seeded() const noexcept
 
+   .. cpp:function:: std::shared_ptr<KeyBindings> copy_bindings() const
+
+      A new set equal to this one, shared by nobody yet: a window's copy-on-write table (APP_WINDOW_RULES_DESIGN K.1). One allocation.
+
 
    .. rubric:: Methods
 

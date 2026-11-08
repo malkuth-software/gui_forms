@@ -535,7 +535,7 @@ void reentrancy_and_failures() {
     reentry.rules = &rules;
     reentry.journal = &journal;
     reentry.trigger = trigger::key_pressed(PhysicalKey::r);
-    const RuleAddResult adder = on(rules, trigger::key_pressed(PhysicalKey::r), reentry, &add_and_revoke);
+    RuleAddResult adder = on(rules, trigger::key_pressed(PhysicalKey::r), reentry, &add_and_revoke);
     Rule victim{};
     victim.trigger = trigger::key_pressed(PhysicalKey::r);
     victim.conditions.push_back(condition::visible(*fixture.ok));

@@ -947,13 +947,13 @@ void CorrespondenceView::on_context_menu_requested(ContextMenuRequest& request) 
     request.handled = true;
     const std::optional<std::size_t> index = index_at(request.window_position);
     if (!index) {
-        set_selected_id({});
+        selected_id = std::string{};
         if (is_alive()) context_requested_.emit({{}, request.window_position});
         return;
     }
     // A copy: the selection handler may replace the items.
     const std::string target = items_[*index].stable_id;
-    set_selected_id(target);
+    selected_id = target;
     const std::optional<std::size_t> selected = item_index(target);
     if (selected) focus_index(*selected, CorrespondenceExpansionReason::keyboard_focus);
     if (is_alive()) context_requested_.emit({target, request.window_position});

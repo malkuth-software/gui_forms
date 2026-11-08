@@ -142,7 +142,7 @@ gui_forms::CheckBox
 
       void example() {
           Options options;
-          (*options.wrap).set_checked(true);   // options.wrapping is now true
+          (*options.wrap).checked = true;   // options.wrapping is now true
       }
 
 

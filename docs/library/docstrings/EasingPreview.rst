@@ -94,9 +94,9 @@ Compare two curves at a 600 ms duration, then pause the preview:
    gf::AnimationSpec specification;
    specification.duration = std::chrono::milliseconds(600);
    specification.infinite = true;
-   (*preview).set_specification(specification);
+   (*preview).specification = specification;
    gf::Window window(preview, gf::Size{480.0, 160.0});   // starts the timeline
 
    gf::MotionPolicy paused;
    paused.paused = true;
-   (*preview).set_motion_policy(paused);   // stops its animation timer
+   (*preview).motion_policy = paused;   // stops its animation timer

@@ -75,6 +75,8 @@ Related types
      - What a sub-surface shows (stage S2, threaded sub-surfaces design note section 2).
    * - :cpp:class:`SubSurfaceContentUpdate <gui_forms::SubSurfaceContentUpdate>`
      - One change of a sub-surface's content that must agree with its parent's chrome in the same visible frame (design note section 2, redraw-all): made on the parent's thread, carried with a configuration (SubSurfaceHost::redraw_all), handed to SubSurfaceContent::apply_update on the sub-surface's thread after that configuration is applied and before its first frame, and destroyed there.
+   * - :cpp:class:`SubSurfaceEndListener <gui_forms::SubSurfaceEndListener>`
+     - Told that a sub-surface's thread ended on its own: its content threw or built no root (state failed).
    * - :cpp:class:`SubSurfaceHost::Parts <gui_forms::SubSurfaceHost::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`SubSurfaceHost::States <gui_forms::SubSurfaceHost::States>`
@@ -95,6 +97,8 @@ Related types
      - Told that a sub-surface published a new semantic snapshot (design note section 5).
    * - :cpp:class:`SubSurfaceStatistics <gui_forms::SubSurfaceStatistics>`
      - Counters of one sub-surface (design note section 8, rules), written by its thread and read by its parent under the channel's lock.
+   * - :cpp:class:`SubSurfaceStopped <gui_forms::SubSurfaceStopped>`
+     - How a host's sub-surface thread ended (SubSurfaceHost::stopped): stopped when the host stopped it (new content, leaving the window), failed when the content threw or built no root, with what it threw.
    * - :cpp:class:`SubSurfaceThread <gui_forms::SubSurfaceThread>`
      - The parent's side of one sub-surface: owns its thread (owner decision 9, the library's thread) and the channel the two sides share.
 
@@ -499,6 +503,19 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:class:: SubSurfaceEndListener
+
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>``
+
+   Told that a sub-surface's thread ended on its own: its content threw or built no root (state failed). Called on the parent's thread only, through the parent's dispatcher, after the thread recorded its state and failure; a stop the parent asked for (SubSurfaceThread::stop) posts nothing, since the parent knows of it. A target the parent has released receives nothing.
+
+
+   .. rubric:: Extension points
+
+   .. cpp:function:: virtual void sub_surface_ended() = 0
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: SubSurfaceHost::Parts final
 
    ``#include <gui_forms/surface_root/sub_surface/sub_surface_host.hpp>``
@@ -778,6 +795,20 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: SubSurfaceStopped final
+
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface_host.hpp>``
+
+   How a host's sub-surface thread ended (SubSurfaceHost::stopped): stopped when the host stopped it (new content, leaving the window), failed when the content threw or built no root, with what it threw.
+
+   .. cpp:member:: SubSurfaceState state
+
+      Default: ``{SubSurfaceState::stopped}``.
+
+   .. cpp:member:: std::string failure
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:class:: SubSurfaceThread final
 
    ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>``
@@ -844,6 +875,10 @@ Related types
    .. cpp:function:: void set_semantics_listener(WindowDispatcher parent, std::weak_ptr<SubSurfaceSemanticsListener> target)
 
       Where semantic snapshot notices go: posted through ``parent`` to ``target``, held weakly, as set_key_return. Replaces any earlier target.
+
+   .. cpp:function:: void set_end_listener(WindowDispatcher parent, std::weak_ptr<SubSurfaceEndListener> target)
+
+      Where the notice of the thread ending on its own goes: posted through ``parent`` to ``target``, held weakly, as set_key_return. Replaces any earlier target. A thread that already failed posts nothing for a target set afterwards; the parent reads state() then.
 
 Enumerations
 ------------

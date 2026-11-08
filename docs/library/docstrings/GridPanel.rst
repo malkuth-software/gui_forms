@@ -213,9 +213,9 @@ Lay four buttons in a fixed 80-wide column and a flexible one:
    flexible.maximum.fraction = gf::FractionFactor{1.0};
    gf::GridTrackList columns{};
    columns.tracks = {fixed, flexible};
-   (*form).set_template_columns(columns);
-   (*form).set_column_gap(gf::LengthPercentage{gf::LogicalLength{10.0}, 0.0});
-   (*form).set_row_gap(gf::LengthPercentage{gf::LogicalLength{5.0}, 0.0});
+   (*form).template_columns = columns;
+   (*form).column_gap = gf::LengthPercentage{gf::LogicalLength{10.0}, 0.0};
+   (*form).row_gap = gf::LengthPercentage{gf::LogicalLength{5.0}, 0.0};
    std::vector<std::shared_ptr<gf::Button>> buttons;
    for (int index = 0; index < 4; ++index) {
        std::shared_ptr<gf::Button> button = gf::make_control<gf::Button>(
@@ -245,9 +245,9 @@ Repeat 100-wide columns as often as they fit, sharing what is left:
    gf::GridTrackList columns{};
    columns.auto_repeat = gf::AutoRepeatKind::auto_fill;
    columns.auto_repeat_tracks = {card};
-   (*cards).set_template_columns(columns);
-   (*cards).set_column_gap(gf::LengthPercentage{gf::LogicalLength{15.0}, 0.0});
-   (*cards).set_row_gap(gf::LengthPercentage{gf::LogicalLength{10.0}, 0.0});
+   (*cards).template_columns = columns;
+   (*cards).column_gap = gf::LengthPercentage{gf::LogicalLength{15.0}, 0.0};
+   (*cards).row_gap = gf::LengthPercentage{gf::LogicalLength{10.0}, 0.0};
    std::vector<std::shared_ptr<gf::Button>> buttons;
    for (int index = 0; index < 5; ++index) {
        std::shared_ptr<gf::Button> button = gf::make_control<gf::Button>(

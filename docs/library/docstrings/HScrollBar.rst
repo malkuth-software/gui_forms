@@ -33,5 +33,5 @@ A horizontal bar below a 600-pixel-wide view of a 2000-pixel-wide image:
        gf::make_control<gf::HScrollBar>(gf::StableId("image.horizontal"));
    (*bar).set_requested_bounds({0.0, 400.0, 600.0, 18.0});
    (*bar).set_range(0.0, 1400.0);    // the right edge is visible at 1400
-   (*bar).set_large_change(600.0);
-   (*bar).set_small_change(40.0);
+   (*bar).large_change = 600.0;
+   (*bar).small_change = 40.0;

@@ -527,7 +527,7 @@ struct Options final : gf::Component {
 
 void example() {
     Options options;
-    (*options.wrap).set_checked(true);   // options.wrapping is now true
+    (*options.wrap).checked = true;   // options.wrapping is now true
 }
 }  // namespace doc_example_CheckBox_2
 
@@ -604,7 +604,7 @@ struct ModeSwitch final : gf::Component {
 
 void example() {
     ModeSwitch view;
-    (*view.modes).set_selected_index(1);     // shown is 1, choices is 0
+    (*view.modes).selected_index = 1;     // shown is 1, choices is 0
     (*view.modes).item(0).perform_click();   // shown is 0, choices is 1
 }
 }  // namespace doc_example_ChoiceGroup_2
@@ -839,7 +839,7 @@ void example() {
     (*shelf).add_child(selection);
     (*shelf).add_child(arrange);
     (*shelf).add_child(more);
-    (*shelf).set_group_gap(4.0);
+    (*shelf).group_gap = 4.0;
     (*shelf).group_spec[*selection] = gf::CommandOverflowGroupSpec{176.0, 176.0, 176.0, 2U};
     (*shelf).group_spec[*arrange] = gf::CommandOverflowGroupSpec{306.0, 306.0, 306.0, 1U};
     (*shelf).set_overflow_actuator(*more);
@@ -1437,12 +1437,12 @@ void example() {
     gf::AnimationSpec specification;
     specification.duration = std::chrono::milliseconds(600);
     specification.infinite = true;
-    (*preview).set_specification(specification);
+    (*preview).specification = specification;
     gf::Window window(preview, gf::Size{480.0, 160.0});   // starts the timeline
 
     gf::MotionPolicy paused;
     paused.paused = true;
-    (*preview).set_motion_policy(paused);   // stops its animation timer
+    (*preview).motion_policy = paused;   // stops its animation timer
 }
 }  // namespace doc_example_EasingPreview_1
 
@@ -1670,7 +1670,7 @@ namespace doc_example_FlexPanel_2 {
 void example() {
     std::shared_ptr<gf::FlexPanel> bar =
         gf::make_control<gf::FlexPanel>(gf::StableId("bar"));
-    (*bar).set_align_items(gf::LayoutAlignment::center);
+    (*bar).align_items = gf::LayoutAlignment::center;
     std::shared_ptr<gf::Button> save =
         gf::make_control<gf::Button>(gf::StableId("bar.save"), "Save");
     std::shared_ptr<gf::Button> close =
@@ -1695,7 +1695,7 @@ namespace doc_example_FlowLayoutPanelCompat_1 {
 void example() {
     std::shared_ptr<gf::FlowLayoutPanelCompat> tools =
         gf::make_control<gf::FlowLayoutPanelCompat>(gf::StableId("tools"));
-    (*tools).set_item_spacing({7.0, 9.0});
+    (*tools).item_spacing = {7.0, 9.0};
     std::shared_ptr<gf::Button> cut =
         gf::make_control<gf::Button>(gf::StableId("tools.cut"), "Cut");
     std::shared_ptr<gf::Button> copy =
@@ -1722,7 +1722,7 @@ namespace doc_example_FlowLayoutPanelCompat_2 {
 void example() {
     std::shared_ptr<gf::FlowLayoutPanelCompat> row =
         gf::make_control<gf::FlowLayoutPanelCompat>(gf::StableId("row"));
-    (*row).set_wrap_contents(false);
+    (*row).wrap_contents = false;
     std::shared_ptr<gf::Button> fixed =
         gf::make_control<gf::Button>(gf::StableId("row.fixed"), "Fixed");
     std::shared_ptr<gf::Button> narrow =
@@ -1805,9 +1805,9 @@ void example() {
     flexible.maximum.fraction = gf::FractionFactor{1.0};
     gf::GridTrackList columns{};
     columns.tracks = {fixed, flexible};
-    (*form).set_template_columns(columns);
-    (*form).set_column_gap(gf::LengthPercentage{gf::LogicalLength{10.0}, 0.0});
-    (*form).set_row_gap(gf::LengthPercentage{gf::LogicalLength{5.0}, 0.0});
+    (*form).template_columns = columns;
+    (*form).column_gap = gf::LengthPercentage{gf::LogicalLength{10.0}, 0.0};
+    (*form).row_gap = gf::LengthPercentage{gf::LogicalLength{5.0}, 0.0};
     std::vector<std::shared_ptr<gf::Button>> buttons;
     for (int index = 0; index < 4; ++index) {
         std::shared_ptr<gf::Button> button = gf::make_control<gf::Button>(
@@ -1837,9 +1837,9 @@ void example() {
     gf::GridTrackList columns{};
     columns.auto_repeat = gf::AutoRepeatKind::auto_fill;
     columns.auto_repeat_tracks = {card};
-    (*cards).set_template_columns(columns);
-    (*cards).set_column_gap(gf::LengthPercentage{gf::LogicalLength{15.0}, 0.0});
-    (*cards).set_row_gap(gf::LengthPercentage{gf::LogicalLength{10.0}, 0.0});
+    (*cards).template_columns = columns;
+    (*cards).column_gap = gf::LengthPercentage{gf::LogicalLength{15.0}, 0.0};
+    (*cards).row_gap = gf::LengthPercentage{gf::LogicalLength{10.0}, 0.0};
     std::vector<std::shared_ptr<gf::Button>> buttons;
     for (int index = 0; index < 5; ++index) {
         std::shared_ptr<gf::Button> button = gf::make_control<gf::Button>(
@@ -1870,8 +1870,8 @@ void example() {
     (*exact).set_requested_bounds({130.0, 24.0, 110.0, 24.0});
     (*mode).add_child(fast);
     (*mode).add_child(exact);
-    (*fast).set_checked(true);
-    (*exact).set_checked(true);   // fast is now unchecked
+    (*fast).checked = true;
+    (*exact).checked = true;   // fast is now unchecked
 }
 }  // namespace doc_example_GroupBox_1
 
@@ -1897,8 +1897,8 @@ void example() {
         gf::make_control<gf::HScrollBar>(gf::StableId("image.horizontal"));
     (*bar).set_requested_bounds({0.0, 400.0, 600.0, 18.0});
     (*bar).set_range(0.0, 1400.0);    // the right edge is visible at 1400
-    (*bar).set_large_change(600.0);
-    (*bar).set_small_change(40.0);
+    (*bar).large_change = 600.0;
+    (*bar).small_change = 40.0;
 }
 }  // namespace doc_example_HScrollBar_1
 
@@ -2697,7 +2697,7 @@ void example() {
     std::shared_ptr<gf::ProgressBar> busy =
         gf::make_control<gf::ProgressBar>(gf::StableId("sync.busy"));
     (*busy).accessible_name = "Synchronizing";
-    (*busy).set_visual_style(gf::ProgressBarVisualStyle::marquee);
+    (*busy).visual_style = gf::ProgressBarVisualStyle::marquee;
     gf::Window window(busy, gf::Size{160.0, 20.0});   // the band now animates
     (*busy).set_animation_paused(true);               // it stops, keeping its phase
 }

@@ -207,7 +207,7 @@ Related types
    * - :cpp:class:`DataGridViewCellsCell <gui_forms::DataGridViewCellsCell>`
      - One visible cell, resolved.
    * - :cpp:class:`DataGridViewCellsContent <gui_forms::DataGridViewCellsContent>`
-     - The cell region's content: builds a DataGridViewCells, under the grid's stable ID, on the sub-surface's thread and hands it each DataGridViewCellsUpdate.
+     - The cell region's content: builds a DataGridViewCells, under the grid's stable ID, on the sub-surface's thread and hands it each DataGridViewCellsUpdate, after its provider (when it has one) filled the provided cells' text.
    * - :cpp:class:`DataGridViewCellsLineRange <gui_forms::DataGridViewCellsLineRange>`
      - A range of DataGridViewCellsSnapshot::lines: ``count`` lines from ``first``.
    * - :cpp:class:`DataGridViewCellsLook <gui_forms::DataGridViewCellsLook>`
@@ -216,10 +216,16 @@ Related types
      - Whether the cells are painted on a threaded sub-surface (stage S7): the grid resolves each frame's visible cells into a snapshot and its cell region shows them, off the UI thread.
    * - :cpp:class:`DataGridViewCellsParts <gui_forms::DataGridViewCellsParts>`
      - The parts of one cell, placed in the region's coordinates; a part the cell's kind does not show is absent (PartGeometry::present).
+   * - :cpp:class:`DataGridViewCellsProvided <gui_forms::DataGridViewCellsProvided>`
+     - A cell whose text the region's own provider fills on the sub-surface's thread (DataGridViewCellsTextProvider; decision 3(a), the virtual-mode half): its row, an index of DataGridViewCellsSnapshot::provided_rows, and its column.
    * - :cpp:class:`DataGridViewCellsSnapshot <gui_forms::DataGridViewCellsSnapshot>`
      - What the cell region shows in one content epoch: complete, so a newer snapshot replaces an older one whole.
+   * - :cpp:class:`DataGridViewCellsTextProvider <gui_forms::DataGridViewCellsTextProvider>`
+     - The sub-surface half of virtual mode on a cell region (threaded sub-surfaces decision 3(a): a model the sub-surface's thread owns): the application's model of the rows' text, moved to the region's thread with its content (DataGridView::set_cells_text_provider) and called only there, once per snapshot that has provided cells.
    * - :cpp:class:`DataGridViewCellsTextRange <gui_forms::DataGridViewCellsTextRange>`
      - A byte range of DataGridViewCellsSnapshot::text: [begin_byte, end_byte).
+   * - :cpp:class:`DataGridViewCellsTextRequest <gui_forms::DataGridViewCellsTextRequest>`
+     - One cell a DataGridViewCellsTextProvider is asked for: its row's identity, borrowed from the snapshot (valid through the call), and its column.
    * - :cpp:class:`DataGridViewCellStyle <gui_forms::DataGridViewCellStyle>`
      - A cell style (Windows Forms' DataGridViewCellStyle).
    * - :cpp:class:`DataGridViewCellsUpdate <gui_forms::DataGridViewCellsUpdate>`
@@ -2144,18 +2150,26 @@ Related types
 
    .. cpp:member:: Rect image_clip
 
+   .. cpp:member:: DataGridViewCellsProvided provided
+
+      Set for a cell whose text the region's provider fills.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:class:: DataGridViewCellsContent final : public SubSurfaceContent
 
    ``#include <gui_forms/controls/data_grid_view/data_grid_view_cells.hpp>``
 
-   The cell region's content: builds a DataGridViewCells, under the grid's stable ID, on the sub-surface's thread and hands it each DataGridViewCellsUpdate. Other updates are ignored. A look whose classes or inline style the control refuses throws, and the sub-surface fails.
+   The cell region's content: builds a DataGridViewCells, under the grid's stable ID, on the sub-surface's thread and hands it each DataGridViewCellsUpdate, after its provider (when it has one) filled the provided cells' text. Other updates are ignored. A look whose classes or inline style the control refuses throws, and the sub-surface fails.
 
 
    .. rubric:: Construction
 
    .. cpp:function:: explicit DataGridViewCellsContent(StableId stable_id)
+
+   .. cpp:function:: DataGridViewCellsContent(StableId stable_id, std::unique_ptr<DataGridViewCellsTextProvider> provider)
+
+      With a text provider, owned from here on and moved with the content to the sub-surface's thread; null for none (provided cells then show no text).
 
 
    .. rubric:: Extension points
@@ -2255,6 +2269,20 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: DataGridViewCellsProvided final
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view_cells.hpp>``
+
+   A cell whose text the region's own provider fills on the sub-surface's thread (DataGridViewCellsTextProvider; decision 3(a), the virtual-mode half): its row, an index of DataGridViewCellsSnapshot::provided_rows, and its column. A provided cell arrives with an empty text range and no lines.
+
+   .. cpp:member:: bool provided
+
+   .. cpp:member:: std::size_t row
+
+   .. cpp:member:: std::size_t column
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: DataGridViewCellsSnapshot final
 
    ``#include <gui_forms/controls/data_grid_view/data_grid_view_cells.hpp>``
@@ -2279,6 +2307,25 @@ Related types
 
    .. cpp:member:: std::vector<DataGridViewCellsTextRange> lines
 
+   .. cpp:member:: std::vector<std::string> provided_rows
+
+      The row identities (DataGridViewRowId values) the provided cells name, one per visible row that has any; empty without a provider.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: DataGridViewCellsTextProvider
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view_cells.hpp>``
+
+   The sub-surface half of virtual mode on a cell region (threaded sub-surfaces decision 3(a): a model the sub-surface's thread owns): the application's model of the rows' text, moved to the region's thread with its content (DataGridView::set_cells_text_provider) and called only there, once per snapshot that has provided cells. The UI thread then neither asks DataGridViewCellValueProvider::cell_value nor raises cell_formatting for those cells; it still does for the cells semantics, the editor and the application read through the grid. The provider is released on the region's thread when its sub-surface stops.
+
+
+   .. rubric:: Extension points
+
+   .. cpp:function:: virtual void fill_cell_texts(std::span<const DataGridViewCellsTextRequest> requests, std::string& text, std::span<DataGridViewCellsTextRange> ranges) noexcept = 0
+
+      Appends each requested cell's shown text to ``text``, in request order, and stores its byte range of ``text`` in the same slot of ``ranges`` (as many as ``requests``; each starts empty). It may not throw. A range outside ``text`` makes the region refuse the snapshot (the previous one stays).
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: DataGridViewCellsTextRange final
@@ -2290,6 +2337,18 @@ Related types
    .. cpp:member:: std::size_t begin_byte
 
    .. cpp:member:: std::size_t end_byte
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: DataGridViewCellsTextRequest final
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view_cells.hpp>``
+
+   One cell a DataGridViewCellsTextProvider is asked for: its row's identity, borrowed from the snapshot (valid through the call), and its column.
+
+   .. cpp:member:: std::string_view row_id
+
+   .. cpp:member:: std::size_t column
 
 .. cpp:namespace:: gui_forms
 
@@ -2360,7 +2419,7 @@ Related types
 
    ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
 
-   The application side of virtual mode (Windows Forms' CellValueNeeded and CellValuePushed), on ObjectView's stable-ID model: the application owns the rows and their order and gives the order to the grid as row IDs (in full with set_virtual_rows and set_virtual_row_order, by change with insert_virtual_rows, remove_virtual_rows and move_virtual_row, or on demand through a DataGridViewRowWindowSource); the grid asks for values by ID. It asks for the cells it shows, the current cell, and cells semantics or the application read through the grid; it never asks for any other row. Calls arrive on the grid's UI thread, from paint, layout, input and the grid's own methods. The provider may not mutate the grid from inside a call.
+   The application side of virtual mode (Windows Forms' CellValueNeeded and CellValuePushed), on ObjectView's stable-ID model: the application owns the rows and their order and gives the order to the grid as row IDs (in full with set_virtual_rows and set_virtual_row_order, by change with insert_virtual_rows, remove_virtual_rows and move_virtual_row, or on demand through a DataGridViewRowWindowSource); the grid asks for values by ID. It asks for the cells it shows (except the text cells a cell region's DataGridViewCellsTextProvider fills on its own thread), the current cell, and cells semantics or the application read through the grid; it never asks for any other row. Calls arrive on the grid's UI thread, from paint, layout, input and the grid's own methods. The provider may not mutate the grid from inside a call.
 
 
    .. rubric:: Extension points
@@ -5643,7 +5702,7 @@ Functions, constants and aliases
 
 .. cpp:function:: bool data_grid_view_cells_snapshot_valid(const DataGridViewCellsSnapshot& snapshot) noexcept
 
-   Whether every range of ``snapshot`` lies in its buffers: each cell's text in ``text``, each cell's lines in ``lines``, and each line in its cell's text. The sub-surface checks a snapshot whole before it takes it (house style 8: validate whole buffers up front).
+   Whether every range of ``snapshot`` lies in its buffers: each cell's text in ``text``, each cell's lines in ``lines``, each line in its cell's text, and each provided cell's row in ``provided_rows``, with no lines. The sub-surface checks a snapshot whole before it takes it (house style 8: validate whole buffers up front).
 
 .. cpp:function:: void paint_data_grid_view_cell(Painter& painter, const Control& owner, const DataGridViewCellsSnapshot& snapshot, const DataGridViewCellsCell& cell, Rect data)
 

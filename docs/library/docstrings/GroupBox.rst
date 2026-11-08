@@ -89,8 +89,8 @@ checking one unchecks the other:
    (*exact).set_requested_bounds({130.0, 24.0, 110.0, 24.0});
    (*mode).add_child(fast);
    (*mode).add_child(exact);
-   (*fast).set_checked(true);
-   (*exact).set_checked(true);   // fast is now unchecked
+   (*fast).checked = true;
+   (*exact).checked = true;   // fast is now unchecked
 
 Alt and the caption's mnemonic move focus into the group:
 

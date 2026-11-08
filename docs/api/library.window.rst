@@ -48,8 +48,10 @@ Related types
      - The colour schemes a theme has variants for (T4 theme variants): a theme sheet declares them with ``:root { color-scheme: light dark }``, a definition built in code sets them.
    * - :cpp:class:`ControlAvailabilityChange <gui_forms::ControlAvailabilityChange>`
      - ControlAvailabilityChange carries authoritative runtime/stable identity and effective visibility/enabled state after retained lifecycle change.
+   * - :cpp:class:`ControlLookup <gui_forms::ControlLookup>`
+     - What SurfaceRoot::control found: the one control with the ID, or why there is none (then ``control`` is null).
    * - :cpp:class:`ControlSnapshot <gui_forms::ControlSnapshot>`
-     - A control subtree's picture (Window::snapshot_control): the registered image, the logical size it covers and its pixels per logical unit.
+     -  
    * - :cpp:class:`DeferredInputSnapshot <gui_forms::DeferredInputSnapshot>`
      - DeferredInputSnapshot preserves the route, transformed event, and target identity required to resume deferred input safely.
    * - :cpp:class:`DialogKeySnapshot <gui_forms::DialogKeySnapshot>`
@@ -84,6 +86,8 @@ Related types
      - The state at the moment of the copy.
    * - :cpp:class:`KeyGesture <gui_forms::KeyGesture>`
      - KeyGesture is exact portable physical-key plus modifier identity used for deterministic accelerator comparison.
+   * - :cpp:class:`LiveSurfacePairingListener <gui_forms::LiveSurfacePairingListener>`
+     - Told that a live surface's frame was presented unpaired: older than the content tag its control required (Window::require_live_surface_content), once per required tag.
    * - :cpp:class:`LiveSurfacePresentation <gui_forms::LiveSurfacePresentation>`
      - LiveSurfacePresentation is one immutable host-consumption record coupling a retained control identity and surface to stable destination geometry and an overlay-safe clip fragment.
    * - :cpp:class:`NativePopupOptions <gui_forms::NativePopupOptions>`
@@ -140,6 +144,8 @@ Related types
      - ValidationSnapshot reports attempts, outcomes, focus blocks, reentrancy rejection, bulk visits, and active transaction state.
    * - :cpp:class:`WindowDispatcher <gui_forms::WindowDispatcher>`
      - A window's dispatcher, reachable from any thread for as long as the caller holds this handle, whatever happens to the window.
+   * - :cpp:class:`WindowOverrides <gui_forms::WindowOverrides>`
+     - What one window overrides of what it would otherwise read from its owner (APP_WINDOW_RULES_DESIGN K.1): its application, or for a popup or floating window the window that opened it, which shares its table.
 
 .. cpp:namespace:: gui_forms
 
@@ -333,11 +339,23 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: ControlSnapshot final
+.. cpp:struct:: ControlLookup final
 
    ``#include <gui_forms/surface_root/surface_root.hpp>``
 
-   A control subtree's picture (Window::snapshot_control): the registered image, the logical size it covers and its pixels per logical unit.
+   What SurfaceRoot::control found: the one control with the ID, or why there is none (then ``control`` is null).
+
+   .. cpp:member:: ControlLookupError error
+
+      Default: ``{ControlLookupError::none}``.
+
+   .. cpp:member:: Control::Ptr control
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ControlSnapshot final
+
+   ``#include <gui_forms/surface_root/surface_root.hpp>``
 
    .. cpp:member:: ImageId image
 
@@ -758,6 +776,19 @@ Related types
    .. cpp:member:: Modifier modifiers
 
       Default: ``{Modifier::none}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: LiveSurfacePairingListener
+
+   ``#include <gui_forms/window/window.hpp>``
+
+   Told that a live surface's frame was presented unpaired: older than the content tag its control required (Window::require_live_surface_content), once per required tag. Called on the window's thread only, through the window's dispatcher, never inside the present path that found it; a listener the control released first receives nothing.
+
+
+   .. rubric:: Extension points
+
+   .. cpp:function:: virtual void live_surface_pairing_missed(std::uint64_t content_tag) = 0
 
 .. cpp:namespace:: gui_forms
 
@@ -1432,6 +1463,33 @@ Related types
 
       Runs ``callback`` on the window's UI thread and waits for it: inline on the UI thread, marshalled from any other through the host's wake. The result is completed when it ran and window_gone when the window was gone first or closed while the work waited; the callback did not run then. An exception the callback throws is rethrown here, as Window::invoke does. A live window with no running host (no wake handler) throws std::logic_error, as Window::invoke does.
 
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: WindowOverrides final
+
+   ``#include <gui_forms/surface_root/surface_root.hpp>``
+
+   What one window overrides of what it would otherwise read from its owner (APP_WINDOW_RULES_DESIGN K.1): its application, or for a popup or floating window the window that opened it, which shares its table. A window with no override stores none: SurfaceRoot holds a null pointer until the first, which allocates this record; clearing the last releases it. A read is one branch: the field when set, else the owner's.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool empty() const noexcept
+
+      Whether nothing is overridden.
+
+   .. cpp:member:: PresentationOverrides presentation
+
+      Presentation fields that win over the window's own settings.
+
+   .. cpp:member:: std::shared_ptr<const Theme> theme
+
+      A theme for this window alone (immutable, shared by reference); null shows its resources' theme.
+
+   .. cpp:member:: std::shared_ptr<KeyBindings> key_bindings
+
+      The window's own keyboard-command table, or one it was given to share (set_key_bindings); null reads the owner's.
+
 Enumerations
 ------------
 
@@ -1456,6 +1514,18 @@ Enumerations
    .. cpp:enumerator:: light
 
    .. cpp:enumerator:: dark
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ControlLookupError
+
+   ``#include <gui_forms/surface_root/surface_root.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: empty_id
+
+   .. cpp:enumerator:: not_found
 
 .. cpp:namespace:: gui_forms
 
