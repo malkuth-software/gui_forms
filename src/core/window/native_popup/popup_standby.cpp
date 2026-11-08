@@ -67,6 +67,11 @@ Window* PopupStandby::model(const std::size_t slot) const noexcept {
     return model;
 }
 
+std::optional<Rect> PopupStandby::work_area(const Point client_point) {
+    const std::optional<Rect> area = client_work_area(owner_.application_window_, client_point, monitors_);
+    return area;
+}
+
 void PopupStandby::slot_closed(const std::size_t slot) {
     PopupSlot& entry = slots_[slot];
     const bool was_shown = entry.window && (*entry.window).shown();
@@ -115,6 +120,24 @@ Window* Window::popup_window_model(const std::size_t slot) const noexcept {
     if (!popup_standby_) return nullptr;
     Window* const model = (*popup_standby_).model(slot);
     return model;
+}
+
+void Window::forward_input_to_popup_window(const std::optional<std::size_t> slot) {
+    require_root_thread("popup window");
+    if (!slot.has_value()) {
+        key_forward_standby_ = nullptr;
+        key_forward_slot_ = 0U;
+        return;
+    }
+    if (*slot >= maximum_popup_windows) throw std::out_of_range("GUI.Forms popup window slot is out of range");
+    key_forward_standby_ = &popup_standby();
+    key_forward_slot_ = *slot;
+}
+
+std::optional<Rect> Window::popup_work_area(const Point client_point) {
+    require_root_thread("popup window");
+    const std::optional<Rect> area = popup_standby().work_area(client_point);
+    return area;
 }
 
 Event<std::size_t>& Window::popup_window_closed() {

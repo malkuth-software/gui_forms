@@ -7,6 +7,7 @@
 #include "gui_forms/event.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/window/native_popup/popup_lift.hpp"
 #include "gui_forms/controls/ribbon_color_picker/ribbon_color_picker_capabilities/ribbon_color_picker_capabilities.hpp"
 
 #include <cstddef>
@@ -167,6 +168,8 @@ private:
     bool palette_semantic_action(std::string_view stable_id, SemanticAction action);
     void on_layer_dismissed(OverlayDismissReason reason);
     void on_overlay_revoked();
+    // The host closed a Popup window: the picker's closes the palette.
+    void on_popup_window_closed(std::size_t slot);
 
     SubscriptionToken command_value_{};
     SubscriptionToken command_state_{};
@@ -185,6 +188,11 @@ private:
     FocusScopeId scope_{};
     SubscriptionToken layer_dismissed_{};
     SubscriptionToken overlay_revoked_{};
+    // The palette's Popup while it shows outside the owner's layer (owner,
+    // 2026-11-08: pickers are Popups before 0.5); the layer then has no
+    // content and takes the owner's outside clicks.
+    PopupLift lift_;
+    SubscriptionToken lift_closed_{};
     bool palette_open_{};
     bool palette_focused_{};
     std::optional<std::size_t> hot_entry_{};

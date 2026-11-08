@@ -8,6 +8,7 @@
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
+#include <optional>
 #include <array>
 #include <cmath>
 #include <cstdio>
@@ -624,13 +625,31 @@ bool RibbonColorPicker::open_palette(MenuOpenMode mode) {
     } else {
         focus_entry_ = current.value_or(0U);
     }
+    (*layer_).set_content(palette_overlay_);
     overlay_ = (*window).open_overlay(self, layer_);
     palette_open_ = true;
     if (Event<>* closed = overlay_.closed_event()) {
         overlay_revoked_ =
             (*closed).subscribe(*this, Delegate<>::bind<RibbonColorPicker, &RibbonColorPicker::on_overlay_revoked>(*this));
     }
-    scope_ = (*window).begin_focus_scope(layer_, palette_overlay_);
+    // In a Popup the palette may reach past the owner onto the desktop; the
+    // emptied layer stays in the owner and holds the focus scope.
+    const Rect anchor = absolute_bounds();
+    const Rect hung{anchor.x, anchor.y, anchor.width, anchor.height + placement.gap};
+    const std::optional<Rect> face = drop_down_popup_face(*window, hung, placement.preferred_size, anchor.x);
+    bool lifted = false;
+    if (face.has_value()) {
+        (*layer_).clear_content();
+        lifted = lift_.lift(*window, palette_overlay_, *face);
+        if (!lifted) (*layer_).set_content(palette_overlay_);
+    }
+    (*layer_).set_focusable(lifted);
+    if (lifted) {
+        lift_closed_ = (*window).popup_window_closed().subscribe(
+            Delegate<std::size_t>::bind<RibbonColorPicker, &RibbonColorPicker::on_popup_window_closed>(*this));
+    }
+    const Control::Ptr preferred_focus = lifted ? Control::Ptr(layer_) : Control::Ptr(palette_overlay_);
+    scope_ = (*window).begin_focus_scope(layer_, preferred_focus);
     invalidate(Dirty::paint | Dirty::semantics);
     palette_open_changed_.emit(true);
     return true;
@@ -639,6 +658,8 @@ bool RibbonColorPicker::open_palette(MenuOpenMode mode) {
 void RibbonColorPicker::close_palette() noexcept {
     if (!palette_open_) return;
     palette_open_ = false;
+    lift_closed_.disconnect();
+    lift_.release();
     Window* const window = attached_window();
     if (window != nullptr && scope_) {
         try {
@@ -666,12 +687,19 @@ void RibbonColorPicker::on_layer_dismissed(OverlayDismissReason) {
 void RibbonColorPicker::on_overlay_revoked() {
     if (!palette_open_) return;
     palette_open_ = false;
+    lift_closed_.disconnect();
+    lift_.release();
     scope_ = {};
     overlay_revoked_.disconnect();
     hot_entry_.reset();
     palette_focused_ = false;
     invalidate(Dirty::paint | Dirty::semantics);
     palette_open_changed_.emit(false);
+}
+
+void RibbonColorPicker::on_popup_window_closed(const std::size_t slot) {
+    if (slot != Window::picker_popup_window_slot || !lift_.lifted()) return;
+    close_palette();
 }
 
 Control::Ptr RibbonColorPicker::palette_overlay() const noexcept {

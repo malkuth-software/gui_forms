@@ -1,3 +1,4 @@
+#include "native_popup/popup_standby.hpp"
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 #include "gui_forms/components/help_provider/help_provider.hpp"
 #include "gui_forms/window.hpp"
@@ -1897,6 +1898,8 @@ bool SurfaceRoot::dispatch_key(KeyEvent event) {
     const bool key_down = event.action == KeyAction::down;
     // The input state sees the key before any control does.
     interaction_state().note_key(event, input_now());
+    // A lifted drop-down or picker's Popup window takes the key first.
+    if (forward_to_popup(event)) return true;
     const bool handled = route_key(std::move(event));
     // A key may have moved the keyboard within the focused control, or
     // shown the focus cue: the presenter looks at what focus is on again.
@@ -2007,6 +2010,7 @@ bool SurfaceRoot::dispatch_text(TextInputEvent event) {
         return defer_input(DeferredInput{std::move(event)});
     }
     metrics_.record_input();
+    if (forward_to_popup(event)) return true;
     Control::Ptr target = focused_.lock();
     if (!target || !eligible(target)) {
         return false;
@@ -2014,6 +2018,22 @@ bool SurfaceRoot::dispatch_text(TextInputEvent event) {
     metrics_.record_callback_emitted();
     (*target).on_text_input(event);
     return event.handled;
+}
+
+bool SurfaceRoot::forward_to_popup(const KeyEvent& event) {
+    if (key_forward_standby_ == nullptr) return false;
+    Window* const model = (*key_forward_standby_).model(key_forward_slot_);
+    if (model == nullptr || model == this) return false;
+    const bool handled = (*model).dispatch_key(event);
+    return handled;
+}
+
+bool SurfaceRoot::forward_to_popup(const TextInputEvent& event) {
+    if (key_forward_standby_ == nullptr) return false;
+    Window* const model = (*key_forward_standby_).model(key_forward_slot_);
+    if (model == nullptr || model == this) return false;
+    const bool handled = (*model).dispatch_text(event);
+    return handled;
 }
 
 DeferredInputSnapshot SurfaceRoot::deferred_input_snapshot() const noexcept {

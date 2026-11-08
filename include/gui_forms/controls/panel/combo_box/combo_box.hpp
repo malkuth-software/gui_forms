@@ -6,6 +6,7 @@
 #include "gui_forms/controls/panel/text_items_capability/text_items_capability.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/window/native_popup/popup_lift.hpp"
 #include "gui_forms/controls/panel/combo_box/combo_box_capabilities/combo_box_capabilities.hpp"
 
 #include <cstddef>
@@ -148,6 +149,12 @@ private:
     // item, counting from the first when nothing is selected. Returns false
     // for another key or without items.
     bool step_selection(std::uint32_t key);
+    // Lifts the open list into the owner's picker Popup at `face`, watching
+    // for the Popup window's close; false, changing nothing, when it cannot.
+    [[nodiscard]] bool lift_list(const std::shared_ptr<ListBox>& list, Rect face, PopupLiftInput input);
+    void release_lift() noexcept;
+    // The host closed a Popup window: the picker's closes the list.
+    void on_popup_window_closed(std::size_t slot);
 
     // An edit's selection and selected text before the store, taken by
     // prepare_edit for written.
@@ -164,6 +171,9 @@ private:
     SubscriptionToken overlay_activation_;
     SubscriptionToken overlay_dismissal_;
     SubscriptionToken overlay_revocation_;
+    // The open list's Popup while it shows outside the owner's layer.
+    PopupLift lift_;
+    SubscriptionToken lift_closed_;
     std::shared_ptr<TextBox> editor_;
     SubscriptionToken editor_text_;
     SubscriptionToken editor_focus_;

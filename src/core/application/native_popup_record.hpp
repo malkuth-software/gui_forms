@@ -92,6 +92,13 @@ struct NativePopupOpening final {
 [[nodiscard]] NativePopupRefusal native_popup_refusal(const std::weak_ptr<ApplicationWindowState>& owner,
                                                       HostTransientKind kind = HostTransientKind::popup) noexcept;
 
+// The work area of the monitor under `client_point` (the owner's client
+// coordinates), in the owner's client coordinates; none when the owner is
+// not a ready window of a live run, its frame is not reported or the host
+// lists no monitor. `monitors` is the caller's storage for the table.
+[[nodiscard]] std::optional<Rect> client_work_area(const std::weak_ptr<ApplicationWindowState>& owner,
+                                                   Point client_point, HostMonitorResult& monitors);
+
 // Whether the owner's run draws its popup and Splash windows translucent
 // (HostWindowing::transient_windows_translucent): true when it does or when
 // there is no live run, false when they are opaque, with no shadow or fade.

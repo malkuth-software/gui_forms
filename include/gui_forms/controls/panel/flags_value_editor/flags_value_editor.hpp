@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/inspection/inspection_types.hpp"
+#include "gui_forms/window/native_popup/popup_lift.hpp"
 #include "gui_forms/controls/panel/flags_value_editor/flags_value_editor_capabilities/flags_value_editor_capabilities.hpp"
 
 #include <cstddef>
@@ -75,6 +76,8 @@ private:
     void open_drop_down();
     void close_drop_down();
     void on_overlay_revoked();
+    // The host closed a Popup window: the picker's closes the list.
+    void on_popup_window_closed(std::size_t slot);
     void synchronize_overlay();
     void apply_overlay_choice(std::size_t overlay_index, CheckState state);
     // The form properties (see the class comment): each getter reads the
@@ -106,6 +109,10 @@ private:
     SubscriptionToken overlay_check_;
     SubscriptionToken overlay_dismissal_;
     SubscriptionToken overlay_revocation_;
+    // The list's Popup while it shows outside the owner's layer (owner,
+    // 2026-11-08: drop-downs are Popups before 0.5).
+    PopupLift lift_;
+    SubscriptionToken lift_closed_;
     bool dropped_down_{};
     bool focused_{};
     bool synchronizing_overlay_{};

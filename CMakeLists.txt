@@ -237,6 +237,7 @@ add_library(gui_forms_core STATIC
     src/core/application/splashscreen.cpp
     src/core/window/native_popup/native_popup_window.cpp
     src/core/window/native_popup/popup_standby.cpp
+    src/core/window/native_popup/popup_lift.cpp
     src/core/application/window_frame_drag.cpp
     src/core/application/workspace_transaction.cpp
     src/core/animation/animation_timeline/animation_timeline.cpp

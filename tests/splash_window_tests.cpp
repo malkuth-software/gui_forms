@@ -8,7 +8,10 @@
 // headless host's trace (formatted on the heap) turned off.
 //
 // Also here: menus on warm Popup windows (each panel in the owner's Popup
-// of its depth, keys through the owner, closed by an outside click), and the
+// of its depth, keys through the owner, closed by an outside click),
+// placed against the monitor's work area past the owner's edges, a
+// ComboBox's list lifted into the picker Popup (owner, 2026-11-08: Part S
+// scope for 0.5), and the
 // splashscreen shown before Application::create on a headless surface,
 // handing over to the run's first window.
 
@@ -16,6 +19,7 @@
 #include "gui_forms/commands.hpp"
 #include "gui_forms/components/context_menu/context_menu.hpp"
 #include "gui_forms/control.hpp"
+#include "gui_forms/controls/panel/combo_box/combo_box.hpp"
 #include "gui_forms/host.hpp"
 #include "gui_forms/window.hpp"
 #include "application/headless_application.hpp"
@@ -322,6 +326,63 @@ void menu_panels_show_in_popup_windows() {
     require(!menu.is_open() && visible_popups(desk) == 0U, "an outside click closes the menu");
 }
 
+// The one visible Popup window's content rectangle on the desktop.
+Rect visible_popup_content(Desk& desk) {
+    std::optional<Rect> content{};
+    const std::vector<HostWindowId> order = desk.windowing().z_order();
+    for (const HostWindowId id : order) {
+        if (id != desk.main.id() && desk.windowing().native_visible(id)) content = desk.windowing().native_content(id);
+    }
+    require(content.has_value(), "a Popup window is placed");
+    return *content;
+}
+
+// The owner's client is 800 x 600 at 100,100 on the 1920 x 1040 work area:
+// a menu opened near its lower right corner reaches past it, inside the
+// work area, instead of being pushed back into the client.
+void menus_reach_past_the_owner() {
+    Desk desk;
+    MenuCommands commands;
+    ContextMenu menu("desk.menu");
+    menu.set_items(menu_items(commands));
+    menu.show(desk.anchor, Point{780.0, 580.0}, MenuOpenMode::keyboard);
+    require(menu.is_open() && visible_popups(desk) == 1U, "the menu shows in its Popup window");
+    const Rect content = visible_popup_content(desk);
+    require(content.x + content.width > 900.0 && content.y + content.height > 700.0,
+            "the panel reaches past the owner's right and bottom edges");
+    require(content.x + content.width <= 1920.0 + 32.0 && content.y + content.height <= 1040.0 + 32.0,
+            "the panel stays inside the work area (but for its shadow)");
+    menu.close();
+}
+
+// A ComboBox near the owner's bottom edge drops its list below the edge in
+// the picker Popup; the owner's keys reach the list there, and Escape,
+// unhandled by the list, closes it through the owner's layer.
+void combo_box_list_shows_in_a_popup() {
+    Desk desk;
+    const std::shared_ptr<ComboBox> combo = make_control<ComboBox>(StableId("desk.combo"));
+    (*combo).items = {"Low latency", "Balanced", "High fidelity", "Archive"};
+    (*combo).set_requested_bounds(Rect{10.0, 560.0, 160.0, 24.0});
+    (*(*desk.model).root()).add_child(combo);
+    (*desk.model).perform_layout();
+    (*combo).dropped_down = true;
+    require((*combo).dropped_down.read() && visible_popups(desk) == 1U, "the list shows in a Popup window");
+    const Rect content = visible_popup_content(desk);
+    require(content.y + content.height > 700.0 && content.y > 600.0,
+            "the list hangs below the field, past the owner's bottom edge");
+    require((*desk.model).find("desk.combo.overlay.list") == nullptr,
+            "the list is not in the owner's tree");
+    require((*desk.model).dispatch_key(key_down(PhysicalKey::down)), "Down reaches the list");
+    require((*combo).selected_index.read().has_value(), "the list's selection follows the keys");
+    require((*desk.model).dispatch_key(key_down(PhysicalKey::escape)), "Escape reaches the owner's layer");
+    require(!(*combo).dropped_down.read() && visible_popups(desk) == 0U, "Escape closes the list and hides its Popup");
+    desk.windowing().set_popup_windows(false);
+    (*combo).dropped_down = true;
+    require((*combo).dropped_down.read() && (*desk.model).find("desk.combo.overlay.list") != nullptr,
+            "without Popup windows the list shows in the owner's layer");
+    (*combo).dropped_down = false;
+}
+
 void menu_falls_back_to_the_overlay() {
     Desk desk;
     desk.windowing().set_popup_windows(false);
@@ -435,6 +496,8 @@ int main() {
         admission_rules();
         menu_panels_show_in_popup_windows();
         menu_falls_back_to_the_overlay();
+        menus_reach_past_the_owner();
+        combo_box_list_shows_in_a_popup();
         opaque_transient_windows_hold_the_face_alone();
         splashscreen_shows_and_hands_over();
     } catch (const std::exception& error) {

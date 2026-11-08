@@ -1154,6 +1154,15 @@ private:
     friend class Window;
     friend class SubSurface;
     friend class SubSurfaceHost;
+    // Key and text forwarding to a warm Popup window (Window::
+    // forward_input_to_popup_window): while set, dispatch_key and
+    // dispatch_text offer each event to the model of slot
+    // key_forward_slot_ first, and route it here only when the Popup leaves
+    // it unhandled. The standby is the Window's own, alive as long as it.
+    detail::PopupStandby* key_forward_standby_{};
+    std::size_t key_forward_slot_{};
+    [[nodiscard]] bool forward_to_popup(const KeyEvent& event);
+    [[nodiscard]] bool forward_to_popup(const TextInputEvent& event);
     // The C ABI's v0 show_tooltip, a program request like SubSurfaceHost's.
     friend class abi::detail::Registry;
     friend class SurfaceRoot;

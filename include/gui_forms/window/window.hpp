@@ -157,6 +157,22 @@ public:
     void hide_popup_window(std::size_t slot) noexcept;
     [[nodiscard]] Window* popup_window_model(std::size_t slot) const noexcept;
     [[nodiscard]] Event<std::size_t>& popup_window_closed();
+    // The slot drop-downs and pickers lift their lists and panels into
+    // (PopupLift; owner, 2026-11-08: Part S scope for 0.5). Menus use the
+    // slots below it, one per depth.
+    static constexpr std::size_t picker_popup_window_slot = maximum_popup_windows - 1U;
+    // While `slot` is set, every key and text event this window receives is
+    // offered first to popup_window_model(*slot), and routed here only when
+    // that leaves it unhandled; none ends the forwarding. The control whose
+    // Popup has the keyboard sets it (PopupLift does) and clears it when the
+    // Popup hides. std::out_of_range for a slot out of range. UI thread.
+    void forward_input_to_popup_window(std::optional<std::size_t> slot);
+    // The work area of the monitor under `client_point` (this window's
+    // client coordinates), in client coordinates: the region a Popup window
+    // may cover, which reaches past the client area onto the desktop. None
+    // when the run cannot say (no run, no frame, no monitors). Reads the
+    // monitor table into storage the window keeps. UI thread.
+    [[nodiscard]] std::optional<Rect> popup_work_area(Point client_point);
 
     // The application this window joined, or null (none was current, or it
     // was destroyed first).

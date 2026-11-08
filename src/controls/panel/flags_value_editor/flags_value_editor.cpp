@@ -9,6 +9,7 @@
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <array>
+#include <optional>
 #include <string>
 #include <optional>
 #include <algorithm>
@@ -302,8 +303,12 @@ void FlagsValueEditor::open_drop_down() {
     const double overlay_x = std::clamp(
         editor.x, 0.0, std::max(0.0, client.width - list_width));
     (*list).set_requested_bounds({overlay_x, y, list_width, height});
-    (*layer).add_child(list);
     OverlayToken token = (*window()).open_overlay(shared_from_this(), layer);
+    const std::optional<Rect> face =
+        drop_down_popup_face(*window(), editor, Size{overlay_width.read(), height}, editor.x);
+    const bool lifted = face.has_value() && lift_.lift(*window(), list, *face);
+    if (lifted) (*layer).set_focusable(true);
+    else (*layer).add_child(list);
 
     overlay_layer_ = layer;
     overlay_list_ = list;
@@ -325,7 +330,13 @@ void FlagsValueEditor::open_drop_down() {
             detail::WeakMemberCallback<void (FlagsValueEditor::*)()>(
                 weak, &FlagsValueEditor::on_overlay_revoked));
     }
-    overlay_scope_ = (*window()).begin_focus_scope(layer, list).value;
+    if (lifted) {
+        lift_closed_ = (*window()).popup_window_closed().subscribe(
+            *this, detail::WeakMemberCallback<void (FlagsValueEditor::*)(std::size_t)>(
+                weak, &FlagsValueEditor::on_popup_window_closed));
+    }
+    const Control::Ptr preferred_focus = lifted ? Control::Ptr(layer) : Control::Ptr(list);
+    overlay_scope_ = (*window()).begin_focus_scope(layer, preferred_focus).value;
     dropped_down_ = true;
     synchronize_overlay();
     invalidate(Dirty::paint | Dirty::semantics);
@@ -337,6 +348,8 @@ void FlagsValueEditor::close_drop_down() {
     closing_overlay_ = true;
     overlay_check_.disconnect();
     overlay_dismissal_.disconnect();
+    lift_closed_.disconnect();
+    lift_.release();
     if (window() != nullptr && overlay_scope_ != 0U) {
         static_cast<void>((*window()).end_focus_scope(FocusScopeId{overlay_scope_}));
     }
@@ -353,11 +366,18 @@ void FlagsValueEditor::close_drop_down() {
     if (changed) publish_change(drop_down_changed_, false);
 }
 
+void FlagsValueEditor::on_popup_window_closed(const std::size_t slot) {
+    if (slot != Window::picker_popup_window_slot || !lift_.lifted()) return;
+    close_drop_down();
+}
+
 void FlagsValueEditor::on_overlay_revoked() {
     if (closing_overlay_) return;
     overlay_check_.disconnect();
     overlay_dismissal_.disconnect();
     overlay_revocation_.disconnect();
+    lift_closed_.disconnect();
+    lift_.release();
     if (window() != nullptr && overlay_scope_ != 0U) {
         static_cast<void>((*window()).end_focus_scope(
             FocusScopeId{overlay_scope_},
@@ -541,6 +561,8 @@ bool FlagsValueEditor::on_semantic_action(SemanticAction action,
 
 void FlagsValueEditor::on_detached_from_window() noexcept {
     overlay_check_.disconnect();
+    lift_closed_.disconnect();
+    lift_.release();
     overlay_dismissal_.disconnect();
     overlay_revocation_.disconnect();
     overlay_scope_ = 0U;

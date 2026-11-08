@@ -13,6 +13,7 @@
 
 #include <array>
 #include <algorithm>
+#include <optional>
 #include <cmath>
 #include <stdexcept>
 #include <utility>
@@ -302,6 +303,12 @@ void ComboBox::show_rows() {
         AnchoredOverlayPlacement placement = layer.placement.read();
         placement.preferred_size.height = drop_down_height(rows_.size());
         layer.placement = placement;
+        if (lift_.lifted()) {
+            const Rect combo = absolute_bounds();
+            const std::optional<Rect> face =
+                drop_down_popup_face(*window(), combo, placement.preferred_size, combo.x);
+            if (face.has_value()) static_cast<void>(lift_.move(*face));
+        }
     }
 }
 
@@ -619,8 +626,15 @@ void ComboBox::open_drop_down(std::string_view pattern) {
     if (selected_index_) {
         (*list).select_index(*selected_index_);
     }
-    (*layer).add_child(list);
     OverlayToken overlay_token = (*window()).open_overlay(shared_from_this(), layer);
+    // In a Popup the list may reach past the owner onto the desktop; the
+    // layer stays in the owner, takes outside clicks and holds the focus
+    // scope while the Popup has the keys.
+    const std::optional<Rect> face =
+        drop_down_popup_face(*window(), combo, Size{requested_width, overlay_height}, combo.x);
+    const bool lifted = face.has_value() && lift_list(list, *face, PopupLiftInput::forwarded);
+    if (lifted) (*layer).set_focusable(true);
+    else (*layer).add_child(list);
 
     overlay_layer_ = layer;
     overlay_list_ = list;
@@ -641,7 +655,8 @@ void ComboBox::open_drop_down(std::string_view pattern) {
             *this, detail::WeakMemberCallback<void (ComboBox::*)()>(
                 weak, &ComboBox::on_overlay_revoked));
     }
-    overlay_scope_ = (*window()).begin_focus_scope(layer, list).value;
+    const Control::Ptr preferred_focus = lifted ? Control::Ptr(layer) : Control::Ptr(list);
+    overlay_scope_ = (*window()).begin_focus_scope(layer, preferred_focus).value;
     dropped_down_ = true;
     invalidate(Dirty::paint | Dirty::semantics);
     publish_change(drop_down_changed_, true);
@@ -664,8 +679,12 @@ void ComboBox::open_field_list(double width, double height) {
     (*field_list).set_focusable(false);
     (*field_list).set_paint_plane(PaintPlane::overlay);
     (*field_list).font = font.read();
-    (*anchored).set_content(field_list);
     OverlayToken field_token = (*window()).open_overlay(shared_from_this(), anchored);
+    // The editor keeps the keys and drives the list wherever it shows.
+    const Rect combo = absolute_bounds();
+    const std::optional<Rect> face = drop_down_popup_face(*window(), combo, Size{width, height}, combo.x);
+    const bool lifted = face.has_value() && lift_list(field_list, *face, PopupLiftInput::kept_by_owner);
+    if (!lifted) (*anchored).set_content(field_list);
     overlay_layer_ = anchored;
     overlay_list_ = field_list;
     overlay_token_ = std::move(field_token);
@@ -691,6 +710,26 @@ void ComboBox::open_field_list(double width, double height) {
     publish_change(drop_down_changed_, true);
 }
 
+bool ComboBox::lift_list(const std::shared_ptr<ListBox>& list, const Rect face, const PopupLiftInput input) {
+    if (window() == nullptr) return false;
+    if (!lift_.lift(*window(), list, face, input)) return false;
+    const std::weak_ptr<ComboBox> weak = std::static_pointer_cast<ComboBox>(shared_from_this());
+    lift_closed_ = (*window()).popup_window_closed().subscribe(
+        *this, detail::WeakMemberCallback<void (ComboBox::*)(std::size_t)>(
+            weak, &ComboBox::on_popup_window_closed));
+    return true;
+}
+
+void ComboBox::release_lift() noexcept {
+    lift_closed_.disconnect();
+    lift_.release();
+}
+
+void ComboBox::on_popup_window_closed(const std::size_t slot) {
+    if (slot != Window::picker_popup_window_slot || !lift_.lifted()) return;
+    close_drop_down();
+}
+
 void ComboBox::clear_rows() noexcept {
     rows_.clear();
     row_matches_.clear();
@@ -703,6 +742,7 @@ void ComboBox::close_drop_down() {
     overlay_selection_.disconnect();
     overlay_activation_.disconnect();
     overlay_dismissal_.disconnect();
+    release_lift();
     if (window() != nullptr && overlay_scope_ != 0U) {
         static_cast<void>((*window()).end_focus_scope(FocusScopeId{overlay_scope_}));
     }
@@ -725,6 +765,7 @@ void ComboBox::on_overlay_revoked() {
     overlay_activation_.disconnect();
     overlay_dismissal_.disconnect();
     overlay_revocation_.disconnect();
+    release_lift();
     if (window() != nullptr && overlay_scope_ != 0U) {
         static_cast<void>((*window()).end_focus_scope(FocusScopeId{overlay_scope_},
                                                      FocusScopeCloseReason::owner_unavailable));
@@ -966,6 +1007,7 @@ void ComboBox::on_detached_from_window() noexcept {
     overlay_activation_.disconnect();
     overlay_dismissal_.disconnect();
     overlay_revocation_.disconnect();
+    release_lift();
     overlay_scope_ = 0U;
     overlay_token_.disconnect();
     overlay_list_.reset();

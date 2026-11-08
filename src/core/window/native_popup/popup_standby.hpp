@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
 
 namespace gui_forms::detail {
 
@@ -28,6 +29,9 @@ public:
     [[nodiscard]] bool move(std::size_t slot, Rect bounds);
     void hide(std::size_t slot) noexcept;
     [[nodiscard]] Window* model(std::size_t slot) const noexcept;
+    // The work area under `client_point` in the owner's client coordinates
+    // (Window::popup_work_area).
+    [[nodiscard]] std::optional<Rect> work_area(Point client_point);
     [[nodiscard]] Event<std::size_t>& closed() noexcept { return closed_; }
 
 private:

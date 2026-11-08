@@ -369,8 +369,12 @@ void DateTimePicker::open_drop_down() {
         StableId(prefix + ".overlay.calendar"), value.read(), minimum.read(), maximum.read(),
         format_provider.read());
     (*calendar).set_requested_bounds({x, y, width, height});
-    (*layer).add_child(calendar);
     OverlayToken token = (*window()).open_overlay(owner, layer);
+    const std::optional<Rect> face =
+        drop_down_popup_face(*window(), picker, Size{width, height}, requested_x);
+    const bool lifted = face.has_value() && lift_.lift(*window(), calendar, *face);
+    if (lifted) (*layer).set_focusable(true);
+    else (*layer).add_child(calendar);
 
     overlay_layer_ = layer;
     overlay_calendar_ = calendar;
@@ -395,7 +399,13 @@ void DateTimePicker::open_drop_down() {
             detail::WeakMemberCallback<void (DateTimePicker::*)()>(
                 weak, &DateTimePicker::on_overlay_revoked));
     }
-    overlay_scope_ = (*window()).begin_focus_scope(layer, calendar).value;
+    if (lifted) {
+        lift_closed_ = (*window()).popup_window_closed().subscribe(
+            *this, detail::WeakMemberCallback<void (DateTimePicker::*)(std::size_t)>(
+                weak, &DateTimePicker::on_popup_window_closed));
+    }
+    const Control::Ptr preferred_focus = lifted ? Control::Ptr(layer) : Control::Ptr(calendar);
+    overlay_scope_ = (*window()).begin_focus_scope(layer, preferred_focus).value;
     dropped_down_ = true;
     invalidate(Dirty::paint | Dirty::semantics);
     publish_change(drop_down_changed_, true);
@@ -407,6 +417,8 @@ void DateTimePicker::close_drop_down() {
     overlay_commit_.disconnect();
     overlay_cancel_.disconnect();
     overlay_dismiss_.disconnect();
+    lift_closed_.disconnect();
+    lift_.release();
     if (window() != nullptr && overlay_scope_ != 0U) {
         static_cast<void>((*window()).end_focus_scope(FocusScopeId{overlay_scope_}));
     }
@@ -428,6 +440,8 @@ void DateTimePicker::on_overlay_revoked() {
     overlay_cancel_.disconnect();
     overlay_dismiss_.disconnect();
     overlay_revocation_.disconnect();
+    lift_closed_.disconnect();
+    lift_.release();
     if (window() != nullptr && overlay_scope_ != 0U) {
         static_cast<void>((*window()).end_focus_scope(
             FocusScopeId{overlay_scope_}, FocusScopeCloseReason::owner_unavailable));
@@ -439,6 +453,11 @@ void DateTimePicker::on_overlay_revoked() {
     dropped_down_ = false;
     invalidate(Dirty::paint | Dirty::semantics);
     if (changed) publish_change(drop_down_changed_, false);
+}
+
+void DateTimePicker::on_popup_window_closed(const std::size_t slot) {
+    if (slot != Window::picker_popup_window_slot || !lift_.lifted()) return;
+    close_drop_down();
 }
 
 void DateTimePicker::commit_overlay_value(DateTimeValue chosen) {

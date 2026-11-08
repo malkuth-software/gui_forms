@@ -117,6 +117,27 @@ std::optional<Rect> desktop_placement(const std::weak_ptr<ApplicationWindowState
     return placed;
 }
 
+std::optional<Rect> client_work_area(const std::weak_ptr<ApplicationWindowState>& owner, const Point client_point,
+                                    HostMonitorResult& monitors) {
+    const std::shared_ptr<ApplicationWindowState> state = owner.lock();
+    const std::shared_ptr<ApplicationRunState> run = owner_run(state);
+    if (!run) return std::nullopt;
+    const ApplicationWindowHandle owner_handle = ApplicationHandleAccess::make(state);
+    const HostWindowFrameResult owner_frame = owner_handle.frame();
+    if (!owner_frame.status.accepted()) return std::nullopt;
+    const Rect client = owner_frame.frame.content;
+    try {
+        static_cast<void>((*(*run).windowing).query_monitors(monitors));
+    } catch (...) {
+        monitors.status.error = HostServiceError::backend_failure;
+        monitors.monitors.clear();
+    }
+    const std::optional<Rect> desktop = work_area_at(monitors, Point{client.x + client_point.x, client.y + client_point.y});
+    if (!desktop.has_value()) return std::nullopt;
+    const Rect area{(*desktop).x - client.x, (*desktop).y - client.y, (*desktop).width, (*desktop).height};
+    return area;
+}
+
 std::shared_ptr<NativePopupRecord> open_native_popup_window(const NativePopupOpening& opening) {
     if (native_popup_refusal(opening.owner, opening.kind) != NativePopupRefusal::none) return nullptr;
     if (host_transient_is_splash(opening.kind) && opening.focus != HostPopupFocus::passive) return nullptr;

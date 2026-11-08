@@ -4,8 +4,10 @@
 #include "gui_forms/controls/panel/date_time_picker/date_time_picker_values/date_time_picker_values.hpp"
 #include "gui_forms/controls/panel/panel.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/window/native_popup/popup_lift.hpp"
 #include "gui_forms/controls/panel/date_time_picker/date_time_picker_capabilities/date_time_picker_capabilities.hpp"
 
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <span>
@@ -89,6 +91,8 @@ private:
     void commit_overlay_value(DateTimeValue chosen);
     void apply_range();
     void on_overlay_revoked();
+    // The host closed a Popup window: the picker's closes the calendar.
+    void on_popup_window_closed(std::size_t slot);
 
     BasicControlStyle style_;
     // Whether set_style supplied style_: its text then inks the field's text
@@ -107,6 +111,11 @@ private:
     SubscriptionToken overlay_cancel_;
     SubscriptionToken overlay_dismiss_;
     SubscriptionToken overlay_revocation_;
+    // The calendar's Popup while it shows outside the owner's layer (owner,
+    // 2026-11-08: pickers are Popups before 0.5); the host closing it
+    // closes the calendar.
+    PopupLift lift_;
+    SubscriptionToken lift_closed_;
     Event<DateTimeValue> value_changed_;
     Event<bool> checked_changed_;
     Event<bool> drop_down_changed_;

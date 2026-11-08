@@ -727,7 +727,8 @@ struct ContextMenu::Impl final {
     // `face` (owner client coordinates), framed with room for its shadow,
     // and starts its reveal. False when the window cannot show it.
     bool present_in_popup(std::size_t depth, PanelState& state, Rect face, bool upward) {
-        if (!window || depth >= frames.size()) return false;
+        // The picker slot above the menu depths is the drop-downs' (PopupLift).
+        if (!window || depth >= frames.size() || depth >= Window::picker_popup_window_slot) return false;
         std::shared_ptr<PopupFrame>& frame = frames[depth];
         if (!frame) {
             frame = make_control<PopupFrame>(
@@ -760,24 +761,46 @@ struct ContextMenu::Impl final {
         open = false;
     }
 
+    // The region panels are placed in, in the owner's client coordinates:
+    // in Popup mode the work area of the monitor under `at`, so menus and
+    // submenus reach past the owner onto the desktop (owner, 2026-11-08:
+    // Part S scope for 0.5); otherwise, or when the run cannot say the work
+    // area, the owner's client area.
+    [[nodiscard]] Rect placement_area(const Point at) const {
+        const Size client = (*window).client_size();
+        const Rect client_area{0.0, 0.0, client.width, client.height};
+        if (!popup_mode) return client_area;
+        const std::optional<Rect> work_area = (*window).popup_work_area(at);
+        const Rect area = work_area.value_or(client_area);
+        return area;
+    }
+
     void open_panel(std::size_t depth, const std::vector<MenuSnapshot>& items,
                     double requested_x, double requested_y,
                     std::optional<std::size_t> parent_index) {
         if (!layer || !window || depth >= maximum_menu_depth) return;
         remove_panels_from(depth);
-        const Size client = (*window).client_size();
+        const Rect area = placement_area(Point{requested_x, requested_y});
+        const double area_right = area.x + area.width;
+        const double area_bottom = area.y + area.height;
         const double panel_width = std::max(
             0.0, std::min(owner.preferred_width.read() * text_scale(),
-                          client.width - 8.0));
+                          area.width - 8.0));
         double content = menu_border * 2.0;
         for (const MenuSnapshot& item : items) content += row_height(item, text_scale());
         const double maximum_height = std::max(command_row_height + menu_border * 2.0,
-                                                client.height - 8.0);
+                                                area.height - 8.0);
         const double viewport = std::min(content, maximum_height);
-        const double x = std::clamp(requested_x, 4.0,
-                                    std::max(4.0, client.width - panel_width - 4.0));
-        const double y = std::clamp(requested_y, 4.0,
-                                    std::max(4.0, client.height - viewport - 4.0));
+        const double x = std::clamp(requested_x, area.x + 4.0,
+                                    std::max(area.x + 4.0, area_right - panel_width - 4.0));
+        // A root panel overrunning the area's bottom flips above the point
+        // when it fits there; a submenu, or a root panel fitting neither
+        // way, moves up to fit.
+        const bool overruns = requested_y + viewport > area_bottom - 4.0;
+        const bool flips = overruns && depth == 0U && requested_y - viewport >= area.y + 4.0;
+        const double placed_y = flips ? requested_y - viewport : requested_y;
+        const double y = std::clamp(placed_y, area.y + 4.0,
+                                    std::max(area.y + 4.0, area_bottom - viewport - 4.0));
         PanelState state;
         state.items = &items;
         state.parent_index = parent_index;
@@ -804,6 +827,17 @@ struct ContextMenu::Impl final {
         // A panel clamped above where it was asked for opens upward.
         const bool upward = y < requested_y;
         if (!popup_mode || !present_in_popup(depth, placed, face, upward)) {
+            // Placed against the work area but refused a Popup (the host
+            // refused, or the depth is past the menu slots): back inside
+            // the owner's client, where the layer shows it.
+            if (popup_mode) {
+                const Size client = (*window).client_size();
+                const double inside_x = std::clamp(face.x, 4.0, std::max(4.0, client.width - face.width - 4.0));
+                const double inside_y = std::clamp(face.y, 4.0, std::max(4.0, client.height - face.height - 4.0));
+                const Rect inside{inside_x, inside_y, face.width, face.height};
+                placed.face = inside;
+                (*placed.panel).set_requested_bounds(inside);
+            }
             (*placed.panel).set_shadow(true);
             (*layer).add_child(placed.panel);
         }
@@ -917,14 +951,14 @@ struct ContextMenu::Impl final {
             const Rect panel_bounds = (*panels[depth].panel).absolute_bounds();
             const Rect row_bounds = (*panels[depth].rows[index]).absolute_bounds();
             const Rect row{parent.x, parent.y + (row_bounds.y - panel_bounds.y), parent.width, row_bounds.height};
-            const Size client = (*window).client_size();
+            const double right_x = parent.x + parent.width - 3.0;
+            const Rect area = placement_area(Point{right_x, row.y});
             const double child_width = std::max(
                 0.0, std::min(owner.preferred_width.read() * text_scale(),
-                              client.width - 8.0));
-            double x = parent.x + parent.width - 3.0;
-            if (x + child_width + 4.0 > client.width) {
-                x = parent.x - child_width + 3.0;
-            }
+                              area.width - 8.0));
+            // Past the area's right edge the submenu flips to the left.
+            const bool flips = right_x + child_width + 4.0 > area.x + area.width;
+            const double x = flips ? parent.x - child_width + 3.0 : right_x;
             panels[depth].child_source_index = index;
             open_panel(depth + 1U, item.children, x, row.y, index);
             panels[depth].child_source_index = index;
