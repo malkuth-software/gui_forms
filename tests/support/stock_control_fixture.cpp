@@ -143,7 +143,7 @@ void place_display(FixtureBuilder& builder) {
     std::shared_ptr<ProgressBar> progress = builder.place(
         make_control<ProgressBar>(StableId("progress-bar")), 20.0);
     (*progress).accessible_name = "Export progress";
-    (*progress).set_value(40);
+    (*progress).value = 40;
     std::shared_ptr<Card> card = builder.place(make_control<Card>(StableId("card")), 70.0);
     (*card).accessible_name = "Summary card";
     std::shared_ptr<ReviewCard> review = builder.place(
@@ -620,7 +620,7 @@ void place_diagnostics(FixtureBuilder& builder) {
         make_control<EasingPreview>(StableId("easing-preview")), 60.0);
     (*easing).accessible_name = "Easing";
     // Paused, so its published value does not move between two readings.
-    (*easing).set_motion_policy(MotionPolicy{.enabled = true, .paused = true});
+    (*easing).motion_policy = MotionPolicy{.enabled = true, .paused = true};
     std::shared_ptr<MetricsView> metrics = builder.place(
         make_control<MetricsView>(StableId("metrics-view")), 80.0);
     static_cast<void>(metrics);

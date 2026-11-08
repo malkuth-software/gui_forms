@@ -37,8 +37,58 @@ struct EasingPreviewTitleCapability {
     }
 };
 
+// The animation the tracks show; a started preview restarts from it. A view onto the preview's timeline.
+template <typename Declaring>
+struct EasingPreviewSpecificationCapability {
+    PropertyView<AnimationSpec, EasingPreviewSpecificationCapability<Declaring>> specification;
+
+    static void assign(EasingPreviewSpecificationCapability& capability, AnimationSpec incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.write_view(std::as_const(capability.specification), std::move(incoming));
+    }
+
+    static AnimationSpec read(const EasingPreviewSpecificationCapability& capability) {
+        const Declaring& control = static_cast<const Declaring&>(capability);
+        AnimationSpec current = control.read_view(capability.specification);
+        return current;
+    }
+};
+
+// Whether the preview moves; a change pauses or resumes a started timeline. A view onto the preview's policy.
+template <typename Declaring>
+struct EasingPreviewMotionPolicyCapability {
+    PropertyView<MotionPolicy, EasingPreviewMotionPolicyCapability<Declaring>> motion_policy;
+
+    static void assign(EasingPreviewMotionPolicyCapability& capability, MotionPolicy incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.write_view(std::as_const(capability.motion_policy), std::move(incoming));
+    }
+
+    static MotionPolicy read(const EasingPreviewMotionPolicyCapability& capability) {
+        const Declaring& control = static_cast<const Declaring&>(capability);
+        MotionPolicy current = control.read_view(capability.motion_policy);
+        return current;
+    }
+};
+
+// The markers' size, 4 to 48 pixels (else std::invalid_argument).
+template <typename Declaring>
+struct EasingPreviewMarkerSizeCapability {
+    PropertyCell<double, EasingPreviewMarkerSizeCapability<Declaring>> marker_size{14.0};
+
+    static void assign(EasingPreviewMarkerSizeCapability& capability, double incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.marker_size), incoming);
+        if (!capability.marker_size.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.marker_size));
+    }
+};
+
 // Every EasingPreview capability, in the order the declaring class takes them.
 template <typename Declaring>
-struct EasingPreviewCapabilities : public EasingPreviewTitleCapability<Declaring> {};
+struct EasingPreviewCapabilities : public EasingPreviewTitleCapability<Declaring>,
+                                   public EasingPreviewSpecificationCapability<Declaring>,
+                                   public EasingPreviewMotionPolicyCapability<Declaring>,
+                                   public EasingPreviewMarkerSizeCapability<Declaring> {};
 
 } // namespace gui_forms

@@ -4,6 +4,7 @@
 #include "gui_forms/layout/flex_solver/flex_solver.hpp"
 #include "gui_forms/layout/positioning/positioning.hpp"
 #include "gui_forms/layout/style/layout_style.hpp"
+#include "gui_forms/controls/scrollable_control/container_control/flex_panel/flex_panel_capabilities/flex_panel_capabilities.hpp"
 
 #include <cstdint>
 #include <span>
@@ -51,36 +52,13 @@ struct FlexItemLayout final {
 // A container that lays its children out as a CSS flex container (stage L,
 // phase L3): one or more lines along a main axis, with growing, shrinking,
 // gaps and box alignment, through the core flex solver.
-class FlexPanel final : public ContainerControl {
+class FlexPanel final : public ContainerControl, public FlexPanelCapabilities<FlexPanel> {
 public:
     explicit FlexPanel(StableId stable_id);
 
     // The child property it provides: item_style, the item layout as one
     // CSS inline style (margin lengths stay the child's own margin).
     [[nodiscard]] std::span<const ChildPropertyEntry> child_property_table() const noexcept override;
-
-    [[nodiscard]] FlexDirection flex_direction() const noexcept { return direction_; }
-    void set_flex_direction(FlexDirection direction);
-    [[nodiscard]] FlexWrap flex_wrap() const noexcept { return wrap_; }
-    void set_flex_wrap(FlexWrap wrap);
-    // justify-content: normal, stretch (as flex-start), start, end,
-    // flex-start, flex-end, center and the three space distributions.
-    [[nodiscard]] LayoutAlignment justify_content() const noexcept { return justify_content_; }
-    void set_justify_content(LayoutAlignment alignment);
-    // align-content: the justify-content values; normal and stretch
-    // stretch the lines.
-    [[nodiscard]] LayoutAlignment align_content() const noexcept { return align_content_; }
-    void set_align_content(LayoutAlignment alignment);
-    // align-items: normal and stretch stretch the items; start, end,
-    // flex-start, flex-end, center and baseline.
-    [[nodiscard]] LayoutAlignment align_items() const noexcept { return align_items_; }
-    void set_align_items(LayoutAlignment alignment);
-    // row-gap and column-gap; a percentage is of the content box on the
-    // gap's axis, and zero when that is indefinite.
-    [[nodiscard]] LengthPercentage row_gap() const noexcept { return row_gap_; }
-    void set_row_gap(LengthPercentage gap);
-    [[nodiscard]] LengthPercentage column_gap() const noexcept { return column_gap_; }
-    void set_column_gap(LengthPercentage gap);
 
     // A direct child's item properties; a child without its own record has
     // the default one.
@@ -158,13 +136,6 @@ private:
     void forget_departed_children();
 
     ItemMap items_{};
-    FlexDirection direction_{FlexDirection::row};
-    FlexWrap wrap_{FlexWrap::nowrap};
-    LayoutAlignment justify_content_{LayoutAlignment::normal};
-    LayoutAlignment align_content_{LayoutAlignment::normal};
-    LayoutAlignment align_items_{LayoutAlignment::normal};
-    LengthPercentage row_gap_{};
-    LengthPercentage column_gap_{};
 
     // The pass workspace, reserved when the child count grows and reused
     // (PLAN section 5): live length is the laid-out child count.
@@ -190,6 +161,30 @@ public:
     static constexpr std::size_t flex_panel_property_count = Control::control_property_count + 1U;
     [[nodiscard]] static const std::array<PropertyEntry, flex_panel_property_count>& flex_panel_property_entries() noexcept;
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
+
+private:
+    friend struct FlexPanelDirectionCapability<FlexPanel>;
+    friend struct FlexPanelWrapCapability<FlexPanel>;
+    friend struct FlexPanelJustifyContentCapability<FlexPanel>;
+    friend struct FlexPanelAlignContentCapability<FlexPanel>;
+    friend struct FlexPanelAlignItemsCapability<FlexPanel>;
+    friend struct FlexPanelRowGapCapability<FlexPanel>;
+    friend struct FlexPanelColumnGapCapability<FlexPanel>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(flex_direction)& cell, FlexDirection& incoming);
+    void written(const decltype(flex_direction)& cell);
+    void prepare_write(const decltype(flex_wrap)& cell, FlexWrap& incoming);
+    void written(const decltype(flex_wrap)& cell);
+    void prepare_write(const decltype(justify_content)& cell, LayoutAlignment& incoming);
+    void written(const decltype(justify_content)& cell);
+    void prepare_write(const decltype(align_content)& cell, LayoutAlignment& incoming);
+    void written(const decltype(align_content)& cell);
+    void prepare_write(const decltype(align_items)& cell, LayoutAlignment& incoming);
+    void written(const decltype(align_items)& cell);
+    void prepare_write(const decltype(row_gap)& cell, LengthPercentage& incoming);
+    void written(const decltype(row_gap)& cell);
+    void prepare_write(const decltype(column_gap)& cell, LengthPercentage& incoming);
+    void written(const decltype(column_gap)& cell);
     // property_codemod end FlexPanel
 };
 

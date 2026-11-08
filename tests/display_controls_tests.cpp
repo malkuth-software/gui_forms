@@ -391,7 +391,7 @@ void test_segmented_choice_group() {
     require((*group).parts().track.present && !(*group).parts().selection.present,
             "a segmented group with nothing selected publishes its track and no selection");
 
-    (*group).set_selected_index(1);
+    (*group).selected_index = 1;
     window.perform_layout();
     const ChoiceGroup::Parts chosen = (*group).parts();
     require(chosen.selection.present && chosen.selection.bounds == second,
@@ -407,7 +407,7 @@ void test_segmented_choice_group() {
     right.physical_key = PhysicalKey::right;
     (*group).on_key(right);
     window.perform_layout();
-    require(right.handled && (*group).selected_index() == 2 &&
+    require(right.handled && (*group).selected_index.read() == 2 &&
                 (*group).parts().selection.bounds == (*group).item(2).committed_arranged_bounds(),
             "the arrow keys move the selection and the indicator follows");
 
@@ -425,7 +425,7 @@ void test_segmented_choice_group() {
                                 BindingValue{PropertyEnumValue{"choice_group_presentation", "buttons", 0}});
     window.perform_layout();
     require((*group).item(0).committed_arranged_bounds().x == 0.0 && !(*group).parts().selection.present &&
-                (*group).selected_index() == 2,
+                (*group).selected_index.read() == 2,
             "back to buttons, the items fill the group again and the selection is kept");
 }
 

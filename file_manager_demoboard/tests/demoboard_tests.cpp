@@ -577,7 +577,7 @@ int main() {
             "Criteria controls and staged meaning must be exposed without hidden Folder semantics");
     require((*criteria_product).perform_semantic_action(
                 "fm.criteria.apply", gui_forms::SemanticAction::press) &&
-                (*criteria_progress).animation_enabled() &&
+                (*criteria_progress).animation_enabled.read() &&
                 !(*criteria_apply).enabled.read(),
             "Apply must enter one explicit pending state and reject duplicate activation");
     const gui_forms::FrameTime apply_clock = gui_forms::FrameClock::now() +
@@ -586,8 +586,8 @@ int main() {
         static_cast<void>((*criteria_product).poll_frame_schedule(
             apply_clock + std::chrono::milliseconds(100 * step)));
     }
-    require(!(*criteria_progress).animation_enabled() &&
-                (*criteria_progress).value() == 100.0 &&
+    require(!(*criteria_progress).animation_enabled.read() &&
+                (*criteria_progress).value.read() == 100.0 &&
                 (*criteria_objects).items().size() == 5U &&
                 (*criteria_objects).selected_id.read() ==
                     "fm.object.obj-facade-study" &&

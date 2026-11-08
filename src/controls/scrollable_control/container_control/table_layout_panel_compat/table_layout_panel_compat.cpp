@@ -347,7 +347,7 @@ BindingValue TableLayoutPanelCompat::column_count_property() const {
 }
 
 void TableLayoutPanelCompat::set_column_count_property(const BindingValue& value) {
-    set_column_count(count_from(value));
+    column_count = count_from(value);
 }
 
 BindingValue TableLayoutPanelCompat::row_count_property() const {
@@ -355,7 +355,7 @@ BindingValue TableLayoutPanelCompat::row_count_property() const {
 }
 
 void TableLayoutPanelCompat::set_row_count_property(const BindingValue& value) {
-    set_row_count(count_from(value));
+    row_count = count_from(value);
 }
 
 BindingValue TableLayoutPanelCompat::column_styles_property() const {
@@ -428,26 +428,34 @@ void TableLayoutPanelCompat::validate_style(TableLayoutStyle style) {
     }
 }
 
-void TableLayoutPanelCompat::set_column_count(std::size_t count) {
+void TableLayoutPanelCompat::write_view(const decltype(column_count)&, std::size_t incoming) {
     require_mutable();
-    if (count == 0U || count > maximum_layout_tracks) {
+    if (incoming == 0U || incoming > maximum_layout_tracks) {
         throw std::out_of_range("TableLayoutPanelCompat column count must be 1 through 64");
     }
-    if (column_count_ == count) return;
-    column_count_ = count;
-    column_styles_.resize(count);
+    if (column_count_ == incoming) return;
+    column_count_ = incoming;
+    column_styles_.resize(incoming);
     invalidate(invalidation::bounds);
 }
 
-void TableLayoutPanelCompat::set_row_count(std::size_t count) {
+std::size_t TableLayoutPanelCompat::read_view(const decltype(column_count)&) const {
+    return column_count_;
+}
+
+void TableLayoutPanelCompat::write_view(const decltype(row_count)&, std::size_t incoming) {
     require_mutable();
-    if (count == 0U || count > maximum_layout_tracks) {
+    if (incoming == 0U || incoming > maximum_layout_tracks) {
         throw std::out_of_range("TableLayoutPanelCompat row count must be 1 through 64");
     }
-    if (row_count_ == count) return;
-    row_count_ = count;
-    row_styles_.resize(count);
+    if (row_count_ == incoming) return;
+    row_count_ = incoming;
+    row_styles_.resize(incoming);
     invalidate(invalidation::bounds);
+}
+
+std::size_t TableLayoutPanelCompat::read_view(const decltype(row_count)&) const {
+    return row_count_;
 }
 
 void TableLayoutPanelCompat::set_column_style(std::size_t column,

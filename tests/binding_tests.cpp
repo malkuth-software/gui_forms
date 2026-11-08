@@ -471,14 +471,14 @@ void test_property_metadata_defaults_reset_and_serialization() {
             "generic mutation, reset, and tokenized observation must use the real typed control property path");
 
     std::shared_ptr<gui_forms::TrackBar> range = make_control<TrackBar>(StableId("property.range"));
-    (*range).set_value(25.0);
+    (*range).value = 25.0;
     bool invalid_value_rejected = false;
     try {
         (*range).set_property_value("Value", std::string("not-a-number"));
     } catch (const std::invalid_argument&) {
         invalid_value_rejected = true;
     }
-    require(invalid_value_rejected && (*range).value() == 25.0,
+    require(invalid_value_rejected && (*range).value.read() == 25.0,
             "failed generic conversion must leave the retained property unchanged");
 
     const std::vector<std::string> names = (*editor).bindable_property_names();
@@ -722,12 +722,12 @@ void test_visual_property_values_drive_stock_controls() {
     std::shared_ptr<gui_forms::Button> button = make_control<Button>(StableId("property.button"), "Run");
     (*button).set_property_value("Font", authored);
     (*button).set_property_value("Image", ImageId{7});
-    require((*button).font.read() == authored && (*button).image() == ImageId{7} &&
+    require((*button).font.read() == authored && (*button).image.read() == ImageId{7} &&
                 (*button).reset_property("Font") &&
                 (*button).reset_property("Image") &&
                 (*button).font.read() ==
                     FontSpec{FontRole::control, 12.0, 400, false, 0.24} &&
-                (*button).image() == ImageId{},
+                (*button).image.read() == ImageId{},
             "button visual values must use the same compound default/reset center");
     static_cast<void>(image_binding);
 }
@@ -747,12 +747,12 @@ void test_multi_control_two_way_currency_and_event_order() {
         "Text", fixture.source, "Name");
     require(text && check && range && label &&
                 (*fixture.editor).text.read() == "Alpha" && (*fixture.enabled).checked.read() &&
-                (*fixture.gain).value() == 24.0 && (*fixture.caption).text.read() == "Alpha",
+                (*fixture.gain).value.read() == 24.0 && (*fixture.caption).text.read() == "Alpha",
             "adding stock bindings must immediately project the current record into every control kind");
 
     (*fixture.editor).text = "Alpha edited";
     (*fixture.enabled).checked = false;
-    (*fixture.gain).set_value(31.0);
+    (*fixture.gain).value = 31.0;
     require((*fixture.source).current_field("name") ==
                 std::optional<BindingValue>{std::string("Alpha edited")} &&
                 (*fixture.source).current_field("enabled") ==
@@ -776,7 +776,7 @@ void test_multi_control_two_way_currency_and_event_order() {
     require((*fixture.source).currency_manager().set_position(1) &&
                 (*(*fixture.source).currency_manager().current()).stable_id ==
                     "record.beta" && (*fixture.editor).text.read() == "Beta" &&
-                !(*fixture.enabled).checked.read() && (*fixture.gain).value() == 72.0 &&
+                !(*fixture.enabled).checked.read() && (*fixture.gain).value.read() == 72.0 &&
                 order == std::vector<std::string>{
                     "position:1", "current", "item"},
             "currency movement must update controls then emit the chosen deterministic event order");

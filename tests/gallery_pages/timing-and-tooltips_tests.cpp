@@ -14,7 +14,7 @@ void test_timing_and_tooltips(gui_forms::Window& window) {
     const FrameTime timer_deadline = *window.next_wake();
     const FramePollResult timer_tick = window.poll_frame_schedule(timer_deadline);
     require(timer_tick.ui_timer_ticks == 1U && (*status).text.read() != before &&
-                (*progress).value() > 0.0,
+                (*progress).value.read() > 0.0,
             "gallery Timer tick must update retained public controls on the UI queue");
     click(window, window.find("gallery.timing.stop"));
     require(!window.next_wake().has_value() &&
@@ -34,7 +34,7 @@ void test_timing_and_tooltips(gui_forms::Window& window) {
                 (*start_button).command_connected() &&
                 (*stop_button).command_connected(),
             "timer buttons must bind page-owned Commands");
-    (*interval).set_value(400.0);
+    (*interval).value = 400.0;
     click(window, start_button);
     require(window.next_wake().has_value() &&
                 (*status).text.read().find("deadline armed") != std::string::npos,

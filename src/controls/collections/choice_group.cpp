@@ -259,7 +259,7 @@ void ChoiceGroup::set_items(std::vector<ChoiceItem> items) {
             const std::string text = value.glyph.empty() ? value.label : value.glyph + " " + value.label;
             button.text = text;
             button.set_segment(presentation.read() == ChoiceGroupPresentation::segmented);
-            button.set_image(value.image);
+            button.image = value.image;
             button.accessible_name = value.accessible_name.empty() ? value.label : value.accessible_name;
             button.tab_index = static_cast<std::uint32_t>(index);
             if (!button.parent()) add_child((*(*next).entries[index]).button);

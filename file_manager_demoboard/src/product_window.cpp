@@ -553,14 +553,14 @@ std::shared_ptr<CriteriaSurfacePanel> make_criteria_surface(ProductRefs& refs) {
     std::shared_ptr<gui_forms::TableLayoutPanelCompat> actions = make_control<TableLayoutPanelCompat>(
         StableId("fm.criteria.actions"));
     (*actions).accessible_name = "Predicate rack actions";
-    (*actions).set_column_count(2);
-    (*actions).set_row_count(3);
+    (*actions).column_count = 2;
+    (*actions).row_count = 3;
     (*actions).set_column_style(0, {TableSizeMode::percent, 100.0});
     (*actions).set_column_style(1, {TableSizeMode::absolute, 78.0});
     (*actions).set_row_style(0, {TableSizeMode::absolute, 20.0});
     (*actions).set_row_style(1, {TableSizeMode::percent, 100.0});
     (*actions).set_row_style(2, {TableSizeMode::absolute, 9.0});
-    (*actions).set_grow_style(TableLayoutGrowStyle::fixed_size);
+    (*actions).grow_style = TableLayoutGrowStyle::fixed_size;
     std::shared_ptr<Label> action_title = label("fm.criteria.actions.title", "PREDICATE RACK",
                               {0, 0, 120, 20},
                               {FontRole::control, 8.0, 700, false, .35});
@@ -591,11 +591,11 @@ std::shared_ptr<CriteriaSurfacePanel> make_criteria_surface(ProductRefs& refs) {
     refs.criteria_progress = make_control<ProgressBar>(
         StableId("fm.criteria.progress"));
     (*refs.criteria_progress).set_range(0.0, 100.0);
-    (*refs.criteria_progress).set_value(0.0);
-    (*refs.criteria_progress).set_visual_style(ProgressBarVisualStyle::continuous);
-    (*refs.criteria_progress).set_overlay_style(
-        ProgressBarOverlayStyle::moving_stripes);
-    (*refs.criteria_progress).set_animation_enabled(false);
+    (*refs.criteria_progress).value = 0.0;
+    (*refs.criteria_progress).visual_style = ProgressBarVisualStyle::continuous;
+    (*refs.criteria_progress).overlay_style = 
+        ProgressBarOverlayStyle::moving_stripes;
+    (*refs.criteria_progress).animation_enabled = false;
     (*refs.criteria_progress).accessible_name = "Criteria application progress";
     (*refs.criteria_progress).margin = {5, 0, 5, 1};
     (*refs.criteria_progress).dock = DockStyle::fill;
@@ -661,7 +661,7 @@ std::shared_ptr<FlowLayoutPanelCompat> make_palette_surface(ProductRefs& refs) {
     std::shared_ptr<gui_forms::FlowLayoutPanelCompat> surface = std::make_shared<FlowLayoutPanelCompat>(
         StableId("fm.review.palettes"));
     (*surface).padding = {14.0, 14.0, 14.0, 14.0};
-    (*surface).set_wrap_contents(true);
+    (*surface).wrap_contents = true;
     (*surface).visible = false;
     (*surface).accessible_name = "Atmosphere palette review";
     for (std::size_t index = 0; index < std::size(palettes); ++index) {
@@ -764,8 +764,8 @@ std::shared_ptr<MasterDetailView> make_dna_surface(ProductRefs& refs) {
 
     std::shared_ptr<gui_forms::FlowLayoutPanelCompat> master = std::make_shared<FlowLayoutPanelCompat>(
         StableId("fm.review.dna.master"));
-    (*master).set_flow_direction(FlowDirection::top_down);
-    (*master).set_wrap_contents(false);
+    (*master).flow_direction = FlowDirection::top_down;
+    (*master).wrap_contents = false;
     (*master).padding = {12.0, 12.0, 12.0, 12.0};
     std::shared_ptr<Label> master_title = label("fm.review.dna.master.title",
                               "PROGRAM DNA · DECISIONS", {0.0, 0.0, 296.0, 28.0},
@@ -785,8 +785,8 @@ std::shared_ptr<MasterDetailView> make_dna_surface(ProductRefs& refs) {
 
     std::shared_ptr<gui_forms::TableLayoutPanelCompat> detail = std::make_shared<TableLayoutPanelCompat>(
         StableId("fm.review.dna.detail"));
-    (*detail).set_column_count(1U);
-    (*detail).set_row_count(4U);
+    (*detail).column_count = 1U;
+    (*detail).row_count = 4U;
     (*detail).set_column_style(0U, {TableSizeMode::percent, 1.0});
     (*detail).set_row_style(0U, {TableSizeMode::absolute, 62.0});
     (*detail).set_row_style(1U, {TableSizeMode::absolute, 142.0});
@@ -2502,8 +2502,8 @@ private:
             static_cast<void>((*refs_.criteria_rack).set_module_state(
                 module.stable_id, module.state, module.status_text));
         }
-        (*refs_.criteria_progress).set_value(0.0);
-        (*refs_.criteria_progress).set_animation_enabled(true);
+        (*refs_.criteria_progress).value = 0.0;
+        (*refs_.criteria_progress).animation_enabled = true;
         update_actions();
         (*refs_.status_summary).text =
             "Applying staged criteria · selection remains stable";
@@ -2520,7 +2520,7 @@ private:
 
     void on_apply_tick(FrameTime) {
         progress_ = std::min(100, progress_ + 25);
-        (*refs_.criteria_progress).set_value(static_cast<double>(progress_));
+        (*refs_.criteria_progress).value = static_cast<double>(progress_);
         if (progress_ >= 100) finish_apply();
     }
 
@@ -2550,7 +2550,7 @@ private:
             (*refs_.criteria_objects).selected_id = (*refs_.criteria_objects).items().front().stable_id;
         }
         ++generation_;
-        (*refs_.criteria_progress).set_animation_enabled(false);
+        (*refs_.criteria_progress).animation_enabled = false;
         update_actions();
         update_status();
         (*refs_.status_summary).text =
@@ -3761,8 +3761,8 @@ std::unique_ptr<gui_forms::Window> make_product_window() {
     ProductRefs refs;
     std::shared_ptr<gui_forms::TableLayoutPanelCompat> root = std::make_shared<TableLayoutPanelCompat>(StableId("fm.window.primary"));
     refs.shell = root;
-    (*root).set_column_count(1);
-    (*root).set_row_count(6);
+    (*root).column_count = 1;
+    (*root).row_count = 6;
     (*root).set_column_style(0, {TableSizeMode::percent, 100});
     (*root).set_row_style(0, {TableSizeMode::absolute, 40});
     (*root).set_row_style(1, {TableSizeMode::absolute, 23});
@@ -3770,7 +3770,7 @@ std::unique_ptr<gui_forms::Window> make_product_window() {
     (*root).set_row_style(3, {TableSizeMode::absolute, 40});
     (*root).set_row_style(4, {TableSizeMode::percent, 100});
     (*root).set_row_style(5, {TableSizeMode::absolute, 24});
-    (*root).set_grow_style(TableLayoutGrowStyle::fixed_size);
+    (*root).grow_style = TableLayoutGrowStyle::fixed_size;
 
     const Control::Ptr bands[] = {make_title(refs), make_tabs(refs), make_ribbon(refs),
                                   make_navigation(refs), make_workspace(refs), make_status(refs)};

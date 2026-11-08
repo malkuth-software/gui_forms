@@ -28,11 +28,11 @@ void DropDownList::synchronize_scroll() {
     synchronizing_ = true;
     (*scrollbar_).visible = maximum != 0;
     (*scrollbar_).set_range(0, static_cast<double>(std::max<std::size_t>(1, maximum)));
-    (*scrollbar_).set_small_change(1);
-    (*scrollbar_).set_large_change(static_cast<double>(visible));
+    (*scrollbar_).small_change = 1;
+    (*scrollbar_).large_change = static_cast<double>(visible);
     const std::size_t top = std::min(top_index.read(), maximum);
     top_index = top;
-    (*scrollbar_).set_value(static_cast<double>(top));
+    (*scrollbar_).value = static_cast<double>(top);
     synchronizing_ = false;
 }
 

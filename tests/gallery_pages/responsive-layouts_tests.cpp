@@ -40,7 +40,7 @@ void test_responsive_layouts(gui_forms::Window& window) {
                 show_master && inspector && navigation && arrange,
             "responsive page must expose every specimen by stable id");
     relayout(window);
-    require((*width).value() == 894.0 &&
+    require((*width).value.read() == 894.0 &&
                 (*tracks).layout_snapshot().resolution.collapse_order.empty() &&
                 !(*shelf).layout_snapshot().overflow_actuator_visible &&
                 (*more).layout_collapsed() &&
@@ -59,7 +59,7 @@ void test_responsive_layouts(gui_forms::Window& window) {
 
     // Narrowing the bound Value is a state change: the slider follows and the
     // containers collapse by authored priority on the next layout.
-    (*width).set_value(600.0);
+    (*width).value = 600.0;
     relayout(window);
     const ResponsiveLayoutSnapshot mid = (*tracks).layout_snapshot();
     const CommandOverflowSnapshot mid_shelf = (*shelf).layout_snapshot();
@@ -124,7 +124,7 @@ void test_responsive_layouts(gui_forms::Window& window) {
                 semantics.find("Column scroller specimen") != std::string::npos,
             "every responsive specimen must publish its named group semantics");
 
-    (*width).set_value(894.0);
+    (*width).value = 894.0;
     relayout(window);
     require((*tracks).layout_snapshot().resolution.collapse_order.empty() &&
                 !(*shelf).layout_snapshot().overflow_actuator_visible &&

@@ -219,30 +219,30 @@ void test_scroll_bar_press_and_hold_repeats_on_a_ui_timer() {
         make_control<ScrollBar>(StableId("scroll.repeat"), Orientation::horizontal);
     (*bar).set_requested_bounds({0.0, 0.0, 200.0, 17.0});
     (*bar).set_range(0.0, 100.0);
-    (*bar).set_small_change(1.0);
+    (*bar).small_change = 1.0;
     Window window(bar, {200.0, 17.0});
     window.perform_layout();
     PointerEvent press;
     press.action = PointerAction::down;
     press.button = PointerButton::primary;
     press.position = {195.0, 8.0};
-    require(window.dispatch_pointer(press) && near((*bar).value(), 1.0),
+    require(window.dispatch_pointer(press) && near((*bar).value.read(), 1.0),
             "pressing the increment button must step once");
     const FrameTime pressed = FrameClock::now();
     require(window.next_wake().has_value() &&
-                *window.next_wake() >= pressed + (*bar).initial_repeat_delay() - std::chrono::milliseconds(5),
+                *window.next_wake() >= pressed + (*bar).initial_repeat_delay.read() - std::chrono::milliseconds(5),
             "holding must schedule the first repeat after the initial delay, on a UI timer");
     const FrameTime first = *window.next_wake();
     const FramePollResult repeat = window.poll_frame_schedule(first);
-    require(repeat.ui_timer_ticks == 1U && near((*bar).value(), 2.0) &&
-                *window.next_wake() == first + (*bar).repeat_interval(),
+    require(repeat.ui_timer_ticks == 1U && near((*bar).value.read(), 2.0) &&
+                *window.next_wake() == first + (*bar).repeat_interval.read(),
             "each repeat must step once and schedule the next one an interval later");
     static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
-    require(near((*bar).value(), 3.0), "a held press must keep repeating");
+    require(near((*bar).value.read(), 3.0), "a held press must keep repeating");
     PointerEvent release = press;
     release.action = PointerAction::up;
     static_cast<void>(window.dispatch_pointer(release));
-    require(!window.next_wake().has_value() && near((*bar).value(), 3.0),
+    require(!window.next_wake().has_value() && near((*bar).value.read(), 3.0),
             "release must stop the repeat timer");
 }
 

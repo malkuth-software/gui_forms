@@ -34,8 +34,8 @@ void test_typography_and_inspection(gui_forms::Window& window) {
                 (*heading).font.read().weight == 700 && (*heading).diagnostics_visible.read() &&
                 (*wrapped).wrap_text.read(),
             "specimens must carry their authored runs, fonts and wrapping");
-    require((*inspector).target_stable_id() == "gallery.typography.specimen.0" &&
-                (*overlay).target_stable_id() == "gallery.typography.specimen.0" &&
+    require((*inspector).target_stable_id.read() == "gallery.typography.specimen.0" &&
+                (*overlay).target_stable_id.read() == "gallery.typography.specimen.0" &&
                 !(*overlay).visible.read(),
             "the inspector and overlay must start on the heading specimen, overlay hidden");
     const std::string semantics = window.semantic_snapshot().to_json();
@@ -61,13 +61,13 @@ void test_typography_and_inspection(gui_forms::Window& window) {
     // The ChoiceGroup binds the target Value; selecting an item retargets
     // both the view and the overlay.
     click(window, window.find("gallery.typography.target.item.2"));
-    require((*inspector).target_stable_id() == "gallery.typography.specimen.2" &&
-                (*overlay).target_stable_id() == "gallery.typography.specimen.2" &&
+    require((*inspector).target_stable_id.read() == "gallery.typography.specimen.2" &&
+                (*overlay).target_stable_id.read() == "gallery.typography.specimen.2" &&
                 (*readout).text.read().find("gallery.typography.specimen.2") != std::string::npos,
             "choosing a target must retarget the inspector view and overlay");
     const std::shared_ptr<gui_forms::ChoiceGroup> target =
         std::dynamic_pointer_cast<ChoiceGroup>(window.find("gallery.typography.target"));
-    require(target && (*target).selected_index() == 2,
+    require(target && (*target).selected_index.read() == 2,
             "the ChoiceGroup must report the bound selection");
 
     // Bound Values: the diagnostics check box and the size TrackBar change
@@ -77,8 +77,8 @@ void test_typography_and_inspection(gui_forms::Window& window) {
             "the diagnostics Value must hide every specimen's adornments");
     const std::shared_ptr<gui_forms::TrackBar> size =
         std::dynamic_pointer_cast<TrackBar>(window.find("gallery.typography.size"));
-    require(size && (*size).value() == 14.0, "the size TrackBar must start at the Value");
-    (*size).set_value(22.0);
+    require(size && (*size).value.read() == 14.0, "the size TrackBar must start at the Value");
+    (*size).value = 22.0;
     require((*wrapped).font.read().size == 22.0,
             "a size state change must rewrite the wrapped specimen's FontSpec");
 }

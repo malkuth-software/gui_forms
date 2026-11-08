@@ -248,7 +248,7 @@ void test_range_control_anatomies_validate() {
 void test_track_bar_geometry_matches_pointer_mapping() {
     std::shared_ptr<TrackBar> slider = make_control<TrackBar>(StableId("anatomy.slider"));
     (*slider).set_requested_bounds({10.0, 10.0, 200.0, 28.0});
-    (*slider).set_value(25.0);
+    (*slider).value = 25.0;
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(slider, Size{240.0, 60.0});
     Window& window = *held_window;
     window.perform_layout();
@@ -274,7 +274,7 @@ void test_track_bar_geometry_matches_pointer_mapping() {
     down.button = PointerButton::primary;
     down.position = {absolute.x + span.x + span.width * 0.75, absolute.y + 14.0};
     down.pointer_id = 3;
-    require(window.dispatch_pointer(down) && near((*slider).value(), 75.0),
+    require(window.dispatch_pointer(down) && near((*slider).value.read(), 75.0),
             "pointer at three quarters of the published span must select 75");
     const TrackBar::States dragging = (*slider).states();
     require(dragging.pressed && dragging.captured && !dragging.normal,
@@ -293,14 +293,14 @@ void test_track_bar_geometry_matches_pointer_mapping() {
     require(!(*slider).parts().thumb.states.contains(AnatomyState::pressed),
             "release clears the thumb's own states");
 
-    (*slider).set_visual_style(TrackBarVisualStyle::filled);
+    (*slider).visual_style = TrackBarVisualStyle::filled;
     const PartGeometry filled = (*slider).parts().fill;
     const PartGeometry groove = (*slider).parts().track;
     require(filled.present && near(filled.bounds.x, span.x) &&
                 near(filled.bounds.width, span.width * 0.75) &&
                 near(groove.bounds.width, span.width),
             "filled style must publish the value portion of the groove");
-    (*slider).set_visual_style(TrackBarVisualStyle::compact);
+    (*slider).visual_style = TrackBarVisualStyle::compact;
     require(!(*slider).parts().ticks.present,
             "compact style draws no ticks");
     require_parts_within_region(*slider);
@@ -311,8 +311,8 @@ void test_scroll_bar_geometry_and_states() {
     std::shared_ptr<HScrollBar> horizontal = make_control<HScrollBar>(StableId("anatomy.scroll.h"));
     (*horizontal).set_requested_bounds({10.0, 10.0, 240.0, 18.0});
     (*horizontal).set_range(0.0, 100.0);
-    (*horizontal).set_large_change(20.0);
-    (*horizontal).set_value(50.0);
+    (*horizontal).large_change = 20.0;
+    (*horizontal).value = 50.0;
     std::shared_ptr<VScrollBar> vertical = make_control<VScrollBar>(StableId("anatomy.scroll.v"));
     (*vertical).set_requested_bounds({260.0, 10.0, 18.0, 180.0});
     (*root).add_child(horizontal);
@@ -381,7 +381,7 @@ void test_scroll_bar_geometry_and_states() {
 void test_progress_bar_geometry_and_states() {
     std::shared_ptr<ProgressBar> progress = make_control<ProgressBar>(StableId("anatomy.bar"));
     (*progress).set_requested_bounds({0.0, 0.0, 204.0, 20.0});
-    (*progress).set_value(50.0);
+    (*progress).value = 50.0;
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(progress, Size{204.0, 20.0});
     Window& window = *held_window;
     window.perform_layout();
@@ -395,7 +395,7 @@ void test_progress_bar_geometry_and_states() {
     require(!(*progress).states().indeterminate,
             "a determinate bar is not indeterminate");
 
-    (*progress).set_visual_style(ProgressBarVisualStyle::marquee);
+    (*progress).visual_style = ProgressBarVisualStyle::marquee;
     require(!(*progress).parts().fill.present &&
                 (*progress).parts().activity.present,
             "a marquee bar publishes its activity band instead of a fill");

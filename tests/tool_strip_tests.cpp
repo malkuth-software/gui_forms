@@ -251,7 +251,7 @@ void hosted_controls() {
             "a text box item takes its width from the item");
     require(progress != nullptr && (*progress).parts.item_progress_bar.present,
             "a progress bar item publishes its hosted part");
-    (*load).set_value(40.0);
+    (*load).value = 40.0;
     require((*(*strip).progress_bar("load")).value() == 40.0, "the application drives the hosted control");
 
     const Point inside = centre((*text).parts.item_text_box.bounds);

@@ -306,7 +306,7 @@ void test_properties_and_validation() {
 void test_containers_align_by_baselines() {
     CarlitoProportions metrics{};
     std::shared_ptr<FlexPanel> row = make_control<FlexPanel>(StableId("text.flex"));
-    (*row).set_align_items(LayoutAlignment::baseline);
+    (*row).align_items = LayoutAlignment::baseline;
     std::shared_ptr<TextBlock> small = text_block("text.flex.small", "aaa");
     std::shared_ptr<TextBlock> large = text_block("text.flex.large", "bbb");
     (*large).font = carlito(19.5);
@@ -319,14 +319,14 @@ void test_containers_align_by_baselines() {
     require_near((*large).arranged_bounds().y, 0.0, "flex: the large block is at the line's top");
 
     std::shared_ptr<GridPanel> grid = make_control<GridPanel>(StableId("text.grid"));
-    (*grid).set_align_items(LayoutAlignment::baseline);
+    (*grid).align_items = LayoutAlignment::baseline;
     std::shared_ptr<TextBlock> left = text_block("text.grid.small", "aaa");
     std::shared_ptr<TextBlock> right = text_block("text.grid.large", "bbb");
     (*right).font = carlito(19.5);
     GridTrackList columns{};
     columns.tracks.push_back(GridTrackSize{});
     columns.tracks.push_back(GridTrackSize{});
-    (*grid).set_template_columns(columns);
+    (*grid).template_columns = columns;
     (*grid).add_child(left);
     (*grid).add_child(right);
     const std::unique_ptr<Window> grid_window = std::make_unique<Window>(grid, Size{400.0, 300.0});

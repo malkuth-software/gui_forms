@@ -11,7 +11,7 @@ void test_retained_layout_panels(gui_forms::Window& window) {
         const std::shared_ptr<FlowLayoutPanelCompat> flow =
             std::dynamic_pointer_cast<FlowLayoutPanelCompat>(window.find(
                 "gallery.layout.flow." + std::to_string(index)));
-        require(flow && (*flow).flow_direction() == directions[index] &&
+        require(flow && (*flow).flow_direction.read() == directions[index] &&
                     (*flow).children().size() == 5U,
                 "layout page must retain one public FlowLayoutPanelCompat per direction");
     }
@@ -36,7 +36,7 @@ void test_retained_layout_panels(gui_forms::Window& window) {
     // an authored position flow row-major into the first cells left free after
     // the explicit row-2 span, so they land at columns 2 and 3 of row 2.
     require(table && header && span_note && auto_placed && table_progress &&
-                (*table).column_count() == 4U && (*table).row_count() == 3U &&
+                (*table).column_count.read() == 4U && (*table).row_count.read() == 3U &&
                 (*table).column_span[*header].read() == 4U &&
                 (*table).column_span[*span_note].read() == 2U &&
                 (*table).column_span[*auto_placed].read() == 1U &&
@@ -58,11 +58,11 @@ void test_retained_layout_panels(gui_forms::Window& window) {
         std::dynamic_pointer_cast<ProgressBar>(window.find("gallery.layout.table.progress"));
     const std::shared_ptr<Label> note =
         std::dynamic_pointer_cast<Label>(window.find("gallery.layout.note"));
-    require(slider && progress && note && (*slider).value() == 68.0 &&
-                (*progress).value() == 68.0,
+    require(slider && progress && note && (*slider).value.read() == 68.0 &&
+                (*progress).value.read() == 68.0,
             "the table slider and progress bar must start from the shared model value");
-    (*slider).set_value(40.0);
-    require((*progress).value() == 40.0 &&
+    (*slider).value = 40.0;
+    require((*progress).value.read() == 40.0 &&
                 (*note).text.read().find("Shared table value 40") != std::string::npos,
             "a bound Value must project the slider's state change into the progress bar");
 

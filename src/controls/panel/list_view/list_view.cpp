@@ -740,25 +740,25 @@ void ListView::sync_scroll_bars(const Layout& placed) {
     if (!placed.vertical_bar.empty() && maximum_line > 0.0) {
         VScrollBar& bar = *vertical_bar_;
         bar.set_range(0.0, maximum_line);
-        bar.set_small_change(1.0);
-        bar.set_large_change(page);
-        bar.set_value(std::clamp(top, 0.0, maximum_line));
+        bar.small_change = 1.0;
+        bar.large_change = page;
+        bar.value = std::clamp(top, 0.0, maximum_line);
     }
     if (!placed.horizontal_bar.empty()) {
         HScrollBar& bar = *horizontal_bar_;
         if (view.read() == ListViewView::list && maximum_line > 0.0) {
             bar.set_range(0.0, maximum_line);
-            bar.set_small_change(1.0);
-            bar.set_large_change(page);
-            bar.set_value(std::clamp(top, 0.0, maximum_line));
+            bar.small_change = 1.0;
+            bar.large_change = page;
+            bar.value = std::clamp(top, 0.0, maximum_line);
         } else if (view.read() == ListViewView::details) {
             const double visible = placed.viewport.width / placed.scale;
             const double maximum_offset = std::max(0.0, placed.columns_width / placed.scale - visible);
             if (maximum_offset > 0.0) {
                 bar.set_range(0.0, maximum_offset);
-                bar.set_small_change(horizontal_key_step);
-                bar.set_large_change(std::max(1.0, visible));
-                bar.set_value(std::clamp(placed.horizontal_offset, 0.0, maximum_offset));
+                bar.small_change = horizontal_key_step;
+                bar.large_change = std::max(1.0, visible);
+                bar.value = std::clamp(placed.horizontal_offset, 0.0, maximum_offset);
             }
         }
     }

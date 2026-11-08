@@ -22,9 +22,9 @@ int main() {
     button.bind(model.run);
     first.bind(model.volume);
     second.bind(model.volume);
-    first.set_value(60.0); // State change; no input-only scroll notification.
+    first.value = 60.0; // State change; no input-only scroll notification.
     button.perform_click();
-    if (second.value() != 60.0 || model.volume.get() != 60.0 || model.runs != 1) return 1;
+    if (second.value.read() != 60.0 || model.volume.get() != 60.0 || model.runs != 1) return 1;
     model.run.set_enabled(false);
     if (button.perform_click()) return 1;
     return 0;

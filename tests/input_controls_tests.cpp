@@ -419,7 +419,7 @@ void test_combo_box_scrollbar_reaches_last_item() {
     require(list && bar && (*bar).visible.read(), "overflow choices have a visible, operable scrollbar");
     const Rect bounds = (*list).absolute_bounds();
     require(bounds.y >= 0 && bounds.y + bounds.height <= 220, "tall overlay fits a short window");
-    (*bar).set_value((*bar).maximum());
+    (*bar).value = (*bar).maximum.read();
     require((*list).top_index.read() > 0, "scrollbar changes the list viewport");
     const Point last{bounds.x + 15, bounds.y + 2 + (23 - (*list).top_index.read()) * 26.0 + 13};
     window.dispatch_pointer({PointerAction::down, PointerButton::primary, last});

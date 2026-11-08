@@ -162,7 +162,7 @@ bool refuses_item(GridPanel& panel, const Control& child, const GridItemLayout& 
 
 bool refuses_columns(GridPanel& panel, const GridTrackList& list) {
     try {
-        panel.set_template_columns(list);
+        panel.template_columns = list;
     } catch (const std::invalid_argument&) {
         return true;
     }
@@ -187,9 +187,9 @@ protected:
 void test_tracks_gaps_and_stretch() {
     std::shared_ptr<GridPanel> panel = make_control<GridPanel>(StableId("grid.tracks"));
     (*panel).padding = {10.0, 10.0, 10.0, 10.0};
-    (*panel).set_template_columns(tracks({fixed(100.0), fraction(1.0)}));
-    (*panel).set_column_gap(px(10.0));
-    (*panel).set_row_gap(px(5.0));
+    (*panel).template_columns = tracks({fixed(100.0), fraction(1.0)});
+    (*panel).column_gap = px(10.0);
+    (*panel).row_gap = px(5.0);
     std::vector<std::shared_ptr<Panel>> boxes;
     for (int index = 0; index < 3; ++index) {
         boxes.push_back(box("grid.tracks." + std::to_string(index), 50.0, 20.0));
@@ -210,8 +210,8 @@ void test_tracks_gaps_and_stretch() {
     require((*panel).layout_outcome() == GridSolveOutcome::solved, "the layout solved");
 
     // Start alignment sizes the items from their content instead.
-    (*panel).set_justify_items(LayoutAlignment::start);
-    (*panel).set_align_items(LayoutAlignment::end);
+    (*panel).justify_items = LayoutAlignment::start;
+    (*panel).align_items = LayoutAlignment::end;
     window.perform_layout();
     require_bounds(*boxes[1], 120.0, 27.5, 50.0, 20.0, "a start-justified, end-aligned item");
 }
@@ -277,8 +277,8 @@ void test_records_validate_and_reconcile() {
 
 void test_named_areas() {
     std::shared_ptr<GridPanel> panel = make_control<GridPanel>(StableId("grid.areas"));
-    (*panel).set_template_columns(tracks({fixed(80.0), fraction(1.0)}));
-    (*panel).set_template_rows(tracks({fixed(30.0), fraction(1.0)}));
+    (*panel).template_columns = tracks({fixed(80.0), fraction(1.0)});
+    (*panel).template_rows = tracks({fixed(30.0), fraction(1.0)});
     GridTemplateAreas areas{};
     areas.rows = 2U;
     areas.columns = 2U;
@@ -303,10 +303,10 @@ void test_named_areas() {
 
 void test_nested_intrinsic_columns() {
     std::shared_ptr<GridPanel> outer = make_control<GridPanel>(StableId("grid.outer"));
-    (*outer).set_template_columns(tracks({automatic(), fraction(1.0)}));
+    (*outer).template_columns = tracks({automatic(), fraction(1.0)});
     std::shared_ptr<GridPanel> inner = make_control<GridPanel>(StableId("grid.outer.inner"));
-    (*inner).set_template_columns(tracks({fixed(30.0), fixed(40.0)}));
-    (*inner).set_column_gap(px(5.0));
+    (*inner).template_columns = tracks({fixed(30.0), fixed(40.0)});
+    (*inner).column_gap = px(5.0);
     (*inner).margin = {0.0, 0.0, 0.0, 0.0};
     std::shared_ptr<Panel> first = box("grid.outer.inner.a", 10.0, 20.0);
     std::shared_ptr<Panel> second = box("grid.outer.inner.b", 10.0, 12.0);
@@ -353,9 +353,9 @@ std::shared_ptr<Button> sized_button(const std::string& id) {
 // The docstring's two examples, with the results their comments state.
 void test_documented_examples() {
     std::shared_ptr<GridPanel> form = make_control<GridPanel>(StableId("doc.form"));
-    (*form).set_template_columns(tracks({fixed(80.0), fraction(1.0)}));
-    (*form).set_column_gap(px(10.0));
-    (*form).set_row_gap(px(5.0));
+    (*form).template_columns = tracks({fixed(80.0), fraction(1.0)});
+    (*form).column_gap = px(10.0);
+    (*form).row_gap = px(5.0);
     std::vector<std::shared_ptr<Button>> buttons;
     for (int index = 0; index < 4; ++index) {
         buttons.push_back(sized_button("doc.form.button" + std::to_string(index)));
@@ -374,9 +374,9 @@ void test_documented_examples() {
     GridTrackList columns{};
     columns.auto_repeat = AutoRepeatKind::auto_fill;
     columns.auto_repeat_tracks = {card};
-    (*cards).set_template_columns(columns);
-    (*cards).set_column_gap(px(15.0));
-    (*cards).set_row_gap(px(10.0));
+    (*cards).template_columns = columns;
+    (*cards).column_gap = px(15.0);
+    (*cards).row_gap = px(10.0);
     std::vector<std::shared_ptr<Button>> card_buttons;
     for (int index = 0; index < 5; ++index) {
         card_buttons.push_back(sized_button("doc.cards.button" + std::to_string(index)));
@@ -398,8 +398,8 @@ void test_ten_thousand_children_counts() {
     GridTrackList columns{};
     columns.auto_repeat = AutoRepeatKind::auto_fill;
     columns.auto_repeat_tracks = {fixed(120.0)};
-    (*panel).set_template_columns(columns);
-    (*panel).set_align_items(LayoutAlignment::start);
+    (*panel).template_columns = columns;
+    (*panel).align_items = LayoutAlignment::start;
     std::vector<std::shared_ptr<CountingLabel>> labels;
     labels.reserve(count);
     for (std::size_t index = 0U; index < count; ++index) {
@@ -490,8 +490,8 @@ bool refuses_cell_value(GridPanel& panel, const Control& child, Point value) {
 // one placement (area and cell), name-keyed too.
 void test_spans_and_placement() {
     std::shared_ptr<GridPanel> panel = make_control<GridPanel>(StableId("grid.spans"));
-    (*panel).set_template_columns(tracks({fixed(50.0), fixed(50.0), fixed(50.0)}));
-    (*panel).set_template_rows(tracks({fixed(20.0), fixed(20.0), fixed(20.0)}));
+    (*panel).template_columns = tracks({fixed(50.0), fixed(50.0), fixed(50.0)});
+    (*panel).template_rows = tracks({fixed(20.0), fixed(20.0), fixed(20.0)});
     const GridSpan footer{"footer", GridCell{2U, 0U}, 1U, 3U};
     const GridSpan side_region{"", GridCell{0U, 2U}, 2U, 1U};
     require((*panel).define_span(footer) == GridSpanOutcome::applied, "a named span is defined");
@@ -616,16 +616,16 @@ void test_style_properties() {
     (*grid).add_child(item);
     (*grid).set_property_value("style", BindingValue{std::string{
         "grid-template-columns: 90px 1fr; column-gap: 6px; justify-items: center"}});
-    require((*grid).template_columns().tracks.size() == 2U &&
-                (*grid).column_gap() == LengthPercentage{LogicalLength{6.0}, 0.0} &&
-                (*grid).justify_items() == LayoutAlignment::center,
+    require((*grid).template_columns.read().tracks.size() == 2U &&
+                (*grid).column_gap.read() == LengthPercentage{LogicalLength{6.0}, 0.0} &&
+                (*grid).justify_items.read() == LayoutAlignment::center,
             "grid style: tracks, gap and alignment applied");
     const std::optional<BindingValue> text = (*grid).property_value("style");
     require(text.has_value() && !std::get<std::string>(*text).empty(), "grid style: reads back as text");
     std::shared_ptr<GridPanel> copy = make_control<GridPanel>(StableId("grid.style.copy"));
     (*copy).set_property_value("style", *text);
-    require((*copy).template_columns() == (*grid).template_columns() && (*copy).column_gap() == (*grid).column_gap() &&
-                (*copy).justify_items() == (*grid).justify_items(),
+    require((*copy).template_columns.read() == (*grid).template_columns.read() && (*copy).column_gap.read() == (*grid).column_gap.read() &&
+                (*copy).justify_items.read() == (*grid).justify_items.read(),
             "grid style: the text read back gives the same settings");
     bool areas_refused = false;
     try {
@@ -645,7 +645,7 @@ void test_style_properties() {
     } catch (const std::invalid_argument&) {
         item_field_refused = true;
     }
-    require(areas_refused && warning_refused && item_field_refused && (*grid).template_columns().tracks.size() == 2U &&
+    require(areas_refused && warning_refused && item_field_refused && (*grid).template_columns.read().tracks.size() == 2U &&
                 (*grid).spans().empty(),
             "grid style: areas, a dropped declaration and an item field are refused and change nothing");
     (*grid).set_child_property_value(*item, "item_style", BindingValue{std::string{

@@ -93,8 +93,8 @@ private:
 
 void test_context_menu_command_snapshot_keyboard_nesting_and_restore() {
     std::shared_ptr<gui_forms::TableLayoutPanelCompat> root = make_control<TableLayoutPanelCompat>(StableId("root"));
-    (*root).set_column_count(1U);
-    (*root).set_row_count(1U);
+    (*root).column_count = 1U;
+    (*root).row_count = 1U;
     (*root).set_column_style(0U, {TableSizeMode::percent, 1.0});
     (*root).set_row_style(0U, {TableSizeMode::percent, 1.0});
     std::shared_ptr<gui_forms::Button> owner = make_control<Button>(StableId("owner"), "Open context menu");
@@ -421,8 +421,8 @@ void test_item_ids_follow_the_stable_id_segment_rule() {
 
 void test_menu_strip_retained_switching_commands_and_semantics() {
     std::shared_ptr<gui_forms::TableLayoutPanelCompat> root = make_control<TableLayoutPanelCompat>(StableId("menustrip.root"));
-    (*root).set_column_count(1U);
-    (*root).set_row_count(2U);
+    (*root).column_count = 1U;
+    (*root).row_count = 2U;
     (*root).set_column_style(0U, {TableSizeMode::percent, 1.0});
     (*root).set_row_style(0U, {TableSizeMode::absolute, 24.0});
     (*root).set_row_style(1U, {TableSizeMode::percent, 1.0});

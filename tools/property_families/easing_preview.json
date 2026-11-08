@@ -40,6 +40,72 @@
       },
       "hooks": "generated",
       "sample": "std::string(\"Easing\")"
+    },
+    {
+      "name": "specification",
+      "capability": "EasingPreviewSpecification",
+      "value": "AnimationSpec",
+      "initial": null,
+      "comment": "The animation the tracks show; a started preview restarts from it. A view onto the preview's timeline.",
+      "getter": "specification",
+      "setter": "set_specification",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "sample": "AnimationSpec{}",
+      "storage": "view",
+      "hand": [
+        "a view onto timeline_: write_view keeps set_specification's restart and frame registration"
+      ]
+    },
+    {
+      "name": "motion_policy",
+      "capability": "EasingPreviewMotionPolicy",
+      "value": "MotionPolicy",
+      "initial": null,
+      "comment": "Whether the preview moves; a change pauses or resumes a started timeline. A view onto the preview's policy.",
+      "getter": "motion_policy",
+      "setter": "set_motion_policy",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "sample": "MotionPolicy{}",
+      "storage": "view",
+      "hand": [
+        "a view onto motion_policy_: write_view keeps set_motion_policy's pause, resume and frame registration"
+      ]
+    },
+    {
+      "name": "marker_size",
+      "capability": "EasingPreviewMarkerSize",
+      "value": "double",
+      "initial": "14.0",
+      "comment": "The markers' size, 4 to 48 pixels (else std::invalid_argument).",
+      "getter": "marker_size",
+      "setter": "set_marker_size",
+      "clear": null,
+      "field": "marker_size_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "sample": "20.0",
+      "effects": "Dirty::paint",
+      "prepare": [
+        "if (!std::isfinite(incoming) || incoming < 4.0 || incoming > 48.0) throw std::invalid_argument(\"easing marker size must be within [4, 48]\");"
+      ]
     }
   ],
   "not_properties": [],

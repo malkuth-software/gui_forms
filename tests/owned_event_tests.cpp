@@ -673,12 +673,12 @@ void test_shared_scalar_state() {
     gf::on(first.value_changed(), observer, &StateObserver::value);
     gf::on(second.value_changed(), observer, &StateObserver::value);
     gf::on(first.scroll(), observer, &StateObserver::scroll);
-    require(first.value() == 15.0 && second.value() == 15.0,
+    require(first.value.read() == 15.0 && second.value.read() == 15.0,
             "model must win at bind time");
     first.writes = 0;
     second.writes = 0;
-    first.set_value(20.0);
-    require(volume.get() == 20.0 && second.value() == 20.0 &&
+    first.value = 20.0;
+    require(volume.get() == 20.0 && second.value.read() == 20.0 &&
                 first.writes == 1 && second.writes == 1 &&
                 observer.changes == 2 && observer.inputs == 0,
             "programmatic writes synchronize once without user input or origin reentry");
@@ -691,7 +691,7 @@ void test_shared_scalar_state() {
         }
         allocations = owned_event_allocation_probe::attempts;
     }
-    require(allocations == 0U && first.value() == 99.0 && second.value() == 99.0,
+    require(allocations == 0U && first.value.read() == 99.0 && second.value.read() == 99.0,
             "steady state scalar propagation must allocate nothing");
     const gf::SemanticDescriptor semantic = first.semantic_descriptor();
     require(semantic.numeric_value == 99.0,
@@ -699,17 +699,17 @@ void test_shared_scalar_state() {
     gf::KeyEvent input{.action = gf::KeyAction::down,
                       .physical_key = gf::PhysicalKey::left};
     first.on_key(input);
-    require(input.handled && observer.inputs == 1 && volume.get() == first.value(),
+    require(input.handled && observer.inputs == 1 && volume.get() == first.value.read(),
             "keyboard input must update the shared model and emit the input event");
-    second.set_maximum(50.0);
-    const double prior = first.value();
+    second.maximum = 50.0;
+    const double prior = first.value.read();
     bool rejected = false;
-    try { first.set_value(75.0); } catch (const std::out_of_range&) { rejected = true; }
-    require(rejected && first.value() == prior && volume.get() == prior,
+    try { first.value = 75.0; } catch (const std::out_of_range&) { rejected = true; }
+    require(rejected && first.value.read() == prior && volume.get() == prior,
             "another control constraint must reject before the originating control changes");
     volume.dispose();
-    first.set_value(30.0);
-    require(second.value() != 30.0, "disposed model must detach its bindings");
+    first.value = 30.0;
+    require(second.value.read() != 30.0, "disposed model must detach its bindings");
 }
 
 void test_model_and_control_lifetimes() {
@@ -718,7 +718,7 @@ void test_model_and_control_lifetimes() {
         gf::Value<double> value(17.0);
         control.bind(value);
     }
-    control.set_value(18.0);
+    control.value = 18.0;
     gf::Value<double> retained(12.0);
     {
         gf::TrackBar temporary(gf::StableId("temporary"));
@@ -863,7 +863,7 @@ void test_choice_group_state_and_rebuild() {
     gf::on((*group).changed(), observer, &CollectionObserver::choice);
     gf::Button* const first = &(*group).item(0);
     (*group).item(1).perform_click();
-    require(model.get() == 1 && (*group).selected_index() == 1 && observer.choices == 1,
+    require(model.get() == 1 && (*group).selected_index.read() == 1 && observer.choices == 1,
             "choice activation must synchronize the selection model once");
     require((*group).semantic_descriptor().role == gf::SemanticRole::radio_group &&
                 (*group).item(1).semantic_descriptor().role == gf::SemanticRole::radio_button &&

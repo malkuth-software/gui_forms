@@ -7,9 +7,165 @@
   "capabilities_header": "include/gui_forms/controls/scrollable_control/container_control/flex_panel/flex_panel_capabilities/flex_panel_capabilities.hpp",
   "base": "Control",
   "includes": [
-    "gui_forms/controls/scrollable_control/container_control/container_control.hpp"
+    "gui_forms/controls/scrollable_control/container_control/container_control.hpp",
+    "gui_forms/layout/style/layout_style.hpp"
   ],
-  "properties": [],
+  "properties": [
+    {
+      "name": "flex_direction",
+      "capability": "FlexPanelDirection",
+      "value": "FlexDirection",
+      "initial": "FlexDirection::row",
+      "comment": "flex-direction: row, row-reverse, column or column-reverse (else std::invalid_argument).",
+      "getter": "flex_direction",
+      "setter": "set_flex_direction",
+      "clear": null,
+      "field": "direction_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "sample": "FlexDirection::column",
+      "effects": "invalidation::bounds",
+      "prepare": [
+        "if (incoming > FlexDirection::column_reverse) throw std::invalid_argument(\"FlexPanel flex direction is unknown\");"
+      ]
+    },
+    {
+      "name": "flex_wrap",
+      "capability": "FlexPanelWrap",
+      "value": "FlexWrap",
+      "initial": "FlexWrap::nowrap",
+      "comment": "flex-wrap: nowrap, wrap or wrap-reverse (else std::invalid_argument).",
+      "getter": "flex_wrap",
+      "setter": "set_flex_wrap",
+      "clear": null,
+      "field": "wrap_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "sample": "FlexWrap::wrap",
+      "effects": "invalidation::bounds",
+      "prepare": [
+        "if (incoming > FlexWrap::wrap_reverse) throw std::invalid_argument(\"FlexPanel flex wrap is unknown\");"
+      ]
+    },
+    {
+      "name": "justify_content",
+      "capability": "FlexPanelJustifyContent",
+      "value": "LayoutAlignment",
+      "initial": "LayoutAlignment::normal",
+      "comment": "justify-content: normal, stretch (as flex-start), start, end, flex-start, flex-end, center and the three space distributions (else std::invalid_argument).",
+      "getter": "justify_content",
+      "setter": "set_justify_content",
+      "clear": null,
+      "field": "justify_content_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "sample": "LayoutAlignment::center",
+      "effects": "invalidation::bounds",
+      "prepare": [
+        "if (!admitted_content_alignment(incoming) || incoming > LayoutAlignment::space_evenly) throw std::invalid_argument(\"FlexPanel justify-content admits no such value\");"
+      ]
+    },
+    {
+      "name": "align_content",
+      "capability": "FlexPanelAlignContent",
+      "value": "LayoutAlignment",
+      "initial": "LayoutAlignment::normal",
+      "comment": "align-content: the justify-content values; normal and stretch stretch the lines (else std::invalid_argument).",
+      "getter": "align_content",
+      "setter": "set_align_content",
+      "clear": null,
+      "field": "align_content_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "sample": "LayoutAlignment::center",
+      "effects": "invalidation::bounds",
+      "prepare": [
+        "if (!admitted_content_alignment(incoming) || incoming > LayoutAlignment::space_evenly) throw std::invalid_argument(\"FlexPanel align-content admits no such value\");"
+      ]
+    },
+    {
+      "name": "align_items",
+      "capability": "FlexPanelAlignItems",
+      "value": "LayoutAlignment",
+      "initial": "LayoutAlignment::normal",
+      "comment": "align-items: normal and stretch stretch the items; start, end, flex-start, flex-end, center and baseline (else std::invalid_argument).",
+      "getter": "align_items",
+      "setter": "set_align_items",
+      "clear": null,
+      "field": "align_items_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "sample": "LayoutAlignment::center",
+      "effects": "invalidation::bounds",
+      "prepare": [
+        "if (!admitted_items_alignment(incoming)) throw std::invalid_argument(\"FlexPanel align-items admits no such value\");"
+      ]
+    },
+    {
+      "name": "row_gap",
+      "capability": "FlexPanelRowGap",
+      "value": "LengthPercentage",
+      "initial": "LengthPercentage{}",
+      "comment": "row-gap; a percentage is of the content box's height, and zero when that is indefinite. Finite and nonnegative (else std::invalid_argument).",
+      "getter": "row_gap",
+      "setter": "set_row_gap",
+      "clear": null,
+      "field": "row_gap_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "sample": "LengthPercentage{LogicalLength{4.0}, 0.0}",
+      "effects": "invalidation::bounds",
+      "prepare": [
+        "if (!admitted_gap(incoming)) throw std::invalid_argument(\"FlexPanel row gap must be finite and nonnegative\");"
+      ]
+    },
+    {
+      "name": "column_gap",
+      "capability": "FlexPanelColumnGap",
+      "value": "LengthPercentage",
+      "initial": "LengthPercentage{}",
+      "comment": "column-gap; a percentage is of the content box's width, and zero when that is indefinite. Finite and nonnegative (else std::invalid_argument).",
+      "getter": "column_gap",
+      "setter": "set_column_gap",
+      "clear": null,
+      "field": "column_gap_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "sample": "LengthPercentage{LogicalLength{4.0}, 0.0}",
+      "effects": "invalidation::bounds",
+      "prepare": [
+        "if (!admitted_gap(incoming)) throw std::invalid_argument(\"FlexPanel column gap must be finite and nonnegative\");"
+      ]
+    }
+  ],
   "not_properties": [],
   "test": {
     "type": "FlexPanel",

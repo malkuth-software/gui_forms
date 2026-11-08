@@ -348,8 +348,8 @@ void test_editor_selection_menu_and_progress_roles_reach_stock_controls() {
     (*combo).selected_index = 0U;
     std::shared_ptr<gui_forms::ProgressBar> progress = make_control<ProgressBar>(StableId("theme.stock.progress"));
     (*progress).set_requested_bounds({156.0, 46.0, 136.0, 20.0});
-    (*progress).set_value(50.0);
-    (*progress).set_visual_style(ProgressBarVisualStyle::continuous);
+    (*progress).value = 50.0;
+    (*progress).visual_style = ProgressBarVisualStyle::continuous;
     std::shared_ptr<gui_forms::MenuStrip> menu = make_control<MenuStrip>(StableId("theme.stock.menu"));
     (*menu).set_requested_bounds({8.0, 108.0, 284.0, 28.0});
     std::shared_ptr<gui_forms::Command> menu_command = std::make_shared<Command>("theme.stock.open", "Open");

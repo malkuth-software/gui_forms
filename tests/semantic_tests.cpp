@@ -79,7 +79,7 @@ void test_snapshot_roles_states_hierarchy_and_json() {
     (*check).set_requested_bounds({12.0, 62.0, 180.0, 28.0});
     std::shared_ptr<gui_forms::ProgressBar> progress = make_control<ProgressBar>(StableId("semantics.progress"));
     (*progress).accessible_name = "Signal buffer";
-    (*progress).set_value(42.0);
+    (*progress).value = 42.0;
     (*progress).set_requested_bounds({12.0, 104.0, 220.0, 20.0});
     std::shared_ptr<gui_forms::Button> hidden = make_control<Button>(StableId("semantics.hidden"), "Hidden");
     (*hidden).visible = false;
@@ -147,8 +147,8 @@ void test_semantic_actions_use_control_behavior() {
     std::shared_ptr<gui_forms::Button> button = make_control<Button>(StableId("actions.button"), "Apply");
     std::shared_ptr<gui_forms::CheckBox> check = make_control<CheckBox>(StableId("actions.check"), "Enabled");
     std::shared_ptr<gui_forms::TrackBar> slider = make_control<TrackBar>(StableId("actions.slider"));
-    (*slider).set_small_change(2.5);
-    (*slider).set_value(25.0);
+    (*slider).small_change = 2.5;
+    (*slider).value = 25.0;
     std::shared_ptr<gui_forms::TextBox> field = make_control<TextBox>(StableId("actions.field"), "old");
     std::shared_ptr<gui_forms::ComboBox> combo = make_control<ComboBox>(StableId("actions.combo"));
     (*combo).items = {"Local", "Remote"};
@@ -169,10 +169,10 @@ void test_semantic_actions_use_control_behavior() {
                 (*check).checked.read(),
             "semantic press must use CheckBox auto-check behavior");
     require(window.perform_semantic_action("actions.slider", SemanticAction::increment) &&
-                (*slider).value() == 27.5,
+                (*slider).value.read() == 27.5,
             "semantic slider increment must use the public small change");
     require(window.perform_semantic_action("actions.slider", SemanticAction::set_value,
-                                            "63.5") && (*slider).value() == 63.5,
+                                            "63.5") && (*slider).value.read() == 63.5,
             "semantic slider set-value must use bounded range behavior");
     require(window.perform_semantic_action("actions.field", SemanticAction::set_value,
                                             "new value") && (*field).text.read() == "new value",

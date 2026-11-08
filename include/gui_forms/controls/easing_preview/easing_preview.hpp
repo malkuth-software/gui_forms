@@ -37,21 +37,11 @@ public:
         return style_;
     }
     void set_style(BasicControlStyle style);
-    [[nodiscard]] const AnimationSpec& specification() const noexcept {
-        return timeline_.specification();
-    }
-    void set_specification(AnimationSpec specification);
     [[nodiscard]] const std::vector<EasingPreviewTrack>& tracks() const noexcept {
         return tracks_;
     }
     void set_tracks(std::vector<EasingPreviewTrack> tracks);
-    [[nodiscard]] MotionPolicy motion_policy() const noexcept {
-        return motion_policy_;
-    }
     [[nodiscard]] MotionPolicy effective_motion_policy() const noexcept;
-    void set_motion_policy(MotionPolicy policy);
-    [[nodiscard]] double marker_size() const noexcept { return marker_size_; }
-    void set_marker_size(double size);
     [[nodiscard]] double phase() const noexcept { return phase_; }
 
     // Samples the timeline at `now` into the phase; the frame timer calls it
@@ -113,7 +103,6 @@ private:
     std::vector<EasingPreviewTrack> tracks_;
     BasicControlStyle style_;
     MotionPolicy motion_policy_{};
-    double marker_size_{14.0};
     double phase_{};
     bool timeline_started_{};
     // property_codemod begin EasingPreview (tools/property_families/easing_preview.json; generated, do not edit)
@@ -125,9 +114,18 @@ public:
 
 private:
     friend struct EasingPreviewTitleCapability<EasingPreview>;
+    friend struct EasingPreviewSpecificationCapability<EasingPreview>;
+    friend struct EasingPreviewMotionPolicyCapability<EasingPreview>;
+    friend struct EasingPreviewMarkerSizeCapability<EasingPreview>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(title)& cell, std::string& incoming);
     void written(const decltype(title)& cell);
+    void write_view(const decltype(specification)& cell, AnimationSpec incoming);
+    [[nodiscard]] AnimationSpec read_view(const decltype(specification)& cell) const;
+    void write_view(const decltype(motion_policy)& cell, MotionPolicy incoming);
+    [[nodiscard]] MotionPolicy read_view(const decltype(motion_policy)& cell) const;
+    void prepare_write(const decltype(marker_size)& cell, double& incoming);
+    void written(const decltype(marker_size)& cell);
     // property_codemod end EasingPreview
 };
 

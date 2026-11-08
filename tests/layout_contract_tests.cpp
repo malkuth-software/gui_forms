@@ -510,7 +510,7 @@ void test_logical_boxes_identical_at_four_scales() {
     (*root).set_requested_bounds({0.0, 0.0, 420.0, 300.0});
     std::shared_ptr<FlowLayoutPanelCompat> flow = std::make_shared<FlowLayoutPanelCompat>(StableId("contract.scale.flow"));
     (*flow).set_requested_bounds({7.0, 5.0, 263.0, 170.0});
-    (*flow).set_wrap_contents(true);
+    (*flow).wrap_contents = true;
     (*flow).add_child(wrapping_label("contract.scale.flow.a", "Proportional advances decide wrapping"));
     std::shared_ptr<Button> button = std::make_shared<Button>(StableId("contract.scale.flow.b"), "Apply changes");
     (*button).auto_size = true;

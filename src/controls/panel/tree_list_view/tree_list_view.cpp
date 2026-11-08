@@ -917,9 +917,9 @@ void TreeListView::sync_scroll_bars(const Layout& placed) {
     if (!placed.vertical_bar.empty() && maximum_row > 0.0) {
         VScrollBar& bar = *vertical_bar_;
         bar.set_range(0.0, maximum_row);
-        bar.set_small_change(1.0);
-        bar.set_large_change(static_cast<double>(placed.page_rows));
-        bar.set_value(std::clamp(static_cast<double>(placed.top_row), 0.0, maximum_row));
+        bar.small_change = 1.0;
+        bar.large_change = static_cast<double>(placed.page_rows);
+        bar.value = std::clamp(static_cast<double>(placed.top_row), 0.0, maximum_row);
     }
     if (!placed.horizontal_bar.empty()) {
         const double visible = placed.viewport.width / placed.scale;
@@ -927,9 +927,9 @@ void TreeListView::sync_scroll_bars(const Layout& placed) {
         if (maximum_offset > 0.0) {
             HScrollBar& bar = *horizontal_bar_;
             bar.set_range(0.0, maximum_offset);
-            bar.set_small_change(horizontal_key_step);
-            bar.set_large_change(std::max(1.0, visible));
-            bar.set_value(std::clamp(placed.horizontal_offset, 0.0, maximum_offset));
+            bar.small_change = horizontal_key_step;
+            bar.large_change = std::max(1.0, visible);
+            bar.value = std::clamp(placed.horizontal_offset, 0.0, maximum_offset);
         }
     }
     synchronizing_scroll_ = false;

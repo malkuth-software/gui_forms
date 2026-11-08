@@ -107,6 +107,50 @@
         "if (!std::isfinite(incoming.width) || !std::isfinite(incoming.height) || incoming.width < 0.0 || incoming.height < 0.0 || incoming.width > 256.0 || incoming.height > 256.0) throw std::invalid_argument(\"TableLayoutPanelCompat track spacing must be finite and between zero and 256\");"
       ],
       "sample": "Size{2.0, 3.0}"
+    },
+    {
+      "name": "column_count",
+      "capability": "TableLayoutColumnCount",
+      "value": "std::size_t",
+      "initial": null,
+      "comment": "The number of columns, 1 through 64 (else std::out_of_range); the column styles follow it. set_column_styles also sets it. A view onto the table's count.",
+      "getter": "column_count",
+      "setter": "set_column_count",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "sample": "std::size_t{3U}",
+      "storage": "view",
+      "hand": [
+        "a view onto column_count_: write_view keeps the setter's check, the styles' resize and invalidation"
+      ]
+    },
+    {
+      "name": "row_count",
+      "capability": "TableLayoutRowCount",
+      "value": "std::size_t",
+      "initial": null,
+      "comment": "The number of rows, 1 through 64 (else std::out_of_range); the row styles follow it. set_row_styles also sets it. A view onto the table's count.",
+      "getter": "row_count",
+      "setter": "set_row_count",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "sample": "std::size_t{3U}",
+      "storage": "view",
+      "hand": [
+        "a view onto row_count_: write_view keeps the setter's check, the styles' resize and invalidation"
+      ]
     }
   ],
   "not_properties": [],

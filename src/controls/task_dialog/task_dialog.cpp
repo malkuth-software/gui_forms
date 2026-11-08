@@ -279,8 +279,8 @@ void TaskDialog::rebuild_children() {
         const TaskDialogProgressBar& settings = *page_.progress_bar;
         progress_ = make_control<ProgressBar>(StableId(prefix + ".progress"));
         (*progress_).set_range(settings.minimum, settings.maximum);
-        (*progress_).set_value(std::clamp(settings.value, settings.minimum, settings.maximum));
-        if (settings.marquee) (*progress_).set_visual_style(ProgressBarVisualStyle::marquee);
+        (*progress_).value = std::clamp(settings.value, settings.minimum, settings.maximum);
+        if (settings.marquee) (*progress_).visual_style = ProgressBarVisualStyle::marquee;
         add_child(progress_);
     }
     for (const TaskDialogRadioButton& radio : page_.radio_buttons) {
@@ -409,7 +409,7 @@ void TaskDialog::set_progress_value(double value) {
     if (!page_.progress_bar || !progress_ || !std::isfinite(value)) return;
     TaskDialogProgressBar& settings = *page_.progress_bar;
     settings.value = std::clamp(value, settings.minimum, settings.maximum);
-    (*progress_).set_value(settings.value);
+    (*progress_).value = settings.value;
 }
 
 // -- interaction ---------------------------------------------------------------

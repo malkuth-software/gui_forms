@@ -54,11 +54,11 @@ void test_choices_and_sections(gui_forms::Window& window) {
     ChoiceObserver observer;
     on((*ring).changed(), observer, &ChoiceObserver::changed);
     on((*ring).activated(), observer, &ChoiceObserver::activated);
-    require((*ring).selected_index() == 0 && (*chips).selected_index() == 0 &&
+    require((*ring).selected_index.read() == 0 && (*chips).selected_index.read() == 0 &&
                 (*review).record.read().disposition == ReviewDisposition::pending,
             "both choice views must start from the shared ring Value");
     click(window, window.find("gallery.choices.ring.item.20"));
-    require((*ring).selected_index() == 1 && (*chips).selected_index() == 1 &&
+    require((*ring).selected_index.read() == 1 && (*chips).selected_index.read() == 1 &&
                 observer.changes == 1 && observer.activations == 1,
             "a user click must change the shared Value once and activate once");
     // The labelled row is the segmented presentation (W-4); the glyph row
@@ -75,15 +75,15 @@ void test_choices_and_sections(gui_forms::Window& window) {
                 (*ring_status).text.read().find("user activations: 1") != std::string::npos,
             "the ReviewCard and Card must project the chosen ring");
     // A programmatic change through the other view is a state change only.
-    (*chips).set_selected_index(2);
-    require((*ring).selected_index() == 2 && observer.changes == 2 &&
+    (*chips).selected_index = 2;
+    require((*ring).selected_index.read() == 2 && observer.changes == 2 &&
                 observer.activations == 1 &&
                 (*review).record.read().disposition == ReviewDisposition::warning,
             "a setter on the glyph view must move the labelled view without an activation");
     // Arrow keys select and focus the neighbouring choice.
     require(window.request_focus((*ring).item(2).shared_from_this()) &&
                 window.dispatch_key({KeyAction::down, PhysicalKey::left}) &&
-                (*ring).selected_index() == 1 && (*chips).selected_index() == 1 &&
+                (*ring).selected_index.read() == 1 && (*chips).selected_index.read() == 1 &&
                 observer.changes == 3,
             "Left must select the previous choice through the shared Value");
 

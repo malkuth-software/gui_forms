@@ -1454,8 +1454,8 @@ public:
             return fail(GF_ERROR_WRONG_HANDLE_KIND,
                         "range state requires a track bar or progress bar");
         }
-        *minimum = (*range).minimum();
-        *maximum = (*range).maximum();
+        *minimum = (*range).minimum.read();
+        *maximum = (*range).maximum.read();
         return GF_OK;
     }
 
@@ -1470,7 +1470,7 @@ public:
             return fail(GF_ERROR_WRONG_HANDLE_KIND,
                         "range value requires a track bar or progress bar");
         }
-        (*range).set_value(value);
+        (*range).value = value;
         return GF_OK;
     }
 
@@ -1489,7 +1489,7 @@ public:
             return fail(GF_ERROR_WRONG_HANDLE_KIND,
                         "range value requires a track bar or progress bar");
         }
-        *value = (*range).value();
+        *value = (*range).value.read();
         return GF_OK;
     }
 

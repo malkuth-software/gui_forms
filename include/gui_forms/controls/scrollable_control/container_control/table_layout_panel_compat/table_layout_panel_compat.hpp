@@ -134,13 +134,6 @@ public:
     [[nodiscard]] std::span<const GridSpan> spans() const& noexcept { return spans_; }
     std::span<const GridSpan> spans() const&& = delete;
 
-    [[nodiscard]] std::size_t column_count() const noexcept {
-        return column_count_;
-    }
-    void set_column_count(std::size_t count);
-    [[nodiscard]] std::size_t row_count() const noexcept { return row_count_; }
-    void set_row_count(std::size_t count);
-
     [[nodiscard]] std::span<const TableLayoutStyle> column_styles() const noexcept {
         return column_styles_;
     }
@@ -338,6 +331,8 @@ private:
     friend struct TableLayoutGrowCapability<TableLayoutPanelCompat>;
     friend struct TableLayoutCellBorderCapability<TableLayoutPanelCompat>;
     friend struct TableLayoutTrackSpacingCapability<TableLayoutPanelCompat>;
+    friend struct TableLayoutColumnCountCapability<TableLayoutPanelCompat>;
+    friend struct TableLayoutRowCountCapability<TableLayoutPanelCompat>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(grow_style)& cell, TableLayoutGrowStyle& incoming);
     void written(const decltype(grow_style)& cell);
@@ -345,6 +340,10 @@ private:
     void written(const decltype(cell_border_style)& cell);
     void prepare_write(const decltype(track_spacing)& cell, Size& incoming);
     void written(const decltype(track_spacing)& cell);
+    void write_view(const decltype(column_count)& cell, std::size_t incoming);
+    [[nodiscard]] std::size_t read_view(const decltype(column_count)& cell) const;
+    void write_view(const decltype(row_count)& cell, std::size_t incoming);
+    [[nodiscard]] std::size_t read_view(const decltype(row_count)& cell) const;
     // property_codemod end TableLayoutPanelCompat
 };
 

@@ -214,7 +214,7 @@ void test_focus_preservation_fallback_and_explicit_reveal() {
 void test_text_scale_reflow_transactions_and_resize_stability() {
     std::shared_ptr<ResponsiveTrackPanel> root =
         make_control<ResponsiveTrackPanel>(StableId("responsive.scale.root"));
-    (*root).set_orientation(ResponsiveTrackOrientation::vertical);
+    (*root).orientation = ResponsiveTrackOrientation::vertical;
     (*root).set_track_specs({
         {ResponsiveTrackSizeMode::content, 28.0, 40.0, 120.0, 1.0},
         {ResponsiveTrackSizeMode::remaining, 30.0, 100.0, 0.0, 1.0},
@@ -256,7 +256,7 @@ void test_text_scale_reflow_transactions_and_resize_stability() {
 
     const Rect committed_before = (*title).arranged_bounds();
     (*root).suspend_layout();
-    (*root).set_track_gap(3.0);
+    (*root).track_gap = 3.0;
     const LayoutTransactionState pending = (*root).layout_transaction_state();
     require(pending.suspend_depth == 1U && pending.deferred &&
                 pending.requested_revision > pending.committed_revision &&
@@ -388,7 +388,7 @@ void test_track_settings_as_properties() {
             "track settings: the specs read back as their text");
     (*panel).set_property_value("orientation", BindingValue{std::int64_t{1}});
     (*panel).set_property_value("track_gap", BindingValue{6.0});
-    require((*panel).orientation() == ResponsiveTrackOrientation::vertical && (*panel).track_gap() == 6.0,
+    require((*panel).orientation.read() == ResponsiveTrackOrientation::vertical && (*panel).track_gap.read() == 6.0,
             "track settings: orientation and gap by name");
 }
 

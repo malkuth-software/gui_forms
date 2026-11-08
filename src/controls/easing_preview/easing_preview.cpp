@@ -34,11 +34,11 @@ using namespace std::chrono_literals;
 
 EasingPreview::EasingPreview(StableId stable_id)
     : Control(std::move(stable_id)) {
-    AnimationSpec specification;
-    specification.duration = 2400ms;
-    specification.infinite = true;
-    specification.easing = EasingCurve::linear;
-    timeline_.set_specification(specification);
+    AnimationSpec initial_specification;
+    initial_specification.duration = 2400ms;
+    initial_specification.infinite = true;
+    initial_specification.easing = EasingCurve::linear;
+    timeline_.set_specification(initial_specification);
     tracks_ = default_easing_tracks(style_);
     accessible_name = "Animation easing preview";
     accessible_description = "Retained timeline tracks comparing configured easing curves";
@@ -51,9 +51,9 @@ void EasingPreview::set_style(BasicControlStyle style) {
     invalidate(Dirty::paint);
 }
 
-void EasingPreview::set_specification(AnimationSpec specification) {
+void EasingPreview::write_view(const decltype(specification)&, AnimationSpec incoming) {
     require_mutable();
-    timeline_.set_specification(specification);
+    timeline_.set_specification(incoming);
     if (timeline_started_) {
         const FrameTime now = FrameClock::now();
         timeline_.start(now);
@@ -63,6 +63,11 @@ void EasingPreview::set_specification(AnimationSpec specification) {
     frames_.stop();
     if (motion_policy_.active()) register_frames();
     invalidate(Dirty::paint | Dirty::semantics);
+}
+
+AnimationSpec EasingPreview::read_view(const decltype(specification)&) const {
+    AnimationSpec current = timeline_.specification();
+    return current;
 }
 
 void EasingPreview::set_tracks(std::vector<EasingPreviewTrack> tracks) {
@@ -81,11 +86,11 @@ void EasingPreview::set_tracks(std::vector<EasingPreviewTrack> tracks) {
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
-void EasingPreview::set_motion_policy(MotionPolicy policy) {
+void EasingPreview::write_view(const decltype(motion_policy)&, MotionPolicy incoming) {
     require_mutable();
-    if (motion_policy_ == policy) return;
+    if (motion_policy_ == incoming) return;
     const bool was_live = motion_policy_.active();
-    const bool becomes_live = policy.active();
+    const bool becomes_live = incoming.active();
     frames_.stop();
     if (timeline_started_) {
         const FrameTime transition = FrameClock::now();
@@ -96,19 +101,13 @@ void EasingPreview::set_motion_policy(MotionPolicy policy) {
             timeline_.resume(transition);
         }
     }
-    motion_policy_ = policy;
+    motion_policy_ = incoming;
     if (becomes_live) register_frames();
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
-void EasingPreview::set_marker_size(double size) {
-    require_mutable();
-    if (!std::isfinite(size) || size < 4.0 || size > 48.0) {
-        throw std::invalid_argument("easing marker size must be within [4, 48]");
-    }
-    if (marker_size_ == size) return;
-    marker_size_ = size;
-    invalidate(Dirty::paint);
+MotionPolicy EasingPreview::read_view(const decltype(motion_policy)&) const {
+    return motion_policy_;
 }
 
 MotionPolicy EasingPreview::effective_motion_policy() const noexcept {
@@ -146,7 +145,7 @@ double EasingPreview::track_row_top(std::size_t index) const noexcept {
     const double s = effective_text_scale();
     const double height = committed_arranged_bounds().height;
     const double row_height = tracks_.empty()
-        ? 0.0 : std::max(marker_size_ + 4.0,
+        ? 0.0 : std::max(marker_size.read() + 4.0,
                          (height - 48.0 * s) / static_cast<double>(tracks_.size()));
     const double top = 48.0 * s + static_cast<double>(index) * row_height;
     return top;
@@ -168,11 +167,11 @@ Rect EasingPreview::marker_bounds(std::size_t index, double presented_phase) con
         ? presented_phase * 2.0 : (1.0 - presented_phase) * 2.0;
     const double y = track_row_top(index);
     const double left = track_left();
-    const double travel = std::max(0.0, track_width() - marker_size_);
+    const double travel = std::max(0.0, track_width() - marker_size.read());
     const double eased = std::clamp(
         apply_easing(tracks_[index].curve, directed), -0.08, 1.08);
     const double x = std::clamp(left + eased * travel, left, left + travel);
-    const Rect marker{x, y + 2.0, marker_size_, marker_size_};
+    const Rect marker{x, y + 2.0, marker_size.read(), marker_size.read()};
     return marker;
 }
 
@@ -218,8 +217,8 @@ void EasingPreview::on_paint(Painter& painter, Rect) {
         const Rect marker = marker_bounds(index, presented_phase);
         painter.fill_rect(marker, tracks_[index].color);
         painter.stroke_rect({marker.x + 0.5, marker.y + 0.5,
-                             std::max(0.0, marker_size_ - 1.0),
-                             std::max(0.0, marker_size_ - 1.0)},
+                             std::max(0.0, marker_size.read() - 1.0),
+                             std::max(0.0, marker_size.read() - 1.0)},
                             style_.dark_border, 1.0);
     }
 }
@@ -427,6 +426,15 @@ void EasingPreview::prepare_write(const decltype(title)&, std::string&) {
 
 void EasingPreview::written(const decltype(title)&) {
     invalidate(Dirty::paint | Dirty::semantics);
+}
+
+void EasingPreview::prepare_write(const decltype(marker_size)&, double& incoming) {
+    require_mutable();
+    if (!std::isfinite(incoming) || incoming < 4.0 || incoming > 48.0) throw std::invalid_argument("easing marker size must be within [4, 48]");
+}
+
+void EasingPreview::written(const decltype(marker_size)&) {
+    invalidate(Dirty::paint);
 }
 
 // property_codemod end EasingPreview

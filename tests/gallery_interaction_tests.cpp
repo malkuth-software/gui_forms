@@ -274,10 +274,10 @@ int main()
 
     const std::shared_ptr<gui_forms::CheckBox> checkbox = std::dynamic_pointer_cast<gui_forms::CheckBox>(
         (*window).find("gallery.checkbox"));
-    expect(checkbox != nullptr && (*checkbox).checked(), "retained checkbox begins checked");
+    expect(checkbox != nullptr && (*checkbox).checked.read(), "retained checkbox begins checked");
     const std::uint64_t activations_before_checkbox = (*window).metrics_snapshot().activations;
     click(*window, "gallery.checkbox");
-    expect(!(*checkbox).checked(), "window dispatch toggles checkbox state");
+    expect(!(*checkbox).checked.read(), "window dispatch toggles checkbox state");
     expect((*window).metrics_snapshot().activations == activations_before_checkbox + 1U,
            "matching press and release produces exactly one activation");
     CountingPainter partial_painter;
@@ -348,9 +348,9 @@ int main()
                                      gui_forms::PointerButton::primary,
                                      near_end}),
            "slider handles pointer up");
-    expect((*slider).value() > 98.0, "slider maps pointer position to bounded value");
-    expect((*progress).value() == (*slider).value(), "progress remains bound to slider");
-    expect((*instrument).value() == (*slider).value() / 100.0,
+    expect((*slider).value.read() > 98.0, "slider maps pointer position to bounded value");
+    expect((*progress).value.read() == (*slider).value.read(), "progress remains bound to slider");
+    expect((*instrument).value() == (*slider).value.read() / 100.0,
            "custom instrument remains bound to slider");
 
     expect(gui_forms::gallery::select_gallery_page(*window, "retained-rows"),

@@ -64,6 +64,40 @@ struct TableLayoutTrackSpacingCapability {
     }
 };
 
+// The number of columns, 1 through 64 (else std::out_of_range); the column styles follow it. set_column_styles also sets it. A view onto the table's count.
+template <typename Declaring>
+struct TableLayoutColumnCountCapability {
+    PropertyView<std::size_t, TableLayoutColumnCountCapability<Declaring>> column_count;
+
+    static void assign(TableLayoutColumnCountCapability& capability, std::size_t incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.write_view(std::as_const(capability.column_count), std::move(incoming));
+    }
+
+    static std::size_t read(const TableLayoutColumnCountCapability& capability) {
+        const Declaring& control = static_cast<const Declaring&>(capability);
+        std::size_t current = control.read_view(capability.column_count);
+        return current;
+    }
+};
+
+// The number of rows, 1 through 64 (else std::out_of_range); the row styles follow it. set_row_styles also sets it. A view onto the table's count.
+template <typename Declaring>
+struct TableLayoutRowCountCapability {
+    PropertyView<std::size_t, TableLayoutRowCountCapability<Declaring>> row_count;
+
+    static void assign(TableLayoutRowCountCapability& capability, std::size_t incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.write_view(std::as_const(capability.row_count), std::move(incoming));
+    }
+
+    static std::size_t read(const TableLayoutRowCountCapability& capability) {
+        const Declaring& control = static_cast<const Declaring&>(capability);
+        std::size_t current = control.read_view(capability.row_count);
+        return current;
+    }
+};
+
 // TableLayoutGrowStyle as a property value; defined beside TableLayoutPanelCompat's table.
 template <>
 struct PropertyValueTraits<TableLayoutGrowStyle> {
@@ -84,6 +118,8 @@ struct PropertyValueTraits<TableCellBorderStyle> {
 template <typename Declaring>
 struct TableLayoutPanelCompatCapabilities : public TableLayoutGrowCapability<Declaring>,
                                             public TableLayoutCellBorderCapability<Declaring>,
-                                            public TableLayoutTrackSpacingCapability<Declaring> {};
+                                            public TableLayoutTrackSpacingCapability<Declaring>,
+                                            public TableLayoutColumnCountCapability<Declaring>,
+                                            public TableLayoutRowCountCapability<Declaring> {};
 
 } // namespace gui_forms

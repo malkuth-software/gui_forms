@@ -1858,17 +1858,17 @@ void DataGridView::synchronize_scroll_bars(const GridLayout& layout) {
     if (vertical_bar_ && last_first > 0U) {
         VScrollBar& bar = *vertical_bar_;
         bar.set_range(0.0, static_cast<double>(last_first));
-        bar.set_small_change(1.0);
-        bar.set_large_change(static_cast<double>(std::max<std::size_t>(1U, fully_visible_rows(layout))));
-        bar.set_value(static_cast<double>(first_row_));
+        bar.small_change = 1.0;
+        bar.large_change = static_cast<double>(std::max<std::size_t>(1U, fully_visible_rows(layout)));
+        bar.value = static_cast<double>(first_row_);
     }
     const double last_offset = maximum_horizontal_offset(layout);
     if (horizontal_bar_ && last_offset > 0.0) {
         HScrollBar& bar = *horizontal_bar_;
         bar.set_range(0.0, last_offset);
-        bar.set_small_change(16.0);
-        bar.set_large_change(std::max(1.0, layout.data.width / layout.scale));
-        bar.set_value(horizontal_offset_);
+        bar.small_change = 16.0;
+        bar.large_change = std::max(1.0, layout.data.width / layout.scale);
+        bar.value = horizontal_offset_;
     }
     synchronizing_scroll_ = false;
 }

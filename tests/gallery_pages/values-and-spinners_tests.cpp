@@ -88,7 +88,7 @@ void test_values_and_spinners_binding(gui_forms::Window& window) {
             "gallery color dogfood must commit through the stock Label ForeColor descriptor");
     require(editor && enabled && gain && status &&
                 (*editor).text.read() == "Local index" && (*enabled).checked.read() &&
-                (*gain).value() == 28.0 &&
+                (*gain).value.read() == 28.0 &&
                 (*status).text.read().find("profile.local") != std::string::npos,
             "gallery binding specimen must project the initial retained record");
     require(window.request_focus(editor),
@@ -96,7 +96,7 @@ void test_values_and_spinners_binding(gui_forms::Window& window) {
     (*editor).text = "Local index edited";
     click(window, window.find("gallery.values.binding.next"));
     require((*editor).text.read() == "Archive review" && !(*enabled).checked.read() &&
-                (*gain).value() == 61.0 &&
+                (*gain).value.read() == 61.0 &&
                 (*status).text.read().find("profile.archive") != std::string::npos,
             "gallery binding currency command must update all three stock control families");
     click(window, window.find("gallery.values.binding.previous"));

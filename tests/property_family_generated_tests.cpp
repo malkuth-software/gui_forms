@@ -808,6 +808,11 @@ void test_easing_preview_properties() {
         expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
                "EasingPreview.title: the table reads the cell");
     }
+    {
+        const double sample = 20.0;
+        (*control).marker_size = sample;
+        expect((*control).marker_size.read() == sample, "EasingPreview.marker_size: a write stores");
+    }
 }
 
 void test_drawing_surface_properties() {
@@ -890,6 +895,41 @@ void test_flags_value_editor_properties() {
 
 void test_flex_panel_properties() {
     std::shared_ptr<FlexPanel> control = make_control<FlexPanel>(StableId("generated.flexpanel"));
+    {
+        const FlexDirection sample = FlexDirection::column;
+        (*control).flex_direction = sample;
+        expect((*control).flex_direction.read() == sample, "FlexPanel.flex_direction: a write stores");
+    }
+    {
+        const FlexWrap sample = FlexWrap::wrap;
+        (*control).flex_wrap = sample;
+        expect((*control).flex_wrap.read() == sample, "FlexPanel.flex_wrap: a write stores");
+    }
+    {
+        const LayoutAlignment sample = LayoutAlignment::center;
+        (*control).justify_content = sample;
+        expect((*control).justify_content.read() == sample, "FlexPanel.justify_content: a write stores");
+    }
+    {
+        const LayoutAlignment sample = LayoutAlignment::center;
+        (*control).align_content = sample;
+        expect((*control).align_content.read() == sample, "FlexPanel.align_content: a write stores");
+    }
+    {
+        const LayoutAlignment sample = LayoutAlignment::center;
+        (*control).align_items = sample;
+        expect((*control).align_items.read() == sample, "FlexPanel.align_items: a write stores");
+    }
+    {
+        const LengthPercentage sample = LengthPercentage{LogicalLength{4.0}, 0.0};
+        (*control).row_gap = sample;
+        expect((*control).row_gap.read() == sample, "FlexPanel.row_gap: a write stores");
+    }
+    {
+        const LengthPercentage sample = LengthPercentage{LogicalLength{4.0}, 0.0};
+        (*control).column_gap = sample;
+        expect((*control).column_gap.read() == sample, "FlexPanel.column_gap: a write stores");
+    }
     expect((*control).property_descriptor("style").has_value(), "FlexPanel.style: the table holds the hand entry");
 }
 
@@ -953,6 +993,36 @@ void test_font_dialog_properties() {
 
 void test_grid_panel_properties() {
     std::shared_ptr<GridPanel> control = make_control<GridPanel>(StableId("generated.gridpanel"));
+    {
+        const LayoutAlignment sample = LayoutAlignment::center;
+        (*control).justify_content = sample;
+        expect((*control).justify_content.read() == sample, "GridPanel.justify_content: a write stores");
+    }
+    {
+        const LayoutAlignment sample = LayoutAlignment::center;
+        (*control).align_content = sample;
+        expect((*control).align_content.read() == sample, "GridPanel.align_content: a write stores");
+    }
+    {
+        const LayoutAlignment sample = LayoutAlignment::center;
+        (*control).justify_items = sample;
+        expect((*control).justify_items.read() == sample, "GridPanel.justify_items: a write stores");
+    }
+    {
+        const LayoutAlignment sample = LayoutAlignment::center;
+        (*control).align_items = sample;
+        expect((*control).align_items.read() == sample, "GridPanel.align_items: a write stores");
+    }
+    {
+        const LengthPercentage sample = LengthPercentage{LogicalLength{4.0}, 0.0};
+        (*control).row_gap = sample;
+        expect((*control).row_gap.read() == sample, "GridPanel.row_gap: a write stores");
+    }
+    {
+        const LengthPercentage sample = LengthPercentage{LogicalLength{4.0}, 0.0};
+        (*control).column_gap = sample;
+        expect((*control).column_gap.read() == sample, "GridPanel.column_gap: a write stores");
+    }
     expect((*control).property_descriptor("style").has_value(), "GridPanel.style: the table holds the hand entry");
 }
 
