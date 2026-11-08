@@ -7,7 +7,7 @@ gui_forms::TaskDialog
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: TaskDialog final : public Control
+.. cpp:class:: TaskDialog final : public Control, public TaskDialogCapabilities<TaskDialog>
 
    ``#include <gui_forms/controls/task_dialog/task_dialog.hpp>``
 
@@ -39,6 +39,14 @@ gui_forms::TaskDialog
 
    :Properties:
 
+      **expanded** : ``bool``
+         Whether the expanded information shows. A write changes it and
+         raises :cpp:func:`expanded_changed <gui_forms::TaskDialog::expanded_changed>`; the expander button toggles it.
+
+      **verification_checked** : ``bool``
+         The verification check box's state; a write sets it, through the check
+         box while the page shows one.
+
       **page** : ``TaskDialogPage``
          The page shown. :cpp:func:`set_page <gui_forms::TaskDialog::set_page>` replaces it and rebuilds the children; while
          the dialog is shown this navigates, moves focus to the new page's default
@@ -61,13 +69,6 @@ gui_forms::TaskDialog
       **result** : ``std::optional<TaskDialogResult>``, read-only
          How the dialog last closed: the button, the verification check box and
          the checked radio button. None before the first close.
-
-      **expanded** : ``bool``
-         Whether the expanded information shows. :cpp:func:`set_expanded <gui_forms::TaskDialog::set_expanded>` changes it and
-         raises :cpp:func:`expanded_changed <gui_forms::TaskDialog::expanded_changed>`; the expander button toggles it.
-
-      **verification_checked** : ``bool``
-         The verification check box's state. :cpp:func:`set_verification_checked <gui_forms::TaskDialog::set_verification_checked>` sets it.
 
       **checked_radio_button** : ``std::string``, read-only
          The checked radio button's ID, or an empty string.
@@ -199,6 +200,16 @@ gui_forms::TaskDialog
 
    .. rubric:: Properties
 
+   .. cpp:member:: bool expanded
+
+      Whether the expanded information shows. A write changes it and
+      raises :cpp:func:`expanded_changed <gui_forms::TaskDialog::expanded_changed>`; the expander button toggles it.
+
+   .. cpp:member:: bool verification_checked
+
+      The verification check box's state; a write sets it, through the check
+      box while the page shows one.
+
    .. cpp:function:: const TaskDialogPage& page() const noexcept
 
       The page shown. :cpp:func:`set_page <gui_forms::TaskDialog::set_page>` replaces it and rebuilds the children; while
@@ -232,23 +243,6 @@ gui_forms::TaskDialog
 
       How the dialog last closed: the button, the verification check box and
       the checked radio button. None before the first close.
-
-   .. cpp:function:: bool expanded() const noexcept
-
-      Whether the expanded information shows. :cpp:func:`set_expanded <gui_forms::TaskDialog::set_expanded>` changes it and
-      raises :cpp:func:`expanded_changed <gui_forms::TaskDialog::expanded_changed>`; the expander button toggles it.
-
-   .. cpp:function:: void set_expanded(bool expanded)
-
-      Sets :cpp:func:`expanded <gui_forms::TaskDialog::expanded>`; see the property's description above.
-
-   .. cpp:function:: bool verification_checked() const noexcept
-
-      The verification check box's state. :cpp:func:`set_verification_checked <gui_forms::TaskDialog::set_verification_checked>` sets it.
-
-   .. cpp:function:: void set_verification_checked(bool checked)
-
-      Sets :cpp:func:`verification_checked <gui_forms::TaskDialog::verification_checked>`; see the property's description above.
 
    .. cpp:function:: std::string checked_radio_button() const
 

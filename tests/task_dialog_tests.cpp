@@ -158,6 +158,11 @@ void validation() {
     require((*dialog).page().buttons.size() == 1U && (*dialog).page().buttons[0].stable_id == "ok" &&
                 (*dialog).page().buttons[0].text == "OK",
             "a page without buttons gets an OK button");
+    (*dialog).expanded = true;
+    require(!(*dialog).expanded.read(), "a page without an expander ignores an expanded write and reads false");
+    (*dialog).verification_checked = true;
+    require((*dialog).verification_checked.read() && (*dialog).page().verification_checked,
+            "on a page without a check box a verification write stores the page's state");
 }
 
 void modal_presentation() {
@@ -215,21 +220,27 @@ void modal_presentation() {
     require(recorder.clicks.size() == 1U && recorder.clicks[0] == "preview" && (*dialog).shown(),
             "a button that does not close raises button_clicked and stays open");
 
-    (*dialog).set_expanded(true);
+    (*dialog).expanded = true;
     window.perform_layout();
     require((*dialog).parts().expanded_text.present &&
                 (*dialog).parts().expander_glyph.states.contains(AnatomyState::open) &&
                 recorder.expansions.size() == 1U && recorder.expansions[0],
             "expanding shows the expanded text and opens the glyph");
     click_at(window, centre(*(*dialog).expander_button()));
-    require(!(*dialog).expanded() && recorder.expansions.size() == 2U, "the expander button collapses it again");
+    require(!(*dialog).expanded.read() && recorder.expansions.size() == 2U, "the expander button collapses it again");
 
     (*(*dialog).radio_button("all")).set_checked(true);
     require((*dialog).checked_radio_button() == "all" && recorder.radios.size() == 1U && recorder.radios[0] == "all",
             "checking a radio button reports it");
     (*(*dialog).verification_check_box()).set_checked(true);
-    require((*dialog).verification_checked() && recorder.verifications.size() == 1U,
+    require((*dialog).verification_checked.read() && recorder.verifications.size() == 1U,
             "the verification check box reports its state");
+    (*dialog).expanded = false;
+    require(recorder.expansions.size() == 2U, "an equal expanded write raises nothing");
+    (*dialog).verification_checked = false;
+    require(!(*dialog).verification_checked.read() && !(*(*dialog).verification_check_box()).checked() &&
+                recorder.verifications.size() == 2U && !recorder.verifications[1],
+            "a verification write goes through the check box and raises verification_changed");
     (*dialog).set_progress_value(250.0);
     require((*dialog).page().progress_bar && (*(*dialog).page().progress_bar).value == 100.0,
             "a progress value is clamped to the bounds");

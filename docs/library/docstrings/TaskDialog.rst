@@ -39,10 +39,11 @@ result
     How the dialog last closed: the button, the verification check box and
     the checked radio button. None before the first close.
 expanded
-    Whether the expanded information shows. `set_expanded` changes it and
+    Whether the expanded information shows. A write changes it and
     raises `expanded_changed`; the expander button toggles it.
 verification_checked
-    The verification check box's state. `set_verification_checked` sets it.
+    The verification check box's state; a write sets it, through the check
+    box while the page shows one.
 checked_radio_button
     The checked radio button's ID, or an empty string.
 verification_check_box

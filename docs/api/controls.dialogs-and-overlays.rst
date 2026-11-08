@@ -84,6 +84,10 @@ Related types
      - One command button.
    * - :cpp:class:`TaskDialogButtonClick <gui_forms::TaskDialogButtonClick>`
      - A click on a button, before the dialog closes.
+   * - :cpp:class:`TaskDialogCapabilities <gui_forms::TaskDialogCapabilities>`
+     - Every TaskDialog capability, in the order the declaring class takes them.
+   * - :cpp:class:`TaskDialogExpandedCapability <gui_forms::TaskDialogExpandedCapability>`
+     - Whether the page's expanded information shows (Windows Forms' TaskDialogExpander.Expanded); a view onto the page's expander.
    * - :cpp:class:`TaskDialogExpander <gui_forms::TaskDialogExpander>`
      - Expanded information, shown below the text while expanded.
    * - :cpp:class:`TaskDialogPage <gui_forms::TaskDialogPage>`
@@ -94,6 +98,8 @@ Related types
      - One radio button; at most one of a page's radio buttons is checked.
    * - :cpp:class:`TaskDialogResult <gui_forms::TaskDialogResult>`
      - How a dialog closed: the button that closed it (the cancel button's ID, or "cancel", for Escape and a dialog revoked by its window), and the state of the verification check box and the radio buttons at that moment.
+   * - :cpp:class:`TaskDialogVerificationCheckedCapability <gui_forms::TaskDialogVerificationCheckedCapability>`
+     - The verification check box's state (Windows Forms' TaskDialogVerificationCheckBox.Checked); a view onto the page.
    * - :cpp:class:`ThreadExceptionReport <gui_forms::ThreadExceptionReport>`
      - What a ThreadExceptionDialog reports.
 
@@ -455,6 +461,42 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> TaskDialogCapabilities : public TaskDialogExpandedCapability<Declaring>, public TaskDialogVerificationCheckedCapability<Declaring>
+
+   ``#include <gui_forms/controls/task_dialog/task_dialog_capabilities/task_dialog_capabilities.hpp>``
+
+   Every TaskDialog capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: bool expanded
+
+      Whether the page's expanded information shows (Windows Forms' TaskDialogExpander.Expanded); a view onto the page's expander. A change re-lays out the dialog and raises expanded_changed; a write to a page without an expander does nothing and reads false.
+
+   .. cpp:member:: bool verification_checked
+
+      The verification check box's state (Windows Forms' TaskDialogVerificationCheckBox.Checked); a view onto the page. While the check box exists a write goes through it and raises verification_changed; before it does, a write only stores the page's state.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TaskDialogExpandedCapability
+
+   ``#include <gui_forms/controls/task_dialog/task_dialog_capabilities/task_dialog_capabilities.hpp>``
+
+   Whether the page's expanded information shows (Windows Forms' TaskDialogExpander.Expanded); a view onto the page's expander. A change re-lays out the dialog and raises expanded_changed; a write to a page without an expander does nothing and reads false.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TaskDialogExpandedCapability& capability, bool incoming)
+
+   .. cpp:function:: static bool read(const TaskDialogExpandedCapability& capability)
+
+   .. cpp:member:: PropertyView<bool, TaskDialogExpandedCapability<Declaring>> expanded
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: TaskDialogExpander final
 
    ``#include <gui_forms/controls/task_dialog/task_dialog.hpp>``
@@ -566,6 +608,23 @@ Related types
    .. cpp:member:: bool verification_checked
 
    .. cpp:member:: std::string radio_button_id
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TaskDialogVerificationCheckedCapability
+
+   ``#include <gui_forms/controls/task_dialog/task_dialog_capabilities/task_dialog_capabilities.hpp>``
+
+   The verification check box's state (Windows Forms' TaskDialogVerificationCheckBox.Checked); a view onto the page. While the check box exists a write goes through it and raises verification_changed; before it does, a write only stores the page's state.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TaskDialogVerificationCheckedCapability& capability, bool incoming)
+
+   .. cpp:function:: static bool read(const TaskDialogVerificationCheckedCapability& capability)
+
+   .. cpp:member:: PropertyView<bool, TaskDialogVerificationCheckedCapability<Declaring>> verification_checked
 
 .. cpp:namespace:: gui_forms
 
