@@ -393,6 +393,22 @@ Properties beyond every control's: `closable` (boolean), `message` (text), `seve
 |---|---|
 | `closed` | none |
 
+## `empty_state` (EmptyState, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `icon` | icon |  |  |
+| `caption` | caption |  |  |
+| `label` | label |  |  |
+| `content` | content |  |  |
+
+States: `normal`, `enabled`, `disabled`.
+
+Properties beyond every control's: `description` (text), `image` (image), `title` (text).
+
+Interactions beyond every control's: none.
+
 ## `picture_box` (PictureBox, control)
 
 | Part | Role | Reuses | Own states |

@@ -45,6 +45,7 @@
 #include "gui_forms/controls/docking/dock_workspace/dock_workspace.hpp"
 #include "gui_forms/controls/drawing_surface/drawing_surface.hpp"
 #include "gui_forms/controls/easing_preview/easing_preview.hpp"
+#include "gui_forms/controls/empty_state/empty_state.hpp"
 #include "gui_forms/controls/info_banner/info_banner.hpp"
 #include "gui_forms/controls/instruments/sweep_scope/sweep_scope.hpp"
 #include "gui_forms/controls/label/label.hpp"
@@ -130,7 +131,7 @@
 
 namespace gui_forms::abi1 {
 
-inline constexpr std::array<SchemaCatalogEntry, 119> schema_catalog{{
+inline constexpr std::array<SchemaCatalogEntry, 120> schema_catalog{{
     {"button_base", "ButtonBase", &describe_type<ButtonBase>, &create_type<ButtonBase>, &is_exact_type<ButtonBase>},
     {"button", "Button", &describe_type<Button>, &create_type<Button>, &is_exact_type<Button>},
     {"drop_down_button", "DropDownButton", &describe_type<DropDownButton>, &create_type<DropDownButton>, &is_exact_type<DropDownButton>},
@@ -144,6 +145,7 @@ inline constexpr std::array<SchemaCatalogEntry, 119> schema_catalog{{
     {"text_block", "TextBlock", &describe_type<TextBlock>, &create_type<TextBlock>, &is_exact_type<TextBlock>},
     {"badge", "Badge", &describe_type<Badge>, &create_type<Badge>, &is_exact_type<Badge>},
     {"info_banner", "InfoBanner", &describe_type<InfoBanner>, &create_type<InfoBanner>, &is_exact_type<InfoBanner>},
+    {"empty_state", "EmptyState", &describe_type<EmptyState>, &create_type<EmptyState>, &is_exact_type<EmptyState>},
     {"picture_box", "PictureBox", &describe_type<PictureBox>, &create_type<PictureBox>, &is_exact_type<PictureBox>},
     {"progress_bar", "ProgressBar", &describe_type<ProgressBar>, &create_type<ProgressBar>, &is_exact_type<ProgressBar>},
     {"sweep_scope", "SweepScope", &describe_type<SweepScope>, &create_type<SweepScope>, &is_exact_type<SweepScope>},

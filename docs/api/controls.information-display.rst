@@ -19,6 +19,8 @@ Labels, images, progress and review cards.
      - A small count or dot, such as the number of unread messages beside a mailbox.
    * - :cpp:class:`InfoBanner <gui_forms::InfoBanner>`
      - A message strip across a form or a page, such as "Changes saved" or "Connection lost; retrying".
+   * - :cpp:class:`EmptyState <gui_forms::EmptyState>`
+     - What a list, a page or a search shows when it has nothing to show, such as "No messages" in an empty mailbox.
    * - :cpp:class:`PictureBox <gui_forms::PictureBox>`
      - A box that displays one image from its window's image registry.
    * - :cpp:class:`ProgressBar <gui_forms::ProgressBar>`
@@ -35,6 +37,7 @@ Labels, images, progress and review cards.
    generated/gui_forms.TextBlock
    generated/gui_forms.Badge
    generated/gui_forms.InfoBanner
+   generated/gui_forms.EmptyState
    generated/gui_forms.PictureBox
    generated/gui_forms.ProgressBar
    generated/gui_forms.SweepScope
@@ -59,6 +62,16 @@ Related types
      - Whether the badge shows a count chip or a dot without text.
    * - :cpp:class:`BadgeShowZeroCapability <gui_forms::BadgeShowZeroCapability>`
      - Whether a zero count still shows its chip; off by default.
+   * - :cpp:class:`EmptyState::Parts <gui_forms::EmptyState::Parts>`
+     - Stage T1 anatomy, as dot members (see Control::Parts).
+   * - :cpp:class:`EmptyStateCapabilities <gui_forms::EmptyStateCapabilities>`
+     - Every EmptyState capability, in the order the declaring class takes them.
+   * - :cpp:class:`EmptyStateDescriptionCapability <gui_forms::EmptyStateDescriptionCapability>`
+     - The line below the title that says why, or what to do next; it describes the control to assistive technology.
+   * - :cpp:class:`EmptyStateImageCapability <gui_forms::EmptyStateImageCapability>`
+     - The picture above the title, an ImageId into the window's ImageRegistry, drawn in a 48-unit square; none by default.
+   * - :cpp:class:`EmptyStateTitleCapability <gui_forms::EmptyStateTitleCapability>`
+     - The heading that says what is empty, such as "No messages"; it names the control to assistive technology.
    * - :cpp:class:`InfoBanner::Parts <gui_forms::InfoBanner::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`InfoBannerCapabilities <gui_forms::InfoBannerCapabilities>`
@@ -224,6 +237,92 @@ Related types
    .. cpp:function:: static void assign(BadgeShowZeroCapability& capability, bool incoming)
 
    .. cpp:member:: PropertyCell<bool, BadgeShowZeroCapability<Declaring>> show_zero
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: EmptyState::Parts final
+
+   ``#include <gui_forms/controls/empty_state/empty_state.hpp>``
+
+   Stage T1 anatomy, as dot members (see Control::Parts). ``icon`` is the picture, ``caption`` the title, ``label`` the description and ``content`` the action's slot; each is absent while it has nothing to show.
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry icon
+
+   .. cpp:member:: PartGeometry caption
+
+   .. cpp:member:: PartGeometry label
+
+   .. cpp:member:: PartGeometry content
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> EmptyStateCapabilities : public EmptyStateImageCapability<Declaring>, public EmptyStateTitleCapability<Declaring>, public EmptyStateDescriptionCapability<Declaring>
+
+   ``#include <gui_forms/controls/empty_state/empty_state_capabilities/empty_state_capabilities.hpp>``
+
+   Every EmptyState capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: ImageId image
+
+      The picture above the title, an ImageId into the window's ImageRegistry, drawn in a 48-unit square; none by default.
+
+   .. cpp:member:: std::string title
+
+      The heading that says what is empty, such as "No messages"; it names the control to assistive technology. Must be valid UTF-8 (std::invalid_argument).
+
+   .. cpp:member:: std::string description
+
+      The line below the title that says why, or what to do next; it describes the control to assistive technology. Must be valid UTF-8 (std::invalid_argument).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> EmptyStateDescriptionCapability
+
+   ``#include <gui_forms/controls/empty_state/empty_state_capabilities/empty_state_capabilities.hpp>``
+
+   The line below the title that says why, or what to do next; it describes the control to assistive technology. Must be valid UTF-8 (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(EmptyStateDescriptionCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, EmptyStateDescriptionCapability<Declaring>> description
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> EmptyStateImageCapability
+
+   ``#include <gui_forms/controls/empty_state/empty_state_capabilities/empty_state_capabilities.hpp>``
+
+   The picture above the title, an ImageId into the window's ImageRegistry, drawn in a 48-unit square; none by default.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(EmptyStateImageCapability& capability, ImageId incoming)
+
+   .. cpp:member:: PropertyCell<ImageId, EmptyStateImageCapability<Declaring>> image
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> EmptyStateTitleCapability
+
+   ``#include <gui_forms/controls/empty_state/empty_state_capabilities/empty_state_capabilities.hpp>``
+
+   The heading that says what is empty, such as "No messages"; it names the control to assistive technology. Must be valid UTF-8 (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(EmptyStateTitleCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, EmptyStateTitleCapability<Declaring>> title
 
 .. cpp:namespace:: gui_forms
 

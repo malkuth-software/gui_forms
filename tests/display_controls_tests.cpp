@@ -1,11 +1,11 @@
-// W-4 display controls: Badge and InfoBanner (and, as it lands,
-// EmptyState). Each test covers the control's behaviour, its refusals, its
+// W-4 display controls: Badge, InfoBanner and EmptyState. Each test covers the control's behaviour, its refusals, its
 // semantics, its published parts and states, and the capability cases: a
 // write stores, an equal write does nothing, and a write from another
 // thread is refused before anything is compared or stored.
 
 #include "gui_forms/gui_forms.hpp"
 
+#include <cmath>
 #include <cstdint>
 #include <cstdlib>
 #include <iostream>
@@ -259,6 +259,64 @@ void test_info_banner_actuator_action_and_threads() {
     require(other_thread && (*banner).title.read() == "Offline", "a title write from another thread is refused");
 }
 
+void test_empty_state() {
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("display.empty.root"));
+    std::shared_ptr<EmptyState> empty = make_control<EmptyState>(StableId("display.empty"));
+    (*empty).set_requested_bounds(Rect{0.0, 0.0, 300.0, 240.0});
+    (*root).add_child(empty);
+    Window window(root, Size{400.0, 300.0});
+    window.perform_layout();
+
+    const EmptyState::Parts bare = (*empty).parts();
+    require(bare.region.present && !bare.icon.present && !bare.caption.present && !bare.label.present &&
+                !bare.content.present,
+            "an empty EmptyState publishes only its region");
+    std::shared_ptr<EmptyState> unsized = make_control<EmptyState>(StableId("display.empty.unsized"));
+    require((*unsized).measure(Size{300.0, 240.0}) == (Size{0.0, 0.0}), "nothing to show measures empty");
+
+    bool refused = false;
+    try {
+        (*empty).title = std::string{"\xc3"};
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*empty).title.read().empty(), "an invalid UTF-8 title is refused");
+
+    (*empty).image = ImageId{3U};
+    (*empty).title = std::string{"No messages"};
+    (*empty).description = std::string{"Messages you receive appear here."};
+    std::shared_ptr<Button> compose = make_control<Button>(StableId("display.empty.compose"), "Write a message");
+    const Control::Ptr none = (*empty).set_action(compose);
+    require(!none && (*compose).parent() == empty, "the control owns its action");
+    window.perform_layout();
+
+    const EmptyState::Parts full = (*empty).parts();
+    require(full.icon.present && full.caption.present && full.label.present && full.content.present,
+            "each piece with something to show is published");
+    require(full.icon.bounds.y < full.caption.bounds.y && full.caption.bounds.y < full.label.bounds.y &&
+                full.label.bounds.y < full.content.bounds.y,
+            "the picture, title, description and action stack in order");
+    const double icon_centre = full.icon.bounds.x + full.icon.bounds.width * 0.5;
+    require(std::abs(icon_centre - 150.0) <= 1.0, "the column is centred across the control");
+    const double top_space = full.icon.bounds.y;
+    const double bottom_space = 240.0 - (full.content.bounds.y + full.content.bounds.height);
+    require(std::abs(top_space - bottom_space) <= 1.0, "the column is centred down the control");
+    const Rect slot = (*compose).committed_arranged_bounds();
+    require(slot.width > 0.0 && slot.y == full.content.bounds.y, "the action is placed in its slot");
+
+    const SemanticDescriptor described = (*empty).semantic_descriptor();
+    require(described.role == SemanticRole::group && described.exposed && described.include_descendants,
+            "the control is an exposed group around its action");
+    require(described.name == "No messages" && described.description == "Messages you receive appear here.",
+            "the title names the control and the description describes it");
+    require(!(*empty).hit_test_local(Point{150.0, 10.0}), "the control takes no pointer input itself");
+    require((*empty).property_value("image") == std::optional<BindingValue>{BindingValue{ImageId{3U}}},
+            "the table reads the image cell");
+
+    const Control::Ptr detached = (*empty).set_action(nullptr);
+    require(detached == compose && !(*compose).parent(), "clearing the action returns it detached");
+}
+
 } // namespace
 
 int main() {
@@ -267,6 +325,7 @@ int main() {
     test_info_banner_properties_and_states();
     test_info_banner_closing();
     test_info_banner_actuator_action_and_threads();
+    test_empty_state();
     std::cout << "display control tests passed\n";
     return EXIT_SUCCESS;
 }

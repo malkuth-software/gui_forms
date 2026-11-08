@@ -6,6 +6,7 @@
 #include "gui_forms/controls/badge/badge.hpp"
 #include "gui_forms/controls/button_base/button/button.hpp"
 #include "gui_forms/controls/data_grid_view/data_grid_view.hpp"
+#include "gui_forms/controls/empty_state/empty_state.hpp"
 #include "gui_forms/controls/info_banner/info_banner.hpp"
 #include "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp"
 #include "gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail.hpp"
@@ -621,6 +622,34 @@ void test_domain_up_down_properties() {
     }
 }
 
+void test_empty_state_properties() {
+    std::shared_ptr<EmptyState> control = make_control<EmptyState>(StableId("generated.emptystate"));
+    {
+        const ImageId sample = ImageId{3U};
+        (*control).image = sample;
+        expect((*control).image.read() == sample, "EmptyState.image: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("image");
+        expect(by_name && *by_name == PropertyValueTraits<ImageId>::to_binding(sample),
+               "EmptyState.image: the table reads the cell");
+    }
+    {
+        const std::string sample = std::string{"Sample"};
+        (*control).title = sample;
+        expect((*control).title.read() == sample, "EmptyState.title: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("title");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "EmptyState.title: the table reads the cell");
+    }
+    {
+        const std::string sample = std::string{"Sample"};
+        (*control).description = sample;
+        expect((*control).description.read() == sample, "EmptyState.description: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("description");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "EmptyState.description: the table reads the cell");
+    }
+}
+
 void test_flags_value_editor_properties() {
     std::shared_ptr<FlagsValueEditor> control = make_control<FlagsValueEditor>(StableId("generated.flagsvalueeditor"));
     {
@@ -1230,6 +1259,7 @@ int main() {
     test_data_grid_view_properties();
     test_date_time_picker_properties();
     test_domain_up_down_properties();
+    test_empty_state_properties();
     test_flags_value_editor_properties();
     test_font_dialog_properties();
     test_group_box_properties();

@@ -1446,6 +1446,16 @@ void example() {
 }
 }  // namespace doc_example_EasingPreview_1
 
+namespace doc_example_EmptyState_1 {
+void example() {
+    std::shared_ptr<gf::EmptyState> empty = gf::make_control<gf::EmptyState>(gf::StableId("mail.empty"));
+    (*empty).title = "No messages";
+    (*empty).description = "Messages you receive appear here.";
+    gf::Control::Ptr previous = (*empty).set_action(gf::make_control<gf::Button>(gf::StableId("mail.compose"), "Write a message"));
+    // previous is null: the control had no action before
+}
+}  // namespace doc_example_EmptyState_1
+
 namespace doc_example_ErrorProvider_1 {
 void example() {
     std::shared_ptr<gf::Panel> root = gf::make_control<gf::Panel>(gf::StableId("form"));
@@ -4361,6 +4371,7 @@ int main() {
     failures += run("DrawingSurface example 2", &doc_example_DrawingSurface_2::example);
     failures += run("DropDownButton example 1", &doc_example_DropDownButton_1::example);
     failures += run("EasingPreview example 1", &doc_example_EasingPreview_1::example);
+    failures += run("EmptyState example 1", &doc_example_EmptyState_1::example);
     failures += run("ErrorProvider example 1", &doc_example_ErrorProvider_1::example);
     failures += run("ErrorProvider example 2", &doc_example_ErrorProvider_2::example);
     failures += run("Event example 1", &doc_example_Event_1::example);

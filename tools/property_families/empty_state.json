@@ -1,0 +1,131 @@
+{
+  "family": "EmptyState",
+  "step": "W-4",
+  "declaring": "EmptyState",
+  "header": "include/gui_forms/controls/empty_state/empty_state.hpp",
+  "source": "src/controls/empty_state/empty_state.cpp",
+  "capabilities_header": "include/gui_forms/controls/empty_state/empty_state_capabilities/empty_state_capabilities.hpp",
+  "base": "Control",
+  "shared": [],
+  "includes": [
+    "gui_forms/types.hpp"
+  ],
+  "properties": [
+    {
+      "name": "image",
+      "capability": "EmptyStateImage",
+      "value": "ImageId",
+      "initial": null,
+      "comment": "The picture above the title, an ImageId into the window's ImageRegistry, drawn in a 48-unit square; none by default.",
+      "getter": "image",
+      "setter": "set_image",
+      "clear": null,
+      "field": "image_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": {
+        "kind": "image",
+        "category": "Appearance",
+        "description": "The picture above the title.",
+        "default": "BindingValue{ImageId{}}",
+        "effects": "Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": true,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "hand": [],
+      "sample": "ImageId{3U}"
+    },
+    {
+      "name": "title",
+      "capability": "EmptyStateTitle",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The heading that says what is empty, such as \"No messages\"; it names the control to assistive technology. Must be valid UTF-8 (std::invalid_argument).",
+      "getter": "title",
+      "setter": "set_title",
+      "clear": null,
+      "field": "title_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": "title",
+      "table": {
+        "kind": "text",
+        "category": "Appearance",
+        "description": "The heading that says what is empty.",
+        "default": "BindingValue{std::string{}}",
+        "effects": "Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": true,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "hand": [],
+      "prepare": [
+        "if (!validate_utf8(incoming).valid()) {",
+        "    throw std::invalid_argument(\"EmptyState title must be valid UTF-8\");",
+        "}"
+      ],
+      "sample": "std::string{\"Sample\"}"
+    },
+    {
+      "name": "description",
+      "capability": "EmptyStateDescription",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The line below the title that says why, or what to do next; it describes the control to assistive technology. Must be valid UTF-8 (std::invalid_argument).",
+      "getter": "description",
+      "setter": "set_description",
+      "clear": null,
+      "field": "description_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": "description",
+      "table": {
+        "kind": "text",
+        "category": "Appearance",
+        "description": "The line that says why it is empty or what to do next.",
+        "default": "BindingValue{std::string{}}",
+        "effects": "Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": true,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "hand": [],
+      "prepare": [
+        "if (!validate_utf8(incoming).valid()) {",
+        "    throw std::invalid_argument(\"EmptyState description must be valid UTF-8\");",
+        "}"
+      ],
+      "sample": "std::string{\"Sample\"}"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "action",
+      "reason": "an owned child slot; set_action returns the detached predecessor"
+    }
+  ],
+  "test": {
+    "type": "EmptyState",
+    "include": "gui_forms/controls/empty_state/empty_state.hpp"
+  }
+}
