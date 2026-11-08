@@ -132,9 +132,11 @@ void ToolTipBubble::on_paint(Painter& painter, Rect) {
     const Rect face{0.0, 0.0, arranged.width, arranged.height};
     PartPaint part;
     part.family = ControlVisualRole::tool_tip;
-    part.role = PartRole::shadow;
     part.bounds = face;
-    paint_part(painter, *this, part);
+    if (shadow_) {
+        part.role = PartRole::shadow;
+        paint_part(painter, *this, part);
+    }
     part.role = PartRole::face;
     paint_part(painter, *this, part);
     // Each line is a label part as wide as the text block; the block may be
@@ -153,7 +155,14 @@ void ToolTipBubble::on_paint(Painter& painter, Rect) {
     }
 }
 
+void ToolTipBubble::set_shadow(const bool cast) noexcept {
+    if (shadow_ == cast) return;
+    shadow_ = cast;
+    invalidate(Dirty::layout | Dirty::paint);
+}
+
 Insets ToolTipBubble::visual_outsets() const noexcept {
+    if (!shadow_) return Insets{};
     const Insets result = overlay_shadow_outsets(*this);
     return result;
 }

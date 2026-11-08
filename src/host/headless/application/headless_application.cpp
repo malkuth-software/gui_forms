@@ -167,6 +167,10 @@ bool HeadlessWindowing::supports_splash_windows() const noexcept {
     return splash_windows_;
 }
 
+bool HeadlessWindowing::transient_windows_translucent() const noexcept {
+    return translucent_;
+}
+
 void HeadlessWindowing::create_native(HostWindowId window, std::string_view stable_id,
                                       Rect content, Size minimum_size, bool decorated) {
     NativeWindow entry;

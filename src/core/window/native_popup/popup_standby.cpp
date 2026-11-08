@@ -83,6 +83,11 @@ bool Window::popup_windows_available() const {
     return available;
 }
 
+bool Window::popup_windows_translucent() const {
+    const bool translucent = detail::native_popup_translucent(application_window_);
+    return translucent;
+}
+
 detail::PopupStandby& Window::popup_standby() {
     if (!popup_standby_) popup_standby_ = std::make_shared<detail::PopupStandby>(*this);
     return *popup_standby_;

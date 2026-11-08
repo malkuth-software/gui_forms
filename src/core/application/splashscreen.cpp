@@ -4,10 +4,12 @@
 
 #include "splashscreen_surface.hpp"
 
+#include "gui_forms/resources/image_registry/image_registry.hpp"
 #include "gui_forms/text/types/text_types.hpp"
 
 #include <algorithm>
 #include <cmath>
+#include <span>
 #include <utility>
 
 namespace gui_forms {
@@ -16,6 +18,17 @@ namespace {
 
 // The splashscreen that shows, or null. Main thread only.
 Splashscreen* current_splashscreen = nullptr;
+
+// The fixed built-in styling (owner, 2026-11-08: Q-S1 (a)), in logical
+// units from the window's edges.
+constexpr double status_margin = 16.0;
+constexpr double status_font_size = 13.0;
+constexpr double bar_height = 3.0;
+constexpr double bar_gap = 8.0;
+constexpr Color status_color = Color::rgba(255, 255, 255);
+constexpr Color status_offset_color = Color::rgba(0, 0, 0, 140);
+constexpr Color track_color = Color::rgba(255, 255, 255, 64);
+constexpr Color bar_color = Color::rgba(255, 255, 255);
 
 bool text_valid(const std::string_view text) noexcept {
     if (text.size() > SplashscreenOptions::maximum_text_bytes) return false;
@@ -29,12 +42,9 @@ bool progress_valid(const std::optional<double> progress) noexcept {
     return valid;
 }
 
-bool options_valid(const SplashscreenOptions& options) noexcept {
-    const bool size_valid = std::isfinite(options.size.width) && std::isfinite(options.size.height) &&
-                            options.size.width >= 160.0 && options.size.width <= 1600.0 &&
-                            options.size.height >= 160.0 && options.size.height <= 1600.0;
-    const bool valid = size_valid && text_valid(options.title) && text_valid(options.status) &&
-                       progress_valid(options.progress);
+bool extent_valid(const std::uint32_t extent) noexcept {
+    const bool valid =
+        extent >= SplashscreenOptions::minimum_extent && extent <= SplashscreenOptions::maximum_extent;
     return valid;
 }
 
@@ -42,33 +52,38 @@ bool options_valid(const SplashscreenOptions& options) noexcept {
 
 namespace detail {
 
-void paint_splashscreen(Painter& painter, const SplashscreenOptions& options) {
-    const Size size = options.size;
-    painter.fill_rect(Rect{0.0, 0.0, size.width, size.height}, options.background);
-    painter.stroke_rect(Rect{0.5, 0.5, size.width - 1.0, size.height - 1.0}, options.accent, 1.0);
-    const FontSpec title_font{.role = FontRole::control, .size = 20.0, .weight = 700};
-    const FontSpec status_font{.role = FontRole::control, .size = 13.0};
-    constexpr double margin = 24.0;
-    if (!options.title.empty()) {
+std::optional<Size> splashscreen_size(const SplashscreenOptions& options) noexcept {
+    const std::span<const std::byte> encoded(options.artwork.data(), options.artwork.size());
+    const PngValidationResult validation = validate_png(encoded);
+    if (!validation) return std::nullopt;
+    const PngMetadata metadata = validation.metadata;
+    if (!extent_valid(metadata.width) || !extent_valid(metadata.height)) return std::nullopt;
+    const Size size{static_cast<double>(metadata.width), static_cast<double>(metadata.height)};
+    return size;
+}
+
+void paint_splashscreen(Painter& painter, const SplashscreenFrame& frame) {
+    const Size size = frame.size;
+    if (frame.images != nullptr && frame.artwork.value != 0U) {
+        painter.draw_image(frame.artwork, Rect{0.0, 0.0, size.width, size.height});
+    }
+    const double inner_width = std::max(0.0, size.width - status_margin * 2.0);
+    const double bar_top = size.height - status_margin - bar_height;
+    if (!frame.status.empty()) {
+        const FontSpec font{.role = FontRole::control, .size = status_font_size};
+        const double baseline = frame.progress.has_value() ? bar_top - bar_gap : size.height - status_margin;
         painter.save();
-        painter.clip_rect(Rect{margin, margin, size.width - margin * 2.0, 40.0});
-        painter.draw_text_utf8(Point{margin, margin + 24.0}, options.title, title_font, options.foreground);
+        painter.clip_rect(Rect{status_margin, baseline - 16.0, inner_width + 1.0, 21.0});
+        painter.draw_text_utf8(Point{status_margin + 1.0, baseline + 1.0}, frame.status, font,
+                               status_offset_color);
+        painter.draw_text_utf8(Point{status_margin, baseline}, frame.status, font, status_color);
         painter.restore();
     }
-    const double bar_height = 4.0;
-    const double status_baseline = size.height - margin - bar_height - 10.0;
-    if (!options.status.empty()) {
-        painter.save();
-        painter.clip_rect(Rect{margin, status_baseline - 16.0, size.width - margin * 2.0, 22.0});
-        painter.draw_text_utf8(Point{margin, status_baseline}, options.status, status_font, options.foreground);
-        painter.restore();
-    }
-    if (options.progress.has_value()) {
-        const Rect track{margin, size.height - margin - bar_height, size.width - margin * 2.0, bar_height};
-        const Color track_color = Color::rgba(options.accent.red, options.accent.green, options.accent.blue, 48);
+    if (frame.progress.has_value()) {
+        const Rect track{status_margin, bar_top, inner_width, bar_height};
         painter.fill_rect(track, track_color);
-        const double filled = track.width * std::clamp(*options.progress, 0.0, 1.0);
-        if (filled > 0.0) painter.fill_rect(Rect{track.x, track.y, filled, track.height}, options.accent);
+        const double filled = track.width * std::clamp(*frame.progress, 0.0, 1.0);
+        if (filled > 0.0) painter.fill_rect(Rect{track.x, track.y, filled, track.height}, bar_color);
     }
 }
 
@@ -78,8 +93,9 @@ void hand_over_splashscreen() noexcept {
 
 } // namespace detail
 
-Splashscreen::Splashscreen(SplashscreenOptions options, std::unique_ptr<detail::SplashscreenSurface> surface) noexcept
-    : options_(std::move(options)), surface_(std::move(surface)) {}
+Splashscreen::Splashscreen(SplashscreenOptions options, std::unique_ptr<ImageRegistry> images,
+                           const ImageId artwork, const Size size) noexcept
+    : options_(std::move(options)), images_(std::move(images)), artwork_(artwork), size_(size) {}
 
 Splashscreen::~Splashscreen() {
     close();
@@ -88,7 +104,8 @@ Splashscreen::~Splashscreen() {
 SplashscreenResult Splashscreen::show_on(SplashscreenOptions options,
                                          std::unique_ptr<detail::SplashscreenSurface> surface) {
     SplashscreenResult result{};
-    if (!options_valid(options)) {
+    const std::optional<Size> size = detail::splashscreen_size(options);
+    if (!size.has_value() || !text_valid(options.status) || !progress_valid(options.progress)) {
         result.error = SplashscreenError::invalid_argument;
         return result;
     }
@@ -100,7 +117,18 @@ SplashscreenResult Splashscreen::show_on(SplashscreenOptions options,
         result.error = SplashscreenError::unsupported;
         return result;
     }
-    std::unique_ptr<Splashscreen> splashscreen(new Splashscreen(std::move(options), std::move(surface)));
+    // The artwork's own registry: the one image, decoded by the surface's
+    // raster when it synchronizes.
+    std::unique_ptr<ImageRegistry> images = std::make_unique<ImageRegistry>();
+    const std::span<const std::byte> encoded(options.artwork.data(), options.artwork.size());
+    const ImageLoadResult loaded = (*images).load_png(encoded);
+    if (!loaded) {
+        result.error = SplashscreenError::invalid_argument;
+        return result;
+    }
+    std::unique_ptr<Splashscreen> splashscreen(
+        new Splashscreen(std::move(options), std::move(images), loaded.image, *size));
+    (*splashscreen).surface_ = std::move(surface);
     if (!(*splashscreen).present()) {
         result.error = SplashscreenError::unsupported;
         return result;
@@ -114,7 +142,13 @@ bool Splashscreen::present() noexcept {
     if (!surface_) return false;
     bool presented = false;
     try {
-        presented = (*surface_).present(options_);
+        detail::SplashscreenFrame frame{};
+        frame.size = size_;
+        frame.status = options_.status;
+        frame.progress = options_.progress;
+        frame.images = images_.get();
+        frame.artwork = artwork_;
+        presented = (*surface_).present(frame);
     } catch (...) {
         presented = false;
     }

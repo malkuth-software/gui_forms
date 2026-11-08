@@ -718,8 +718,13 @@ NativeWindow::NativeWindow(Runtime &host, LinuxApplicationWindow source)
   const X11ArgbVisual &argb_visual = (*runtime.compositor).argb();
   // A window declared non-opaque gets the ARGB visual, which is fixed at
   // creation (PLAN.md §1.3): its own colormap, and border and background
-  // pixels 0, without which the server answers BadMatch.
-  if ((*entry.model).non_opaque_declared() && argb_visual.found) {
+  // pixels 0, without which the server answers BadMatch. A popup or Splash
+  // takes it only while a compositing manager runs; without one it is
+  // opaque on the default visual, made override-redirect by mark_transient
+  // (owner, 2026-11-08: Q-S2 (b)).
+  const bool translucent_transient =
+      !entry.popup.has_value() || (*runtime.compositor).compositor_present();
+  if ((*entry.model).non_opaque_declared() && argb_visual.found && translucent_transient) {
     colormap = XCreateColormap(runtime.display, RootWindow(runtime.display, screen),
                                argb_visual.visual, AllocNone);
     XSetWindowAttributes attributes{};

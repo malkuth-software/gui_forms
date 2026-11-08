@@ -33,13 +33,13 @@ public:
     HeadlessSplashscreenSurface(const HeadlessSplashscreenSurface&) = delete;
     HeadlessSplashscreenSurface& operator=(const HeadlessSplashscreenSurface&) = delete;
 
-    bool present(const SplashscreenOptions& options) override {
+    bool present(const detail::SplashscreenFrame& frame) override {
         detail::RecordingPainter painter{};
-        detail::paint_splashscreen(painter, options);
+        detail::paint_splashscreen(painter, frame);
         if (record_) {
             (*record_).presented = (*record_).presented + 1U;
-            (*record_).status = options.status;
-            (*record_).progress = options.progress;
+            (*record_).status.assign(frame.status);
+            (*record_).progress = frame.progress;
         }
         return true;
     }

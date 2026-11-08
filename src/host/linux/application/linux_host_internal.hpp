@@ -34,12 +34,16 @@ public:
   // Reports the window's current frame (ConfigureNotify, first map).
   void report_native_frame(NativeWindow &window);
   // Popup and Splash windows (owner, 2026-11-08: SPLASH_STUDY D5 (b)):
-  // override-redirect windows with the 32-bit ARGB visual, opened while a
-  // compositing manager owns _NET_WM_CM_S<n>. Without one the server has no
-  // per-pixel alpha for the program's shadow, so the host truly cannot and
-  // reports false; the core then shows an overlay.
+  // override-redirect windows, opened whenever the run has a display. While
+  // a compositing manager owns _NET_WM_CM_S<n> and the server has a 32-bit
+  // ARGB visual they take that visual and are translucent; without one they
+  // stay real windows on the default visual, opaque, and
+  // transient_windows_translucent() reports false so the core draws no
+  // shadow or fade (owner, 2026-11-08: Q-S2 (b)). They never fall back to
+  // overlays.
   [[nodiscard]] bool supports_popup_windows() const noexcept override;
   [[nodiscard]] bool supports_splash_windows() const noexcept override;
+  [[nodiscard]] bool transient_windows_translucent() const noexcept override;
 
 protected:
   HostWindowFrameResult frame_impl(HostWindowId window) override;

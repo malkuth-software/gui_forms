@@ -20,8 +20,10 @@
 #include "gui_forms/window.hpp"
 #include "application/headless_application.hpp"
 #include "application/headless_splashscreen.hpp"
+#include "../src/core/image/png_writer.hpp"
 
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -29,6 +31,7 @@
 #include <memory>
 #include <new>
 #include <optional>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -63,6 +66,21 @@ void require(bool condition, const char* message) {
 bool contains(const std::string& text, const char* fragment) {
     const bool found = text.find(fragment) != std::string::npos;
     return found;
+}
+
+// A plain PNG artwork of `width` x `height` pixels.
+std::vector<std::byte> artwork(const std::uint32_t width, const std::uint32_t height) {
+    const std::vector<std::byte> pixels(static_cast<std::size_t>(width) * height * 4U, std::byte{0xff});
+    image::PngEncodeInput input{};
+    input.width = width;
+    input.height = height;
+    input.row_bytes = static_cast<std::uint64_t>(width) * 4U;
+    input.pixels = std::span<const std::byte>(pixels.data(), pixels.size());
+    input.order = image::PngChannelOrder::bgra;
+    input.alpha = image::PngSourceAlpha::premultiplied;
+    std::vector<std::byte> encoded{};
+    require(image::encode_png(input, encoded), "the artwork encodes");
+    return encoded;
 }
 
 struct KeepReady final {
@@ -306,15 +324,67 @@ void menu_falls_back_to_the_overlay() {
     menu.close();
 }
 
+// The opaque path (owner, 2026-11-08: Q-S2 (b)): a run whose transient
+// windows have no per-pixel alpha (X11 without a compositing manager)
+// still shows tooltips and menus in their own windows, sized to the face
+// alone, with no shadow.
+// The tooltip's window on a run whose transient windows are `translucent`
+// or not.
+Rect tool_tip_window(const bool translucent) {
+    Desk desk;
+    desk.windowing().set_transient_windows_translucent(translucent);
+    require((*desk.model).popup_windows_translucent() == translucent, "the window reports its popup windows");
+    (*desk.model).show_tool_tip(desk.anchor, std::chrono::milliseconds(0));
+    const std::optional<HostWindowId> splash = desk.splash();
+    require(splash.has_value() && desk.windowing().native_visible(*splash), "the tooltip has its own window");
+    const std::optional<Rect> content = desk.windowing().native_content(*splash);
+    require(content.has_value(), "the tooltip's window is placed");
+    return *content;
+}
+
+// The first menu panel's Popup window on a run whose transient windows are
+// `translucent` or not.
+Rect menu_window(const bool translucent) {
+    Desk desk;
+    desk.windowing().set_transient_windows_translucent(translucent);
+    MenuCommands commands;
+    ContextMenu menu("desk.menu");
+    menu.set_items(menu_items(commands));
+    menu.show(desk.anchor, Point{40.0, 40.0}, MenuOpenMode::keyboard);
+    require(menu.is_open() && visible_popups(desk) == 1U, "the menu panel has its own Popup window");
+    std::optional<Rect> content{};
+    const std::vector<HostWindowId> order = desk.windowing().z_order();
+    for (const HostWindowId id : order) {
+        if (id != desk.main.id() && desk.windowing().native_visible(id)) content = desk.windowing().native_content(id);
+    }
+    require(content.has_value(), "the menu's Popup window is placed");
+    menu.close();
+    return *content;
+}
+
+void opaque_transient_windows_hold_the_face_alone() {
+    const Rect translucent_tip = tool_tip_window(true);
+    const Rect opaque_tip = tool_tip_window(false);
+    require(opaque_tip.width < translucent_tip.width && opaque_tip.height < translucent_tip.height &&
+                opaque_tip.x > translucent_tip.x && opaque_tip.y > translucent_tip.y,
+            "an opaque tooltip window holds the face alone, with no room for a shadow");
+    const Rect translucent_menu = menu_window(true);
+    const Rect opaque_menu = menu_window(false);
+    require(opaque_menu.width < translucent_menu.width && opaque_menu.height < translucent_menu.height,
+            "an opaque menu window holds the panel alone, with no room for a shadow");
+}
+
 void splashscreen_shows_and_hands_over() {
     const std::shared_ptr<host::HeadlessSplashscreenRecord> record = std::make_shared<host::HeadlessSplashscreenRecord>();
     SplashscreenOptions options{};
-    options.title = "Fixture";
+    options.artwork = artwork(440U, 240U);
     options.status = "Starting";
     SplashscreenResult shown =
         Splashscreen::show_on(options, std::make_unique<host::HeadlessSplashscreenSurface>(record));
     require(static_cast<bool>(shown) && (*record).presented == 1U, "the splashscreen shows its first frame");
     Splashscreen& splashscreen = *shown.splashscreen;
+    require(splashscreen.size().width == 440.0 && splashscreen.size().height == 240.0,
+            "the window is the artwork's size");
     require(splashscreen.set_status("Loading the theme") == SplashscreenError::none &&
                 (*record).status == "Loading the theme" && (*record).presented == 2U,
             "a status change presents a frame at once");
@@ -334,10 +404,13 @@ void splashscreen_shows_and_hands_over() {
     require(splashscreen.set_status("Done") == SplashscreenError::none && (*record).presented == 3U,
             "after the handover a status change presents nothing");
     SplashscreenOptions bad{};
-    bad.size = Size{40.0, 40.0};
-    const SplashscreenResult refused =
+    const SplashscreenResult missing =
         Splashscreen::show_on(bad, std::make_unique<host::HeadlessSplashscreenSurface>(nullptr));
-    require(refused.error == SplashscreenError::invalid_argument, "a size out of range is refused");
+    require(missing.error == SplashscreenError::invalid_argument, "a splashscreen without artwork is refused");
+    bad.artwork = artwork(40U, 40U);
+    const SplashscreenResult small =
+        Splashscreen::show_on(bad, std::make_unique<host::HeadlessSplashscreenSurface>(nullptr));
+    require(small.error == SplashscreenError::invalid_argument, "artwork out of range is refused");
 }
 } // namespace
 
@@ -351,6 +424,7 @@ int main() {
         admission_rules();
         menu_panels_show_in_popup_windows();
         menu_falls_back_to_the_overlay();
+        opaque_transient_windows_hold_the_face_alone();
         splashscreen_shows_and_hands_over();
     } catch (const std::exception& error) {
         std::cerr << "splash window test failed: " << error.what() << '\n';

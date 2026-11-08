@@ -132,6 +132,10 @@ public:
     // slot that shows. std::out_of_range for a slot out of range. UI thread.
     static constexpr std::size_t maximum_popup_windows = 8U;
     [[nodiscard]] bool popup_windows_available() const;
+    // Whether this window's popup windows are translucent now: false on a
+    // run whose host draws them opaque (X11 without a compositing manager),
+    // where content shown in them casts no shadow and does not fade.
+    [[nodiscard]] bool popup_windows_translucent() const;
     [[nodiscard]] bool show_popup_window(std::size_t slot, const Control::Ptr& content, Rect bounds);
     [[nodiscard]] bool move_popup_window(std::size_t slot, Rect bounds);
     void hide_popup_window(std::size_t slot) noexcept;

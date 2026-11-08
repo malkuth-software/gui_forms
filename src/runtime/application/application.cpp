@@ -3,6 +3,7 @@
 #include "../../core/application/splashscreen_surface.hpp"
 
 #include <atomic>
+#include <optional>
 #include <utility>
 
 #if defined(GUI_FORMS_APPLICATION_MACOS)
@@ -362,10 +363,12 @@ struct WindowingEnded final {
 SplashscreenResult Splashscreen::show(SplashscreenOptions options) {
     SplashscreenResult checked = Splashscreen::show_on(options, nullptr);
     if (checked.error != SplashscreenError::unsupported) return checked;
+    // Valid here: show_on checked the artwork before refusing the null surface.
+    const std::optional<Size> size = detail::splashscreen_size(options);
     std::unique_ptr<detail::SplashscreenSurface> surface{};
 #if defined(GUI_FORMS_APPLICATION_MACOS) || defined(GUI_FORMS_APPLICATION_WINDOWS) || \
     defined(GUI_FORMS_APPLICATION_LINUX)
-    surface = host::open_platform_splashscreen(options.size);
+    if (size.has_value()) surface = host::open_platform_splashscreen(*size);
 #endif
     SplashscreenResult result = Splashscreen::show_on(std::move(options), std::move(surface));
     return result;

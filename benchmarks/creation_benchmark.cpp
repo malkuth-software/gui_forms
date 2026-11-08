@@ -27,6 +27,7 @@
 #include "creation_form_form.hpp"
 #include "application/headless_application.hpp"
 #include "application/headless_splashscreen.hpp"
+#include "../src/core/image/png_writer.hpp"
 
 #include <algorithm>
 #include <array>
@@ -38,6 +39,7 @@
 #include <memory>
 #include <new>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -323,11 +325,31 @@ Sample measure_warm_popup(WarmRun& run) {
     return sample;
 }
 
+
+// The splashscreen artwork, a plain 440 x 240 PNG encoded on first use
+// (during the warm-up round, outside every measurement) and kept for the
+// run.
+const std::vector<std::byte>& splashscreen_artwork() {
+    static std::vector<std::byte> encoded{};
+    if (!encoded.empty()) return encoded;
+    constexpr std::uint32_t width = 440U;
+    constexpr std::uint32_t height = 240U;
+    const std::vector<std::byte> pixels(static_cast<std::size_t>(width) * height * 4U, std::byte{0xff});
+    image::PngEncodeInput input{};
+    input.width = width;
+    input.height = height;
+    input.row_bytes = static_cast<std::uint64_t>(width) * 4U;
+    input.pixels = std::span<const std::byte>(pixels.data(), pixels.size());
+    input.order = image::PngChannelOrder::bgra;
+    input.alpha = image::PngSourceAlpha::premultiplied;
+    if (!image::encode_png(input, encoded)) encoded.clear();
+    return encoded;
+}
 // A splashscreen shown on a new headless surface, given a status and
 // closed: the portable cost of showing one before Application::create.
 Sample measure_cold_splashscreen() {
     SplashscreenOptions options{};
-    options.title = "Creation";
+    options.artwork = splashscreen_artwork();
     options.status = "Starting";
     Measurement measurement;
     SplashscreenResult shown = Splashscreen::show_on(

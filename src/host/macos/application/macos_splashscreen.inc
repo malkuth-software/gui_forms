@@ -61,13 +61,14 @@ public:
 
     [[nodiscard]] bool fonts_ready() { return raster_.register_bundled_fonts(bundle_font_set()); }
 
-    bool present(const gui_forms::SplashscreenOptions& options) override {
+    bool present(const gui_forms::detail::SplashscreenFrame& frame) override {
         if (color_space_ == nullptr) return false;
-        static_cast<void>(raster_.resize(options.size, scale_));
+        if (frame.images != nullptr && !raster_.synchronize_images(*frame.images)) return false;
+        static_cast<void>(raster_.resize(frame.size, scale_));
         DamageRegion whole;
-        whole.add(Rect{0.0, 0.0, options.size.width, options.size.height});
+        whole.add(Rect{0.0, 0.0, frame.size.width, frame.size.height});
         raster_.begin_frame(whole);
-        gui_forms::detail::paint_splashscreen(raster_, options);
+        gui_forms::detail::paint_splashscreen(raster_, frame);
         raster_.end_frame();
         const void* pixels = raster_.pixels();
         if (pixels == nullptr) return false;

@@ -73,13 +73,14 @@ public:
     return true;
   }
 
-  bool present(const gui_forms::SplashscreenOptions &options) override {
+  bool present(const gui_forms::detail::SplashscreenFrame& frame) override {
     if (display_ == nullptr || window_ == 0) return false;
-    static_cast<void>(raster_.resize(options.size, 1.0));
+    if (frame.images != nullptr && !raster_.synchronize_images(*frame.images)) return false;
+    static_cast<void>(raster_.resize(frame.size, 1.0));
     DamageRegion whole;
-    whole.add(Rect{0.0, 0.0, options.size.width, options.size.height});
+    whole.add(Rect{0.0, 0.0, frame.size.width, frame.size.height});
     raster_.begin_frame(whole);
-    gui_forms::detail::paint_splashscreen(raster_, options);
+    gui_forms::detail::paint_splashscreen(raster_, frame);
     raster_.end_frame();
     const std::byte *pixels = static_cast<const std::byte *>(raster_.pixels());
     if (pixels == nullptr || raster_.pixel_width() < width_ || raster_.pixel_height() < height_) return false;

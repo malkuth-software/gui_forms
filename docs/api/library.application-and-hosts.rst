@@ -216,7 +216,7 @@ Related types
    * - :cpp:class:`Splashscreen <gui_forms::Splashscreen>`
      - One shown splashscreen, owned by the program.
    * - :cpp:class:`SplashscreenOptions <gui_forms::SplashscreenOptions>`
-     - A splashscreen (owner, 2026-11-08: APP_WINDOW_RULES_DESIGN Part S; a Splash of kind splashscreen) shown before Application::create, while the program loads: a borderless window centred on the primary monitor that takes no input, painted by a minimal path of its own (a filled face, the title, one status line and an optional progress bar, drawn with the bundled control face through the host's CPU raster; no theme, controls or layout), so that it shows before the theme is compiled.
+     - A splashscreen (owner, 2026-11-08: APP_WINDOW_RULES_DESIGN Part S; a Splash of kind splashscreen) shown before Application::create, while the program loads: a borderless window centred on the primary monitor that takes no input.
    * - :cpp:class:`SplashscreenResult <gui_forms::SplashscreenResult>`
      -  
    * - :cpp:class:`ThemeChoice <gui_forms::ThemeChoice>`
@@ -2114,6 +2114,10 @@ Related types
 
       Whether the adapter opens Splash popup windows (HostTransientKind tool_tip and splashscreen): click-through, never key, never activated. False unless the adapter can; admit() refuses a Splash as unsupported without it, and the core then falls back to an overlay. A host reports false only when it truly cannot (owner, 2026-11-08: SPLASH_STUDY D5).
 
+   .. cpp:function:: virtual bool transient_windows_translucent() const noexcept
+
+      Whether the run's popup and Splash windows have per-pixel alpha now, so the core may draw a shadow or fade around their content. True unless the adapter says otherwise; an X11 run without a compositing manager reports false and its transient windows stay real windows, opaque, with no shadow or fade (owner, 2026-11-08: Q-S2 (b)).
+
    .. cpp:function:: virtual HostWindowFrameResult frame_impl(HostWindowId window) = 0
 
       *Protected.*
@@ -2492,6 +2496,10 @@ Related types
 
    .. cpp:function:: const SplashscreenOptions& options() const noexcept
 
+   .. cpp:function:: Size size() const noexcept
+
+      The window's size in logical units: the artwork's pixel size.
+
    .. cpp:function:: std::uint64_t frames() const noexcept
 
       Frames presented, the first included.
@@ -2519,37 +2527,31 @@ Related types
 
    ``#include <gui_forms/application/splashscreen/splashscreen.hpp>``
 
-   A splashscreen (owner, 2026-11-08: APP_WINDOW_RULES_DESIGN Part S; a Splash of kind splashscreen) shown before Application::create, while the program loads: a borderless window centred on the primary monitor that takes no input, painted by a minimal path of its own (a filled face, the title, one status line and an optional progress bar, drawn with the bundled control face through the host's CPU raster; no theme, controls or layout), so that it shows before the theme is compiled.
+   A splashscreen (owner, 2026-11-08: APP_WINDOW_RULES_DESIGN Part S; a Splash of kind splashscreen) shown before Application::create, while the program loads: a borderless window centred on the primary monitor that takes no input. It is the program's artwork plus one status line and an optional progress bar in fixed built-in styling, with no sheet (owner, 2026-11-08: Q-S1 (a)); a minimal paint path of its own draws them with the bundled control face through the host's CPU raster (no theme, controls or layout), so that it shows before the theme is compiled.
 
    .. cpp:member:: constexpr std::size_t maximum_text_bytes
 
       Default: ``512U``.
 
-   .. cpp:member:: Size size
+   .. cpp:member:: constexpr std::uint32_t minimum_extent
 
-      Logical units; each extent 160 to 1600. Default: ``{440.0, 240.0}``.
+      Default: ``160U``.
 
-   .. cpp:member:: std::string title
+   .. cpp:member:: constexpr std::uint32_t maximum_extent
 
-      UTF-8, at most maximum_text_bytes each.
+      Default: ``1600U``.
+
+   .. cpp:member:: std::vector<std::byte> artwork
+
+      The artwork: a PNG file whose pixel size, one logical unit per pixel, is the window's size (each extent minimum_extent to maximum_extent). It covers the whole window; the status and the bar are drawn over its bottom edge, so the artwork leaves room there.
 
    .. cpp:member:: std::string status
+
+      UTF-8, at most maximum_text_bytes.
 
    .. cpp:member:: std::optional<double> progress
 
       In [0, 1]; none shows no bar.
-
-   .. cpp:member:: Color background
-
-      Default: ``{Color::rgba(250, 252, 255)}``.
-
-   .. cpp:member:: Color foreground
-
-      Default: ``{Color::rgba(31, 37, 44)}``.
-
-   .. cpp:member:: Color accent
-
-      Default: ``{Color::rgba(0, 103, 192)}``.
 
 .. cpp:namespace:: gui_forms
 

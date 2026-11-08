@@ -86,6 +86,14 @@ NativePopupRefusal native_popup_refusal(const std::weak_ptr<ApplicationWindowSta
     return NativePopupRefusal::none;
 }
 
+bool native_popup_translucent(const std::weak_ptr<ApplicationWindowState>& owner) noexcept {
+    const std::shared_ptr<ApplicationWindowState> state = owner.lock();
+    const std::shared_ptr<ApplicationRunState> run = owner_run(state);
+    if (!run || !(*run).windowing) return true;
+    const bool translucent = (*(*run).windowing).transient_windows_translucent();
+    return translucent;
+}
+
 std::optional<Rect> desktop_placement(const std::weak_ptr<ApplicationWindowState>& owner, const Rect bounds) {
     const std::shared_ptr<ApplicationWindowState> state = owner.lock();
     if (!owner_run(state)) return std::nullopt;

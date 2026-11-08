@@ -54,6 +54,10 @@ public:
     // Popup windows, true by default; tests turn them off to see menus fall
     // back to overlays.
     void set_popup_windows(bool supported) noexcept { popup_windows_ = supported; }
+    // Translucent transient windows, true by default; tests turn it off to
+    // see the opaque path of an X11 run without a compositing manager.
+    [[nodiscard]] bool transient_windows_translucent() const noexcept override;
+    void set_transient_windows_translucent(bool translucent) noexcept { translucent_ = translucent; }
 
     // Replaces the simulated monitors (desktop logical units). An empty
     // list is ignored.
@@ -141,6 +145,7 @@ private:
     bool tracing_{true};
     bool splash_windows_{true};
     bool popup_windows_{true};
+    bool translucent_{true};
 };
 
 // A deterministic multi-window application for tests: Application::run's

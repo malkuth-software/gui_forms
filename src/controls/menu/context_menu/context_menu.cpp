@@ -139,17 +139,28 @@ struct ContextMenu::Impl final {
         // overlay shadow (owner decision RB-37) from its square face before
         // painting the face.
         void on_paint(Painter& painter, Rect local_damage) override {
-            PartPaint shadow;
-            shadow.role = PartRole::shadow;
-            shadow.family = ControlVisualRole::panel;
-            shadow.bounds = local_bounds();
-            shadow.corner_radius = 0.0;
-            paint_part(painter, *this, shadow);
+            if (shadow_) {
+                PartPaint shadow;
+                shadow.role = PartRole::shadow;
+                shadow.family = ControlVisualRole::panel;
+                shadow.bounds = local_bounds();
+                shadow.corner_radius = 0.0;
+                paint_part(painter, *this, shadow);
+            }
             Panel::on_paint(painter, local_damage);
+        }
+
+        // Whether the panel casts its shadow (true until changed): an opaque
+        // Popup window holds the face alone (owner, 2026-11-08: Q-S2 (b)).
+        void set_shadow(const bool cast) noexcept {
+            if (shadow_ == cast) return;
+            shadow_ = cast;
+            invalidate(Dirty::layout | Dirty::paint);
         }
 
         [[nodiscard]] Insets visual_outsets() const noexcept override {
             const Insets panel = Panel::visual_outsets();
+            if (!shadow_) return panel;
             const Insets shadow = overlay_shadow_outsets(*this);
             const Insets result{std::max(panel.left, shadow.left), std::max(panel.top, shadow.top),
                                 std::max(panel.right, shadow.right), std::max(panel.bottom, shadow.bottom)};
@@ -211,6 +222,7 @@ struct ContextMenu::Impl final {
     private:
         Impl& impl_;
         std::size_t depth_{};
+        bool shadow_{true};
     };
 
     // The client of one Popup window: holds its panel at the panel's face,
@@ -719,6 +731,7 @@ struct ContextMenu::Impl final {
             frame = make_control<PopupFrame>(
                 StableId(owner.stable_id_ + ".popup.frame." + std::to_string(depth)));
         }
+        (*state.panel).set_shadow((*window).popup_windows_translucent());
         const Insets outsets = (*state.panel).visual_outsets();
         (*frame).hold(state.panel, Rect{outsets.left, outsets.top, face.width, face.height});
         const Rect bounds{face.x - outsets.left, face.y - outsets.top,
@@ -789,6 +802,7 @@ struct ContextMenu::Impl final {
         // A panel clamped above where it was asked for opens upward.
         const bool upward = y < requested_y;
         if (!popup_mode || !present_in_popup(depth, placed, face, upward)) {
+            (*placed.panel).set_shadow(true);
             (*layer).add_child(placed.panel);
         }
     }

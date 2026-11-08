@@ -92,6 +92,11 @@ struct NativePopupOpening final {
 [[nodiscard]] NativePopupRefusal native_popup_refusal(const std::weak_ptr<ApplicationWindowState>& owner,
                                                       HostTransientKind kind = HostTransientKind::popup) noexcept;
 
+// Whether the owner's run draws its popup and Splash windows translucent
+// (HostWindowing::transient_windows_translucent): true when it does or when
+// there is no live run, false when they are opaque, with no shadow or fade.
+[[nodiscard]] bool native_popup_translucent(const std::weak_ptr<ApplicationWindowState>& owner) noexcept;
+
 // `bounds` in the owner's client area as a desktop rectangle in logical
 // units, moved the least distance that keeps it inside the work area of
 // the monitor under its origin. None when the owner is not a ready window

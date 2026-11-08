@@ -51,6 +51,10 @@ public:
     void set_content(std::string_view text, ToolTipLines& lines);
     // The face's size for these lines.
     [[nodiscard]] Size face_size() const noexcept;
+    // Whether the bubble casts its shadow (true until changed). An opaque
+    // Splash window has no room for one: the bubble then paints its face
+    // only and reports no outsets.
+    void set_shadow(bool cast) noexcept;
     void on_paint(Painter& painter, Rect local_damage) override;
     [[nodiscard]] Insets visual_outsets() const noexcept override;
     [[nodiscard]] bool hit_test_local(Point point) const override;
@@ -59,6 +63,7 @@ public:
 private:
     std::string text_;
     ToolTipLines lines_;
+    bool shadow_{true};
 };
 
 } // namespace gui_forms::detail

@@ -1,7 +1,7 @@
 #pragma once
 
+#include "gui_forms/resources/types/image_resource_types.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
-#include "gui_forms/types/paint_types/paint_types.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -9,8 +9,11 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace gui_forms {
+
+class ImageRegistry;
 
 namespace detail {
 class SplashscreenSurface;
@@ -19,29 +22,31 @@ class SplashscreenSurface;
 // A splashscreen (owner, 2026-11-08: APP_WINDOW_RULES_DESIGN Part S; a
 // Splash of kind splashscreen) shown before Application::create, while the
 // program loads: a borderless window centred on the primary monitor that
-// takes no input, painted by a minimal path of its own (a filled face, the
-// title, one status line and an optional progress bar, drawn with the
-// bundled control face through the host's CPU raster; no theme, controls
-// or layout), so that it shows before the theme is compiled.
+// takes no input. It is the program's artwork plus one status line and an
+// optional progress bar in fixed built-in styling, with no sheet (owner,
+// 2026-11-08: Q-S1 (a)); a minimal paint path of its own draws them with
+// the bundled control face through the host's CPU raster (no theme,
+// controls or layout), so that it shows before the theme is compiled.
 struct SplashscreenOptions final {
     static constexpr std::size_t maximum_text_bytes = 512U;
-    // Logical units; each extent 160 to 1600.
-    Size size{440.0, 240.0};
-    // UTF-8, at most maximum_text_bytes each.
-    std::string title{};
+    static constexpr std::uint32_t minimum_extent = 160U;
+    static constexpr std::uint32_t maximum_extent = 1600U;
+    // The artwork: a PNG file whose pixel size, one logical unit per pixel,
+    // is the window's size (each extent minimum_extent to maximum_extent).
+    // It covers the whole window; the status and the bar are drawn over its
+    // bottom edge, so the artwork leaves room there.
+    std::vector<std::byte> artwork{};
+    // UTF-8, at most maximum_text_bytes.
     std::string status{};
     // In [0, 1]; none shows no bar.
     std::optional<double> progress{};
-    Color background{Color::rgba(250, 252, 255)};
-    Color foreground{Color::rgba(31, 37, 44)};
-    Color accent{Color::rgba(0, 103, 192)};
 };
 
 // What Splashscreen::show and the setters refuse.
 enum class SplashscreenError : std::uint8_t {
     none,
-    // A size out of range, text that is not UTF-8 or too long, or a
-    // progress outside [0, 1].
+    // Artwork that is not a PNG file or has an extent out of range, text
+    // that is not UTF-8 or too long, or a progress outside [0, 1].
     invalid_argument,
     // Another splashscreen shows; there is one at a time.
     already_shown,
@@ -84,6 +89,8 @@ public:
 
     [[nodiscard]] bool shown() const noexcept { return surface_ != nullptr; }
     [[nodiscard]] const SplashscreenOptions& options() const noexcept { return options_; }
+    // The window's size in logical units: the artwork's pixel size.
+    [[nodiscard]] Size size() const noexcept { return size_; }
     // Frames presented, the first included.
     [[nodiscard]] std::uint64_t frames() const noexcept { return frames_; }
 
@@ -93,10 +100,16 @@ public:
                                                     std::unique_ptr<detail::SplashscreenSurface> surface);
 
 private:
-    Splashscreen(SplashscreenOptions options, std::unique_ptr<detail::SplashscreenSurface> surface) noexcept;
+    Splashscreen(SplashscreenOptions options, std::unique_ptr<ImageRegistry> images, ImageId artwork,
+                 Size size) noexcept;
     [[nodiscard]] bool present() noexcept;
 
     SplashscreenOptions options_;
+    // Holds the artwork alone; the surface's raster synchronizes from it.
+    std::unique_ptr<ImageRegistry> images_;
+    ImageId artwork_{};
+    Size size_{};
+    // Declared after images_, which its frames borrow.
     std::unique_ptr<detail::SplashscreenSurface> surface_;
     std::uint64_t frames_{};
 };

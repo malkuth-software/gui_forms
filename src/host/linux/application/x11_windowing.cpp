@@ -102,6 +102,11 @@ HostWindowAdmission X11Windowing::open(LinuxApplicationWindow entry,
 }
 
 bool X11Windowing::supports_popup_windows() const noexcept {
+  const bool available = static_cast<bool>(runtime_.compositor);
+  return available;
+}
+
+bool X11Windowing::transient_windows_translucent() const noexcept {
   if (!runtime_.compositor)
     return false;
   const bool alpha = (*runtime_.compositor).argb().found && (*runtime_.compositor).compositor_present();

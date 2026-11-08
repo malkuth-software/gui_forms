@@ -337,6 +337,12 @@ public:
     // without it, and the core then falls back to an overlay. A host reports
     // false only when it truly cannot (owner, 2026-11-08: SPLASH_STUDY D5).
     [[nodiscard]] virtual bool supports_splash_windows() const noexcept;
+    // Whether the run's popup and Splash windows have per-pixel alpha now,
+    // so the core may draw a shadow or fade around their content. True
+    // unless the adapter says otherwise; an X11 run without a compositing
+    // manager reports false and its transient windows stay real windows,
+    // opaque, with no shadow or fade (owner, 2026-11-08: Q-S2 (b)).
+    [[nodiscard]] virtual bool transient_windows_translucent() const noexcept;
     [[nodiscard]] Event<const HostWindowFrameEvent&>& frame_changed() noexcept {
         return frame_changed_;
     }

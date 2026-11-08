@@ -392,6 +392,10 @@ bool HostWindowing::supports_splash_windows() const noexcept {
     return false;
 }
 
+bool HostWindowing::transient_windows_translucent() const noexcept {
+    return true;
+}
+
 HostWindowAdmission HostWindowing::admit(const HostWindowDescription& description) {
     HostWindowAdmission result;
     if (std::this_thread::get_id() != ui_thread_) {
