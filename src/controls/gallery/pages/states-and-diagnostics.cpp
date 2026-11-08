@@ -49,7 +49,7 @@ public:
 
 private:
     void mount_document(const std::shared_ptr<Surface>& body);
-    [[nodiscard]] static std::shared_ptr<DiagnosticsCard> make_diagnostics();
+    void build_diagnostics();
     void build_specimens();
     void build_dispatcher();
     void on_post();
@@ -82,6 +82,7 @@ StatesPage::StatesPage(const std::shared_ptr<Surface>& body,
     document_.initialize_component(*this);
     mount_document(body);
     build_specimens();
+    build_diagnostics();
     build_dispatcher();
 }
 
@@ -91,35 +92,30 @@ StatesPage::~StatesPage() {
 
 // The document's root is a declared boundary only: its children move into
 // the shell's page body, where each is placed by its bounds in design
-// coordinates. The DiagnosticsCard, which the form catalogue does not name,
-// follows the lifecycle group so the body's order is the retired page's. The
-// copy of the child list keeps the iteration valid while the root shrinks.
+// coordinates. The copy of the child list keeps the iteration valid while
+// the root shrinks.
 void StatesPage::mount_document(const std::shared_ptr<Surface>& body) {
     Control& root = *document_.gallery_states_document;
     const std::vector<Control::Ptr> children(root.children().begin(), root.children().end());
-    const RuntimeId lifecycle = (*document_.gallery_states_lifecycle).runtime_id();
     for (const Control::Ptr& child : children) {
-        const RuntimeId moved_id = (*child).runtime_id();
-        Control::Ptr moved = root.remove_child(moved_id);
+        Control::Ptr moved = root.remove_child((*child).runtime_id());
         (*body).add_child(std::move(moved));
-        if (moved_id == lifecycle) (*body).add_at(make_diagnostics(), {494.0, 226.0, 460.0, 240.0});
     }
     (*document_.gallery_states_lifecycle).set_style(page_style());
     (*document_.gallery_states_dispatcher).set_style(page_style());
     status_ = document_.gallery_dispatcher_status;
 }
 
-std::shared_ptr<DiagnosticsCard> StatesPage::make_diagnostics() {
-    std::shared_ptr<DiagnosticsCard> diagnostics =
-        make_control<DiagnosticsCard>(StableId("gallery.states.diagnostics"));
-    (*diagnostics).set_title("RETAINED RUNTIME");
+// The retained-runtime card (a MetricsView): its title and colours.
+void StatesPage::build_diagnostics() {
+    DiagnosticsCard& diagnostics = *document_.gallery_states_diagnostics;
+    diagnostics.set_title("RETAINED RUNTIME");
     BasicControlStyle diagnostics_style = page_style();
     diagnostics_style.text = Color::rgba(28, 39, 50);
     diagnostics_style.face = Color::rgba(175, 203, 221);
     diagnostics_style.face_light = Color::rgba(226, 238, 246);
     diagnostics_style.accent = green;
-    (*diagnostics).set_style(diagnostics_style);
-    return diagnostics;
+    diagnostics.set_style(diagnostics_style);
 }
 
 // The panels' border styles are in the document; their alternating

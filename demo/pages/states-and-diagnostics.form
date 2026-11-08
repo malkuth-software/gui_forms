@@ -6,8 +6,7 @@
    gallery.states.document is a declared boundary only: the page moves its
    children into the shell's page body, where each is placed by its bounds
    in design coordinates. The page keeps in code the panels' backgrounds,
-   the visited link state, the DiagnosticsCard (a Gallery control the form
-   catalogue does not name; it is placed after the lifecycle group), the
+   the visited link state, the diagnostics card's title and colours, the
    dispatcher's Commands and their bindings, every event handler, the status
    line's reports and the page style. */
 scaled-panel gallery.states.document {
@@ -111,6 +110,10 @@ scaled-panel gallery.states.document {
       classes: "muted" "small";
       bounds: 24 142 390 42;
     }
+  }
+
+  metrics-view gallery.states.diagnostics {
+    bounds: 494 226 460 240;
   }
 
   scaled-group-box gallery.states.dispatcher {
