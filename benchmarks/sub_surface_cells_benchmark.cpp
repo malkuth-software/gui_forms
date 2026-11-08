@@ -8,7 +8,10 @@
 // display's or a native host's.
 //
 //   M1  UI thread cost per scroll step: the cells painted on the UI thread
-//       against the cells on a sub-surface (snapshot + redraw_all + flush).
+//       against the cells on a sub-surface (snapshot + redraw_all + flush),
+//       for the bare cells and for a DataGridView of 100,000 rows with
+//       cells_on_sub_surface off and on (the grid's headers, layout and
+//       resolution stay on the UI thread either way).
 //   M2  update to publish: redraw_all until the frame tagged with its epoch
 //       is published (the input path itself is measured once the grid is
 //       wired, part 2).
@@ -26,6 +29,7 @@
 // Usage: gui_forms_sub_surface_cells_benchmark [steps]  (default 600)
 
 #include "gui_forms/gui_forms.hpp"
+#include "gui_forms/controls/data_grid_view/data_grid_view.hpp"
 #include "gui_forms/controls/data_grid_view/data_grid_view_cells.hpp"
 #include "../src/controls/data_grid_view/data_grid_view_cells_control.hpp"
 #include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
@@ -226,6 +230,67 @@ private:
     return result;
 }
 
+// The real grid: 100,000 rows of eight formatted text cells.
+[[nodiscard]] std::shared_ptr<DataGridView> make_grid() {
+    std::shared_ptr<DataGridView> grid = make_control<DataGridView>(StableId("bench.data-grid"));
+    std::vector<DataGridViewColumn> columns;
+    columns.reserve(column_total);
+    for (std::size_t column = 0U; column < column_total; ++column) {
+        DataGridViewColumn added{};
+        added.name = "c" + std::to_string(column);
+        added.header_text = "Column " + std::to_string(column);
+        added.width = column_width;
+        columns.push_back(std::move(added));
+    }
+    (*grid).set_columns(std::move(columns));
+    std::vector<DataGridViewRow> rows;
+    rows.reserve(row_total);
+    for (std::size_t row = 0U; row < row_total; ++row) {
+        DataGridViewRow added{};
+        added.stable_id = DataGridViewRowId{"r" + std::to_string(row)};
+        added.cells.reserve(column_total);
+        for (std::size_t column = 0U; column < column_total; ++column) {
+            added.cells.push_back(BindingValue{"R" + std::to_string(row) + "C" + std::to_string(column)});
+        }
+        rows.push_back(std::move(added));
+    }
+    (*grid).set_rows(std::move(rows));
+    (*grid).set_allow_user_to_add_rows(false);
+    return grid;
+}
+
+// M1 and M4 for the real grid: scrolling three rows a step at 60 Hz, the
+// cells on the UI thread or on the grid's region.
+void grid_scrolling(bool on_region, std::size_t steps, Spread& ui_cost, std::uint64_t& waits,
+                    std::uint64_t& unpaired) {
+    render::SkiaRaster raster;
+    std::shared_ptr<DataGridView> grid = make_grid();
+    (*grid).cells_on_sub_surface = on_region;
+    Window window(grid, Size{region_width + 40.0, region_height + 60.0});
+    window.set_framebuffer_painter(&raster);
+    window.flush();
+    PresentPath path(window, raster);
+    path.paint();
+    const MetricsSnapshot before = window.metrics_snapshot();
+    std::vector<double> samples;
+    samples.reserve(steps);
+    Clock::time_point tick = Clock::now() + refresh;
+    for (std::size_t step = 0U; step < steps; ++step) {
+        const Clock::time_point start = Clock::now();
+        (*grid).set_first_displayed_row(DataGridViewRowPosition{(step * 3U) % (row_total - 40U)});
+        window.flush();
+        path.paint();
+        samples.push_back(milliseconds(Clock::now() - start));
+        std::this_thread::sleep_until(tick);
+        static_cast<void>(path.present(tick));
+        tick += refresh;
+    }
+    const MetricsSnapshot after = window.metrics_snapshot();
+    ui_cost = spread_of(samples);
+    waits = after.live_pairing_waits - before.live_pairing_waits;
+    unpaired = after.live_unpaired_presentations - before.live_unpaired_presentations;
+}
+
 // A window whose region is a sub-surface showing the cells.
 struct Region final {
     render::SkiaRaster raster;
@@ -396,6 +461,16 @@ int main(int argc, char** argv) {
     std::uint64_t presented = 0U;
     scrolling_on_sub_surface(steps, ui_cost, intervals, waits, unpaired, presented);
     report("M1 UI cost per step, cells on a sub-surface", ui_cost);
+    Spread grid_plain;
+    Spread grid_region;
+    std::uint64_t grid_waits = 0U;
+    std::uint64_t grid_unpaired = 0U;
+    grid_scrolling(false, steps, grid_plain, grid_waits, grid_unpaired);
+    report("M1 UI cost per step, grid, cells on UI", grid_plain);
+    grid_scrolling(true, steps, grid_region, grid_waits, grid_unpaired);
+    report("M1 UI cost per step, grid, cells on region", grid_region);
+    std::printf("M4 grid pairing at %zu ticks: %llu waits, %llu unpaired\n", steps,
+                static_cast<unsigned long long>(grid_waits), static_cast<unsigned long long>(grid_unpaired));
     std::printf("M4 pairing at %zu ticks: %llu presented, %llu waits, %llu unpaired\n", steps,
                 static_cast<unsigned long long>(presented), static_cast<unsigned long long>(waits),
                 static_cast<unsigned long long>(unpaired));
