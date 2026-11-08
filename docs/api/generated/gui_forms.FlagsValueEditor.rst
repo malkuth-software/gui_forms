@@ -30,12 +30,6 @@ gui_forms::FlagsValueEditor
          semantic actions address the control by this ID. The drop-down list is
          created as ``<stable_id>.overlay.list`` while it is open.
 
-      **descriptor** : ``PropertyEnumDescriptor``
-         The flags enumeration to edit. See :cpp:func:`descriptor <gui_forms::FlagsValueEditor::descriptor>` below.
-
-      **value** : ``PropertyEnumValue``
-         The starting value. See :cpp:func:`value <gui_forms::FlagsValueEditor::value>` below.
-
    :Properties:
 
       **descriptor** : ``PropertyEnumDescriptor``
@@ -185,6 +179,8 @@ gui_forms::FlagsValueEditor
 
 
    .. rubric:: Construction
+
+   .. cpp:function:: explicit FlagsValueEditor(StableId stable_id)
 
    .. cpp:function:: FlagsValueEditor(StableId stable_id, PropertyEnumDescriptor descriptor, PropertyEnumValue value)
 

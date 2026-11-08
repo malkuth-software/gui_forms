@@ -96746,7 +96746,7 @@
       "kind": "class",
       "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
       "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
-      "line": 12,
+      "line": 20,
       "declaration": "class FlagsValueEditor final : public Panel",
       "comment": "",
       "access": "public",
@@ -96754,6 +96754,27 @@
         "Panel"
       ],
       "members": [
+        {
+          "id": "gui_forms::FlagsValueEditor::FlagsValueEditor|void (StableId)",
+          "name": "FlagsValueEditor",
+          "type": "void (StableId)",
+          "namespace": "gui_forms::FlagsValueEditor",
+          "kind": "CXXConstructorDecl",
+          "access": "public",
+          "parameters": [
+            {
+              "name": "stable_id",
+              "type": "StableId",
+              "declaration": "StableId stable_id"
+            }
+          ],
+          "declaration": "explicit FlagsValueEditor(StableId stable_id)",
+          "comment": "",
+          "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
+          "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
+          "line": 22,
+          "page": "gui-forms-flagsvalueeditor-flagsvalueeditor-void-stableid-c61399da66.html"
+        },
         {
           "id": "gui_forms::FlagsValueEditor::FlagsValueEditor|void (StableId, PropertyEnumDescriptor, PropertyEnumValue)",
           "name": "FlagsValueEditor",
@@ -96782,7 +96803,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
           "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
-          "line": 14,
+          "line": 23,
           "page": "gui-forms-flagsvalueeditor-flagsvalueeditor-void-stableid-propertyenumdescriptor-propertyenumvalue-1c04db5727.html"
         },
         {
@@ -96797,7 +96818,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
           "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
-          "line": 17,
+          "line": 26,
           "page": "gui-forms-flagsvalueeditor-descriptor-const-propertyenumdescriptor-const-noexcept-14cc4df659.html"
         },
         {
@@ -96818,7 +96839,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
           "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
-          "line": 20,
+          "line": 29,
           "page": "gui-forms-flagsvalueeditor-set-descriptor-void-propertyenumdescriptor-0ab455799a.html"
         },
         {
@@ -96833,7 +96854,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
           "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
-          "line": 21,
+          "line": 30,
           "page": "gui-forms-flagsvalueeditor-value-const-propertyenumvalue-const-noexcept-97e59bfc37.html"
         },
         {
@@ -96854,7 +96875,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
           "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
-          "line": 24,
+          "line": 33,
           "page": "gui-forms-flagsvalueeditor-set-value-void-propertyenumvalue-93ce842398.html"
         },
         {
@@ -96869,7 +96890,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
           "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
-          "line": 25,
+          "line": 34,
           "page": "gui-forms-flagsvalueeditor-dropped-down-bool-const-noexcept-a7221f5050.html"
         },
         {
@@ -96890,7 +96911,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
           "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
-          "line": 26,
+          "line": 35,
           "page": "gui-forms-flagsvalueeditor-set-dropped-down-void-bool-8a132ee22f.html"
         },
         {
@@ -96905,7 +96926,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
           "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
-          "line": 27,
+          "line": 36,
           "page": "gui-forms-flagsvalueeditor-overlay-width-double-const-noexcept-0be95578df.html"
         },
         {
@@ -96926,7 +96947,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
           "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
-          "line": 28,
+          "line": 37,
           "page": "gui-forms-flagsvalueeditor-set-overlay-width-void-double-f916af6d89.html"
         },
         {
@@ -96941,7 +96962,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
           "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
-          "line": 29,
+          "line": 38,
           "page": "gui-forms-flagsvalueeditor-value-changed-event-const-propertyenumvalue-noexcept-74b9269339.html"
         },
         {
@@ -96956,7 +96977,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
           "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
-          "line": 32,
+          "line": 41,
           "page": "gui-forms-flagsvalueeditor-drop-down-changed-event-bool-noexcept-39fefe02c7.html"
         },
         {
@@ -96982,7 +97003,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
           "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
-          "line": 36,
+          "line": 45,
           "page": "gui-forms-flagsvalueeditor-on-paint-void-painter-rect-e0fc76d8d3.html"
         },
         {
@@ -97003,7 +97024,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
           "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
-          "line": 37,
+          "line": 46,
           "page": "gui-forms-flagsvalueeditor-on-pointer-void-pointerevent-ef8921bafb.html"
         },
         {
@@ -97024,7 +97045,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
           "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
-          "line": 38,
+          "line": 47,
           "page": "gui-forms-flagsvalueeditor-on-key-void-keyevent-c368b00019.html"
         },
         {
@@ -97045,7 +97066,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
           "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
-          "line": 39,
+          "line": 48,
           "page": "gui-forms-flagsvalueeditor-on-focus-changed-void-bool-cf84923ad1.html"
         },
         {
@@ -97060,7 +97081,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
           "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
-          "line": 40,
+          "line": 49,
           "page": "gui-forms-flagsvalueeditor-semantic-descriptor-semanticdescriptor-const-8f07594231.html"
         },
         {
@@ -97086,7 +97107,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
           "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
-          "line": 41,
+          "line": 50,
           "page": "gui-forms-flagsvalueeditor-on-semantic-action-bool-semanticaction-std-string-view-62c8f8e75d.html"
         },
         {
@@ -97101,7 +97122,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
           "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
-          "line": 43,
+          "line": 52,
           "page": "gui-forms-flagsvalueeditor-anatomy-const-controlanatomy-const-noexcept-4db389db79.html"
         },
         {
@@ -97116,7 +97137,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
           "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
-          "line": 44,
+          "line": 53,
           "page": "gui-forms-flagsvalueeditor-anatomy-states-anatomystateset-const-9dd8afe4a6.html"
         },
         {
@@ -97131,7 +97152,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
           "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
-          "line": 68,
+          "line": 77,
           "page": "gui-forms-flagsvalueeditor-parts-parts-const-1de015f941.html"
         },
         {
@@ -97146,7 +97167,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
           "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
-          "line": 69,
+          "line": 78,
           "page": "gui-forms-flagsvalueeditor-states-states-const-80b5da637e.html"
         },
         {
@@ -97167,7 +97188,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
           "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
-          "line": 72,
+          "line": 81,
           "page": "gui-forms-flagsvalueeditor-append-interactions-void-std-vector-interactiondeclaration-const-8241146f55.html"
         },
         {
@@ -97182,7 +97203,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
           "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
-          "line": 73,
+          "line": 82,
           "page": "gui-forms-flagsvalueeditor-on-detached-from-window-void-noexcept-383378e12a.html"
         },
         {
@@ -97203,7 +97224,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
           "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
-          "line": 74,
+          "line": 83,
           "page": "gui-forms-flagsvalueeditor-publish-part-geometry-void-std-span-partgeometry-const-d77c6b5d49.html"
         }
       ],
@@ -97217,7 +97238,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
       "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
-      "line": 46,
+      "line": 55,
       "declaration": "struct Parts final",
       "comment": "",
       "access": "public",
@@ -97235,7 +97256,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
           "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
-          "line": 47,
+          "line": 56,
           "page": "gui-forms-flagsvalueeditor-parts-scrollable-scrollablecontrol-parts-5ab76c4b47.html"
         },
         {
@@ -97250,7 +97271,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
           "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
-          "line": 48,
+          "line": 57,
           "page": "gui-forms-flagsvalueeditor-parts-face-partgeometry-8473212c92.html"
         },
         {
@@ -97265,7 +97286,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
           "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
-          "line": 49,
+          "line": 58,
           "page": "gui-forms-flagsvalueeditor-parts-edge-partgeometry-879ea42b8d.html"
         },
         {
@@ -97280,7 +97301,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
           "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
-          "line": 50,
+          "line": 59,
           "page": "gui-forms-flagsvalueeditor-parts-content-partgeometry-9d042fe0cd.html"
         },
         {
@@ -97295,7 +97316,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
           "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
-          "line": 51,
+          "line": 60,
           "page": "gui-forms-flagsvalueeditor-parts-divider-partgeometry-b8457f2e4c.html"
         },
         {
@@ -97310,7 +97331,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
           "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
-          "line": 52,
+          "line": 61,
           "page": "gui-forms-flagsvalueeditor-parts-drop-down-partgeometry-e559156783.html"
         },
         {
@@ -97325,7 +97346,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
           "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
-          "line": 53,
+          "line": 62,
           "page": "gui-forms-flagsvalueeditor-parts-disclosure-partgeometry-e3f88cc570.html"
         }
       ],
@@ -97339,7 +97360,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
       "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
-      "line": 55,
+      "line": 64,
       "declaration": "struct States final",
       "comment": "",
       "access": "public",
@@ -97357,7 +97378,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
           "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
-          "line": 56,
+          "line": 65,
           "page": "gui-forms-flagsvalueeditor-states-normal-bool-4aa7808aed.html"
         },
         {
@@ -97372,7 +97393,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
           "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
-          "line": 57,
+          "line": 66,
           "page": "gui-forms-flagsvalueeditor-states-pressed-bool-1ffeae5595.html"
         },
         {
@@ -97387,7 +97408,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
           "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
-          "line": 58,
+          "line": 67,
           "page": "gui-forms-flagsvalueeditor-states-captured-bool-47522fd801.html"
         },
         {
@@ -97402,7 +97423,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
           "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
-          "line": 59,
+          "line": 68,
           "page": "gui-forms-flagsvalueeditor-states-enabled-bool-7dbc23dbf2.html"
         },
         {
@@ -97417,7 +97438,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
           "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
-          "line": 60,
+          "line": 69,
           "page": "gui-forms-flagsvalueeditor-states-disabled-bool-acd88c72a2.html"
         },
         {
@@ -97432,7 +97453,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
           "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
-          "line": 61,
+          "line": 70,
           "page": "gui-forms-flagsvalueeditor-states-focused-bool-0f81b96e9c.html"
         },
         {
@@ -97447,7 +97468,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
           "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
-          "line": 62,
+          "line": 71,
           "page": "gui-forms-flagsvalueeditor-states-focus-visible-bool-0fa7262930.html"
         },
         {
@@ -97462,7 +97483,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
           "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
-          "line": 63,
+          "line": 72,
           "page": "gui-forms-flagsvalueeditor-states-open-bool-6a39ae4e95.html"
         },
         {
@@ -97477,7 +97498,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
           "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
-          "line": 64,
+          "line": 73,
           "page": "gui-forms-flagsvalueeditor-states-closed-bool-45abf635b9.html"
         },
         {
@@ -97492,7 +97513,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
           "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
-          "line": 65,
+          "line": 74,
           "page": "gui-forms-flagsvalueeditor-states-invalid-bool-c60148eb0e.html"
         },
         {
@@ -97507,7 +97528,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
           "source": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
-          "line": 66,
+          "line": 75,
           "page": "gui-forms-flagsvalueeditor-states-pending-bool-3149b43223.html"
         }
       ],
@@ -265868,7 +265889,7 @@
       "kind": "class",
       "header": "gui_forms/c/gf_abi.hpp",
       "source": "include/gui_forms/c/gf_abi.hpp",
-      "line": 1349,
+      "line": 1375,
       "declaration": "class BindingsTable",
       "comment": "",
       "access": "public",
@@ -265886,7 +265907,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1351,
+          "line": 1377,
           "page": "gui-forms-abi-bindingstable-bindingstable-void-noexcept-2d193b6f2a.html"
         },
         {
@@ -265907,7 +265928,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1355,
+          "line": 1381,
           "page": "gui-forms-abi-bindingstable-negotiate-gf-status-bindingstable-noexcept-3b054975cc.html"
         },
         {
@@ -265928,7 +265949,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1368,
+          "line": 1394,
           "page": "gui-forms-abi-bindingstable-adopt-bindingstable-const-gf-bindings-table-noexcept-2d6cee80f3.html"
         },
         {
@@ -265943,7 +265964,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1374,
+          "line": 1400,
           "page": "gui-forms-abi-bindingstable-c-table-const-gf-bindings-table-const-noexcept-bc815898c9.html"
         },
         {
@@ -265969,7 +265990,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1376,
+          "line": 1402,
           "page": "gui-forms-abi-bindingstable-bind-gf-status-const-gf-binding-arguments-gf-object-const-noexcept-157a9df99e.html"
         },
         {
@@ -265990,7 +266011,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1384,
+          "line": 1410,
           "page": "gui-forms-abi-bindingstable-unbind-gf-status-gf-object-const-noexcept-7c42b55dca.html"
         },
         {
@@ -266016,7 +266037,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1392,
+          "line": 1418,
           "page": "gui-forms-abi-bindingstable-read-value-gf-status-gf-object-uint32-t-const-noexcept-7691584d8f.html"
         },
         {
@@ -266042,7 +266063,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1400,
+          "line": 1426,
           "page": "gui-forms-abi-bindingstable-write-value-gf-status-gf-object-uint32-t-const-noexcept-51946368ca.html"
         },
         {
@@ -266073,7 +266094,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1408,
+          "line": 1434,
           "page": "gui-forms-abi-bindingstable-add-record-gf-status-gf-object-const-gf-binding-record-uint64-t-const-noexcept-010e14e7f6.html"
         },
         {
@@ -266104,7 +266125,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1417,
+          "line": 1443,
           "page": "gui-forms-abi-bindingstable-insert-record-gf-status-gf-object-uint64-t-const-gf-binding-record-const-noexcept-0e1b80dd04.html"
         },
         {
@@ -266135,7 +266156,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1426,
+          "line": 1452,
           "page": "gui-forms-abi-bindingstable-remove-record-gf-status-gf-object-uint64-t-uint32-t-const-noexcept-31158b4601.html"
         },
         {
@@ -266156,7 +266177,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1434,
+          "line": 1460,
           "page": "gui-forms-abi-bindingstable-clear-records-gf-status-gf-object-const-noexcept-824c52d12b.html"
         },
         {
@@ -266187,7 +266208,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1442,
+          "line": 1468,
           "page": "gui-forms-abi-bindingstable-set-position-gf-status-gf-object-int64-t-uint32-t-const-noexcept-9aeecc5c3f.html"
         },
         {
@@ -266218,7 +266239,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1450,
+          "line": 1476,
           "page": "gui-forms-abi-bindingstable-position-gf-status-gf-object-int64-t-uint64-t-const-noexcept-11f18bde11.html"
         },
         {
@@ -266264,7 +266285,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1458,
+          "line": 1484,
           "page": "gui-forms-abi-bindingstable-current-field-gf-status-gf-object-gf-utf8-view-gf-value-char-uint64-t-uint64-t-con-bcaeb28beb.html"
         },
         {
@@ -266300,7 +266321,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1467,
+          "line": 1493,
           "page": "gui-forms-abi-bindingstable-set-current-field-gf-status-gf-object-gf-utf8-view-const-gf-value-uint32-t-const-n-d7ae117177.html"
         }
       ],
@@ -266314,7 +266335,7 @@
       "kind": "class",
       "header": "gui_forms/c/gf_abi.hpp",
       "source": "include/gui_forms/c/gf_abi.hpp",
-      "line": 944,
+      "line": 970,
       "declaration": "class ControlsTable",
       "comment": "",
       "access": "public",
@@ -266332,7 +266353,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 946,
+          "line": 972,
           "page": "gui-forms-abi-controlstable-controlstable-void-noexcept-3d440da72e.html"
         },
         {
@@ -266353,7 +266374,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 950,
+          "line": 976,
           "page": "gui-forms-abi-controlstable-negotiate-gf-status-controlstable-noexcept-cb05227a8b.html"
         },
         {
@@ -266374,7 +266395,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 963,
+          "line": 989,
           "page": "gui-forms-abi-controlstable-adopt-controlstable-const-gf-controls-table-noexcept-38c6c8c542.html"
         },
         {
@@ -266389,7 +266410,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 969,
+          "line": 995,
           "page": "gui-forms-abi-controlstable-c-table-const-gf-controls-table-const-noexcept-a527db0433.html"
         },
         {
@@ -266410,7 +266431,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 971,
+          "line": 997,
           "page": "gui-forms-abi-controlstable-suspend-layout-gf-status-gf-object-const-noexcept-99c57cb8ff.html"
         },
         {
@@ -266436,7 +266457,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 979,
+          "line": 1005,
           "page": "gui-forms-abi-controlstable-resume-layout-gf-status-gf-object-uint32-t-const-noexcept-c8f80b3782.html"
         },
         {
@@ -266457,7 +266478,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 987,
+          "line": 1013,
           "page": "gui-forms-abi-controlstable-perform-layout-gf-status-gf-object-const-noexcept-14ed8c3d34.html"
         },
         {
@@ -266483,7 +266504,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 995,
+          "line": 1021,
           "page": "gui-forms-abi-controlstable-layout-state-gf-status-gf-object-gf-layout-transaction-const-noexcept-711c8e3207.html"
         },
         {
@@ -266509,7 +266530,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1003,
+          "line": 1029,
           "page": "gui-forms-abi-controlstable-window-bounds-gf-status-gf-object-gf-logical-rect-const-noexcept-67428f0182.html"
         },
         {
@@ -266535,7 +266556,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1011,
+          "line": 1037,
           "page": "gui-forms-abi-controlstable-set-pointer-capture-gf-status-gf-object-uint32-t-const-noexcept-3ab2cedf8a.html"
         },
         {
@@ -266561,7 +266582,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1019,
+          "line": 1045,
           "page": "gui-forms-abi-controlstable-pointer-capture-gf-status-gf-object-uint32-t-const-noexcept-4ab967a4ec.html"
         },
         {
@@ -266587,7 +266608,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1027,
+          "line": 1053,
           "page": "gui-forms-abi-controlstable-scroll-state-gf-status-gf-object-gf-scroll-snapshot-const-noexcept-0b5edf001b.html"
         },
         {
@@ -266618,7 +266639,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1035,
+          "line": 1061,
           "page": "gui-forms-abi-controlstable-set-scroll-axis-gf-status-gf-object-gf-scroll-orientation-const-gf-scroll-axis-con-35130f1a17.html"
         },
         {
@@ -266644,7 +266665,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1044,
+          "line": 1070,
           "page": "gui-forms-abi-controlstable-scroll-into-view-gf-status-gf-object-gf-object-const-noexcept-eed17f7609.html"
         },
         {
@@ -266670,7 +266691,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1052,
+          "line": 1078,
           "page": "gui-forms-abi-controlstable-invalidate-gf-status-gf-object-const-gf-logical-rect-const-noexcept-3156e456a1.html"
         }
       ],
@@ -266684,7 +266705,7 @@
       "kind": "class",
       "header": "gui_forms/c/gf_abi.hpp",
       "source": "include/gui_forms/c/gf_abi.hpp",
-      "line": 1300,
+      "line": 1326,
       "declaration": "class CustomControlsTable",
       "comment": "",
       "access": "public",
@@ -266702,7 +266723,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1302,
+          "line": 1328,
           "page": "gui-forms-abi-customcontrolstable-customcontrolstable-void-noexcept-1f51327629.html"
         },
         {
@@ -266723,7 +266744,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1306,
+          "line": 1332,
           "page": "gui-forms-abi-customcontrolstable-negotiate-gf-status-customcontrolstable-noexcept-f72a70a943.html"
         },
         {
@@ -266744,7 +266765,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1319,
+          "line": 1345,
           "page": "gui-forms-abi-customcontrolstable-adopt-customcontrolstable-const-gf-custom-controls-table-noexcept-a7a4aa60c6.html"
         },
         {
@@ -266759,7 +266780,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1325,
+          "line": 1351,
           "page": "gui-forms-abi-customcontrolstable-c-table-const-gf-custom-controls-table-const-noexcept-364319afef.html"
         },
         {
@@ -266790,7 +266811,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1327,
+          "line": 1353,
           "page": "gui-forms-abi-customcontrolstable-create-gf-status-const-gf-custom-control-spec-gf-utf8-view-gf-object-const-n-7739dea4a0.html"
         },
         {
@@ -266816,7 +266837,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1336,
+          "line": 1362,
           "page": "gui-forms-abi-customcontrolstable-notify-changed-gf-status-gf-object-uint64-t-const-noexcept-1cebd0f88a.html"
         }
       ],
@@ -266830,7 +266851,7 @@
       "kind": "class",
       "header": "gui_forms/c/gf_abi.hpp",
       "source": "include/gui_forms/c/gf_abi.hpp",
-      "line": 903,
+      "line": 929,
       "declaration": "class DiagnosticsTable",
       "comment": "",
       "access": "public",
@@ -266848,7 +266869,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 905,
+          "line": 931,
           "page": "gui-forms-abi-diagnosticstable-diagnosticstable-void-noexcept-6b666e848e.html"
         },
         {
@@ -266869,7 +266890,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 909,
+          "line": 935,
           "page": "gui-forms-abi-diagnosticstable-negotiate-gf-status-diagnosticstable-noexcept-880bddbb74.html"
         },
         {
@@ -266890,7 +266911,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 922,
+          "line": 948,
           "page": "gui-forms-abi-diagnosticstable-adopt-diagnosticstable-const-gf-diagnostics-table-noexcept-3b9e2f23c5.html"
         },
         {
@@ -266905,7 +266926,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 928,
+          "line": 954,
           "page": "gui-forms-abi-diagnosticstable-c-table-const-gf-diagnostics-table-const-noexcept-9e53844365.html"
         },
         {
@@ -266941,7 +266962,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 930,
+          "line": 956,
           "page": "gui-forms-abi-diagnosticstable-shadow-frames-gf-status-gf-shadow-frame-uint64-t-uint64-t-gf-shadow-stack-info--bd77c411c5.html"
         }
       ],
@@ -267340,7 +267361,7 @@
       "kind": "class",
       "header": "gui_forms/c/gf_abi.hpp",
       "source": "include/gui_forms/c/gf_abi.hpp",
-      "line": 814,
+      "line": 840,
       "declaration": "class HostTable",
       "comment": "",
       "access": "public",
@@ -267358,7 +267379,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 816,
+          "line": 842,
           "page": "gui-forms-abi-hosttable-hosttable-void-noexcept-d2a921fde6.html"
         },
         {
@@ -267379,7 +267400,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 820,
+          "line": 846,
           "page": "gui-forms-abi-hosttable-negotiate-gf-status-hosttable-noexcept-bcc3180153.html"
         },
         {
@@ -267400,7 +267421,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 833,
+          "line": 859,
           "page": "gui-forms-abi-hosttable-adopt-hosttable-const-gf-host-table-noexcept-be878bd011.html"
         },
         {
@@ -267415,7 +267436,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 839,
+          "line": 865,
           "page": "gui-forms-abi-hosttable-c-table-const-gf-host-table-const-noexcept-7fa0aab86a.html"
         },
         {
@@ -267436,7 +267457,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 841,
+          "line": 867,
           "page": "gui-forms-abi-hosttable-capabilities-gf-status-gf-host-capabilities-const-noexcept-58988b422e.html"
         },
         {
@@ -267467,7 +267488,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 849,
+          "line": 875,
           "page": "gui-forms-abi-hosttable-platform-name-gf-status-char-uint64-t-uint64-t-const-noexcept-28af2a2c86.html"
         },
         {
@@ -267488,7 +267509,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 857,
+          "line": 883,
           "page": "gui-forms-abi-hosttable-set-cursor-gf-status-gf-pointer-cursor-const-noexcept-f0a2948582.html"
         },
         {
@@ -267519,7 +267540,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 865,
+          "line": 891,
           "page": "gui-forms-abi-hosttable-read-clipboard-text-gf-status-char-uint64-t-uint64-t-const-noexcept-d416beefb5.html"
         },
         {
@@ -267540,7 +267561,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 873,
+          "line": 899,
           "page": "gui-forms-abi-hosttable-write-clipboard-text-gf-status-gf-utf8-view-const-noexcept-6fcc786aca.html"
         },
         {
@@ -267566,7 +267587,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 881,
+          "line": 907,
           "page": "gui-forms-abi-hosttable-show-dialog-gf-status-const-gf-dialog-request-gf-dialog-result-const-noexcept-f23490c480.html"
         },
         {
@@ -267602,7 +267623,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 889,
+          "line": 915,
           "page": "gui-forms-abi-hosttable-dialog-path-at-gf-status-uint64-t-char-uint64-t-uint64-t-const-noexcept-f8d7c408c7.html"
         }
       ],
@@ -267616,7 +267637,7 @@
       "kind": "class",
       "header": "gui_forms/c/gf_abi.hpp",
       "source": "include/gui_forms/c/gf_abi.hpp",
-      "line": 1614,
+      "line": 1640,
       "declaration": "class ObjectReference",
       "comment": "",
       "access": "public",
@@ -267634,7 +267655,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1616,
+          "line": 1642,
           "page": "gui-forms-abi-objectreference-objectreference-void-noexcept-0b4d929fc2.html"
         },
         {
@@ -267660,7 +267681,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1617,
+          "line": 1643,
           "page": "gui-forms-abi-objectreference-objectreference-void-const-objectstable-gf-object-noexcept-dc8257fb6c.html"
         },
         {
@@ -267681,7 +267702,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1618,
+          "line": 1644,
           "page": "gui-forms-abi-objectreference-objectreference-void-const-objectreference-0e3740c3b6.html"
         },
         {
@@ -267702,7 +267723,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1619,
+          "line": 1645,
           "page": "gui-forms-abi-objectreference-operator-objectreference-const-objectreference-641d28d205.html"
         },
         {
@@ -267723,7 +267744,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1620,
+          "line": 1646,
           "page": "gui-forms-abi-objectreference-objectreference-void-objectreference-noexcept-064e4c6de4.html"
         },
         {
@@ -267744,7 +267765,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1624,
+          "line": 1650,
           "page": "gui-forms-abi-objectreference-operator-objectreference-objectreference-noexcept-4b0eeb8759.html"
         },
         {
@@ -267759,7 +267780,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1634,
+          "line": 1660,
           "page": "gui-forms-abi-objectreference-objectreference-void-noexcept-75b454d5b2.html"
         },
         {
@@ -267774,7 +267795,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1636,
+          "line": 1662,
           "page": "gui-forms-abi-objectreference-get-gf-object-const-noexcept-425fa49d0e.html"
         },
         {
@@ -267789,7 +267810,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1639,
+          "line": 1665,
           "page": "gui-forms-abi-objectreference-detach-gf-object-noexcept-6688766ad2.html"
         },
         {
@@ -267804,7 +267825,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1648,
+          "line": 1674,
           "page": "gui-forms-abi-objectreference-reset-gf-status-noexcept-071327f908.html"
         }
       ],
@@ -268275,7 +268296,7 @@
       "kind": "class",
       "header": "gui_forms/c/gf_abi.hpp",
       "source": "include/gui_forms/c/gf_abi.hpp",
-      "line": 1155,
+      "line": 1181,
       "declaration": "class OverlaysTable",
       "comment": "",
       "access": "public",
@@ -268293,7 +268314,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1157,
+          "line": 1183,
           "page": "gui-forms-abi-overlaystable-overlaystable-void-noexcept-eb42e622db.html"
         },
         {
@@ -268314,7 +268335,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1161,
+          "line": 1187,
           "page": "gui-forms-abi-overlaystable-negotiate-gf-status-overlaystable-noexcept-e21a93510a.html"
         },
         {
@@ -268335,7 +268356,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1174,
+          "line": 1200,
           "page": "gui-forms-abi-overlaystable-adopt-overlaystable-const-gf-overlays-table-noexcept-286a515675.html"
         },
         {
@@ -268350,7 +268371,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1180,
+          "line": 1206,
           "page": "gui-forms-abi-overlaystable-c-table-const-gf-overlays-table-const-noexcept-56e34a1a85.html"
         },
         {
@@ -268376,7 +268397,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1182,
+          "line": 1208,
           "page": "gui-forms-abi-overlaystable-open-overlay-gf-status-gf-object-gf-object-const-noexcept-620b87a973.html"
         },
         {
@@ -268397,7 +268418,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1190,
+          "line": 1216,
           "page": "gui-forms-abi-overlaystable-close-overlay-gf-status-gf-object-const-noexcept-1c51c880d3.html"
         },
         {
@@ -268428,7 +268449,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1198,
+          "line": 1224,
           "page": "gui-forms-abi-overlaystable-set-tool-tip-gf-status-gf-object-gf-object-gf-utf8-view-const-noexcept-21b064493a.html"
         },
         {
@@ -268459,7 +268480,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1206,
+          "line": 1232,
           "page": "gui-forms-abi-overlaystable-show-tool-tip-gf-status-gf-object-gf-object-uint64-t-const-noexcept-85e6f2ed2a.html"
         },
         {
@@ -268480,7 +268501,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1214,
+          "line": 1240,
           "page": "gui-forms-abi-overlaystable-hide-tool-tip-gf-status-gf-object-const-noexcept-7cd6450010.html"
         }
       ],
@@ -268737,7 +268758,7 @@
       "kind": "class",
       "header": "gui_forms/c/gf_abi.hpp",
       "source": "include/gui_forms/c/gf_abi.hpp",
-      "line": 1227,
+      "line": 1253,
       "declaration": "class PropertyGridTable",
       "comment": "",
       "access": "public",
@@ -268755,7 +268776,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1229,
+          "line": 1255,
           "page": "gui-forms-abi-propertygridtable-propertygridtable-void-noexcept-e32d8bb596.html"
         },
         {
@@ -268776,7 +268797,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1233,
+          "line": 1259,
           "page": "gui-forms-abi-propertygridtable-negotiate-gf-status-propertygridtable-noexcept-4eff01153e.html"
         },
         {
@@ -268797,7 +268818,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1246,
+          "line": 1272,
           "page": "gui-forms-abi-propertygridtable-adopt-propertygridtable-const-gf-property-grid-table-noexcept-8d66beeb6f.html"
         },
         {
@@ -268812,7 +268833,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1252,
+          "line": 1278,
           "page": "gui-forms-abi-propertygridtable-c-table-const-gf-property-grid-table-const-noexcept-0d1ecce8e8.html"
         },
         {
@@ -268843,7 +268864,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1254,
+          "line": 1280,
           "page": "gui-forms-abi-propertygridtable-select-objects-gf-status-gf-object-const-gf-object-uint64-t-const-noexcept-1b5743c826.html"
         },
         {
@@ -268864,7 +268885,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1262,
+          "line": 1288,
           "page": "gui-forms-abi-propertygridtable-refresh-gf-status-gf-object-const-noexcept-46ccc6bede.html"
         },
         {
@@ -268900,7 +268921,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1270,
+          "line": 1296,
           "page": "gui-forms-abi-propertygridtable-try-set-text-gf-status-gf-object-gf-utf8-view-gf-utf8-view-uint32-t-const-noex-faac50a1c4.html"
         },
         {
@@ -268931,7 +268952,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1279,
+          "line": 1305,
           "page": "gui-forms-abi-propertygridtable-reset-property-gf-status-gf-object-gf-utf8-view-uint32-t-const-noexcept-08646db041.html"
         },
         {
@@ -268962,7 +268983,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1287,
+          "line": 1313,
           "page": "gui-forms-abi-propertygridtable-activate-editor-gf-status-gf-object-gf-utf8-view-uint32-t-const-noexcept-e26dc6c3dc.html"
         }
       ],
@@ -269783,6 +269804,99 @@
           "source": "include/gui_forms/c/gf_abi.hpp",
           "line": 663,
           "page": "gui-forms-abi-schematable-effect-at-gf-status-uint64-t-gf-schema-effect-const-noexcept-cf41aaa8e0.html"
+        },
+        {
+          "id": "gui_forms::abi::SchemaTable::child_property_count|gf_status (uint64_t, uint64_t *) const noexcept",
+          "name": "child_property_count",
+          "type": "gf_status (uint64_t, uint64_t *) const noexcept",
+          "namespace": "gui_forms::abi::SchemaTable",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [
+            {
+              "name": "type",
+              "type": "uint64_t",
+              "declaration": "uint64_t type"
+            },
+            {
+              "name": "count",
+              "type": "uint64_t *",
+              "declaration": "uint64_t* count"
+            }
+          ],
+          "declaration": "[[nodiscard]] gf_status child_property_count(uint64_t type, uint64_t* count) const noexcept",
+          "comment": "",
+          "header": "gui_forms/c/gf_abi.hpp",
+          "source": "include/gui_forms/c/gf_abi.hpp",
+          "line": 671,
+          "page": "gui-forms-abi-schematable-child-property-count-gf-status-uint64-t-uint64-t-const-noexcept-5d6080b125.html"
+        },
+        {
+          "id": "gui_forms::abi::SchemaTable::child_property_at|gf_status (uint64_t, uint64_t, gf_schema_property *) const noexcept",
+          "name": "child_property_at",
+          "type": "gf_status (uint64_t, uint64_t, gf_schema_property *) const noexcept",
+          "namespace": "gui_forms::abi::SchemaTable",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [
+            {
+              "name": "type",
+              "type": "uint64_t",
+              "declaration": "uint64_t type"
+            },
+            {
+              "name": "property",
+              "type": "uint64_t",
+              "declaration": "uint64_t property"
+            },
+            {
+              "name": "record",
+              "type": "gf_schema_property *",
+              "declaration": "gf_schema_property* record"
+            }
+          ],
+          "declaration": "[[nodiscard]] gf_status child_property_at(uint64_t type, uint64_t property, gf_schema_property* record) const noexcept",
+          "comment": "",
+          "header": "gui_forms/c/gf_abi.hpp",
+          "source": "include/gui_forms/c/gf_abi.hpp",
+          "line": 679,
+          "page": "gui-forms-abi-schematable-child-property-at-gf-status-uint64-t-uint64-t-gf-schema-property-const-noexcept-04d8144e67.html"
+        },
+        {
+          "id": "gui_forms::abi::SchemaTable::child_choice_at|gf_status (uint64_t, uint64_t, uint64_t, gf_schema_choice *) const noexcept",
+          "name": "child_choice_at",
+          "type": "gf_status (uint64_t, uint64_t, uint64_t, gf_schema_choice *) const noexcept",
+          "namespace": "gui_forms::abi::SchemaTable",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [
+            {
+              "name": "type",
+              "type": "uint64_t",
+              "declaration": "uint64_t type"
+            },
+            {
+              "name": "property",
+              "type": "uint64_t",
+              "declaration": "uint64_t property"
+            },
+            {
+              "name": "choice",
+              "type": "uint64_t",
+              "declaration": "uint64_t choice"
+            },
+            {
+              "name": "record",
+              "type": "gf_schema_choice *",
+              "declaration": "gf_schema_choice* record"
+            }
+          ],
+          "declaration": "[[nodiscard]] gf_status child_choice_at(uint64_t type, uint64_t property, uint64_t choice, gf_schema_choice* record) const noexcept",
+          "comment": "",
+          "header": "gui_forms/c/gf_abi.hpp",
+          "source": "include/gui_forms/c/gf_abi.hpp",
+          "line": 688,
+          "page": "gui-forms-abi-schematable-child-choice-at-gf-status-uint64-t-uint64-t-uint64-t-gf-schema-choice-const-noexcept-4850c3013a.html"
         }
       ],
       "page": "gui-forms-abi-schematable-a26dad1046.html",
@@ -269795,7 +269909,7 @@
       "kind": "class",
       "header": "gui_forms/c/gf_abi.hpp",
       "source": "include/gui_forms/c/gf_abi.hpp",
-      "line": 1667,
+      "line": 1693,
       "declaration": "class SubscriptionReference",
       "comment": "",
       "access": "public",
@@ -269813,7 +269927,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1669,
+          "line": 1695,
           "page": "gui-forms-abi-subscriptionreference-subscriptionreference-void-noexcept-27137fbd06.html"
         },
         {
@@ -269839,7 +269953,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1670,
+          "line": 1696,
           "page": "gui-forms-abi-subscriptionreference-subscriptionreference-void-const-eventstable-gf-subscription-noexcept-089c861b08.html"
         },
         {
@@ -269860,7 +269974,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1672,
+          "line": 1698,
           "page": "gui-forms-abi-subscriptionreference-subscriptionreference-void-const-subscriptionreference-d0c4705207.html"
         },
         {
@@ -269881,7 +269995,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1673,
+          "line": 1699,
           "page": "gui-forms-abi-subscriptionreference-operator-subscriptionreference-const-subscriptionreference-cdc6cf6cff.html"
         },
         {
@@ -269902,7 +270016,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1674,
+          "line": 1700,
           "page": "gui-forms-abi-subscriptionreference-subscriptionreference-void-subscriptionreference-noexcept-db7eec1d53.html"
         },
         {
@@ -269923,7 +270037,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1679,
+          "line": 1705,
           "page": "gui-forms-abi-subscriptionreference-operator-subscriptionreference-subscriptionreference-noexcept-f668c6e2d6.html"
         },
         {
@@ -269938,7 +270052,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1689,
+          "line": 1715,
           "page": "gui-forms-abi-subscriptionreference-subscriptionreference-void-noexcept-691aa695c3.html"
         },
         {
@@ -269953,7 +270067,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1691,
+          "line": 1717,
           "page": "gui-forms-abi-subscriptionreference-get-gf-subscription-const-noexcept-0b29c04de3.html"
         },
         {
@@ -269968,7 +270082,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1695,
+          "line": 1721,
           "page": "gui-forms-abi-subscriptionreference-reset-gf-status-noexcept-620b7924d3.html"
         }
       ],
@@ -269982,7 +270096,7 @@
       "kind": "class",
       "header": "gui_forms/c/gf_abi.hpp",
       "source": "include/gui_forms/c/gf_abi.hpp",
-      "line": 1065,
+      "line": 1091,
       "declaration": "class TextEditingTable",
       "comment": "",
       "access": "public",
@@ -270000,7 +270114,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1067,
+          "line": 1093,
           "page": "gui-forms-abi-texteditingtable-texteditingtable-void-noexcept-3e083afa1e.html"
         },
         {
@@ -270021,7 +270135,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1071,
+          "line": 1097,
           "page": "gui-forms-abi-texteditingtable-negotiate-gf-status-texteditingtable-noexcept-3e775465ab.html"
         },
         {
@@ -270042,7 +270156,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1084,
+          "line": 1110,
           "page": "gui-forms-abi-texteditingtable-adopt-texteditingtable-const-gf-text-editing-table-noexcept-b48bb7bbbb.html"
         },
         {
@@ -270057,7 +270171,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1090,
+          "line": 1116,
           "page": "gui-forms-abi-texteditingtable-c-table-const-gf-text-editing-table-const-noexcept-e0387cf996.html"
         },
         {
@@ -270088,7 +270202,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1092,
+          "line": 1118,
           "page": "gui-forms-abi-texteditingtable-select-gf-status-gf-object-uint64-t-uint64-t-const-noexcept-ba35fc0f54.html"
         },
         {
@@ -270119,7 +270233,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1100,
+          "line": 1126,
           "page": "gui-forms-abi-texteditingtable-selection-gf-status-gf-object-uint64-t-uint64-t-const-noexcept-6eee200ca1.html"
         },
         {
@@ -270155,7 +270269,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1108,
+          "line": 1134,
           "page": "gui-forms-abi-texteditingtable-grapheme-boundary-gf-status-gf-object-uint64-t-int32-t-uint64-t-const-noexcept-8ca0e47919.html"
         },
         {
@@ -270196,7 +270310,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1117,
+          "line": 1143,
           "page": "gui-forms-abi-texteditingtable-replace-range-gf-status-gf-object-uint64-t-uint64-t-gf-utf8-view-uint32-t-const-da5421763b.html"
         },
         {
@@ -270222,7 +270336,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1126,
+          "line": 1152,
           "page": "gui-forms-abi-texteditingtable-undo-gf-status-gf-object-uint32-t-const-noexcept-3677e8d9bf.html"
         },
         {
@@ -270248,7 +270362,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1134,
+          "line": 1160,
           "page": "gui-forms-abi-texteditingtable-redo-gf-status-gf-object-uint32-t-const-noexcept-25f4a75a88.html"
         },
         {
@@ -270269,7 +270383,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1142,
+          "line": 1168,
           "page": "gui-forms-abi-texteditingtable-clear-undo-history-gf-status-gf-object-const-noexcept-2cd5890ae7.html"
         }
       ],
@@ -270283,7 +270397,7 @@
       "kind": "class",
       "header": "gui_forms/c/gf_abi.hpp",
       "source": "include/gui_forms/c/gf_abi.hpp",
-      "line": 676,
+      "line": 702,
       "declaration": "class ThemesTable",
       "comment": "",
       "access": "public",
@@ -270301,7 +270415,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 678,
+          "line": 704,
           "page": "gui-forms-abi-themestable-themestable-void-noexcept-2ec4de894a.html"
         },
         {
@@ -270322,7 +270436,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 682,
+          "line": 708,
           "page": "gui-forms-abi-themestable-negotiate-gf-status-themestable-noexcept-895bad9bcd.html"
         },
         {
@@ -270343,7 +270457,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 695,
+          "line": 721,
           "page": "gui-forms-abi-themestable-adopt-themestable-const-gf-themes-table-noexcept-9b6194c94d.html"
         },
         {
@@ -270358,7 +270472,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 701,
+          "line": 727,
           "page": "gui-forms-abi-themestable-c-table-const-gf-themes-table-const-noexcept-04148c7674.html"
         },
         {
@@ -270384,7 +270498,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 703,
+          "line": 729,
           "page": "gui-forms-abi-themestable-load-gf-status-const-gf-theme-package-gf-theme-report-const-noexcept-ffabc0b9e9.html"
         },
         {
@@ -270399,7 +270513,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 711,
+          "line": 737,
           "page": "gui-forms-abi-themestable-reset-gf-status-const-noexcept-fcd4ee0fda.html"
         },
         {
@@ -270425,7 +270539,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 719,
+          "line": 745,
           "page": "gui-forms-abi-themestable-install-gf-status-const-gf-theme-package-gf-theme-report-const-noexcept-458959ecff.html"
         },
         {
@@ -270451,7 +270565,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 727,
+          "line": 753,
           "page": "gui-forms-abi-themestable-remove-gf-status-gf-utf8-view-uint32-t-const-noexcept-76e733be71.html"
         },
         {
@@ -270477,7 +270591,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 735,
+          "line": 761,
           "page": "gui-forms-abi-themestable-diagnostic-at-gf-status-uint64-t-gf-theme-diagnostic-const-noexcept-123b6135ad.html"
         },
         {
@@ -270518,7 +270632,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 743,
+          "line": 769,
           "page": "gui-forms-abi-themestable-diagnostic-text-gf-status-uint64-t-gf-theme-diagnostic-text-char-uint64-t-uint64-t-c-565b9149c6.html"
         },
         {
@@ -270549,7 +270663,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 752,
+          "line": 778,
           "page": "gui-forms-abi-themestable-theme-id-gf-status-char-uint64-t-uint64-t-const-noexcept-fbd556a9c1.html"
         },
         {
@@ -270575,7 +270689,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 760,
+          "line": 786,
           "page": "gui-forms-abi-themestable-publish-value-gf-status-gf-utf8-view-double-const-noexcept-4f96ed0904.html"
         },
         {
@@ -270596,7 +270710,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 768,
+          "line": 794,
           "page": "gui-forms-abi-themestable-withdraw-value-gf-status-gf-utf8-view-const-noexcept-3efd66e947.html"
         },
         {
@@ -270627,7 +270741,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 776,
+          "line": 802,
           "page": "gui-forms-abi-themestable-published-value-gf-status-gf-utf8-view-double-uint32-t-const-noexcept-84632447d2.html"
         },
         {
@@ -270658,7 +270772,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 784,
+          "line": 810,
           "page": "gui-forms-abi-themestable-load-image-gf-status-const-uint8-t-uint64-t-uint64-t-const-noexcept-d464d6cbe7.html"
         },
         {
@@ -270679,7 +270793,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 792,
+          "line": 818,
           "page": "gui-forms-abi-themestable-remove-image-gf-status-uint64-t-const-noexcept-b57481a9f8.html"
         },
         {
@@ -270720,7 +270834,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 800,
+          "line": 826,
           "page": "gui-forms-abi-themestable-load-pixels-gf-status-const-uint8-t-uint32-t-uint32-t-uint64-t-uint64-t-const-noexce-a5cf18d878.html"
         }
       ],
@@ -270734,7 +270848,7 @@
       "kind": "class",
       "header": "gui_forms/c/gf_abi.hpp",
       "source": "include/gui_forms/c/gf_abi.hpp",
-      "line": 1481,
+      "line": 1507,
       "declaration": "class WindowsPaintEndpointTable",
       "comment": "",
       "access": "public",
@@ -270752,7 +270866,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1483,
+          "line": 1509,
           "page": "gui-forms-abi-windowspaintendpointtable-windowspaintendpointtable-void-noexcept-d04403cec0.html"
         },
         {
@@ -270773,7 +270887,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1487,
+          "line": 1513,
           "page": "gui-forms-abi-windowspaintendpointtable-negotiate-gf-status-windowspaintendpointtable-noexcept-5324338656.html"
         },
         {
@@ -270794,7 +270908,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1500,
+          "line": 1526,
           "page": "gui-forms-abi-windowspaintendpointtable-adopt-windowspaintendpointtable-const-gf-windows-paint-endpoint-table--547483e466.html"
         },
         {
@@ -270809,7 +270923,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1507,
+          "line": 1533,
           "page": "gui-forms-abi-windowspaintendpointtable-c-table-const-gf-windows-paint-endpoint-table-const-noexcept-9eceda36ed.html"
         },
         {
@@ -270850,7 +270964,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1509,
+          "line": 1535,
           "page": "gui-forms-abi-windowspaintendpointtable-acquire-gf-status-gf-object-uint32-t-uint32-t-gf-paint-endpoint-uint64-b480e45afd.html"
         },
         {
@@ -270881,7 +270995,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1518,
+          "line": 1544,
           "page": "gui-forms-abi-windowspaintendpointtable-configure-gf-status-gf-paint-endpoint-uint32-t-uint32-t-const-noexcept-92b35c0c5d.html"
         },
         {
@@ -270907,7 +271021,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1526,
+          "line": 1552,
           "page": "gui-forms-abi-windowspaintendpointtable-touch-gf-status-gf-paint-endpoint-uint32-t-const-noexcept-5795a1862b.html"
         },
         {
@@ -270928,7 +271042,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1534,
+          "line": 1560,
           "page": "gui-forms-abi-windowspaintendpointtable-drain-gf-status-gf-paint-endpoint-const-noexcept-9c5e891255.html"
         },
         {
@@ -270964,7 +271078,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1542,
+          "line": 1568,
           "page": "gui-forms-abi-windowspaintendpointtable-snapshot-gf-status-gf-paint-endpoint-char-uint64-t-uint64-t-const-noex-133a04d5c7.html"
         },
         {
@@ -271005,7 +271119,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1551,
+          "line": 1577,
           "page": "gui-forms-abi-windowspaintendpointtable-submit-bgra-gf-status-uint64-t-uint32-t-uint32-t-uint64-t-const-uint8--a8f76f8e4c.html"
         },
         {
@@ -271026,7 +271140,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1560,
+          "line": 1586,
           "page": "gui-forms-abi-windowspaintendpointtable-release-gf-status-gf-paint-endpoint-const-noexcept-0c8af3ede1.html"
         },
         {
@@ -271052,7 +271166,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1568,
+          "line": 1594,
           "page": "gui-forms-abi-windowspaintendpointtable-get-dc-gf-status-uint64-t-uint64-t-const-noexcept-213e4b4e6c.html"
         },
         {
@@ -271078,7 +271192,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1576,
+          "line": 1602,
           "page": "gui-forms-abi-windowspaintendpointtable-release-dc-gf-status-uint64-t-uint64-t-const-noexcept-9661daa48f.html"
         },
         {
@@ -271099,7 +271213,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1584,
+          "line": 1610,
           "page": "gui-forms-abi-windowspaintendpointtable-publish-dc-gf-status-uint64-t-const-noexcept-15c3b3f445.html"
         },
         {
@@ -271125,7 +271239,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1592,
+          "line": 1618,
           "page": "gui-forms-abi-windowspaintendpointtable-begin-write-gf-status-uint64-t-gf-paint-write-lease-const-noexcept-f04bec32fc.html"
         },
         {
@@ -271151,7 +271265,7 @@
           "comment": "",
           "header": "gui_forms/c/gf_abi.hpp",
           "source": "include/gui_forms/c/gf_abi.hpp",
-          "line": 1600,
+          "line": 1626,
           "page": "gui-forms-abi-windowspaintendpointtable-end-write-gf-status-gf-paint-write-lease-uint32-t-const-noexcept-434a0179e7.html"
         }
       ],

@@ -433,7 +433,9 @@ typedef struct gf_create_choice {
  *   binds to.
  * A flags_value_editor takes no owner but an enumeration: its name, its
  * choices (1 to GF_CREATE_MAXIMUM_CHOICES, distinct non-empty names) and
- * value, its current value. The new object keeps what it needs of its owner
+ * value, its current value; objects.create also makes one, empty until its
+ * enumeration_name, flag_names, none_name and checked_flags properties are
+ * written. The new object keeps what it needs of its owner
  * alive for as long as it lives, except a window. For a component bound to a
  * window, owner means only the window it binds to, as in C++: the caller's
  * references own the component, the component observes the window without

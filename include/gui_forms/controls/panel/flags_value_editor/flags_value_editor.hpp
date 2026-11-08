@@ -5,12 +5,21 @@
 #include <cstddef>
 #include <memory>
 #include <span>
+#include <string>
 #include <vector>
 
 namespace gui_forms {
 
+// A flags value editor. Code gives it a descriptor and a value; a form
+// document, which makes it from its stable ID alone, writes its form
+// properties instead, in any order: `enumeration-name` (`Flags` until
+// written), `flag-names` (each name the next bit: 1, 2, 4 and so on),
+// `none-name` (the name of no flag; empty for none) and `checked-flags`
+// (names among `flag-names`). Until `flag-names` is written the editor
+// holds no flags, shows no value and opens no list.
 class FlagsValueEditor final : public Panel {
 public:
+    explicit FlagsValueEditor(StableId stable_id);
     FlagsValueEditor(StableId stable_id, PropertyEnumDescriptor descriptor,
                      PropertyEnumValue value);
 
@@ -79,9 +88,28 @@ private:
     void on_overlay_revoked();
     void synchronize_overlay();
     void apply_overlay_choice(std::size_t overlay_index, CheckState state);
+    void define_form_properties();
+    // The form properties (see the class comment): each getter reads the
+    // descriptor and value; each setter records its part and applies the
+    // whole once `flag-names` is written.
+    [[nodiscard]] BindingValue enumeration_name_property() const;
+    void set_enumeration_name_property(const BindingValue& value);
+    [[nodiscard]] BindingValue flag_names_property() const;
+    void set_flag_names_property(const BindingValue& value);
+    [[nodiscard]] BindingValue none_name_property() const;
+    void set_none_name_property(const BindingValue& value);
+    [[nodiscard]] BindingValue checked_flags_property() const;
+    void set_checked_flags_property(const BindingValue& value);
+    void apply_form_flags();
 
     PropertyEnumDescriptor descriptor_;
     PropertyEnumValue value_;
+    // What the form properties have written so far; applied together by
+    // apply_form_flags once form_flag_names_ is not empty.
+    std::string form_enumeration_name_;
+    std::vector<std::string> form_flag_names_;
+    std::string form_none_name_;
+    std::vector<std::string> form_checked_flags_;
     std::shared_ptr<Panel> overlay_layer_;
     std::shared_ptr<CheckedListBox> overlay_list_;
     std::vector<std::size_t> overlay_choice_indices_;

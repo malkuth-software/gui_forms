@@ -1,6 +1,7 @@
 #include "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp"
 
 #include "property_editor_drop_down_layer/property_editor_drop_down_layer.hpp"
+#include "gui_forms/detail/bound_member_function.hpp"
 #include "gui_forms/detail/weak_member_callback.hpp"
 #include "gui_forms/window.hpp"
 #include "../panel_anatomy.hpp"
@@ -19,16 +20,222 @@ namespace gui_forms {
 
 using detail::PropertyEditorDropDownLayer;
 
-FlagsValueEditor::FlagsValueEditor(
-    StableId stable_id, PropertyEnumDescriptor descriptor,
-    PropertyEnumValue value)
-    : Panel(std::move(stable_id)) {
+namespace {
+
+// The text items of a form property's collection value; throws
+// std::invalid_argument naming `property` for any other value.
+std::vector<std::string> text_items(const BindingValue& value, const char* property) {
+    const PropertyCollectionValue* collection = std::get_if<PropertyCollectionValue>(&value);
+    if (collection == nullptr || !*collection || (*collection).item_kind() != BindingValueKind::text) {
+        throw std::invalid_argument(std::string("FlagsValueEditor.") + property +
+                                    " requires a text collection");
+    }
+    const std::span<const BindingValue> values = property_collection_items(*collection);
+    std::vector<std::string> items;
+    items.reserve(values.size());
+    for (const BindingValue& item : values) items.push_back(std::get<std::string>(item));
+    return items;
+}
+
+// `items` as a form property's text collection value.
+BindingValue text_collection(const std::vector<std::string>& items) {
+    std::vector<BindingValue> values;
+    values.reserve(items.size());
+    for (const std::string& item : items) values.emplace_back(item);
+    return BindingValue{make_property_collection("String", BindingValueKind::text, std::move(values))};
+}
+
+// A form property's text; throws std::invalid_argument naming `property`
+// for any other value.
+const std::string& text_value(const BindingValue& value, const char* property) {
+    const std::string* text = std::get_if<std::string>(&value);
+    if (text == nullptr) {
+        throw std::invalid_argument(std::string("FlagsValueEditor.") + property + " requires text");
+    }
+    return *text;
+}
+
+bool single_bit(const std::int64_t value) noexcept {
+    return value > 0 && std::has_single_bit(static_cast<std::uint64_t>(value));
+}
+
+} // namespace
+
+FlagsValueEditor::FlagsValueEditor(StableId stable_id) : Panel(std::move(stable_id)) {
     set_paint_plane(PaintPlane::control);
     border_style = BorderStyle::sunken;
     set_focusable(true);
     cursor = CursorKind::hand;
+    define_form_properties();
+}
+
+FlagsValueEditor::FlagsValueEditor(
+    StableId stable_id, PropertyEnumDescriptor descriptor,
+    PropertyEnumValue value)
+    : FlagsValueEditor(std::move(stable_id)) {
     set_descriptor(std::move(descriptor));
     set_value(std::move(value));
+}
+
+// The form properties (stage FD6.3): none raises a change event of its own;
+// value_changed reports user commits only.
+void FlagsValueEditor::define_form_properties() {
+    PropertyDescriptor enumeration_name;
+    enumeration_name.name = "enumeration_name";
+    enumeration_name.kind = BindingValueKind::text;
+    enumeration_name.category = "Data";
+    enumeration_name.description = "The flags enumeration's name, which the value carries.";
+    enumeration_name.default_value = BindingValue{std::string{}};
+    enumeration_name.invalidation_effects = Dirty::semantics;
+    enumeration_name.bindable = false;
+    define_bindable_property({
+        std::move(enumeration_name),
+        detail::BoundMemberFunction<BindingValue (FlagsValueEditor::*)() const>(
+            *this, &FlagsValueEditor::enumeration_name_property),
+        detail::BoundMemberFunction<void (FlagsValueEditor::*)(const BindingValue&)>(
+            *this, &FlagsValueEditor::set_enumeration_name_property),
+        {}, {}, {}});
+
+    PropertyDescriptor flag_names;
+    flag_names.name = "flag_names";
+    flag_names.kind = BindingValueKind::collection;
+    flag_names.category = "Data";
+    flag_names.description = "The flags' names in order, each the next bit: 1, 2, 4 and so on.";
+    flag_names.default_value = text_collection({});
+    flag_names.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
+    flag_names.serialization_visibility = PropertySerializationVisibility::content;
+    flag_names.bindable = false;
+    define_bindable_property({
+        std::move(flag_names),
+        detail::BoundMemberFunction<BindingValue (FlagsValueEditor::*)() const>(
+            *this, &FlagsValueEditor::flag_names_property),
+        detail::BoundMemberFunction<void (FlagsValueEditor::*)(const BindingValue&)>(
+            *this, &FlagsValueEditor::set_flag_names_property),
+        {}, {}, {}});
+
+    PropertyDescriptor none_name;
+    none_name.name = "none_name";
+    none_name.kind = BindingValueKind::text;
+    none_name.category = "Data";
+    none_name.description = "The name of the value with no flag set; empty when it has none.";
+    none_name.default_value = BindingValue{std::string{}};
+    none_name.invalidation_effects = Dirty::paint | Dirty::semantics;
+    none_name.bindable = false;
+    define_bindable_property({
+        std::move(none_name),
+        detail::BoundMemberFunction<BindingValue (FlagsValueEditor::*)() const>(
+            *this, &FlagsValueEditor::none_name_property),
+        detail::BoundMemberFunction<void (FlagsValueEditor::*)(const BindingValue&)>(
+            *this, &FlagsValueEditor::set_none_name_property),
+        {}, {}, {}});
+
+    PropertyDescriptor checked_flags;
+    checked_flags.name = "checked_flags";
+    checked_flags.kind = BindingValueKind::collection;
+    checked_flags.category = "Data";
+    checked_flags.description = "The names of the flags the value sets, among flag_names.";
+    checked_flags.default_value = text_collection({});
+    checked_flags.invalidation_effects = Dirty::paint | Dirty::semantics;
+    checked_flags.serialization_visibility = PropertySerializationVisibility::content;
+    checked_flags.bindable = false;
+    define_bindable_property({
+        std::move(checked_flags),
+        detail::BoundMemberFunction<BindingValue (FlagsValueEditor::*)() const>(
+            *this, &FlagsValueEditor::checked_flags_property),
+        detail::BoundMemberFunction<void (FlagsValueEditor::*)(const BindingValue&)>(
+            *this, &FlagsValueEditor::set_checked_flags_property),
+        {}, {}, {}});
+}
+
+BindingValue FlagsValueEditor::enumeration_name_property() const {
+    return BindingValue{descriptor_.type_name};
+}
+
+void FlagsValueEditor::set_enumeration_name_property(const BindingValue& value) {
+    form_enumeration_name_ = text_value(value, "enumeration_name");
+    apply_form_flags();
+}
+
+BindingValue FlagsValueEditor::flag_names_property() const {
+    std::vector<std::string> names;
+    for (const PropertyEnumChoice& choice : descriptor_.choices) {
+        if (single_bit(choice.value)) names.push_back(choice.name);
+    }
+    return text_collection(names);
+}
+
+void FlagsValueEditor::set_flag_names_property(const BindingValue& value) {
+    std::vector<std::string> names = text_items(value, "flag_names");
+    if (names.size() > 62U) {
+        throw std::invalid_argument("FlagsValueEditor.flag_names holds at most 62 flags");
+    }
+    form_flag_names_ = std::move(names);
+    apply_form_flags();
+}
+
+BindingValue FlagsValueEditor::none_name_property() const {
+    for (const PropertyEnumChoice& choice : descriptor_.choices) {
+        if (choice.value == 0) return BindingValue{choice.name};
+    }
+    return BindingValue{std::string{}};
+}
+
+void FlagsValueEditor::set_none_name_property(const BindingValue& value) {
+    form_none_name_ = text_value(value, "none_name");
+    apply_form_flags();
+}
+
+BindingValue FlagsValueEditor::checked_flags_property() const {
+    std::vector<std::string> names;
+    const std::uint64_t bits = static_cast<std::uint64_t>(value_.value);
+    for (const PropertyEnumChoice& choice : descriptor_.choices) {
+        if (single_bit(choice.value) && (bits & static_cast<std::uint64_t>(choice.value)) != 0U) {
+            names.push_back(choice.name);
+        }
+    }
+    return text_collection(names);
+}
+
+void FlagsValueEditor::set_checked_flags_property(const BindingValue& value) {
+    form_checked_flags_ = text_items(value, "checked_flags");
+    apply_form_flags();
+}
+
+// Builds the descriptor and value the form properties describe and gives
+// them to the editor; nothing until flag names are written. Validates the
+// whole before changing anything: a checked name that is no flag's, or a
+// descriptor the editor refuses, throws std::invalid_argument and leaves
+// the descriptor and value as they were.
+void FlagsValueEditor::apply_form_flags() {
+    if (form_flag_names_.empty()) return;
+    PropertyEnumDescriptor descriptor;
+    // An enumeration needs a name; `Flags` until the document writes one.
+    descriptor.type_name = form_enumeration_name_.empty() ? std::string("Flags") : form_enumeration_name_;
+    descriptor.flags = true;
+    descriptor.choices.reserve(form_flag_names_.size() + 1U);
+    if (!form_none_name_.empty()) descriptor.choices.push_back({form_none_name_, 0});
+    for (std::size_t index = 0U; index < form_flag_names_.size(); ++index) {
+        const std::int64_t bit = std::int64_t{1} << index;
+        descriptor.choices.push_back({form_flag_names_[index], bit});
+    }
+    std::uint64_t bits = 0U;
+    for (const std::string& checked : form_checked_flags_) {
+        const std::vector<std::string>::const_iterator found =
+            std::find(form_flag_names_.begin(), form_flag_names_.end(), checked);
+        if (found == form_flag_names_.end()) {
+            throw std::invalid_argument("FlagsValueEditor.checked_flags names no flag: " + checked);
+        }
+        const std::size_t index = static_cast<std::size_t>(found - form_flag_names_.begin());
+        bits |= std::uint64_t{1} << index;
+    }
+    if (!valid_property_enum_descriptor(descriptor)) {
+        throw std::invalid_argument("FlagsValueEditor's form properties describe no valid flags enumeration");
+    }
+    // The current value may not belong to the new descriptor: it is
+    // replaced, not normalized.
+    value_ = PropertyEnumValue{};
+    set_descriptor(std::move(descriptor));
+    set_value(PropertyEnumValue{descriptor_.type_name, std::string{}, static_cast<std::int64_t>(bits)});
 }
 
 void FlagsValueEditor::set_descriptor(PropertyEnumDescriptor descriptor) {

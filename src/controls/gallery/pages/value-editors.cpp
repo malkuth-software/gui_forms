@@ -54,12 +54,6 @@ private:
     static constexpr int command_register = 1;
     static constexpr int command_release = 2;
 
-    [[nodiscard]] static PropertyEnumDescriptor edges_descriptor() {
-        return {"Edges",
-                {{"None", 0}, {"Top", 1}, {"Left", 2}, {"Right", 4}, {"Bottom", 8}},
-                true};
-    }
-
     void mount_document(const std::shared_ptr<Surface>& body) {
         // The document's root is a declared boundary only: its children move
         // into the shell's page body, where each is placed by its bounds in
@@ -79,32 +73,18 @@ private:
         }
         color_ = document_.gallery_value_editors_color;
         preview_ = document_.gallery_value_editors_preview;
+        flags_ = document_.gallery_value_editors_flags;
+        editor_status_ = document_.gallery_value_editors_editor_status;
         binding_commands_ = document_.gallery_value_editors_binding_commands;
         binding_status_ = document_.gallery_value_editors_binding_status;
         properties_ = document_.gallery_value_editors_properties;
         rack_ = document_.gallery_value_editors_rack;
     }
 
-    // The flags row ends the editors group, so appending it keeps the
-    // retired page's order.
     void build_editors() {
         (*color_).set_value(fixture_tint);
         (*preview_).set_background(fixture_tint);
-        ScaledGroupBox& editors = *document_.gallery_value_editors_editors;
-        editors.add_at(label("gallery.value-editors.flags.caption", "Edges", 10.0, 700,
-                             shell_blue_dark), {20.0, 96.0, 60.0, 22.0});
-        flags_ = make_control<FlagsValueEditor>(StableId("gallery.value-editors.flags"),
-                                                edges_descriptor(),
-                                                PropertyEnumValue{"Edges", "Top, Left", 3});
-        (*flags_).accessible_name = "Lamp edges";
         (*flags_).set_overlay_width(236.0);
-        editors.add_at(flags_, {84.0, 91.0, 236.0, 30.0});
-        editor_status_ = label("gallery.value-editors.editor-status",
-                               "Enter commits · Esc restores · F4 drops the flags list down",
-                               10.0, 600, green);
-        (*editor_status_).set_text_wrapping(TextWrapping::word);
-        (*editor_status_).set_vertical_alignment(VerticalAlignment::near);
-        editors.add_at(editor_status_, {20.0, 130.0, 410.0, 34.0});
     }
 
     void build_binding() {

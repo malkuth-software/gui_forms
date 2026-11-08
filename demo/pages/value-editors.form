@@ -7,11 +7,11 @@
    gallery.value-editors.document is a declared boundary only: the page
    moves its children into the shell's page body, where each is placed by
    its bounds in design coordinates. The page keeps in code the record and
-   every value drawn from it (the editors' values and descriptor, the
-   preview's colour, the list's groups and rows, the rack's module and its
-   Reset button), the flags row (its caption, FlagsValueEditor and status
-   line), the Commands, every event handler, the status lines'
-   reports and the page style. */
+   every value drawn from it (the colour editor's value, the preview's
+   colour, the list's groups and rows, the rack's module and its Reset
+   button), the flags list's width, the Commands, every event handler, the
+   status lines' reports and the page style; the flags editor's
+   enumeration and value are in the document. */
 scaled-panel gallery.value-editors.document {
   design-size: 1000 640;
 
@@ -44,8 +44,26 @@ scaled-panel gallery.value-editors.document {
       accessible-name: "Tint preview";
       bounds: 336 37 92 30;
     }
-    /* The flags row follows: the page builds it, since the form catalogue
-       cannot make a FlagsValueEditor without its descriptor. */
+    label gallery.value-editors.flags.caption {
+      text: "Edges";
+      classes: "heading" "note-strong";
+      bounds: 20 96 60 22;
+    }
+    flags-value-editor gallery.value-editors.flags {
+      accessible-name: "Lamp edges";
+      enumeration-name: "Edges";
+      none-name: "None";
+      flag-names: "Top" "Left" "Right" "Bottom";
+      checked-flags: "Top" "Left";
+      bounds: 84 91 236 30;
+    }
+    label gallery.value-editors.editor-status {
+      text: "Enter commits · Esc restores · F4 drops the flags list down";
+      classes: "positive" "note-medium";
+      text-wrapping: word;
+      vertical-alignment: near;
+      bounds: 20 130 410 34;
+    }
   }
 
   scaled-group-box gallery.value-editors.binding {
