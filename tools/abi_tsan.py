@@ -119,7 +119,13 @@ def main() -> int:
             kept.append(test)
     listing['tests'] = kept
     targets: list[str] | None = selected_test_targets(tree, listing)
-    if targets:
+    # None: a test's needs cannot be read from its command (a fixture, a
+    # dependency or an output ninja does not name), so the tree is built
+    # whole; an empty list: the tests need nothing built.
+    if targets is None:
+        print(f'abi_tsan: {len(kept)} tests; building the whole tree', flush=True)
+        run('cmake', '--build', tree, '--parallel', args.jobs)
+    elif targets:
         print(f'abi_tsan: {len(kept)} tests; {len(targets)} build outputs', flush=True)
         run('cmake', '--build', tree, '--parallel', args.jobs, '--target', *targets)
     os.environ['GUI_FORMS_FONT_DIR'] = str(ROOT / 'gui_forms/assets/fonts')
