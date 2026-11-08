@@ -288,19 +288,19 @@ void minimize_by_tab_click() {
     const std::vector<Ribbon::Tab> tabs = (*ribbon).realized_tabs();
     click(window, centre(tabs[0].parts.tab.bounds));
     window.perform_layout();
-    require((*ribbon).minimized() && !(*ribbon).parts().command_plane.present &&
+    require((*ribbon).minimized.read() && !(*ribbon).parts().command_plane.present &&
                 (*ribbon).measure({900.0, 400.0}).height == 24.0 && (*ribbon).realized_tabs().size() == 2U &&
                 !(*font).effectively_visible(),
             "clicking the selected tab minimizes the plane, keeping the tabs");
     click(window, centre(tabs[0].parts.tab.bounds));
     window.perform_layout();
-    require(!(*ribbon).minimized() && (*ribbon).parts().command_plane.present && (*font).effectively_visible(),
+    require(!(*ribbon).minimized.read() && (*ribbon).parts().command_plane.present && (*font).effectively_visible(),
             "clicking it again shows the plane");
     click(window, centre(tabs[0].parts.tab.bounds));
     window.perform_layout();
     click(window, centre(tabs[1].parts.tab.bounds));
     window.perform_layout();
-    require(!(*ribbon).minimized() && (*ribbon).selected_tab() == std::size_t{1U} && !(*font).effectively_visible() &&
+    require(!(*ribbon).minimized.read() && (*ribbon).selected_tab() == std::size_t{1U} && !(*font).effectively_visible() &&
                 (*(*ribbon).text_box("find")).effectively_visible(),
             "clicking another tab while minimized selects it and shows the plane");
 }

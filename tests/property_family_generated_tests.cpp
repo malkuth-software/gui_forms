@@ -58,6 +58,7 @@
 #include "gui_forms/controls/panel/tree_view/tree_view.hpp"
 #include "gui_forms/controls/quick_access_toolbar/quick_access_toolbar.hpp"
 #include "gui_forms/controls/raster_canvas/raster_canvas.hpp"
+#include "gui_forms/controls/ribbon/ribbon.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/container_control.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/split_container/split_container.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/split_container/splitter_panel/splitter_panel.hpp"
@@ -1427,6 +1428,46 @@ void test_review_card_properties() {
     // record: no sample for ReviewRecord; give the property a "sample".
 }
 
+void test_ribbon_properties() {
+    std::shared_ptr<Ribbon> control = make_control<Ribbon>(StableId("generated.ribbon"));
+    {
+        const std::uint32_t sample = 3U;
+        (*control).application_modes = sample;
+        expect((*control).application_modes.read() == sample, "Ribbon.application_modes: a write stores");
+    }
+    {
+        const double sample = 120.0;
+        (*control).document_minimum_height = sample;
+        expect((*control).document_minimum_height.read() == sample, "Ribbon.document_minimum_height: a write stores");
+    }
+    {
+        const bool sample = true;
+        (*control).minimized = sample;
+        expect((*control).minimized.read() == sample, "Ribbon.minimized: a write stores");
+    }
+    {
+        const std::string sample = std::string{"&Home"};
+        (*control).application_text = sample;
+        expect((*control).application_text.read() == sample, "Ribbon.application_text: a write stores");
+    }
+    {
+        const std::string sample = std::string{"Recent files"};
+        (*control).recent_caption = sample;
+        expect((*control).recent_caption.read() == sample, "Ribbon.recent_caption: a write stores");
+    }
+    // backstage: no sample for std::shared_ptr<BackstageView>; give the property a "sample".
+    {
+        const bool sample = false;
+        (*control).focus_region = sample;
+        expect((*control).focus_region.read() == sample, "Ribbon.focus_region: a write stores");
+    }
+    {
+        const FontSpec sample = FontSpec{FontRole::control, 12.0, 700, false};
+        (*control).font = sample;
+        expect((*control).font.read() == sample, "Ribbon.font: a write stores");
+    }
+}
+
 void test_rich_text_box_properties() {
     std::shared_ptr<RichTextBox> control = make_control<RichTextBox>(StableId("generated.richtextbox"));
     {
@@ -2006,6 +2047,7 @@ int main() {
     test_quick_access_toolbar_properties();
     test_raster_canvas_properties();
     test_review_card_properties();
+    test_ribbon_properties();
     test_rich_text_box_properties();
     test_scaled_group_box_properties();
     test_scaled_panel_properties();

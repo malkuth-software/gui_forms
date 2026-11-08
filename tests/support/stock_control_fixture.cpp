@@ -547,7 +547,7 @@ void place_menus(FixtureBuilder& builder) {
     (*ribbon).set_tabs(std::move(tabs));
     std::shared_ptr<BackstageView> ribbon_backstage = make_control<BackstageView>(StableId("ribbon.backstage"));
     (*ribbon_backstage).set_items({{.stable_id = "ribbon.backstage.open", .command = open}});
-    (*ribbon).set_backstage(ribbon_backstage);
+    (*ribbon).backstage = ribbon_backstage;
 
     std::shared_ptr<BackstageView> backstage = builder.place(
         make_control<BackstageView>(StableId("backstage-view")), 120.0);

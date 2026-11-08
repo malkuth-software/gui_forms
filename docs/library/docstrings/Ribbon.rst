@@ -346,4 +346,4 @@ A ribbon with one tab and one group that collapses first as it narrows:
    home.groups.push_back(std::move(clipboard));
    home.reduction_order = {{.group = "clipboard"}};
    (*ribbon).set_tabs({std::move(home)});
-   (*ribbon).set_document_minimum_height(120.0);
+   (*ribbon).document_minimum_height = 120.0;

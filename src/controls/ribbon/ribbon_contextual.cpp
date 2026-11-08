@@ -15,7 +15,7 @@ namespace gui_forms {
 // tab, while its set is available or active.
 bool Ribbon::shown(std::size_t tab) const noexcept {
     if (tab >= tabs_.size()) return false;
-    if ((tabs_[tab].modes & application_modes_) == 0U) return false;
+    if ((tabs_[tab].modes & application_modes.read()) == 0U) return false;
     const std::optional<std::size_t> set = tab_set_of_[tab];
     if (!set) return true;
     const bool result = set_states_[*set].availability != RibbonTabSetAvailability::not_available;
@@ -28,7 +28,7 @@ bool Ribbon::tab_shown(std::size_t tab) const {
 }
 
 bool Ribbon::group_shown(std::size_t tab, std::size_t group) const noexcept {
-    const bool result = (tabs_[tab].groups[group].modes & application_modes_) != 0U;
+    const bool result = (tabs_[tab].groups[group].modes & application_modes.read()) != 0U;
     return result;
 }
 
@@ -109,11 +109,12 @@ void Ribbon::set_tab_set_availability(std::string_view set_id, RibbonTabSetAvail
     tabs_shown_changed();
 }
 
-void Ribbon::set_application_modes(std::uint32_t modes) {
+void Ribbon::prepare_write(const decltype(application_modes)&, std::uint32_t& incoming) {
     require_mutable();
-    if (modes == 0U) throw std::invalid_argument("Ribbon application modes may not be empty");
-    if (application_modes_ == modes) return;
-    application_modes_ = modes;
+    if (incoming == 0U) throw std::invalid_argument("Ribbon application modes may not be empty");
+}
+
+void Ribbon::written(const decltype(application_modes)&) {
     // Groups that come and go change the measured ladders.
     ++content_generation_;
     close_group_overlay();

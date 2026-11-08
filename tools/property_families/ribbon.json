@@ -1,0 +1,217 @@
+{
+  "family": "Ribbon",
+  "step": "M-S8",
+  "declaring": "Ribbon",
+  "header": "include/gui_forms/controls/ribbon/ribbon.hpp",
+  "source": "src/controls/ribbon/ribbon.cpp",
+  "capabilities_header": "include/gui_forms/controls/ribbon/ribbon_capabilities/ribbon_capabilities.hpp",
+  "base": "Control",
+  "shared": [
+    "FontCapability"
+  ],
+  "includes": [
+    "gui_forms/controls/backstage_view/backstage_view.hpp",
+    "gui_forms/types.hpp"
+  ],
+  "test": {
+    "type": "Ribbon",
+    "include": "gui_forms/controls/ribbon/ribbon.hpp"
+  },
+  "properties": [
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "application_modes",
+      "capability": "RibbonApplicationModes",
+      "value": "std::uint32_t",
+      "initial": "1U",
+      "hooks": "hand",
+      "hand": [
+        "written bumps the content generation, closes the group overlay, invalidates and lets a tab that no longer shows give way"
+      ],
+      "effects": "Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "comment": "The application modes now shown (one bit per mode; mode 0 by default). Changing them shows the tabs and groups that share a bit; a selected tab that no longer shows gives way as a set's tab does. Zero throws std::invalid_argument.",
+      "sample": "3U",
+      "getter": "application_modes",
+      "setter": "set_application_modes",
+      "field": "application_modes_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "document_minimum_height",
+      "capability": "RibbonDocumentMinimumHeight",
+      "value": "double",
+      "initial": "0.0",
+      "hooks": "generated",
+      "hand": [],
+      "effects": "Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "prepare": [
+        "if (!std::isfinite(incoming) || incoming < 0.0) {",
+        "    throw std::invalid_argument(\"Ribbon document minimum height must be finite and not negative\");",
+        "}"
+      ],
+      "comment": "The document area's declared minimum height in logical units (owner decision 34). The height the ribbon's parent offers it holds the ribbon and the document area under it; the plane hides when that area would be shorter than the minimum, and shows again once it is at least the minimum plus hide_hysteresis. Zero (the default) declares none: the plane hides only when no document area would be left. A negative or non-finite height throws std::invalid_argument.",
+      "sample": "120.0",
+      "getter": "document_minimum_height",
+      "setter": "set_document_minimum_height",
+      "field": "document_minimum_height_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "minimized",
+      "capability": "RibbonMinimized",
+      "value": "bool",
+      "initial": "false",
+      "hooks": "hand",
+      "hand": [
+        "prepare closes the menus and the group overlay before a change",
+        "written moves keyboard focus off the plane, invalidates and publishes minimized_changed"
+      ],
+      "effects": "Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "comment": "Whether the command plane is hidden, leaving the tab row. A change closes the menus and the group overlay and raises minimized_changed.",
+      "sample": "true",
+      "getter": "minimized",
+      "setter": "set_minimized",
+      "field": "minimized_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "application_text",
+      "capability": "RibbonApplicationText",
+      "value": "std::string",
+      "initial": "\"File\"",
+      "hooks": "hand",
+      "hand": [
+        "written bumps the content generation and invalidates"
+      ],
+      "effects": "Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "comment": "The File tab's text, with an optional mnemonic. Text that is not valid UTF-8 throws std::invalid_argument.",
+      "sample": "std::string{\"&Home\"}",
+      "getter": "application_text",
+      "setter": "set_application_text",
+      "field": "application_text_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "recent_caption",
+      "capability": "RibbonRecentCaption",
+      "value": "std::string",
+      "initial": "\"Recent documents\"",
+      "hooks": "hand",
+      "hand": [
+        "written repaints the application menu overlay"
+      ],
+      "effects": null,
+      "comment": "The caption of the application menu's recent pane. Text that is not valid UTF-8 throws std::invalid_argument.",
+      "sample": "std::string{\"Recent files\"}",
+      "getter": "recent_caption",
+      "setter": "set_recent_caption",
+      "field": "recent_caption_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "backstage",
+      "capability": "RibbonBackstage",
+      "value": "std::shared_ptr<BackstageView>",
+      "hooks": "hand",
+      "hand": [
+        "prepare refuses a parented view and closes the open Backstage before a change",
+        "written moves the close subscription to the new view"
+      ],
+      "effects": "Dirty::semantics",
+      "comment": "Backstage (phase 6; owner decisions 3, 26): a BackstageView the File tab opens over everything below the tab row, instead of the application menu, or null. Escape, the File tab, another tab or a definitive command closes it and returns to the document. A view that already has a parent throws std::invalid_argument.",
+      "getter": "backstage",
+      "setter": "set_backstage",
+      "field": "backstage_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "focus_region",
+      "capability": "RibbonFocusRegion",
+      "value": "bool",
+      "initial": "true",
+      "hooks": "hand",
+      "hand": [
+        "written registers or unregisters the ribbon as a focus region of its attached window"
+      ],
+      "effects": null,
+      "comment": "Whether the ribbon adds itself to its window's F6 regions when it is attached (owner decision 17). On by default.",
+      "sample": "false",
+      "getter": "focus_region",
+      "setter": "set_focus_region",
+      "field": "focus_region_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "font",
+      "capability": "Font",
+      "value": "FontSpec",
+      "initial": "FontRole::control, 10.5, 400, false, 0.12",
+      "hooks": "generated",
+      "hand": [],
+      "effects": "Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "prepare": [
+        "if (!valid_font_spec(incoming)) throw std::invalid_argument(\"Ribbon font specification is invalid\");",
+        "set_font_from_code(true);"
+      ],
+      "comment": "The font of the ribbon's text. A write marks the font as set from code; an invalid specification throws std::invalid_argument.",
+      "sample": "FontSpec{FontRole::control, 12.0, 700, false}",
+      "getter": "font",
+      "setter": "set_font",
+      "field": "font_"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "tabs, application_menu, recent_items",
+      "reason": "wholesale collection replacement (section 4)"
+    },
+    {
+      "name": "tab_set_availability",
+      "reason": "per-item operation"
+    },
+    {
+      "name": "selected_tab",
+      "reason": "G14 selection"
+    }
+  ]
+}

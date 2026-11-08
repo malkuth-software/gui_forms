@@ -113,7 +113,7 @@ gui_forms::BackstageView
       (*view).set_items({{.stable_id = "save", .command = save},
                          {.stable_id = "info", .kind = gf::BackstageItemKind::topic, .text = "&Info", .page = info}});
       std::shared_ptr<gf::Ribbon> ribbon = gf::make_control<gf::Ribbon>(gf::StableId("doc.ribbon"));
-      (*ribbon).set_backstage(view);
+      (*ribbon).backstage = view;
 
 
    .. rubric:: Construction

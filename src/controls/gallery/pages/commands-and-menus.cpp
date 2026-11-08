@@ -414,7 +414,7 @@ private:
         std::shared_ptr<BackstageView> backstage =
             make_control<BackstageView>(StableId("gallery.commands.ribbon-file-area.backstage"));
         fill_backstage(*backstage);
-        (*ribbon).set_backstage(backstage);
+        (*ribbon).backstage = backstage;
         fill_backstage(*document_.gallery_commands_ribbon_file_area_backstage_in_place);
     }
 

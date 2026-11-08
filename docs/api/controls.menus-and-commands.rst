@@ -154,6 +154,14 @@ Related types
      - The "tab" item system: one core tab on the tab row.
    * - :cpp:class:`Ribbon::TabStates <gui_forms::Ribbon::TabStates>`
      -  
+   * - :cpp:class:`RibbonApplicationModesCapability <gui_forms::RibbonApplicationModesCapability>`
+     - The application modes now shown (one bit per mode; mode 0 by default).
+   * - :cpp:class:`RibbonApplicationTextCapability <gui_forms::RibbonApplicationTextCapability>`
+     - The File tab's text, with an optional mnemonic.
+   * - :cpp:class:`RibbonBackstageCapability <gui_forms::RibbonBackstageCapability>`
+     - Backstage (phase 6; owner decisions 3, 26): a BackstageView the File tab opens over everything below the tab row, instead of the application menu, or null.
+   * - :cpp:class:`RibbonCapabilities <gui_forms::RibbonCapabilities>`
+     - Every Ribbon capability, in the order the declaring class takes them.
    * - :cpp:class:`RibbonColorPicker::PaletteEntry <gui_forms::RibbonColorPicker::PaletteEntry>`
      -  
    * - :cpp:class:`RibbonColorPicker::PaletteEntryParts <gui_forms::RibbonColorPicker::PaletteEntryParts>`
@@ -168,8 +176,12 @@ Related types
      - One command record.
    * - :cpp:class:`RibbonDialogLaunch <gui_forms::RibbonDialogLaunch>`
      - A click on a group's dialog launcher.
+   * - :cpp:class:`RibbonDocumentMinimumHeightCapability <gui_forms::RibbonDocumentMinimumHeightCapability>`
+     - The document area's declared minimum height in logical units (owner decision 34).
    * - :cpp:class:`RibbonDropDownInvocation <gui_forms::RibbonDropDownInvocation>`
      - A choice from a split or drop-down command's menu.
+   * - :cpp:class:`RibbonFocusRegionCapability <gui_forms::RibbonFocusRegionCapability>`
+     - Whether the ribbon adds itself to its window's F6 regions when it is attached (owner decision 17).
    * - :cpp:class:`RibbonFontControl::Parts <gui_forms::RibbonFontControl::Parts>`
      - Stage T1 anatomy, as dot members; its states are Control's.
    * - :cpp:class:`RibbonGallery::Category <gui_forms::RibbonGallery::Category>`
@@ -196,6 +208,10 @@ Related types
      - One entry of a tab's reduction ladder: every group's state and the width, in logical units, the groups need side by side.
    * - :cpp:class:`RibbonLadderGroupState <gui_forms::RibbonLadderGroupState>`
      - One group's place in a ladder entry: its layout (an index into Ribbon::group_layouts), that layout's size, and its gallery's column count (zero without a gallery).
+   * - :cpp:class:`RibbonMinimizedCapability <gui_forms::RibbonMinimizedCapability>`
+     - Whether the command plane is hidden, leaving the tab row.
+   * - :cpp:class:`RibbonRecentCaptionCapability <gui_forms::RibbonRecentCaptionCapability>`
+     - The caption of the application menu's recent pane.
    * - :cpp:class:`RibbonRecentItem <gui_forms::RibbonRecentItem>`
      - One item of the application menu's recent pane (stage RB, phase 6): a recently used document, shown numbered under the pane's caption, with its ``description`` (a folder, say) for accessibility.
    * - :cpp:class:`RibbonRecentItemInvocation <gui_forms::RibbonRecentItemInvocation>`
@@ -985,6 +1001,103 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> RibbonApplicationModesCapability
+
+   ``#include <gui_forms/controls/ribbon/ribbon_capabilities/ribbon_capabilities.hpp>``
+
+   The application modes now shown (one bit per mode; mode 0 by default). Changing them shows the tabs and groups that share a bit; a selected tab that no longer shows gives way as a set's tab does. Zero throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonApplicationModesCapability& capability, std::uint32_t incoming)
+
+   .. cpp:member:: PropertyCell<std::uint32_t, RibbonApplicationModesCapability<Declaring>> application_modes
+
+      Default: ``{1U}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RibbonApplicationTextCapability
+
+   ``#include <gui_forms/controls/ribbon/ribbon_capabilities/ribbon_capabilities.hpp>``
+
+   The File tab's text, with an optional mnemonic. Text that is not valid UTF-8 throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonApplicationTextCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, RibbonApplicationTextCapability<Declaring>> application_text
+
+      Default: ``{"File"}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RibbonBackstageCapability
+
+   ``#include <gui_forms/controls/ribbon/ribbon_capabilities/ribbon_capabilities.hpp>``
+
+   Backstage (phase 6; owner decisions 3, 26): a BackstageView the File tab opens over everything below the tab row, instead of the application menu, or null. Escape, the File tab, another tab or a definitive command closes it and returns to the document. A view that already has a parent throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonBackstageCapability& capability, std::shared_ptr<BackstageView> incoming)
+
+   .. cpp:member:: PropertyCell<std::shared_ptr<BackstageView>, RibbonBackstageCapability<Declaring>> backstage
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RibbonCapabilities : public RibbonApplicationModesCapability<Declaring>, public RibbonDocumentMinimumHeightCapability<Declaring>, public RibbonMinimizedCapability<Declaring>, public RibbonApplicationTextCapability<Declaring>, public RibbonRecentCaptionCapability<Declaring>, public RibbonBackstageCapability<Declaring>, public RibbonFocusRegionCapability<Declaring>, public FontCapability<Declaring>
+
+   ``#include <gui_forms/controls/ribbon/ribbon_capabilities/ribbon_capabilities.hpp>``
+
+   Every Ribbon capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: RibbonCapabilities()
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::uint32_t application_modes
+
+      The application modes now shown (one bit per mode; mode 0 by default). Changing them shows the tabs and groups that share a bit; a selected tab that no longer shows gives way as a set's tab does. Zero throws std::invalid_argument.
+
+   .. cpp:member:: double document_minimum_height
+
+      The document area's declared minimum height in logical units (owner decision 34). The height the ribbon's parent offers it holds the ribbon and the document area under it; the plane hides when that area would be shorter than the minimum, and shows again once it is at least the minimum plus hide_hysteresis. Zero (the default) declares none: the plane hides only when no document area would be left. A negative or non-finite height throws std::invalid_argument.
+
+   .. cpp:member:: bool minimized
+
+      Whether the command plane is hidden, leaving the tab row. A change closes the menus and the group overlay and raises minimized_changed.
+
+   .. cpp:member:: std::string application_text
+
+      The File tab's text, with an optional mnemonic. Text that is not valid UTF-8 throws std::invalid_argument.
+
+   .. cpp:member:: std::string recent_caption
+
+      The caption of the application menu's recent pane. Text that is not valid UTF-8 throws std::invalid_argument.
+
+   .. cpp:member:: std::shared_ptr<BackstageView> backstage
+
+      Backstage (phase 6; owner decisions 3, 26): a BackstageView the File tab opens over everything below the tab row, instead of the application menu, or null. Escape, the File tab, another tab or a definitive command closes it and returns to the document. A view that already has a parent throws std::invalid_argument.
+
+   .. cpp:member:: bool focus_region
+
+      Whether the ribbon adds itself to its window's F6 regions when it is attached (owner decision 17). On by default.
+
+   .. cpp:member:: FontSpec font
+
+      The font of the control's text (Font).
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: RibbonColorPicker::PaletteEntry final
 
    ``#include <gui_forms/controls/ribbon_color_picker/ribbon_color_picker.hpp>``
@@ -1123,6 +1236,23 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> RibbonDocumentMinimumHeightCapability
+
+   ``#include <gui_forms/controls/ribbon/ribbon_capabilities/ribbon_capabilities.hpp>``
+
+   The document area's declared minimum height in logical units (owner decision 34). The height the ribbon's parent offers it holds the ribbon and the document area under it; the plane hides when that area would be shorter than the minimum, and shows again once it is at least the minimum plus hide_hysteresis. Zero (the default) declares none: the plane hides only when no document area would be left. A negative or non-finite height throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonDocumentMinimumHeightCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, RibbonDocumentMinimumHeightCapability<Declaring>> document_minimum_height
+
+      Default: ``{0.0}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: RibbonDropDownInvocation final
 
    ``#include <gui_forms/controls/ribbon/ribbon.hpp>``
@@ -1134,6 +1264,23 @@ Related types
    .. cpp:member:: std::string command_id
 
    .. cpp:member:: MenuItemInvocation choice
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RibbonFocusRegionCapability
+
+   ``#include <gui_forms/controls/ribbon/ribbon_capabilities/ribbon_capabilities.hpp>``
+
+   Whether the ribbon adds itself to its window's F6 regions when it is attached (owner decision 17). On by default.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonFocusRegionCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, RibbonFocusRegionCapability<Declaring>> focus_region
+
+      Default: ``{true}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -1352,6 +1499,40 @@ Related types
       Default: ``{RibbonGroupSize::large}``.
 
    .. cpp:member:: std::size_t gallery_columns
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RibbonMinimizedCapability
+
+   ``#include <gui_forms/controls/ribbon/ribbon_capabilities/ribbon_capabilities.hpp>``
+
+   Whether the command plane is hidden, leaving the tab row. A change closes the menus and the group overlay and raises minimized_changed.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonMinimizedCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, RibbonMinimizedCapability<Declaring>> minimized
+
+      Default: ``{false}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RibbonRecentCaptionCapability
+
+   ``#include <gui_forms/controls/ribbon/ribbon_capabilities/ribbon_capabilities.hpp>``
+
+   The caption of the application menu's recent pane. Text that is not valid UTF-8 throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonRecentCaptionCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, RibbonRecentCaptionCapability<Declaring>> recent_caption
+
+      Default: ``{"Recent documents"}``.
 
 .. cpp:namespace:: gui_forms
 

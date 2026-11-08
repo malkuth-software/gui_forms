@@ -113,7 +113,7 @@ void example() {
     (*view).set_items({{.stable_id = "save", .command = save},
                        {.stable_id = "info", .kind = gf::BackstageItemKind::topic, .text = "&Info", .page = info}});
     std::shared_ptr<gf::Ribbon> ribbon = gf::make_control<gf::Ribbon>(gf::StableId("doc.ribbon"));
-    (*ribbon).set_backstage(view);
+    (*ribbon).backstage = view;
 }
 }  // namespace doc_example_BackstageView_1
 
@@ -3044,7 +3044,7 @@ void example() {
     home.groups.push_back(std::move(clipboard));
     home.reduction_order = {{.group = "clipboard"}};
     (*ribbon).set_tabs({std::move(home)});
-    (*ribbon).set_document_minimum_height(120.0);
+    (*ribbon).document_minimum_height = 120.0;
 }
 }  // namespace doc_example_Ribbon_1
 

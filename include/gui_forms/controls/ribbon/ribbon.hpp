@@ -14,6 +14,7 @@
 #include "gui_forms/event.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/controls/ribbon/ribbon_capabilities/ribbon_capabilities.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -282,7 +283,7 @@ struct RibbonTabChange final {
 // Not yet: hosting the QuickAccessToolbar on the tab row (it is a separate
 // control the application places), the minimized ribbon's temporary overlay,
 // right-to-left mirroring and two-line large labels.
-class Ribbon final : public Control {
+class Ribbon final : public Control, public RibbonCapabilities<Ribbon> {
 public:
     // Development bounds, not measured capacity.
     static constexpr std::size_t maximum_tabs = 32U;
@@ -336,12 +337,6 @@ public:
     // A newly shown set takes an index no other shown set has, keeping its
     // previous one when it can. Throws std::out_of_range for an unknown set.
     [[nodiscard]] std::optional<AccentIndex> tab_set_accent(std::string_view set_id) const;
-    // The application modes now shown (one bit per mode; mode 0 by default).
-    // Changing them shows the tabs and groups that share a bit; a selected
-    // tab that no longer shows gives way as a set's tab does. Throws
-    // std::invalid_argument for zero.
-    [[nodiscard]] std::uint32_t application_modes() const noexcept { return application_modes_; }
-    void set_application_modes(std::uint32_t modes);
     // Whether a tab shows on the tab row now (its modes, and its set's
     // availability). Throws std::out_of_range for a tab past the end.
     [[nodiscard]] bool tab_shown(std::size_t tab) const;
@@ -362,15 +357,6 @@ public:
     // shown while it scrolls.
     [[nodiscard]] bool scrolling() const;
     [[nodiscard]] std::size_t first_visible_group() const noexcept { return first_group_; }
-    // The document area's declared minimum height in logical units (owner
-    // decision 34). The height the ribbon's parent offers it holds the ribbon
-    // and the document area under it; the plane hides when that area would
-    // be shorter than the minimum, and shows again once it is at least the
-    // minimum plus hide_hysteresis. Zero (the default) declares none: the
-    // plane hides only when no document area would be left. Throws
-    // std::invalid_argument for a negative or non-finite height.
-    [[nodiscard]] double document_minimum_height() const noexcept { return document_minimum_height_; }
-    void set_document_minimum_height(double height);
     // Whether the document-area rule hides the command plane now.
     [[nodiscard]] bool plane_hidden() const noexcept { return plane_hidden_; }
     [[nodiscard]] RibbonScalingCounters scaling_counters() const noexcept { return counters_; }
@@ -379,13 +365,8 @@ public:
     // Throws std::out_of_range for a tab past the end and
     // std::invalid_argument for a tab not shown.
     void set_selected_tab(std::size_t tab);
-    // Whether the command plane is hidden, leaving the tab row.
-    [[nodiscard]] bool minimized() const noexcept { return minimized_; }
-    void set_minimized(bool minimized);
 
-    // The File tab: its text (with an optional mnemonic) and its menu.
-    [[nodiscard]] const std::string& application_text() const noexcept { return application_text_; }
-    void set_application_text(std::string text);
+    // The File tab's menu (its text is application_text).
     [[nodiscard]] const std::vector<MenuItemSpec>& application_menu() const noexcept { return application_menu_; }
     // Throws std::invalid_argument for an invalid menu.
     void set_application_menu(std::vector<MenuItemSpec> items);
@@ -403,17 +384,8 @@ public:
     static constexpr std::size_t maximum_recent_items = 50U;
     [[nodiscard]] std::span<const RibbonRecentItem> recent_items() const noexcept { return recent_items_; }
     void set_recent_items(std::vector<RibbonRecentItem> items);
-    [[nodiscard]] const std::string& recent_caption() const noexcept { return recent_caption_; }
-    void set_recent_caption(std::string caption);
     // The two-pane menu's content control, null before its first opening.
     [[nodiscard]] Control::Ptr application_menu_overlay() const noexcept;
-    // Backstage (phase 6; owner decisions 3, 26): a BackstageView the File
-    // tab opens over everything below the tab row, instead of the
-    // application menu. Escape, the File tab, another tab or a definitive
-    // command closes it and returns to the document. Throws
-    // std::invalid_argument for a view that already has a parent.
-    [[nodiscard]] std::shared_ptr<BackstageView> backstage() const noexcept { return backstage_; }
-    void set_backstage(std::shared_ptr<BackstageView> view);
     bool show_backstage();
     void close_backstage() noexcept;
     [[nodiscard]] bool backstage_open() const noexcept { return backstage_open_; }
@@ -442,14 +414,6 @@ public:
     [[nodiscard]] std::shared_ptr<NumericUpDown> numeric_up_down(std::string_view command_id) const;
     [[nodiscard]] std::shared_ptr<CheckBox> check_box(std::string_view command_id) const;
     [[nodiscard]] std::shared_ptr<TextBox> text_box(std::string_view command_id) const;
-
-    // Whether the ribbon adds itself to its window's F6 regions when it is
-    // attached (owner decision 17). On by default.
-    [[nodiscard]] bool focus_region() const noexcept { return focus_region_; }
-    void set_focus_region(bool region);
-
-    [[nodiscard]] FontSpec font() const noexcept { return font_; }
-    void set_font(FontSpec font);
 
     [[nodiscard]] Event<const RibbonCommandClick&>& command_clicked() noexcept { return command_clicked_; }
     [[nodiscard]] Event<const RibbonDropDownInvocation&>& drop_down_item_invoked() noexcept {
@@ -902,10 +866,7 @@ private:
     std::vector<RibbonTabSetSpec> tab_sets_{};
     std::vector<TabSetState> set_states_{};
     std::vector<std::optional<std::size_t>> tab_set_of_{};
-    std::uint32_t application_modes_{1U};
     std::optional<std::size_t> last_core_tab_{};
-    bool minimized_{};
-    std::string application_text_{"File"};
     std::vector<MenuItemSpec> application_menu_{};
     std::unique_ptr<ContextMenu> overlay_{};
     SubscriptionToken overlay_invoked_{};
@@ -922,8 +883,6 @@ private:
     bool application_pressed_{};
     std::optional<Stop> stop_{};
     bool focused_{};
-    bool focus_region_{true};
-    FontSpec font_{FontRole::control, 10.5, 400, false, 0.12};
 
     // Scaling. The caches are derived state, emptied when scaling_key_ no
     // longer matches; scaling_ has one entry per tab.
@@ -939,7 +898,6 @@ private:
     std::size_t first_group_{};
     // Whether the plane scrolls, latched by arrange with scroll_hysteresis.
     bool scroll_latched_{};
-    double document_minimum_height_{};
     bool plane_hidden_{};
 
     // The group overlay: its content control and layer (made on first use),
@@ -964,13 +922,11 @@ private:
 
     // The file area: recent items, the two-pane menu while open, Backstage.
     std::vector<RibbonRecentItem> recent_items_{};
-    std::string recent_caption_{"Recent documents"};
     std::shared_ptr<RibbonApplicationMenu> application_overlay_{};
     OverlayToken application_overlay_token_{};
     FocusScopeId application_scope_{};
     SubscriptionToken application_overlay_revoked_{};
     bool application_overlay_open_{};
-    std::shared_ptr<BackstageView> backstage_{};
     SubscriptionToken backstage_close_{};
     OverlayToken backstage_token_{};
     FocusScopeId backstage_scope_{};
@@ -978,6 +934,34 @@ private:
     bool backstage_open_{};
     Event<const RibbonRecentItemInvocation&> recent_item_invoked_{};
     Event<bool> backstage_open_changed_{};
+    // property_codemod begin Ribbon (tools/property_families/ribbon.json; generated, do not edit)
+private:
+    friend struct RibbonApplicationModesCapability<Ribbon>;
+    friend struct RibbonDocumentMinimumHeightCapability<Ribbon>;
+    friend struct RibbonMinimizedCapability<Ribbon>;
+    friend struct RibbonApplicationTextCapability<Ribbon>;
+    friend struct RibbonRecentCaptionCapability<Ribbon>;
+    friend struct RibbonBackstageCapability<Ribbon>;
+    friend struct RibbonFocusRegionCapability<Ribbon>;
+    friend struct FontCapability<Ribbon>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(application_modes)& cell, std::uint32_t& incoming);
+    void written(const decltype(application_modes)& cell);
+    void prepare_write(const decltype(document_minimum_height)& cell, double& incoming);
+    void written(const decltype(document_minimum_height)& cell);
+    void prepare_write(const decltype(minimized)& cell, bool& incoming);
+    void written(const decltype(minimized)& cell);
+    void prepare_write(const decltype(application_text)& cell, std::string& incoming);
+    void written(const decltype(application_text)& cell);
+    void prepare_write(const decltype(recent_caption)& cell, std::string& incoming);
+    void written(const decltype(recent_caption)& cell);
+    void prepare_write(const decltype(backstage)& cell, std::shared_ptr<BackstageView>& incoming);
+    void written(const decltype(backstage)& cell);
+    void prepare_write(const decltype(focus_region)& cell, bool& incoming);
+    void written(const decltype(focus_region)& cell);
+    void prepare_write(const decltype(font)& cell, FontSpec& incoming);
+    void written(const decltype(font)& cell);
+    // property_codemod end Ribbon
 };
 
 } // namespace gui_forms

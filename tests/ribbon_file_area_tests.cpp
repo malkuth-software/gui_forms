@@ -420,7 +420,7 @@ void backstage() {
                        {.stable_id = "info", .kind = BackstageItemKind::topic, .text = "&Info", .page = info},
                        {.stable_id = "print", .kind = BackstageItemKind::topic, .text = "&Print", .page = print_button},
                        {.stable_id = "close", .command = close, .definitive = true}});
-    (*ribbon).set_backstage(view);
+    (*ribbon).backstage = view;
     Window window(ribbon, {900.0, 500.0});
     window.perform_layout();
     std::vector<std::string> topics;
@@ -468,7 +468,7 @@ void backstage() {
     require((*ribbon).show_backstage(), "and again");
     window.perform_layout();
     click(window, centre((*ribbon).realized_tabs()[1].parts.tab.bounds));
-    require(!(*ribbon).backstage_open() && (*ribbon).selected_tab() == std::size_t{1U} && !(*ribbon).minimized(),
+    require(!(*ribbon).backstage_open() && (*ribbon).selected_tab() == std::size_t{1U} && !(*ribbon).minimized.read(),
             "a tab closes it and selects that tab");
     require((*ribbon).show_backstage(), "Backstage reopens");
     window.perform_layout();

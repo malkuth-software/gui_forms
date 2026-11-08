@@ -179,22 +179,12 @@ bool Ribbon::scrolling() const {
     return placed.scrolling;
 }
 
-void Ribbon::set_document_minimum_height(double height) {
-    require_mutable();
-    if (!std::isfinite(height) || height < 0.0) {
-        throw std::invalid_argument("Ribbon document minimum height must be finite and not negative");
-    }
-    if (document_minimum_height_ == height) return;
-    document_minimum_height_ = height;
-    invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
-}
-
 // -- caches --------------------------------------------------------------------
 
 double Ribbon::text_width(std::string_view text) const {
     if (text.empty()) return 0.0;
     ++counters_.text_measurements;
-    const ResolvedTextLayout metrics = resolve_text_layout_utf8(text, text_font(font_));
+    const ResolvedTextLayout metrics = resolve_text_layout_utf8(text, text_font(font.read()));
     return metrics.logical_size.width;
 }
 
@@ -205,7 +195,7 @@ Ribbon::ScalingKey Ribbon::current_scaling_key() const {
     key.theme = &effective_theme();
     const Window* const host = attached_window();
     key.provider = host != nullptr ? (*host).text_metrics_provider() : nullptr;
-    key.font = font_;
+    key.font = font.read();
     return key;
 }
 
@@ -224,8 +214,8 @@ const Ribbon::RowMetrics& Ribbon::row_metrics() const {
     if (row_metrics_.built) return row_metrics_;
     const double scale = effective_text_scale();
     const double padding = tab_padding * scale * 2.0;
-    const double application_text = text_width(parse_mnemonic_text(application_text_).display_text);
-    row_metrics_.application = std::max(application_minimum_width * scale, application_text + padding);
+    const double application_width = text_width(parse_mnemonic_text(application_text.read()).display_text);
+    row_metrics_.application = std::max(application_minimum_width * scale, application_width + padding);
     row_metrics_.tabs.clear();
     row_metrics_.tabs.reserve(tabs_.size());
     for (const RibbonTabSpec& tab : tabs_) {
@@ -579,7 +569,7 @@ Ribbon::Layout Ribbon::layout_for(Rect client) const {
     }
     if (!selected_tab_) return placed;
     reset_layout_groups(placed);
-    if (minimized_ || plane_hidden_) return placed;
+    if (minimized.read() || plane_hidden_) return placed;
     placed.plane = {client.x, client.y + row, client.width, plane_height()};
     place_plane(placed);
     return placed;

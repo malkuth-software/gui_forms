@@ -826,7 +826,7 @@ void hide_rule() {
         require(ribbon.measure({900.0, probe.height}).height == (probe.hidden ? 24.0 : 112.0),
                 "a hidden plane gives its height to the document area");
     }
-    ribbon.set_document_minimum_height(100.0);
+    ribbon.document_minimum_height = 100.0;
     const Probe declared[] = {{212.0, false}, {211.0, true}, {219.0, true}, {219.5, true},
                               {220.0, false}, {212.0, false}, {150.0, true}, {400.0, false}};
     for (const Probe& probe : declared) {
@@ -838,11 +838,11 @@ void hide_rule() {
     require(!ribbon.plane_hidden() && ribbon.scrolling(), "the width never hides the plane");
     bool threw = false;
     try {
-        ribbon.set_document_minimum_height(-1.0);
+        ribbon.document_minimum_height = -1.0;
     } catch (const std::invalid_argument&) {
         threw = true;
     }
-    require(threw && ribbon.document_minimum_height() == 100.0, "a negative minimum is refused");
+    require(threw && ribbon.document_minimum_height.read() == 100.0, "a negative minimum is refused");
 
     // At text scale 1.5 the ribbon is 168 units tall, and the threshold moves.
     FixedMetrics larger_metrics;
