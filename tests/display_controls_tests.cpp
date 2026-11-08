@@ -778,7 +778,8 @@ struct SearchRecorder final {
 void watch(SearchField& field, SearchRecorder& recorder) {
     const SubscriptionToken text_token = field.text_changed().subscribe(
         Delegate<const std::string&>::bind<SearchRecorder, &SearchRecorder::on_text>(recorder));
-    on(field.search_requested(), recorder, &SearchRecorder::on_search);
+    const SubscriptionToken search_token = field.search_requested().subscribe(
+        Delegate<const std::string&>::bind<SearchRecorder, &SearchRecorder::on_search>(recorder));
     const SubscriptionToken cleared_token =
         field.cleared().subscribe(Delegate<>::bind<SearchRecorder, &SearchRecorder::on_cleared>(recorder));
 }
