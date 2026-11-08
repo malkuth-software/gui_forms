@@ -3,6 +3,8 @@
 // identical bytes; each theme carries its id, is built once, passes every
 // gated contrast pair in light and high contrast, and resolves its own
 // recipes, unlike the others'; the ids name the themes and nothing else.
+// The owner's accepted exceptions (period values kept below the gate) are
+// listed, not counted.
 // With GUI_FORMS_CONTRAST_REPORT_DIRECTORY=<path> it writes each theme's
 // report as <path>/<id>.tsv, for the stage record.
 
@@ -81,11 +83,58 @@ void write_report(std::string_view id, const std::vector<ContrastRow>& rows, con
     }
 }
 
-// Prints each failing row and returns how many there are.
+// A failing pair the owner accepted (2026-11-08): the period value of a
+// familiar theme kept below the gate. It matches a row of theme `id`
+// whose pair is `pair` (or the text and muted text pairs of a disabled
+// state, when `disabled_text`), drawn in `foreground`, and, when
+// `family_bound`, of `family` alone.
+struct AcceptedException final {
+    std::string_view id{};
+    bool disabled_text{};
+    detail::ContrastPair pair{detail::ContrastPair::text};
+    bool family_bound{};
+    ControlVisualRole family{ControlVisualRole::window};
+    Color foreground{};
+};
+
+constexpr std::array<AcceptedException, 3> accepted_exceptions{{
+    // Classic's embossed disabled text, #808080.
+    {.id = "classic", .disabled_text = true, .foreground = Color::rgba(128, 128, 128)},
+    // Luna's disabled text, #ACA899.
+    {.id = "xp-style", .disabled_text = true, .foreground = Color::rgba(172, 168, 153)},
+    // Aero's default button frame, #3399FF.
+    {.id = "windows7-style",
+     .pair = detail::ContrastPair::boundary,
+     .family_bound = true,
+     .family = ControlVisualRole::accent_button,
+     .foreground = Color::rgba(51, 153, 255)},
+}};
+
+bool accepted(std::string_view id, const ContrastRow& row) noexcept {
+    for (const AcceptedException& exception : accepted_exceptions) {
+        if (exception.id != id || row.foreground != exception.foreground) continue;
+        if (exception.family_bound && row.family != exception.family) continue;
+        if (exception.disabled_text) {
+            const bool text_pair = row.pair == detail::ContrastPair::text || row.pair == detail::ContrastPair::muted_text;
+            if (text_pair && row.state == ControlSurfaceState::disabled && !row.high_contrast) return true;
+            continue;
+        }
+        if (row.pair == exception.pair && !row.high_contrast) return true;
+    }
+    return false;
+}
+
+// Prints each failing row and returns how many there are, not counting
+// (but listing) the owner's accepted exceptions.
 std::size_t print_failures(std::string_view id, const std::vector<ContrastRow>& rows) {
     std::size_t failed = 0U;
+    std::size_t excepted = 0U;
     for (const ContrastRow& row : rows) {
         if (row.verdict != ContrastVerdict::fail) continue;
+        if (accepted(id, row)) {
+            ++excepted;
+            continue;
+        }
         ++failed;
         char line[200]{};
         std::snprintf(line, sizeof(line), "%s fails: %s %s %s %s %s #%02X%02X%02X on #%02X%02X%02X %.2f < %.1f\n",
@@ -97,6 +146,7 @@ std::size_t print_failures(std::string_view id, const std::vector<ContrastRow>& 
                       row.background.green, row.background.blue, row.ratio, row.minimum);
         std::cerr << line;
     }
+    if (excepted > 0U) std::cout << id << ": " << excepted << " rows are owner-accepted exceptions\n";
     return failed;
 }
 

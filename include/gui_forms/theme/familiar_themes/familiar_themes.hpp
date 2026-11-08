@@ -19,10 +19,14 @@ namespace gui_forms {
 // buttons, sunken cells) lives only in these themes. Each is a floor sheet
 // of `:family()` blocks (as the default theme's), evaluated once into its
 // recipes over a structure-only recipe; none has a parts sheet, so parts
-// the engine paints draw from those recipes. Every value that a period
-// look would draw below the contrast gate (4.5:1 text, 3:1 disabled text,
-// boundaries and focus) is darkened to meet it, and the sheet says so.
-// They are light only; high contrast is derived from the role model, as
+// the engine paints draw from those recipes. A value that a period look
+// would draw below the contrast gate (4.5:1 text, 3:1 disabled text,
+// boundaries and focus) is darkened to meet it, and the sheet says so,
+// except the period values the owner kept (2026-11-08): classic's and
+// xp-style's disabled text and windows7-style's default button frame,
+// accepted exceptions of the themes' gate (tests/familiar_themes_tests).
+// Visual references: 7.css for windows7-style, XP.css (and its Windows 98
+// sheet) for xp-style and classic. They are light only; high contrast is derived from the role model, as
 // for every theme. `windows-professional` (windows_professional_theme)
 // stays the Windows-familiar theme it was.
 enum class FamiliarTheme : std::uint8_t {

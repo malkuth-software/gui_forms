@@ -26,12 +26,14 @@ namespace {
 
 constexpr std::string_view classic_sheet = R"css(/* classic: the Windows 2000 look (stage T4, phase 7).
    The button face #d4d0c8, bevels of white and #808080 one unit inside
-   the frame, sunken wells, navy #0a246a highlights. Changed for the
-   contrast gate: the outer frame of buttons and wells is the dark shadow
-   #404040 on every side (the period bevel's white top edge is 1.5:1 on the
-   face; the gate's boundary is 3:1); disabled text is #6d6d6d (the
-   period's embossed #808080 is 2.6:1); a toolbar button's thin bevel has
-   a #6d6d6d frame. */
+   the frame, sunken wells, navy #0a246a highlights. Visual reference:
+   XP.css's Windows 98 sheet (https://botoxparty.github.io/XP.css/).
+   Changed for the contrast gate: the outer frame of buttons and wells is
+   the dark shadow #404040 on every side (the period bevel's white top edge
+   is 1.5:1 on the face; the gate's boundary is 3:1); a toolbar button's
+   thin bevel has a #6d6d6d frame. Kept at the period value by the owner
+   (2026-11-08), an accepted exception in the familiar themes' gate:
+   disabled text #808080 (2.6:1 on the face, under the 3:1 gate). */
 
 * {
   color: #000000;
@@ -192,9 +194,9 @@ constexpr std::string_view classic_sheet = R"css(/* classic: the Windows 2000 lo
 }
 
 :disabled, :state(selected):disabled {
-  color: #6d6d6d;
-  muted-color: #6d6d6d;
-  glyph-color: #6d6d6d;
+  color: #808080;
+  muted-color: #808080;
+  glyph-color: #808080;
 }
 )css";
 
@@ -391,10 +393,12 @@ constexpr std::string_view modern_flat_sheet = R"css(/* modern-flat: a flat mode
 constexpr std::string_view xp_style_sheet = R"css(/* xp-style: a Luna-like look (stage T4, phase 7), recreated: the beige
    stock #ece9d8, white-to-beige plates in navy #003c74 frames, an orange
    inner light while hot, the default button's blue inner frame, the
-   highlight #316ac5 and the green progress fill. Changed for the
-   contrast gate: the field frame is #4f6f99 (Luna's #7f9db9 is 2.3:1 on
-   the stock); disabled text is #7a7765 (Luna's #aca899 is 1.9:1); a
-   toolbar button's hover frame is the navy one. */
+   highlight #316ac5 and the green progress fill. Visual reference: XP.css
+   (https://botoxparty.github.io/XP.css/). Changed for the contrast gate:
+   the field frame is #4f6f99 (Luna's #7f9db9 is 2.3:1 on the stock); a
+   toolbar button's hover frame is the navy one. Kept at the period value
+   by the owner (2026-11-08), an accepted exception in the familiar
+   themes' gate: disabled text #aca899 (1.9:1 on the stock). */
 
 * {
   color: #000000;
@@ -555,9 +559,9 @@ constexpr std::string_view xp_style_sheet = R"css(/* xp-style: a Luna-like look 
 }
 
 :disabled, :state(selected):disabled {
-  color: #7a7765;
-  muted-color: #7a7765;
-  glyph-color: #7a7765;
+  color: #aca899;
+  muted-color: #aca899;
+  glyph-color: #aca899;
 }
 )css";
 
@@ -565,10 +569,13 @@ constexpr std::string_view windows7_style_sheet = R"css(/* windows7-style: an Ae
    the stock #f0f0f0, grey glossy plates in #707070 frames, sky-blue hover
    and press, pale blue item highlights, the green progress fill. Its
    window glass needs T5's glass material; until then windows are opaque
-   stock. Changed for the contrast gate: the field frame is #7a7a7a (the
-   period's #abadb3 is 2.0:1 on the stock); the default button's frame is
-   #2c628b (the period's glow blue #3399ff is 2.6:1); the press gradient
-   ends at #98d1ef (muted text on the period's #6db3df is 3.7:1). */
+   stock. Visual reference: 7.css (https://khang-nd.github.io/7.css/).
+   Changed for the contrast gate: the field frame is #7a7a7a (the period's
+   #abadb3 is 2.0:1 on the stock); the press gradient ends at #98d1ef
+   (muted text on the period's #6db3df is 3.7:1). Kept at the period value
+   by the owner (2026-11-08), an accepted exception in the familiar
+   themes' gate: the default button's frame #3399ff (2.6:1 on the stock,
+   under the 3:1 boundary gate). */
 
 * {
   color: #000000;
@@ -611,7 +618,7 @@ constexpr std::string_view windows7_style_sheet = R"css(/* windows7-style: an Ae
   keylines: #ffffff #e5e5e5 #e5e5e5 #ffffff;
 }
 :family(accent-button) {
-  border-color: #2c628b;
+  border-color: #3399ff;
   keylines: #bfe5f9 #8ccbf2 #8ccbf2 #bfe5f9;
 }
 :family(button):hover, :family(accent-button):hover {
@@ -772,7 +779,7 @@ constexpr std::array<FamiliarDescription, familiar_theme_count> descriptions{{
                    .border = Color::rgba(128, 128, 128),
                    .dark_border = Color::rgba(64, 64, 64),
                    .text = Color::rgba(0, 0, 0),
-                   .disabled_text = Color::rgba(109, 109, 109),
+                   .disabled_text = Color::rgba(128, 128, 128),
                    .accent = Color::rgba(10, 36, 106),
                    .accent_light = Color::rgba(232, 230, 226),
                    .link = Color::rgba(0, 0, 255),
@@ -806,7 +813,7 @@ constexpr std::array<FamiliarDescription, familiar_theme_count> descriptions{{
                    .border = Color::rgba(79, 111, 153),
                    .dark_border = Color::rgba(0, 60, 116),
                    .text = Color::rgba(0, 0, 0),
-                   .disabled_text = Color::rgba(122, 119, 101),
+                   .disabled_text = Color::rgba(172, 168, 153),
                    .accent = Color::rgba(49, 106, 197),
                    .accent_light = Color::rgba(221, 231, 247),
                    .link = Color::rgba(0, 0, 255),
