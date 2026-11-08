@@ -7,6 +7,7 @@
 
 #if defined(GUI_FORMS_AX_GALLERY)
 #include "gallery.hpp"
+#include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
 #endif
 
 #include <chrono>
@@ -14,6 +15,7 @@
 #include <cstdio>
 #include <functional>
 #include <memory>
+#include <span>
 #include <string>
 #include <string_view>
 #include <unistd.h>
@@ -97,6 +99,30 @@ void append_types(const gui_forms::Window& window, const SemanticNode& node, std
 class SemanticDumpWriter;
 void freeze_page_on_main(void* context);
 
+#if defined(GUI_FORMS_AX_GALLERY)
+// Whether every started sub-surface host under `control` has published its
+// semantics (its first frame's snapshot). Until then a page is not frozen:
+// the sub-surface's first frame repaints the window after the freeze, which
+// restarted a page's ambient effects (the ranges page's animated progress
+// bars) and left the motion clock armed, so the page never settled (the
+// intermittent S5 failure; the UIA Gallery client waits the same way).
+bool sub_surfaces_published(const Control::Ptr& control) {
+    const std::shared_ptr<gui_forms::SubSurfaceHost> host =
+        std::dynamic_pointer_cast<gui_forms::SubSurfaceHost>(control);
+    if (host != nullptr && (*host).started() && (*host).semantic_virtual_children().empty()) return false;
+    const std::span<const Control::Ptr> children = (*control).children();
+    for (const Control::Ptr& child : children) {
+        if (!sub_surfaces_published(child)) return false;
+    }
+    return true;
+}
+
+// The writer ticks (50 ms each) a page's sub-surfaces may take to publish
+// before it is frozen anyway; a page that still has not published then is
+// reported by the client as unsettled, as before.
+constexpr std::uint32_t sub_surface_wait_ticks = 100U;
+#endif
+
 class SemanticDumpWriter final {
 public:
     SemanticDumpWriter(gui_forms::Window& window, const StockEffectCounter* effects, std::string path)
@@ -116,6 +142,12 @@ public:
         const std::string_view page = gui_forms::gallery::selected_gallery_page(window_);
         if (page != frozen_page_) {
             if (!freeze_pending_) {
+                const bool published = sub_surfaces_published(window_.root());
+                if (!published && sub_surface_waits_ < sub_surface_wait_ticks) {
+                    ++sub_surface_waits_;
+                    return;
+                }
+                sub_surface_waits_ = 0U;
                 freeze_pending_ = true;
                 dispatch_async_f(dispatch_get_main_queue(), this, &freeze_page_on_main);
             }
@@ -248,6 +280,8 @@ private:
     // first freeze.
     std::string frozen_page_;
     bool freeze_pending_{};
+    // Ticks spent waiting for the selected page's sub-surfaces to publish.
+    std::uint32_t sub_surface_waits_{};
 };
 
 // Main-queue work posted by SemanticDumpWriter::tick; the context is the

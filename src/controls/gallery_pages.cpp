@@ -236,8 +236,8 @@ GalleryShell build_gallery_shell(const GalleryTree& compiled) {
     (*status_surface).add_child((*context).status);
     std::shared_ptr<gui_forms::CheckBox> live = make_control<CheckBox>(
         StableId("gallery.status.live"), "Live animation");
-    (*live).set_checked(true);
-    (*live).set_indicator_style(ChoiceIndicatorStyle::toggle);
+    (*live).checked = true;
+    (*live).indicator_style = ChoiceIndicatorStyle::toggle;
     (*live).set_requested_bounds({846.0, 8.0, 180.0, 28.0});
     (*live).anchor = AnchorStyles::top | AnchorStyles::right;
     (*status_surface).add_child(live);

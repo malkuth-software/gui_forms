@@ -17,6 +17,7 @@
 #include <fstream>
 #include <memory>
 #include <span>
+#include <stop_token>
 #include <string>
 #include <thread>
 #include <utility>
@@ -106,11 +107,16 @@ public:
         LiveSurfaceSnapshot surface;
         // The producer is idle because its window cannot present its frames.
         bool presentation_idle{};
+        // The pacer's deadline wakes (the presenter did not show the last
+        // frame within one and a half refreshes) and the frames they missed.
+        std::uint64_t deadline_wakes{};
+        std::uint64_t missed_frames{};
     };
 
     explicit WaterfallSurface(StableId stable_id)
         : Control(std::move(stable_id)),
-          surface_(LiveSurface::create(waterfall_description({surface_width, surface_height}))) {
+          surface_(LiveSurface::create(waterfall_description({surface_width, surface_height}))),
+          pacer_(surface_) {
         set_focusable(true);
         accessible_name = "High-rate waterfall and tearing diagnostic";
         const char* const trace_path = std::getenv("GUI_FORMS_VSYNC_LAB_TRACE");
@@ -127,12 +133,6 @@ public:
         disconnect_surface_wake();
         stop_worker();
         write_trace();
-    }
-
-    void set_producer_rate(std::uint32_t frames_per_second) noexcept {
-        producer_rate_.store(
-            std::clamp<std::uint32_t>(frames_per_second, 15U, 1000U),
-            std::memory_order_release);
     }
 
     void set_rows_per_frame(std::uint32_t rows) noexcept {
@@ -152,12 +152,14 @@ public:
 
     void set_paused(bool paused) noexcept {
         paused_.store(paused, std::memory_order_release);
+        pacer_.arm();
     }
 
     // Whether the window can present the surface (UI thread; the producer
     // idles while it cannot).
     void set_presentable(bool presentable) noexcept {
         presentable_.store(presentable, std::memory_order_release);
+        pacer_.arm();
     }
 
     [[nodiscard]] bool paused() const noexcept {
@@ -178,6 +180,8 @@ public:
             last_painted_generation_.load(std::memory_order_acquire);
         if (surface_) result.surface = (*surface_).snapshot();
         result.presentation_idle = !presentable_.load(std::memory_order_acquire);
+        result.deadline_wakes = deadline_wakes_.load(std::memory_order_acquire);
+        result.missed_frames = missed_frames_.load(std::memory_order_acquire);
         return result;
     }
 
@@ -276,6 +280,7 @@ private:
         size.width = static_cast<std::uint32_t>(width);
         size.height = static_cast<std::uint32_t>(height);
         requested_size_.store(pack_surface_size(size), std::memory_order_release);
+        pacer_.arm();
     }
 
     static void write_pixel(std::span<std::byte> pixels, std::uint32_t width,
@@ -492,7 +497,32 @@ private:
         static_cast<void>(sink);
     }
 
+    // Whether the producer has nothing to render: paused, its window unable
+    // to present, or the control not yet sized (any thread).
+    [[nodiscard]] bool nothing_to_render() const noexcept {
+        if (paused_.load(std::memory_order_acquire)) return true;
+        if (!presentable_.load(std::memory_order_acquire)) return true;
+        const SurfaceSize requested = unpack_surface_size(requested_size_.load(std::memory_order_acquire));
+        return requested.width == 0U;
+    }
+
+    // Idles the pacer until a setter arms it or the producer stops: no
+    // periodic wake. The state is read again after idle(), so a setter's
+    // arm() that came first is not lost (producer thread).
+    void idle_until_armed(const std::stop_token& stop) noexcept {
+        pacer_.idle();
+        if (!nothing_to_render()) {
+            pacer_.arm();
+            return;
+        }
+        static_cast<void>(pacer_.wait_for_frame(stop));
+    }
+
+    // Paced to the display by the surface's pacer (design note section 8):
+    // one frame per display frame, no sleep loop; a stalled presenter wakes
+    // it at the deadline instead of stopping it.
     void producer_loop() noexcept {
+        const std::stop_token stop = stop_.get_token();
         SurfaceSize size;
         size.width = surface_width;
         size.height = surface_height;
@@ -509,23 +539,16 @@ private:
         bool sized = false;
         std::chrono::steady_clock::time_point last_reconfigure{};
         std::uint64_t frame_index{};
-        std::chrono::steady_clock::time_point next =
-            std::chrono::steady_clock::now();
-        const std::chrono::steady_clock::time_point trace_origin = next;
+        const std::chrono::steady_clock::time_point trace_origin = std::chrono::steady_clock::now();
         trace_origin_nanoseconds_ = static_cast<std::uint64_t>(
             std::chrono::duration_cast<std::chrono::nanoseconds>(trace_origin.time_since_epoch()).count());
         const bool tracing = !trace_path_.empty();
-        while (!stop_requested_.load(std::memory_order_acquire)) {
-            if (paused_.load(std::memory_order_acquire)) {
-                std::this_thread::sleep_for(4ms);
-                next = std::chrono::steady_clock::now();
-                continue;
-            }
-            // A producer whose window cannot present (covered, minimized, or
-            // the surface hidden) idles: no rendering, publishing or UI wakes.
-            if (!presentable_.load(std::memory_order_acquire)) {
-                std::this_thread::sleep_for(16ms);
-                next = std::chrono::steady_clock::now();
+        while (!stop.stop_requested()) {
+            // A paused producer, or one whose window cannot present (covered,
+            // minimized, or the surface hidden), or one not yet sized, idles:
+            // no rendering, publishing or UI wakes.
+            if (nothing_to_render()) {
+                idle_until_armed(stop);
                 continue;
             }
             // Follow the control's device size between frames, at most once
@@ -536,11 +559,7 @@ private:
             const std::chrono::steady_clock::time_point frame_started = std::chrono::steady_clock::now();
             const SurfaceSize requested =
                 unpack_surface_size(requested_size_.load(std::memory_order_acquire));
-            if (requested.width == 0U) {
-                std::this_thread::sleep_for(4ms);
-                next = std::chrono::steady_clock::now();
-                continue;
-            }
+            if (requested.width == 0U) continue;
             const bool changed = requested.width != size.width || requested.height != size.height;
             const bool due = !sized || frame_started - last_reconfigure >= reconfigure_interval;
             if (changed && due && (*surface_).reconfigure(waterfall_description(requested))) {
@@ -553,8 +572,8 @@ private:
             }
             if (!changed) sized = true;
             if (!sized) {
-                std::this_thread::sleep_for(1ms);
-                next = std::chrono::steady_clock::now();
+                // The reconfigure was refused: try again next display frame.
+                static_cast<void>(pacer_.wait_for_frame(stop));
                 continue;
             }
             const std::chrono::steady_clock::time_point render_started = std::chrono::steady_clock::now();
@@ -587,17 +606,10 @@ private:
                 trace_.push_back(entry);
             }
 
-            const std::uint32_t rate =
-                producer_rate_.load(std::memory_order_acquire);
-            const std::chrono::microseconds period = std::chrono::microseconds(
-                std::max<std::uint32_t>(1U, 1'000'000U / rate));
-            next += period;
-            const std::chrono::steady_clock::time_point now =
-                std::chrono::steady_clock::now();
-            if (next > now) {
-                std::this_thread::sleep_until(next);
-            } else if (now - next > period * 4) {
-                next = now;
+            const LivePacingResult paced = pacer_.wait_for_frame(stop);
+            if (paced.outcome == LivePacingOutcome::deadline) {
+                deadline_wakes_.fetch_add(1U, std::memory_order_relaxed);
+                missed_frames_.fetch_add(paced.missed_frames, std::memory_order_relaxed);
             }
         }
     }
@@ -635,7 +647,8 @@ private:
 
     void stop_worker() noexcept {
         if (worker_.joinable()) {
-            stop_requested_.store(true, std::memory_order_release);
+            // Wakes the pacer's wait as well.
+            stop_.request_stop();
             worker_.join();
         }
     }
@@ -659,6 +672,9 @@ private:
     }
 
     std::shared_ptr<LiveSurface> surface_;
+    // The producer's presentation clock: waited on by the producer only;
+    // armed by the setters from the UI thread. Empty without a surface.
+    LiveSurfacePacer pacer_;
     LiveSurfaceWakeConnection surface_wake_;
     // The optional trace: written by the producer only while it runs, read
     // by write_trace after it has stopped.
@@ -667,8 +683,9 @@ private:
     // The producer's start on the steady clock, for aligning the trace.
     std::uint64_t trace_origin_nanoseconds_{};
     std::thread worker_;
-    std::atomic<bool> stop_requested_{};
-    std::atomic<std::uint32_t> producer_rate_{240U};
+    std::stop_source stop_{};
+    std::atomic<std::uint64_t> deadline_wakes_{};
+    std::atomic<std::uint64_t> missed_frames_{};
     // The control's size in device pixels (pack_surface_size), 0 before its
     // first arrangement in a window.
     std::atomic<std::uint64_t> requested_size_{};
@@ -689,7 +706,6 @@ private:
 
 struct LabContext final {
     std::shared_ptr<WaterfallSurface> waterfall;
-    std::shared_ptr<Label> producer_value;
     std::shared_ptr<Label> rows_value;
     std::shared_ptr<Label> contrast_value;
     std::shared_ptr<Label> load_value;
@@ -707,7 +723,7 @@ struct LabContext final {
 
 void refresh_telemetry(const std::shared_ptr<LabContext>& context);
 
-enum class LabValueKind { producer_rate, rows_per_frame, contrast, load };
+enum class LabValueKind { rows_per_frame, contrast, load };
 
 struct LabValueChanged final {
     std::weak_ptr<LabContext> context;
@@ -718,10 +734,7 @@ struct LabValueChanged final {
         if (!state) return;
         const std::uint32_t rounded =
             static_cast<std::uint32_t>(std::lround(value));
-        if (kind == LabValueKind::producer_rate) {
-            (*(*state).waterfall).set_producer_rate(rounded);
-            (*(*state).producer_value).text = std::to_string(rounded) + " Hz";
-        } else if (kind == LabValueKind::rows_per_frame) {
+        if (kind == LabValueKind::rows_per_frame) {
             (*(*state).waterfall).set_rows_per_frame(rounded);
             (*(*state).rows_value).text =
                 std::to_string(rounded) + (rounded == 1U ? " row" : " rows");
@@ -838,6 +851,8 @@ void refresh_telemetry(const std::shared_ptr<LabContext>& context) {
         " generations\ndropped writes " +
         std::to_string(current.surface.dropped_acquires) +
         "\nUI wake posts " + std::to_string(current.wake_posts) +
+        "\ndeadline wakes " + std::to_string(current.deadline_wakes) +
+        " (" + std::to_string(current.missed_frames) + " frames missed)" +
         (current.presentation_idle ? "\nproducer idle: not presented" : "");
     (*context).previous = current;
     (*context).previous_time = now;
@@ -862,7 +877,7 @@ std::unique_ptr<Window> make_vsync_lab() {
     (*title).fore_color = Color::rgba(244, 249, 252);
     std::shared_ptr<Label> subtitle = label(
         "vsync.subtitle",
-        "240 Hz producer · newest coherent frame · one outstanding UI paint · compositor-paced presentation",
+        "display-paced producer · newest coherent frame · one outstanding UI paint · compositor-paced presentation",
         {24.0, 42.0, 920.0, 22.0}, TextStyleRole::caption);
     (*subtitle).fore_color = Color::rgba(169, 205, 228);
     (*header).add_child(title);
@@ -887,14 +902,10 @@ std::unique_ptr<Window> make_vsync_lab() {
                               {18.0, 12.0, 250.0, 28.0},
                               TextStyleRole::heading));
 
-    std::shared_ptr<TrackBar> rate = slider("vsync.rate", 15.0, 1000.0, 240.0,
-                       {18.0, 74.0, 252.0, 42.0});
-    (*context).producer_value = label("vsync.rate.value", "240 Hz",
-                                    {196.0, 45.0, 74.0, 24.0});
-    (*controls).add_child(label("vsync.rate.label", "Producer rate",
-                              {18.0, 45.0, 170.0, 24.0}));
-    (*controls).add_child((*context).producer_value);
-    (*controls).add_child(rate);
+    // The producer is paced to the display (LiveSurfacePacer), one frame a
+    // display frame; the former free-running rate slider is gone.
+    (*controls).add_child(label("vsync.pacing.label", "Producer paced to the display",
+                              {18.0, 45.0, 252.0, 24.0}));
 
     std::shared_ptr<TrackBar> rows = slider("vsync.rows", 1.0, 12.0, 1.0,
                        {18.0, 152.0, 252.0, 42.0});
@@ -1005,8 +1016,6 @@ std::unique_ptr<Window> make_vsync_lab() {
     (*root).add_child(metrics_panel);
     (*root).add_child(center);
 
-    (*context).subscriptions.push_back((*rate).value_changed().subscribe(
-        *root, LabValueChanged{context, LabValueKind::producer_rate}));
     (*context).subscriptions.push_back((*rows).value_changed().subscribe(
         *root, LabValueChanged{context, LabValueKind::rows_per_frame}));
     (*context).subscriptions.push_back((*contrast).value_changed().subscribe(
