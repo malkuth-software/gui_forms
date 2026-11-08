@@ -557,7 +557,7 @@ struct PageDigest final {
 // typography-and-inspection's entry is the trace with the RuntimeId the
 // specimen has when this test runs first (#1328 since L8a on main); the digest
 // changes whenever a page made before it makes a control more or less.
-constexpr std::array<PageDigest, 31> expected_digests{{
+constexpr std::array<PageDigest, 32> expected_digests{{
     {"basics", 0xd44683c3af238ef8ULL},
     {"values", 0xa6de1c4dd3b0a669ULL},
     {"retained-rows", 0x113cc633cc36bdf7ULL},
@@ -589,6 +589,9 @@ constexpr std::array<PageDigest, 31> expected_digests{{
     {"live-surfaces", 0x73767712b8e50f6cULL},
     {"typography-and-inspection", 0x558e28500aa51a02ULL},
     {"semantic-feedback", 0xa1e2bc4278a6798dULL},
+    // W-4 added this page and its navigation row: every digest is to be
+    // re-recorded (GUI_FORMS_GALLERY_TRACE_PRINT=1) by the integrator.
+    {"notices-and-badges", 0x0000000000000000ULL},
 }};
 
 std::uint64_t expected_digest(std::string_view page) {

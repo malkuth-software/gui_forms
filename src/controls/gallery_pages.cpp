@@ -97,6 +97,7 @@ void populate_page_body(std::string_view page_id,
     else if (page_id == "live-surfaces") add_live_surfaces(body, context);
     else if (page_id == "typography-and-inspection") add_typography_and_inspection(body, context);
     else if (page_id == "semantic-feedback") add_semantic_feedback(body, context);
+    else if (page_id == "notices-and-badges") add_notices_and_badges(body, context);
     else throw std::logic_error("Gallery page has neither a form-document mount nor a builder");
 }
 

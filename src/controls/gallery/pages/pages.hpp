@@ -102,4 +102,8 @@ void add_typography_and_inspection(const std::shared_ptr<Surface>& page,
 void add_semantic_feedback(const std::shared_ptr<Surface>& page,
                            const std::shared_ptr<PageContext>& context);
 
+// notices-and-badges
+void add_notices_and_badges(const std::shared_ptr<Surface>& page,
+                            const std::shared_ptr<PageContext>& context);
+
 } // namespace gui_forms::gallery::pages

@@ -136,7 +136,7 @@
       "purpose": "Small count or dot: the count, or its maximum and + past it, in an accent pill; a zero count hides unless show_zero; dot mode marks something new without a number.",
       "winforms": "GUI.Forms-only",
       "status": "provisional",
-      "gallery_page": null,
+      "gallery_page": "notices-and-badges",
       "doc": "api/generated/gui_forms.Badge.rst"
     },
     {
@@ -147,7 +147,7 @@
       "purpose": "Message strip across a form or page: a severity icon and keyline, a title and a message, an optional action and a close actuator; a live region to assistive technology.",
       "winforms": "GUI.Forms-only",
       "status": "provisional",
-      "gallery_page": null,
+      "gallery_page": "notices-and-badges",
       "doc": "api/generated/gui_forms.InfoBanner.rst"
     },
     {
@@ -158,7 +158,7 @@
       "purpose": "What a list, page or search shows when it has nothing: a picture, a title, a description and an optional action in a centred column; a group to assistive technology.",
       "winforms": "GUI.Forms-only",
       "status": "provisional",
-      "gallery_page": null,
+      "gallery_page": "notices-and-badges",
       "doc": "api/generated/gui_forms.EmptyState.rst"
     },
     {
