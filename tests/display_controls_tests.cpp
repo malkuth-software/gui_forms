@@ -834,9 +834,8 @@ void test_search_field_alone() {
                 busy_semantics.role == SemanticRole::search_box &&
                 semantic_role_fallback(SemanticRole::search_box) == SemanticRole::text_box,
             "a busy field is pending, and busy to assistive technology as a search_box");
-    require((*field).on_semantic_action(SemanticAction::set_value, "trains") && (*field).text.read() == "trains" &&
-                (*field).semantic_descriptor().value == "trains",
-            "the set-value action writes the query");
+    require(!(*field).on_semantic_action(SemanticAction::set_value, "trains") && (*field).text.read().empty(),
+            "outside a window the set-value action is refused, as for any control not eligible for input");
     require(!(*field).on_semantic_action(SemanticAction::set_value, "\xff") && (*field).text.read() == "trains",
             "a set value that is not UTF-8 is refused");
 }
@@ -873,6 +872,10 @@ void test_search_field_in_window() {
     const SearchField::Parts busy_parts = (*field).parts();
     require(busy_parts.actuator.present && busy_parts.activity.present,
             "a field with text shows its clear mark, and a busy one its activity strip");
+    require((*field).on_semantic_action(SemanticAction::set_value, "trains") && (*field).text.read() == "trains" &&
+                (*field).semantic_descriptor().value == "trains",
+            "the set-value action writes the query");
+    (*field).text = std::string{"ri"};
 
     require(window.request_focus((*field).editor()) && (*field).anatomy_states().contains(AnatomyState::focused),
             "the editor's focus is the field's focused state");

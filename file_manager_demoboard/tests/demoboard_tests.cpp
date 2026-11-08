@@ -311,7 +311,7 @@ int main() {
                 !(*product).find("fm.path.matrix") &&
                 (*terminal).expanded_state.read() == false &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*product).find("fm.title.text"))).text().find("North Shore") !=
+                    (*product).find("fm.title.text"))).text.read().find("North Shore") !=
                     std::string::npos,
             "Enter on a valid completion must close once and navigate atomically");
     (*std::dynamic_pointer_cast<gui_forms::Button>(
@@ -333,7 +333,7 @@ int main() {
                     (*product).find("fm.path.matrix.resolution"))
                         ).accessible_description.read().starts_with("Error:") &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*product).find("fm.status.authority"))).text().find(
+                    (*product).find("fm.status.authority"))).text.read().find(
                         "Unknown variable") != std::string::npos,
             "invalid path must remain editing with visible and semantic explanation");
     require((*product).dispatch_key({gui_forms::KeyAction::down,
@@ -466,7 +466,7 @@ int main() {
                 gui_forms::SemanticAction::press) &&
                 (*search_surface).visible.read() &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*search_product).find("fm.status.authority"))).text().find(
+                    (*search_product).find("fm.status.authority"))).text.read().find(
                         "source volume unavailable") != std::string::npos,
             "unavailable result activation must fail in place with an honest reason");
     require((*search_product).request_focus(search_results) &&
@@ -485,13 +485,13 @@ int main() {
                                           gui_forms::PhysicalKey::enter}) &&
                 (*folder_surface).visible.read() && !(*search_surface).visible.read() &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*search_product).find("fm.title.text"))).text().ends_with(
+                    (*search_product).find("fm.title.text"))).text.read().ends_with(
                         "Orchard Study") &&
                 (*std::dynamic_pointer_cast<gui_forms::ObjectView>(
-                    (*search_product).find("fm.folder.objects"))).selected_id() ==
+                    (*search_product).find("fm.folder.objects"))).selected_id.read() ==
                     "fm.object.search-invoice-pdf" &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*search_product).find("fm.selection.object-name"))).text() ==
+                    (*search_product).find("fm.selection.object-name"))).text.read() ==
                     "Invoice 0428.pdf",
             "Enter must activate a Search result through normal Folder navigation");
 
@@ -503,7 +503,7 @@ int main() {
     (*search_editor).text = "invoice quartz";
     require(!(*(*debounced_search).find("fm.search.surface")).visible.read() &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*debounced_search).find("fm.status.authority"))).text().find(
+                    (*debounced_search).find("fm.status.authority"))).text.read().find(
                         "Search pending") != std::string::npos,
             "Search edits must remain deferred until the latest debounce generation");
     static_cast<void>((*debounced_search).poll_frame_schedule(
@@ -512,10 +512,10 @@ int main() {
     require((*(*debounced_search).find("fm.search.surface")).visible.read() &&
                 !(*(*debounced_search).find("fm.workspace.content-selection")).visible.read() &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*debounced_search).find("fm.status.summary"))).text() ==
+                    (*debounced_search).find("fm.status.summary"))).text.read() ==
                     "5 of 7 results shown · 1 unavailable source" &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*debounced_search).find("fm.status.authority"))).text() ==
+                    (*debounced_search).find("fm.status.authority"))).text.read() ==
                     "Local navigation ready · result generation 86",
             "only the latest debounced query may project the Search surface");
     (*debounced_search).resize({1800, 1050});
@@ -592,16 +592,16 @@ int main() {
                 (*criteria_objects).selected_id.read() ==
                     "fm.object.obj-facade-study" &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*criteria_product).find("fm.status.summary"))).text() ==
+                    (*criteria_product).find("fm.status.summary"))).text.read() ==
                     "5 objects · 3 criteria applied" &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*criteria_product).find("fm.criteria.console.title"))).text().find(
+                    (*criteria_product).find("fm.criteria.console.title"))).text.read().find(
                         "0 STAGED") != std::string::npos &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*criteria_product).find("fm.criteria.results.summary"))).text().starts_with(
+                    (*criteria_product).find("fm.criteria.results.summary"))).text.read().starts_with(
                         "5 OBJECTS") &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*criteria_product).find("fm.status.authority"))).text() ==
+                    (*criteria_product).find("fm.status.authority"))).text.read() ==
                     "Local navigation ready · index 87 current",
             "Apply must complete deterministically while preserving surviving selection");
 
@@ -617,7 +617,7 @@ int main() {
     require((*edit_rack).modules()[0].state ==
                 gui_forms::InstrumentModuleState::live &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*criteria_edit).find("fm.status.authority"))).text().find(
+                    (*criteria_edit).find("fm.status.authority"))).text.read().find(
                         "Live criterion committed") != std::string::npos,
             "cheap choice edits must update the live projection immediately");
     require((*criteria_edit).perform_semantic_action(
@@ -709,7 +709,7 @@ int main() {
                 "fm.palette.cobalt", gui_forms::SemanticAction::press) &&
                 (*cobalt_card).selected.read() && !(*sapphire_card).selected.read() &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*palette_product).find("fm.status.summary"))).text().find(
+                    (*palette_product).find("fm.status.summary"))).text.read().find(
                         "Cobalt atmosphere") != std::string::npos,
             "palette activation must atomically move one selection and publish its status");
     (*palette_product).resize({1800.0, 1050.0});
@@ -752,11 +752,11 @@ int main() {
     require((*dna_product).perform_semantic_action(
                 "fm.dna.material", gui_forms::SemanticAction::press) &&
                 (*std::dynamic_pointer_cast<gui_forms::Card>(
-                    (*dna_product).find("fm.dna.material"))).selected() &&
+                    (*dna_product).find("fm.dna.material"))).selected.read() &&
                 !(*std::dynamic_pointer_cast<gui_forms::Card>(
-                    (*dna_product).find("fm.dna.surface"))).selected() &&
+                    (*dna_product).find("fm.dna.surface"))).selected.read() &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*dna_product).find("fm.review.dna.heading"))).text() ==
+                    (*dna_product).find("fm.review.dna.heading"))).text.read() ==
                     "House material authority",
             "DNA activation must move selection and project the chosen record");
     (*dna_product).resize({680.0, 650.0});
@@ -852,7 +852,7 @@ int main() {
                 (*property_list).value("fm.property.name").value_or("<missing>") +
                 "; accessible: " + (*property_name).accessible_description.read() +
                 "; status: " + (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*product).find("fm.status.authority"))).text() +
+                    (*product).find("fm.status.authority"))).text.read() +
                 "; connected/emitted/disconnected: " +
                 std::to_string(rename_commit_statistics.subscriptions_connected) + "/" +
                 std::to_string(rename_commit_statistics.callbacks_emitted) + "/" +
@@ -865,7 +865,7 @@ int main() {
             "duplicate session rename must publish inline accessible validation; actual: " +
                 (*property_name).accessible_description.read());
     require((*std::dynamic_pointer_cast<gui_forms::Label>(
-                (*product).find("fm.status.authority"))).text().find(
+                (*product).find("fm.status.authority"))).text.read().find(
                 "rename rejected") != std::string::npos,
             "duplicate session rename must publish status authority rejection");
     (*property_name).select_all();
@@ -879,13 +879,13 @@ int main() {
                              is_renamed_facade_study) !=
                     (*objects).items().end() &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*product).find("fm.selection.object-name"))).text() ==
+                    (*product).find("fm.selection.object-name"))).text.read() ==
                     "Facade Final.png",
             "valid session rename must update one coherent object/property projection");
     (*property_handler).selected_index = 1U;
     require((*property_list).value("fm.property.handler") == "Image Laboratory" &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*product).find("fm.status.authority"))).text().find(
+                    (*product).find("fm.status.authority"))).text.read().find(
                     "handler committed") != std::string::npos,
             "choice property must commit through the shared PropertyList model");
     (*preview_disclosure).perform_click();
@@ -927,7 +927,7 @@ int main() {
                                        gui_forms::PhysicalKey::f2}) &&
                 (*product).focused_control() == property_name &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*product).find("fm.status.authority"))).text().find(
+                    (*product).find("fm.status.authority"))).text.read().find(
                     "Rename active") != std::string::npos,
             "F2 must route from the object field into the retained Name editor");
     require((*product).dispatch_key({gui_forms::KeyAction::down,
@@ -954,9 +954,9 @@ int main() {
     require((*objects).on_semantic_child_action(
                 "fm.object.obj-file-manager", gui_forms::SemanticAction::select, {}) &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*product).find("fm.selection.object-name"))).text() == "File Manager" &&
+                    (*product).find("fm.selection.object-name"))).text.read() == "File Manager" &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*product).find("fm.status.summary"))).text().find("1.3G") !=
+                    (*product).find("fm.status.summary"))).text.read().find("1.3G") !=
                     std::string::npos,
             "object selection did not update the shared Selection/status projection");
     (*objects).set_selected_ids({"fm.object.obj-file-manager",
@@ -964,10 +964,10 @@ int main() {
                               "fm.object.obj-file-manager");
     require((*objects).selected_ids().size() == 2U &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*product).find("fm.selection.object-name"))).text() ==
+                    (*product).find("fm.selection.object-name"))).text.read() ==
                     "2 objects selected" &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*product).find("fm.status.summary"))).text().starts_with(
+                    (*product).find("fm.status.summary"))).text.read().starts_with(
                     "2 selected"),
             "multi-selection did not project one coherent Selection/status state");
     (*sort_command).perform_click();
