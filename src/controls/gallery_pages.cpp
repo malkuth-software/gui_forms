@@ -477,10 +477,10 @@ void initialize_gallery_runtime(Window& window) {
         "checked", (*context).binding_source, "enabled", immediate_binding));
     static_cast<void>((*(*context).binding_gain).data_bindings().add(
         "value", (*context).binding_source, "gain", immediate_binding));
-    (*(*context).tooltips).set_initial_delay(420ms);
-    (*(*context).tooltips).set_reshow_delay(90ms);
-    (*(*context).tooltips).set_auto_pop_delay(4s);
-    (*(*context).tooltips).set_show_always(true);
+    (*(*context).tooltips).initial_delay = 420ms;
+    (*(*context).tooltips).reshow_delay = 90ms;
+    (*(*context).tooltips).auto_pop_delay = 4000ms;
+    (*(*context).tooltips).show_always = true;
     (*(*context).error_provider).set_blink_style(ErrorBlinkStyle::never_blink);
     (*(*context).error_provider).bind_to_data_and_errors((*context).binding_source);
     (*(*context).error_provider).set_error(
