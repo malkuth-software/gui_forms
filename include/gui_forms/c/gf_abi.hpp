@@ -1576,6 +1576,62 @@ private:
     gf_subsurfaces_table table_;
 };
 
+// gf_application_table, negotiated as GF_TABLE_APPLICATION.
+class ApplicationTable {
+public:
+    ApplicationTable() noexcept : table_{} {}
+
+    // Negotiates the table at the header's version into output; a refusal
+    // leaves output serving nothing.
+    [[nodiscard]] static gf_status negotiate(ApplicationTable& output) noexcept {
+        gf_application_table negotiated_table{};
+        const gf_status negotiated = gf_abi_get_table(GF_TABLE_APPLICATION, GF_ABI_MAJOR, GF_ABI_MINOR,
+                                                      &negotiated_table, sizeof(negotiated_table));
+        if (negotiated != GF_STATUS_OK) {
+            output = ApplicationTable{};
+            return negotiated;
+        }
+        output.table_ = negotiated_table;
+        return GF_STATUS_OK;
+    }
+
+    // A table the caller negotiated through gf_abi_get_table.
+    [[nodiscard]] static ApplicationTable adopt(const gf_application_table& adopted_table) noexcept {
+        ApplicationTable adopted;
+        adopted.table_ = adopted_table;
+        return adopted;
+    }
+
+    [[nodiscard]] const gf_application_table& c_table() const noexcept { return table_; }
+
+    [[nodiscard]] gf_status create(const gf_application_config* config, gf_theme_report* report) const noexcept {
+        if (table_.struct_size < 16u || table_.create == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.create(config, report);
+        return called;
+    }
+
+    [[nodiscard]] gf_status close(uint64_t* windows_alive) const noexcept {
+        if (table_.struct_size < 24u || table_.close == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.close(windows_alive);
+        return called;
+    }
+
+    [[nodiscard]] gf_status state(gf_application_state* state) const noexcept {
+        if (table_.struct_size < 32u || table_.state == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.state(state);
+        return called;
+    }
+
+private:
+    gf_application_table table_;
+};
+
 // gf_windows_paint_endpoint_table, negotiated as GF_TABLE_WINDOWS_PAINT_ENDPOINT.
 class WindowsPaintEndpointTable {
 public:

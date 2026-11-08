@@ -296,6 +296,12 @@ void HandleRegistry::hold_binding() noexcept {
     binding_held_ = true;
 }
 
+bool HandleRegistry::holds_objects() noexcept {
+    const std::scoped_lock lock(mutex_);
+    const bool holds = live_objects_ != 0U || running_;
+    return holds;
+}
+
 WindowDispatcher HandleRegistry::wake_locked(ThreadDomain domain) noexcept {
     if (domain.value == ui_domain.value) {
         if (run_wake_) {

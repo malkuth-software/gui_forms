@@ -791,6 +791,27 @@ public static unsafe class Layout
             failures += expect(output, "gf_subsurfaces_table.failure offset", (long)((byte*)&value.failure - start), 40);
         }
         {
+            gf_application_config value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_application_config size", sizeof(gf_application_config), 32);
+            failures += expect(output, "gf_application_config.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_application_config.theme_base offset", (long)((byte*)&value.theme_base - start), 4);
+            failures += expect(output, "gf_application_config.packages offset", (long)((byte*)&value.packages - start), 8);
+            failures += expect(output, "gf_application_config.package_count offset", (long)((byte*)&value.package_count - start), 16);
+            failures += expect(output, "gf_application_config.presentation_source offset", (long)((byte*)&value.presentation_source - start), 24);
+            failures += expect(output, "gf_application_config.reserved offset", (long)((byte*)&value.reserved - start), 28);
+        }
+        {
+            gf_application_table value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_application_table size", sizeof(gf_application_table), 32);
+            failures += expect(output, "gf_application_table.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_application_table.abi_minor offset", (long)((byte*)&value.abi_minor - start), 4);
+            failures += expect(output, "gf_application_table.create offset", (long)((byte*)&value.create - start), 8);
+            failures += expect(output, "gf_application_table.close offset", (long)((byte*)&value.close - start), 16);
+            failures += expect(output, "gf_application_table.state offset", (long)((byte*)&value.state - start), 24);
+        }
+        {
             gf_windows_paint_endpoint_table value = default;
             byte* start = (byte*)&value;
             failures += expect(output, "gf_windows_paint_endpoint_table size", sizeof(gf_windows_paint_endpoint_table), 104);

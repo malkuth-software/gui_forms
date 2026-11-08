@@ -109,6 +109,7 @@ typedef uint32_t gf_table_id;
 #define GF_TABLE_CUSTOM_CONTROLS 15u
 #define GF_TABLE_BINDINGS 16u
 #define GF_TABLE_SUBSURFACES 17u
+#define GF_TABLE_APPLICATION 18u
 /* Platform extension tables have ids from 0x100. A library has one only on
  * its platform, and reports it as a host capability; elsewhere
  * gf_abi_get_table gives GF_STATUS_NOT_FOUND. */
@@ -1884,6 +1885,96 @@ typedef struct gf_subsurfaces_table {
      * empty in every other state. UI thread. */
     gf_status (GF_CALL* failure)(gf_object host, char* buffer, uint64_t capacity, uint64_t* required);
 } gf_subsurfaces_table;
+
+/*
+ * GF_TABLE_APPLICATION (since 1.1): the application the library's windows
+ * share (C++ Application::create; APP_WINDOW_RULES_DESIGN Part A). A
+ * program may make one at a time, before the library's first object: create
+ * compiles its theme, the base sheet and then the packages in order, once,
+ * and every window takes that theme and the presentation defaults. A
+ * program that never calls create gets the process default, as before:
+ * the built-in theme and GUI.Forms' presentation defaults. GF_TABLE_THEMES
+ * still holds the one theme: a later load or reset replaces the
+ * application's.
+ *
+ * create runs on the calling thread, which becomes the UI thread (as the
+ * first create of an object does); close and state run on the UI thread.
+ */
+
+/* gf_theme_base: the sheet an application's theme starts from, before its
+ * packages. */
+typedef uint32_t gf_theme_base;
+/* The Windows Professional sheet, the process default's base. */
+#define GF_THEME_BASE_WINDOWS_PROFESSIONAL 0u
+/* The library's own GUI.Forms sheet. */
+#define GF_THEME_BASE_GUI_FORMS 1u
+
+/* gf_presentation_source: where an application's windows take their
+ * presentation defaults (text scale, high contrast, reduced motion and
+ * transparency, sound, ambient motion, double-click interval) until their
+ * host reports its own. */
+typedef uint32_t gf_presentation_source;
+/* The host's settings, read when the application is made. */
+#define GF_PRESENTATION_SOURCE_HOST 0u
+/* GUI.Forms' defaults. */
+#define GF_PRESENTATION_SOURCE_DEFAULTS 1u
+
+/* The most theme packages one application compiles; more are refused by
+ * the compile (finding E601), as a repeated package name is. */
+#define GF_APPLICATION_MAXIMUM_THEME_PACKAGES 16u
+
+/*
+ * What an application is made with. An input record: struct_size at least
+ * the 1.1 size, reserved zero. packages lists package_count packages
+ * (packages may be null when the count is zero), compiled after the base
+ * in that order, each with its
+ * @import closure among the installed packages (themes.install). The
+ * packages and their bytes are read during create only. With the default
+ * base (WINDOWS_PROFESSIONAL) and no packages the theme is the built-in
+ * one, not compiled again.
+ */
+typedef struct gf_application_config {
+    uint32_t struct_size;
+    gf_theme_base theme_base;
+    const gf_theme_package* packages;
+    uint64_t package_count;
+    gf_presentation_source presentation_source;
+    uint32_t reserved;
+} gf_application_config;
+
+/* gf_application_state: whether the library has an application. */
+typedef uint32_t gf_application_state;
+/* No application: create has not been called, or the application was
+ * closed. Windows use the process default. */
+#define GF_APPLICATION_STATE_NONE 0u
+/* The application is current. */
+#define GF_APPLICATION_STATE_CURRENT 1u
+
+typedef struct gf_application_table {
+    uint32_t struct_size;
+    uint32_t abi_minor;
+    /* Makes the application from config and makes it current. report (an
+     * output record) receives the theme compile's outcome: APPLIED, with
+     * any warnings among the findings, or REFUSED, with nothing made; the
+     * findings replace the held ones either way (themes.diagnostic_at,
+     * diagnostic_text). GF_STATUS_INVALID_STATE, making nothing and
+     * leaving the findings, while an application is current or while the
+     * library holds objects made without one; GF_STATUS_INVALID_ARGUMENT
+     * for an unknown base or source, a non-zero reserved field, or
+     * packages null with a non-zero count. More packages than the maximum
+     * or a repeated package name is a refused compile (E601), not a failed
+     * call. */
+    gf_status (GF_CALL* create)(const gf_application_config* config, gf_theme_report* report);
+    /* Ends the application's time as current. windows_alive receives the
+     * number of its windows still alive. GF_STATUS_INVALID_STATE, changing
+     * nothing, while any is; once closed, the theme is the built-in one
+     * again (as themes.reset), windows made afterwards use the process
+     * default and create may make another application. Closing
+     * with no application accepts and does nothing. */
+    gf_status (GF_CALL* close)(uint64_t* windows_alive);
+    /* Whether an application is current. */
+    gf_status (GF_CALL* state)(gf_application_state* state);
+} gf_application_table;
 
 /*
  * GF_TABLE_WINDOWS_PAINT_ENDPOINT (Windows only; host capability

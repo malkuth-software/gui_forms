@@ -180,6 +180,10 @@ TableBytes find_table(gf_table_id table_id) noexcept {
         found.data = &gui_forms::abi1::subsurfaces_table();
         found.size = sizeof(gf_subsurfaces_table);
         break;
+    case GF_TABLE_APPLICATION:
+        found.data = &gui_forms::abi1::application_table();
+        found.size = sizeof(gf_application_table);
+        break;
 #if defined(GF_ABI_HAS_WINDOWS_PAINT_ENDPOINT)
     case GF_TABLE_WINDOWS_PAINT_ENDPOINT:
         found.data = &gui_forms::abi1::windows_paint_endpoint_table();

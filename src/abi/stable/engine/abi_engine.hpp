@@ -14,6 +14,7 @@
 #include "gui_forms/c/gf_abi.h"
 
 #include "gui_forms/anatomy.hpp"
+#include "gui_forms/application/application.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/resources/application_resources/application_resources.hpp"
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
@@ -57,6 +58,14 @@ public:
     [[nodiscard]] ApplicationResources& resources();
     [[nodiscard]] const std::shared_ptr<ApplicationResources>& shared_resources();
     [[nodiscard]] ThemeLibrary& library() noexcept { return library_; }
+    // The application made through GF_TABLE_APPLICATION, or null. While it
+    // lives the library's resources are its resources.
+    [[nodiscard]] Application* application() const noexcept { return application_.get(); }
+    // Makes `made` the library's application, its resources the library's.
+    void adopt_application(std::unique_ptr<Application> made);
+    // Lets the application go (it has closed) and gives the library fresh
+    // resources with the built-in theme.
+    void release_application();
     // The stock control types a theme's selectors may name: every control
     // type of the schema. Built at the first call.
     [[nodiscard]] std::span<const ControlAnatomy> controls();
@@ -95,6 +104,9 @@ public:
 
 private:
     std::shared_ptr<ApplicationResources> resources_{};
+    // Declared after the resources: destroyed first (never, in practice; see
+    // above), so the application never outlives what it shares.
+    std::unique_ptr<Application> application_{};
     ThemeLibrary library_{};
     // Copies of the schema's anatomies, which name static storage.
     std::vector<ControlAnatomy> controls_{};

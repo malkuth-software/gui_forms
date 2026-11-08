@@ -233,11 +233,33 @@ internal static unsafe class Program
         expect(state == Constants.GF_SUBSURFACE_STATE_STOPPED, "content that never started leaves no thread");
     }
 
+    // The application table: a configuration is checked before anything is
+    // made, and closing with no application does nothing.
+    private static void application()
+    {
+        Abi.check(Exports.get_application_table(out gf_application_table table));
+        gf_application_config config = default;
+        config.struct_size = (uint)sizeof(gf_application_config);
+        config.theme_base = 99u;
+        config.presentation_source = Constants.GF_PRESENTATION_SOURCE_DEFAULTS;
+        gf_theme_report report = default;
+        report.struct_size = (uint)sizeof(gf_theme_report);
+        gf_status refused = table.create(&config, &report);
+        expect(refused == Constants.GF_STATUS_INVALID_ARGUMENT, "an unknown theme base is refused");
+        gf_application_state state = 99u;
+        Abi.check(table.state(&state));
+        expect(state == Constants.GF_APPLICATION_STATE_NONE, "a refused configuration makes no application");
+        ulong alive = 99u;
+        Abi.check(table.close(&alive));
+        expect(alive == 0u, "closing with no application counts no window");
+    }
+
     private static int Main()
     {
         Console.OutputEncoding = Encoding.UTF8;
         layout();
         negotiation();
+        application();
         ownership();
         refusal();
         event_thunk();

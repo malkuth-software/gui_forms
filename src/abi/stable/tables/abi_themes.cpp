@@ -3,6 +3,7 @@
 
 #include "abi_tables.hpp"
 #include "abi_records.hpp"
+#include "abi_theme_packages.hpp"
 
 #include "../engine/abi_engine.hpp"
 #include "../registry/abi_registry.hpp"
@@ -63,9 +64,11 @@ gf_status read_bytes(gf_bytes_view view, SlotIdentity slot, std::string_view& by
     return GF_STATUS_OK;
 }
 
+} // namespace
+
 // Copies a caller's package into the C++ form after checking the whole of
 // it: its record, its counts, every view, and the bounds on files and bytes.
-gf_status read_package(const gf_theme_package* package, SlotIdentity slot, ThemePackage& made) {
+gf_status read_theme_package(const gf_theme_package* package, SlotIdentity slot, ThemePackage& made) {
     if (package == nullptr || (*package).struct_size < theme_package_size_1_0 || (*package).reserved != 0U) {
         return fail(GF_STATUS_INVALID_ARGUMENT, slot,
                     "a theme package needs a record of at least the 1.0 size with reserved zero");
@@ -118,6 +121,16 @@ gf_status read_package(const gf_theme_package* package, SlotIdentity slot, Theme
     return GF_STATUS_OK;
 }
 
+void write_theme_report(gf_theme_outcome outcome, std::size_t findings, gf_theme_report* report) noexcept {
+    gf_theme_report complete{};
+    complete.struct_size = sizeof(gf_theme_report);
+    complete.outcome = outcome;
+    complete.diagnostic_count = findings;
+    write_record(complete, report);
+}
+
+namespace {
+
 // Whether any finding is an error (the outcome of an install).
 bool has_error(std::span<const ThemeCompileDiagnostic> findings) noexcept {
     for (const ThemeCompileDiagnostic& finding : findings) {
@@ -126,14 +139,6 @@ bool has_error(std::span<const ThemeCompileDiagnostic> findings) noexcept {
         }
     }
     return false;
-}
-
-void write_report(gf_theme_outcome outcome, std::size_t findings, gf_theme_report* report) noexcept {
-    gf_theme_report complete{};
-    complete.struct_size = sizeof(gf_theme_report);
-    complete.outcome = outcome;
-    complete.diagnostic_count = findings;
-    write_record(complete, report);
 }
 
 // Validates a published name as Window::publish_value does.
@@ -158,7 +163,7 @@ gf_status GF_CALL themes_load(const gf_theme_package* package, gf_theme_report* 
             return checked;
         }
         ThemePackage made;
-        const gf_status read = read_package(package, load_slot, made);
+        const gf_status read = read_theme_package(package, load_slot, made);
         if (read != GF_STATUS_OK) {
             return read;
         }
@@ -182,7 +187,7 @@ gf_status GF_CALL themes_load(const gf_theme_package* package, gf_theme_report* 
         }
         state.replace_diagnostics(result.diagnostics());
         const gf_theme_outcome outcome = result.succeeded() ? GF_THEME_OUTCOME_APPLIED : GF_THEME_OUTCOME_REFUSED;
-        write_report(outcome, state.diagnostics().size(), report);
+        write_theme_report(outcome, state.diagnostics().size(), report);
         return GF_STATUS_OK;
     } catch (...) {
         return fail_with_current_exception(load_slot);
@@ -217,7 +222,7 @@ gf_status GF_CALL themes_install(const gf_theme_package* package, gf_theme_repor
             return checked;
         }
         ThemePackage made;
-        const gf_status read = read_package(package, install_slot, made);
+        const gf_status read = read_theme_package(package, install_slot, made);
         if (read != GF_STATUS_OK) {
             return read;
         }
@@ -230,7 +235,7 @@ gf_status GF_CALL themes_install(const gf_theme_package* package, gf_theme_repor
         const std::vector<ThemeCompileDiagnostic> findings = state.library().install(made);
         state.replace_diagnostics(findings);
         const gf_theme_outcome outcome = has_error(findings) ? GF_THEME_OUTCOME_REFUSED : GF_THEME_OUTCOME_APPLIED;
-        write_report(outcome, state.diagnostics().size(), report);
+        write_theme_report(outcome, state.diagnostics().size(), report);
         return GF_STATUS_OK;
     } catch (...) {
         return fail_with_current_exception(install_slot);

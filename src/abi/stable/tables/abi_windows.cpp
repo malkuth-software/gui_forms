@@ -145,6 +145,9 @@ gf_status application_status(const ApplicationResult& result) noexcept {
         return fail(GF_STATUS_INTERNAL, run_slot, "a host callback failed");
     case ApplicationError::after_shutdown:
         return fail(GF_STATUS_INVALID_STATE, run_slot, "the host has been shut down");
+    case ApplicationError::windows_alive:
+        // Application::close's result; a run never gives it.
+        return fail(GF_STATUS_INTERNAL, run_slot, "the run gave an application close result");
     }
     return fail(GF_STATUS_INTERNAL, run_slot, "the host returned an unknown result");
 }

@@ -41,6 +41,7 @@ public static class Constants
     public const uint GF_TABLE_CUSTOM_CONTROLS = 15u;
     public const uint GF_TABLE_BINDINGS = 16u;
     public const uint GF_TABLE_SUBSURFACES = 17u;
+    public const uint GF_TABLE_APPLICATION = 18u;
     public const uint GF_TABLE_WINDOWS_PAINT_ENDPOINT = 256u;
     public const uint GF_ABI_ENTRY_SLOT = 4294967295u;
     public const uint GF_OBJECT_STATE_ALIVE = 0u;
@@ -225,5 +226,12 @@ public static class Constants
     public const uint GF_SUBSURFACE_STATE_STARTING = 1u;
     public const uint GF_SUBSURFACE_STATE_RUNNING = 2u;
     public const uint GF_SUBSURFACE_STATE_FAILED = 3u;
+    public const uint GF_THEME_BASE_WINDOWS_PROFESSIONAL = 0u;
+    public const uint GF_THEME_BASE_GUI_FORMS = 1u;
+    public const uint GF_PRESENTATION_SOURCE_HOST = 0u;
+    public const uint GF_PRESENTATION_SOURCE_DEFAULTS = 1u;
+    public const uint GF_APPLICATION_MAXIMUM_THEME_PACKAGES = 16u;
+    public const uint GF_APPLICATION_STATE_NONE = 0u;
+    public const uint GF_APPLICATION_STATE_CURRENT = 1u;
     public const uint GF_PAINT_ENDPOINT_MAXIMUM_SIDE = 32768u;
 }

@@ -189,6 +189,11 @@
       "type": "uint32"
     },
     {
+      "name": "GF_TABLE_APPLICATION",
+      "value": 18,
+      "type": "uint32"
+    },
+    {
       "name": "GF_TABLE_WINDOWS_PAINT_ENDPOINT",
       "value": 256,
       "type": "uint32"
@@ -1109,6 +1114,41 @@
       "type": "uint32"
     },
     {
+      "name": "GF_THEME_BASE_WINDOWS_PROFESSIONAL",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_THEME_BASE_GUI_FORMS",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_PRESENTATION_SOURCE_HOST",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_PRESENTATION_SOURCE_DEFAULTS",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_APPLICATION_MAXIMUM_THEME_PACKAGES",
+      "value": 16,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_APPLICATION_STATE_NONE",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_APPLICATION_STATE_CURRENT",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
       "name": "GF_PAINT_ENDPOINT_MAXIMUM_SIDE",
       "value": 32768,
       "type": "uint32"
@@ -1269,6 +1309,18 @@
     },
     {
       "name": "gf_subsurface_state",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_theme_base",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_presentation_source",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_application_state",
       "type": "uint32_t"
     },
     {
@@ -6601,6 +6653,122 @@
               {
                 "name": "required",
                 "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.1"
+        }
+      ]
+    },
+    {
+      "name": "gf_application_config",
+      "kind": "extensible",
+      "size": 32,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "theme_base",
+          "type": "gf_theme_base",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "packages",
+          "type": "const gf_theme_package*",
+          "offset": 8,
+          "size": 8
+        },
+        {
+          "name": "package_count",
+          "type": "uint64_t",
+          "offset": 16,
+          "size": 8
+        },
+        {
+          "name": "presentation_source",
+          "type": "gf_presentation_source",
+          "offset": 24,
+          "size": 4
+        },
+        {
+          "name": "reserved",
+          "type": "uint32_t",
+          "offset": 28,
+          "size": 4
+        }
+      ]
+    },
+    {
+      "name": "gf_application_table",
+      "kind": "table",
+      "size": 32,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "abi_minor",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "create",
+          "type": "function",
+          "offset": 8,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "config",
+                "type": "const gf_application_config*"
+              },
+              {
+                "name": "report",
+                "type": "gf_theme_report*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "close",
+          "type": "function",
+          "offset": 16,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "windows_alive",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "state",
+          "type": "function",
+          "offset": 24,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "state",
+                "type": "gf_application_state*"
               }
             ]
           },

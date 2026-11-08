@@ -162,6 +162,8 @@ uint32_t gf_conformance_run(FILE* out, gf_conformance_flags flags) {
     load_table(&kit, GF_TABLE_BINDINGS, &kit.bindings, sizeof(kit.bindings), "load the bindings table");
     load_table(&kit, GF_TABLE_SUBSURFACES, &kit.subsurfaces, sizeof(kit.subsurfaces),
                "load the subsurfaces table");
+    load_table(&kit, GF_TABLE_APPLICATION, &kit.application, sizeof(kit.application),
+               "load the application table");
     if (kit.failures == 0u) {
         gf_kit_ownership(&kit);
         gf_kit_values(&kit);
@@ -171,6 +173,10 @@ uint32_t gf_conformance_run(FILE* out, gf_conformance_flags flags) {
          * first window: the engine a window uses binds the UI thread for
          * good. */
         gf_kit_threads(&kit);
+        /* The application is made while the library holds no object, and
+         * after the thread handover: it binds the UI thread for good, as
+         * the engine does. */
+        gf_kit_application(&kit);
         gf_kit_create_with(&kit);
         gf_kit_events(&kit);
         gf_kit_window_events(&kit);

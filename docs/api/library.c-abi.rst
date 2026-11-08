@@ -16,6 +16,8 @@ Types
 
    * - :cpp:class:`Api <gui_forms::abi0::Api>`
      - Api negotiates ABI 0.4 once, retains the immutable function table, and translates thread-local C diagnostics into typed C++ exceptions.
+   * - :cpp:class:`ApplicationTable <gui_forms::abi::ApplicationTable>`
+     - gf_application_table, negotiated as GF_TABLE_APPLICATION.
    * - :cpp:class:`BindingsTable <gui_forms::abi::BindingsTable>`
      - gf_bindings_table, negotiated as GF_TABLE_BINDINGS.
    * - :cpp:class:`Control <gui_forms::abi0::Control>`
@@ -68,6 +70,10 @@ Types
      - gf_abi_version_info is the size-prefixed output record of the library and ABI versions.
    * - :cpp:class:`gf_api_v0 <gf_api_v0>`
      - gf_api_v0 is the size-versioned negotiated function table for generational control ownership, properties, layout/scroll, hierarchy, input, fields, dialogs/services, property proxies, callbacks, host execution, dispatch, and deterministic retirement.
+   * - :cpp:class:`gf_application_config <gf_application_config>`
+     -  
+   * - :cpp:class:`gf_application_table <gf_application_table>`
+     -  
    * - :cpp:class:`gf_binding_arguments <gf_binding_arguments>`
      -  
    * - :cpp:class:`gf_binding_field <gf_binding_field>`
@@ -275,6 +281,41 @@ Types
    .. rubric:: Methods
 
    .. cpp:function:: void throw_last(gf_result result) const
+
+.. cpp:namespace:: gui_forms::abi
+
+.. cpp:class:: ApplicationTable
+
+   ``#include <gui_forms/c/gf_abi.hpp>``
+
+   gf_application_table, negotiated as GF_TABLE_APPLICATION.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: ApplicationTable() noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: const gf_application_table& c_table() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static gf_status negotiate(ApplicationTable& output) noexcept
+
+      Negotiates the table at the header's version into output; a refusal leaves output serving nothing.
+
+   .. cpp:function:: static ApplicationTable adopt(const gf_application_table& adopted_table) noexcept
+
+      A table the caller negotiated through gf_abi_get_table.
+
+   .. cpp:function:: gf_status create(const gf_application_config* config, gf_theme_report* report) const noexcept
+
+   .. cpp:function:: gf_status close(uint64_t* windows_alive) const noexcept
+
+   .. cpp:function:: gf_status state(gf_application_state* state) const noexcept
 
 .. cpp:namespace:: gui_forms::abi
 
@@ -1256,6 +1297,43 @@ Types
    .. cpp:member:: gf_result (*attach_overlay)(gf_handle owner, gf_handle overlay)
 
    .. cpp:member:: gf_result (*detach_overlay)(gf_handle overlay)
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_application_config
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_theme_base theme_base
+
+   .. cpp:member:: const gf_theme_package* packages
+
+   .. cpp:member:: uint64_t package_count
+
+   .. cpp:member:: gf_presentation_source presentation_source
+
+   .. cpp:member:: uint32_t reserved
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_application_table
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+
+   .. rubric:: Methods
+
+   .. cpp:member:: gf_status (*create)(const gf_application_config* config, gf_theme_report* report)
+
+   .. cpp:member:: gf_status (*close)(uint64_t* windows_alive)
+
+   .. cpp:member:: gf_status (*state)(gf_application_state* state)
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t abi_minor
 
 .. cpp:namespace:: 0
 

@@ -89,6 +89,7 @@ add_library(gui_forms_abi_objects OBJECT
     src/abi/stable/tables/abi_custom_controls.cpp
     src/abi/stable/tables/abi_bindings.cpp
     src/abi/stable/tables/abi_subsurfaces.cpp
+    src/abi/stable/tables/abi_application.cpp
     src/abi/stable/custom/abi_custom_control.cpp
     src/abi/stable/windows/abi_windows_paint_endpoint.cpp
     src/abi/stable/tables/abi_dispatch.cpp
@@ -199,6 +200,7 @@ add_library(gui_forms_abi_conformance_kit STATIC
     tests/abi/conformance/gf_conformance_proxies.c
     tests/abi/conformance/gf_conformance_schema.c
     tests/abi/conformance/gf_conformance_subsurfaces.c
+    tests/abi/conformance/gf_conformance_application.c
     tests/abi/conformance/gf_conformance_threads.c
     tests/abi/conformance/gf_conformance_values.c
     tests/abi/conformance/gf_conformance_window.c

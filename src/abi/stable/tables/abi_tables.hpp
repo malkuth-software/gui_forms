@@ -24,6 +24,7 @@ namespace gui_forms::abi1 {
 [[nodiscard]] const gf_custom_controls_table& custom_controls_table() noexcept;
 [[nodiscard]] const gf_bindings_table& bindings_table() noexcept;
 [[nodiscard]] const gf_subsurfaces_table& subsurfaces_table() noexcept;
+[[nodiscard]] const gf_application_table& application_table() noexcept;
 #if defined(GF_ABI_HAS_WINDOWS_PAINT_ENDPOINT)
 [[nodiscard]] const gf_windows_paint_endpoint_table& windows_paint_endpoint_table() noexcept;
 #endif

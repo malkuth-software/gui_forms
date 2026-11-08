@@ -847,6 +847,29 @@ public unsafe struct gf_subsurfaces_table
     public delegate* unmanaged[Cdecl]<gf_object, byte*, ulong, ulong*, gf_status> failure;
 }
 
+/// <summary>gf_application_config (extensible, 32 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_application_config
+{
+    public uint struct_size;
+    public gf_theme_base theme_base;
+    public gf_theme_package* packages;
+    public ulong package_count;
+    public gf_presentation_source presentation_source;
+    public uint reserved;
+}
+
+/// <summary>gf_application_table (table, 32 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_application_table
+{
+    public uint struct_size;
+    public uint abi_minor;
+    public delegate* unmanaged[Cdecl]<gf_application_config*, gf_theme_report*, gf_status> create;
+    public delegate* unmanaged[Cdecl]<ulong*, gf_status> close;
+    public delegate* unmanaged[Cdecl]<gf_application_state*, gf_status> state;
+}
+
 /// <summary>gf_windows_paint_endpoint_table (table, 104 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_windows_paint_endpoint_table
