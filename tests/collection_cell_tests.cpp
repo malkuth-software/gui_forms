@@ -324,6 +324,30 @@ void test_grid_damage_is_limited_to_shown_rows() {
             "an erasure in the shown rows repaints from its row to the cells' bottom");
 }
 
+// The cell region (study decision 10): a value written into a bound-free
+// cell lays nothing out and repaints that cell alone; a scroll before the
+// flush folds the pending cell into its redraw of the whole grid.
+void test_grid_cell_region() {
+    GridFixture fixture;
+    DataGridView& grid = *fixture.grid;
+    const double row_height = grid.row_height.read();
+    (*fixture.window).reset_activity_metrics();
+    require(grid.set_cell_value(DataGridViewRowPosition{2U}, 0U, BindingValue{std::string("Changed")}),
+            "the cell takes a value");
+    (*fixture.window).perform_layout();
+    const MetricsSnapshot metrics = (*fixture.window).metrics_snapshot();
+    const DamageRegion cell = fixture.damage_after_layout();
+    require(metrics.controls_arranged == 0U, "a cell write lays nothing out");
+    require(!cell.empty() && cell.bounds().height <= row_height + 0.5 && cell.bounds().width <= 320.0,
+            "a cell write repaints that cell's row at most");
+
+    require(grid.set_cell_value(DataGridViewRowPosition{3U}, 0U, BindingValue{std::string("Again")}),
+            "another cell takes a value");
+    grid.set_first_displayed_row(DataGridViewRowPosition{5U});
+    const DamageRegion scrolled = fixture.damage_after_layout();
+    require(scrolled.bounds().height > 4.0 * row_height, "a scroll redraws the whole grid, the pending cell folded");
+}
+
 void test_grid_rows_refuse_and_keep_identity() {
     std::shared_ptr<DataGridView> grid = make_control<DataGridView>(StableId("collection.grid.ids"));
     (*grid).set_columns({{.name = "name", .header_text = "Name", .width = 120.0}});
@@ -416,6 +440,7 @@ int main() {
     test_checked_list_states_follow_edits();
     test_grid_damage_is_limited_to_shown_rows();
     test_grid_rows_refuse_and_keep_identity();
+    test_grid_cell_region();
     test_choice_items_follow_edits();
     return EXIT_SUCCESS;
 }

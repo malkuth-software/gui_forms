@@ -581,7 +581,8 @@ bool DataGridView::set_cell_value(DataGridViewRowPosition row, std::size_t colum
     require_cell(row, column);
     const BindingValue previous = stored_value(row, column);
     if (previous == value) return true;
-    const DataGridViewCellEvent changed = cell_event(key_of({row, column}));
+    const CellKey key = key_of({row, column});
+    const DataGridViewCellEvent changed = cell_event(key);
     const bool new_row_cell = is_new_row(row);
     const bool accepted = store_value(row, column, value);
     if (!accepted) return false;
@@ -589,7 +590,7 @@ bool DataGridView::set_cell_value(DataGridViewRowPosition row, std::size_t colum
     if (new_row_cell) {
         values_changed();
     } else {
-        row_values_changed();
+        cell_changed(key);
     }
     cell_value_changed_.emit(changed);
     return true;
@@ -1751,7 +1752,8 @@ void DataGridView::set_first_displayed_row(DataGridViewRowPosition row) {
     const std::size_t next = std::min(row.value, last);
     if (first_row_ == next) return;
     first_row_ = next;
-    invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+    // The whole grid moves: a redraw-all, folding the cell region.
+    redraw_all(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
 void DataGridView::set_horizontal_scroll_offset(double offset) {
@@ -1761,20 +1763,23 @@ void DataGridView::set_horizontal_scroll_offset(double offset) {
     }
     if (horizontal_offset_ == offset) return;
     horizontal_offset_ = offset;
-    invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+    // The whole grid moves: a redraw-all, folding the cell region.
+    redraw_all(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
 void DataGridView::on_vertical_scroll(double value) {
     if (synchronizing_scroll_) return;
     const double rounded = std::max(0.0, std::round(value));
     first_row_ = static_cast<std::size_t>(rounded);
-    invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+    // The whole grid moves: a redraw-all, folding the cell region.
+    redraw_all(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
 void DataGridView::on_horizontal_scroll(double value) {
     if (synchronizing_scroll_) return;
     horizontal_offset_ = std::max(0.0, value);
-    invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+    // The whole grid moves: a redraw-all, folding the cell region.
+    redraw_all(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
 void DataGridView::scroll_into_view(DataGridViewCellAddress cell) {
@@ -2470,7 +2475,7 @@ bool DataGridView::commit_edit() {
     set_cell_dirty(false);
     // A user's store always lands in a row (the new row is added first).
     if (outcome == CommitOutcome::stored) {
-        row_values_changed();
+        cell_changed(key);
         cell_value_changed_.emit(cell_event(key));
     } else {
         values_changed();
@@ -2655,7 +2660,7 @@ void DataGridView::on_choice_invoked(const MenuItemInvocation& invocation) {
     const BindingValue value{items[*chosen]};
     const BindingValue previous = stored_value(cell.row, cell.column);
     if (previous == value || !store_user_value(cell, value, items[*chosen]).stored) return;
-    row_values_changed();
+    cell_changed(key);
     const DataGridViewCellEvent changed = cell_event(key);
     cell_value_changed_.emit(changed);
 }
@@ -2690,7 +2695,7 @@ bool DataGridView::toggle_check(DataGridViewCellAddress cell) {
     if (!store_user_value(cell, value, checked ? "false" : "true").stored) return false;
     // A toggle of the new row reports the row it became.
     const DataGridViewCellEvent changed = cell_event(key);
-    row_values_changed();
+    cell_changed(key);
     cell_value_changed_.emit(changed);
     cell_content_click_.emit(changed);
     return true;

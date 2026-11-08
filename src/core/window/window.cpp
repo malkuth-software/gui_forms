@@ -2324,6 +2324,8 @@ void SurfaceRoot::detach_subtree_state(const Control::Ptr& control,
     // So do its motion values: they jump to their ends, without listeners.
     motion_clock_.release_owner(*control);
     erase_containing_block_entries((*control).runtime_id());
+    // Its content regions' pending items go: no window gathers them now.
+    static_cast<void>((*control).fold_content_regions());
     (*control).on_detaching_from_window(*this);
     (*control).window_ = nullptr;
     (*control).surface_root_ = nullptr;
@@ -2720,6 +2722,36 @@ void SurfaceRoot::mark_dirty(Control& control, Dirty requested_dirty) {
         touch_paint();
     }
     if (in_layout_ || in_paint_) settle_dirty();
+}
+
+void SurfaceRoot::note_content_gather(Control& control) {
+    require_root_thread("content region mutation");
+    if (control.surface_root_ != this) {
+        throw std::invalid_argument("a content region gather requires an attached control");
+    }
+    pending_content_gathers_.push_back(control.surface_slot_);
+    metrics_.record_mutation();
+    touch_paint();
+}
+
+void SurfaceRoot::gather_content_regions() {
+    if (gathering_regions_ || pending_content_gathers_.empty()) return;
+    gathering_regions_ = true;
+    struct Reset final {
+        bool& value;
+        ~Reset() { value = false; }
+    } reset{gathering_regions_};
+    gather_slots_.clear();
+    gather_slots_.swap(pending_content_gathers_);
+    // A slot released since its note belongs to a detached control, whose
+    // regions were folded at the detach.
+    for (const detail::ControlSlot slot : gather_slots_) {
+        Control* const control = control_table_.control_at(slot);
+        if (control == nullptr) continue;
+        (*control).gather_content_regions();
+    }
+    gather_slots_.clear();
+    settle_dirty();
 }
 
 void SurfaceRoot::mark_paint_dirty(Control& control, Rect local_damage) {
@@ -3312,6 +3344,7 @@ void SurfaceRoot::ensure_layout(bool read_barrier) {
         return;
     }
     if (!layout_dirty_) {
+        gather_content_regions();
         return;
     }
     if (read_barrier && update_depth_ > 0) {
@@ -3322,7 +3355,10 @@ void SurfaceRoot::ensure_layout(bool read_barrier) {
         return;
     }
 
-    if (!has_any_runnable_layout_dirty()) return;
+    if (!has_any_runnable_layout_dirty()) {
+        gather_content_regions();
+        return;
+    }
 
     metrics_.record_flush(read_barrier);
     const ShadowFrameScope shadow_frame(ShadowFrameKind::layout_pass, (*root_).stable_id().value(), std::string_view{},
@@ -3400,6 +3436,8 @@ void SurfaceRoot::ensure_layout(bool read_barrier) {
         in_layout_ = false;
         throw;
     }
+    // The region gathers, after layout: damage needs final geometry.
+    gather_content_regions();
 }
 
 

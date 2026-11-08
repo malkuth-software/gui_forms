@@ -687,6 +687,12 @@ public:
     void invalidate(Rect local_damage);
     void invalidate_subtree(Dirty dirty);
     void invalidate_declared(Dirty declared_effects);
+    // A redraw of this control and everything in it (property-capabilities
+    // study, decision 10): folds every content region of the subtree at
+    // once (fold_content_regions), drawing nothing for their pending items,
+    // then marks the subtree with `kinds` and the folded kinds. Use it
+    // where the whole control moves or changes look (a scroll, a theme).
+    void redraw_all(Dirty kinds);
 
     void begin_init();
     void end_init();
@@ -847,6 +853,16 @@ public:
     // child anyway). The nearest ancestor escalating a kind takes it, at
     // the settle. Constant per type. The default escalates nothing.
     [[nodiscard]] virtual Dirty child_touch_escalation() const noexcept;
+    // Content regions (property-capabilities study, decision 10). A control
+    // owning ContentRegion members overrides both. gather_content_regions
+    // runs after the window's layout when one of its regions asked for it:
+    // it turns each region's pending items into damage at their final
+    // geometry (invalidate with a rectangle) and clears them.
+    // fold_content_regions returns the union of every region's folded kinds
+    // (ContentRegion::fold_pending), drawing nothing; redraw_all and the
+    // control's detach call it. The defaults do nothing.
+    virtual void gather_content_regions();
+    [[nodiscard]] virtual Dirty fold_content_regions() noexcept;
     // Whether this container's arrange asks each child the content
     // questions its algorithm needs (min-content, max-content, a height at
     // a definite width) rather than the at-most question the window's
@@ -1229,6 +1245,11 @@ private:
     void refresh_inline_style();
     friend class Window;
     friend class SurfaceRoot;
+    friend class ContentRegion;
+    // A content region's first pending item since its last gather: asks the
+    // window to gather this control's regions after its next layout. False,
+    // asking nothing, while detached or initializing.
+    [[nodiscard]] bool request_content_gather();
     // The property capabilities (study section 14) reach the hooks below.
     friend struct NameCapability<Control>;
     friend struct VisibleCapability<Control>;

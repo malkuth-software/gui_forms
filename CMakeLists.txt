@@ -437,6 +437,7 @@ add_library(gui_forms_core STATIC
     src/core/component/component_container/component_container.cpp
     src/core/timer/timer/timer.cpp
     src/core/background_worker/background_worker.cpp
+    src/core/control/content_region/content_region.cpp
     src/core/control/control/control.cpp
     src/core/control/stable_id/stable_id.cpp
     src/core/control/static_tree/control_factory/control_factory.cpp

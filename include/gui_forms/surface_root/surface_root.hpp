@@ -1594,6 +1594,17 @@ private:
     void mark_dirty(Control& control, Dirty dirty);
     void mark_paint_dirty(Control& control, Rect local_damage);
     void mark_subtree_dirty(Control& control, Dirty dirty);
+    // A content region of `control` noted its first pending item since its
+    // last gather (Control::request_content_gather): the control is
+    // gathered after the next layout and a paint is requested. May throw
+    // (the pending list's growth) before anything changes.
+    void note_content_gather(Control& control);
+    // The region gathers (property-capabilities study, flush step 3): after
+    // layout, each live control noted since the last gather turns its
+    // regions' pending items into damage at their final geometry
+    // (Control::gather_content_regions); the damage is then settled. Not
+    // reentrant: a gather that notes again is gathered at the next flush.
+    void gather_content_regions();
     // Does the bookkeeping owed by the touches since the last settle (M0.2)
     // and clears their table bits: ancestors' subtree flags, layout
     // ancestors and suspended-layout notes, damage at the controls' bounds
@@ -2005,6 +2016,14 @@ private:
         Rect local_damage{};
     };
     std::vector<PendingLocalDamage> pending_local_damage_;
+    // The controls whose content regions await a gather (note_content_gather),
+    // in note order; a control may appear more than once. gather_slots_ is
+    // the gather's swapped-in copy, so a gather that notes again appends to
+    // an empty list; both keep their storage across flushes.
+    std::vector<detail::ControlSlot> pending_content_gathers_;
+    std::vector<detail::ControlSlot> gather_slots_;
+    // gather_content_regions is running (its reentry guard).
+    bool gathering_regions_{};
     // settle_dirty is running (its reentry guard).
     bool settling_{};
     // Reports into the base's metrics, which outlive it.

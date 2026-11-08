@@ -1703,6 +1703,12 @@ gui_forms::DataGridView
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 
+   .. cpp:function:: void gather_content_regions() override
+
+      The cell region (property-capabilities study, decision 10): a value stored into one cell damages that cell alone, at its geometry after the next layout; a scroll redraws the whole grid and folds it.
+
+   .. cpp:function:: Dirty fold_content_regions() noexcept override
+
    .. cpp:function:: void on_pointer(PointerEvent& event) override
 
    .. cpp:function:: void on_key_preview(KeyEvent& event) override

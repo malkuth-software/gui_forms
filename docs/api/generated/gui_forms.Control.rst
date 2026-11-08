@@ -554,6 +554,8 @@ gui_forms::Control
         - Like ``invalidate(Dirty)``, but marks every descendant too, for changes such as a font or theme that affect how children measure and paint.
       * - :cpp:func:`invalidate_declared <gui_forms::Control::invalidate_declared>`
         - For custom controls: forwards a nonempty mask to :cpp:func:`invalidate <gui_forms::Control::invalidate>`.
+      * - :cpp:func:`redraw_all <gui_forms::Control::redraw_all>`
+        - A redraw of this control and everything in it (property-capabilities study, decision 10): folds every content region of the subtree at once (fold_content_regions), drawing nothing for their pending items, then marks the subtree with ``kinds`` and the folded kinds.
       * - :cpp:func:`begin_init <gui_forms::Control::begin_init>`
         - Starts an initialization transaction: until the matching :cpp:func:`end_init <gui_forms::Control::end_init>`, the control's change events and invalidation are held back, and neither it nor its children receive input.
       * - :cpp:func:`end_init <gui_forms::Control::end_init>`
@@ -1481,6 +1483,10 @@ gui_forms::Control
       then throws ``std::logic_error`` in builds without ``NDEBUG``, or invalidates
       the whole subtree conservatively in builds with it.
 
+   .. cpp:function:: void redraw_all(Dirty kinds)
+
+      A redraw of this control and everything in it (property-capabilities study, decision 10): folds every content region of the subtree at once (fold_content_regions), drawing nothing for their pending items, then marks the subtree with ``kinds`` and the folded kinds. Use it where the whole control moves or changes look (a scroll, a theme).
+
    .. cpp:function:: void begin_init()
 
       Starts an initialization transaction: until the matching :cpp:func:`end_init <gui_forms::Control::end_init>`, the
@@ -1628,6 +1634,12 @@ gui_forms::Control
    .. cpp:function:: virtual Dirty child_touch_escalation() const noexcept
 
       The container's invalidation policy (property-capabilities study, decision 9): the kinds of a descendant's touch that escalate to this control's subtree mark instead of staying with the descendant (for example measure, where one child's size change re-lays out every child anyway). The nearest ancestor escalating a kind takes it, at the settle. Constant per type. The default escalates nothing.
+
+   .. cpp:function:: virtual void gather_content_regions()
+
+      Content regions (property-capabilities study, decision 10). A control owning ContentRegion members overrides both. gather_content_regions runs after the window's layout when one of its regions asked for it: it turns each region's pending items into damage at their final geometry (invalidate with a rectangle) and clears them. fold_content_regions returns the union of every region's folded kinds (ContentRegion::fold_pending), drawing nothing; redraw_all and the control's detach call it. The defaults do nothing.
+
+   .. cpp:function:: virtual Dirty fold_content_regions() noexcept
 
    .. cpp:function:: virtual bool measures_children_in_arrange() const noexcept
 

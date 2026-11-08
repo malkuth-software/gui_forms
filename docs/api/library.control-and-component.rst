@@ -82,6 +82,10 @@ Related types
      - A set of adjoining vertical margins (8.3.1): the largest positive margin and the most negative one; the collapsed margin is their sum.
    * - :cpp:class:`ComponentContainer <gui_forms::ComponentContainer>`
      - ComponentContainer owns a unique ordered set of shared components and disposes the captured ownership sequence exactly once.
+   * - :cpp:class:`ContentItemKey <gui_forms::ContentItemKey>`
+     - One item of a content region, such as a DataGridView cell: two numbers the owning control gives meaning to (for the grid, a row position and a column index).
+   * - :cpp:class:`ContentRegion <gui_forms::ContentRegion>`
+     - A control's content region (property-capabilities study, decision 10): the control owns its chrome (frame, headers, scroll bars), the region its items' lazy pending set.
    * - :cpp:class:`Control::Parts <gui_forms::Control::Parts>`
      - The parts and states every control publishes, as dot members.
    * - :cpp:class:`Control::States <gui_forms::Control::States>`
@@ -822,6 +826,55 @@ Related types
    .. cpp:function:: void dispose()
 
       Atomically retires the container and disposes the captured sequence in ownership order.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ContentItemKey final
+
+   ``#include <gui_forms/control/content_region/content_region.hpp>``
+
+   One item of a content region, such as a DataGridView cell: two numbers the owning control gives meaning to (for the grid, a row position and a column index).
+
+   .. cpp:member:: std::uint64_t major
+
+   .. cpp:member:: std::uint64_t minor
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: ContentRegion final
+
+   ``#include <gui_forms/control/content_region/content_region.hpp>``
+
+   A control's content region (property-capabilities study, decision 10): the control owns its chrome (frame, headers, scroll bars), the region its items' lazy pending set. note_item records an item whose paint changed and, on the first entry since the last gather, asks the owner's window to gather the region after its next layout. The owner's Control::gather_content_regions then turns each pending item into damage at the item's final geometry and calls clear_pending. A redraw of the whole owner (Control::redraw_all) folds the region instead: fold_pending drops the entries, which would damage rectangles about to move anyway. The owning control holds the region as a member; the region observes its owner and is used only on the owner's UI thread.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: ContentRegion(Control& owner, std::size_t capacity) noexcept
+
+      Up to ``capacity`` items are kept pending (at least one); the storage is reserved at the first note, the region's only allocation. Past the capacity the region asks for a paint of its whole owner instead.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: std::span<const ContentItemKey> pending() const noexcept
+
+      The items noted since the last gather or fold, in note order. An item noted twice in a row is kept once; one noted twice apart is kept twice, and its rectangle is damaged twice (the same union).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void note_item(ContentItemKey item, Dirty kinds)
+
+      Records that ``item`` changed with ``kinds``. Paint is gathered lazily; any other kinds (semantics, hit test, layout) go to the owner's Control::invalidate at once. A detached or initializing owner, or a region past its capacity, gets Control::invalidate(Dirty::paint) instead of an entry. May throw (the first note's reservation, the window's pending list) before anything is recorded.
+
+   .. cpp:function:: void clear_pending() noexcept
+
+      The gather's end: drops the entries; the storage stays.
+
+   .. cpp:function:: Dirty fold_pending() noexcept
+
+      The redraw-all's fold: returns Dirty::paint when anything was pending (or the region had overflowed) and drops the entries, drawing nothing.
 
 .. cpp:namespace:: gui_forms
 

@@ -289,18 +289,55 @@ void DataGridView::values_changed() {
     }
 }
 
-// A value stored into a field of an unbound row: store_value marked that
-// row replaced, so unless the cells size rows or columns the flush repaints
-// that row alone (settle_rows_damage). Values held elsewhere repaint the
-// cells.
-void DataGridView::row_values_changed() {
-    if (row_source_ != DataGridViewRowSource::unbound || sized_by_cells()) {
+// One cell's value changed, from any row source. Unless the cells size
+// rows or columns (values_changed lays the grid out again), the cell region
+// notes the cell: no layout, its rectangle damaged after the next layout
+// (gather_content_regions), and the semantics republished.
+void DataGridView::cell_changed(const CellKey& key) {
+    const std::optional<DataGridViewCellAddress> placed = address_of(key);
+    if (!placed || sized_by_cells()) {
         values_changed();
         return;
     }
     auto_size_stale_ = true;
     row_auto_size_stale_ = true;
-    invalidate(Dirty::arrange | Dirty::semantics);
+    const ContentItemKey cell{static_cast<std::uint64_t>((*placed).row.value),
+                              static_cast<std::uint64_t>((*placed).column)};
+    cells_region_.note_item(cell, Dirty::paint | Dirty::semantics);
+}
+
+// The noted cells shown, each damaged at its final geometry within the
+// cell viewport; cells scrolled out of view or since removed damage
+// nothing. An unbound row's store also left the row marked replaced in the
+// rows collection, which no layout has taken: it is taken here, as arrange
+// would (settle_rows_damage), so it does not damage the row again later. A
+// failed damage mark drops the rest and rethrows (the region is cleared
+// either way, so its next note asks for a gather again).
+void DataGridView::gather_content_regions() {
+    const std::span<const ContentItemKey> cells = cells_region_.pending();
+    if (cells.empty()) return;
+    const GridLayout layout = grid_layout();
+    const std::size_t row_end = visible_row_end(layout);
+    try {
+        settle_rows_damage(false, layout);
+        for (const ContentItemKey& cell : cells) {
+            const bool shown = cell.major >= first_row_ && cell.major < row_end && cell.minor < columns_.size();
+            if (!shown) continue;
+            const DataGridViewRowPosition row{static_cast<std::size_t>(cell.major)};
+            const Rect bounds = cell_bounds(row, static_cast<std::size_t>(cell.minor), layout);
+            const Rect visible = Rect::intersection(bounds, layout.data);
+            if (!visible.empty()) invalidate(visible);
+        }
+    } catch (...) {
+        cells_region_.clear_pending();
+        throw;
+    }
+    cells_region_.clear_pending();
+}
+
+Dirty DataGridView::fold_content_regions() noexcept {
+    const Dirty folded = cells_region_.fold_pending();
+    return folded;
 }
 
 double DataGridView::preferred_cell_width(DataGridViewRowPosition row, std::size_t column) const {

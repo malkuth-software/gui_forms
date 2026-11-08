@@ -5,6 +5,7 @@
 #include "gui_forms/commands.hpp"
 #include "gui_forms/components/context_menu/context_menu.hpp"
 #include "gui_forms/control.hpp"
+#include "gui_forms/control/content_region/content_region.hpp"
 #include "gui_forms/controls/panel/panel.hpp"
 #include "gui_forms/controls/panel/text_box/text_box.hpp"
 #include "gui_forms/controls/range_control/scroll_bar/h_scroll_bar/h_scroll_bar.hpp"
@@ -787,6 +788,11 @@ public:
     // -- Control ---------------------------------------------------------
     void arrange(Rect final_bounds) override;
     void on_paint(Painter& painter, Rect local_damage) override;
+    // The cell region (property-capabilities study, decision 10): a value
+    // stored into one cell damages that cell alone, at its geometry after
+    // the next layout; a scroll redraws the whole grid and folds it.
+    void gather_content_regions() override;
+    [[nodiscard]] Dirty fold_content_regions() noexcept override;
     void on_pointer(PointerEvent& event) override;
     void on_key_preview(KeyEvent& event) override;
     void on_key(KeyEvent& event) override;
@@ -1052,7 +1058,10 @@ private:
     [[nodiscard]] bool column_resizable(std::size_t column) const;
     [[nodiscard]] bool row_resizable() const noexcept;
     void values_changed();
-    void row_values_changed();
+    // A value stored into the cell `key` names: the cell region notes it,
+    // or values_changed when the cells size rows or columns or the cell is
+    // no longer placed.
+    void cell_changed(const CellKey& key);
     // Sorting: the comparison sort_compare's handlers decide (a functor
     // over row indices), the mutation refusal while comparisons run, the
     // reorder both sorts end with, and the automatic sort of a header click.
@@ -1340,6 +1349,10 @@ private:
     std::vector<std::uint32_t> settled_rows_{};
     // The cell viewport at the last arrange: a change repaints everything.
     Rect settled_data_{};
+    // The cells changed since the last gather, as (row position, column
+    // index); past cells_region_capacity changes the grid repaints whole.
+    static constexpr std::size_t cells_region_capacity = 256U;
+    ContentRegion cells_region_{*this, cells_region_capacity};
     std::uint64_t next_row_number_{1U};
     std::shared_ptr<DataGridViewCellValueProvider> provider_{};
     // Virtual rows: the application's order of row IDs (owner decision W-5),

@@ -24,6 +24,16 @@ namespace gui_forms {
 
 namespace {
 
+// Every content region of `control`'s subtree folded (redraw_all), as the
+// union of their folded kinds.
+Dirty fold_subtree_regions(Control& control) noexcept {
+    Dirty folded = control.fold_content_regions();
+    for (const Control::Ptr& child : control.children()) {
+        if (child) folded |= fold_subtree_regions(*child);
+    }
+    return folded;
+}
+
 [[nodiscard]] Rect owner_decoration_box(
     const OwnerDecorationRecipe& decoration, Rect owner) noexcept {
     const double x = decoration.left
@@ -3137,6 +3147,24 @@ void Control::invalidate(Rect local_damage) {
         const std::shared_ptr<gui_forms::Control> visual_parent = (*current).parent_.lock();
         current = visual_parent.get();
     }
+}
+
+void Control::redraw_all(Dirty kinds) {
+    require_mutable();
+    const Dirty folded = fold_subtree_regions(*this);
+    invalidate_subtree(kinds | folded);
+}
+
+void Control::gather_content_regions() {}
+
+Dirty Control::fold_content_regions() noexcept {
+    return Dirty::none;
+}
+
+bool Control::request_content_gather() {
+    if (surface_root_ == nullptr || initialization_depth_ != 0) return false;
+    (*surface_root_).note_content_gather(*this);
+    return true;
 }
 
 void Control::invalidate_subtree(Dirty requested_dirty) {

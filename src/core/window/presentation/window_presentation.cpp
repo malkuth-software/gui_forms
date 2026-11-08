@@ -231,7 +231,10 @@ bool SurfaceRoot::has_plane_damage() const noexcept {
 
 bool SurfaceRoot::paint_pending() const noexcept {
     if (dirty_after_render_) return true;
-    if (control_table_.pending(detail::DirtyKind::paint) || !pending_local_damage_.empty()) return true;
+    if (control_table_.pending(detail::DirtyKind::paint) || !pending_local_damage_.empty() ||
+        !pending_content_gathers_.empty()) {
+        return true;
+    }
     const bool damaged = has_plane_damage();
     return damaged;
 }
