@@ -85,7 +85,12 @@ public:
     }
 
 private:
-    std::unique_ptr<MaterialColourMatrix> matrix_;
+    // The owned matrix, or null. A raw owning address rather than
+    // std::unique_ptr: libstdc++'s unique_ptr is not standard layout, and a
+    // material is the value of standard-layout property capabilities
+    // (MaterialPanel's material cell). This class's special members are its
+    // only owners: they allocate, copy, transfer and delete it.
+    MaterialColourMatrix* matrix_;
 };
 
 } // namespace gui_forms

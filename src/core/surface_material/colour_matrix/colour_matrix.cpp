@@ -144,30 +144,37 @@ bool valid_colour_matrix(const MaterialColourMatrix& matrix) noexcept {
 MaterialColourFilter::MaterialColourFilter() noexcept : matrix_{} {}
 
 MaterialColourFilter::MaterialColourFilter(const MaterialColourMatrix& matrix)
-    : matrix_{std::make_unique<MaterialColourMatrix>(matrix)} {}
+    : matrix_{new MaterialColourMatrix(matrix)} {}
 
 MaterialColourFilter::MaterialColourFilter(const MaterialColourFilter& other) : matrix_{} {
-    if (other.matrix_) matrix_ = std::make_unique<MaterialColourMatrix>(*other.matrix_);
+    if (other.matrix_) matrix_ = new MaterialColourMatrix(*other.matrix_);
 }
 
-MaterialColourFilter::MaterialColourFilter(MaterialColourFilter&& other) noexcept
-    : matrix_{std::move(other.matrix_)} {}
+MaterialColourFilter::MaterialColourFilter(MaterialColourFilter&& other) noexcept : matrix_{other.matrix_} {
+    other.matrix_ = nullptr;
+}
 
 MaterialColourFilter& MaterialColourFilter::operator=(const MaterialColourFilter& other) {
     if (this == &other) return *this;
     // The copy is made first: a failed allocation leaves this filter as it was.
-    std::unique_ptr<MaterialColourMatrix> copy{};
-    if (other.matrix_) copy = std::make_unique<MaterialColourMatrix>(*other.matrix_);
-    matrix_ = std::move(copy);
+    MaterialColourMatrix* copy = nullptr;
+    if (other.matrix_) copy = new MaterialColourMatrix(*other.matrix_);
+    delete matrix_;
+    matrix_ = copy;
     return *this;
 }
 
 MaterialColourFilter& MaterialColourFilter::operator=(MaterialColourFilter&& other) noexcept {
-    matrix_ = std::move(other.matrix_);
+    if (this == &other) return *this;
+    delete matrix_;
+    matrix_ = other.matrix_;
+    other.matrix_ = nullptr;
     return *this;
 }
 
-MaterialColourFilter::~MaterialColourFilter() {}
+MaterialColourFilter::~MaterialColourFilter() {
+    delete matrix_;
+}
 
 bool MaterialColourFilter::has_value() const noexcept {
     const bool held = matrix_ != nullptr;
@@ -184,7 +191,8 @@ const MaterialColourMatrix& MaterialColourFilter::operator*() const noexcept {
 }
 
 void MaterialColourFilter::reset() noexcept {
-    matrix_.reset();
+    delete matrix_;
+    matrix_ = nullptr;
 }
 
 } // namespace gui_forms
