@@ -221,9 +221,9 @@ void check_provider_toggle(Checks& checks, Window& window, ProviderFixture& fixt
     if (!check) return;
     expect(checks, (*check).role == SemanticRole::check_box && has_action(*check, SemanticAction::press),
            "the check box's role, and press");
-    expect(checks, !has_state(*check, SemanticState::checked) && !(*fixture.check).checked(),
+    expect(checks, !has_state(*check, SemanticState::checked) && !(*fixture.check).checked.read(),
            "the check box starts unchecked");
-    expect(checks, perform_on_control(window, *fixture.check, SemanticAction::press) && (*fixture.check).checked(),
+    expect(checks, perform_on_control(window, *fixture.check, SemanticAction::press) && (*fixture.check).checked.read(),
            "press checks the check box");
     const std::optional<SemanticNode> after = read_node(window, "uia.check");
     expect(checks, after && has_state(*after, SemanticState::checked), "the snapshot publishes it checked");

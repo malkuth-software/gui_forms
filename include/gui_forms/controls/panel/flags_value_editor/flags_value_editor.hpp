@@ -77,7 +77,6 @@ private:
     void on_overlay_revoked();
     void synchronize_overlay();
     void apply_overlay_choice(std::size_t overlay_index, CheckState state);
-    void define_form_properties();
     // The form properties (see the class comment): each getter reads the
     // descriptor and value; each setter records its part and applies the
     // whole once `flag-names` is written.
@@ -114,6 +113,12 @@ private:
     Event<const PropertyEnumValue&> value_changed_;
     Event<bool> drop_down_changed_;
     // property_codemod begin FlagsValueEditor (tools/property_families/flags_value_editor.json; generated, do not edit)
+public:
+    // FlagsValueEditor's property table: Panel's entries, then its own.
+    static constexpr std::size_t flags_value_editor_property_count = Panel::panel_property_count + 4U;
+    [[nodiscard]] static const std::array<PropertyEntry, flags_value_editor_property_count>& flags_value_editor_property_entries() noexcept;
+    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
+
 private:
     friend struct FlagsValueEditorDescriptorCapability<FlagsValueEditor>;
     friend struct FlagsValueEditorValueCapability<FlagsValueEditor>;

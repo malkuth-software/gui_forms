@@ -1,0 +1,53 @@
+{
+  "family": "VisualInspectorView",
+  "step": "M-S6",
+  "declaring": "VisualInspectorView",
+  "header": "include/gui_forms/controls/visual_inspector_view/visual_inspector_view.hpp",
+  "source": "src/controls/visual_inspector_view/visual_inspector_view.cpp",
+  "capabilities_header": "include/gui_forms/controls/visual_inspector_view/visual_inspector_view_capabilities/visual_inspector_view_capabilities.hpp",
+  "base": "Control",
+  "includes": [
+    "gui_forms/basic_controls.hpp"
+  ],
+  "properties": [
+    {
+      "name": "target_stable_id",
+      "capability": "VisualInspectorViewTargetStableId",
+      "value": "std::string",
+      "initial": "std::string{}",
+      "comment": "The stable ID of the control the view inspects; empty for none.",
+      "getter": "target_stable_id",
+      "setter": "set_target_stable_id",
+      "clear": null,
+      "field": "target_stable_id_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": {
+        "kind": "text",
+        "category": "Behavior",
+        "description": "Stable ID of the control the view inspects; empty for none.",
+        "default": "BindingValue{std::string{}}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "sample": "std::string(\"target\")",
+      "hand": [
+        "written: drop the cached semantic value, invalidate paint, semantics and accessibility"
+      ]
+    }
+  ],
+  "not_properties": [],
+  "test": {
+    "type": "VisualInspectorView",
+    "include": "gui_forms/controls/visual_inspector_view/visual_inspector_view.hpp"
+  }
+}

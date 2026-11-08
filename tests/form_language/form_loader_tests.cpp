@@ -167,7 +167,7 @@ void test_load() {
             "load: the group's children in document order");
 
     const std::shared_ptr<gui_forms::CheckBox> check = std::dynamic_pointer_cast<gui_forms::CheckBox>(loaded.objects[2]);
-    require(check != nullptr && (*check).text.read() == "Save automatically" && (*check).checked() &&
+    require(check != nullptr && (*check).text.read() == "Save automatically" && (*check).checked.read() &&
                 (*check).tab_index.read() == 2U,
             "load: the check box's properties");
     require(std::dynamic_pointer_cast<gui_forms::Command>(loaded.objects[4]) != nullptr, "load: the command");
@@ -258,11 +258,11 @@ void test_bindings() {
                 "bindings: every bound control");
         if (check == nullptr || mirror == nullptr || number == nullptr || name == nullptr || button == nullptr) return;
 
-        require((*check).checked() && (*mirror).checked() && (*number).value.read() == 25.0 && (*name).text.read() == "Ada",
+        require((*check).checked.read() && (*mirror).checked.read() && (*number).value.read() == 25.0 && (*name).text.read() == "Ada",
                 "bindings: each property takes its source's value at creation");
-        (*check).set_checked(false);
-        require(!autosave.get() && !(*mirror).checked(), "bindings: two way, the change reaches the Value and on");
-        (*mirror).set_checked(true);
+        (*check).checked = false;
+        require(!autosave.get() && !(*mirror).checked.read(), "bindings: two way, the change reaches the Value and on");
+        (*mirror).checked = true;
         require(!autosave.get(), "bindings: one way, the control's change stays in the control");
         (*number).value = 30.0;
         require(level.get() == 30.0, "bindings: the numeric value, two way by its property's default");

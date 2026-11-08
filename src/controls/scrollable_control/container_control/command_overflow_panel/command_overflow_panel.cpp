@@ -4,8 +4,8 @@
 #include "gui_forms/window.hpp"
 
 #include "../container_layout_utilities.hpp"
-#include "gui_forms/detail/property_binding_adapters.hpp"
 #include "../../scrollable_anatomy.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
 #include <array>
@@ -144,22 +144,7 @@ struct CommandOverflowPanel::LayoutResult final {
 };
 
 CommandOverflowPanel::CommandOverflowPanel(StableId stable_id)
-    : ContainerControl(std::move(stable_id)) {
-    register_panel_properties();
-}
-
-void CommandOverflowPanel::register_panel_properties() {
-    PropertyDescriptor gap{"group_gap", BindingValueKind::number, "Layout",
-                           "The space between neighbouring groups and before the actuator, 0 through 256.",
-                           BindingValue{0.0}, invalidation::bounds};
-    gap.bindable = false;
-    define_bindable_property({std::move(gap),
-                              detail::BindingNoexceptMethodGetter<CommandOverflowPanel, double>(
-                                  *this, &CommandOverflowPanel::group_gap),
-                              detail::DirectPropertySetter<CommandOverflowPanel, double>(
-                                  *this, &CommandOverflowPanel::set_group_gap),
-                              {}, {}, {}});
-}
+    : ContainerControl(std::move(stable_id)) {}
 
 const std::array<ChildPropertyEntry, CommandOverflowPanel::overflow_child_property_count>&
 CommandOverflowPanel::overflow_child_property_entries() noexcept {
@@ -186,17 +171,6 @@ void CommandOverflowPanel::validate_spec(
         throw std::invalid_argument(
             "CommandOverflowPanel group extents must be finite ordered nonnegative values");
     }
-}
-
-void CommandOverflowPanel::set_group_gap(double gap) {
-    require_mutable();
-    if (!std::isfinite(gap) || gap < 0.0 || gap > 256.0) {
-        throw std::invalid_argument(
-            "CommandOverflowPanel gap must be finite and between zero and 256");
-    }
-    if (group_gap_ == gap) return;
-    group_gap_ = gap;
-    invalidate(invalidation::bounds);
 }
 
 void CommandOverflowPanel::prepare_write(const Control& child,
@@ -354,7 +328,7 @@ CommandOverflowPanel::LayoutResult CommandOverflowPanel::layout_groups(
         }
     }
     ResponsiveTrackResolution resolution = resolve_responsive_tracks(
-        tracks, measured, inner.width, group_gap_, device_scale,
+        tracks, measured, inner.width, group_gap.read(), device_scale,
         protected_tracks);
     bool needs_actuator = !resolution.collapse_order.empty();
     const Control::Ptr actuator = overflow_actuator_.lock();
@@ -367,15 +341,15 @@ CommandOverflowPanel::LayoutResult CommandOverflowPanel::layout_groups(
         actuator_extent = actuator_desired.width + horizontal_extent(actuator_margin);
     }
     if (needs_actuator && actuator) {
-        const double reserved = actuator_extent + (items.empty() ? 0.0 : group_gap_);
+        const double reserved = actuator_extent + (items.empty() ? 0.0 : group_gap.read());
         resolution = resolve_responsive_tracks(
             tracks, measured, std::max(0.0, inner.width - reserved),
-            group_gap_, device_scale, protected_tracks);
+            group_gap.read(), device_scale, protected_tracks);
         needs_actuator = true;
         if (assign && focused_track && resolution.overflow && owner != nullptr) {
             ResponsiveTrackResolution alternative = resolve_responsive_tracks(
                 tracks, measured, std::max(0.0, inner.width - reserved),
-                group_gap_, device_scale);
+                group_gap.read(), device_scale);
             if (alternative.tracks[*focused_track].collapsed() &&
                 (*actuator).focusable() && (*owner).request_focus(actuator)) {
                 resolution = std::move(alternative);
@@ -385,7 +359,7 @@ CommandOverflowPanel::LayoutResult CommandOverflowPanel::layout_groups(
 
     CommandOverflowSnapshot snapshot;
     snapshot.available_extent = inner.width;
-    snapshot.group_gap = group_gap_;
+    snapshot.group_gap = group_gap.read();
     snapshot.overflow_actuator_visible = needs_actuator && bool(actuator);
     snapshot.overflow = resolution.overflow || (needs_actuator && !actuator);
     snapshot.groups.reserve(items.size());
@@ -396,7 +370,7 @@ CommandOverflowPanel::LayoutResult CommandOverflowPanel::layout_groups(
             resolution.tracks[index].collapsed(),
             items[index].spec.collapse_priority});
     }
-    const double desired_groups = desired_track_extent(tracks, group_gap_);
+    const double desired_groups = desired_track_extent(tracks, group_gap.read());
 
     if (assign) {
         for (std::size_t index = 0U; index < items.size(); ++index) {
@@ -478,7 +452,6 @@ SemanticDescriptor CommandOverflowPanel::semantic_descriptor() const {
     return descriptor;
 }
 
-
 namespace {
 
 // Its panes and members are child controls, which publish their own anatomies.
@@ -494,5 +467,60 @@ constexpr ControlAnatomy command_overflow_panel_anatomy{
 const ControlAnatomy& CommandOverflowPanel::anatomy() const noexcept {
     return command_overflow_panel_anatomy;
 }
+
+// property_codemod begin CommandOverflowPanel (tools/property_families/command_overflow_panel.json; generated, do not edit)
+
+namespace {
+
+PropertyDescriptor command_overflow_panel_group_gap_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "group_gap";
+    descriptor.kind = BindingValueKind::number;
+    descriptor.category = "Layout";
+    descriptor.description = "The space between neighbouring groups and before the actuator, 0 through 256.";
+    descriptor.default_value = BindingValue{0.0};
+    descriptor.invalidation_effects = invalidation::bounds;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_command_overflow_panel_group_gap() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        command_overflow_panel_group_gap_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+} // namespace
+
+const std::array<PropertyEntry, CommandOverflowPanel::command_overflow_panel_property_count>& CommandOverflowPanel::command_overflow_panel_property_entries() noexcept {
+    static constexpr std::array<PropertyEntry, 1U> own{{
+        {"group_gap", &describe_command_overflow_panel_group_gap,
+         &read_cell_entry<CommandOverflowPanel, decltype(&CommandOverflowPanel::group_gap), &CommandOverflowPanel::group_gap>,
+         &write_cell_entry<CommandOverflowPanel, decltype(&CommandOverflowPanel::group_gap), &CommandOverflowPanel::group_gap>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+    }};
+    static_assert(property_names_distinct(own), "CommandOverflowPanel's property table names a property twice");
+    static const std::array<PropertyEntry, command_overflow_panel_property_count> entries =
+        join_property_tables(Control::control_property_entries(), own);
+    return entries;
+}
+
+std::span<const PropertyEntry> CommandOverflowPanel::property_table() const noexcept {
+    const std::array<PropertyEntry, command_overflow_panel_property_count>& entries = command_overflow_panel_property_entries();
+    return std::span<const PropertyEntry>(entries);
+}
+
+void CommandOverflowPanel::prepare_write(const decltype(group_gap)&, double& incoming) {
+    require_mutable();
+    if (!std::isfinite(incoming) || incoming < 0.0 || incoming > 256.0) throw std::invalid_argument("CommandOverflowPanel gap must be finite and between zero and 256");
+}
+
+void CommandOverflowPanel::written(const decltype(group_gap)&) {
+    invalidate(invalidation::bounds);
+}
+
+// property_codemod end CommandOverflowPanel
 
 } // namespace gui_forms

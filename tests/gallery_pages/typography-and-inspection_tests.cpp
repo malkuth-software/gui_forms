@@ -49,13 +49,13 @@ void test_typography_and_inspection(gui_forms::Window& window) {
     require((*overlay_box).command_connected() && (*overlay_toggle).command_connected(),
             "overlay controls must bind the page's checkable Command");
     click(window, overlay_box);
-    require((*overlay).visible.read() && (*overlay_box).checked(),
+    require((*overlay).visible.read() && (*overlay_box).checked.read(),
             "checking the overlay box must show the overlay through the Command");
     click(window, overlay_toggle);
-    require(!(*overlay).visible.read() && !(*overlay_box).checked(),
+    require(!(*overlay).visible.read() && !(*overlay_box).checked.read(),
             "the shared Command must project the button's flip back to the check box");
     click(window, overlay_toggle);
-    require((*overlay).visible.read() && (*overlay_box).checked(),
+    require((*overlay).visible.read() && (*overlay_box).checked.read(),
             "a second flip must show the overlay and re-check the box");
 
     // The ChoiceGroup binds the target Value; selecting an item retargets

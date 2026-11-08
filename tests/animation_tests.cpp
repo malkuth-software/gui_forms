@@ -704,13 +704,13 @@ void test_visual_style_round_trips() {
     std::shared_ptr<gui_forms::CheckBox> check = make_control<CheckBox>(StableId("animation.check"), "Check");
     std::shared_ptr<gui_forms::RadioButton> radio = make_control<RadioButton>(StableId("animation.radio"), "Radio");
     std::shared_ptr<gui_forms::TrackBar> slider = make_control<TrackBar>(StableId("animation.slider"));
-    (*button).set_visual_style(ButtonVisualStyle::accent);
-    (*check).set_indicator_style(ChoiceIndicatorStyle::toggle);
-    (*radio).set_indicator_style(ChoiceIndicatorStyle::modern);
+    (*button).visual_style = ButtonVisualStyle::accent;
+    (*check).indicator_style = ChoiceIndicatorStyle::toggle;
+    (*radio).indicator_style = ChoiceIndicatorStyle::modern;
     (*slider).set_visual_style(TrackBarVisualStyle::filled);
-    require((*button).visual_style() == ButtonVisualStyle::accent &&
-                (*check).indicator_style() == ChoiceIndicatorStyle::toggle &&
-                (*radio).indicator_style() == ChoiceIndicatorStyle::modern &&
+    require((*button).visual_style.read() == ButtonVisualStyle::accent &&
+                (*check).indicator_style.read() == ChoiceIndicatorStyle::toggle &&
+                (*radio).indicator_style.read() == ChoiceIndicatorStyle::modern &&
                 (*slider).visual_style() == TrackBarVisualStyle::filled,
             "public control visual variants must retain exact state");
 }

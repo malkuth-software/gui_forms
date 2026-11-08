@@ -34,18 +34,10 @@ public:
     ~ChoiceGroup() override;
     void set_items(std::vector<ChoiceItem> items);
     [[nodiscard]] std::span<const ChoiceItem> items() const noexcept;
-    [[nodiscard]] int selected_index() const noexcept {
-        const int index = selection_.get();
-        return index;
-    }
-    void set_selected_index(int index);
     void bind(Value<int>& selection);
     void unbind() noexcept;
-    [[nodiscard]] Value<int>& selection() noexcept { return selection_; }
-    [[nodiscard]] Event<int>& changed() noexcept {
-        Event<int>& event = selection_.changed();
-        return event;
-    }
+    // Raised after a change of selected_index, with the new index.
+    [[nodiscard]] Event<int>& changed() noexcept { return selected_index_changed_; }
     [[nodiscard]] Event<int>& activated() noexcept { return activated_; }
     [[nodiscard]] Button& item(int index) const;
     [[nodiscard]] Control* part(std::string_view name, int index) const;
@@ -88,7 +80,10 @@ private:
     // their widths differ by at most one device pixel.
     [[nodiscard]] Rect segment_bounds(std::size_t index, std::size_t count, Size size) const noexcept;
     [[nodiscard]] Rect selection_bounds() const;
-    Value<int> selection_{-1};
+    // The selection binding's getter and setter (ScalarBinding names members).
+    [[nodiscard]] int bound_selected_index() const noexcept { return selected_index.read(); }
+    void write_bound_selected_index(int index);
+    Event<int> selected_index_changed_;
     std::unique_ptr<detail::ScalarBinding<ChoiceGroup, int>> binding_{};
     std::shared_ptr<Revision> revision_{};
     Event<int> activated_{};
@@ -102,9 +97,12 @@ public:
 
 private:
     friend struct ChoiceGroupPresentationCapability<ChoiceGroup>;
+    friend struct ChoiceGroupSelectedIndexCapability<ChoiceGroup>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(presentation)& cell, ChoiceGroupPresentation& incoming);
     void written(const decltype(presentation)& cell);
+    void prepare_write(const decltype(selected_index)& cell, int& incoming);
+    void written(const decltype(selected_index)& cell);
     // property_codemod end ChoiceGroup
 };
 

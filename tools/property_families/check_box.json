@@ -1,0 +1,198 @@
+{
+  "family": "CheckBox",
+  "step": "M-S3",
+  "declaring": "CheckBox",
+  "header": "include/gui_forms/controls/button_base/check_box/check_box.hpp",
+  "source": "src/controls/button_base/check_box/check_box.cpp",
+  "capabilities_header": "include/gui_forms/controls/button_base/check_box/check_box_capabilities/check_box_capabilities.hpp",
+  "base": "ButtonBase",
+  "includes": [
+    "gui_forms/controls/button_base/button_base.hpp",
+    "gui_forms/controls/button_base/check_box/check_box_values/check_box_values.hpp"
+  ],
+  "properties": [
+    {
+      "name": "check_state",
+      "capability": "CheckBoxCheckState",
+      "value": "CheckState",
+      "initial": null,
+      "comment": "Unchecked, checked or indeterminate (CheckState); a view onto the check state. Indeterminate becomes checked unless three_state. A change raises check_state_changed, then checked_changed when checked changes. Outside the enumeration throws std::invalid_argument.",
+      "getter": "check_state",
+      "setter": "set_check_state",
+      "clear": null,
+      "field": null,
+      "event": "check_state_changed_",
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": {
+        "kind": "enumeration",
+        "category": "Behavior",
+        "description": "Unchecked, checked or indeterminate; checked follows it.",
+        "default": "BindingValue{PropertyEnumValue{\"check_state\", \"unchecked\", 0}}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": "check_state_enum()",
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "a view onto check_state_; write_view keeps set_check_state's coercion, binding validation and event order"
+      ],
+      "sample": "CheckState::checked",
+      "storage": "view"
+    },
+    {
+      "name": "checked",
+      "capability": "CheckBoxChecked",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether the box is checked (Checked); a view onto check_state: a write sets checked or unchecked.",
+      "getter": "checked",
+      "setter": "set_checked",
+      "clear": null,
+      "field": null,
+      "event": "checked_changed_",
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": {
+        "kind": "boolean",
+        "category": "Behavior",
+        "description": "Whether the check box is in a checked state.",
+        "default": "BindingValue{false}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": true,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false,
+        "binding_direction": "two_way"
+      },
+      "hooks": "hand",
+      "hand": [
+        "a view onto check_state_: write_view writes check_state"
+      ],
+      "sample": "true",
+      "storage": "view"
+    },
+    {
+      "name": "three_state",
+      "capability": "CheckBoxThreeState",
+      "value": "bool",
+      "initial": "false",
+      "comment": "Whether the box also takes the indeterminate state (ThreeState); clearing it turns an indeterminate box checked.",
+      "getter": "three_state",
+      "setter": "set_three_state",
+      "clear": null,
+      "field": "three_state_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": {
+        "kind": "boolean",
+        "category": "Behavior",
+        "description": "Whether the box also takes the indeterminate state; clearing it clears that state.",
+        "default": "BindingValue{false}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written: clearing it turns an indeterminate box checked through check_state, otherwise semantics"
+      ],
+      "sample": "true"
+    },
+    {
+      "name": "auto_check",
+      "capability": "CheckBoxAutoCheck",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether activation advances the check state (AutoCheck).",
+      "getter": "auto_check",
+      "setter": "set_auto_check",
+      "clear": null,
+      "field": "auto_check_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "effects": "Dirty::semantics"
+    },
+    {
+      "name": "appearance",
+      "capability": "CheckBoxAppearanceStyle",
+      "value": "CheckBoxAppearance",
+      "initial": "CheckBoxAppearance::normal",
+      "comment": "Normal or button (Appearance): only the visual projection changes. Outside the enumeration throws std::invalid_argument.",
+      "getter": "appearance",
+      "setter": "set_appearance",
+      "clear": null,
+      "field": "appearance_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "effects": "Dirty::measure | Dirty::paint | Dirty::semantics",
+      "prepare": [
+        "if (incoming != CheckBoxAppearance::normal && incoming != CheckBoxAppearance::button) throw std::invalid_argument(\"invalid CheckBox appearance\");"
+      ]
+    },
+    {
+      "name": "indicator_style",
+      "capability": "CheckBoxIndicatorStyle",
+      "value": "ChoiceIndicatorStyle",
+      "initial": "ChoiceIndicatorStyle::classic",
+      "comment": "How the check mark draws: classic, modern or toggle (std::invalid_argument outside them).",
+      "getter": "indicator_style",
+      "setter": "set_indicator_style",
+      "clear": null,
+      "field": "indicator_style_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": {
+        "kind": "enumeration",
+        "category": "Appearance",
+        "description": "How the check mark draws: classic, modern or toggle.",
+        "default": "BindingValue{PropertyEnumValue{\"indicator_style\", \"classic\", 0}}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": "button_base_detail::choice_indicator_style_enum()",
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "prepare": [
+        "if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(ChoiceIndicatorStyle::toggle)) throw std::invalid_argument(\"CheckBox indicator style is invalid\");"
+      ],
+      "sample": "ChoiceIndicatorStyle::modern"
+    }
+  ],
+  "not_properties": [],
+  "test": {
+    "type": "CheckBox",
+    "include": "gui_forms/controls/button_base/check_box/check_box.hpp"
+  }
+}

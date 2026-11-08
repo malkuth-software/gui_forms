@@ -187,7 +187,7 @@ private:
     // property_codemod begin ComboBox (tools/property_families/combo_box.json; generated, do not edit)
 public:
     // ComboBox's property table: Panel's entries, then its own.
-    static constexpr std::size_t combo_box_property_count = Panel::panel_property_count + 4U;
+    static constexpr std::size_t combo_box_property_count = Panel::panel_property_count + 6U;
     [[nodiscard]] static const std::array<PropertyEntry, combo_box_property_count>& combo_box_property_entries() noexcept;
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
 

@@ -9,12 +9,11 @@
 // its height.
 
 #include "gui_forms/controls/scrollable_control/container_control/grid_panel/grid_panel.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include "../../scrollable_anatomy.hpp"
 #include "../layout_style_property.hpp"
 #include "../out_of_flow.hpp"
-
-#include "gui_forms/detail/bound_member_function.hpp"
 
 #include "gui_forms/binding/property_table/property_table.hpp"
 
@@ -471,24 +470,7 @@ constexpr ControlAnatomy grid_panel_anatomy{
 
 } // namespace
 
-GridPanel::GridPanel(StableId stable_id) : ContainerControl(std::move(stable_id)) {
-    register_panel_properties();
-}
-
-void GridPanel::register_panel_properties() {
-    PropertyDescriptor style_descriptor{"style", BindingValueKind::text, "Layout",
-                                        "The grid's container settings as a CSS inline style: grid-template-columns "
-                                        "and -rows, grid-auto-flow, grid-auto-columns and -rows, the content and "
-                                        "item alignments and the gaps. Spans are span blocks.",
-                                        BindingValue{std::string{}}, invalidation::bounds};
-    style_descriptor.bindable = false;
-    define_bindable_property({std::move(style_descriptor),
-                              detail::BoundMemberFunction<BindingValue (GridPanel::*)() const>(
-                                  *this, &GridPanel::style_property),
-                              detail::BoundMemberFunction<void (GridPanel::*)(const BindingValue&)>(
-                                  *this, &GridPanel::set_style_property),
-                              {}, {}, {}});
-}
+GridPanel::GridPanel(StableId stable_id) : ContainerControl(std::move(stable_id)) {}
 
 BindingValue GridPanel::style_property() const {
     const LayoutStyle base{};
@@ -1393,5 +1375,52 @@ SemanticDescriptor GridPanel::semantic_descriptor() const {
 const ControlAnatomy& GridPanel::anatomy() const noexcept {
     return grid_panel_anatomy;
 }
+
+namespace {
+
+// The container settings as one CSS inline style text: a hand table entry
+// (extra_entries) over the panel's settings.
+PropertyDescriptor grid_panel_style_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "style";
+    descriptor.kind = BindingValueKind::text;
+    descriptor.category = "Layout";
+    descriptor.description = "The grid's container settings as a CSS inline style: grid-template-columns and -rows, grid-auto-flow, grid-auto-columns and -rows, the content and item alignments and the gaps. Spans are span blocks.";
+    descriptor.default_value = BindingValue{std::string{}};
+    descriptor.invalidation_effects = invalidation::bounds;
+    descriptor.bindable = false;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_grid_panel_style() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        grid_panel_style_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+} // namespace
+
+// property_codemod begin GridPanel (tools/property_families/grid_panel.json; generated, do not edit)
+
+const std::array<PropertyEntry, GridPanel::grid_panel_property_count>& GridPanel::grid_panel_property_entries() noexcept {
+    static constexpr std::array<PropertyEntry, 1U> own{{
+        {"style", &describe_grid_panel_style,
+         &read_member_entry<GridPanel, decltype(&GridPanel::style_property), &GridPanel::style_property>,
+         &write_member_entry<GridPanel, decltype(&GridPanel::set_style_property), &GridPanel::set_style_property>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+    }};
+    static_assert(property_names_distinct(own), "GridPanel's property table names a property twice");
+    static const std::array<PropertyEntry, grid_panel_property_count> entries =
+        join_property_tables(Control::control_property_entries(), own);
+    return entries;
+}
+
+std::span<const PropertyEntry> GridPanel::property_table() const noexcept {
+    const std::array<PropertyEntry, grid_panel_property_count>& entries = grid_panel_property_entries();
+    return std::span<const PropertyEntry>(entries);
+}
+
+// property_codemod end GridPanel
 
 } // namespace gui_forms

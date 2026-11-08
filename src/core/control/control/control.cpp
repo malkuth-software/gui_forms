@@ -588,48 +588,6 @@ Control::Control(StableId stable_id)
       stable_id_(std::move(stable_id)) {
     // The name cell is a base, constructed before stable_id_.
     name = std::string(stable_id_.value());
-    define_bindable_property({
-        {"name", BindingValueKind::text, "Design",
-         "Stable authoring name used by inspection and generated surfaces.",
-         BindingValue{name.read()}, Dirty::semantics | Dirty::accessibility},
-        RegisteredPropertyGetter<RegisteredProperty::name>{this},
-        RegisteredPropertySetter<RegisteredProperty::name>{this},
-        RegisteredPropertyConnector<RegisteredProperty::name>{this}, {}, {}});
-
-    PropertyDescriptor bounds;
-    bounds.name = "bounds";
-    bounds.kind = BindingValueKind::rectangle;
-    bounds.category = "Layout";
-    bounds.description = "Authored logical bounds before parent layout.";
-    bounds.default_value = BindingValue{Rect{}};
-    bounds.invalidation_effects = invalidation::bounds;
-    define_structural_property(
-        std::move(bounds),
-        RegisteredPropertyGetter<RegisteredProperty::bounds>{this},
-        RegisteredPropertySetter<RegisteredProperty::bounds>{this});
-
-    PropertyDescriptor auto_scroll_offset;
-    auto_scroll_offset.name = "auto_scroll_offset";
-    auto_scroll_offset.kind = BindingValueKind::point;
-    auto_scroll_offset.category = "Layout";
-    auto_scroll_offset.description =
-        "Logical offset used when revealing this control in a scroll owner.";
-    auto_scroll_offset.default_value = BindingValue{Point{}};
-    auto_scroll_offset.invalidation_effects =
-        Dirty::semantics | Dirty::accessibility;
-    define_structural_property(
-        std::move(auto_scroll_offset),
-        RegisteredPropertyGetter<RegisteredProperty::auto_scroll_offset>{this},
-        RegisteredPropertySetter<RegisteredProperty::auto_scroll_offset>{
-            this});
-}
-
-void Control::define_structural_property(
-    PropertyDescriptor descriptor, PropertyRegistration::Getter get,
-    PropertyRegistration::Setter set) {
-    descriptor.bindable = false;
-    define_bindable_property({std::move(descriptor), std::move(get),
-                              std::move(set), {}, {}, {}});
 }
 
 // The descriptors of Control's table, as the instance registrations wrote
@@ -915,10 +873,37 @@ PropertyDescriptor Control::registered_descriptor(RegisteredProperty property) {
         accessible_description.bindable = false;
         return accessible_description;
     }
-    case RegisteredProperty::name:
-    case RegisteredProperty::bounds:
-    case RegisteredProperty::auto_scroll_offset:
-        throw std::logic_error("GUI.Forms property is an instance registration, not a table entry");
+    case RegisteredProperty::name: {
+        // The default is the stable ID, which differs per control: the
+        // entry's should_serialize and origin compare with it
+        // (name_serialized, name_origin), so the descriptor states none.
+        PropertyDescriptor descriptor{"name", BindingValueKind::text, "Design",
+                                      "Stable authoring name used by inspection and generated surfaces.",
+                                      std::nullopt, Dirty::semantics | Dirty::accessibility};
+        return descriptor;
+    }
+    case RegisteredProperty::bounds: {
+        PropertyDescriptor bounds;
+        bounds.name = "bounds";
+        bounds.kind = BindingValueKind::rectangle;
+        bounds.category = "Layout";
+        bounds.description = "Authored logical bounds before parent layout.";
+        bounds.default_value = BindingValue{Rect{}};
+        bounds.invalidation_effects = invalidation::bounds;
+        bounds.bindable = false;
+        return bounds;
+    }
+    case RegisteredProperty::auto_scroll_offset: {
+        PropertyDescriptor auto_scroll_offset;
+        auto_scroll_offset.name = "auto_scroll_offset";
+        auto_scroll_offset.kind = BindingValueKind::point;
+        auto_scroll_offset.category = "Layout";
+        auto_scroll_offset.description = "Logical offset used when revealing this control in a scroll owner.";
+        auto_scroll_offset.default_value = BindingValue{Point{}};
+        auto_scroll_offset.invalidation_effects = Dirty::semantics | Dirty::accessibility;
+        auto_scroll_offset.bindable = false;
+        return auto_scroll_offset;
+    }
     }
     throw std::logic_error("GUI.Forms registered property is unknown");
 }
@@ -927,15 +912,19 @@ template <Control::RegisteredProperty Property>
 const PropertyDescriptor& Control::describe_registered() {
     constexpr bool resettable = Property == RegisteredProperty::back_color ||
                                 Property == RegisteredProperty::fore_color;
-    constexpr bool raises_change = Property == RegisteredProperty::visible ||
+    constexpr bool raises_change = Property == RegisteredProperty::name ||
+                                   Property == RegisteredProperty::visible ||
                                    Property == RegisteredProperty::enabled ||
                                    Property == RegisteredProperty::auto_size ||
                                    Property == RegisteredProperty::causes_validation ||
                                    Property == RegisteredProperty::tool_tip_text;
     // Every table property but these four is a capability cell of its name
     // whose setter (RegisteredPropertySetter) is the cell's assignment; these
-    // four convert through a named setter (presentation values and the cursor).
-    constexpr bool assignable = Property != RegisteredProperty::cursor &&
+    // six are not: bounds and auto_scroll_offset are structural slots, and four
+    // convert through a named setter (presentation values and the cursor).
+    constexpr bool assignable = Property != RegisteredProperty::bounds &&
+                                Property != RegisteredProperty::auto_scroll_offset &&
+                                Property != RegisteredProperty::cursor &&
                                 Property != RegisteredProperty::classes &&
                                 Property != RegisteredProperty::back_color &&
                                 Property != RegisteredProperty::fore_color;
@@ -977,8 +966,34 @@ SubscriptionToken Control::connect_registered(Component& owner, Component& subsc
     return token;
 }
 
+namespace {
+
+// The name's default is the control's stable ID (the cell starts as it):
+// it serializes, and is local, only when it differs.
+bool name_serialized(const Component& owner) {
+    const Control& control = static_cast<const Control&>(owner);
+    const bool differs = control.name.read() != control.stable_id().value();
+    return differs;
+}
+
+PropertyValueOrigin name_origin(const Component& owner) {
+    const PropertyValueOrigin origin =
+        name_serialized(owner) ? PropertyValueOrigin::local : PropertyValueOrigin::defaulted;
+    return origin;
+}
+
+} // namespace
+
 const std::array<PropertyEntry, Control::control_property_count>& Control::control_property_entries() noexcept {
     static constexpr std::array<PropertyEntry, control_property_count> entries{{
+        {"name", &describe_registered<RegisteredProperty::name>, &read_registered<RegisteredProperty::name>,
+         &write_registered<RegisteredProperty::name>, nullptr, &name_serialized, &name_origin,
+         &connect_registered<RegisteredProperty::name>},
+        {"bounds", &describe_registered<RegisteredProperty::bounds>, &read_registered<RegisteredProperty::bounds>,
+         &write_registered<RegisteredProperty::bounds>, nullptr, nullptr, nullptr, nullptr},
+        {"auto_scroll_offset", &describe_registered<RegisteredProperty::auto_scroll_offset>,
+         &read_registered<RegisteredProperty::auto_scroll_offset>,
+         &write_registered<RegisteredProperty::auto_scroll_offset>, nullptr, nullptr, nullptr, nullptr},
         {"visible", &describe_registered<RegisteredProperty::visible>, &read_registered<RegisteredProperty::visible>,
          &write_registered<RegisteredProperty::visible>, nullptr, nullptr, nullptr, &connect_registered<RegisteredProperty::visible>},
         {"enabled", &describe_registered<RegisteredProperty::enabled>, &read_registered<RegisteredProperty::enabled>,

@@ -38,7 +38,7 @@ void test_docking_workspace(gui_forms::Window& window) {
     // Kept: Close All asks and the documents stay.
     click(window, keep);
     click(window, window.find("gallery.docking.close-all"));
-    require((*keep).checked() && placed(*site, "form.cs") && placed(*site, "readme.md") &&
+    require((*keep).checked.read() && placed(*site, "form.cs") && placed(*site, "readme.md") &&
                 (*closing).text.read().find("kept") != std::string::npos,
             "with Keep checked, Close All asks about the first document and closes nothing");
 

@@ -306,10 +306,10 @@ void test_public_controls_render_with_role_policy() {
     (*button).set_default_button(true);
     std::shared_ptr<gui_forms::CheckBox> check = make_control<CheckBox>(StableId("controls.check"), "Checked option");
     (*check).set_requested_bounds({12.0, 88.0, 150.0, 24.0});
-    (*check).set_checked(true);
+    (*check).checked = true;
     std::shared_ptr<gui_forms::RadioButton> radio = make_control<RadioButton>(StableId("controls.radio"), "Radio option");
     (*radio).set_requested_bounds({170.0, 88.0, 150.0, 24.0});
-    (*radio).set_checked(true);
+    (*radio).checked = true;
     (*group).add_child(label);
     (*group).add_child(button);
     (*group).add_child(check);
@@ -849,19 +849,19 @@ void test_checkbox_state_and_click_order() {
         callbacks::AppendLiteral<ButtonBase&>(order, "click\n"));
 
     click(window, check);
-    require((*check).checked() &&
+    require((*check).checked.read() &&
                 order == "state:checked\nchecked:true\nclick\n",
             "CheckBox must mutate, publish state, publish checked, then click");
 
-    (*check).set_three_state(true);
+    (*check).three_state = true;
     order.clear();
     (*check).on_activate();
-    require((*check).check_state() == CheckState::indeterminate &&
+    require((*check).check_state.read() == CheckState::indeterminate &&
                 order == "state:other\nchecked:false\nclick\n",
             "three-state CheckBox must deterministically advance to indeterminate");
     order.clear();
     (*check).on_activate();
-    require((*check).check_state() == CheckState::unchecked &&
+    require((*check).check_state.read() == CheckState::unchecked &&
                 order == "state:other\nclick\n",
             "indeterminate CheckBox must return to unchecked without duplicate bool change");
 }
@@ -875,14 +875,14 @@ void test_radio_group_scope_and_order() {
     (*first).set_requested_bounds({10.0, 24.0, 100.0, 24.0});
     (*second).set_requested_bounds({120.0, 24.0, 100.0, 24.0});
     (*independent).set_requested_bounds({230.0, 24.0, 120.0, 24.0});
-    (*first).set_group_name("mode");
-    (*second).set_group_name("mode");
-    (*independent).set_group_name("independent");
+    (*first).group_name = "mode";
+    (*second).group_name = "mode";
+    (*independent).group_name = "independent";
     (*group).add_child(first);
     (*group).add_child(second);
     (*group).add_child(independent);
-    (*first).set_checked(true);
-    (*independent).set_checked(true);
+    (*first).checked = true;
+    (*independent).checked = true;
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(group, Size{360.0, 70.0});
     Window& window = *held_window;
 
@@ -894,7 +894,7 @@ void test_radio_group_scope_and_order() {
     SubscriptionToken second_clicked = (*second).clicked().subscribe(
         callbacks::AppendLiteral<ButtonBase&>(order, "second:click\n"));
     click(window, second);
-    require(!(*first).checked() && (*second).checked() && (*independent).checked() &&
+    require(!(*first).checked.read() && (*second).checked.read() && (*independent).checked.read() &&
                 order == "first:off\nsecond:on\nsecond:click\n",
             "RadioButton must uncheck its group peer before checking/clicking itself");
 }

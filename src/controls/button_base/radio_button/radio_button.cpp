@@ -1,10 +1,10 @@
 #include "gui_forms/controls/button_base/radio_button/radio_button.hpp"
-#include "gui_forms/detail/property_binding_adapters.hpp"
 #include "../../basic/basic_control_rendering.hpp"
 #include "../choice_indicator_property.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
 #include <array>
@@ -20,45 +20,6 @@ RadioButton::RadioButton(StableId stable_id, std::string text)
     : ButtonBase(std::move(stable_id), std::move(text)) {
     text_alignment = ContentAlignment::middle_left;
     image_alignment = ContentAlignment::middle_left;
-    define_bindable_property({
-        {"checked", BindingValueKind::boolean, "Behavior",
-         "Whether the radio button is selected within its group.",
-         BindingValue{false}, Dirty::paint | Dirty::semantics},
-        detail::BindingMemberGetter<RadioButton, bool>(
-            *this, &RadioButton::checked_),
-        detail::ConvertedPropertySetter<RadioButton, bool>(
-            *this, &RadioButton::set_checked, BindingValueKind::boolean,
-            "RadioButton.Checked binding requires Boolean"),
-        detail::EventChangeConnector<bool>(checked_changed_), {}, {}});
-
-    PropertyDescriptor indicator_style;
-    indicator_style.name = "indicator_style";
-    indicator_style.kind = BindingValueKind::enumeration;
-    indicator_style.category = "Appearance";
-    indicator_style.description = "How the choice mark draws: classic, modern or toggle.";
-    indicator_style.default_value = BindingValue{PropertyEnumValue{"indicator_style", "classic", 0}};
-    indicator_style.invalidation_effects = Dirty::paint | Dirty::semantics;
-    indicator_style.bindable = false;
-    indicator_style.enumeration = button_base_detail::choice_indicator_style_enum();
-    define_bindable_property({
-        std::move(indicator_style),
-        detail::EnumerationPropertyGetter<RadioButton, ChoiceIndicatorStyle>(
-            *this, &RadioButton::indicator_style, button_base_detail::choice_indicator_style_enum()),
-        detail::EnumerationPropertySetter<RadioButton, ChoiceIndicatorStyle>(*this, &RadioButton::set_indicator_style),
-        {}, {}, {}});
-
-    PropertyDescriptor group_name;
-    group_name.name = "group_name";
-    group_name.kind = BindingValueKind::text;
-    group_name.category = "Behavior";
-    group_name.description = "The exclusion group among the parent's radio buttons; empty is the parent's own group.";
-    group_name.default_value = BindingValue{std::string{}};
-    group_name.invalidation_effects = Dirty::semantics;
-    group_name.bindable = false;
-    define_bindable_property({
-        std::move(group_name),
-        detail::BindingMemberGetter<RadioButton, std::string>(*this, &RadioButton::group_name_),
-        detail::DirectPropertySetter<RadioButton, std::string>(*this, &RadioButton::set_group_name), {}, {}, {}});
 }
 
 void RadioButton::set_checked_without_exclusion(bool checked_value) {
@@ -71,75 +32,49 @@ void RadioButton::set_checked_without_exclusion(bool checked_value) {
     publish_change(checked_changed_, checked_);
 }
 
-void RadioButton::set_checked(bool checked_value) {
-    require_mutable();
-    if (checked_ == checked_value) {
-        return;
-    }
-    if (checked_value) {
-        if (const Control::Ptr owner = parent()) {
-            for (const Control::Ptr& sibling : (*owner).children()) {
-                std::shared_ptr<gui_forms::RadioButton> peer = std::dynamic_pointer_cast<RadioButton>(sibling);
-                if (peer && peer.get() != this && (*peer).group_name_ == group_name_ &&
-                    (*peer).checked_) {
-                    (*peer).set_checked_without_exclusion(false);
-                    if (!is_alive()) {
-                        return;
-                    }
-                }
-            }
-        }
-    }
-    set_checked_without_exclusion(checked_value);
-}
-
-void RadioButton::set_group_name(std::string name) {
-    require_mutable();
-    if (group_name_ == name) {
-        return;
-    }
-    group_name_ = std::move(name);
-    invalidate(Dirty::semantics);
-    if (checked_) {
-        if (const Control::Ptr owner = parent()) {
-            for (const Control::Ptr& sibling : (*owner).children()) {
-                std::shared_ptr<gui_forms::RadioButton> peer = std::dynamic_pointer_cast<RadioButton>(sibling);
-                if (peer && peer.get() != this && (*peer).group_name_ == group_name_ &&
-                    (*peer).checked_) {
-                    (*peer).set_checked_without_exclusion(false);
-                    if (!is_alive()) {
-                        return;
-                    }
-                }
+void RadioButton::clear_checked_peer() {
+    const Control::Ptr owner = parent();
+    if (!owner) return;
+    for (const Control::Ptr& sibling : (*owner).children()) {
+        std::shared_ptr<gui_forms::RadioButton> peer = std::dynamic_pointer_cast<RadioButton>(sibling);
+        if (peer && peer.get() != this && (*peer).group_name.read() == group_name.read() &&
+            (*peer).checked_) {
+            (*peer).set_checked_without_exclusion(false);
+            if (!is_alive()) {
+                return;
             }
         }
     }
 }
 
-void RadioButton::set_auto_check(bool enabled_value) {
+// Checking clears the group's checked sibling before this button stores
+// and raises checked_changed, as set_checked did.
+void RadioButton::write_view(const decltype(checked)&, bool incoming) {
     require_mutable();
-    if (auto_check_ == enabled_value) {
+    if (checked_ == incoming) {
         return;
     }
-    auto_check_ = enabled_value;
-    invalidate(Dirty::semantics);
+    if (incoming) {
+        clear_checked_peer();
+        if (!is_alive()) {
+            return;
+        }
+    }
+    set_checked_without_exclusion(incoming);
 }
 
-void RadioButton::set_indicator_style(ChoiceIndicatorStyle style_value) {
+bool RadioButton::read_view(const decltype(checked)&) const {
+    return checked_;
+}
+
+void RadioButton::prepare_write(const decltype(group_name)&, std::string&) {
     require_mutable();
-    switch (style_value) {
-    case ChoiceIndicatorStyle::classic:
-    case ChoiceIndicatorStyle::modern:
-    case ChoiceIndicatorStyle::toggle:
-        break;
-    default:
-        throw std::invalid_argument("RadioButton indicator style is invalid");
-    }
-    if (indicator_style_ == style_value) {
-        return;
-    }
-    indicator_style_ = style_value;
-    invalidate(Dirty::paint | Dirty::semantics);
+}
+
+// A checked button that joins a group clears that group's checked sibling.
+void RadioButton::written(const decltype(group_name)&) {
+    invalidate(Dirty::semantics);
+    if (checked_) clear_checked_peer();
 }
 
 namespace {
@@ -193,12 +128,12 @@ const ControlAnatomy& RadioButton::anatomy() const noexcept {
 void RadioButton::publish_part_geometry(std::span<PartGeometry> geometry) const {
     const Rect bounds = local_bounds();
     const double indicator_width =
-        indicator_style_ == ChoiceIndicatorStyle::toggle ? 30.0 : 15.0;
+        indicator_style.read() == ChoiceIndicatorStyle::toggle ? 30.0 : 15.0;
     const double top = std::max(1.0, (bounds.height - 15.0) * 0.5);
     const Rect well{1.0, top, indicator_width, 15.0};
     // The toggle's knob, or the round dot drawn inside the 15-unit disc.
     Rect mark{};
-    if (indicator_style_ == ChoiceIndicatorStyle::toggle) {
+    if (indicator_style.read() == ChoiceIndicatorStyle::toggle) {
         const double knob_x = checked_ ? well.x + well.width - 13.0 : well.x + 2.0;
         mark = {knob_x, well.y + 2.0, 11.0, 11.0};
     } else if (checked_) {
@@ -251,7 +186,7 @@ RadioButton::States RadioButton::states() const {
 // disabled text.
 void RadioButton::on_paint(Painter& painter, Rect) {
     const Rect bounds = local_bounds();
-    const bool toggle = indicator_style_ == ChoiceIndicatorStyle::toggle;
+    const bool toggle = indicator_style.read() == ChoiceIndicatorStyle::toggle;
     const double indicator_width = toggle ? 30.0 : 15.0;
     const double top = std::max(1.0, (bounds.height - 15.0) * 0.5);
     const Rect box{1.0, top, indicator_width, 15.0};
@@ -313,8 +248,8 @@ Insets RadioButton::visual_outsets() const noexcept {
 }
 
 void RadioButton::on_activate() {
-    if (auto_check_ && !checked_) {
-        set_checked(true);
+    if (auto_check.read() && !checked_) {
+        checked = true;
         if (!is_alive()) {
             return;
         }
@@ -346,5 +281,116 @@ void RadioButton::append_interactions(std::vector<InteractionDeclaration>& inter
     ButtonBase::append_interactions(interactions);
     interactions.insert(interactions.end(), radio_button_interactions.begin(), radio_button_interactions.end());
 }
+
+// property_codemod begin RadioButton (tools/property_families/radio_button.json; generated, do not edit)
+
+namespace {
+
+PropertyDescriptor radio_button_checked_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "checked";
+    descriptor.kind = BindingValueKind::boolean;
+    descriptor.category = "Behavior";
+    descriptor.description = "Whether the radio button is selected within its group.";
+    descriptor.default_value = BindingValue{false};
+    descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_radio_button_checked() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        radio_button_checked_descriptor(), PropertyOperations{true, true, false, true});
+    return descriptor;
+}
+
+PropertyDescriptor radio_button_group_name_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "group_name";
+    descriptor.kind = BindingValueKind::text;
+    descriptor.category = "Behavior";
+    descriptor.description = "The exclusion group among the parent's radio buttons; empty is the parent's own group.";
+    descriptor.default_value = BindingValue{std::string{}};
+    descriptor.invalidation_effects = Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_radio_button_group_name() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        radio_button_group_name_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor radio_button_indicator_style_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "indicator_style";
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.category = "Appearance";
+    descriptor.description = "How the choice mark draws: classic, modern or toggle.";
+    descriptor.default_value = BindingValue{PropertyEnumValue{"indicator_style", "classic", 0}};
+    descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.enumeration = button_base_detail::choice_indicator_style_enum();
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_radio_button_indicator_style() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        radio_button_indicator_style_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+} // namespace
+
+const std::array<PropertyEntry, RadioButton::radio_button_property_count>& RadioButton::radio_button_property_entries() noexcept {
+    static constexpr std::array<PropertyEntry, 3U> own{{
+        {"checked", &describe_radio_button_checked,
+         &read_cell_entry<RadioButton, decltype(&RadioButton::checked), &RadioButton::checked>,
+         &write_cell_entry<RadioButton, decltype(&RadioButton::checked), &RadioButton::checked>,
+         nullptr, nullptr, nullptr,
+         &connect_event_entry<RadioButton, decltype(&RadioButton::checked_changed_), &RadioButton::checked_changed_>},
+        {"group_name", &describe_radio_button_group_name,
+         &read_cell_entry<RadioButton, decltype(&RadioButton::group_name), &RadioButton::group_name>,
+         &write_cell_entry<RadioButton, decltype(&RadioButton::group_name), &RadioButton::group_name>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"indicator_style", &describe_radio_button_indicator_style,
+         &read_cell_entry<RadioButton, decltype(&RadioButton::indicator_style), &RadioButton::indicator_style>,
+         &write_cell_entry<RadioButton, decltype(&RadioButton::indicator_style), &RadioButton::indicator_style>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+    }};
+    static_assert(property_names_distinct(own), "RadioButton's property table names a property twice");
+    static const std::array<PropertyEntry, radio_button_property_count> entries =
+        join_property_tables(ButtonBase::button_base_property_entries(), own);
+    return entries;
+}
+
+std::span<const PropertyEntry> RadioButton::property_table() const noexcept {
+    const std::array<PropertyEntry, radio_button_property_count>& entries = radio_button_property_entries();
+    return std::span<const PropertyEntry>(entries);
+}
+
+void RadioButton::prepare_write(const decltype(auto_check)&, bool&) {
+    require_mutable();
+}
+
+void RadioButton::written(const decltype(auto_check)&) {
+    invalidate(Dirty::semantics);
+}
+
+void RadioButton::prepare_write(const decltype(indicator_style)&, ChoiceIndicatorStyle& incoming) {
+    require_mutable();
+    if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(ChoiceIndicatorStyle::toggle)) throw std::invalid_argument("RadioButton indicator style is invalid");
+}
+
+void RadioButton::written(const decltype(indicator_style)&) {
+    invalidate(Dirty::paint | Dirty::semantics);
+}
+
+// property_codemod end RadioButton
 
 } // namespace gui_forms

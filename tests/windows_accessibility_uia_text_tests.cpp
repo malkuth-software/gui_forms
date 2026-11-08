@@ -175,7 +175,7 @@ struct SelectSingle final {
 struct SetSingleText final {
     Fixture* fixture{};
     std::string text;
-    void operator()() const { (*(*fixture).single).set_text(text); }
+    void operator()() const { (*(*fixture).single).text = text; }
 };
 
 struct RemoveDoomed final {

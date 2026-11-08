@@ -44,16 +44,32 @@
         "the written hook switches each item between button and segment painting and arranges again"
       ],
       "sample": "ChoiceGroupPresentation::segmented"
+    },
+    {
+      "name": "selected_index",
+      "capability": "ChoiceGroupSelectedIndex",
+      "value": "int",
+      "initial": "-1",
+      "comment": "The selected item's index, or -1 for none (G14: an ordinary cell). Outside the items throws std::out_of_range; a bound Value may refuse it. A change checks the selected item's button and raises changed.",
+      "getter": "selected_index",
+      "setter": "set_selected_index",
+      "clear": null,
+      "field": "selection_",
+      "event": "selected_index_changed_",
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "prepare: the range check and the binding's refusal; written: apply_selection, then changed"
+      ]
     }
   ],
   "not_properties": [
     {
       "name": "items",
       "reason": "a collection replaced whole by set_items; stays a method until M-S"
-    },
-    {
-      "name": "selected_index",
-      "reason": "its Value<int> selection is the change source (G14); stays a method until M-S"
     }
   ],
   "test": {

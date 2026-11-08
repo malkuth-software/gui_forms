@@ -132,6 +132,23 @@ struct ExpandedStateCapability {
     }
 };
 
+// A direct generational image resource for the button's content (Image); a view onto the image slot: a write clears image_index and image_key. An ID not live in the button's Window throws std::invalid_argument.
+template <typename Declaring>
+struct ButtonBaseImageCapability {
+    PropertyView<ImageId, ButtonBaseImageCapability<Declaring>> image;
+
+    static void assign(ButtonBaseImageCapability& capability, ImageId incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.write_view(std::as_const(capability.image), std::move(incoming));
+    }
+
+    static ImageId read(const ButtonBaseImageCapability& capability) {
+        const Declaring& control = static_cast<const Declaring&>(capability);
+        ImageId current = control.read_view(capability.image);
+        return current;
+    }
+};
+
 // ContentAlignment as a property value; defined beside ButtonBase's table.
 template <>
 struct PropertyValueTraits<ContentAlignment> {
@@ -151,7 +168,8 @@ struct ButtonBaseCapabilities : public TextCapability<Declaring>,
                                 public TextImageRelationCapability<Declaring>,
                                 public ImageGapCapability<Declaring>,
                                 public ButtonUseMnemonicCapability<Declaring>,
-                                public ExpandedStateCapability<Declaring> {
+                                public ExpandedStateCapability<Declaring>,
+                                public ButtonBaseImageCapability<Declaring> {
     ButtonBaseCapabilities() : FontCapability<Declaring>(FontSpec{FontSpec{FontRole::control, 12.0, 400, false, 0.24}}) {}
 };
 

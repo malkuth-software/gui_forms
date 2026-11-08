@@ -248,10 +248,6 @@ private:
     friend struct GridAreaCapability<GridPanel>;
     friend struct GridCellCapability<GridPanel>;
 
-    // The `style` property (study 10, section 6): the container settings
-    // as one CSS inline style, read by the layout style reader; spans are
-    // span blocks, so grid-template-areas is refused.
-    void register_panel_properties();
     [[nodiscard]] BindingValue style_property() const;
     void set_style_property(const BindingValue& value);
 
@@ -373,6 +369,13 @@ private:
     std::vector<RuntimeId> dependency_path_{};
     bool registered_dependencies_{};
     GridSolveOutcome arranged_outcome_{GridSolveOutcome::solved};
+    // property_codemod begin GridPanel (tools/property_families/grid_panel.json; generated, do not edit)
+public:
+    // GridPanel's property table: Control's entries, then its own.
+    static constexpr std::size_t grid_panel_property_count = Control::control_property_count + 1U;
+    [[nodiscard]] static const std::array<PropertyEntry, grid_panel_property_count>& grid_panel_property_entries() noexcept;
+    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
+    // property_codemod end GridPanel
 };
 
 // GridPanel holds spans (the form schema and loader's opt-in).

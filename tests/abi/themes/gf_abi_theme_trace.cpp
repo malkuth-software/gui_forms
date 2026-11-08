@@ -256,7 +256,7 @@ Control::Ptr make_fixture() {
     (*button).set_requested_bounds({12.0, 12.0, 120.0, 32.0});
     const std::shared_ptr<CheckBox> check = make_control<CheckBox>(StableId("trace.check"), "Wrap");
     (*check).set_requested_bounds({12.0, 56.0, 120.0, 24.0});
-    (*check).set_checked(true);
+    (*check).checked = true;
     const std::shared_ptr<Pad> pad = make_control<Pad>(StableId("trace-pad"));
     (*pad).set_requested_bounds({150.0, 12.0, 48.0, 32.0});
     const std::shared_ptr<Pad> mark = make_control<Pad>(StableId("trace-mark"));

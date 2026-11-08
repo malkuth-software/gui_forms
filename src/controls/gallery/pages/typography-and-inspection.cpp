@@ -119,8 +119,8 @@ void TypographyPage::on_target_changed(const int index) {
     const std::string target(specimen_ids[static_cast<std::size_t>(index)]);
     VisualInspectorView& inspector = *document_.gallery_typography_inspector;
     VisualInspectorOverlay& overlay = *document_.gallery_typography_inspector_overlay;
-    inspector.set_target_stable_id(target);
-    overlay.set_target_stable_id(target);
+    inspector.target_stable_id = target;
+    overlay.target_stable_id = target;
     inspector.refresh();
     overlay.refresh();
     (*document_.gallery_typography_readout).text = "Inspecting " + target;

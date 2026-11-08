@@ -77,7 +77,7 @@ private:
         if (command_.state().generation != generation) return;
         CheckBox* const check_box = dynamic_cast<CheckBox*>(&button);
         if (check_box != nullptr && checkable) {
-            if ((*check_box).checked() != checked) (*check_box).set_checked(checked);
+            if ((*check_box).checked.read() != checked) (*check_box).checked = checked;
             return;
         }
         Button* const push_button = dynamic_cast<Button*>(&button);
@@ -219,26 +219,6 @@ ButtonBase::ButtonBase(StableId stable_id, std::string initial_text)
     text = std::move(initial_text);
     set_focusable(true);
     cursor = CursorKind::hand;
-
-    PropertyDescriptor image;
-    image.name = "image";
-    image.kind = BindingValueKind::image;
-    image.category = "Appearance";
-    image.description = "Direct generational image resource for button content.";
-    image.default_value = BindingValue{ImageId{}};
-    image.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
-    image.bindable = false;
-    define_bindable_property({
-        std::move(image),
-        detail::BindingMemberGetter<ButtonBase, ImageId>(
-            *this, &ButtonBase::image_),
-        detail::DirectPropertySetter<ButtonBase, ImageId>(
-            *this, &ButtonBase::set_image), {},
-        detail::BoundMemberFunction<void (ButtonBase::*)()>(
-            *this, &ButtonBase::clear_image),
-        detail::BoundMemberFunction<bool (ButtonBase::*)() const noexcept>(
-            *this, &ButtonBase::should_serialize_image)});
-
 }
 
 bool ButtonBase::should_serialize_image() const noexcept {
@@ -296,21 +276,27 @@ void ButtonBase::set_connection_topology(
     invalidate(Dirty::style | Dirty::paint | Dirty::semantics);
 }
 
-void ButtonBase::set_image(ImageId image) {
+// The image's write, as set_image was: an ID must be live in the button's
+// Window; a direct image replaces an image-list index or key.
+void ButtonBase::write_view(const decltype(image)&, ImageId incoming) {
     require_mutable();
-    if (image.value != 0U && window() != nullptr &&
-        !(*window()).image_resources().find(image)) {
+    if (incoming.value != 0U && window() != nullptr &&
+        !(*window()).image_resources().find(incoming)) {
         throw std::invalid_argument("Button image ID is not live in its Window");
     }
-    if (image_ == image && image_index_ == -1 && image_key_.empty()) return;
-    image_ = image;
+    if (image_ == incoming && image_index_ == -1 && image_key_.empty()) return;
+    image_ = incoming;
     image_index_ = -1;
     image_key_.clear();
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
 }
 
+ImageId ButtonBase::read_view(const decltype(image)&) const {
+    return image_;
+}
+
 void ButtonBase::clear_image() {
-    set_image({});
+    image = ImageId{};
 }
 
 void ButtonBase::set_image_list(std::shared_ptr<ImageList> image_list) {
@@ -1105,6 +1091,25 @@ const PropertyDescriptor& describe_button_base_content_padding() {
     return descriptor;
 }
 
+PropertyDescriptor button_base_image_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "image";
+    descriptor.kind = BindingValueKind::image;
+    descriptor.category = "Appearance";
+    descriptor.description = "Direct generational image resource for button content.";
+    descriptor.default_value = BindingValue{ImageId{}};
+    descriptor.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_button_base_image() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        button_base_image_descriptor(), PropertyOperations{true, true, true, false});
+    return descriptor;
+}
+
 } // namespace
 
 PropertyType PropertyValueTraits<ContentAlignment>::type() {
@@ -1127,7 +1132,7 @@ ContentAlignment PropertyValueTraits<ContentAlignment>::from_binding(const Bindi
 }
 
 const std::array<PropertyEntry, ButtonBase::button_base_property_count>& ButtonBase::button_base_property_entries() noexcept {
-    static constexpr std::array<PropertyEntry, 4U> own{{
+    static constexpr std::array<PropertyEntry, 5U> own{{
         {"text", &describe_button_base_text,
          &read_cell_entry<ButtonBase, decltype(&ButtonBase::text), &ButtonBase::text>,
          &write_cell_entry<ButtonBase, decltype(&ButtonBase::text), &ButtonBase::text>,
@@ -1147,6 +1152,11 @@ const std::array<PropertyEntry, ButtonBase::button_base_property_count>& ButtonB
          &read_cell_entry<ButtonBase, decltype(&ButtonBase::content_padding), &ButtonBase::content_padding>,
          &write_cell_entry<ButtonBase, decltype(&ButtonBase::content_padding), &ButtonBase::content_padding>,
          nullptr, nullptr, nullptr,
+         nullptr},
+        {"image", &describe_button_base_image,
+         &read_cell_entry<ButtonBase, decltype(&ButtonBase::image), &ButtonBase::image>,
+         &write_cell_entry<ButtonBase, decltype(&ButtonBase::image), &ButtonBase::image>,
+         &reset_member_entry<ButtonBase, decltype(&ButtonBase::clear_image), &ButtonBase::clear_image>, &should_serialize_member_entry<ButtonBase, decltype(&ButtonBase::should_serialize_image), &ButtonBase::should_serialize_image>, nullptr,
          nullptr},
     }};
     static_assert(property_names_distinct(own), "ButtonBase's property table names a property twice");

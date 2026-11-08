@@ -474,7 +474,7 @@ struct InstrumentRack::Impl final {
         (*module.panel).add_child(module.status);
         module.remove = make_control<Button>(
             StableId(module.spec.stable_id + ".remove"), "×");
-        (*module.remove).set_visual_style(ButtonVisualStyle::flat);
+        (*module.remove).visual_style = ButtonVisualStyle::flat;
         (*module.remove).accessible_name = "Remove " + module.spec.name;
         (*module.remove).margin = Insets{};
         (*module.panel).add_child(module.remove);
@@ -506,7 +506,7 @@ struct InstrumentRack::Impl final {
         (*module.panel).set_background(style.face);
         (*module.enable).set_style(style);
         synchronizing = true;
-        (*module.enable).set_checked(module.spec.enabled);
+        (*module.enable).checked = module.spec.enabled;
         synchronizing = false;
         const bool pending = module.spec.state == InstrumentModuleState::pending;
         (*module.enable).enabled = !pending;

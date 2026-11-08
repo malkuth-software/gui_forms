@@ -1,10 +1,9 @@
 #include "gui_forms/controls/instruments/sweep_scope/sweep_scope.hpp"
 
 #include "gui_forms/controls/instruments/sweep_scope/sweep_scope_effects.hpp"
-#include "gui_forms/detail/bound_member_function.hpp"
-#include "gui_forms/detail/property_binding_adapters.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
 #include <array>
@@ -88,79 +87,35 @@ const EffectEntry* scope_sweep_entry() noexcept {
 SweepScope::SweepScope(StableId stable_id)
     : RangeControl(std::move(stable_id)) {
     set_focusable(false);
-
-    PropertyDescriptor caption;
-    caption.name = "caption";
-    caption.kind = BindingValueKind::text;
-    caption.category = "Appearance";
-    caption.description = "The words drawn before the level's percentage.";
-    caption.default_value = BindingValue{std::string{"LEVEL"}};
-    caption.invalidation_effects = Dirty::paint | Dirty::semantics;
-    caption.bindable = false;
-    define_bindable_property({
-        std::move(caption),
-        detail::BoundMemberFunction<BindingValue (SweepScope::*)() const>(*this,
-                                                                          &SweepScope::caption_property_value),
-        detail::BoundMemberFunction<void (SweepScope::*)(const BindingValue&)>(
-            *this, &SweepScope::set_caption_property_value),
-        {}, {}, {}, {}});
-
-    PropertyDescriptor period;
-    period.name = "sweep_period";
-    period.kind = BindingValueKind::number;
-    period.category = "Behavior";
-    period.description = "Seconds the sweep takes to cross the trace once, from 0.1 to 60.";
-    period.default_value = BindingValue{1.234568};
-    period.invalidation_effects = Dirty::paint;
-    period.bindable = false;
-    define_bindable_property({
-        std::move(period),
-        detail::BoundMemberFunction<BindingValue (SweepScope::*)() const>(
-            *this, &SweepScope::sweep_period_property_value),
-        detail::BoundMemberFunction<void (SweepScope::*)(const BindingValue&)>(
-            *this, &SweepScope::set_sweep_period_property_value),
-        {}, {}, {}, {}});
 }
 
 // -- properties ----------------------------------------------------------------
 
-void SweepScope::set_caption(std::string caption) {
+void SweepScope::prepare_write(const decltype(sweep_period)&, FrameInterval& incoming) {
     require_mutable();
-    if (caption == caption_) return;
-    caption_ = std::move(caption);
-    invalidate(Dirty::paint | Dirty::semantics);
-}
-
-void SweepScope::set_sweep_period(FrameInterval period) {
-    require_mutable();
-    if (period < shortest_sweep_period || period > longest_sweep_period) {
+    if (incoming < shortest_sweep_period || incoming > longest_sweep_period) {
         throw std::out_of_range("SweepScope sweep period must be from 0.1 to 60 seconds");
     }
-    if (period == sweep_period_) return;
-    sweep_period_ = period;
+}
+
+// The period changes only how the trace moves: the plot repaints.
+void SweepScope::written(const decltype(sweep_period)&) {
     invalidate(plot_bounds());
 }
 
-BindingValue SweepScope::caption_property_value() const {
-    return BindingValue{caption_};
-}
-
-void SweepScope::set_caption_property_value(const BindingValue& value) {
-    set_caption(std::get<std::string>(value));
-}
-
+// The sweep period's table value: seconds.
 BindingValue SweepScope::sweep_period_property_value() const {
-    const double seconds = std::chrono::duration<double>(sweep_period_).count();
+    const double seconds = std::chrono::duration<double>(sweep_period.read()).count();
     return BindingValue{seconds};
 }
 
-void SweepScope::set_sweep_period_property_value(const BindingValue& value) {
+void SweepScope::write_sweep_period_property(const BindingValue& value) {
     const double seconds = std::get<double>(value);
     if (!std::isfinite(seconds)) {
         throw std::out_of_range("SweepScope sweep period must be from 0.1 to 60 seconds");
     }
     const FrameInterval period = std::chrono::round<FrameInterval>(std::chrono::duration<double>(seconds));
-    set_sweep_period(period);
+    sweep_period = period;
 }
 
 // -- geometry ------------------------------------------------------------------
@@ -188,7 +143,7 @@ double SweepScope::graticule_y(int line) const noexcept {
 std::string SweepScope::caption_text() const {
     char percent[32]{};
     std::snprintf(percent, sizeof(percent), " %.0f%%", normalized_value() * 100.0);
-    std::string text = caption_;
+    std::string text = caption.read();
     text += percent;
     return text;
 }
@@ -321,11 +276,11 @@ void SweepScope::on_paint(Painter& painter, Rect) {
         part.bounds = Rect{plot.x, graticule_y(line), plot.width, graticule_thickness};
         paint_part(painter, *this, part);
     }
-    const std::string caption = caption_text();
+    const std::string caption_line = caption_text();
     part.family = ControlVisualRole::panel;
     part.role = PartRole::caption;
     part.bounds = Rect{scope_inset, caption_top, plot.width, caption_height};
-    part.text = caption;
+    part.text = caption_line;
     part.font = effective_font(FontSpec{FontRole::monospace, 12.0, 600, false});
     paint_part(painter, *this, part);
 
@@ -348,7 +303,7 @@ void SweepScope::on_paint(Painter& painter, Rect) {
     view.rising = with_alpha(theme.accent(rising_accent), trace_alpha);
     view.falling = with_alpha(theme.accent(falling_accent), trace_alpha);
     view.sweep = with_alpha(theme.accent(rising_accent), sweep_alpha);
-    view.period_seconds = std::chrono::duration<double>(sweep_period_).count();
+    view.period_seconds = std::chrono::duration<double>(sweep_period.read()).count();
     const bool suppressed = window() != nullptr && (*window()).motion_clock().ambient_suppressed();
     const bool still = !sweep_moves() || suppressed;
     const double scale = window() != nullptr ? (*window()).scale() : 1.0;
@@ -365,14 +320,91 @@ bool SweepScope::hit_test_local(Point) const {
 SemanticDescriptor SweepScope::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::progress_bar;
-    descriptor.name = accessible_name.read().empty() ? caption_ : accessible_name.read();
+    descriptor.name = accessible_name.read().empty() ? caption.read() : accessible_name.read();
     descriptor.description = accessible_description.read();
     descriptor.value = caption_text();
-    descriptor.numeric_value = value();
-    descriptor.minimum_value = minimum();
-    descriptor.maximum_value = maximum();
+    descriptor.numeric_value = value.read();
+    descriptor.minimum_value = minimum.read();
+    descriptor.maximum_value = maximum.read();
     descriptor.exposed = true;
     return descriptor;
 }
+
+// property_codemod begin SweepScope (tools/property_families/sweep_scope.json; generated, do not edit)
+
+namespace {
+
+PropertyDescriptor sweep_scope_caption_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "caption";
+    descriptor.kind = BindingValueKind::text;
+    descriptor.category = "Appearance";
+    descriptor.description = "The words drawn before the level's percentage.";
+    descriptor.default_value = BindingValue{std::string{"LEVEL"}};
+    descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_sweep_scope_caption() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        sweep_scope_caption_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor sweep_scope_sweep_period_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "sweep_period";
+    descriptor.kind = BindingValueKind::number;
+    descriptor.category = "Behavior";
+    descriptor.description = "Seconds the sweep takes to cross the trace once, from 0.1 to 60.";
+    descriptor.default_value = BindingValue{1.234568};
+    descriptor.invalidation_effects = Dirty::paint;
+    descriptor.bindable = false;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_sweep_scope_sweep_period() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        sweep_scope_sweep_period_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+} // namespace
+
+const std::array<PropertyEntry, SweepScope::sweep_scope_property_count>& SweepScope::sweep_scope_property_entries() noexcept {
+    static constexpr std::array<PropertyEntry, 2U> own{{
+        {"caption", &describe_sweep_scope_caption,
+         &read_cell_entry<SweepScope, decltype(&SweepScope::caption), &SweepScope::caption>,
+         &write_cell_entry<SweepScope, decltype(&SweepScope::caption), &SweepScope::caption>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"sweep_period", &describe_sweep_scope_sweep_period,
+         &read_member_entry<SweepScope, decltype(&SweepScope::sweep_period_property_value), &SweepScope::sweep_period_property_value>,
+         &write_member_entry<SweepScope, decltype(&SweepScope::write_sweep_period_property), &SweepScope::write_sweep_period_property>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+    }};
+    static_assert(property_names_distinct(own), "SweepScope's property table names a property twice");
+    static const std::array<PropertyEntry, sweep_scope_property_count> entries =
+        join_property_tables(RangeControl::range_control_property_entries(), own);
+    return entries;
+}
+
+std::span<const PropertyEntry> SweepScope::property_table() const noexcept {
+    const std::array<PropertyEntry, sweep_scope_property_count>& entries = sweep_scope_property_entries();
+    return std::span<const PropertyEntry>(entries);
+}
+
+void SweepScope::prepare_write(const decltype(caption)&, std::string&) {
+    require_mutable();
+}
+
+void SweepScope::written(const decltype(caption)&) {
+    invalidate(Dirty::paint | Dirty::semantics);
+}
+
+// property_codemod end SweepScope
 
 } // namespace gui_forms

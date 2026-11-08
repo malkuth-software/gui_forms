@@ -1238,9 +1238,9 @@ int main() {
         (*controller).find("demo.accommodation.sound"));
     const std::shared_ptr<gui_forms::CheckBox> reduced_motion = std::dynamic_pointer_cast<gui_forms::CheckBox>(
         (*controller).find("demo.accommodation.reduced-motion"));
-    require(sound && (*sound).checked(),
+    require(sound && (*sound).checked.read(),
             "controller semantic-sound policy toggle is absent");
-    require(reduced_motion && !(*reduced_motion).checked(),
+    require(reduced_motion && !(*reduced_motion).checked.read(),
             "controller reduced-motion policy toggle is absent");
     (*surface_choice).selected_index = 1U;
     require((*(*responsive).find("fm.search.surface")).visible.read() &&
@@ -1276,16 +1276,16 @@ int main() {
             "controller did not restore the product to 100% text");
     const gui_forms::SemanticSnapshot semantic_before_sound_toggle =
         (*responsive).semantic_snapshot();
-    (*sound).set_checked(false);
+    (*sound).checked = false;
     require(!(*responsive).presentation_settings().sound_enabled &&
                 (*responsive).semantic_snapshot().node_count ==
                     semantic_before_sound_toggle.node_count,
             "sounds-off must preserve the product semantic state");
-    (*sound).set_checked(true);
-    (*reduced_motion).set_checked(true);
+    (*sound).checked = true;
+    (*reduced_motion).checked = true;
     require((*responsive).presentation_settings().reduced_motion,
             "controller reduced-motion toggle did not reach the product presentation contract");
-    (*reduced_motion).set_checked(false);
+    (*reduced_motion).checked = false;
 
     require_smoke_verdict();
 

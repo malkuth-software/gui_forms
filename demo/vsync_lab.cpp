@@ -797,9 +797,9 @@ std::shared_ptr<TrackBar> slider(std::string id, double minimum,
     std::shared_ptr<gui_forms::TrackBar> result = make_control<TrackBar>(StableId(std::move(id)));
     (*result).set_requested_bounds(bounds);
     (*result).set_range(minimum, maximum);
-    (*result).set_value(value);
-    (*result).set_tick_frequency((maximum - minimum) / 8.0);
-    (*result).set_show_ticks(true);
+    (*result).value = value;
+    (*result).tick_frequency = (maximum - minimum) / 8.0;
+    (*result).show_ticks = true;
     return result;
 }
 
@@ -925,7 +925,7 @@ std::unique_ptr<Window> make_vsync_lab() {
 
     (*context).pause = make_control<Button>(StableId("vsync.pause"), "Pause producer");
     (*(*context).pause).set_requested_bounds({18.0, 372.0, 122.0, 34.0});
-    (*(*context).pause).set_visual_style(ButtonVisualStyle::accent);
+    (*(*context).pause).visual_style = ButtonVisualStyle::accent;
     std::shared_ptr<gui_forms::Button> response_button = make_control<Button>(StableId("vsync.response.button"),
                                                 "Responsiveness tap");
     (*response_button).set_requested_bounds({148.0, 372.0, 122.0, 34.0});
@@ -938,7 +938,7 @@ std::unique_ptr<Window> make_vsync_lab() {
     std::shared_ptr<gui_forms::CheckBox> full_repaint = make_control<CheckBox>(StableId("vsync.full-repaint"),
                                                "Force full-window repaint (bad path)");
     (*full_repaint).set_requested_bounds({18.0, 454.0, 260.0, 32.0});
-    (*full_repaint).set_indicator_style(ChoiceIndicatorStyle::modern);
+    (*full_repaint).indicator_style = ChoiceIndicatorStyle::modern;
     (*controls).add_child(full_repaint);
     std::shared_ptr<Label> warning = label(
         "vsync.warning",

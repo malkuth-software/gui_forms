@@ -270,11 +270,11 @@ void test_bindings() {
             return;
         }
         gui_forms::CheckBox& check = *form.sample_general_auto_save;
-        require(check.checked(), "bindings: the check box takes its Value's state");
-        check.set_checked(false);
+        require(check.checked.read(), "bindings: the check box takes its Value's state");
+        check.checked = false;
         require(!owner.auto_save_.get(), "bindings: two way, the check box's change reaches its Value");
         owner.auto_save_.set(true);
-        require(check.checked(), "bindings: the Value's change reaches the check box");
+        require(check.checked.read(), "bindings: the Value's change reaches the check box");
 
         gui_forms::NumericUpDown& level = *form.sample_level;
         owner.level_.set(40.0);
@@ -313,13 +313,13 @@ void test_value_bindings() {
     } catch (const std::invalid_argument&) {
         ++refusals;
     }
-    require(refusals == 2 && !(*check).checked(), "values: another kind and an unknown property, refused");
+    require(refusals == 2 && !(*check).checked.read(), "values: another kind and an unknown property, refused");
 
     gui_forms::bind_form_value(*check, "checked", flag, gui_forms::PropertyBindingDirection::two_way);
-    require((*check).checked(), "values: bound, the property takes the Value's state");
+    require((*check).checked.read(), "values: bound, the property takes the Value's state");
     flag.dispose();
-    (*check).set_checked(false);
-    require(!(*check).checked() && flag.get(), "values: a disposed Value is no longer written");
+    (*check).checked = false;
+    require(!(*check).checked.read() && flag.get(), "values: a disposed Value is no longer written");
 }
 
 // The golden header is what the generator writes today, and the generator
@@ -496,9 +496,9 @@ void test_page_descriptors() {
     require((*group).design_size.read() == gui_forms::Size{50.0, 50.0}, "page descriptors: the group's design size");
     const gui_forms::FontSpec body{gui_forms::FontRole::content, 13.0, 400, true, 0.5};
     require((*italic).font.read() == body, "page descriptors: italic, then spacing");
-    require((*check).indicator_style() == gui_forms::ChoiceIndicatorStyle::toggle,
+    require((*check).indicator_style.read() == gui_forms::ChoiceIndicatorStyle::toggle,
             "page descriptors: the check box's indicator style");
-    require((*radio).indicator_style() == gui_forms::ChoiceIndicatorStyle::modern,
+    require((*radio).indicator_style.read() == gui_forms::ChoiceIndicatorStyle::modern,
             "page descriptors: the radio button's indicator style");
 
     // Arranged at twice the design size: each child's own bounds, scaled.

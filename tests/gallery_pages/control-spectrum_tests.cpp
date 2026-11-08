@@ -28,34 +28,34 @@ void test_control_spectrum(gui_forms::Window& window) {
             "the disabled button must stay disabled");
 
     // CheckBox: checked_changed reports pointer and programmatic changes alike.
-    require(!(*classic).checked(), "the classic check box starts unchecked");
+    require(!(*classic).checked.read(), "the classic check box starts unchecked");
     click(window, classic);
-    require((*classic).checked() &&
+    require((*classic).checked.read() &&
                 (*status).text.read().find("Check box 1 checked") == 0U,
             "a check box click must toggle and publish checked_changed");
-    (*classic).set_checked(false);
+    (*classic).checked = false;
     require((*status).text.read().find("Check box 1 unchecked") == 0U,
             "a programmatic check change must publish the same state event");
-    require((*tri).check_state() == CheckState::indeterminate,
+    require((*tri).check_state.read() == CheckState::indeterminate,
             "the three-state box must retain its indeterminate state");
     click(window, tri);
-    require((*tri).check_state() != CheckState::indeterminate &&
+    require((*tri).check_state.read() != CheckState::indeterminate &&
                 (*status).text.read().find("Three-state box now") == 0U,
             "a three-state click must advance the cycle and publish check_state_changed");
 
     // RadioButton: the named group unchecks its mates.
-    require(!(*classic_radio).checked() && (*modern_radio).checked(),
+    require(!(*classic_radio).checked.read() && (*modern_radio).checked.read(),
             "the modern radio starts checked");
     click(window, classic_radio);
-    require((*classic_radio).checked() && !(*modern_radio).checked() &&
+    require((*classic_radio).checked.read() && !(*modern_radio).checked.read() &&
                 (*status).text.read().find("Radio 1 checked") == 0U,
             "checking a radio must uncheck its group mate and report once");
 
     // Sound cues: the CheckBox is bound to the page's Value; the cue buttons
     // read the Value and report the host result (unsupported without a host).
-    require((*sound_enabled).checked(), "sound starts enabled");
+    require((*sound_enabled).checked.read(), "sound starts enabled");
     click(window, sound_enabled);
-    require(!(*sound_enabled).checked() &&
+    require(!(*sound_enabled).checked.read() &&
                 (*status).text.read().find("Sound cues muted") == 0U,
             "toggling the bound check box must publish the Value's changed event");
     click(window, window.find("gallery.controls.sound.1"));

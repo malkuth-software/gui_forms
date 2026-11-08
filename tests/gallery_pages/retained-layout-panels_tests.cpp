@@ -68,10 +68,10 @@ void test_retained_layout_panels(gui_forms::Window& window) {
 
     const std::shared_ptr<CheckBox> percent_one =
         std::dynamic_pointer_cast<CheckBox>(window.find("gallery.layout.table.percent.one"));
-    require(percent_one && (*percent_one).checked(),
+    require(percent_one && (*percent_one).checked.read(),
             "the table check box must start from its bound Value<bool>");
     click(window, percent_one);
-    require(!(*percent_one).checked() &&
+    require(!(*percent_one).checked.read() &&
                 (*note).text.read().find("Percent · 1 share cleared") != std::string::npos,
             "a user click must reach the page through the bound Value, not the control");
 

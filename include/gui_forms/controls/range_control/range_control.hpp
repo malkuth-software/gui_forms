@@ -4,6 +4,8 @@
 
 #include "gui_forms/animation.hpp"
 #include "gui_forms/basic_controls.hpp"
+#include "gui_forms/controls/range_control/range_control_values/range_control_values.hpp"
+#include "gui_forms/controls/range_control/range_control_capabilities/range_control_capabilities.hpp"
 
 #include <cstdint>
 #include <span>
@@ -11,50 +13,18 @@
 
 namespace gui_forms {
 
-enum class Orientation : std::uint8_t {
-    horizontal,
-    vertical,
-};
-
-enum class RangeAction : std::uint8_t {
-    small_decrement,
-    small_increment,
-    large_decrement,
-    large_increment,
-    first,
-    last,
-    thumb_track,
-    thumb_position,
-};
-
-struct RangeScrollEvent final {
-    double old_value{};
-    double new_value{};
-    RangeAction action{RangeAction::thumb_position};
-};
-
-class RangeControl : public Control {
+class RangeControl : public Control, public RangeControlCapabilities<RangeControl> {
 public:
     explicit RangeControl(StableId stable_id);
     void bind(Value<double>& model);
     void unbind() noexcept;
 
-    [[nodiscard]] double minimum() const noexcept { return minimum_; }
-    [[nodiscard]] double maximum() const noexcept { return maximum_; }
-    [[nodiscard]] double value() const noexcept { return value_; }
-    [[nodiscard]] double small_change() const noexcept { return small_change_; }
-    [[nodiscard]] double large_change() const noexcept { return large_change_; }
-    [[nodiscard]] Orientation orientation() const noexcept { return orientation_; }
     [[nodiscard]] double normalized_value() const noexcept;
     [[nodiscard]] const BasicControlStyle& style() const noexcept { return style_; }
 
-    void set_range(double minimum, double maximum);
-    void set_minimum(double minimum);
-    void set_maximum(double maximum);
-    virtual void set_value(double value);
-    void set_small_change(double change);
-    void set_large_change(double change);
-    void set_orientation(Orientation orientation);
+    // Sets both bounds at once (minimum and maximum are views onto them),
+    // clamping the value into the new range.
+    void set_range(double minimum_value, double maximum_value);
     void set_style(BasicControlStyle style);
     void increment(double delta);
 
@@ -86,22 +56,50 @@ public:
 protected:
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     [[nodiscard]] Rect local_bounds() const noexcept;
-    bool set_value_from_input(double value, RangeAction action);
+    bool set_value_from_input(double requested, RangeAction action);
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
 
 private:
-    void validate_bound_value(double value) const;
+    void validate_bound_value(double candidate) const;
+    // The value binding's getter and setter (ScalarBinding names members).
+    [[nodiscard]] double bound_value() const noexcept { return value_; }
+    void write_bound_value(double incoming);
     std::unique_ptr<detail::ScalarBinding<RangeControl, double>> value_binding_{};
     double minimum_{};
     double maximum_{100.0};
     double value_{};
-    double small_change_{1.0};
-    double large_change_{10.0};
-    Orientation orientation_{Orientation::horizontal};
     BasicControlStyle style_;
     Event<double, double> range_changed_;
     Event<double> value_changed_;
     Event<const RangeScrollEvent&> scroll_;
+    // property_codemod begin RangeControl (tools/property_families/range_control.json; generated, do not edit)
+public:
+    // RangeControl's property table: Control's entries, then its own.
+    static constexpr std::size_t range_control_property_count = Control::control_property_count + 3U;
+    [[nodiscard]] static const std::array<PropertyEntry, range_control_property_count>& range_control_property_entries() noexcept;
+    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
+
+private:
+    friend struct RangeControlValueCapability<RangeControl>;
+    friend struct RangeControlMinimumCapability<RangeControl>;
+    friend struct RangeControlMaximumCapability<RangeControl>;
+    friend struct RangeControlSmallChangeCapability<RangeControl>;
+    friend struct RangeControlLargeChangeCapability<RangeControl>;
+    friend struct RangeControlOrientationCapability<RangeControl>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void write_view(const decltype(value)& cell, double incoming);
+    [[nodiscard]] double read_view(const decltype(value)& cell) const;
+    void write_view(const decltype(minimum)& cell, double incoming);
+    [[nodiscard]] double read_view(const decltype(minimum)& cell) const;
+    void write_view(const decltype(maximum)& cell, double incoming);
+    [[nodiscard]] double read_view(const decltype(maximum)& cell) const;
+    void prepare_write(const decltype(small_change)& cell, double& incoming);
+    void written(const decltype(small_change)& cell);
+    void prepare_write(const decltype(large_change)& cell, double& incoming);
+    void written(const decltype(large_change)& cell);
+    void prepare_write(const decltype(orientation)& cell, Orientation& incoming);
+    void written(const decltype(orientation)& cell);
+    // property_codemod end RangeControl
 };
 
 } // namespace gui_forms

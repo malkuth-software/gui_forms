@@ -1,0 +1,89 @@
+{
+  "family": "SweepScope",
+  "step": "M-S6",
+  "declaring": "SweepScope",
+  "header": "include/gui_forms/controls/instruments/sweep_scope/sweep_scope.hpp",
+  "source": "src/controls/instruments/sweep_scope/sweep_scope.cpp",
+  "capabilities_header": "include/gui_forms/controls/instruments/sweep_scope/sweep_scope_capabilities/sweep_scope_capabilities.hpp",
+  "base": "RangeControl",
+  "includes": [
+    "gui_forms/controls/range_control/range_control.hpp",
+    "gui_forms/animation.hpp"
+  ],
+  "properties": [
+    {
+      "name": "caption",
+      "capability": "SweepScopeCaption",
+      "value": "std::string",
+      "initial": "std::string(\"LEVEL\")",
+      "comment": "The words drawn before the level's percentage.",
+      "getter": "caption",
+      "setter": "set_caption",
+      "clear": null,
+      "field": "caption_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": {
+        "kind": "text",
+        "category": "Appearance",
+        "description": "The words drawn before the level's percentage.",
+        "default": "BindingValue{std::string{\"LEVEL\"}}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "sample": "std::string(\"GAIN\")"
+    },
+    {
+      "name": "sweep_period",
+      "capability": "SweepScopePeriod",
+      "value": "FrameInterval",
+      "initial": "std::chrono::microseconds(1'234'568)",
+      "comment": "How long the sweep takes to cross the trace once, from 0.1 to 60 seconds (std::out_of_range outside them); the table value is in seconds.",
+      "getter": "sweep_period",
+      "setter": "set_sweep_period",
+      "clear": null,
+      "field": "sweep_period_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": {
+        "kind": "number",
+        "category": "Behavior",
+        "description": "Seconds the sweep takes to cross the trace once, from 0.1 to 60.",
+        "default": "BindingValue{1.234568}",
+        "effects": "Dirty::paint",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "thunks": {
+        "read": "sweep_period_property_value",
+        "write": "write_sweep_period_property"
+      },
+      "hand": [
+        "prepare: the 0.1 to 60 second check; written: invalidate the plot"
+      ],
+      "sample": "std::chrono::seconds(2)"
+    }
+  ],
+  "not_properties": [],
+  "test": {
+    "type": "SweepScope",
+    "include": "gui_forms/controls/instruments/sweep_scope/sweep_scope.hpp"
+  }
+}

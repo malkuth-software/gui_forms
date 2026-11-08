@@ -75,7 +75,7 @@ void test_snapshot_roles_states_hierarchy_and_json() {
     (*field).accessible_name = "Frequency in MHz";
     (*field).set_requested_bounds({112.0, 24.0, 150.0, 28.0});
     std::shared_ptr<gui_forms::CheckBox> check = make_control<CheckBox>(StableId("semantics.check"), "Noise reduction");
-    (*check).set_checked(true);
+    (*check).checked = true;
     (*check).set_requested_bounds({12.0, 62.0, 180.0, 28.0});
     std::shared_ptr<gui_forms::ProgressBar> progress = make_control<ProgressBar>(StableId("semantics.progress"));
     (*progress).accessible_name = "Signal buffer";
@@ -166,7 +166,7 @@ void test_semantic_actions_use_control_behavior() {
                 presses == 1U,
             "semantic press must execute the Button activation contract once");
     require(window.perform_semantic_action("actions.check", SemanticAction::press) &&
-                (*check).checked(),
+                (*check).checked.read(),
             "semantic press must use CheckBox auto-check behavior");
     require(window.perform_semantic_action("actions.slider", SemanticAction::increment) &&
                 (*slider).value() == 27.5,

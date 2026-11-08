@@ -140,7 +140,7 @@ private:
         reset_.set_description("Restore the fixture values in every view");
         std::shared_ptr<Button> reset = make_control<Button>(
             StableId("gallery.value-editors.reset"), "Reset record");
-        (*reset).set_visual_style(ButtonVisualStyle::command);
+        (*reset).visual_style = ButtonVisualStyle::command;
         (*reset).bind(reset_);
         (*rack_).set_action_content(reset, 170.0);
     }

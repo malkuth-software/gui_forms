@@ -110,7 +110,7 @@ void TimingPage::build_timer(PageContext& context) {
 
     const std::shared_ptr<ProgressBar>& progress = document_.gallery_timing_progress;
     (*progress).set_range(0.0, 100.0);
-    (*progress).set_value(0.0);
+    (*progress).value = 0.0;
     context.timer_progress = progress;
 
     const std::shared_ptr<ScaledPanel>& motion = document_.gallery_timing_motion;
@@ -178,7 +178,7 @@ void TimingPage::on_cancel_work() {
 }
 
 void TimingPage::on_work_progress(const BackgroundWorkerProgress& progress) {
-    (*work_progress_).set_value(static_cast<double>(progress.percent));
+    (*work_progress_).value = static_cast<double>(progress.percent);
 }
 
 void TimingPage::on_work_completed(const BackgroundWorkerCompleted& completed) {

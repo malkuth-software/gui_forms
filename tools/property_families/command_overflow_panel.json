@@ -1,0 +1,53 @@
+{
+  "family": "CommandOverflowPanel",
+  "step": "M-S5",
+  "declaring": "CommandOverflowPanel",
+  "header": "include/gui_forms/controls/scrollable_control/container_control/command_overflow_panel/command_overflow_panel.hpp",
+  "source": "src/controls/scrollable_control/container_control/command_overflow_panel/command_overflow_panel.cpp",
+  "capabilities_header": "include/gui_forms/controls/scrollable_control/container_control/command_overflow_panel/command_overflow_panel_capabilities/command_overflow_panel_capabilities.hpp",
+  "base": "Control",
+  "includes": [
+    "gui_forms/controls/scrollable_control/container_control/container_control.hpp"
+  ],
+  "properties": [
+    {
+      "name": "group_gap",
+      "capability": "CommandOverflowGroupGap",
+      "value": "double",
+      "initial": "0.0",
+      "comment": "The space between neighbouring groups and before the actuator, finite and between zero and 256 (else std::invalid_argument).",
+      "getter": "group_gap",
+      "setter": "set_group_gap",
+      "clear": null,
+      "field": "group_gap_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": {
+        "kind": "number",
+        "category": "Layout",
+        "description": "The space between neighbouring groups and before the actuator, 0 through 256.",
+        "default": "BindingValue{0.0}",
+        "effects": "invalidation::bounds",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "prepare": [
+        "if (!std::isfinite(incoming) || incoming < 0.0 || incoming > 256.0) throw std::invalid_argument(\"CommandOverflowPanel gap must be finite and between zero and 256\");"
+      ],
+      "sample": "6.0"
+    }
+  ],
+  "not_properties": [],
+  "test": {
+    "type": "CommandOverflowPanel",
+    "include": "gui_forms/controls/scrollable_control/container_control/command_overflow_panel/command_overflow_panel.hpp"
+  }
+}

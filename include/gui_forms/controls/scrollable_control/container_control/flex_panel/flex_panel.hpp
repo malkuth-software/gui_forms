@@ -111,9 +111,6 @@ protected:
     [[nodiscard]] Size measure_intrinsic(const LayoutConstraint& constraint) override;
 
 private:
-    // The `style` property (study 10, section 6): the container settings
-    // as one CSS inline style, read by the layout style reader.
-    void register_panel_properties();
     [[nodiscard]] BindingValue style_property() const;
     void set_style_property(const BindingValue& value);
 
@@ -187,6 +184,13 @@ private:
     std::vector<Control::Ptr> absolute_children_{};
     std::vector<RuntimeId> dependency_path_{};
     bool registered_dependencies_{};
+    // property_codemod begin FlexPanel (tools/property_families/flex_panel.json; generated, do not edit)
+public:
+    // FlexPanel's property table: Control's entries, then its own.
+    static constexpr std::size_t flex_panel_property_count = Control::control_property_count + 1U;
+    [[nodiscard]] static const std::array<PropertyEntry, flex_panel_property_count>& flex_panel_property_entries() noexcept;
+    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
+    // property_codemod end FlexPanel
 };
 
 } // namespace gui_forms

@@ -745,9 +745,9 @@ void test_shared_commands() {
     gf::on(music.invoked(), observer, &StateObserver::command);
     first.bind(music);
     second.bind(music);
-    require(first.checked() && second.checked(), "command checked state wins on binding");
+    require(first.checked.read() && second.checked.read(), "command checked state wins on binding");
     first.perform_click();
-    require(!music.state().checked && !second.checked() && observer.invocations == 1,
+    require(!music.state().checked && !second.checked.read() && observer.invocations == 1,
             "one click invokes once and synchronizes every presentation");
     std::size_t allocations = 0U;
     {
@@ -972,7 +972,7 @@ void test_nested_command_change_keeps_latest_state() {
     CheckDuringEnableChange observer(command);
     gf::on(button.enabled_changed(), observer, &CheckDuringEnableChange::change);
     command.set_enabled(false);
-    require(command.state().checked && button.checked() && !button.enabled.read(),
+    require(command.state().checked && button.checked.read() && !button.enabled.read(),
             "a nested command update must not be overwritten by an older projection");
 }
 

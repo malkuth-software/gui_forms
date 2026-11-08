@@ -90,7 +90,7 @@ private:
         for (int index = 0; index < static_cast<int>(bar.items().size()); ++index) {
             bar.item(index).set_style(page_style());
         }
-        bar.item(0).set_visual_style(ButtonVisualStyle::accent);
+        bar.item(0).visual_style = ButtonVisualStyle::accent;
         on(bar.invoked(), *this, &CheckedCollectionsPage::on_command);
     }
 

@@ -1,9 +1,9 @@
 #include "gui_forms/controls/range_control/track_bar/track_bar.hpp"
 
 #include "../range_control_rendering.hpp"
-#include "gui_forms/detail/property_binding_adapters.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
 #include <array>
@@ -32,70 +32,11 @@ TrackBar::TrackBar(StableId stable_id)
     : RangeControl(std::move(stable_id)) {
     set_focusable(true);
     cursor = CursorKind::hand;
-    PropertyDescriptor tick_frequency;
-    tick_frequency.name = "tick_frequency";
-    tick_frequency.kind = BindingValueKind::number;
-    tick_frequency.category = "Appearance";
-    tick_frequency.description = "Distance in value units between tick marks.";
-    tick_frequency.default_value = BindingValue{10.0};
-    tick_frequency.invalidation_effects = Dirty::paint | Dirty::semantics;
-    tick_frequency.bindable = false;
-    define_bindable_property({
-        std::move(tick_frequency),
-        detail::BindingNoexceptMethodGetter<TrackBar, double>(*this, &TrackBar::tick_frequency),
-        detail::DirectPropertySetter<TrackBar, double>(*this, &TrackBar::set_tick_frequency),
-        {}, {}, {}});
-
-    PropertyDescriptor visual_style;
-    visual_style.name = "visual_style";
-    visual_style.kind = BindingValueKind::enumeration;
-    visual_style.category = "Appearance";
-    visual_style.description = "How the rail and thumb draw: classic ticks, a filled rail or a compact rail.";
-    visual_style.default_value = BindingValue{PropertyEnumValue{"track_bar_visual_style", "classic", 0}};
-    visual_style.invalidation_effects = Dirty::paint | Dirty::semantics;
-    visual_style.bindable = false;
-    visual_style.enumeration = track_bar_visual_style_enum();
-    define_bindable_property({
-        std::move(visual_style),
-        detail::EnumerationPropertyGetter<TrackBar, TrackBarVisualStyle>(*this, &TrackBar::visual_style, track_bar_visual_style_enum()),
-        detail::EnumerationPropertySetter<TrackBar, TrackBarVisualStyle>(*this, &TrackBar::set_visual_style),
-        {}, {}, {}});
-}
-
-void TrackBar::set_tick_frequency(double frequency) {
-    require_mutable();
-    require_finite(frequency, "tick frequency must be finite");
-    if (frequency <= 0.0) {
-        throw std::invalid_argument("tick frequency must be positive");
-    }
-    if (tick_frequency_ == frequency) {
-        return;
-    }
-    tick_frequency_ = frequency;
-    invalidate(Dirty::paint | Dirty::semantics);
-}
-
-void TrackBar::set_show_ticks(bool show) {
-    require_mutable();
-    if (show_ticks_ == show) {
-        return;
-    }
-    show_ticks_ = show;
-    invalidate(Dirty::paint | Dirty::semantics);
-}
-
-void TrackBar::set_visual_style(TrackBarVisualStyle style_value) {
-    require_mutable();
-    if (visual_style_ == style_value) {
-        return;
-    }
-    visual_style_ = style_value;
-    invalidate(Dirty::paint | Dirty::semantics);
 }
 
 Size TrackBar::measure(Size available) {
     const Rect requested = requested_bounds();
-    const Size preferred = orientation() == Orientation::horizontal
+    const Size preferred = orientation.read() == Orientation::horizontal
         ? Size{requested.width > 0.0 ? requested.width : 160.0,
                requested.height > 0.0 ? requested.height : 28.0}
         : Size{requested.width > 0.0 ? requested.width : 28.0,
@@ -152,7 +93,7 @@ constexpr ControlAnatomy track_bar_anatomy{
 
 Rect TrackBar::value_span_bounds() const noexcept {
     const Rect bounds = local_bounds();
-    if (orientation() == Orientation::horizontal) {
+    if (orientation.read() == Orientation::horizontal) {
         const Rect span{track_inset, bounds.height * 0.5 - 2.5,
                         std::max(0.0, bounds.width - track_inset * 2.0), 5.0};
         return span;
@@ -164,10 +105,10 @@ Rect TrackBar::value_span_bounds() const noexcept {
 
 Rect TrackBar::track_bounds() const noexcept {
     const Rect span = value_span_bounds();
-    if (visual_style_ == TrackBarVisualStyle::classic) {
+    if (visual_style.read() == TrackBarVisualStyle::classic) {
         return span;
     }
-    if (orientation() == Orientation::horizontal) {
+    if (orientation.read() == Orientation::horizontal) {
         const Rect groove{span.x, span.y + 1.5, span.width, 2.0};
         return groove;
     }
@@ -176,11 +117,11 @@ Rect TrackBar::track_bounds() const noexcept {
 }
 
 Rect TrackBar::fill_bounds() const noexcept {
-    if (visual_style_ == TrackBarVisualStyle::classic) {
+    if (visual_style.read() == TrackBarVisualStyle::classic) {
         return {};
     }
     Rect filled = track_bounds();
-    if (orientation() == Orientation::horizontal) {
+    if (orientation.read() == Orientation::horizontal) {
         filled.width *= normalized_value();
     } else {
         const double height = filled.height * normalized_value();
@@ -195,12 +136,12 @@ Rect TrackBar::thumb_bounds() const noexcept {
     const Rect span = value_span_bounds();
     const double ratio = normalized_value();
     double thumb_extent = 14.0;
-    if (visual_style_ == TrackBarVisualStyle::compact) {
+    if (visual_style.read() == TrackBarVisualStyle::compact) {
         thumb_extent = 8.0;
-    } else if (visual_style_ == TrackBarVisualStyle::filled) {
+    } else if (visual_style.read() == TrackBarVisualStyle::filled) {
         thumb_extent = 12.0;
     }
-    if (orientation() == Orientation::horizontal) {
+    if (orientation.read() == Orientation::horizontal) {
         const Rect thumb{span.x + ratio * span.width - thumb_extent * 0.5,
                          std::max(2.0, (bounds.height - thumb_extent) * 0.5),
                          thumb_extent, thumb_extent};
@@ -213,7 +154,7 @@ Rect TrackBar::thumb_bounds() const noexcept {
 }
 
 bool TrackBar::ticks_drawn() const noexcept {
-    return show_ticks_ && visual_style_ != TrackBarVisualStyle::compact;
+    return show_ticks.read() && visual_style.read() != TrackBarVisualStyle::compact;
 }
 
 Rect TrackBar::ticks_bounds() const noexcept {
@@ -223,7 +164,7 @@ Rect TrackBar::ticks_bounds() const noexcept {
     // Tick lines are one unit wide and centred on their positions, so the
     // band reaches half a unit past each end of the value span.
     const Rect span = value_span_bounds();
-    if (orientation() == Orientation::horizontal) {
+    if (orientation.read() == Orientation::horizontal) {
         const Rect band{span.x - 0.5, span.bottom() + 2.0, span.width + 1.0, 3.0};
         return band;
     }
@@ -280,10 +221,10 @@ TrackBar::States TrackBar::states() const {
 // The classic style shows the value span as its track and no fill; the
 // modern style the full track and the filled part of it.
 void TrackBar::on_paint(Painter& painter, Rect) {
-    const bool horizontal = orientation() == Orientation::horizontal;
+    const bool horizontal = orientation.read() == Orientation::horizontal;
     const Rect span = value_span_bounds();
     const AnatomyStateSet states = anatomy_states();
-    const bool classic = visual_style_ == TrackBarVisualStyle::classic;
+    const bool classic = visual_style.read() == TrackBarVisualStyle::classic;
     PartPaint track;
     track.family = ControlVisualRole::progress;
     track.role = PartRole::track;
@@ -303,8 +244,8 @@ void TrackBar::on_paint(Painter& painter, Rect) {
     }
 
     if (ticks_drawn()) {
-        const double value_range = maximum() - minimum();
-        const double requested_count = std::floor(value_range / tick_frequency_);
+        const double value_range = maximum.read() - minimum.read();
+        const double requested_count = std::floor(value_range / tick_frequency.read());
         const std::size_t bounded_count = static_cast<std::size_t>(
             std::min(requested_count, 256.0));
         PartPaint tick;
@@ -345,7 +286,7 @@ void TrackBar::on_paint(Painter& painter, Rect) {
 double TrackBar::value_from_window_point(Point point) const noexcept {
     const Rect absolute = absolute_bounds();
     double ratio = 0.0;
-    if (orientation() == Orientation::horizontal) {
+    if (orientation.read() == Orientation::horizontal) {
         const double span = std::max(1.0, absolute.width - track_inset * 2.0);
         ratio = (point.x - absolute.x - track_inset) / span;
     } else {
@@ -353,14 +294,14 @@ double TrackBar::value_from_window_point(Point point) const noexcept {
         ratio = 1.0 - (point.y - absolute.y - track_inset) / span;
     }
     ratio = std::clamp(ratio, 0.0, 1.0);
-    return minimum() + ratio * (maximum() - minimum());
+    return minimum.read() + ratio * (maximum.read() - minimum.read());
 }
 
 void TrackBar::on_pointer(PointerEvent& event) {
     if (event.action == PointerAction::wheel) {
         if (event.wheel_delta.y != 0.0) {
             const bool incrementing = event.wheel_delta.y > 0.0;
-            set_value_from_input(value() + (incrementing ? small_change() : -small_change()),
+            set_value_from_input(value.read() + (incrementing ? small_change.read() : -small_change.read()),
                                  incrementing ? RangeAction::small_increment
                                               : RangeAction::small_decrement);
             event.handled = true;
@@ -390,34 +331,34 @@ void TrackBar::on_key(KeyEvent& event) {
     if (event.action != KeyAction::down) {
         return;
     }
-    double next = value();
+    double next = value.read();
     RangeAction action = RangeAction::thumb_position;
     bool recognized = true;
     switch (event.physical_key) {
     case PhysicalKey::left:
     case PhysicalKey::down:
-        next -= small_change();
+        next -= small_change.read();
         action = RangeAction::small_decrement;
         break;
     case PhysicalKey::right:
     case PhysicalKey::up:
-        next += small_change();
+        next += small_change.read();
         action = RangeAction::small_increment;
         break;
     case PhysicalKey::page_down:
-        next -= large_change();
+        next -= large_change.read();
         action = RangeAction::large_decrement;
         break;
     case PhysicalKey::page_up:
-        next += large_change();
+        next += large_change.read();
         action = RangeAction::large_increment;
         break;
     case PhysicalKey::home:
-        next = minimum();
+        next = minimum.read();
         action = RangeAction::first;
         break;
     case PhysicalKey::end:
-        next = maximum();
+        next = maximum.read();
         action = RangeAction::last;
         break;
     default:
@@ -444,14 +385,14 @@ SemanticDescriptor TrackBar::semantic_descriptor() const {
     descriptor.name = accessible_name.read();
     descriptor.description = accessible_description.read();
     std::ostringstream value_text;
-    value_text << value();
+    value_text << value.read();
     descriptor.value = value_text.str();
-    descriptor.numeric_value = value();
-    descriptor.minimum_value = minimum();
-    descriptor.maximum_value = maximum();
+    descriptor.numeric_value = value.read();
+    descriptor.minimum_value = minimum.read();
+    descriptor.maximum_value = maximum.read();
     // The arrow keys move by the small change, the page keys by the large.
-    descriptor.small_step = small_change();
-    descriptor.large_step = large_change();
+    descriptor.small_step = small_change.read();
+    descriptor.large_step = large_change.read();
     descriptor.actions = {SemanticAction::focus, SemanticAction::increment,
                           SemanticAction::decrement, SemanticAction::set_value};
     descriptor.exposed = true;
@@ -461,7 +402,7 @@ SemanticDescriptor TrackBar::semantic_descriptor() const {
 bool TrackBar::on_semantic_action(SemanticAction action, std::string_view value_text) {
     if (action == SemanticAction::increment || action == SemanticAction::decrement) {
         const bool increasing = action == SemanticAction::increment;
-        set_value_from_input(value() + (increasing ? small_change() : -small_change()),
+        set_value_from_input(value.read() + (increasing ? small_change.read() : -small_change.read()),
                              increasing ? RangeAction::small_increment
                                         : RangeAction::small_decrement);
         return true;
@@ -472,12 +413,128 @@ bool TrackBar::on_semantic_action(SemanticAction action, std::string_view value_
             const double parsed = std::stod(std::string(value_text), &consumed);
             if (consumed != value_text.size() || !std::isfinite(parsed)) return false;
             return set_value_from_input(parsed, RangeAction::thumb_position) ||
-                   parsed == value();
+                   parsed == value.read();
         } catch (const std::exception&) {
             return false;
         }
     }
     return RangeControl::on_semantic_action(action, value_text);
 }
+
+// property_codemod begin TrackBar (tools/property_families/track_bar.json; generated, do not edit)
+
+namespace {
+
+PropertyDescriptor track_bar_tick_frequency_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "tick_frequency";
+    descriptor.kind = BindingValueKind::number;
+    descriptor.category = "Appearance";
+    descriptor.description = "Distance in value units between tick marks.";
+    descriptor.default_value = BindingValue{10.0};
+    descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_track_bar_tick_frequency() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        track_bar_tick_frequency_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor track_bar_visual_style_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "visual_style";
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.category = "Appearance";
+    descriptor.description = "How the rail and thumb draw: classic ticks, a filled rail or a compact rail.";
+    descriptor.default_value = BindingValue{PropertyEnumValue{"track_bar_visual_style", "classic", 0}};
+    descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.enumeration = track_bar_visual_style_enum();
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_track_bar_visual_style() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        track_bar_visual_style_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+} // namespace
+
+PropertyType PropertyValueTraits<TrackBarVisualStyle>::type() {
+    return PropertyType{BindingValueKind::enumeration, false, track_bar_visual_style_enum()};
+}
+
+BindingValue PropertyValueTraits<TrackBarVisualStyle>::to_binding(TrackBarVisualStyle value) {
+    PropertyDescriptor descriptor;
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.enumeration = track_bar_visual_style_enum();
+    const std::optional<BindingValue> converted =
+        convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
+    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    return *converted;
+}
+
+TrackBarVisualStyle PropertyValueTraits<TrackBarVisualStyle>::from_binding(const BindingValue& value) {
+    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
+    return static_cast<TrackBarVisualStyle>(choice.value);
+}
+
+const std::array<PropertyEntry, TrackBar::track_bar_property_count>& TrackBar::track_bar_property_entries() noexcept {
+    static constexpr std::array<PropertyEntry, 2U> own{{
+        {"tick_frequency", &describe_track_bar_tick_frequency,
+         &read_cell_entry<TrackBar, decltype(&TrackBar::tick_frequency), &TrackBar::tick_frequency>,
+         &write_cell_entry<TrackBar, decltype(&TrackBar::tick_frequency), &TrackBar::tick_frequency>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"visual_style", &describe_track_bar_visual_style,
+         &read_cell_entry<TrackBar, decltype(&TrackBar::visual_style), &TrackBar::visual_style>,
+         &write_cell_entry<TrackBar, decltype(&TrackBar::visual_style), &TrackBar::visual_style>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+    }};
+    static_assert(property_names_distinct(own), "TrackBar's property table names a property twice");
+    static const std::array<PropertyEntry, track_bar_property_count> entries =
+        join_property_tables(RangeControl::range_control_property_entries(), own);
+    return entries;
+}
+
+std::span<const PropertyEntry> TrackBar::property_table() const noexcept {
+    const std::array<PropertyEntry, track_bar_property_count>& entries = track_bar_property_entries();
+    return std::span<const PropertyEntry>(entries);
+}
+
+void TrackBar::prepare_write(const decltype(tick_frequency)&, double& incoming) {
+    require_mutable();
+    require_finite(incoming, "tick frequency must be finite");
+    if (incoming <= 0.0) throw std::invalid_argument("tick frequency must be positive");
+}
+
+void TrackBar::written(const decltype(tick_frequency)&) {
+    invalidate(Dirty::paint | Dirty::semantics);
+}
+
+void TrackBar::prepare_write(const decltype(show_ticks)&, bool&) {
+    require_mutable();
+}
+
+void TrackBar::written(const decltype(show_ticks)&) {
+    invalidate(Dirty::paint | Dirty::semantics);
+}
+
+void TrackBar::prepare_write(const decltype(visual_style)&, TrackBarVisualStyle&) {
+    require_mutable();
+}
+
+void TrackBar::written(const decltype(visual_style)&) {
+    invalidate(Dirty::paint | Dirty::semantics);
+}
+
+// property_codemod end TrackBar
 
 } // namespace gui_forms

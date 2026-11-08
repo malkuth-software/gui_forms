@@ -11,11 +11,11 @@ void test_tabs_and_pages(gui_forms::Window& window) {
     std::shared_ptr<gui_forms::CheckBox> toggle = std::dynamic_pointer_cast<CheckBox>(
         window.find("gallery.tabs.primary.activity.toggle"));
     require(tabs && status && toggle && (*tabs).page_count() == 4U &&
-                (*tabs).selected_index() == 1U && (*toggle).checked(),
+                (*tabs).selected_index() == 1U && (*toggle).checked.read(),
             "gallery tab page must retain a real public TabControl page model");
     // The Activity toggle binds a Value<bool>; the page observes the value.
     click(window, toggle);
-    require(!(*toggle).checked() &&
+    require(!(*toggle).checked.read() &&
                 (*status).text.read().find("keep visible off") != std::string::npos,
             "a bound Value<bool> must carry the toggle's user change to the page owner");
     const Rect security = (*tabs).tab_bounds(2U);

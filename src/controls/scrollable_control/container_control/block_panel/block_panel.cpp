@@ -7,12 +7,12 @@
 // margins its content shares with this one, and runs the solver.
 
 #include "gui_forms/controls/scrollable_control/container_control/block_panel/block_panel.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include "../../scrollable_anatomy.hpp"
 #include "../layout_style_property.hpp"
 #include "../out_of_flow.hpp"
 #include "gui_forms/binding/property_table/property_table.hpp"
-#include "gui_forms/detail/bound_member_function.hpp"
 #include "gui_forms/window.hpp"
 
 #include <algorithm>
@@ -192,9 +192,7 @@ bool item_style_serialized(const Component& container, const Control& child) {
 
 } // namespace
 
-BlockPanel::BlockPanel(StableId stable_id) : ContainerControl(std::move(stable_id)) {
-    register_panel_properties();
-}
+BlockPanel::BlockPanel(StableId stable_id) : ContainerControl(std::move(stable_id)) {}
 
 std::span<const ChildPropertyEntry> BlockPanel::child_property_table() const noexcept {
     static constexpr std::array<ChildPropertyEntry, 1U> entries{{
@@ -202,19 +200,6 @@ std::span<const ChildPropertyEntry> BlockPanel::child_property_table() const noe
          &item_style_serialized},
     }};
     return std::span<const ChildPropertyEntry>(entries);
-}
-
-void BlockPanel::register_panel_properties() {
-    PropertyDescriptor style_descriptor{"style", BindingValueKind::text, "Layout",
-                                        "The block container's settings as a CSS inline style: text-align.",
-                                        BindingValue{std::string{}}, invalidation::bounds};
-    style_descriptor.bindable = false;
-    define_bindable_property({std::move(style_descriptor),
-                              detail::BoundMemberFunction<BindingValue (BlockPanel::*)() const>(
-                                  *this, &BlockPanel::style_property),
-                              detail::BoundMemberFunction<void (BlockPanel::*)(const BindingValue&)>(
-                                  *this, &BlockPanel::set_style_property),
-                              {}, {}, {}});
 }
 
 BindingValue BlockPanel::style_property() const {
@@ -734,5 +719,52 @@ SemanticDescriptor BlockPanel::semantic_descriptor() const {
 const ControlAnatomy& BlockPanel::anatomy() const noexcept {
     return block_panel_anatomy;
 }
+
+namespace {
+
+// The container settings as one CSS inline style text: a hand table entry
+// (extra_entries) over the panel's settings.
+PropertyDescriptor block_panel_style_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "style";
+    descriptor.kind = BindingValueKind::text;
+    descriptor.category = "Layout";
+    descriptor.description = "The block container's settings as a CSS inline style: text-align.";
+    descriptor.default_value = BindingValue{std::string{}};
+    descriptor.invalidation_effects = invalidation::bounds;
+    descriptor.bindable = false;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_block_panel_style() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        block_panel_style_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+} // namespace
+
+// property_codemod begin BlockPanel (tools/property_families/block_panel.json; generated, do not edit)
+
+const std::array<PropertyEntry, BlockPanel::block_panel_property_count>& BlockPanel::block_panel_property_entries() noexcept {
+    static constexpr std::array<PropertyEntry, 1U> own{{
+        {"style", &describe_block_panel_style,
+         &read_member_entry<BlockPanel, decltype(&BlockPanel::style_property), &BlockPanel::style_property>,
+         &write_member_entry<BlockPanel, decltype(&BlockPanel::set_style_property), &BlockPanel::set_style_property>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+    }};
+    static_assert(property_names_distinct(own), "BlockPanel's property table names a property twice");
+    static const std::array<PropertyEntry, block_panel_property_count> entries =
+        join_property_tables(Control::control_property_entries(), own);
+    return entries;
+}
+
+std::span<const PropertyEntry> BlockPanel::property_table() const noexcept {
+    const std::array<PropertyEntry, block_panel_property_count>& entries = block_panel_property_entries();
+    return std::span<const PropertyEntry>(entries);
+}
+
+// property_codemod end BlockPanel
 
 } // namespace gui_forms

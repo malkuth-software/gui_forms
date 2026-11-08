@@ -1,0 +1,91 @@
+{
+  "family": "ResponsiveTrackPanel",
+  "step": "M-S5",
+  "declaring": "ResponsiveTrackPanel",
+  "header": "include/gui_forms/controls/scrollable_control/container_control/responsive_track_panel/responsive_track_panel.hpp",
+  "source": "src/controls/scrollable_control/container_control/responsive_track_panel/responsive_track_panel.cpp",
+  "capabilities_header": "include/gui_forms/controls/scrollable_control/container_control/responsive_track_panel/responsive_track_panel_capabilities/responsive_track_panel_capabilities.hpp",
+  "base": "Control",
+  "includes": [
+    "gui_forms/controls/scrollable_control/container_control/container_control.hpp",
+    "gui_forms/controls/scrollable_control/container_control/responsive_track_panel/responsive_track_panel_values/responsive_track_panel_values.hpp"
+  ],
+  "properties": [
+    {
+      "name": "orientation",
+      "capability": "ResponsiveTrackAxis",
+      "value": "ResponsiveTrackOrientation",
+      "initial": "ResponsiveTrackOrientation::horizontal",
+      "comment": "The axis the tracks run along: horizontal or vertical (std::invalid_argument outside them).",
+      "getter": "orientation",
+      "setter": "set_orientation",
+      "clear": null,
+      "field": "orientation_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": {
+        "kind": "enumeration",
+        "category": "Layout",
+        "description": "The axis the tracks run along: horizontal or vertical.",
+        "default": "BindingValue{std::int64_t{0}}",
+        "effects": "invalidation::bounds",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": "orientation_enum()",
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "prepare": [
+        "if (incoming > ResponsiveTrackOrientation::vertical) throw std::invalid_argument(\"ResponsiveTrackPanel orientation is unknown\");"
+      ],
+      "sample": "ResponsiveTrackOrientation::vertical"
+    },
+    {
+      "name": "track_gap",
+      "capability": "ResponsiveTrackGap",
+      "value": "double",
+      "initial": "0.0",
+      "comment": "The space between neighbouring tracks, finite and between zero and 256 (else std::invalid_argument).",
+      "getter": "track_gap",
+      "setter": "set_track_gap",
+      "clear": null,
+      "field": "track_gap_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": {
+        "kind": "number",
+        "category": "Layout",
+        "description": "The space between neighbouring tracks.",
+        "default": "BindingValue{0.0}",
+        "effects": "invalidation::bounds",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "prepare": [
+        "if (!std::isfinite(incoming) || incoming < 0.0 || incoming > 256.0) throw std::invalid_argument(\"ResponsiveTrackPanel gap must be finite and between zero and 256\");"
+      ],
+      "sample": "8.0"
+    }
+  ],
+  "not_properties": [],
+  "test": {
+    "type": "ResponsiveTrackPanel",
+    "include": "gui_forms/controls/scrollable_control/container_control/responsive_track_panel/responsive_track_panel.hpp"
+  },
+  "extra_entries": [
+    "{\"track_specs\", &describe_responsive_track_panel_track_specs,\n         &read_member_entry<ResponsiveTrackPanel, decltype(&ResponsiveTrackPanel::track_specs_property), &ResponsiveTrackPanel::track_specs_property>,\n         &write_member_entry<ResponsiveTrackPanel, decltype(&ResponsiveTrackPanel::set_track_specs_property), &ResponsiveTrackPanel::set_track_specs_property>,\n         nullptr, nullptr, nullptr,\n         nullptr}"
+  ]
+}

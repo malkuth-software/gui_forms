@@ -286,7 +286,7 @@ void TaskDialog::rebuild_children() {
     for (const TaskDialogRadioButton& radio : page_.radio_buttons) {
         std::shared_ptr<RadioButton> control =
             make_control<RadioButton>(StableId(prefix + ".radio." + radio.stable_id), radio.text);
-        (*control).set_checked(radio.checked);
+        (*control).checked = radio.checked;
         (*control).enabled = radio.enabled;
         add_child(control);
         child_tokens_.push_back((*control).checked_changed().subscribe(
@@ -298,7 +298,7 @@ void TaskDialog::rebuild_children() {
         expander_button_ = make_control<Button>(
             StableId(prefix + ".expander"),
             expander.expanded ? expander.expanded_button_text : expander.collapsed_button_text);
-        (*expander_button_).set_visual_style(ButtonVisualStyle::flat);
+        (*expander_button_).visual_style = ButtonVisualStyle::flat;
         add_child(expander_button_);
         child_tokens_.push_back((*expander_button_).clicked().subscribe(
             *this, Delegate<ButtonBase&>::bind<TaskDialog, &TaskDialog::on_expander>(*this)));
@@ -307,7 +307,7 @@ void TaskDialog::rebuild_children() {
     }
     if (!page_.verification_text.empty()) {
         verification_ = make_control<CheckBox>(StableId(prefix + ".verification"), page_.verification_text);
-        (*verification_).set_checked(page_.verification_checked);
+        (*verification_).checked = page_.verification_checked;
         add_child(verification_);
         child_tokens_.push_back((*verification_).checked_changed().subscribe(
             *this, Delegate<bool>::bind<TaskDialog, &TaskDialog::on_verification>(*this)));
@@ -317,7 +317,7 @@ void TaskDialog::rebuild_children() {
         std::shared_ptr<Button> control =
             make_control<Button>(StableId(prefix + ".button." + definition.stable_id), definition.text);
         (*control).enabled = definition.enabled;
-        if (definition.stable_id == preferred) (*control).set_visual_style(ButtonVisualStyle::accent);
+        if (definition.stable_id == preferred) (*control).visual_style = ButtonVisualStyle::accent;
         add_child(control);
         child_tokens_.push_back((*control).clicked().subscribe(
             *this, Delegate<ButtonBase&>::bind<TaskDialog, &TaskDialog::on_child_button>(*this)));
@@ -398,7 +398,7 @@ bool TaskDialog::read_view(const decltype(verification_checked)&) const {
 void TaskDialog::write_view(const decltype(verification_checked)&, bool incoming) {
     require_mutable();
     if (verification_) {
-        (*verification_).set_checked(incoming);
+        (*verification_).checked = incoming;
         return;
     }
     page_.verification_checked = incoming;
@@ -450,7 +450,7 @@ void TaskDialog::on_radio(bool) {
     if (synchronizing_) return;
     std::string newly_checked{};
     for (std::size_t index = 0; index < radios_.size() && index < page_.radio_buttons.size(); ++index) {
-        const bool checked = (*radios_[index]).checked();
+        const bool checked = (*radios_[index]).checked.read();
         if (checked && !page_.radio_buttons[index].checked) newly_checked = page_.radio_buttons[index].stable_id;
         page_.radio_buttons[index].checked = checked;
     }

@@ -527,7 +527,7 @@ struct Options final : gf::Component {
 
 void example() {
     Options options;
-    (*options.wrap).set_checked(true);   // options.wrapping is now true
+    (*options.wrap).checked = true;   // options.wrapping is now true
 }
 }  // namespace doc_example_CheckBox_2
 
@@ -1870,8 +1870,8 @@ void example() {
     (*exact).set_requested_bounds({130.0, 24.0, 110.0, 24.0});
     (*mode).add_child(fast);
     (*mode).add_child(exact);
-    (*fast).set_checked(true);
-    (*exact).set_checked(true);   // fast is now unchecked
+    (*fast).checked = true;
+    (*exact).checked = true;   // fast is now unchecked
 }
 }  // namespace doc_example_GroupBox_1
 
@@ -2826,8 +2826,8 @@ void example() {
         gf::make_control<gf::RadioButton>(gf::StableId("print.landscape"), "&Landscape");
     (*orientation).add_child(portrait);
     (*orientation).add_child(landscape);
-    (*portrait).set_checked(true);
-    (*landscape).set_checked(true);   // portrait is unchecked first
+    (*portrait).checked = true;
+    (*landscape).checked = true;   // portrait is unchecked first
 }
 }  // namespace doc_example_RadioButton_1
 
@@ -2845,10 +2845,10 @@ struct PrintOptions final : gf::Component {
     bool landscape_page = false;
 
     PrintOptions() {
-        (*portrait).set_group_name("orientation");
-        (*landscape).set_group_name("orientation");
-        (*colour).set_group_name("ink");
-        (*mono).set_group_name("ink");
+        (*portrait).group_name = "orientation";
+        (*landscape).group_name = "orientation";
+        (*colour).group_name = "ink";
+        (*mono).group_name = "ink";
         (*panel).add_child(portrait);
         (*panel).add_child(landscape);
         (*panel).add_child(colour);
@@ -2860,8 +2860,8 @@ struct PrintOptions final : gf::Component {
 
 void example() {
     PrintOptions options;
-    (*options.portrait).set_checked(true);
-    (*options.colour).set_checked(true);   // another group: portrait stays checked
+    (*options.portrait).checked = true;
+    (*options.colour).checked = true;   // another group: portrait stays checked
     (*options.landscape).perform_click();  // unchecks portrait; landscape_page is true
 }
 }  // namespace doc_example_RadioButton_2

@@ -71,8 +71,8 @@ private:
 
     void bind_width_control() {
         TrackBar& width = *document_.gallery_responsive_width;
-        width.set_small_change(10.0);
-        width.set_large_change(100.0);
+        width.small_change = 10.0;
+        width.large_change = 100.0;
         width.bind(stage_width_);
         describe_width(stage_width_.get());
     }

@@ -110,11 +110,11 @@ struct SelectTarget final {
     void operator()(ButtonBase&) const {
         if (const std::shared_ptr<VisualInspectorView> target =
                 inspector.lock()) {
-            (*target).set_target_stable_id(stable_id);
+            (*target).target_stable_id = stable_id;
         }
         if (const std::shared_ptr<VisualInspectorOverlay> target =
                 overlay.lock()) {
-            (*target).set_target_stable_id(stable_id);
+            (*target).target_stable_id = stable_id;
         }
     }
 };
@@ -363,7 +363,7 @@ std::unique_ptr<Window> make_seam_proximity_lab() {
         std::shared_ptr<Button> selector = make_control<Button>(
             StableId("seam-proximity.target." + std::to_string(index)),
             targets[index].first);
-        (*selector).set_visual_style(ButtonVisualStyle::command);
+        (*selector).visual_style = ButtonVisualStyle::command;
         add_at(root, selector,
                {20.0 + static_cast<double>(index) * 160.0, 626.0,
                 148.0, 30.0});

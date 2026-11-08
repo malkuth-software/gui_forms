@@ -1,0 +1,142 @@
+{
+  "family": "RadioButton",
+  "step": "M-S3",
+  "declaring": "RadioButton",
+  "header": "include/gui_forms/controls/button_base/radio_button/radio_button.hpp",
+  "source": "src/controls/button_base/radio_button/radio_button.cpp",
+  "capabilities_header": "include/gui_forms/controls/button_base/radio_button/radio_button_capabilities/radio_button_capabilities.hpp",
+  "base": "ButtonBase",
+  "includes": [
+    "gui_forms/controls/button_base/button_base.hpp",
+    "gui_forms/controls/button_base/check_box/check_box_capabilities/check_box_capabilities.hpp"
+  ],
+  "properties": [
+    {
+      "name": "checked",
+      "capability": "RadioButtonChecked",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether the button is selected within its group (Checked); a view onto the check. Checking it clears the checked sibling of the same group_name first; a change raises checked_changed.",
+      "getter": "checked",
+      "setter": "set_checked",
+      "clear": null,
+      "field": null,
+      "event": "checked_changed_",
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": {
+        "kind": "boolean",
+        "category": "Behavior",
+        "description": "Whether the radio button is selected within its group.",
+        "default": "BindingValue{false}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": true,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "a view onto checked_; write_view keeps set_checked's exclusion before the store"
+      ],
+      "sample": "true",
+      "storage": "view"
+    },
+    {
+      "name": "group_name",
+      "capability": "RadioButtonGroupName",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The exclusion group among the parent's radio buttons (GroupName); empty is the parent's own group. A checked button that joins a group clears that group's checked sibling.",
+      "getter": "group_name",
+      "setter": "set_group_name",
+      "clear": null,
+      "field": "group_name_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": {
+        "kind": "text",
+        "category": "Behavior",
+        "description": "The exclusion group among the parent's radio buttons; empty is the parent's own group.",
+        "default": "BindingValue{std::string{}}",
+        "effects": "Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written: semantics, then a checked button clears the new group's checked sibling"
+      ],
+      "sample": "std::string{\"left\"}"
+    },
+    {
+      "name": "auto_check",
+      "capability": "RadioButtonAutoCheck",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether activation checks the button (AutoCheck).",
+      "getter": "auto_check",
+      "setter": "set_auto_check",
+      "clear": null,
+      "field": "auto_check_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "effects": "Dirty::semantics"
+    },
+    {
+      "name": "indicator_style",
+      "capability": "RadioButtonIndicatorStyle",
+      "value": "ChoiceIndicatorStyle",
+      "initial": "ChoiceIndicatorStyle::classic",
+      "comment": "How the choice mark draws: classic, modern or toggle (std::invalid_argument outside them).",
+      "getter": "indicator_style",
+      "setter": "set_indicator_style",
+      "clear": null,
+      "field": "indicator_style_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": {
+        "kind": "enumeration",
+        "category": "Appearance",
+        "description": "How the choice mark draws: classic, modern or toggle.",
+        "default": "BindingValue{PropertyEnumValue{\"indicator_style\", \"classic\", 0}}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": "button_base_detail::choice_indicator_style_enum()",
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "prepare": [
+        "if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(ChoiceIndicatorStyle::toggle)) throw std::invalid_argument(\"RadioButton indicator style is invalid\");"
+      ],
+      "sample": "ChoiceIndicatorStyle::modern",
+      "traits": "hand"
+    }
+  ],
+  "not_properties": [],
+  "test": {
+    "type": "RadioButton",
+    "include": "gui_forms/controls/button_base/radio_button/radio_button.hpp"
+  }
+}

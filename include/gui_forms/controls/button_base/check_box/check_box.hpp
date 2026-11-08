@@ -3,49 +3,20 @@
 #include "gui_forms/detail/scalar_binding.hpp"
 
 #include "gui_forms/controls/button_base/button_base.hpp"
+#include "gui_forms/controls/button_base/check_box/check_box_values/check_box_values.hpp"
+#include "gui_forms/controls/button_base/check_box/check_box_capabilities/check_box_capabilities.hpp"
 
 #include <cstdint>
 
 namespace gui_forms {
 
-enum class CheckState : std::uint8_t {
-    unchecked,
-    checked,
-    indeterminate,
-};
-
-enum class CheckBoxAppearance : std::uint8_t {
-    normal,
-    button,
-};
-
-class CheckBox : public ButtonBase {
+class CheckBox : public ButtonBase, public CheckBoxCapabilities<CheckBox> {
 public:
     explicit CheckBox(StableId stable_id, std::string text = {});
     void bind(Command& command) override;
     void bind(Value<bool>& model);
     void unbind() noexcept;
 
-    [[nodiscard]] CheckState check_state() const noexcept { return check_state_; }
-    void set_check_state(CheckState state);
-    [[nodiscard]] bool checked() const noexcept {
-        return check_state_ == CheckState::checked;
-    }
-    void set_checked(bool checked);
-    [[nodiscard]] bool three_state() const noexcept { return three_state_; }
-    void set_three_state(bool enabled);
-    [[nodiscard]] bool auto_check() const noexcept { return auto_check_; }
-    void set_auto_check(bool enabled);
-    [[nodiscard]] CheckBoxAppearance appearance() const noexcept {
-        return appearance_;
-    }
-    // Button appearance changes only the visual projection. CheckBox retains
-    // its check-box role, checked state, command path, focus, and hit target.
-    void set_appearance(CheckBoxAppearance appearance);
-    [[nodiscard]] ChoiceIndicatorStyle indicator_style() const noexcept {
-        return indicator_style_;
-    }
-    void set_indicator_style(ChoiceIndicatorStyle style);
     [[nodiscard]] Event<CheckState>& check_state_changed() noexcept {
         return check_state_changed_;
     }
@@ -90,14 +61,44 @@ protected:
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
 
 private:
+    // The Value<bool> binding's getter and setter: the checked view's read
+    // and write.
+    [[nodiscard]] bool bound_checked() const noexcept;
+    void write_bound_checked(bool value);
+
     std::unique_ptr<detail::ScalarBinding<CheckBox, bool>> value_binding_{};
+    // The check_state and checked views' storage.
     CheckState check_state_{CheckState::unchecked};
     Event<CheckState> check_state_changed_;
     Event<bool> checked_changed_;
-    bool three_state_{};
-    bool auto_check_{true};
-    CheckBoxAppearance appearance_{CheckBoxAppearance::normal};
-    ChoiceIndicatorStyle indicator_style_{ChoiceIndicatorStyle::classic};
+    // property_codemod begin CheckBox (tools/property_families/check_box.json; generated, do not edit)
+public:
+    // CheckBox's property table: ButtonBase's entries, then its own.
+    static constexpr std::size_t check_box_property_count = ButtonBase::button_base_property_count + 4U;
+    [[nodiscard]] static const std::array<PropertyEntry, check_box_property_count>& check_box_property_entries() noexcept;
+    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
+
+private:
+    friend struct CheckBoxCheckStateCapability<CheckBox>;
+    friend struct CheckBoxCheckedCapability<CheckBox>;
+    friend struct CheckBoxThreeStateCapability<CheckBox>;
+    friend struct CheckBoxAutoCheckCapability<CheckBox>;
+    friend struct CheckBoxAppearanceStyleCapability<CheckBox>;
+    friend struct CheckBoxIndicatorStyleCapability<CheckBox>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void write_view(const decltype(check_state)& cell, CheckState incoming);
+    [[nodiscard]] CheckState read_view(const decltype(check_state)& cell) const;
+    void write_view(const decltype(checked)& cell, bool incoming);
+    [[nodiscard]] bool read_view(const decltype(checked)& cell) const;
+    void prepare_write(const decltype(three_state)& cell, bool& incoming);
+    void written(const decltype(three_state)& cell);
+    void prepare_write(const decltype(auto_check)& cell, bool& incoming);
+    void written(const decltype(auto_check)& cell);
+    void prepare_write(const decltype(appearance)& cell, CheckBoxAppearance& incoming);
+    void written(const decltype(appearance)& cell);
+    void prepare_write(const decltype(indicator_style)& cell, ChoiceIndicatorStyle& incoming);
+    void written(const decltype(indicator_style)& cell);
+    // property_codemod end CheckBox
 };
 
 } // namespace gui_forms

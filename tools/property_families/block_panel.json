@@ -1,0 +1,21 @@
+{
+  "family": "BlockPanel",
+  "step": "M-S5",
+  "declaring": "BlockPanel",
+  "header": "include/gui_forms/controls/scrollable_control/container_control/block_panel/block_panel.hpp",
+  "source": "src/controls/scrollable_control/container_control/block_panel/block_panel.cpp",
+  "capabilities_header": "include/gui_forms/controls/scrollable_control/container_control/block_panel/block_panel_capabilities/block_panel_capabilities.hpp",
+  "base": "Control",
+  "includes": [
+    "gui_forms/controls/scrollable_control/container_control/container_control.hpp"
+  ],
+  "properties": [],
+  "not_properties": [],
+  "test": {
+    "type": "BlockPanel",
+    "include": "gui_forms/controls/scrollable_control/container_control/block_panel/block_panel.hpp"
+  },
+  "extra_entries": [
+    "{\"style\", &describe_block_panel_style,\n         &read_member_entry<BlockPanel, decltype(&BlockPanel::style_property), &BlockPanel::style_property>,\n         &write_member_entry<BlockPanel, decltype(&BlockPanel::set_style_property), &BlockPanel::set_style_property>,\n         nullptr, nullptr, nullptr,\n         nullptr}"
+  ]
+}

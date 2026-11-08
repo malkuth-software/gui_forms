@@ -109,15 +109,15 @@ void test_value_editors(gui_forms::Window& window) {
     // the rack module's enable switch follows it in both directions.
     const std::shared_ptr<gui_forms::CheckBox> enabled = std::dynamic_pointer_cast<CheckBox>(
         (*properties).editor("gallery.value-editors.properties.enabled"));
-    require(enabled && (*enabled).checked() && (*rack).modules()[0].enabled,
+    require(enabled && (*enabled).checked.read() && (*rack).modules()[0].enabled,
             "the enabled row must be a checked CheckBox bound to the record");
     click(window, enabled);
-    require(!(*enabled).checked() && !(*rack).modules()[0].enabled &&
+    require(!(*enabled).checked.read() && !(*rack).modules()[0].enabled &&
                 (*rack).modules()[0].state == InstrumentModuleState::staged,
             "unchecking the bound CheckBox must disable the rack module through the Value");
     require(window.perform_semantic_action("gallery.value-editors.rack.lamp.enable",
                                            SemanticAction::press) &&
-                (*rack).modules()[0].enabled && (*enabled).checked() &&
+                (*rack).modules()[0].enabled && (*enabled).checked.read() &&
                 (*properties).value("gallery.value-editors.properties.enabled") == "True",
             "re-enabling from the rack must flow back into the bound CheckBox and its row");
 

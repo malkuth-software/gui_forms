@@ -1,19 +1,14 @@
 #pragma once
 
 #include "gui_forms/controls/button_base/button_base.hpp"
+#include "gui_forms/controls/button_base/button/button_values/button_values.hpp"
+#include "gui_forms/controls/button_base/button/button_capabilities/button_capabilities.hpp"
 
 #include <cstdint>
 
 namespace gui_forms {
 
-enum class ButtonVisualStyle : std::uint8_t {
-    standard,
-    flat,
-    accent,
-    command,
-};
-
-class Button : public ButtonBase {
+class Button : public ButtonBase, public ButtonCapabilities<Button> {
 public:
     explicit Button(StableId stable_id, std::string text = {});
 
@@ -26,17 +21,9 @@ public:
     [[nodiscard]] Event<DialogResult>& dialog_result_changed() noexcept {
         return dialog_result_changed_;
     }
-    [[nodiscard]] ButtonVisualStyle visual_style() const noexcept {
-        return visual_style_;
-    }
-    void set_visual_style(ButtonVisualStyle style);
     [[nodiscard]] bool selected() const noexcept { return selected_; }
     void set_selected(bool selected);
     [[nodiscard]] Event<bool>& selected_changed() noexcept { return selected_changed_; }
-    [[nodiscard]] double flat_border_width() const noexcept {
-        return flat_border_width_;
-    }
-    void set_flat_border_width(double width);
     void on_paint(Painter& painter, Rect local_damage) override;
     [[nodiscard]] Insets visual_outsets() const noexcept override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
@@ -84,9 +71,23 @@ private:
     bool default_button_{};
     DialogResult dialog_result_{DialogResult::none};
     Event<DialogResult> dialog_result_changed_;
-    ButtonVisualStyle visual_style_{ButtonVisualStyle::standard};
     bool selected_{};
-    double flat_border_width_{1.0};
+    // property_codemod begin Button (tools/property_families/button.json; generated, do not edit)
+public:
+    // Button's property table: ButtonBase's entries, then its own.
+    static constexpr std::size_t button_property_count = ButtonBase::button_base_property_count + 2U;
+    [[nodiscard]] static const std::array<PropertyEntry, button_property_count>& button_property_entries() noexcept;
+    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
+
+private:
+    friend struct ButtonVisualStyleChoiceCapability<Button>;
+    friend struct ButtonFlatBorderWidthCapability<Button>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(visual_style)& cell, ButtonVisualStyle& incoming);
+    void written(const decltype(visual_style)& cell);
+    void prepare_write(const decltype(flat_border_width)& cell, double& incoming);
+    void written(const decltype(flat_border_width)& cell);
+    // property_codemod end Button
 };
 
 } // namespace gui_forms

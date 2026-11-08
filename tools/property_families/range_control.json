@@ -1,0 +1,191 @@
+{
+  "family": "RangeControl",
+  "step": "M-S4",
+  "declaring": "RangeControl",
+  "header": "include/gui_forms/controls/range_control/range_control.hpp",
+  "source": "src/controls/range_control/range_control.cpp",
+  "capabilities_header": "include/gui_forms/controls/range_control/range_control_capabilities/range_control_capabilities.hpp",
+  "base": "Control",
+  "includes": [
+    "gui_forms/basic_controls.hpp",
+    "gui_forms/controls/range_control/range_control_values/range_control_values.hpp"
+  ],
+  "properties": [
+    {
+      "name": "value",
+      "capability": "RangeControlValue",
+      "value": "double",
+      "initial": null,
+      "comment": "The current value (Value), within minimum and maximum; a view onto the range's value. Outside them throws std::out_of_range, a non-finite value std::invalid_argument; a bound Value may refuse it. A change raises value_changed.",
+      "getter": "value",
+      "setter": "set_value",
+      "clear": null,
+      "field": null,
+      "event": "value_changed_",
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": {
+        "kind": "number",
+        "category": "Behavior",
+        "description": "Current value within the retained range.",
+        "default": "BindingValue{0.0}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": true,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false,
+        "binding_direction": "two_way"
+      },
+      "hooks": "hand",
+      "hand": [
+        "a view onto value_: write_view keeps set_value's checks, binding validation and event"
+      ],
+      "sample": "50.0",
+      "storage": "view"
+    },
+    {
+      "name": "minimum",
+      "capability": "RangeControlMinimum",
+      "value": "double",
+      "initial": null,
+      "comment": "The lower bound (Minimum); a view onto the range: a write is set_range(incoming, maximum), so it must stay below the maximum.",
+      "getter": "minimum",
+      "setter": "set_minimum",
+      "clear": null,
+      "field": null,
+      "event": "range_changed_",
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": {
+        "kind": "number",
+        "category": "Behavior",
+        "description": "Lower bound of the range; below the maximum.",
+        "default": "BindingValue{0.0}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "a view onto minimum_: write_view is set_range(incoming, maximum_)"
+      ],
+      "sample": "-10.0",
+      "storage": "view"
+    },
+    {
+      "name": "maximum",
+      "capability": "RangeControlMaximum",
+      "value": "double",
+      "initial": null,
+      "comment": "The upper bound (Maximum); a view onto the range: a write is set_range(minimum, incoming), so it must stay above the minimum.",
+      "getter": "maximum",
+      "setter": "set_maximum",
+      "clear": null,
+      "field": null,
+      "event": "range_changed_",
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": {
+        "kind": "number",
+        "category": "Behavior",
+        "description": "Upper bound of the range; above the minimum.",
+        "default": "BindingValue{100.0}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "a view onto maximum_: write_view is set_range(minimum_, incoming)"
+      ],
+      "sample": "200.0",
+      "storage": "view"
+    },
+    {
+      "name": "small_change",
+      "capability": "RangeControlSmallChange",
+      "value": "double",
+      "initial": "1.0",
+      "comment": "How far an arrow key or button moves the value (SmallChange); positive and finite, else std::invalid_argument.",
+      "getter": "small_change",
+      "setter": "set_small_change",
+      "clear": null,
+      "field": "small_change_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "effects": "Dirty::semantics",
+      "prepare": [
+        "require_finite(incoming, \"small change must be finite\");",
+        "if (incoming <= 0.0) throw std::invalid_argument(\"small change must be positive\");"
+      ],
+      "sample": "2.0"
+    },
+    {
+      "name": "large_change",
+      "capability": "RangeControlLargeChange",
+      "value": "double",
+      "initial": "10.0",
+      "comment": "How far a track click or Page Up/Down moves the value (LargeChange); positive and finite, else std::invalid_argument.",
+      "getter": "large_change",
+      "setter": "set_large_change",
+      "clear": null,
+      "field": "large_change_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "effects": "Dirty::semantics",
+      "prepare": [
+        "require_finite(incoming, \"large change must be finite\");",
+        "if (incoming <= 0.0) throw std::invalid_argument(\"large change must be positive\");"
+      ],
+      "sample": "20.0"
+    },
+    {
+      "name": "orientation",
+      "capability": "RangeControlOrientation",
+      "value": "Orientation",
+      "initial": "Orientation::horizontal",
+      "comment": "Horizontal or vertical (Orientation).",
+      "getter": "orientation",
+      "setter": "set_orientation",
+      "clear": null,
+      "field": "orientation_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "effects": "Dirty::measure | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "sample": "Orientation::vertical"
+    }
+  ],
+  "not_properties": [],
+  "test": {
+    "type": "TrackBar",
+    "include": "gui_forms/controls/range_control/track_bar/track_bar.hpp"
+  }
+}

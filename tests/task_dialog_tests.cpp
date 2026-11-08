@@ -229,16 +229,16 @@ void modal_presentation() {
     click_at(window, centre(*(*dialog).expander_button()));
     require(!(*dialog).expanded.read() && recorder.expansions.size() == 2U, "the expander button collapses it again");
 
-    (*(*dialog).radio_button("all")).set_checked(true);
+    (*(*dialog).radio_button("all")).checked = true;
     require((*dialog).checked_radio_button() == "all" && recorder.radios.size() == 1U && recorder.radios[0] == "all",
             "checking a radio button reports it");
-    (*(*dialog).verification_check_box()).set_checked(true);
+    (*(*dialog).verification_check_box()).checked = true;
     require((*dialog).verification_checked.read() && recorder.verifications.size() == 1U,
             "the verification check box reports its state");
     (*dialog).expanded = false;
     require(recorder.expansions.size() == 2U, "an equal expanded write raises nothing");
     (*dialog).verification_checked = false;
-    require(!(*dialog).verification_checked.read() && !(*(*dialog).verification_check_box()).checked() &&
+    require(!(*dialog).verification_checked.read() && !(*(*dialog).verification_check_box()).checked.read() &&
                 recorder.verifications.size() == 2U && !recorder.verifications[1],
             "a verification write goes through the check box and raises verification_changed");
     (*dialog).verification_checked = true;

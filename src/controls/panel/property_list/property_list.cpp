@@ -288,7 +288,7 @@ struct PropertyList::Impl final {
                     std::shared_ptr<gui_forms::CheckBox> editor = make_control<CheckBox>(
                         StableId(row.stable_id + ".editor"),
                         checked ? "True" : "False");
-                    (*editor).set_checked(checked);
+                    (*editor).checked = checked;
                     (*editor).font = {FontRole::content, 10.0, 400, false};
                     (*editor).accessible_name = row.name;
                     (*editor).accessible_description = row.description;
@@ -651,7 +651,7 @@ bool PropertyList::set_value(std::string_view row_id, std::string value) {
                    std::dynamic_pointer_cast<CheckBox>((*row).editor)) {
         const bool checked = binding_value_to_bool(
             BindingValue{value}).value_or(false);
-        (*check).set_checked(checked);
+        (*check).checked = checked;
         (*check).text = checked ? "True" : "False";
     }
     (*impl_).synchronizing = false;

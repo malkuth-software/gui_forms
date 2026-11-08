@@ -285,6 +285,44 @@
       "table": null,
       "hooks": "generated",
       "effects": "Dirty::paint | Dirty::semantics"
+    },
+    {
+      "name": "image",
+      "capability": "ButtonBaseImage",
+      "value": "ImageId",
+      "initial": null,
+      "comment": "A direct generational image resource for the button's content (Image); a view onto the image slot: a write clears image_index and image_key. An ID not live in the button's Window throws std::invalid_argument.",
+      "getter": "image",
+      "setter": "set_image",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": {
+        "kind": "image",
+        "category": "Appearance",
+        "description": "Direct generational image resource for button content.",
+        "default": "BindingValue{ImageId{}}",
+        "effects": "Dirty::measure | Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "thunks": {
+        "reset": "clear_image",
+        "should_serialize": "should_serialize_image"
+      },
+      "hand": [
+        "a view onto image_: write_view keeps set_image's live-ID check and clears the index and key slots"
+      ],
+      "storage": "view"
     }
   ],
   "not_properties": [

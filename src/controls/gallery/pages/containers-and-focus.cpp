@@ -53,7 +53,7 @@ private:
             std::shared_ptr<Button> item = make_control<Button>(
                 StableId("gallery.containers.item." + std::to_string(index)),
                 "Retained item " + std::to_string(index + 1U));
-            (*item).set_visual_style(ButtonVisualStyle::command);
+            (*item).visual_style = ButtonVisualStyle::command;
             (*item).set_requested_bounds(
                 {20.0, 62.0 + static_cast<double>(index) * 48.0, 255.0, 36.0});
             (*first).add_child(item);
@@ -79,7 +79,7 @@ private:
         (*second).add_child(collapse_);
         focus_splitter_ = make_control<Button>(StableId("gallery.containers.focus"),
                                                "Focus the splitter");
-        (*focus_splitter_).set_visual_style(ButtonVisualStyle::accent);
+        (*focus_splitter_).visual_style = ButtonVisualStyle::accent;
         (*focus_splitter_).set_requested_bounds({228.0, 132.0, 170.0, 34.0});
         (*second).add_child(focus_splitter_);
     }
@@ -174,7 +174,7 @@ private:
         text += " · document: ";
         const std::optional<DockPanelId>& document = (*workspace_).active_document();
         text += document ? (*workspace_).panel_title(*document) : std::string("none");
-        (*document_.gallery_containers_docking_status).set_text(text);
+        (*document_.gallery_containers_docking_status).text = text;
     }
 
     // Input-only: the user clicked. The collapse state itself lives in the
@@ -195,8 +195,8 @@ private:
     }
 
     void on_user_loaded() {
-        (*document_.gallery_containers_user_status).set_text(
-            "UserControl · Loaded fired once · attachment committed");
+        (*document_.gallery_containers_user_status).text = 
+            "UserControl · Loaded fired once · attachment committed";
     }
 
     std::shared_ptr<Button> collapse_;

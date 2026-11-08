@@ -1,0 +1,50 @@
+{
+  "family": "EasingPreview",
+  "step": "M-S6",
+  "declaring": "EasingPreview",
+  "header": "include/gui_forms/controls/easing_preview/easing_preview.hpp",
+  "source": "src/controls/easing_preview/easing_preview.cpp",
+  "capabilities_header": "include/gui_forms/controls/easing_preview/easing_preview_capabilities/easing_preview_capabilities.hpp",
+  "base": "Control",
+  "includes": [
+    "gui_forms/basic_controls.hpp"
+  ],
+  "properties": [
+    {
+      "name": "title",
+      "capability": "EasingPreviewTitle",
+      "value": "std::string",
+      "initial": "std::string(\"Animation timeline and easing\")",
+      "comment": "The heading painted above the tracks.",
+      "getter": "title",
+      "setter": "set_title",
+      "clear": null,
+      "field": "title_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": {
+        "kind": "text",
+        "category": "Appearance",
+        "description": "The heading painted above the tracks.",
+        "default": "BindingValue{std::string(\"Animation timeline and easing\")}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "sample": "std::string(\"Easing\")"
+    }
+  ],
+  "not_properties": [],
+  "test": {
+    "type": "EasingPreview",
+    "include": "gui_forms/controls/easing_preview/easing_preview.hpp"
+  }
+}

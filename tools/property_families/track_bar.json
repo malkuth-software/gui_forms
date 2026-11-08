@@ -1,0 +1,105 @@
+{
+  "family": "TrackBar",
+  "step": "M-S4",
+  "declaring": "TrackBar",
+  "header": "include/gui_forms/controls/range_control/track_bar/track_bar.hpp",
+  "source": "src/controls/range_control/track_bar/track_bar.cpp",
+  "capabilities_header": "include/gui_forms/controls/range_control/track_bar/track_bar_capabilities/track_bar_capabilities.hpp",
+  "base": "RangeControl",
+  "includes": [
+    "gui_forms/controls/range_control/range_control.hpp",
+    "gui_forms/controls/range_control/track_bar/track_bar_values/track_bar_values.hpp"
+  ],
+  "properties": [
+    {
+      "name": "tick_frequency",
+      "capability": "TrackBarTickFrequency",
+      "value": "double",
+      "initial": "10.0",
+      "comment": "Distance in value units between tick marks; positive and finite, else std::invalid_argument.",
+      "getter": "tick_frequency",
+      "setter": "set_tick_frequency",
+      "clear": null,
+      "field": "tick_frequency_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": {
+        "kind": "number",
+        "category": "Appearance",
+        "description": "Distance in value units between tick marks.",
+        "default": "BindingValue{10.0}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "prepare": [
+        "require_finite(incoming, \"tick frequency must be finite\");",
+        "if (incoming <= 0.0) throw std::invalid_argument(\"tick frequency must be positive\");"
+      ],
+      "sample": "5.0"
+    },
+    {
+      "name": "show_ticks",
+      "capability": "TrackBarShowTicks",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether the tick marks draw.",
+      "getter": "show_ticks",
+      "setter": "set_show_ticks",
+      "clear": null,
+      "field": "show_ticks_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "effects": "Dirty::paint | Dirty::semantics",
+      "sample": "false"
+    },
+    {
+      "name": "visual_style",
+      "capability": "TrackBarVisualStyleChoice",
+      "value": "TrackBarVisualStyle",
+      "initial": "TrackBarVisualStyle::classic",
+      "comment": "How the rail and thumb draw: classic ticks, a filled rail or a compact rail.",
+      "getter": "visual_style",
+      "setter": "set_visual_style",
+      "clear": null,
+      "field": "visual_style_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": {
+        "kind": "enumeration",
+        "category": "Appearance",
+        "description": "How the rail and thumb draw: classic ticks, a filled rail or a compact rail.",
+        "default": "BindingValue{PropertyEnumValue{\"track_bar_visual_style\", \"classic\", 0}}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": "track_bar_visual_style_enum()",
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "sample": "TrackBarVisualStyle::filled"
+    }
+  ],
+  "not_properties": [],
+  "test": {
+    "type": "TrackBar",
+    "include": "gui_forms/controls/range_control/track_bar/track_bar.hpp"
+  }
+}

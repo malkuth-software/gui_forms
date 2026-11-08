@@ -67,7 +67,6 @@ FlagsValueEditor::FlagsValueEditor(StableId stable_id) : Panel(std::move(stable_
     border_style = BorderStyle::sunken;
     set_focusable(true);
     cursor = CursorKind::hand;
-    define_form_properties();
 }
 
 FlagsValueEditor::FlagsValueEditor(
@@ -76,76 +75,6 @@ FlagsValueEditor::FlagsValueEditor(
     : FlagsValueEditor(std::move(stable_id)) {
     descriptor = std::move(initial_descriptor);
     value = std::move(initial_value);
-}
-
-// The form properties (stage FD6.3): none raises a change event of its own;
-// value_changed reports user commits only.
-void FlagsValueEditor::define_form_properties() {
-    PropertyDescriptor enumeration_name;
-    enumeration_name.name = "enumeration_name";
-    enumeration_name.kind = BindingValueKind::text;
-    enumeration_name.category = "Data";
-    enumeration_name.description = "The flags enumeration's name, which the value carries.";
-    enumeration_name.default_value = BindingValue{std::string{}};
-    enumeration_name.invalidation_effects = Dirty::semantics;
-    enumeration_name.bindable = false;
-    define_bindable_property({
-        std::move(enumeration_name),
-        detail::BoundMemberFunction<BindingValue (FlagsValueEditor::*)() const>(
-            *this, &FlagsValueEditor::enumeration_name_property),
-        detail::BoundMemberFunction<void (FlagsValueEditor::*)(const BindingValue&)>(
-            *this, &FlagsValueEditor::set_enumeration_name_property),
-        {}, {}, {}});
-
-    PropertyDescriptor flag_names;
-    flag_names.name = "flag_names";
-    flag_names.kind = BindingValueKind::collection;
-    flag_names.category = "Data";
-    flag_names.description = "The flags' names in order, each the next bit: 1, 2, 4 and so on.";
-    flag_names.default_value = text_collection({});
-    flag_names.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
-    flag_names.serialization_visibility = PropertySerializationVisibility::content;
-    flag_names.bindable = false;
-    define_bindable_property({
-        std::move(flag_names),
-        detail::BoundMemberFunction<BindingValue (FlagsValueEditor::*)() const>(
-            *this, &FlagsValueEditor::flag_names_property),
-        detail::BoundMemberFunction<void (FlagsValueEditor::*)(const BindingValue&)>(
-            *this, &FlagsValueEditor::set_flag_names_property),
-        {}, {}, {}});
-
-    PropertyDescriptor none_name;
-    none_name.name = "none_name";
-    none_name.kind = BindingValueKind::text;
-    none_name.category = "Data";
-    none_name.description = "The name of the value with no flag set; empty when it has none.";
-    none_name.default_value = BindingValue{std::string{}};
-    none_name.invalidation_effects = Dirty::paint | Dirty::semantics;
-    none_name.bindable = false;
-    define_bindable_property({
-        std::move(none_name),
-        detail::BoundMemberFunction<BindingValue (FlagsValueEditor::*)() const>(
-            *this, &FlagsValueEditor::none_name_property),
-        detail::BoundMemberFunction<void (FlagsValueEditor::*)(const BindingValue&)>(
-            *this, &FlagsValueEditor::set_none_name_property),
-        {}, {}, {}});
-
-    PropertyDescriptor checked_flags;
-    checked_flags.name = "checked_flags";
-    checked_flags.kind = BindingValueKind::collection;
-    checked_flags.category = "Data";
-    checked_flags.description = "The names of the flags the value sets, among flag_names.";
-    checked_flags.default_value = text_collection({});
-    checked_flags.invalidation_effects = Dirty::paint | Dirty::semantics;
-    checked_flags.serialization_visibility = PropertySerializationVisibility::content;
-    checked_flags.bindable = false;
-    define_bindable_property({
-        std::move(checked_flags),
-        detail::BoundMemberFunction<BindingValue (FlagsValueEditor::*)() const>(
-            *this, &FlagsValueEditor::checked_flags_property),
-        detail::BoundMemberFunction<void (FlagsValueEditor::*)(const BindingValue&)>(
-            *this, &FlagsValueEditor::set_checked_flags_property),
-        {}, {}, {}});
 }
 
 BindingValue FlagsValueEditor::enumeration_name_property() const {
@@ -745,7 +674,122 @@ void FlagsValueEditor::append_interactions(std::vector<InteractionDeclaration>& 
     interactions.insert(interactions.end(), flags_value_editor_interactions.begin(), flags_value_editor_interactions.end());
 }
 
+namespace {
+
+// The form properties (stage FD6.3), over descriptor and value: hand table
+// entries (flags_value_editor.json extra_entries). None raises a change
+// event of its own; value_changed reports user commits only.
+PropertyDescriptor flags_value_editor_enumeration_name_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "enumeration_name";
+    descriptor.kind = BindingValueKind::text;
+    descriptor.category = "Data";
+    descriptor.description = "The flags enumeration's name, which the value carries.";
+    descriptor.default_value = BindingValue{std::string{}};
+    descriptor.invalidation_effects = Dirty::semantics;
+    descriptor.bindable = false;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_flags_value_editor_enumeration_name() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        flags_value_editor_enumeration_name_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor flags_value_editor_flag_names_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "flag_names";
+    descriptor.kind = BindingValueKind::collection;
+    descriptor.category = "Data";
+    descriptor.description = "The flags' names in order, each the next bit: 1, 2, 4 and so on.";
+    descriptor.default_value = text_collection({});
+    descriptor.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
+    descriptor.serialization_visibility = PropertySerializationVisibility::content;
+    descriptor.bindable = false;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_flags_value_editor_flag_names() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        flags_value_editor_flag_names_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor flags_value_editor_none_name_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "none_name";
+    descriptor.kind = BindingValueKind::text;
+    descriptor.category = "Data";
+    descriptor.description = "The name of the value with no flag set; empty when it has none.";
+    descriptor.default_value = BindingValue{std::string{}};
+    descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_flags_value_editor_none_name() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        flags_value_editor_none_name_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor flags_value_editor_checked_flags_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "checked_flags";
+    descriptor.kind = BindingValueKind::collection;
+    descriptor.category = "Data";
+    descriptor.description = "The names of the flags the value sets, among flag_names.";
+    descriptor.default_value = text_collection({});
+    descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.serialization_visibility = PropertySerializationVisibility::content;
+    descriptor.bindable = false;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_flags_value_editor_checked_flags() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        flags_value_editor_checked_flags_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+} // namespace
+
 // property_codemod begin FlagsValueEditor (tools/property_families/flags_value_editor.json; generated, do not edit)
+
+const std::array<PropertyEntry, FlagsValueEditor::flags_value_editor_property_count>& FlagsValueEditor::flags_value_editor_property_entries() noexcept {
+    static constexpr std::array<PropertyEntry, 4U> own{{
+        {"enumeration_name", &describe_flags_value_editor_enumeration_name,
+         &read_member_entry<FlagsValueEditor, decltype(&FlagsValueEditor::enumeration_name_property), &FlagsValueEditor::enumeration_name_property>,
+         &write_member_entry<FlagsValueEditor, decltype(&FlagsValueEditor::set_enumeration_name_property), &FlagsValueEditor::set_enumeration_name_property>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"flag_names", &describe_flags_value_editor_flag_names,
+         &read_member_entry<FlagsValueEditor, decltype(&FlagsValueEditor::flag_names_property), &FlagsValueEditor::flag_names_property>,
+         &write_member_entry<FlagsValueEditor, decltype(&FlagsValueEditor::set_flag_names_property), &FlagsValueEditor::set_flag_names_property>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"none_name", &describe_flags_value_editor_none_name,
+         &read_member_entry<FlagsValueEditor, decltype(&FlagsValueEditor::none_name_property), &FlagsValueEditor::none_name_property>,
+         &write_member_entry<FlagsValueEditor, decltype(&FlagsValueEditor::set_none_name_property), &FlagsValueEditor::set_none_name_property>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"checked_flags", &describe_flags_value_editor_checked_flags,
+         &read_member_entry<FlagsValueEditor, decltype(&FlagsValueEditor::checked_flags_property), &FlagsValueEditor::checked_flags_property>,
+         &write_member_entry<FlagsValueEditor, decltype(&FlagsValueEditor::set_checked_flags_property), &FlagsValueEditor::set_checked_flags_property>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+    }};
+    static_assert(property_names_distinct(own), "FlagsValueEditor's property table names a property twice");
+    static const std::array<PropertyEntry, flags_value_editor_property_count> entries =
+        join_property_tables(Panel::panel_property_entries(), own);
+    return entries;
+}
+
+std::span<const PropertyEntry> FlagsValueEditor::property_table() const noexcept {
+    const std::array<PropertyEntry, flags_value_editor_property_count>& entries = flags_value_editor_property_entries();
+    return std::span<const PropertyEntry>(entries);
+}
 
 // property_codemod end FlagsValueEditor
 

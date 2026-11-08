@@ -89,18 +89,18 @@ void test_choices_and_sections(gui_forms::Window& window) {
 
     // Three Value<bool>s: section headers and the GroupBox toggles share them.
     require((*sections).expanded(0) && !(*sections).expanded(1) &&
-                (*checklist_toggle).checked() && !(*notes_toggle).checked(),
+                (*checklist_toggle).checked.read() && !(*notes_toggle).checked.read(),
             "section expansion and the bound toggles must start from the same models");
     click(window, window.find("gallery.choices.sections.header.2"));
-    require((*sections).expanded(1) && (*notes_toggle).checked() &&
+    require((*sections).expanded(1) && (*notes_toggle).checked.read() &&
                 (*std::dynamic_pointer_cast<Label>(window.find("gallery.choices.sections-status")))
                         .text.read().find("Notes open") != std::string::npos,
             "clicking a section header must open it and check the bound toggle");
     click(window, notes_toggle);
-    require(!(*sections).expanded(1) && !(*notes_toggle).checked(),
+    require(!(*sections).expanded(1) && !(*notes_toggle).checked.read(),
             "unchecking the bound toggle must collapse the section through the Value");
     click(window, checklist_toggle);
-    require(!(*sections).expanded(0) && !(*checklist_toggle).checked() &&
+    require(!(*sections).expanded(0) && !(*checklist_toggle).checked.read() &&
                 !(*window.find("gallery.choices.sections.checklist")).visible.read(),
             "collapsing through the toggle must hide the retained section body");
 

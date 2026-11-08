@@ -348,5 +348,9 @@
   "test": {
     "type": "ComboBox",
     "include": "gui_forms/controls/panel/combo_box/combo_box.hpp"
-  }
+  },
+  "extra_entries": [
+    "{\"items\", &describe_combo_box_items,\n         &read_member_entry<ComboBox, decltype(&ComboBox::items_property_value), &ComboBox::items_property_value>,\n         &write_member_entry<ComboBox, decltype(&ComboBox::set_items_property), &ComboBox::set_items_property>,\n         &reset_member_entry<ComboBox, decltype(&ComboBox::reset_items_property), &ComboBox::reset_items_property>, &should_serialize_member_entry<ComboBox, decltype(&ComboBox::should_serialize_items_property), &ComboBox::should_serialize_items_property>, nullptr,\n         &connect_event_entry<ComboBox, decltype(&ComboBox::items_changed_), &ComboBox::items_changed_>}",
+    "{\"selected_index\", &describe_combo_box_selected_index,\n         &read_member_entry<ComboBox, decltype(&ComboBox::selected_index_property_value), &ComboBox::selected_index_property_value>,\n         &write_member_entry<ComboBox, decltype(&ComboBox::set_selected_index_property), &ComboBox::set_selected_index_property>,\n         nullptr, nullptr, nullptr,\n         &connect_event_entry<ComboBox, decltype(&ComboBox::selected_index_changed_), &ComboBox::selected_index_changed_>}"
+  ]
 }

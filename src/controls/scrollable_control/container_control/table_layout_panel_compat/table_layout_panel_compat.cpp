@@ -1,8 +1,7 @@
 #include "gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "../container_layout_utilities.hpp"
 #include "../text_collection_property.hpp"
-#include "gui_forms/detail/bound_member_function.hpp"
-#include "gui_forms/detail/property_binding_adapters.hpp"
 #include "../../scrollable_anatomy.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 
@@ -340,91 +339,8 @@ double TableLayoutPanelCompat::resolve_tracks(
     return desired;
 }
 
-
 TableLayoutPanelCompat::TableLayoutPanelCompat(StableId stable_id)
-    : ContainerControl(std::move(stable_id)) {
-    register_panel_properties();
-}
-
-void TableLayoutPanelCompat::register_panel_properties() {
-    PropertyDescriptor column_count_descriptor{"column_count", BindingValueKind::unsigned_integer, "Layout",
-                                               "The number of authored column tracks, 1 through 64.",
-                                               BindingValue{std::uint64_t{1U}}, invalidation::bounds};
-    column_count_descriptor.bindable = false;
-    define_bindable_property({std::move(column_count_descriptor),
-                              detail::BoundMemberFunction<BindingValue (TableLayoutPanelCompat::*)() const>(
-                                  *this, &TableLayoutPanelCompat::column_count_property),
-                              detail::BoundMemberFunction<void (TableLayoutPanelCompat::*)(const BindingValue&)>(
-                                  *this, &TableLayoutPanelCompat::set_column_count_property),
-                              {}, {}, {}});
-    PropertyDescriptor row_count_descriptor{"row_count", BindingValueKind::unsigned_integer, "Layout",
-                                            "The number of authored row tracks, 1 through 64.",
-                                            BindingValue{std::uint64_t{1U}}, invalidation::bounds};
-    row_count_descriptor.bindable = false;
-    define_bindable_property({std::move(row_count_descriptor),
-                              detail::BoundMemberFunction<BindingValue (TableLayoutPanelCompat::*)() const>(
-                                  *this, &TableLayoutPanelCompat::row_count_property),
-                              detail::BoundMemberFunction<void (TableLayoutPanelCompat::*)(const BindingValue&)>(
-                                  *this, &TableLayoutPanelCompat::set_row_count_property),
-                              {}, {}, {}});
-    PropertyDescriptor grow_descriptor{"grow_style", BindingValueKind::enumeration, "Layout",
-                                       "What a child that does not fit the authored grid does: add rows, add "
-                                       "columns, or stay out (fixed size).",
-                                       std::nullopt, invalidation::bounds};
-    grow_descriptor.bindable = false;
-    grow_descriptor.enumeration = grow_style_enum();
-    grow_descriptor.default_value = BindingValue{std::int64_t{1}};
-    define_bindable_property({std::move(grow_descriptor),
-                              detail::EnumerationPropertyGetter<TableLayoutPanelCompat, TableLayoutGrowStyle>(
-                                  *this, &TableLayoutPanelCompat::grow_style, grow_style_enum()),
-                              detail::EnumerationPropertySetter<TableLayoutPanelCompat, TableLayoutGrowStyle>(
-                                  *this, &TableLayoutPanelCompat::set_grow_style),
-                              {}, {}, {}});
-    PropertyDescriptor border_descriptor{"cell_border_style", BindingValueKind::enumeration, "Appearance",
-                                         "The lines around and between the cells: none, single, inset or outset.",
-                                         std::nullopt, Dirty::paint};
-    border_descriptor.bindable = false;
-    border_descriptor.enumeration = cell_border_style_enum();
-    border_descriptor.default_value = BindingValue{std::int64_t{0}};
-    define_bindable_property({std::move(border_descriptor),
-                              detail::EnumerationPropertyGetter<TableLayoutPanelCompat, TableCellBorderStyle>(
-                                  *this, &TableLayoutPanelCompat::cell_border_style, cell_border_style_enum()),
-                              detail::EnumerationPropertySetter<TableLayoutPanelCompat, TableCellBorderStyle>(
-                                  *this, &TableLayoutPanelCompat::set_cell_border_style),
-                              {}, {}, {}});
-    PropertyDescriptor spacing_descriptor{"track_spacing", BindingValueKind::size, "Layout",
-                                          "The space between neighbouring columns (width) and rows (height).",
-                                          BindingValue{Size{}}, invalidation::bounds};
-    spacing_descriptor.bindable = false;
-    define_bindable_property({std::move(spacing_descriptor),
-                              detail::BindingNoexceptMethodGetter<TableLayoutPanelCompat, Size>(
-                                  *this, &TableLayoutPanelCompat::track_spacing),
-                              detail::DirectPropertySetter<TableLayoutPanelCompat, Size>(
-                                  *this, &TableLayoutPanelCompat::set_track_spacing),
-                              {}, {}, {}});
-    const std::array<std::string, 1U> automatic{std::string{"auto"}};
-    PropertyDescriptor column_styles_descriptor{"column_styles", BindingValueKind::collection, "Layout",
-                                                "Each column's sizing, one item per column: \"absolute 140\", "
-                                                "\"percent 1\" or \"auto\"; the count follows.",
-                                                text_collection_property::value_of(automatic), invalidation::bounds};
-    column_styles_descriptor.bindable = false;
-    define_bindable_property({std::move(column_styles_descriptor),
-                              detail::BoundMemberFunction<BindingValue (TableLayoutPanelCompat::*)() const>(
-                                  *this, &TableLayoutPanelCompat::column_styles_property),
-                              detail::BoundMemberFunction<void (TableLayoutPanelCompat::*)(const BindingValue&)>(
-                                  *this, &TableLayoutPanelCompat::set_column_styles_property),
-                              {}, {}, {}});
-    PropertyDescriptor row_styles_descriptor{"row_styles", BindingValueKind::collection, "Layout",
-                                             "Each row's sizing, one item per row, as column_styles.",
-                                             text_collection_property::value_of(automatic), invalidation::bounds};
-    row_styles_descriptor.bindable = false;
-    define_bindable_property({std::move(row_styles_descriptor),
-                              detail::BoundMemberFunction<BindingValue (TableLayoutPanelCompat::*)() const>(
-                                  *this, &TableLayoutPanelCompat::row_styles_property),
-                              detail::BoundMemberFunction<void (TableLayoutPanelCompat::*)(const BindingValue&)>(
-                                  *this, &TableLayoutPanelCompat::set_row_styles_property),
-                              {}, {}, {}});
-}
+    : ContainerControl(std::move(stable_id)) {}
 
 BindingValue TableLayoutPanelCompat::column_count_property() const {
     return BindingValue{std::uint64_t{column_count_}};
@@ -531,33 +447,6 @@ void TableLayoutPanelCompat::set_row_count(std::size_t count) {
     if (row_count_ == count) return;
     row_count_ = count;
     row_styles_.resize(count);
-    invalidate(invalidation::bounds);
-}
-
-void TableLayoutPanelCompat::set_grow_style(TableLayoutGrowStyle style) {
-    require_mutable();
-    if (grow_style_ == style) return;
-    grow_style_ = style;
-    invalidate(invalidation::bounds);
-}
-
-void TableLayoutPanelCompat::set_cell_border_style(TableCellBorderStyle style) {
-    require_mutable();
-    if (cell_border_style_ == style) return;
-    cell_border_style_ = style;
-    invalidate(Dirty::paint | Dirty::semantics | Dirty::accessibility);
-}
-
-void TableLayoutPanelCompat::set_track_spacing(Size spacing) {
-    require_mutable();
-    if (!std::isfinite(spacing.width) || !std::isfinite(spacing.height) ||
-        spacing.width < 0.0 || spacing.height < 0.0 ||
-        spacing.width > 256.0 || spacing.height > 256.0) {
-        throw std::invalid_argument(
-            "TableLayoutPanelCompat track spacing must be finite and between zero and 256");
-    }
-    if (track_spacing_ == spacing) return;
-    track_spacing_ = spacing;
     invalidate(invalidation::bounds);
 }
 
@@ -779,7 +668,7 @@ void TableLayoutPanelCompat::place_items(Workspace& workspace) {
         const GridSpan* span = anchored_span((*found).second);
         const std::size_t column_span = span == nullptr ? 1U : (*span).columns;
         const std::size_t row_span = span == nullptr ? 1U : (*span).rows;
-        if (!grow_to_fit(columns, rows, position, column_span, row_span, grow_style_) ||
+        if (!grow_to_fit(columns, rows, position, column_span, row_span, grow_style.read()) ||
             !region_free(occupied, columns, rows, position.column, position.row, column_span, row_span)) {
             workspace.overflow.push_back(child);
             continue;
@@ -803,9 +692,9 @@ void TableLayoutPanelCompat::place_items(Workspace& workspace) {
                 }
             }
             if (position) break;
-            if (grow_style_ == TableLayoutGrowStyle::add_rows && rows < maximum_layout_tracks) {
+            if (grow_style.read() == TableLayoutGrowStyle::add_rows && rows < maximum_layout_tracks) {
                 ++rows;
-            } else if (grow_style_ == TableLayoutGrowStyle::add_columns && columns < maximum_layout_tracks) {
+            } else if (grow_style.read() == TableLayoutGrowStyle::add_columns && columns < maximum_layout_tracks) {
                 ++columns;
             } else {
                 break;
@@ -866,9 +755,9 @@ Size TableLayoutPanelCompat::layout_pass(Size available, bool assign, Workspace&
     row_styles.assign(row_styles_.begin(), row_styles_.end());
     column_styles.resize(columns);
     row_styles.resize(rows);
-    const double horizontal_spacing = track_spacing_.width *
+    const double horizontal_spacing = track_spacing.read().width *
         static_cast<double>(columns > 0U ? columns - 1U : 0U);
-    const double vertical_spacing = track_spacing_.height *
+    const double vertical_spacing = track_spacing.read().height *
         static_cast<double>(rows > 0U ? rows - 1U : 0U);
     std::vector<double>& column_minimum = workspace.column_minimum;
     std::vector<double>& row_minimum = workspace.row_minimum;
@@ -892,14 +781,14 @@ Size TableLayoutPanelCompat::layout_pass(Size available, bool assign, Workspace&
         if (item.column_span == 1U && column_styles[item.position.column].size_mode != TableSizeMode::absolute) {
             column_minimum[item.position.column] = std::max(column_minimum[item.position.column], required_width);
         } else if (item.column_span > 1U) {
-            const double spacing = track_spacing_.width * static_cast<double>(item.column_span - 1U);
+            const double spacing = track_spacing.read().width * static_cast<double>(item.column_span - 1U);
             workspace.column_spans.push_back(
                 TrackDemand{item.position.column, item.column_span, std::max(0.0, required_width - spacing)});
         }
         if (item.row_span == 1U && row_styles[item.position.row].size_mode != TableSizeMode::absolute) {
             row_minimum[item.position.row] = std::max(row_minimum[item.position.row], required_height);
         } else if (item.row_span > 1U) {
-            const double spacing = track_spacing_.height * static_cast<double>(item.row_span - 1U);
+            const double spacing = track_spacing.read().height * static_cast<double>(item.row_span - 1U);
             workspace.row_spans.push_back(
                 TrackDemand{item.position.row, item.row_span, std::max(0.0, required_height - spacing)});
         }
@@ -919,11 +808,11 @@ Size TableLayoutPanelCompat::layout_pass(Size available, bool assign, Workspace&
     row_offsets.assign(rows + 1U, 0.0);
     for (std::size_t index = 0U; index < columns; ++index) {
         column_offsets[index + 1U] = column_offsets[index] + column_actual[index] +
-                                     (index + 1U < columns ? track_spacing_.width : 0.0);
+                                     (index + 1U < columns ? track_spacing.read().width : 0.0);
     }
     for (std::size_t index = 0U; index < rows; ++index) {
         row_offsets[index + 1U] = row_offsets[index] + row_actual[index] +
-                                  (index + 1U < rows ? track_spacing_.height : 0.0);
+                                  (index + 1U < rows ? track_spacing.read().height : 0.0);
     }
     // Right to left mirrors each placed rectangle about the panel, once, at
     // output: x becomes the width less the logical right edge.
@@ -948,9 +837,9 @@ Size TableLayoutPanelCompat::layout_pass(Size available, bool assign, Workspace&
         const std::size_t column_end = item.position.column + item.column_span;
         const std::size_t row_end = item.position.row + item.row_span;
         const double cell_width = column_offsets[column_end] - column_offsets[item.position.column] -
-                                  (column_end < columns ? track_spacing_.width : 0.0);
+                                  (column_end < columns ? track_spacing.read().width : 0.0);
         const double cell_height = row_offsets[row_end] - row_offsets[item.position.row] -
-                                   (row_end < rows ? track_spacing_.height : 0.0);
+                                   (row_end < rows ? track_spacing.read().height : 0.0);
         const double available_width = std::max(0.0, cell_width - horizontal_extent(item.margin));
         const double available_height = std::max(0.0, cell_height - vertical_extent(item.margin));
         const double cell_x = inset.left + column_offsets[item.position.column] + item.margin.left;
@@ -1023,17 +912,17 @@ void TableLayoutPanelCompat::arrange(Rect final_bounds) {
 }
 
 void TableLayoutPanelCompat::on_paint(Painter& painter, Rect) {
-    if (cell_border_style_ == TableCellBorderStyle::none ||
+    if (cell_border_style.read() == TableCellBorderStyle::none ||
         column_widths_.empty() || row_heights_.empty()) {
         return;
     }
     const Insets inset = padding.read();
     const double width = std::accumulate(column_widths_.begin(),
                                          column_widths_.end(), 0.0) +
-        track_spacing_.width * static_cast<double>(column_widths_.size() - 1U);
+        track_spacing.read().width * static_cast<double>(column_widths_.size() - 1U);
     const double height = std::accumulate(row_heights_.begin(),
                                           row_heights_.end(), 0.0) +
-        track_spacing_.height * static_cast<double>(row_heights_.size() - 1U);
+        track_spacing.read().height * static_cast<double>(row_heights_.size() - 1U);
     // The grid starts at its left edge (the right padding less its width,
     // right to left), its columns in painted order.
     Insets origin = inset;
@@ -1047,18 +936,18 @@ void TableLayoutPanelCompat::on_paint(Painter& painter, Rect) {
     keyline.role = PartRole::keyline;
     PartPaint seam = keyline;
     seam.role = PartRole::seam;
-    if (cell_border_style_ == TableCellBorderStyle::single) {
-        draw_table_grid(painter, *this, columns, row_heights_, origin, track_spacing_,
+    if (cell_border_style.read() == TableCellBorderStyle::single) {
+        draw_table_grid(painter, *this, columns, row_heights_, origin, track_spacing.read(),
                         width, height, keyline, 0.0);
-    } else if (cell_border_style_ == TableCellBorderStyle::inset) {
-        draw_table_grid(painter, *this, columns, row_heights_, origin, track_spacing_,
+    } else if (cell_border_style.read() == TableCellBorderStyle::inset) {
+        draw_table_grid(painter, *this, columns, row_heights_, origin, track_spacing.read(),
                         width, height, keyline, 0.0);
-        draw_table_grid(painter, *this, columns, row_heights_, origin, track_spacing_,
+        draw_table_grid(painter, *this, columns, row_heights_, origin, track_spacing.read(),
                         width, height, seam, 1.0);
     } else {
-        draw_table_grid(painter, *this, columns, row_heights_, origin, track_spacing_,
+        draw_table_grid(painter, *this, columns, row_heights_, origin, track_spacing.read(),
                         width, height, seam, 0.0);
-        draw_table_grid(painter, *this, columns, row_heights_, origin, track_spacing_,
+        draw_table_grid(painter, *this, columns, row_heights_, origin, track_spacing.read(),
                         width, height, keyline, 1.0);
     }
 }
@@ -1071,7 +960,6 @@ SemanticDescriptor TableLayoutPanelCompat::semantic_descriptor() const {
     descriptor.exposed = !descriptor.name.empty() || !descriptor.description.empty();
     return descriptor;
 }
-
 
 namespace {
 
@@ -1100,17 +988,17 @@ const ControlAnatomy& TableLayoutPanelCompat::anatomy() const noexcept {
 void TableLayoutPanelCompat::publish_part_geometry(std::span<PartGeometry> geometry) const {
     Parts record;
     record.scrollable = scrollable_parts();
-    if (cell_border_style_ != TableCellBorderStyle::none &&
+    if (cell_border_style.read() != TableCellBorderStyle::none &&
         !column_widths_.empty() && !row_heights_.empty()) {
         // The extent on_paint rules: every track and the spacing between
         // them, from the padding origin.
         const Insets inset = padding.read();
         const double width = std::accumulate(column_widths_.begin(),
                                              column_widths_.end(), 0.0) +
-            track_spacing_.width * static_cast<double>(column_widths_.size() - 1U);
+            track_spacing.read().width * static_cast<double>(column_widths_.size() - 1U);
         const double height = std::accumulate(row_heights_.begin(),
                                               row_heights_.end(), 0.0) +
-            track_spacing_.height * static_cast<double>(row_heights_.size() - 1U);
+            track_spacing.read().height * static_cast<double>(row_heights_.size() - 1U);
         const Rect grid{grid_left_, inset.top, width, height};
         record.cell_grid = PartGeometry::from_bounds(grid);
     }
@@ -1126,5 +1014,262 @@ TableLayoutPanelCompat::Parts TableLayoutPanelCompat::parts() const {
     read_parts(anatomy(), table_layout_panel_compat_extra_fields, published.parts(), record);
     return record;
 }
+
+namespace {
+
+// The track counts and styles, whose writes resize the grid together: hand
+// table entries (table_layout_panel_compat.json extra_entries).
+PropertyDescriptor table_layout_panel_compat_column_count_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "column_count";
+    descriptor.kind = BindingValueKind::unsigned_integer;
+    descriptor.category = "Layout";
+    descriptor.description = "The number of authored column tracks, 1 through 64.";
+    descriptor.default_value = BindingValue{std::uint64_t{1U}};
+    descriptor.invalidation_effects = invalidation::bounds;
+    descriptor.bindable = false;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_table_layout_panel_compat_column_count() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        table_layout_panel_compat_column_count_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor table_layout_panel_compat_row_count_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "row_count";
+    descriptor.kind = BindingValueKind::unsigned_integer;
+    descriptor.category = "Layout";
+    descriptor.description = "The number of authored row tracks, 1 through 64.";
+    descriptor.default_value = BindingValue{std::uint64_t{1U}};
+    descriptor.invalidation_effects = invalidation::bounds;
+    descriptor.bindable = false;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_table_layout_panel_compat_row_count() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        table_layout_panel_compat_row_count_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor table_layout_panel_compat_column_styles_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "column_styles";
+    descriptor.kind = BindingValueKind::collection;
+    descriptor.category = "Layout";
+    descriptor.description = "Each column's sizing, one item per column: \"absolute 140\", \"percent 1\" or \"auto\"; the count follows.";
+    descriptor.default_value = text_collection_property::value_of(std::array<std::string, 1U>{std::string{"auto"}});
+    descriptor.invalidation_effects = invalidation::bounds;
+    descriptor.bindable = false;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_table_layout_panel_compat_column_styles() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        table_layout_panel_compat_column_styles_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor table_layout_panel_compat_row_styles_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "row_styles";
+    descriptor.kind = BindingValueKind::collection;
+    descriptor.category = "Layout";
+    descriptor.description = "Each row's sizing, one item per row, as column_styles.";
+    descriptor.default_value = text_collection_property::value_of(std::array<std::string, 1U>{std::string{"auto"}});
+    descriptor.invalidation_effects = invalidation::bounds;
+    descriptor.bindable = false;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_table_layout_panel_compat_row_styles() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        table_layout_panel_compat_row_styles_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+} // namespace
+
+// property_codemod begin TableLayoutPanelCompat (tools/property_families/table_layout_panel_compat.json; generated, do not edit)
+
+namespace {
+
+PropertyDescriptor table_layout_panel_compat_grow_style_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "grow_style";
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.category = "Layout";
+    descriptor.description = "What a child that does not fit the authored grid does: add rows, add columns, or stay out (fixed size).";
+    descriptor.default_value = BindingValue{std::int64_t{1}};
+    descriptor.invalidation_effects = invalidation::bounds;
+    descriptor.bindable = false;
+    descriptor.enumeration = grow_style_enum();
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_table_layout_panel_compat_grow_style() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        table_layout_panel_compat_grow_style_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor table_layout_panel_compat_cell_border_style_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "cell_border_style";
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.category = "Appearance";
+    descriptor.description = "The lines around and between the cells: none, single, inset or outset.";
+    descriptor.default_value = BindingValue{std::int64_t{0}};
+    descriptor.invalidation_effects = Dirty::paint;
+    descriptor.bindable = false;
+    descriptor.enumeration = cell_border_style_enum();
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_table_layout_panel_compat_cell_border_style() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        table_layout_panel_compat_cell_border_style_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor table_layout_panel_compat_track_spacing_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "track_spacing";
+    descriptor.kind = BindingValueKind::size;
+    descriptor.category = "Layout";
+    descriptor.description = "The space between neighbouring columns (width) and rows (height).";
+    descriptor.default_value = BindingValue{Size{}};
+    descriptor.invalidation_effects = invalidation::bounds;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_table_layout_panel_compat_track_spacing() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        table_layout_panel_compat_track_spacing_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+} // namespace
+
+PropertyType PropertyValueTraits<TableLayoutGrowStyle>::type() {
+    return PropertyType{BindingValueKind::enumeration, false, grow_style_enum()};
+}
+
+BindingValue PropertyValueTraits<TableLayoutGrowStyle>::to_binding(TableLayoutGrowStyle value) {
+    PropertyDescriptor descriptor;
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.enumeration = grow_style_enum();
+    const std::optional<BindingValue> converted =
+        convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
+    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    return *converted;
+}
+
+TableLayoutGrowStyle PropertyValueTraits<TableLayoutGrowStyle>::from_binding(const BindingValue& value) {
+    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
+    return static_cast<TableLayoutGrowStyle>(choice.value);
+}
+
+PropertyType PropertyValueTraits<TableCellBorderStyle>::type() {
+    return PropertyType{BindingValueKind::enumeration, false, cell_border_style_enum()};
+}
+
+BindingValue PropertyValueTraits<TableCellBorderStyle>::to_binding(TableCellBorderStyle value) {
+    PropertyDescriptor descriptor;
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.enumeration = cell_border_style_enum();
+    const std::optional<BindingValue> converted =
+        convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
+    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    return *converted;
+}
+
+TableCellBorderStyle PropertyValueTraits<TableCellBorderStyle>::from_binding(const BindingValue& value) {
+    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
+    return static_cast<TableCellBorderStyle>(choice.value);
+}
+
+const std::array<PropertyEntry, TableLayoutPanelCompat::table_layout_panel_compat_property_count>& TableLayoutPanelCompat::table_layout_panel_compat_property_entries() noexcept {
+    static constexpr std::array<PropertyEntry, 7U> own{{
+        {"grow_style", &describe_table_layout_panel_compat_grow_style,
+         &read_cell_entry<TableLayoutPanelCompat, decltype(&TableLayoutPanelCompat::grow_style), &TableLayoutPanelCompat::grow_style>,
+         &write_cell_entry<TableLayoutPanelCompat, decltype(&TableLayoutPanelCompat::grow_style), &TableLayoutPanelCompat::grow_style>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"cell_border_style", &describe_table_layout_panel_compat_cell_border_style,
+         &read_cell_entry<TableLayoutPanelCompat, decltype(&TableLayoutPanelCompat::cell_border_style), &TableLayoutPanelCompat::cell_border_style>,
+         &write_cell_entry<TableLayoutPanelCompat, decltype(&TableLayoutPanelCompat::cell_border_style), &TableLayoutPanelCompat::cell_border_style>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"track_spacing", &describe_table_layout_panel_compat_track_spacing,
+         &read_cell_entry<TableLayoutPanelCompat, decltype(&TableLayoutPanelCompat::track_spacing), &TableLayoutPanelCompat::track_spacing>,
+         &write_cell_entry<TableLayoutPanelCompat, decltype(&TableLayoutPanelCompat::track_spacing), &TableLayoutPanelCompat::track_spacing>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"column_count", &describe_table_layout_panel_compat_column_count,
+         &read_member_entry<TableLayoutPanelCompat, decltype(&TableLayoutPanelCompat::column_count_property), &TableLayoutPanelCompat::column_count_property>,
+         &write_member_entry<TableLayoutPanelCompat, decltype(&TableLayoutPanelCompat::set_column_count_property), &TableLayoutPanelCompat::set_column_count_property>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"row_count", &describe_table_layout_panel_compat_row_count,
+         &read_member_entry<TableLayoutPanelCompat, decltype(&TableLayoutPanelCompat::row_count_property), &TableLayoutPanelCompat::row_count_property>,
+         &write_member_entry<TableLayoutPanelCompat, decltype(&TableLayoutPanelCompat::set_row_count_property), &TableLayoutPanelCompat::set_row_count_property>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"column_styles", &describe_table_layout_panel_compat_column_styles,
+         &read_member_entry<TableLayoutPanelCompat, decltype(&TableLayoutPanelCompat::column_styles_property), &TableLayoutPanelCompat::column_styles_property>,
+         &write_member_entry<TableLayoutPanelCompat, decltype(&TableLayoutPanelCompat::set_column_styles_property), &TableLayoutPanelCompat::set_column_styles_property>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"row_styles", &describe_table_layout_panel_compat_row_styles,
+         &read_member_entry<TableLayoutPanelCompat, decltype(&TableLayoutPanelCompat::row_styles_property), &TableLayoutPanelCompat::row_styles_property>,
+         &write_member_entry<TableLayoutPanelCompat, decltype(&TableLayoutPanelCompat::set_row_styles_property), &TableLayoutPanelCompat::set_row_styles_property>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+    }};
+    static_assert(property_names_distinct(own), "TableLayoutPanelCompat's property table names a property twice");
+    static const std::array<PropertyEntry, table_layout_panel_compat_property_count> entries =
+        join_property_tables(Control::control_property_entries(), own);
+    return entries;
+}
+
+std::span<const PropertyEntry> TableLayoutPanelCompat::property_table() const noexcept {
+    const std::array<PropertyEntry, table_layout_panel_compat_property_count>& entries = table_layout_panel_compat_property_entries();
+    return std::span<const PropertyEntry>(entries);
+}
+
+void TableLayoutPanelCompat::prepare_write(const decltype(grow_style)&, TableLayoutGrowStyle&) {
+    require_mutable();
+}
+
+void TableLayoutPanelCompat::written(const decltype(grow_style)&) {
+    invalidate(invalidation::bounds);
+}
+
+void TableLayoutPanelCompat::prepare_write(const decltype(cell_border_style)&, TableCellBorderStyle&) {
+    require_mutable();
+}
+
+void TableLayoutPanelCompat::written(const decltype(cell_border_style)&) {
+    invalidate(Dirty::paint | Dirty::semantics | Dirty::accessibility);
+}
+
+void TableLayoutPanelCompat::prepare_write(const decltype(track_spacing)&, Size& incoming) {
+    require_mutable();
+    if (!std::isfinite(incoming.width) || !std::isfinite(incoming.height) || incoming.width < 0.0 || incoming.height < 0.0 || incoming.width > 256.0 || incoming.height > 256.0) throw std::invalid_argument("TableLayoutPanelCompat track spacing must be finite and between zero and 256");
+}
+
+void TableLayoutPanelCompat::written(const decltype(track_spacing)&) {
+    invalidate(invalidation::bounds);
+}
+
+// property_codemod end TableLayoutPanelCompat
 
 } // namespace gui_forms

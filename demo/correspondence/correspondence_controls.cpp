@@ -286,7 +286,7 @@ void CorrespondenceShell::build_command_row() {
         Button& button = (*bar_).item(index);
         button.set_style(correspondence_style());
         button.font = chrome_font;
-        button.set_visual_style(ButtonVisualStyle::command);
+        button.visual_style = ButtonVisualStyle::command;
     }
 }
 

@@ -75,7 +75,7 @@ PROPERTY_KEYS = {
 TOP_KEYS = {
     "family", "declaring", "header", "source", "capabilities_header", "properties", "step", "shared",
     "not_properties", "base", "includes", "table_source", "test", "shared_header", "mutation_check",
-    "overrides",
+    "overrides", "extra_entries",
 }
 TABLE_KEYS = {
     "kind", "category", "description", "default", "effects", "subtree", "bindable", "browsable", "nullable",
@@ -622,12 +622,13 @@ def header_block(config):
     family = config["family"]
     base = config.get("base", "Control")
     own = table_properties(config)
+    extra = config.get("extra_entries") or []
     lines = [f"    {BEGIN}{family} ({config['_path']}; generated, do not edit)"]
-    if config.get("table_source") != "hand" and own:
+    if config.get("table_source") != "hand" and (own or extra):
         count = f"{snake(declaring)}_property_count"
         lines += ["public:",
                   f"    // {declaring}'s property table: {base}'s entries, then its own.",
-                  f"    static constexpr std::size_t {count} = {base}::{snake(base)}_property_count + {len(own)}U;",
+                  f"    static constexpr std::size_t {count} = {base}::{snake(base)}_property_count + {len(own) + len(extra)}U;",
                   f"    [[nodiscard]] static const std::array<PropertyEntry, {count}>& "
                   f"{snake(declaring)}_property_entries() noexcept;",
                   "    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;",
@@ -644,6 +645,13 @@ def header_block(config):
                   "    // change event; an override calls the base. coerce_<property> runs last",
                   "    // before the compare and may rewrite the incoming value.",
                   *virtuals, ""]
+    if not config["properties"]:
+        # A family of hand entries only (extra_entries) has no cells, so no
+        # capabilities, friends or hooks.
+        if lines[-1] == "":
+            lines.pop()
+        lines.append(f"    {END}{family}")
+        return "\n".join(lines) + "\n"
     lines.append("private:")
     for prop in config["properties"]:
         lines.append(f"    friend struct {capability_struct(prop)}<{declaring}>;")
@@ -697,11 +705,13 @@ def delete_members(text, config, body_open, body_close, report):
 def generate_header(config, report):
     path = pathlib.Path(config["header"])
     text = path.read_text(encoding="utf-8").replace("\r\n", "\n")
-    capabilities_include = config["capabilities_header"][len("include/"):]
-    text = add_include(text, capabilities_include)
+    cells = bool(config["properties"])
+    if cells:
+        capabilities_include = config["capabilities_header"][len("include/"):]
+        text = add_include(text, capabilities_include)
     bundle = f"{config['family']}Capabilities<{config['declaring']}>"
     head, body_open, body_close = class_body(text, config["declaring"])
-    if bundle not in head.group(0):
+    if cells and bundle not in head.group(0):
         head_text = head.group(0)
         if ":" in head_text:
             new_head = head_text[:-1].rstrip() + f", public {bundle} {{"
@@ -907,9 +917,15 @@ def source_block(config):
             out += descriptor_function(config, prop)
         out += "} // namespace\n\n"
     out += enum_traits_definitions(config)
-    if config.get("table_source") != "hand" and own:
+    extra = config.get("extra_entries") or []
+    if config.get("table_source") != "hand" and (own or extra):
         count = f"{snake(declaring)}_property_count"
-        entries = "\n".join(entry_text(config, prop) for prop in own)
+        # Hand-written entries for properties whose storage is not a cell of
+        # this family (a base class's cell this class alone publishes, or a
+        # compound value): their descriptors and operations are written by
+        # hand beside the generated block.
+        entries = "\n".join([entry_text(config, prop) for prop in own] +
+                            ["        " + entry + "," for entry in extra])
         base_entries = f"{base}::{snake(base)}_property_entries()"
         overrides = config.get("overrides") or []
         refined = ""
@@ -922,7 +938,7 @@ def source_block(config):
                        f"{listed}\n    }}}};\n")
             base_entries = f"override_property_entries({base_entries}, overrides)"
         out += f"""const std::array<PropertyEntry, {declaring}::{count}>& {declaring}::{snake(declaring)}_property_entries() noexcept {{
-{refined}    static constexpr std::array<PropertyEntry, {len(own)}U> own{{{{
+{refined}    static constexpr std::array<PropertyEntry, {len(own) + len(extra)}U> own{{{{
 {entries}
     }}}};
     static_assert(property_names_distinct(own), "{declaring}'s property table names a property twice");
@@ -1035,10 +1051,11 @@ def command_generate(arguments):
         path.write_bytes(shared_header(config).encode("utf-8"))
         print(f"wrote {path}")
         return 0
-    header_path = pathlib.Path(config["capabilities_header"])
-    header_path.parent.mkdir(parents=True, exist_ok=True)
-    header_path.write_bytes(capabilities_header(config).encode("utf-8"))
-    report.append(f"wrote {header_path}")
+    if config["properties"]:
+        header_path = pathlib.Path(config["capabilities_header"])
+        header_path.parent.mkdir(parents=True, exist_ok=True)
+        header_path.write_bytes(capabilities_header(config).encode("utf-8"))
+        report.append(f"wrote {header_path}")
     if config.get("table_source") != "hand" or any(p.get("hooks") == "generated" for p in config["properties"]):
         generate_header(config, report)
         generate_source(config, report)
@@ -1363,11 +1380,20 @@ def test_function(config):
                       f"        expect(raises == 1, \"{label}: an equal write raises nothing\");",
                       "        static_cast<void>(token);"]
         table = prop.get("table")
-        if table is not None and not table.get("registry"):
+        if table is not None and not table.get("registry") and (prop.get("thunks") or {}).get("read"):
+            # A read thunk gives the table its own form of the value (seconds
+            # for a duration, null for none), not the cell's traits form.
+            lines += [f"        expect((*control).property_value(\"{member}\").has_value(), \"{label}: the table reads it\");"]
+        elif table is not None and not table.get("registry"):
             lines += [f"        const std::optional<BindingValue> by_name = (*control).property_value(\"{member}\");",
                       f"        expect(by_name && *by_name == PropertyValueTraits<{value}>::to_binding(sample),",
                       f"               \"{label}: the table reads the cell\");"]
         lines.append("    }")
+    # A hand entry (extra_entries) is reached by name: the table describes it.
+    for entry in config.get("extra_entries") or []:
+        name = re.match(r'\{"([a-z_0-9]+)"', entry).group(1)
+        lines.append(f"    expect((*control).property_descriptor(\"{name}\").has_value(), "
+                     f"\"{family}.{name}: the table holds the hand entry\");")
     lines += ["}", ""]
     return "\n".join(lines) + "\n"
 

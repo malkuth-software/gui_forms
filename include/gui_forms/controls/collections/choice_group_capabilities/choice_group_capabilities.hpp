@@ -37,6 +37,19 @@ struct ChoiceGroupPresentationCapability {
     }
 };
 
+// The selected item's index, or -1 for none (G14: an ordinary cell). Outside the items throws std::out_of_range; a bound Value may refuse it. A change checks the selected item's button and raises changed.
+template <typename Declaring>
+struct ChoiceGroupSelectedIndexCapability {
+    PropertyCell<int, ChoiceGroupSelectedIndexCapability<Declaring>> selected_index{-1};
+
+    static void assign(ChoiceGroupSelectedIndexCapability& capability, int incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.selected_index), incoming);
+        if (!capability.selected_index.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.selected_index));
+    }
+};
+
 // ChoiceGroupPresentation as a property value; defined beside ChoiceGroup's table.
 template <>
 struct PropertyValueTraits<ChoiceGroupPresentation> {
@@ -47,6 +60,7 @@ struct PropertyValueTraits<ChoiceGroupPresentation> {
 
 // Every ChoiceGroup capability, in the order the declaring class takes them.
 template <typename Declaring>
-struct ChoiceGroupCapabilities : public ChoiceGroupPresentationCapability<Declaring> {};
+struct ChoiceGroupCapabilities : public ChoiceGroupPresentationCapability<Declaring>,
+                                 public ChoiceGroupSelectedIndexCapability<Declaring> {};
 
 } // namespace gui_forms

@@ -68,10 +68,10 @@ struct ResetHandler final {
             (*status).text = "Display scale: host-derived · text scale: 100%";
         }
         const std::shared_ptr<gui_forms::CheckBox> sound_toggle = sound.lock();
-        if (sound_toggle) (*sound_toggle).set_checked(true);
+        if (sound_toggle) (*sound_toggle).checked = true;
         const std::shared_ptr<gui_forms::CheckBox> motion_toggle =
             reduced_motion.lock();
-        if (motion_toggle) (*motion_toggle).set_checked(false);
+        if (motion_toggle) (*motion_toggle).checked = false;
     }
 };
 
@@ -152,7 +152,7 @@ std::unique_ptr<gui_forms::Window> make_controller_window(
     std::shared_ptr<gui_forms::CheckBox> sound = std::make_shared<CheckBox>(
         StableId("demo.accommodation.sound"), "Semantic state sounds");
     (*sound).set_requested_bounds({0,0,430,28});
-    (*sound).set_checked(true);
+    (*sound).checked = true;
     (*sound).accessible_description =
         "Mutes presentation only; visual state, semantics, and feedback trace remain identical";
     (*root).add_child(sound);

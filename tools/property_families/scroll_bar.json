@@ -1,0 +1,110 @@
+{
+  "family": "ScrollBar",
+  "step": "M-S4",
+  "declaring": "ScrollBar",
+  "header": "include/gui_forms/controls/range_control/scroll_bar/scroll_bar.hpp",
+  "source": "src/controls/range_control/scroll_bar/scroll_bar.cpp",
+  "capabilities_header": "include/gui_forms/controls/range_control/scroll_bar/scroll_bar_capabilities/scroll_bar_capabilities.hpp",
+  "base": "RangeControl",
+  "includes": [
+    "gui_forms/controls/range_control/range_control.hpp"
+  ],
+  "properties": [
+    {
+      "name": "button_extent",
+      "capability": "ScrollBarButtonExtent",
+      "value": "double",
+      "initial": "17.0",
+      "comment": "The arrow buttons' extent along the axis, 8 to 64 pixels (else std::invalid_argument).",
+      "getter": "button_extent",
+      "setter": "set_button_extent",
+      "clear": null,
+      "field": "button_extent_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "effects": "Dirty::measure | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "prepare": [
+        "require_finite(incoming, \"scrollbar button extent must be finite\");",
+        "if (incoming < 8.0 || incoming > 64.0) throw std::invalid_argument(\"scrollbar button extent must be between 8 and 64\");"
+      ],
+      "sample": "20.0"
+    },
+    {
+      "name": "minimum_thumb_extent",
+      "capability": "ScrollBarMinimumThumbExtent",
+      "value": "double",
+      "initial": "18.0",
+      "comment": "The thumb's least extent, 8 to 128 pixels (else std::invalid_argument).",
+      "getter": "minimum_thumb_extent",
+      "setter": "set_minimum_thumb_extent",
+      "clear": null,
+      "field": "minimum_thumb_extent_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "effects": "Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "prepare": [
+        "require_finite(incoming, \"scrollbar thumb extent must be finite\");",
+        "if (incoming < 8.0 || incoming > 128.0) throw std::invalid_argument(\"scrollbar thumb extent must be between 8 and 128\");"
+      ],
+      "sample": "24.0"
+    },
+    {
+      "name": "initial_repeat_delay",
+      "capability": "ScrollBarInitialRepeatDelay",
+      "value": "FrameInterval",
+      "initial": "std::chrono::milliseconds(400)",
+      "comment": "How long a held part waits before it repeats, 100ms to 2s (else std::invalid_argument); a press already repeating keeps its schedule.",
+      "getter": "initial_repeat_delay",
+      "setter": "set_initial_repeat_delay",
+      "clear": null,
+      "field": "initial_repeat_delay_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "prepare: the 100ms to 2s check; written: nothing to invalidate"
+      ],
+      "sample": "std::chrono::milliseconds(500)"
+    },
+    {
+      "name": "repeat_interval",
+      "capability": "ScrollBarRepeatInterval",
+      "value": "FrameInterval",
+      "initial": "std::chrono::milliseconds(60)",
+      "comment": "The interval between a held part's repeats, 16ms to 500ms (else std::invalid_argument).",
+      "getter": "repeat_interval",
+      "setter": "set_repeat_interval",
+      "clear": null,
+      "field": "repeat_interval_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "prepare: the 16ms to 500ms check; written: nothing to invalidate"
+      ],
+      "sample": "std::chrono::milliseconds(100)"
+    }
+  ],
+  "not_properties": [],
+  "test": {
+    "type": "ScrollBar",
+    "include": "gui_forms/controls/range_control/scroll_bar/scroll_bar.hpp"
+  },
+  "extra_entries": [
+    "{\"large_change\", &describe_scroll_bar_large_change,\n         &read_cell_entry<ScrollBar, decltype(&ScrollBar::large_change), &ScrollBar::large_change>,\n         &write_cell_entry<ScrollBar, decltype(&ScrollBar::large_change), &ScrollBar::large_change>,\n         nullptr, nullptr, nullptr,\n         nullptr}"
+  ]
+}

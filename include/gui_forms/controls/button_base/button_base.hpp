@@ -53,8 +53,6 @@ public:
     // topology; layout coordinates are never consulted to infer connection.
     void set_connection_topology(
         std::optional<ConnectedControlTopology> topology);
-    [[nodiscard]] ImageId image() const noexcept { return image_; }
-    void set_image(ImageId image);
     void clear_image();
     [[nodiscard]] std::shared_ptr<ImageList> image_list() const noexcept {
         return image_list_;
@@ -223,7 +221,7 @@ private:
     // property_codemod begin ButtonBase (tools/property_families/button_base.json; generated, do not edit)
 public:
     // ButtonBase's property table: Control's entries, then its own.
-    static constexpr std::size_t button_base_property_count = Control::control_property_count + 4U;
+    static constexpr std::size_t button_base_property_count = Control::control_property_count + 5U;
     [[nodiscard]] static const std::array<PropertyEntry, button_base_property_count>& button_base_property_entries() noexcept;
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
 
@@ -247,6 +245,7 @@ private:
     friend struct ImageGapCapability<ButtonBase>;
     friend struct ButtonUseMnemonicCapability<ButtonBase>;
     friend struct ExpandedStateCapability<ButtonBase>;
+    friend struct ButtonBaseImageCapability<ButtonBase>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(text)& cell, std::string& incoming);
     void written(const decltype(text)& cell);
@@ -268,6 +267,8 @@ private:
     void written(const decltype(use_mnemonic)& cell);
     void prepare_write(const decltype(expanded_state)& cell, std::optional<bool>& incoming);
     void written(const decltype(expanded_state)& cell);
+    void write_view(const decltype(image)& cell, ImageId incoming);
+    [[nodiscard]] ImageId read_view(const decltype(image)& cell) const;
     // property_codemod end ButtonBase
 };
 

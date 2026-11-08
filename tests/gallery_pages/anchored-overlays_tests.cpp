@@ -47,7 +47,7 @@ void test_anchored_overlays(gui_forms::Window& window) {
             "an open layer must publish its dialog boundary in the semantic snapshot");
 
     // A Value change re-resolves the open overlay in place.
-    (*above).set_checked(true);
+    (*above).checked = true;
     window.perform_layout();
     require((*layer).resolved_placement().placed_above &&
                 (*status).text.read().find("Placement re-resolved while open · placed above") == 0U,
@@ -65,7 +65,7 @@ void test_anchored_overlays(gui_forms::Window& window) {
             "click-away must close the overlay through the owner and restore the page");
 
     // Flipping: the bottom-right anchor cannot fit the overlay below.
-    (*above).set_checked(false);
+    (*above).checked = false;
     click(window, bottom_right);
     layer = open_layer(window);
     require(layer && (*layer).resolved_placement().placed_above &&

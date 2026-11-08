@@ -724,7 +724,7 @@ public:
     void adopt_property_link(std::unique_ptr<PropertyLink> link);
     // Control's own table (its capabilities' entries); a derived type joins
     // it first (join_property_tables) and returns the joined table.
-    static constexpr std::size_t control_property_count = 25U;
+    static constexpr std::size_t control_property_count = 28U;
     [[nodiscard]] static const std::array<PropertyEntry, control_property_count>& control_property_entries() noexcept;
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
     // The properties below are the instance registry's
@@ -1314,9 +1314,6 @@ private:
         const SurfaceMaterial& material) const;
     void publish_change(const void* event_key,
                         std::function<void()> publication);
-    void define_structural_property(PropertyDescriptor descriptor,
-                                    PropertyRegistration::Getter get,
-                                    PropertyRegistration::Setter set);
     [[nodiscard]] static bool tab_order_less(const Ptr& left,
                                              const Ptr& right) noexcept;
     static void collect_tab_order_controls(const Control& owner,

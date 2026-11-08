@@ -114,7 +114,7 @@ void Toast::initialize_control_tree() {
     std::string id(stable_id().value());
     id += ".action";
     std::shared_ptr<Button> button = make_control<Button>(StableId(id), content_.action_text);
-    (*button).set_visual_style(ButtonVisualStyle::command);
+    (*button).visual_style = ButtonVisualStyle::command;
     on((*button).clicked(), *this, &Toast::on_action_clicked);
     add_child(button);
     action_ = std::move(button);

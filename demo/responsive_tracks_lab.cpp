@@ -276,7 +276,7 @@ std::unique_ptr<Window> make_responsive_tracks_lab() {
 
     std::shared_ptr<ResponsiveTrackPanel> surface =
         make_control<ResponsiveTrackPanel>(StableId("responsive.surface"));
-    (*surface).set_orientation(ResponsiveTrackOrientation::vertical);
+    (*surface).orientation = ResponsiveTrackOrientation::vertical;
     (*surface).set_track_specs({
         {ResponsiveTrackSizeMode::content, 40.0, 40.0, 100.0, 1.0,
          false, 50U},

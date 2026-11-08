@@ -160,19 +160,19 @@ void GalleryContext::synchronize(std::string_view cause)
     const BasicControlStyle style = gallery_basic_style(state.style_mode == StyleMode::quiet_relief);
     apply_relief_style(mount_controls(), style);
 
-    (*document.gallery_checkbox).set_checked(state.precise_updates);
-    (*document.gallery_radio_classic).set_checked(state.style_mode == StyleMode::classic_relief);
-    (*document.gallery_radio_quiet).set_checked(state.style_mode == StyleMode::quiet_relief);
+    (*document.gallery_checkbox).checked = state.precise_updates;
+    (*document.gallery_radio_classic).checked = state.style_mode == StyleMode::classic_relief;
+    (*document.gallery_radio_quiet).checked = state.style_mode == StyleMode::quiet_relief;
     if (cause == "gallery.command.reset") {
-        (*document.gallery_checkbox_indeterminate).set_check_state(CheckState::indeterminate);
+        (*document.gallery_checkbox_indeterminate).check_state = CheckState::indeterminate;
         (*document.gallery_link).visited = false;
     }
     if ((*document.gallery_text_input).text.read() != state.text) {
         (*document.gallery_text_input).text = state.text;
     }
-    (*document.gallery_slider).set_value(state.slider_value);
-    (*document.gallery_progress).set_value(state.progress_value);
-    (*document.gallery_instrument).set_value(state.instrument_value);
+    (*document.gallery_slider).value = state.slider_value;
+    (*document.gallery_progress).value = state.progress_value;
+    (*document.gallery_instrument).value = state.instrument_value;
     const std::optional<std::size_t> row = collection_row_index(state.selected_collection_row);
     if (row && (*document.gallery_collection).selected_index() != row) {
         (*document.gallery_collection).select_index(*row);
@@ -226,7 +226,7 @@ void GalleryContext::apply_clicked(ButtonBase&)
 void GalleryContext::precise_updates_clicked(ButtonBase&)
 {
     // The check box has already toggled; the model follows it.
-    if ((*document.gallery_checkbox).checked() != model.state().precise_updates) {
+    if ((*document.gallery_checkbox).checked.read() != model.state().precise_updates) {
         static_cast<void>(model.activate("gallery.checkbox"));
     }
     synchronize("gallery.checkbox");
@@ -246,7 +246,7 @@ void GalleryContext::quiet_relief_clicked(ButtonBase&)
 
 void GalleryContext::three_state_clicked(ButtonBase&)
 {
-    const CheckState check_state = (*document.gallery_checkbox_indeterminate).check_state();
+    const CheckState check_state = (*document.gallery_checkbox_indeterminate).check_state.read();
     const char* state = "unchecked";
     if (check_state == CheckState::checked) {
         state = "checked";
@@ -358,12 +358,12 @@ GalleryTree build_gallery_tree()
 
     // What the form language does not state yet.
     (*document.gallery_default_button).set_default_button(true);
-    (*document.gallery_checkbox_indeterminate).set_three_state(true);
-    (*document.gallery_checkbox_indeterminate).set_check_state(CheckState::indeterminate);
-    (*document.gallery_radio_classic).set_group_name("gallery.style-mode");
-    (*document.gallery_radio_quiet).set_group_name("gallery.style-mode");
-    (*document.gallery_slider).set_small_change(1.0);
-    (*document.gallery_slider).set_large_change(10.0);
+    (*document.gallery_checkbox_indeterminate).three_state = true;
+    (*document.gallery_checkbox_indeterminate).check_state = CheckState::indeterminate;
+    (*document.gallery_radio_classic).group_name = "gallery.style-mode";
+    (*document.gallery_radio_quiet).group_name = "gallery.style-mode";
+    (*document.gallery_slider).small_change = 1.0;
+    (*document.gallery_slider).large_change = 10.0;
     (*document.gallery_text_input).placeholder_text = "Type here";
     (*document.gallery_diagnostics_about).text_wrapping = TextWrapping::word;
     (*document.gallery_diagnostics_about).vertical_alignment = VerticalAlignment::near;

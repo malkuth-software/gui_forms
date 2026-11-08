@@ -11,6 +11,7 @@
 
 #include "gui_forms/controls/range_control/range_control.hpp"
 #include "gui_forms/engine/effect_registry/effect_registry.hpp"
+#include "gui_forms/controls/instruments/sweep_scope/sweep_scope_capabilities/sweep_scope_capabilities.hpp"
 
 #include <chrono>
 #include <cstdint>
@@ -21,18 +22,9 @@ namespace gui_forms {
 
 struct PresentationSettings;
 
-class SweepScope : public RangeControl {
+class SweepScope : public RangeControl, public SweepScopeCapabilities<SweepScope> {
 public:
     explicit SweepScope(StableId stable_id);
-
-    // The words drawn before the level's percentage ("LEVEL 42%").
-    [[nodiscard]] const std::string& caption() const noexcept { return caption_; }
-    void set_caption(std::string caption);
-    // The time the sweep takes to cross the trace once; from 0.1 to 60
-    // seconds (std::out_of_range otherwise). The default crosses in about
-    // 1.23 seconds, 0.027 of the trace per 30 Hz frame.
-    [[nodiscard]] FrameInterval sweep_period() const noexcept { return sweep_period_; }
-    void set_sweep_period(FrameInterval period);
 
     // The sweep's effect instance: its counters and state checksum, for
     // diagnostics and tests.
@@ -83,11 +75,9 @@ protected:
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
 
 private:
-    // The caption and sweep_period properties' values.
-    [[nodiscard]] BindingValue caption_property_value() const;
-    void set_caption_property_value(const BindingValue& value);
+    // The sweep_period property's table value, in seconds.
     [[nodiscard]] BindingValue sweep_period_property_value() const;
-    void set_sweep_period_property_value(const BindingValue& value);
+    void write_sweep_period_property(const BindingValue& value);
     void on_presentation_changed(const PresentationSettings& settings);
     // Whether the sweep moves: attached to a window, motion neither reduced
     // nor switched off.
@@ -102,8 +92,6 @@ private:
     // coordinates.
     [[nodiscard]] double graticule_y(int line) const noexcept;
 
-    std::string caption_{"LEVEL"};
-    FrameInterval sweep_period_{std::chrono::microseconds(1'234'568)};
     SubscriptionToken presentation_subscription_;
     // The sweep; owns its state and is released with the scope.
     EffectInstance effect_instance_;
@@ -111,6 +99,22 @@ private:
     // finding them equal finds the scope no longer shown.
     std::uint64_t effect_paints_{};
     std::uint64_t effect_paints_seen_{~std::uint64_t{0}};
+    // property_codemod begin SweepScope (tools/property_families/sweep_scope.json; generated, do not edit)
+public:
+    // SweepScope's property table: RangeControl's entries, then its own.
+    static constexpr std::size_t sweep_scope_property_count = RangeControl::range_control_property_count + 2U;
+    [[nodiscard]] static const std::array<PropertyEntry, sweep_scope_property_count>& sweep_scope_property_entries() noexcept;
+    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
+
+private:
+    friend struct SweepScopeCaptionCapability<SweepScope>;
+    friend struct SweepScopePeriodCapability<SweepScope>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(caption)& cell, std::string& incoming);
+    void written(const decltype(caption)& cell);
+    void prepare_write(const decltype(sweep_period)& cell, FrameInterval& incoming);
+    void written(const decltype(sweep_period)& cell);
+    // property_codemod end SweepScope
 };
 
 } // namespace gui_forms

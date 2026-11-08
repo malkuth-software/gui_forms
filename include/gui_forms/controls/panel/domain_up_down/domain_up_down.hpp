@@ -129,6 +129,12 @@ private:
     bool synchronizing_{};
     Event<std::optional<std::size_t>> selected_index_changed_;
     // property_codemod begin DomainUpDown (tools/property_families/domain_up_down.json; generated, do not edit)
+public:
+    // DomainUpDown's property table: Panel's entries, then its own.
+    static constexpr std::size_t domain_up_down_property_count = Panel::panel_property_count + 1U;
+    [[nodiscard]] static const std::array<PropertyEntry, domain_up_down_property_count>& domain_up_down_property_entries() noexcept;
+    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
+
 private:
     friend struct DomainUpDownSelectedIndexCapability<DomainUpDown>;
     friend struct DomainUpDownTextCapability<DomainUpDown>;

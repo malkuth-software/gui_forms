@@ -661,8 +661,8 @@ void test_property_origins_and_metadata_driven_property_grid() {
                 changes.back().origin == PropertyValueOrigin::local,
             "committing a PropertyGrid text editor must use the target's registered setter and event");
 
-    (*checked).set_checked(true);
-    require((*target).checked() && changes.back().property_name == "checked" &&
+    (*checked).checked = true;
+    require((*target).checked.read() && changes.back().property_name == "checked" &&
                 std::get<bool>(changes.back().current_value),
             "Boolean PropertyGrid edits must use a retained CheckBox and commit immediately");
 

@@ -552,8 +552,8 @@ void test_check_box_and_radio_button_parts() {
     require(!(*check).parts().face.present,
             "a normal-appearance check box has no button face");
 
-    (*check).set_checked(true);
-    (*radio).set_checked(true);
+    (*check).checked = true;
+    (*radio).checked = true;
     const PartGeometry check_mark = (*check).parts().indicator;
     const PartGeometry radio_dot = (*radio).parts().indicator;
     const Rect check_well = (*check).parts().well.bounds;
@@ -567,24 +567,24 @@ void test_check_box_and_radio_button_parts() {
                 (*radio).states().checked,
             "checked choices publish checked");
 
-    (*check).set_three_state(true);
-    (*check).set_check_state(CheckState::indeterminate);
+    (*check).three_state = true;
+    (*check).check_state = CheckState::indeterminate;
     const CheckBox::States mixed = (*check).states();
     require(mixed.indeterminate && !mixed.checked &&
                 (*check).parts().indicator.present,
             "an indeterminate box publishes indeterminate and its bar");
 
-    (*check).set_indicator_style(ChoiceIndicatorStyle::toggle);
-    (*check).set_check_state(CheckState::unchecked);
+    (*check).indicator_style = ChoiceIndicatorStyle::toggle;
+    (*check).check_state = CheckState::unchecked;
     const PartGeometry knob_off = (*check).parts().indicator;
-    (*check).set_check_state(CheckState::checked);
+    (*check).check_state = CheckState::checked;
     const PartGeometry knob_on = (*check).parts().indicator;
     require(knob_off.present && knob_on.present &&
                 knob_on.bounds.x > knob_off.bounds.x &&
                 near((*check).parts().well.bounds.width, 30.0),
             "a toggle publishes its knob, which moves when checked");
 
-    (*check).set_appearance(CheckBoxAppearance::button);
+    (*check).appearance = CheckBoxAppearance::button;
     require((*check).parts().face.present &&
                 !(*check).parts().well.present &&
                 !(*check).parts().indicator.present,

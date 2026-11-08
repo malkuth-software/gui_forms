@@ -2,6 +2,8 @@
 
 #include "gui_forms/animation/animation_timer/animation_timer.hpp"
 #include "gui_forms/control.hpp"
+#include "gui_forms/controls/visual_inspector_view/visual_inspector_view_capabilities/visual_inspector_view_capabilities.hpp"
+#include "gui_forms/controls/visual_inspector_view/visual_inspector_overlay_capabilities/visual_inspector_overlay_capabilities.hpp"
 
 #include <optional>
 #include <span>
@@ -12,15 +14,11 @@ namespace gui_forms {
 // A reusable, renderer-neutral presentation of Window visual inspection. The
 // view consumes only the public snapshot and is suitable for demoboards and
 // local application diagnostics; it is never required for ordinary rendering.
-class VisualInspectorView final : public Control {
+class VisualInspectorView final : public Control, public VisualInspectorViewCapabilities<VisualInspectorView> {
 public:
     explicit VisualInspectorView(StableId stable_id,
-                                 std::string target_stable_id = {});
+                                 std::string initial_target = {});
 
-    [[nodiscard]] const std::string& target_stable_id() const noexcept {
-        return target_stable_id_;
-    }
-    void set_target_stable_id(std::string stable_id);
     // Repaints (and republishes semantics) unconditionally.
     void refresh();
     // Repaints only when the text the view would draw differs from what it
@@ -93,23 +91,31 @@ private:
     [[nodiscard]] static bool same_key(const SemanticValueKey& left,
                                        const SemanticValueKey& right) noexcept;
     mutable std::optional<SemanticValue> semantic_value_;
-    std::string target_stable_id_;
     // The rows on_paint last drew, as one key (empty before the first paint).
     std::string painted_content_;
+    // property_codemod begin VisualInspectorView (tools/property_families/visual_inspector_view.json; generated, do not edit)
+public:
+    // VisualInspectorView's property table: Control's entries, then its own.
+    static constexpr std::size_t visual_inspector_view_property_count = Control::control_property_count + 1U;
+    [[nodiscard]] static const std::array<PropertyEntry, visual_inspector_view_property_count>& visual_inspector_view_property_entries() noexcept;
+    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
+
+private:
+    friend struct VisualInspectorViewTargetStableIdCapability<VisualInspectorView>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(target_stable_id)& cell, std::string& incoming);
+    void written(const decltype(target_stable_id)& cell);
+    // property_codemod end VisualInspectorView
 };
 
 // Transparent overlay companion which draws the target's arranged, visual,
 // and effective clipped bounds in three distinct colors. It does not alter hit
 // testing or the inspected control tree.
-class VisualInspectorOverlay final : public Control {
+class VisualInspectorOverlay final : public Control, public VisualInspectorOverlayCapabilities<VisualInspectorOverlay> {
 public:
     explicit VisualInspectorOverlay(StableId stable_id,
-                                    std::string target_stable_id = {});
+                                    std::string initial_target = {});
 
-    [[nodiscard]] const std::string& target_stable_id() const noexcept {
-        return target_stable_id_;
-    }
-    void set_target_stable_id(std::string stable_id);
     // Repaints unconditionally.
     void refresh();
     // Repaints only when the outlines differ from the ones last drawn, and
@@ -170,9 +176,21 @@ private:
     };
     [[nodiscard]] Outlines current_outlines() const;
     void paint_outline(Painter& painter, Rect bounds, Color colour, double width) const;
-    std::string target_stable_id_;
     // What on_paint last drew; nullopt before the first paint.
     std::optional<Outlines> painted_;
+    // property_codemod begin VisualInspectorOverlay (tools/property_families/visual_inspector_overlay.json; generated, do not edit)
+public:
+    // VisualInspectorOverlay's property table: Control's entries, then its own.
+    static constexpr std::size_t visual_inspector_overlay_property_count = Control::control_property_count + 1U;
+    [[nodiscard]] static const std::array<PropertyEntry, visual_inspector_overlay_property_count>& visual_inspector_overlay_property_entries() noexcept;
+    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
+
+private:
+    friend struct VisualInspectorOverlayTargetStableIdCapability<VisualInspectorOverlay>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(target_stable_id)& cell, std::string& incoming);
+    void written(const decltype(target_stable_id)& cell);
+    // property_codemod end VisualInspectorOverlay
 };
 
 } // namespace gui_forms

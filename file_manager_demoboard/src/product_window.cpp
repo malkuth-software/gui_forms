@@ -131,7 +131,7 @@ std::shared_ptr<Button> button(std::string id, std::string text, Rect bounds,
     (*result).set_requested_bounds(bounds);
     (*result).set_style(house_style());
     (*result).font = FontSpec{FontRole::control, 10.0, 600, false, 0.18};
-    (*result).set_visual_style(visual);
+    (*result).visual_style = visual;
     return result;
 }
 

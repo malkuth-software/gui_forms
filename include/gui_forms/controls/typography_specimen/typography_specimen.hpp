@@ -16,10 +16,6 @@ class TypographySpecimen final : public Control, public TypographySpecimenCapabi
 public:
     explicit TypographySpecimen(StableId stable_id, std::string initial_text = {});
 
-    // M-S transient forwarders: the integrator's rewrite replaces every call
-    // with an assignment of the cell and deletes them in the same batch.
-    void set_text(std::string value) { text = std::move(value); } // M-S transient forwarder
-    void set_font(FontSpec value) { font = value; } // M-S transient forwarder
 
     [[nodiscard]] ResolvedTextLayout resolved_layout() const;
 

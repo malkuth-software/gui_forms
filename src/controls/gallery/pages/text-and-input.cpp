@@ -96,7 +96,7 @@ private:
         for (int index = 0; index < static_cast<int>((*bar_).items().size()); ++index) {
             (*bar_).item(index).set_style(page_style());
         }
-        (*bar_).item(4).set_visual_style(ButtonVisualStyle::accent);
+        (*bar_).item(4).visual_style = ButtonVisualStyle::accent;
         on((*bar_).invoked(), *this, &TextAndInputPage::on_command);
         on(undo_.invoked(), *this, &TextAndInputPage::on_undo);
         on(redo_.invoked(), *this, &TextAndInputPage::on_redo);

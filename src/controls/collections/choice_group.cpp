@@ -125,8 +125,6 @@ void ChoiceGroup::refresh_tab_stop() {
 ChoiceGroup::ChoiceGroup(StableId id) : Panel(std::move(id)) {
     set_focusable(false);
     tab_stop = false;
-    on(selection_.validating(), *this, &ChoiceGroup::validate_local_selection);
-    on(selection_.changed(), *this, &ChoiceGroup::apply_selection);
 }
 ChoiceGroup::~ChoiceGroup() = default;
 
@@ -146,9 +144,21 @@ Control* ChoiceGroup::part(const std::string_view name, const int index) const {
     Control* const result = &item(index);
     return result;
 }
-void ChoiceGroup::set_selected_index(const int index) {
+// The selection's write: the range check and a bound Value's refusal come
+// first; a change checks the selected button, then raises changed.
+void ChoiceGroup::prepare_write(const decltype(selected_index)&, int& incoming) {
     require_mutable();
-    selection_.set(index);
+    validate_local_selection(incoming);
+}
+
+void ChoiceGroup::written(const decltype(selected_index)&) {
+    const int selected = selected_index.read();
+    apply_selection(selected);
+    if (is_alive()) publish_change(selected_index_changed_, selected);
+}
+
+void ChoiceGroup::write_bound_selected_index(const int index) {
+    selected_index = index;
 }
 void ChoiceGroup::validate_selection(const int index) const {
     const std::size_t count = revision_ ? (*revision_).items.size() : 0U;
@@ -165,8 +175,8 @@ void ChoiceGroup::bind(Value<int>& selection) {
     const Control::Ptr retained = shared_from_this();
     std::unique_ptr<detail::ScalarBinding<ChoiceGroup, int>> binding =
         std::make_unique<detail::ScalarBinding<ChoiceGroup, int>>(
-            *this, selection, changed(), &ChoiceGroup::selected_index,
-            &ChoiceGroup::set_selected_index, &ChoiceGroup::validate_selection);
+            *this, selection, changed(), &ChoiceGroup::bound_selected_index,
+            &ChoiceGroup::write_bound_selected_index, &ChoiceGroup::validate_selection);
     binding_ = std::move(binding);
     (*binding_).synchronize();
 }
@@ -258,8 +268,8 @@ void ChoiceGroup::set_items(std::vector<ChoiceItem> items) {
             const Button& button = *(*(*next).entries[index]).button;
             static_cast<void>(set_child_index(button.runtime_id(), (*next).entries.size() - index - 1U));
         }
-        const int current = selected_index();
-        if (current >= static_cast<int>((*next).items.size())) selection_.set(-1);
+        const int current = selected_index.read();
+        if (current >= static_cast<int>((*next).items.size())) selected_index = -1;
         else apply_selection(current);
         invalidate(Dirty::layout | Dirty::paint | Dirty::semantics);
         for (const std::shared_ptr<Entry>& entry : (*next).entries) {
@@ -283,7 +293,7 @@ void ChoiceGroup::activate_item(const int id) {
     for (std::size_t index = 0U; index < (*revision).items.size(); ++index) {
         if ((*revision).items[index].id != id) continue;
         const int selected = static_cast<int>(index);
-        set_selected_index(selected);
+        selected_index = selected;
         if (is_alive() && revision_ == revision) activated_.emit(selected);
         return;
     }
@@ -308,7 +318,7 @@ Rect ChoiceGroup::segment_bounds(std::size_t index, std::size_t count, Size size
 
 // Nothing while the group is not segmented or nothing is selected.
 Rect ChoiceGroup::selection_bounds() const {
-    const int selected = selected_index();
+    const int selected = selected_index.read();
     if (presentation.read() != ChoiceGroupPresentation::segmented || !revision_ || selected < 0) return Rect{};
     const std::size_t count = (*revision_).entries.size();
     if (static_cast<std::size_t>(selected) >= count) return Rect{};
@@ -362,7 +372,7 @@ void ChoiceGroup::on_key(KeyEvent& event) {
     if (!backward && !forward) return;
     const int count = static_cast<int>((*revision_).items.size());
     if (count == 0) return;
-    int next = std::max(0, selected_index());
+    int next = std::max(0, selected_index.read());
     const std::shared_ptr<Revision> revision = revision_;
     for (int attempt = 0; attempt < count; ++attempt) {
         if (backward) next = next == 0 ? count - 1 : next - 1;

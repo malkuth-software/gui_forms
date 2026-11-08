@@ -6,13 +6,13 @@
 // child whose constraint is unchanged answers from its cache.
 
 #include "gui_forms/controls/scrollable_control/container_control/flex_panel/flex_panel.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include "../../scrollable_anatomy.hpp"
 #include "../layout_style_property.hpp"
 #include "../out_of_flow.hpp"
 
 #include "gui_forms/binding/property_table/property_table.hpp"
-#include "gui_forms/detail/bound_member_function.hpp"
 
 #include <algorithm>
 #include <array>
@@ -227,9 +227,7 @@ bool item_style_serialized(const Component& container, const Control& child) {
 
 } // namespace
 
-FlexPanel::FlexPanel(StableId stable_id) : ContainerControl(std::move(stable_id)) {
-    register_panel_properties();
-}
+FlexPanel::FlexPanel(StableId stable_id) : ContainerControl(std::move(stable_id)) {}
 
 std::span<const ChildPropertyEntry> FlexPanel::child_property_table() const noexcept {
     static constexpr std::array<ChildPropertyEntry, 1U> entries{{
@@ -237,20 +235,6 @@ std::span<const ChildPropertyEntry> FlexPanel::child_property_table() const noex
          &item_style_serialized},
     }};
     return std::span<const ChildPropertyEntry>(entries);
-}
-
-void FlexPanel::register_panel_properties() {
-    PropertyDescriptor style_descriptor{"style", BindingValueKind::text, "Layout",
-                                        "The flex container's settings as a CSS inline style: flex-direction, "
-                                        "flex-wrap, justify-content, align-content, align-items and the gaps.",
-                                        BindingValue{std::string{}}, invalidation::bounds};
-    style_descriptor.bindable = false;
-    define_bindable_property({std::move(style_descriptor),
-                              detail::BoundMemberFunction<BindingValue (FlexPanel::*)() const>(
-                                  *this, &FlexPanel::style_property),
-                              detail::BoundMemberFunction<void (FlexPanel::*)(const BindingValue&)>(
-                                  *this, &FlexPanel::set_style_property),
-                              {}, {}, {}});
 }
 
 BindingValue FlexPanel::style_property() const {
@@ -849,5 +833,52 @@ SemanticDescriptor FlexPanel::semantic_descriptor() const {
 const ControlAnatomy& FlexPanel::anatomy() const noexcept {
     return flex_panel_anatomy;
 }
+
+namespace {
+
+// The container settings as one CSS inline style text: a hand table entry
+// (extra_entries) over the panel's settings.
+PropertyDescriptor flex_panel_style_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "style";
+    descriptor.kind = BindingValueKind::text;
+    descriptor.category = "Layout";
+    descriptor.description = "The flex container's settings as a CSS inline style: flex-direction, flex-wrap, justify-content, align-content, align-items and the gaps.";
+    descriptor.default_value = BindingValue{std::string{}};
+    descriptor.invalidation_effects = invalidation::bounds;
+    descriptor.bindable = false;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_flex_panel_style() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        flex_panel_style_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+} // namespace
+
+// property_codemod begin FlexPanel (tools/property_families/flex_panel.json; generated, do not edit)
+
+const std::array<PropertyEntry, FlexPanel::flex_panel_property_count>& FlexPanel::flex_panel_property_entries() noexcept {
+    static constexpr std::array<PropertyEntry, 1U> own{{
+        {"style", &describe_flex_panel_style,
+         &read_member_entry<FlexPanel, decltype(&FlexPanel::style_property), &FlexPanel::style_property>,
+         &write_member_entry<FlexPanel, decltype(&FlexPanel::set_style_property), &FlexPanel::set_style_property>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+    }};
+    static_assert(property_names_distinct(own), "FlexPanel's property table names a property twice");
+    static const std::array<PropertyEntry, flex_panel_property_count> entries =
+        join_property_tables(Control::control_property_entries(), own);
+    return entries;
+}
+
+std::span<const PropertyEntry> FlexPanel::property_table() const noexcept {
+    const std::array<PropertyEntry, flex_panel_property_count>& entries = flex_panel_property_entries();
+    return std::span<const PropertyEntry>(entries);
+}
+
+// property_codemod end FlexPanel
 
 } // namespace gui_forms

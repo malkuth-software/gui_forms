@@ -37,16 +37,6 @@ ListBox::ListBox(StableId stable_id) : Panel(std::move(stable_id)) {
     set_paint_plane(PaintPlane::control);
     border_style = BorderStyle::sunken;
     set_focusable(true);
-    PropertyRegistration items_registration;
-    items_registration.descriptor = text_items_property::descriptor("Ordered text items the list shows.");
-    items_registration.get =
-        detail::BoundMemberFunction<BindingValue (ListBox::*)() const>(*this, &ListBox::items_property_value);
-    items_registration.set =
-        detail::BoundMemberFunction<void (ListBox::*)(const BindingValue&)>(*this, &ListBox::set_items_property);
-    items_registration.reset = detail::BoundMemberFunction<void (ListBox::*)()>(*this, &ListBox::reset_items_property);
-    items_registration.should_serialize = detail::BoundMemberFunction<bool (ListBox::*)() const noexcept>(
-        *this, &ListBox::should_serialize_items_property);
-    define_bindable_property(std::move(items_registration));
 }
 
 BindingValue ListBox::items_property_value() const {
@@ -727,6 +717,23 @@ void ListBox::append_interactions(std::vector<InteractionDeclaration>& interacti
     interactions.insert(interactions.end(), list_box_interactions.begin(), list_box_interactions.end());
 }
 
+namespace {
+
+// The items collection in its BindingValue form (text_items_property.hpp):
+// a hand table entry (extra_entries) over the CollectionCell.
+PropertyDescriptor list_box_items_descriptor() {
+    PropertyDescriptor descriptor = text_items_property::descriptor("Ordered text items the list shows.");
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_list_box_items() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        list_box_items_descriptor(), PropertyOperations{true, true, true, false});
+    return descriptor;
+}
+
+} // namespace
+
 // property_codemod begin ListBox (tools/property_families/list_box.json; generated, do not edit)
 
 namespace {
@@ -773,11 +780,16 @@ ListSelectionMode PropertyValueTraits<ListSelectionMode>::from_binding(const Bin
 }
 
 const std::array<PropertyEntry, ListBox::list_box_property_count>& ListBox::list_box_property_entries() noexcept {
-    static constexpr std::array<PropertyEntry, 1U> own{{
+    static constexpr std::array<PropertyEntry, 2U> own{{
         {"selection_mode", &describe_list_box_selection_mode,
          &read_cell_entry<ListBox, decltype(&ListBox::selection_mode), &ListBox::selection_mode>,
          &write_cell_entry<ListBox, decltype(&ListBox::selection_mode), &ListBox::selection_mode>,
          nullptr, nullptr, nullptr,
+         nullptr},
+        {"items", &describe_list_box_items,
+         &read_member_entry<ListBox, decltype(&ListBox::items_property_value), &ListBox::items_property_value>,
+         &write_member_entry<ListBox, decltype(&ListBox::set_items_property), &ListBox::set_items_property>,
+         &reset_member_entry<ListBox, decltype(&ListBox::reset_items_property), &ListBox::reset_items_property>, &should_serialize_member_entry<ListBox, decltype(&ListBox::should_serialize_items_property), &ListBox::should_serialize_items_property>, nullptr,
          nullptr},
     }};
     static_assert(property_names_distinct(own), "ListBox's property table names a property twice");

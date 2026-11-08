@@ -141,10 +141,10 @@ struct SelectTarget final {
 
     void operator()(ButtonBase&) const {
         if (const std::shared_ptr<VisualInspectorView> strong = view.lock()) {
-            (*strong).set_target_stable_id(target);
+            (*strong).target_stable_id = target;
         }
         if (const std::shared_ptr<VisualInspectorOverlay> strong = overlay.lock()) {
-            (*strong).set_target_stable_id(target);
+            (*strong).target_stable_id = target;
         }
     }
 };
@@ -484,7 +484,7 @@ std::unique_ptr<Window> make_layered_material_lab() {
         std::shared_ptr<Button> selector = make_control<Button>(
             StableId("layered-material.target." + std::to_string(index)),
             targets[index].first);
-        (*selector).set_visual_style(ButtonVisualStyle::command);
+        (*selector).visual_style = ButtonVisualStyle::command;
         add_at(root, selector,
                {22.0 + static_cast<double>(index) * 126.0, 660.0,
                 116.0, 30.0});

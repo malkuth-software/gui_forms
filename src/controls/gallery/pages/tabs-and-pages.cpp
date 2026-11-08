@@ -82,7 +82,7 @@ private:
             if (index == 2U) (*tab_page).image_index = 0;
             primary.add_page(tab_page);
         }
-        primary.set_selected_index(1U);
+        primary.selected_index = 1U;
     }
 
     // One ordinary control per retained page, proving hidden pages keep
@@ -91,7 +91,7 @@ private:
         if (index == 0U) {
             std::shared_ptr<Button> action = make_control<Button>(
                 StableId("gallery.tabs.primary.action"), "Run page action");
-            (*action).set_visual_style(ButtonVisualStyle::accent);
+            (*action).visual_style = ButtonVisualStyle::accent;
             (*action).set_requested_bounds({22.0, 104.0, 170.0, 36.0});
             return action;
         }
@@ -99,7 +99,7 @@ private:
             std::shared_ptr<CheckBox> toggle = make_control<CheckBox>(
                 StableId("gallery.tabs.primary.activity.toggle"),
                 "Keep activity visible");
-            (*toggle).set_indicator_style(ChoiceIndicatorStyle::toggle);
+            (*toggle).indicator_style = ChoiceIndicatorStyle::toggle;
             (*toggle).set_requested_bounds({22.0, 104.0, 220.0, 30.0});
             (*toggle).bind(activity_visible_);
             return toggle;
@@ -108,14 +108,14 @@ private:
             std::shared_ptr<RadioButton> radio = make_control<RadioButton>(
                 StableId("gallery.tabs.primary.security.radio"),
                 "Professional policy");
-            (*radio).set_checked(true);
+            (*radio).checked = true;
             (*radio).set_requested_bounds({22.0, 104.0, 220.0, 30.0});
             return radio;
         }
         std::shared_ptr<ProgressBar> value = make_control<ProgressBar>(
             StableId("gallery.tabs.primary.diagnostics.progress"));
         (*value).set_range(0.0, 100.0);
-        (*value).set_value(78.0);
+        (*value).value = 78.0;
         (*value).accessible_name = "Diagnostics completion";
         (*value).set_requested_bounds({22.0, 108.0, 360.0, 24.0});
         return value;
@@ -154,7 +154,7 @@ private:
                 (*tab_page).add_child(content);
                 tabs.add_page(tab_page);
             }
-            tabs.set_selected_index(index % 3U);
+            tabs.selected_index = index % 3U;
         }
     }
 
@@ -233,11 +233,11 @@ private:
     // The document strip shows no menu of its own: the page reports the
     // request (a docking workspace shows its position menu here).
     void on_document_context_menu(PageContextMenuRequest& request) {
-        (*document_.gallery_tabs_documents_status).set_text("Context menu asked for " + document_title(request.page));
+        (*document_.gallery_tabs_documents_status).text = "Context menu asked for " + document_title(request.page);
     }
 
     void on_document_double_clicked(const PageDoubleClick& event) {
-        (*document_.gallery_tabs_documents_status).set_text("Double-clicked " + document_title(event.page) + " (docking floats it)");
+        (*document_.gallery_tabs_documents_status).text = "Double-clicked " + document_title(event.page) + " (docking floats it)";
     }
 
     [[nodiscard]] std::string document_title(const PageId& page) const {
@@ -281,7 +281,7 @@ private:
         if (request.cause == PageCloseCause::middle_button) cause = "middle click";
         if (request.cause == PageCloseCause::keyboard) cause = "Ctrl+F4";
         if (request.cause == PageCloseCause::semantic) cause = "accessibility";
-        (*document_.gallery_tabs_documents_status).set_text("Closed " + title + " · " + std::string(cause));
+        (*document_.gallery_tabs_documents_status).text = "Closed " + title + " · " + std::string(cause);
     }
 
     [[nodiscard]] static PageRecord view_record(std::string_view id, std::string_view title) {
@@ -298,7 +298,7 @@ private:
             "gallery.tabs.view.made." + request.page.value,
             "Created when " + request.page.value + " was first selected.", 11.0, 400, ink);
         static_cast<void>((*document_.gallery_tabs_view).set_page_content(request.page, made));
-        (*document_.gallery_tabs_view_status).set_text("Created " + request.page.value + " on its first selection");
+        (*document_.gallery_tabs_view_status).text = "Created " + request.page.value + " on its first selection";
     }
 
     // A NavigationPane: six pages with content, four large buttons, the
@@ -329,17 +329,17 @@ private:
         std::string text = state.collapsed ? "Collapsed" : "Expanded";
         text += " · " + std::to_string(state.button_count) + " large buttons · " +
                 std::to_string(state.hidden_pages.size()) + " hidden";
-        (*document_.gallery_tabs_navigation_status).set_text(text);
+        (*document_.gallery_tabs_navigation_status).text = text;
     }
 
     void on_navigation_options(const NavigationPaneOptionsRequest&) {
-        (*document_.gallery_tabs_navigation_status).set_text("Options requested · the program shows its own dialog");
+        (*document_.gallery_tabs_navigation_status).text = "Options requested · the program shows its own dialog";
     }
 
     void on_strip_invoked(const PageInvocation& invocation) {
         const std::optional<PagePosition> found = strip_pages_.find(invocation.page);
         if (!found) return;
-        (*document_.gallery_tabs_strip_status).set_text("Strip · " + strip_pages_.record_at(*found).title + " selected");
+        (*document_.gallery_tabs_strip_status).text = "Strip · " + strip_pages_.record_at(*found).title + " selected";
     }
 
     // State event: fires for pointer, keyboard, semantic and programmatic
@@ -347,14 +347,14 @@ private:
     void on_primary_selected(const TabSelectionChange&) {
         const std::shared_ptr<TabPage> selected = (*document_.gallery_tabs_primary).selected_tab();
         if (!selected) return;
-        (*document_.gallery_tabs_status).set_text((*selected).text.read() +
-                            " selected · focus and semantics reconciled");
+        (*document_.gallery_tabs_status).text = (*selected).text.read() +
+                            " selected · focus and semantics reconciled";
     }
 
     void on_activity_visible_changed(const bool visible) {
         (*document_.gallery_tabs_status).set_text(visible
             ? "Activity · keep visible on · bound Value<bool> changed"
-            : "Activity · keep visible off · bound Value<bool> changed");
+            : "Activity · keep visible off · bound Value<bool> changed";
     }
 
     static constexpr std::array<std::string_view, 10> document_titles{

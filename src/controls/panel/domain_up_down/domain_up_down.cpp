@@ -66,16 +66,6 @@ DomainUpDown::DomainUpDown(StableId stable_id) : Panel(std::move(stable_id)) {
     set_tool_tip_presentation(ToolTipPresentation::field_hint);
     border_style = BorderStyle::line;
     set_background(style().paper);
-    PropertyRegistration items_registration;
-    items_registration.descriptor = text_items_property::descriptor("Ordered text items the spinner steps through.");
-    items_registration.get =
-        detail::BoundMemberFunction<BindingValue (DomainUpDown::*)() const>(*this, &DomainUpDown::items_property_value);
-    items_registration.set =
-        detail::BoundMemberFunction<void (DomainUpDown::*)(const BindingValue&)>(*this, &DomainUpDown::set_items_property);
-    items_registration.reset = detail::BoundMemberFunction<void (DomainUpDown::*)()>(*this, &DomainUpDown::reset_items_property);
-    items_registration.should_serialize = detail::BoundMemberFunction<bool (DomainUpDown::*)() const noexcept>(
-        *this, &DomainUpDown::should_serialize_items_property);
-    define_bindable_property(std::move(items_registration));
 }
 
 BindingValue DomainUpDown::items_property_value() const {
@@ -487,14 +477,49 @@ void DomainUpDown::append_interactions(std::vector<InteractionDeclaration>& inte
                         domain_up_down_interactions.end());
 }
 
+namespace {
+
+// The items collection in its BindingValue form (text_items_property.hpp):
+// a hand table entry (extra_entries) over the CollectionCell.
+PropertyDescriptor domain_up_down_items_descriptor() {
+    PropertyDescriptor descriptor = text_items_property::descriptor("Ordered text items the spinner steps through.");
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_domain_up_down_items() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        domain_up_down_items_descriptor(), PropertyOperations{true, true, true, false});
+    return descriptor;
+}
+
+} // namespace
+
 // property_codemod begin DomainUpDown (tools/property_families/domain_up_down.json; generated, do not edit)
+
+const std::array<PropertyEntry, DomainUpDown::domain_up_down_property_count>& DomainUpDown::domain_up_down_property_entries() noexcept {
+    static constexpr std::array<PropertyEntry, 1U> own{{
+        {"items", &describe_domain_up_down_items,
+         &read_member_entry<DomainUpDown, decltype(&DomainUpDown::items_property_value), &DomainUpDown::items_property_value>,
+         &write_member_entry<DomainUpDown, decltype(&DomainUpDown::set_items_property), &DomainUpDown::set_items_property>,
+         &reset_member_entry<DomainUpDown, decltype(&DomainUpDown::reset_items_property), &DomainUpDown::reset_items_property>, &should_serialize_member_entry<DomainUpDown, decltype(&DomainUpDown::should_serialize_items_property), &DomainUpDown::should_serialize_items_property>, nullptr,
+         nullptr},
+    }};
+    static_assert(property_names_distinct(own), "DomainUpDown's property table names a property twice");
+    static const std::array<PropertyEntry, domain_up_down_property_count> entries =
+        join_property_tables(Panel::panel_property_entries(), own);
+    return entries;
+}
+
+std::span<const PropertyEntry> DomainUpDown::property_table() const noexcept {
+    const std::array<PropertyEntry, domain_up_down_property_count>& entries = domain_up_down_property_entries();
+    return std::span<const PropertyEntry>(entries);
+}
 
 void DomainUpDown::prepare_write(const decltype(wrap)&, bool&) {
     require_mutable();
 }
 
-void DomainUpDown::written(const decltype(wrap)&) {
-}
+void DomainUpDown::written(const decltype(wrap)&) {}
 
 void DomainUpDown::prepare_write(const decltype(button_width)&, double& incoming) {
     require_mutable();

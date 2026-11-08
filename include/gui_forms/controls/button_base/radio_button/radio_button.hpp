@@ -1,25 +1,16 @@
 #pragma once
 
 #include "gui_forms/controls/button_base/button_base.hpp"
+#include "gui_forms/controls/button_base/radio_button/radio_button_capabilities/radio_button_capabilities.hpp"
 
 #include <string>
 
 namespace gui_forms {
 
-class RadioButton : public ButtonBase {
+class RadioButton : public ButtonBase, public RadioButtonCapabilities<RadioButton> {
 public:
     explicit RadioButton(StableId stable_id, std::string text = {});
 
-    [[nodiscard]] bool checked() const noexcept { return checked_; }
-    void set_checked(bool checked);
-    [[nodiscard]] const std::string& group_name() const noexcept { return group_name_; }
-    void set_group_name(std::string name);
-    [[nodiscard]] bool auto_check() const noexcept { return auto_check_; }
-    void set_auto_check(bool enabled);
-    [[nodiscard]] ChoiceIndicatorStyle indicator_style() const noexcept {
-        return indicator_style_;
-    }
-    void set_indicator_style(ChoiceIndicatorStyle style);
     [[nodiscard]] Event<bool>& checked_changed() noexcept {
         return checked_changed_;
     }
@@ -60,12 +51,34 @@ protected:
 
 private:
     void set_checked_without_exclusion(bool checked);
+    // Clears the checked sibling that shares this button's group_name.
+    void clear_checked_peer();
 
-    std::string group_name_;
     Event<bool> checked_changed_;
+    // The checked view's storage.
     bool checked_{};
-    bool auto_check_{true};
-    ChoiceIndicatorStyle indicator_style_{ChoiceIndicatorStyle::classic};
+    // property_codemod begin RadioButton (tools/property_families/radio_button.json; generated, do not edit)
+public:
+    // RadioButton's property table: ButtonBase's entries, then its own.
+    static constexpr std::size_t radio_button_property_count = ButtonBase::button_base_property_count + 3U;
+    [[nodiscard]] static const std::array<PropertyEntry, radio_button_property_count>& radio_button_property_entries() noexcept;
+    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
+
+private:
+    friend struct RadioButtonCheckedCapability<RadioButton>;
+    friend struct RadioButtonGroupNameCapability<RadioButton>;
+    friend struct RadioButtonAutoCheckCapability<RadioButton>;
+    friend struct RadioButtonIndicatorStyleCapability<RadioButton>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void write_view(const decltype(checked)& cell, bool incoming);
+    [[nodiscard]] bool read_view(const decltype(checked)& cell) const;
+    void prepare_write(const decltype(group_name)& cell, std::string& incoming);
+    void written(const decltype(group_name)& cell);
+    void prepare_write(const decltype(auto_check)& cell, bool& incoming);
+    void written(const decltype(auto_check)& cell);
+    void prepare_write(const decltype(indicator_style)& cell, ChoiceIndicatorStyle& incoming);
+    void written(const decltype(indicator_style)& cell);
+    // property_codemod end RadioButton
 };
 
 } // namespace gui_forms

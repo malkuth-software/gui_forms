@@ -17,7 +17,7 @@ void test_animation_laboratory(gui_forms::Window& window) {
             "animation pause button must bind the page-owned Command");
     const std::shared_ptr<gui_forms::CheckBox> reduced_box =
         std::dynamic_pointer_cast<CheckBox>(window.find("gallery.animation.reduced"));
-    require(reduced_box != nullptr && !(*reduced_box).checked(),
+    require(reduced_box != nullptr && !(*reduced_box).checked.read(),
             "reduced-motion check box must start from the page Value's false state");
     (*animated_progress).advance_animation(
         FrameClock::now() + std::chrono::milliseconds(410));

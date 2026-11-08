@@ -21,7 +21,7 @@ bool contains_content(const std::vector<SectionItem>& items, const Control::Ptr&
 class DisclosureButton final : public CheckBox {
 public:
     explicit DisclosureButton(StableId id) : CheckBox(std::move(id)) {
-        set_appearance(CheckBoxAppearance::button);
+        appearance = CheckBoxAppearance::button;
     }
     SemanticDescriptor semantic_descriptor() const override {
         SemanticDescriptor descriptor = ButtonBase::semantic_descriptor();
@@ -64,13 +64,13 @@ ExpandableSections::Entry& ExpandableSections::entry(const int index) const {
 }
 bool ExpandableSections::expanded(const int index) const {
     const Entry& item = entry(index);
-    const bool value = (*item.heading).checked();
+    const bool value = (*item.heading).checked.read();
     return value;
 }
 void ExpandableSections::set_expanded(const int index, const bool expanded) {
     require_mutable();
     Entry& item = entry(index);
-    (*item.heading).set_checked(expanded);
+    (*item.heading).checked = expanded;
 }
 Control* ExpandableSections::part(const std::string_view name, const int index) const {
     const Entry& item = entry(index);
@@ -91,8 +91,8 @@ void ExpandableSections::written(const decltype(single_open)&) {
     const std::shared_ptr<Revision> revision = revision_;
     bool found = false;
     for (const std::shared_ptr<Entry>& item : (*revision).entries) {
-        if (!(*(*item).heading).checked()) continue;
-        if (found) (*(*item).heading).set_checked(false);
+        if (!(*(*item).heading).checked.read()) continue;
+        if (found) (*(*item).heading).checked = false;
         found = true;
         if (!is_alive() || revision_ != revision) return;
     }
@@ -168,10 +168,10 @@ void ExpandableSections::set_items(std::vector<SectionItem> items) {
             heading.text = value.label;
             heading.tab_index = static_cast<std::uint32_t>(index * 2U);
             if (value.expanded != nullptr) heading.bind(*value.expanded);
-            if (single_open.read() && opened && heading.checked()) heading.set_checked(false);
-            opened = opened || heading.checked();
-            heading.expanded_state = heading.checked();
-            (*item.content).visible = heading.checked();
+            if (single_open.read() && opened && heading.checked.read()) heading.checked = false;
+            opened = opened || heading.checked.read();
+            heading.expanded_state = heading.checked.read();
+            (*item.content).visible = heading.checked.read();
             if (!heading.parent()) add_child(item.heading);
             if (!(*item.content).parent()) add_child(item.content);
             item.change = heading.checked_changed().subscribe(*this, HeadingChange{*this, value.id});
@@ -202,7 +202,7 @@ void ExpandableSections::on_toggled(const int id, const bool expanded) {
         if (!is_alive() || revision_ != revision) return;
         if (expanded && single_open.read()) {
             for (const std::shared_ptr<Entry>& other : (*revision).entries) {
-                if ((*other).id != id) (*(*other).heading).set_checked(false);
+                if ((*other).id != id) (*(*other).heading).checked = false;
                 if (!is_alive() || revision_ != revision) return;
             }
         }
@@ -219,7 +219,7 @@ void ExpandableSections::arrange(const Rect bounds) {
     for (const std::shared_ptr<Entry>& item : (*revision).entries) {
         set_child_layout((*item).heading, {0.0, top, bounds.width, 28.0});
         top += 28.0;
-        if ((*(*item).heading).checked()) {
+        if ((*(*item).heading).checked.read()) {
             const double height = (*(*item).content).requested_bounds().height;
             set_child_layout((*item).content, {0.0, top, bounds.width, height});
             top += height;

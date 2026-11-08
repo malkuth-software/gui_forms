@@ -1,0 +1,123 @@
+{
+  "family": "TableLayoutPanelCompat",
+  "step": "M-S5",
+  "declaring": "TableLayoutPanelCompat",
+  "header": "include/gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat.hpp",
+  "source": "src/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat.cpp",
+  "capabilities_header": "include/gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat_capabilities/table_layout_panel_compat_capabilities.hpp",
+  "base": "Control",
+  "includes": [
+    "gui_forms/controls/scrollable_control/container_control/container_control.hpp",
+    "gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat_values/table_layout_panel_compat_values.hpp"
+  ],
+  "properties": [
+    {
+      "name": "grow_style",
+      "capability": "TableLayoutGrow",
+      "value": "TableLayoutGrowStyle",
+      "initial": "TableLayoutGrowStyle::add_rows",
+      "comment": "What a child that does not fit the authored grid does: add rows, add columns, or stay out (fixed size).",
+      "getter": "grow_style",
+      "setter": "set_grow_style",
+      "clear": null,
+      "field": "grow_style_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": {
+        "kind": "enumeration",
+        "category": "Layout",
+        "description": "What a child that does not fit the authored grid does: add rows, add columns, or stay out (fixed size).",
+        "default": "BindingValue{std::int64_t{1}}",
+        "effects": "invalidation::bounds",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": "grow_style_enum()",
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "sample": "TableLayoutGrowStyle::add_columns"
+    },
+    {
+      "name": "cell_border_style",
+      "capability": "TableLayoutCellBorder",
+      "value": "TableCellBorderStyle",
+      "initial": "TableCellBorderStyle::none",
+      "comment": "The lines around and between the cells: none, single, inset or outset.",
+      "getter": "cell_border_style",
+      "setter": "set_cell_border_style",
+      "clear": null,
+      "field": "cell_border_style_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": {
+        "kind": "enumeration",
+        "category": "Appearance",
+        "description": "The lines around and between the cells: none, single, inset or outset.",
+        "default": "BindingValue{std::int64_t{0}}",
+        "effects": "Dirty::paint",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": "cell_border_style_enum()",
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "written_effects": "Dirty::paint | Dirty::semantics | Dirty::accessibility",
+      "sample": "TableCellBorderStyle::single"
+    },
+    {
+      "name": "track_spacing",
+      "capability": "TableLayoutTrackSpacing",
+      "value": "Size",
+      "initial": "Size{}",
+      "comment": "The space between neighbouring columns (width) and rows (height); each finite and between zero and 256, else std::invalid_argument.",
+      "getter": "track_spacing",
+      "setter": "set_track_spacing",
+      "clear": null,
+      "field": "track_spacing_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": {
+        "kind": "size",
+        "category": "Layout",
+        "description": "The space between neighbouring columns (width) and rows (height).",
+        "default": "BindingValue{Size{}}",
+        "effects": "invalidation::bounds",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "prepare": [
+        "if (!std::isfinite(incoming.width) || !std::isfinite(incoming.height) || incoming.width < 0.0 || incoming.height < 0.0 || incoming.width > 256.0 || incoming.height > 256.0) throw std::invalid_argument(\"TableLayoutPanelCompat track spacing must be finite and between zero and 256\");"
+      ],
+      "sample": "Size{2.0, 3.0}"
+    }
+  ],
+  "not_properties": [],
+  "test": {
+    "type": "TableLayoutPanelCompat",
+    "include": "gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat.hpp"
+  },
+  "extra_entries": [
+    "{\"column_count\", &describe_table_layout_panel_compat_column_count,\n         &read_member_entry<TableLayoutPanelCompat, decltype(&TableLayoutPanelCompat::column_count_property), &TableLayoutPanelCompat::column_count_property>,\n         &write_member_entry<TableLayoutPanelCompat, decltype(&TableLayoutPanelCompat::set_column_count_property), &TableLayoutPanelCompat::set_column_count_property>,\n         nullptr, nullptr, nullptr,\n         nullptr}",
+    "{\"row_count\", &describe_table_layout_panel_compat_row_count,\n         &read_member_entry<TableLayoutPanelCompat, decltype(&TableLayoutPanelCompat::row_count_property), &TableLayoutPanelCompat::row_count_property>,\n         &write_member_entry<TableLayoutPanelCompat, decltype(&TableLayoutPanelCompat::set_row_count_property), &TableLayoutPanelCompat::set_row_count_property>,\n         nullptr, nullptr, nullptr,\n         nullptr}",
+    "{\"column_styles\", &describe_table_layout_panel_compat_column_styles,\n         &read_member_entry<TableLayoutPanelCompat, decltype(&TableLayoutPanelCompat::column_styles_property), &TableLayoutPanelCompat::column_styles_property>,\n         &write_member_entry<TableLayoutPanelCompat, decltype(&TableLayoutPanelCompat::set_column_styles_property), &TableLayoutPanelCompat::set_column_styles_property>,\n         nullptr, nullptr, nullptr,\n         nullptr}",
+    "{\"row_styles\", &describe_table_layout_panel_compat_row_styles,\n         &read_member_entry<TableLayoutPanelCompat, decltype(&TableLayoutPanelCompat::row_styles_property), &TableLayoutPanelCompat::row_styles_property>,\n         &write_member_entry<TableLayoutPanelCompat, decltype(&TableLayoutPanelCompat::set_row_styles_property), &TableLayoutPanelCompat::set_row_styles_property>,\n         nullptr, nullptr, nullptr,\n         nullptr}"
+  ]
+}

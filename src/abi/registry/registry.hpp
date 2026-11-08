@@ -1101,9 +1101,9 @@ public:
             return fail(GF_ERROR_WRONG_HANDLE_KIND,
                         "button appearance requires a retained push button");
         }
-        (*button).set_visual_style(
-            static_cast<gui_forms::ButtonVisualStyle>(visual_style));
-        (*button).set_flat_border_width(flat_border_width);
+        (*button).visual_style = 
+            static_cast<gui_forms::ButtonVisualStyle>(visual_style);
+        (*button).flat_border_width = flat_border_width;
         return GF_OK;
     }
 
@@ -1380,8 +1380,8 @@ public:
         }
         if (const std::shared_ptr<gui_forms::CheckBox> check_box =
                 std::dynamic_pointer_cast<gui_forms::CheckBox>((*record).control)) {
-            (*check_box).set_check_state(
-                static_cast<gui_forms::CheckState>(check_state));
+            (*check_box).check_state = 
+                static_cast<gui_forms::CheckState>(check_state);
             return GF_OK;
         }
         if (const std::shared_ptr<gui_forms::RadioButton> radio =
@@ -1391,8 +1391,8 @@ public:
                 return fail(GF_ERROR_INVALID_ARGUMENT,
                             "radio buttons do not support indeterminate state");
             }
-            (*radio).set_checked(
-                check_state == static_cast<std::uint32_t>(gui_forms::CheckState::checked));
+            (*radio).checked = 
+                check_state == static_cast<std::uint32_t>(gui_forms::CheckState::checked);
             return GF_OK;
         }
         return fail(GF_ERROR_WRONG_HANDLE_KIND,
@@ -1410,12 +1410,12 @@ public:
         }
         if (const std::shared_ptr<gui_forms::CheckBox> check_box =
                 std::dynamic_pointer_cast<gui_forms::CheckBox>((*record).control)) {
-            *check_state = static_cast<std::uint32_t>((*check_box).check_state());
+            *check_state = static_cast<std::uint32_t>((*check_box).check_state.read());
             return GF_OK;
         }
         if (const std::shared_ptr<gui_forms::RadioButton> radio =
                 std::dynamic_pointer_cast<gui_forms::RadioButton>((*record).control)) {
-            *check_state = (*radio).checked()
+            *check_state = (*radio).checked.read()
                 ? static_cast<std::uint32_t>(gui_forms::CheckState::checked)
                 : static_cast<std::uint32_t>(gui_forms::CheckState::unchecked);
             return GF_OK;

@@ -746,12 +746,12 @@ void test_multi_control_two_way_currency_and_event_order() {
     const std::shared_ptr<Binding> label = (*fixture.caption).data_bindings().add(
         "Text", fixture.source, "Name");
     require(text && check && range && label &&
-                (*fixture.editor).text.read() == "Alpha" && (*fixture.enabled).checked() &&
+                (*fixture.editor).text.read() == "Alpha" && (*fixture.enabled).checked.read() &&
                 (*fixture.gain).value() == 24.0 && (*fixture.caption).text.read() == "Alpha",
             "adding stock bindings must immediately project the current record into every control kind");
 
     (*fixture.editor).text = "Alpha edited";
-    (*fixture.enabled).set_checked(false);
+    (*fixture.enabled).checked = false;
     (*fixture.gain).set_value(31.0);
     require((*fixture.source).current_field("name") ==
                 std::optional<BindingValue>{std::string("Alpha edited")} &&
@@ -776,7 +776,7 @@ void test_multi_control_two_way_currency_and_event_order() {
     require((*fixture.source).currency_manager().set_position(1) &&
                 (*(*fixture.source).currency_manager().current()).stable_id ==
                     "record.beta" && (*fixture.editor).text.read() == "Beta" &&
-                !(*fixture.enabled).checked() && (*fixture.gain).value() == 72.0 &&
+                !(*fixture.enabled).checked.read() && (*fixture.gain).value() == 72.0 &&
                 order == std::vector<std::string>{
                     "position:1", "current", "item"},
             "currency movement must update controls then emit the chosen deterministic event order");

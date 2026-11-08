@@ -2,7 +2,9 @@
 
 #include "gui_forms/binding/child_property_view/child_property_view.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/container_control.hpp"
+#include "gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat_values/table_layout_panel_compat_values.hpp"
 #include "gui_forms/layout/grid_span/grid_span.hpp"
+#include "gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat_capabilities/table_layout_panel_compat_capabilities.hpp"
 
 #include <array>
 #include <cstddef>
@@ -38,19 +40,6 @@ struct TableLayoutCellPosition final {
         const TableLayoutCellPosition& right) noexcept {
         return left.column == right.column && left.row == right.row;
     }
-};
-
-enum class TableLayoutGrowStyle : std::uint8_t {
-    fixed_size,
-    add_rows,
-    add_columns,
-};
-
-enum class TableCellBorderStyle : std::uint8_t {
-    none,
-    single,
-    inset,
-    outset,
 };
 
 // The placement a table provides to its children (Column, Row, ColumnSpan
@@ -130,7 +119,7 @@ struct TableRowSpanCapability {
 class TableLayoutPanelCompat final : public ContainerControl,
                                      public TableCellCapability<TableLayoutPanelCompat>,
                                      public TableColumnSpanCapability<TableLayoutPanelCompat>,
-                                     public TableRowSpanCapability<TableLayoutPanelCompat> {
+                                     public TableRowSpanCapability<TableLayoutPanelCompat>, public TableLayoutPanelCompatCapabilities<TableLayoutPanelCompat> {
 public:
     explicit TableLayoutPanelCompat(StableId stable_id);
 
@@ -151,16 +140,6 @@ public:
     void set_column_count(std::size_t count);
     [[nodiscard]] std::size_t row_count() const noexcept { return row_count_; }
     void set_row_count(std::size_t count);
-    [[nodiscard]] TableLayoutGrowStyle grow_style() const noexcept {
-        return grow_style_;
-    }
-    void set_grow_style(TableLayoutGrowStyle style);
-    [[nodiscard]] TableCellBorderStyle cell_border_style() const noexcept {
-        return cell_border_style_;
-    }
-    void set_cell_border_style(TableCellBorderStyle style);
-    [[nodiscard]] Size track_spacing() const noexcept { return track_spacing_; }
-    void set_track_spacing(Size spacing);
 
     [[nodiscard]] std::span<const TableLayoutStyle> column_styles() const noexcept {
         return column_styles_;
@@ -319,10 +298,6 @@ private:
                                                std::span<const TrackDemand> spans, double available,
                                                std::span<double> actual) noexcept;
     static void validate_style(TableLayoutStyle style);
-    // The panel settings as form properties (study 10, section 6); the
-    // counts as unsigned integers, the styles as text collections of
-    // "absolute 140", "percent 1" or "auto".
-    void register_panel_properties();
     [[nodiscard]] BindingValue column_count_property() const;
     void set_column_count_property(const BindingValue& value);
     [[nodiscard]] BindingValue row_count_property() const;
@@ -341,9 +316,6 @@ private:
     std::vector<double> row_heights_;
     std::size_t column_count_{1U};
     std::size_t row_count_{1U};
-    TableLayoutGrowStyle grow_style_{TableLayoutGrowStyle::add_rows};
-    TableCellBorderStyle cell_border_style_{TableCellBorderStyle::none};
-    Size track_spacing_{};
     bool layout_overflowed_{};
 
     // The layout pass number, for reconciliation stamps.
@@ -355,6 +327,25 @@ private:
     // column at the right, so the grid ends at the right padding.
     std::vector<double> painted_column_widths_{};
     double grid_left_{};
+    // property_codemod begin TableLayoutPanelCompat (tools/property_families/table_layout_panel_compat.json; generated, do not edit)
+public:
+    // TableLayoutPanelCompat's property table: Control's entries, then its own.
+    static constexpr std::size_t table_layout_panel_compat_property_count = Control::control_property_count + 7U;
+    [[nodiscard]] static const std::array<PropertyEntry, table_layout_panel_compat_property_count>& table_layout_panel_compat_property_entries() noexcept;
+    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
+
+private:
+    friend struct TableLayoutGrowCapability<TableLayoutPanelCompat>;
+    friend struct TableLayoutCellBorderCapability<TableLayoutPanelCompat>;
+    friend struct TableLayoutTrackSpacingCapability<TableLayoutPanelCompat>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(grow_style)& cell, TableLayoutGrowStyle& incoming);
+    void written(const decltype(grow_style)& cell);
+    void prepare_write(const decltype(cell_border_style)& cell, TableCellBorderStyle& incoming);
+    void written(const decltype(cell_border_style)& cell);
+    void prepare_write(const decltype(track_spacing)& cell, Size& incoming);
+    void written(const decltype(track_spacing)& cell);
+    // property_codemod end TableLayoutPanelCompat
 };
 
 } // namespace gui_forms

@@ -146,10 +146,6 @@ protected:
     [[nodiscard]] Size measure_intrinsic(const LayoutConstraint& constraint) override;
 
 private:
-    // The `style` property (study 10, section 6): the container settings
-    // as one CSS inline style, read by the layout style reader (text-align;
-    // the line strut and font are not CSS layout and stay properties).
-    void register_panel_properties();
     [[nodiscard]] BindingValue style_property() const;
     void set_style_property(const BindingValue& value);
     struct ItemRecord final {
@@ -220,6 +216,13 @@ private:
     bool registered_dependencies_{};
     BlockFlowSolveOutcome arranged_outcome_{BlockFlowSolveOutcome::solved};
     SharedMarginsEntry shared_entry_{};
+    // property_codemod begin BlockPanel (tools/property_families/block_panel.json; generated, do not edit)
+public:
+    // BlockPanel's property table: Control's entries, then its own.
+    static constexpr std::size_t block_panel_property_count = Control::control_property_count + 1U;
+    [[nodiscard]] static const std::array<PropertyEntry, block_panel_property_count>& block_panel_property_entries() noexcept;
+    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
+    // property_codemod end BlockPanel
 };
 
 } // namespace gui_forms

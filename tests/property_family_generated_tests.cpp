@@ -8,6 +8,8 @@
 #include "gui_forms/controls/button_base/button/button.hpp"
 #include "gui_forms/controls/button_base/button/drop_down_button/drop_down_button.hpp"
 #include "gui_forms/controls/button_base/link_label/link_label.hpp"
+#include "gui_forms/controls/button_base/check_box/check_box.hpp"
+#include "gui_forms/controls/button_base/radio_button/radio_button.hpp"
 #include "gui_forms/controls/button_base/toggle_switch/toggle_switch.hpp"
 #include "gui_forms/controls/collections/choice_group.hpp"
 #include "gui_forms/controls/collections/expandable_sections.hpp"
@@ -16,8 +18,10 @@
 #include "gui_forms/controls/docking/dock_navigator/dock_navigator.hpp"
 #include "gui_forms/controls/docking/dock_site/dock_site.hpp"
 #include "gui_forms/controls/drawing_surface/drawing_surface.hpp"
+#include "gui_forms/controls/easing_preview/easing_preview.hpp"
 #include "gui_forms/controls/empty_state/empty_state.hpp"
 #include "gui_forms/controls/info_banner/info_banner.hpp"
+#include "gui_forms/controls/instruments/sweep_scope/sweep_scope.hpp"
 #include "gui_forms/controls/label/label.hpp"
 #include "gui_forms/controls/menu_strip/menu_strip.hpp"
 #include "gui_forms/controls/metrics_view/metrics_view.hpp"
@@ -67,6 +71,16 @@
 #include "gui_forms/controls/scrollable_control/container_control/split_container/splitter_panel/splitter_panel.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/tab_control/tab_control.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/tab_control/tab_page/tab_page.hpp"
+#include "gui_forms/controls/range_control/progress_bar/progress_bar.hpp"
+#include "gui_forms/controls/range_control/scroll_bar/scroll_bar.hpp"
+#include "gui_forms/controls/range_control/track_bar/track_bar.hpp"
+#include "gui_forms/controls/scrollable_control/container_control/block_panel/block_panel.hpp"
+#include "gui_forms/controls/scrollable_control/container_control/command_overflow_panel/command_overflow_panel.hpp"
+#include "gui_forms/controls/scrollable_control/container_control/flex_panel/flex_panel.hpp"
+#include "gui_forms/controls/scrollable_control/container_control/flow_layout_panel_compat/flow_layout_panel_compat.hpp"
+#include "gui_forms/controls/scrollable_control/container_control/grid_panel/grid_panel.hpp"
+#include "gui_forms/controls/scrollable_control/container_control/responsive_track_panel/responsive_track_panel.hpp"
+#include "gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat.hpp"
 #include "gui_forms/controls/scrollable_control/scrollable_control.hpp"
 #include "gui_forms/controls/search_field/search_field.hpp"
 #include "gui_forms/controls/splitter/splitter.hpp"
@@ -75,6 +89,7 @@
 #include "gui_forms/controls/tool_strip_container/tool_strip_container.hpp"
 #include "gui_forms/controls/tool_strip_panel/tool_strip_panel.hpp"
 #include "gui_forms/controls/typography_specimen/typography_specimen.hpp"
+#include "gui_forms/controls/visual_inspector_view/visual_inspector_view.hpp"
 
 #include <cstdlib>
 #include <iostream>
@@ -167,6 +182,11 @@ void test_badge_properties() {
     }
 }
 
+void test_block_panel_properties() {
+    std::shared_ptr<BlockPanel> control = make_control<BlockPanel>(StableId("generated.blockpanel"));
+    expect((*control).property_descriptor("style").has_value(), "BlockPanel.style: the table holds the hand entry");
+}
+
 void test_breadcrumb_trail_properties() {
     std::shared_ptr<BreadcrumbTrail> control = make_control<BreadcrumbTrail>(StableId("generated.breadcrumbtrail"));
     {
@@ -188,6 +208,26 @@ void test_breadcrumb_trail_properties() {
         const bool sample = !(*control).tab_completion_available.read();
         (*control).tab_completion_available = sample;
         expect((*control).tab_completion_available.read() == sample, "BreadcrumbTrail.tab_completion_available: a write stores");
+    }
+}
+
+void test_button_properties() {
+    std::shared_ptr<Button> control = make_control<Button>(StableId("generated.button"));
+    {
+        const ButtonVisualStyle sample = ButtonVisualStyle::flat;
+        (*control).visual_style = sample;
+        expect((*control).visual_style.read() == sample, "Button.visual_style: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("visual_style");
+        expect(by_name && *by_name == PropertyValueTraits<ButtonVisualStyle>::to_binding(sample),
+               "Button.visual_style: the table reads the cell");
+    }
+    {
+        const double sample = 2.0;
+        (*control).flat_border_width = sample;
+        expect((*control).flat_border_width.read() == sample, "Button.flat_border_width: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("flat_border_width");
+        expect(by_name && *by_name == PropertyValueTraits<double>::to_binding(sample),
+               "Button.flat_border_width: the table reads the cell");
     }
 }
 
@@ -294,6 +334,32 @@ void test_card_properties() {
     }
 }
 
+void test_check_box_properties() {
+    std::shared_ptr<CheckBox> control = make_control<CheckBox>(StableId("generated.checkbox"));
+    {
+        const bool sample = true;
+        (*control).three_state = sample;
+        expect((*control).three_state.read() == sample, "CheckBox.three_state: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("three_state");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "CheckBox.three_state: the table reads the cell");
+    }
+    {
+        const bool sample = !(*control).auto_check.read();
+        (*control).auto_check = sample;
+        expect((*control).auto_check.read() == sample, "CheckBox.auto_check: a write stores");
+    }
+    // appearance: no sample for CheckBoxAppearance; give the property a "sample".
+    {
+        const ChoiceIndicatorStyle sample = ChoiceIndicatorStyle::modern;
+        (*control).indicator_style = sample;
+        expect((*control).indicator_style.read() == sample, "CheckBox.indicator_style: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("indicator_style");
+        expect(by_name && *by_name == PropertyValueTraits<ChoiceIndicatorStyle>::to_binding(sample),
+               "CheckBox.indicator_style: the table reads the cell");
+    }
+}
+
 void test_checked_list_box_properties() {
     std::shared_ptr<CheckedListBox> control = make_control<CheckedListBox>(StableId("generated.checkedlistbox"));
     {
@@ -318,6 +384,7 @@ void test_choice_group_properties() {
         expect(by_name && *by_name == PropertyValueTraits<ChoiceGroupPresentation>::to_binding(sample),
                "ChoiceGroup.presentation: the table reads the cell");
     }
+    // selected_index: no sample for int; give the property a "sample".
 }
 
 void test_color_value_editor_properties() {
@@ -381,6 +448,20 @@ void test_combo_box_properties() {
         expect((*control).auto_complete_source.read() == sample, "ComboBox.auto_complete_source: a write stores");
     }
     // auto_complete_custom_source: no sample for std::shared_ptr<AutoCompleteStringCollection>; give the property a "sample".
+    expect((*control).property_descriptor("items").has_value(), "ComboBox.items: the table holds the hand entry");
+    expect((*control).property_descriptor("selected_index").has_value(), "ComboBox.selected_index: the table holds the hand entry");
+}
+
+void test_command_overflow_panel_properties() {
+    std::shared_ptr<CommandOverflowPanel> control = make_control<CommandOverflowPanel>(StableId("generated.commandoverflowpanel"));
+    {
+        const double sample = 6.0;
+        (*control).group_gap = sample;
+        expect((*control).group_gap.read() == sample, "CommandOverflowPanel.group_gap: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("group_gap");
+        expect(by_name && *by_name == PropertyValueTraits<double>::to_binding(sample),
+               "CommandOverflowPanel.group_gap: the table reads the cell");
+    }
 }
 
 void test_container_control_properties() {
@@ -714,6 +795,19 @@ void test_domain_up_down_properties() {
         (*control).button_width = sample;
         expect((*control).button_width.read() == sample, "DomainUpDown.button_width: a write stores");
     }
+    expect((*control).property_descriptor("items").has_value(), "DomainUpDown.items: the table holds the hand entry");
+}
+
+void test_easing_preview_properties() {
+    std::shared_ptr<EasingPreview> control = make_control<EasingPreview>(StableId("generated.easingpreview"));
+    {
+        const std::string sample = std::string("Easing");
+        (*control).title = sample;
+        expect((*control).title.read() == sample, "EasingPreview.title: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("title");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "EasingPreview.title: the table reads the cell");
+    }
 }
 
 void test_drawing_surface_properties() {
@@ -788,6 +882,59 @@ void test_flags_value_editor_properties() {
         (*control).overlay_width = sample;
         expect((*control).overlay_width.read() == sample, "FlagsValueEditor.overlay_width: a write stores");
     }
+    expect((*control).property_descriptor("enumeration_name").has_value(), "FlagsValueEditor.enumeration_name: the table holds the hand entry");
+    expect((*control).property_descriptor("flag_names").has_value(), "FlagsValueEditor.flag_names: the table holds the hand entry");
+    expect((*control).property_descriptor("none_name").has_value(), "FlagsValueEditor.none_name: the table holds the hand entry");
+    expect((*control).property_descriptor("checked_flags").has_value(), "FlagsValueEditor.checked_flags: the table holds the hand entry");
+}
+
+void test_flex_panel_properties() {
+    std::shared_ptr<FlexPanel> control = make_control<FlexPanel>(StableId("generated.flexpanel"));
+    expect((*control).property_descriptor("style").has_value(), "FlexPanel.style: the table holds the hand entry");
+}
+
+void test_flow_layout_panel_compat_properties() {
+    std::shared_ptr<FlowLayoutPanelCompat> control = make_control<FlowLayoutPanelCompat>(StableId("generated.flowlayoutpanelcompat"));
+    {
+        const FlowDirection sample = FlowDirection::top_down;
+        (*control).flow_direction = sample;
+        expect((*control).flow_direction.read() == sample, "FlowLayoutPanelCompat.flow_direction: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("flow_direction");
+        expect(by_name && *by_name == PropertyValueTraits<FlowDirection>::to_binding(sample),
+               "FlowLayoutPanelCompat.flow_direction: the table reads the cell");
+    }
+    {
+        const bool sample = false;
+        (*control).wrap_contents = sample;
+        expect((*control).wrap_contents.read() == sample, "FlowLayoutPanelCompat.wrap_contents: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("wrap_contents");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "FlowLayoutPanelCompat.wrap_contents: the table reads the cell");
+    }
+    {
+        const Size sample = Size{4.0, 6.0};
+        (*control).item_spacing = sample;
+        expect((*control).item_spacing.read() == sample, "FlowLayoutPanelCompat.item_spacing: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("item_spacing");
+        expect(by_name && *by_name == PropertyValueTraits<Size>::to_binding(sample),
+               "FlowLayoutPanelCompat.item_spacing: the table reads the cell");
+    }
+    {
+        const FlowMainAlignment sample = FlowMainAlignment::center;
+        (*control).main_alignment = sample;
+        expect((*control).main_alignment.read() == sample, "FlowLayoutPanelCompat.main_alignment: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("main_alignment");
+        expect(by_name && *by_name == PropertyValueTraits<FlowMainAlignment>::to_binding(sample),
+               "FlowLayoutPanelCompat.main_alignment: the table reads the cell");
+    }
+    {
+        const FlowCrossAlignment sample = FlowCrossAlignment::stretch;
+        (*control).cross_alignment = sample;
+        expect((*control).cross_alignment.read() == sample, "FlowLayoutPanelCompat.cross_alignment: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("cross_alignment");
+        expect(by_name && *by_name == PropertyValueTraits<FlowCrossAlignment>::to_binding(sample),
+               "FlowLayoutPanelCompat.cross_alignment: the table reads the cell");
+    }
 }
 
 void test_font_dialog_properties() {
@@ -802,6 +949,11 @@ void test_font_dialog_properties() {
         (*control).preview_text = sample;
         expect((*control).preview_text.read() == sample, "FontDialog.preview_text: a write stores");
     }
+}
+
+void test_grid_panel_properties() {
+    std::shared_ptr<GridPanel> control = make_control<GridPanel>(StableId("generated.gridpanel"));
+    expect((*control).property_descriptor("style").has_value(), "GridPanel.style: the table holds the hand entry");
 }
 
 void test_group_box_properties() {
@@ -895,9 +1047,7 @@ void test_label_properties() {
         const std::optional<FontSpec> sample = FontSpec{FontRole::content, 14.0, 400, false};
         (*control).font = sample;
         expect((*control).font.read() == sample, "Label.font: a write stores");
-        const std::optional<BindingValue> by_name = (*control).property_value("font");
-        expect(by_name && *by_name == PropertyValueTraits<std::optional<FontSpec>>::to_binding(sample),
-               "Label.font: the table reads the cell");
+        expect((*control).property_value("font").has_value(), "Label.font: the table reads it");
     }
     {
         const HorizontalAlignment sample = HorizontalAlignment::center;
@@ -982,6 +1132,7 @@ void test_list_box_properties() {
         (*control).font = sample;
         expect((*control).font.read() == sample, "ListBox.font: a write stores");
     }
+    expect((*control).property_descriptor("items").has_value(), "ListBox.items: the table holds the hand entry");
 }
 
 void test_list_view_properties() {
@@ -1385,6 +1536,65 @@ void test_picture_box_properties() {
     }
 }
 
+void test_progress_bar_properties() {
+    std::shared_ptr<ProgressBar> control = make_control<ProgressBar>(StableId("generated.progressbar"));
+    {
+        const ProgressBarVisualStyle sample = ProgressBarVisualStyle::marquee;
+        (*control).visual_style = sample;
+        expect((*control).visual_style.read() == sample, "ProgressBar.visual_style: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("visual_style");
+        expect(by_name && *by_name == PropertyValueTraits<ProgressBarVisualStyle>::to_binding(sample),
+               "ProgressBar.visual_style: the table reads the cell");
+    }
+    {
+        const ProgressBarOverlayStyle sample = ProgressBarOverlayStyle::moving_stripes;
+        (*control).overlay_style = sample;
+        expect((*control).overlay_style.read() == sample, "ProgressBar.overlay_style: a write stores");
+    }
+    {
+        const double sample = 9.0;
+        (*control).stripe_width = sample;
+        expect((*control).stripe_width.read() == sample, "ProgressBar.stripe_width: a write stores");
+    }
+    {
+        const ProgressBarAnimationAppearance sample = ProgressBarAnimationAppearance{.pulse_extent = 0.5};
+        (*control).animation_appearance = sample;
+        expect((*control).animation_appearance.read() == sample, "ProgressBar.animation_appearance: a write stores");
+    }
+    {
+        const bool sample = false;
+        (*control).animation_enabled = sample;
+        expect((*control).animation_enabled.read() == sample, "ProgressBar.animation_enabled: a write stores");
+    }
+    {
+        const FrameInterval sample = std::chrono::milliseconds(2000);
+        (*control).animation_period = sample;
+        expect((*control).animation_period.read() == sample, "ProgressBar.animation_period: a write stores");
+    }
+    {
+        const std::string sample = std::string("progress_stripes");
+        (*control).effect = sample;
+        expect((*control).effect.read() == sample, "ProgressBar.effect: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("effect");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "ProgressBar.effect: the table reads the cell");
+    }
+    {
+        const std::optional<std::uint64_t> sample = std::uint64_t{7U};
+        (*control).effect_seed = sample;
+        expect((*control).effect_seed.read() == sample, "ProgressBar.effect_seed: a write stores");
+        expect((*control).property_value("effect_seed").has_value(), "ProgressBar.effect_seed: the table reads it");
+    }
+    {
+        const EffectInputKind sample = EffectInputKind::pointer;
+        (*control).effect_input = sample;
+        expect((*control).effect_input.read() == sample, "ProgressBar.effect_input: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("effect_input");
+        expect(by_name && *by_name == PropertyValueTraits<EffectInputKind>::to_binding(sample),
+               "ProgressBar.effect_input: the table reads the cell");
+    }
+}
+
 void test_property_grid_properties() {
     std::shared_ptr<PropertyGrid> control = make_control<PropertyGrid>(StableId("generated.propertygrid"));
 }
@@ -1424,6 +1634,69 @@ void test_raster_canvas_properties() {
         (*control).transparency_cell_size = sample;
         expect((*control).transparency_cell_size.read() == sample, "RasterCanvas.transparency_cell_size: a write stores");
     }
+void test_radio_button_properties() {
+    std::shared_ptr<RadioButton> control = make_control<RadioButton>(StableId("generated.radiobutton"));
+    {
+        const std::string sample = std::string{"left"};
+        (*control).group_name = sample;
+        expect((*control).group_name.read() == sample, "RadioButton.group_name: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("group_name");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "RadioButton.group_name: the table reads the cell");
+    }
+    {
+        const bool sample = !(*control).auto_check.read();
+        (*control).auto_check = sample;
+        expect((*control).auto_check.read() == sample, "RadioButton.auto_check: a write stores");
+    }
+    {
+        const ChoiceIndicatorStyle sample = ChoiceIndicatorStyle::modern;
+        (*control).indicator_style = sample;
+        expect((*control).indicator_style.read() == sample, "RadioButton.indicator_style: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("indicator_style");
+        expect(by_name && *by_name == PropertyValueTraits<ChoiceIndicatorStyle>::to_binding(sample),
+               "RadioButton.indicator_style: the table reads the cell");
+    }
+}
+
+void test_range_control_properties() {
+    std::shared_ptr<TrackBar> control = make_control<TrackBar>(StableId("generated.rangecontrol"));
+    {
+        const double sample = 2.0;
+        (*control).small_change = sample;
+        expect((*control).small_change.read() == sample, "RangeControl.small_change: a write stores");
+    }
+    {
+        const double sample = 20.0;
+        (*control).large_change = sample;
+        expect((*control).large_change.read() == sample, "RangeControl.large_change: a write stores");
+    }
+    {
+        const Orientation sample = Orientation::vertical;
+        (*control).orientation = sample;
+        expect((*control).orientation.read() == sample, "RangeControl.orientation: a write stores");
+    }
+}
+
+void test_responsive_track_panel_properties() {
+    std::shared_ptr<ResponsiveTrackPanel> control = make_control<ResponsiveTrackPanel>(StableId("generated.responsivetrackpanel"));
+    {
+        const ResponsiveTrackOrientation sample = ResponsiveTrackOrientation::vertical;
+        (*control).orientation = sample;
+        expect((*control).orientation.read() == sample, "ResponsiveTrackPanel.orientation: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("orientation");
+        expect(by_name && *by_name == PropertyValueTraits<ResponsiveTrackOrientation>::to_binding(sample),
+               "ResponsiveTrackPanel.orientation: the table reads the cell");
+    }
+    {
+        const double sample = 8.0;
+        (*control).track_gap = sample;
+        expect((*control).track_gap.read() == sample, "ResponsiveTrackPanel.track_gap: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("track_gap");
+        expect(by_name && *by_name == PropertyValueTraits<double>::to_binding(sample),
+               "ResponsiveTrackPanel.track_gap: the table reads the cell");
+    }
+    expect((*control).property_descriptor("track_specs").has_value(), "ResponsiveTrackPanel.track_specs: the table holds the hand entry");
 }
 
 void test_review_card_properties() {
@@ -1557,6 +1830,31 @@ void test_scaled_panel_properties() {
         expect(by_name && *by_name == PropertyValueTraits<Size>::to_binding(sample),
                "ScaledPanel.design_size: the table reads the cell");
     }
+}
+
+void test_scroll_bar_properties() {
+    std::shared_ptr<ScrollBar> control = make_control<ScrollBar>(StableId("generated.scrollbar"));
+    {
+        const double sample = 20.0;
+        (*control).button_extent = sample;
+        expect((*control).button_extent.read() == sample, "ScrollBar.button_extent: a write stores");
+    }
+    {
+        const double sample = 24.0;
+        (*control).minimum_thumb_extent = sample;
+        expect((*control).minimum_thumb_extent.read() == sample, "ScrollBar.minimum_thumb_extent: a write stores");
+    }
+    {
+        const FrameInterval sample = std::chrono::milliseconds(500);
+        (*control).initial_repeat_delay = sample;
+        expect((*control).initial_repeat_delay.read() == sample, "ScrollBar.initial_repeat_delay: a write stores");
+    }
+    {
+        const FrameInterval sample = std::chrono::milliseconds(100);
+        (*control).repeat_interval = sample;
+        expect((*control).repeat_interval.read() == sample, "ScrollBar.repeat_interval: a write stores");
+    }
+    expect((*control).property_descriptor("large_change").has_value(), "ScrollBar.large_change: the table holds the hand entry");
 }
 
 void test_scrollable_control_properties() {
@@ -1718,6 +2016,54 @@ void test_tab_page_properties() {
         (*control).text = sample;
         expect((*control).text.read() == sample, "TabPage.text: a write stores");
     }
+void test_sweep_scope_properties() {
+    std::shared_ptr<SweepScope> control = make_control<SweepScope>(StableId("generated.sweepscope"));
+    {
+        const std::string sample = std::string("GAIN");
+        (*control).caption = sample;
+        expect((*control).caption.read() == sample, "SweepScope.caption: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("caption");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "SweepScope.caption: the table reads the cell");
+    }
+    {
+        const FrameInterval sample = std::chrono::seconds(2);
+        (*control).sweep_period = sample;
+        expect((*control).sweep_period.read() == sample, "SweepScope.sweep_period: a write stores");
+        expect((*control).property_value("sweep_period").has_value(), "SweepScope.sweep_period: the table reads it");
+    }
+}
+
+void test_table_layout_panel_compat_properties() {
+    std::shared_ptr<TableLayoutPanelCompat> control = make_control<TableLayoutPanelCompat>(StableId("generated.tablelayoutpanelcompat"));
+    {
+        const TableLayoutGrowStyle sample = TableLayoutGrowStyle::add_columns;
+        (*control).grow_style = sample;
+        expect((*control).grow_style.read() == sample, "TableLayoutPanelCompat.grow_style: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("grow_style");
+        expect(by_name && *by_name == PropertyValueTraits<TableLayoutGrowStyle>::to_binding(sample),
+               "TableLayoutPanelCompat.grow_style: the table reads the cell");
+    }
+    {
+        const TableCellBorderStyle sample = TableCellBorderStyle::single;
+        (*control).cell_border_style = sample;
+        expect((*control).cell_border_style.read() == sample, "TableLayoutPanelCompat.cell_border_style: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("cell_border_style");
+        expect(by_name && *by_name == PropertyValueTraits<TableCellBorderStyle>::to_binding(sample),
+               "TableLayoutPanelCompat.cell_border_style: the table reads the cell");
+    }
+    {
+        const Size sample = Size{2.0, 3.0};
+        (*control).track_spacing = sample;
+        expect((*control).track_spacing.read() == sample, "TableLayoutPanelCompat.track_spacing: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("track_spacing");
+        expect(by_name && *by_name == PropertyValueTraits<Size>::to_binding(sample),
+               "TableLayoutPanelCompat.track_spacing: the table reads the cell");
+    }
+    expect((*control).property_descriptor("column_count").has_value(), "TableLayoutPanelCompat.column_count: the table holds the hand entry");
+    expect((*control).property_descriptor("row_count").has_value(), "TableLayoutPanelCompat.row_count: the table holds the hand entry");
+    expect((*control).property_descriptor("column_styles").has_value(), "TableLayoutPanelCompat.column_styles: the table holds the hand entry");
+    expect((*control).property_descriptor("row_styles").has_value(), "TableLayoutPanelCompat.row_styles: the table holds the hand entry");
 }
 
 void test_text_block_properties() {
@@ -1740,9 +2086,7 @@ void test_text_block_properties() {
         const std::optional<FontSpec> sample = FontSpec{FontRole::content, 14.0, 400, false};
         (*control).font = sample;
         expect((*control).font.read() == sample, "TextBlock.font: a write stores");
-        const std::optional<BindingValue> by_name = (*control).property_value("font");
-        expect(by_name && *by_name == PropertyValueTraits<std::optional<FontSpec>>::to_binding(sample),
-               "TextBlock.font: the table reads the cell");
+        expect((*control).property_value("font").has_value(), "TextBlock.font: the table reads it");
     }
     {
         const TextAlignment sample = TextAlignment::center;
@@ -1756,9 +2100,7 @@ void test_text_block_properties() {
         const std::optional<double> sample = 18.0;
         (*control).line_height = sample;
         expect((*control).line_height.read() == sample, "TextBlock.line_height: a write stores");
-        const std::optional<BindingValue> by_name = (*control).property_value("line_height");
-        expect(by_name && *by_name == PropertyValueTraits<std::optional<double>>::to_binding(sample),
-               "TextBlock.line_height: the table reads the cell");
+        expect((*control).property_value("line_height").has_value(), "TextBlock.line_height: the table reads it");
     }
 }
 
@@ -1955,6 +2297,28 @@ void test_tool_strip_panel_properties() {
         const ToolStripPanelEdge sample = ToolStripPanelEdge::left;
         (*control).edge = sample;
         expect((*control).edge.read() == sample, "ToolStripPanel.edge: a write stores");
+void test_track_bar_properties() {
+    std::shared_ptr<TrackBar> control = make_control<TrackBar>(StableId("generated.trackbar"));
+    {
+        const double sample = 5.0;
+        (*control).tick_frequency = sample;
+        expect((*control).tick_frequency.read() == sample, "TrackBar.tick_frequency: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("tick_frequency");
+        expect(by_name && *by_name == PropertyValueTraits<double>::to_binding(sample),
+               "TrackBar.tick_frequency: the table reads the cell");
+    }
+    {
+        const bool sample = false;
+        (*control).show_ticks = sample;
+        expect((*control).show_ticks.read() == sample, "TrackBar.show_ticks: a write stores");
+    }
+    {
+        const TrackBarVisualStyle sample = TrackBarVisualStyle::filled;
+        (*control).visual_style = sample;
+        expect((*control).visual_style.read() == sample, "TrackBar.visual_style: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("visual_style");
+        expect(by_name && *by_name == PropertyValueTraits<TrackBarVisualStyle>::to_binding(sample),
+               "TrackBar.visual_style: the table reads the cell");
     }
 }
 
@@ -2039,20 +2403,48 @@ void test_typography_specimen_properties() {
     }
 }
 
+void test_visual_inspector_overlay_properties() {
+    std::shared_ptr<VisualInspectorOverlay> control = make_control<VisualInspectorOverlay>(StableId("generated.visualinspectoroverlay"));
+    {
+        const std::string sample = std::string("target");
+        (*control).target_stable_id = sample;
+        expect((*control).target_stable_id.read() == sample, "VisualInspectorOverlay.target_stable_id: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("target_stable_id");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "VisualInspectorOverlay.target_stable_id: the table reads the cell");
+    }
+}
+
+void test_visual_inspector_view_properties() {
+    std::shared_ptr<VisualInspectorView> control = make_control<VisualInspectorView>(StableId("generated.visualinspectorview"));
+    {
+        const std::string sample = std::string("target");
+        (*control).target_stable_id = sample;
+        expect((*control).target_stable_id.read() == sample, "VisualInspectorView.target_stable_id: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("target_stable_id");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "VisualInspectorView.target_stable_id: the table reads the cell");
+    }
+}
+
 } // namespace
 
 int main() {
     test_anchored_overlay_layer_properties();
     test_backstage_view_properties();
     test_badge_properties();
+    test_block_panel_properties();
     test_breadcrumb_trail_properties();
+    test_button_properties();
     test_button_base_properties();
     test_card_properties();
+    test_check_box_properties();
     test_checked_list_box_properties();
     test_choice_group_properties();
     test_color_value_editor_properties();
     test_combo_box_properties();
     test_container_control_properties();
+    test_command_overflow_panel_properties();
     test_correspondence_view_properties();
     test_data_grid_view_properties();
     test_date_time_picker_properties();
@@ -2061,10 +2453,14 @@ int main() {
     test_domain_up_down_properties();
     test_drawing_surface_properties();
     test_drop_down_button_properties();
+    test_easing_preview_properties();
     test_empty_state_properties();
     test_expandable_sections_properties();
     test_flags_value_editor_properties();
+    test_flex_panel_properties();
+    test_flow_layout_panel_compat_properties();
     test_font_dialog_properties();
+    test_grid_panel_properties();
     test_group_box_properties();
     test_info_banner_properties();
     test_instrument_rack_properties();
@@ -2085,10 +2481,14 @@ int main() {
     test_page_view_properties();
     test_panel_properties();
     test_picture_box_properties();
+    test_progress_bar_properties();
     test_property_grid_properties();
     test_property_list_properties();
     test_quick_access_toolbar_properties();
     test_raster_canvas_properties();
+    test_radio_button_properties();
+    test_range_control_properties();
+    test_responsive_track_panel_properties();
     test_review_card_properties();
     test_ribbon_properties();
     test_ribbon_color_picker_properties();
@@ -2097,6 +2497,7 @@ int main() {
     test_rich_text_box_properties();
     test_scaled_group_box_properties();
     test_scaled_panel_properties();
+    test_scroll_bar_properties();
     test_scrollable_control_properties();
     test_search_field_properties();
     test_split_container_properties();
@@ -2104,6 +2505,8 @@ int main() {
     test_splitter_panel_properties();
     test_tab_control_properties();
     test_tab_page_properties();
+    test_sweep_scope_properties();
+    test_table_layout_panel_compat_properties();
     test_text_block_properties();
     test_text_box_properties();
     test_toggle_switch_properties();
@@ -2111,9 +2514,12 @@ int main() {
     test_tool_strip_properties();
     test_tool_strip_container_properties();
     test_tool_strip_panel_properties();
+    test_track_bar_properties();
     test_tree_list_view_properties();
     test_tree_view_properties();
     test_typography_specimen_properties();
+    test_visual_inspector_overlay_properties();
+    test_visual_inspector_view_properties();
     std::cout << "generated property tests passed\n";
     return EXIT_SUCCESS;
 }

@@ -111,7 +111,7 @@ private:
             {.id = command_add_item, .label = "Add CW",
              .accessible_name = "Add CW item", .command = &add_item_}});
         for (int index = 0; index < 4; ++index) {
-            (*commands_).item(index).set_visual_style(ButtonVisualStyle::command);
+            (*commands_).item(index).visual_style = ButtonVisualStyle::command;
         }
     }
 

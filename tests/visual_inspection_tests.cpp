@@ -75,7 +75,7 @@ struct Fixture final {
         (*clip).add_child(text);
 
         (*button).set_requested_bounds({8.0, 46.0, 90.0, 26.0});
-        (*button).set_visual_style(ButtonVisualStyle::accent);
+        (*button).visual_style = ButtonVisualStyle::accent;
         (*clip).add_child(button);
 
         window = std::make_unique<Window>(root, Size{240.0, 160.0});

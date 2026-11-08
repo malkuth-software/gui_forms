@@ -121,7 +121,7 @@ private:
              .accessible_name = "Next day", .command = &next_day_},
             {.id = command_open, .label = "Open calendar",
              .accessible_name = "Open calendar", .command = &open_calendar_}});
-        (*commands_).item(2).set_visual_style(ButtonVisualStyle::accent);
+        (*commands_).item(2).visual_style = ButtonVisualStyle::accent;
     }
 
     // A two-month MonthCalendar with week numbers, bold dates and a bounded

@@ -31,10 +31,6 @@ class TextBlock final : public Control, public TextBlockCapabilities<TextBlock> 
 public:
     explicit TextBlock(StableId stable_id, std::string initial_text = {});
 
-    // M-S transient forwarders: the integrator's rewrite replaces every call
-    // with an assignment of the cell and deletes them in the same batch.
-    void set_text(std::string value) { text = std::move(value); } // M-S transient forwarder
-    void set_font(FontSpec value) { font = value; } // M-S transient forwarder
 
     // The font the block lays out and paints with: its own `font` when set,
     // otherwise the theme's field typography. Layout and paint use it at the

@@ -1,7 +1,7 @@
 #include "gui_forms/controls/easing_preview/easing_preview.hpp"
 
-#include "gui_forms/detail/property_binding_adapters.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <array>
 #include <algorithm>
@@ -42,29 +42,6 @@ EasingPreview::EasingPreview(StableId stable_id)
     tracks_ = default_easing_tracks(style_);
     accessible_name = "Animation easing preview";
     accessible_description = "Retained timeline tracks comparing configured easing curves";
-    // The run-time schema of a preview (stage FD6.3): what a form document
-    // sets on it. The tracks stay in code (a list of records). It raises no
-    // change event.
-    PropertyDescriptor title;
-    title.name = "title";
-    title.kind = BindingValueKind::text;
-    title.category = "Appearance";
-    title.description = "The heading painted above the tracks.";
-    title.default_value = BindingValue{std::string("Animation timeline and easing")};
-    title.invalidation_effects = Dirty::paint | Dirty::semantics;
-    title.bindable = false;
-    define_bindable_property({
-        std::move(title),
-        detail::BindingMemberGetter<EasingPreview, std::string>(*this, &EasingPreview::title_),
-        detail::DirectPropertySetter<EasingPreview, std::string>(*this, &EasingPreview::set_title),
-        {}, {}, {}});
-}
-
-void EasingPreview::set_title(std::string title) {
-    require_mutable();
-    if (title_ == title) return;
-    title_ = std::move(title);
-    invalidate(Dirty::paint | Dirty::semantics);
 }
 
 void EasingPreview::set_style(BasicControlStyle style) {
@@ -218,7 +195,7 @@ void EasingPreview::on_paint(Painter& painter, Rect) {
     painter.stroke_rect({0.5, 0.5, std::max(0.0, bounds.width - 1.0),
                          std::max(0.0, bounds.height - 1.0)},
                         style_.border, 1.0);
-    painter.draw_text_utf8({18.0 * s, 25.0 * s}, title_,
+    painter.draw_text_utf8({18.0 * s, 25.0 * s}, title.read(),
                            effective_font({FontRole::control, 13.0, 700, false}),
                            style_.dark_border);
     const MotionPolicy policy = effective_motion_policy();
@@ -338,7 +315,6 @@ AnimationTickResult EasingPreview::on_frame_tick(FrameTime now) {
     return AnimationTickResult::damaged;
 }
 
-
 namespace {
 
 constexpr std::array<PartField<EasingPreview::Parts>, 4> easing_preview_part_fields{{
@@ -400,5 +376,59 @@ EasingPreview::States EasingPreview::states() const {
     read_states(easing_preview_state_fields, anatomy_states(), record);
     return record;
 }
+
+// property_codemod begin EasingPreview (tools/property_families/easing_preview.json; generated, do not edit)
+
+namespace {
+
+PropertyDescriptor easing_preview_title_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "title";
+    descriptor.kind = BindingValueKind::text;
+    descriptor.category = "Appearance";
+    descriptor.description = "The heading painted above the tracks.";
+    descriptor.default_value = BindingValue{std::string("Animation timeline and easing")};
+    descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_easing_preview_title() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        easing_preview_title_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+} // namespace
+
+const std::array<PropertyEntry, EasingPreview::easing_preview_property_count>& EasingPreview::easing_preview_property_entries() noexcept {
+    static constexpr std::array<PropertyEntry, 1U> own{{
+        {"title", &describe_easing_preview_title,
+         &read_cell_entry<EasingPreview, decltype(&EasingPreview::title), &EasingPreview::title>,
+         &write_cell_entry<EasingPreview, decltype(&EasingPreview::title), &EasingPreview::title>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+    }};
+    static_assert(property_names_distinct(own), "EasingPreview's property table names a property twice");
+    static const std::array<PropertyEntry, easing_preview_property_count> entries =
+        join_property_tables(Control::control_property_entries(), own);
+    return entries;
+}
+
+std::span<const PropertyEntry> EasingPreview::property_table() const noexcept {
+    const std::array<PropertyEntry, easing_preview_property_count>& entries = easing_preview_property_entries();
+    return std::span<const PropertyEntry>(entries);
+}
+
+void EasingPreview::prepare_write(const decltype(title)&, std::string&) {
+    require_mutable();
+}
+
+void EasingPreview::written(const decltype(title)&) {
+    invalidate(Dirty::paint | Dirty::semantics);
+}
+
+// property_codemod end EasingPreview
 
 } // namespace gui_forms

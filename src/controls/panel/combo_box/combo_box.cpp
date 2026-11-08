@@ -46,57 +46,6 @@ ComboBox::ComboBox(StableId stable_id) : Panel(std::move(stable_id)) {
     border_style = BorderStyle::sunken;
     set_focusable(true);
     cursor = CursorKind::hand;
-    PropertyDescriptor items_descriptor;
-    items_descriptor.name = "items";
-    items_descriptor.kind = BindingValueKind::collection;
-    items_descriptor.category = "Data";
-    items_descriptor.description =
-        "Ordered text items presented by the drop-down.";
-    items_descriptor.default_value = BindingValue{make_property_collection(
-        "String", BindingValueKind::text, {})};
-    items_descriptor.invalidation_effects =
-        Dirty::measure | Dirty::paint | Dirty::semantics;
-    items_descriptor.serialization_visibility =
-        PropertySerializationVisibility::content;
-    items_descriptor.bindable = false;
-    gui_forms::PropertyRegistration items_registration;
-    items_registration.descriptor = std::move(items_descriptor);
-    items_registration.get = detail::BoundMemberFunction<
-        BindingValue (ComboBox::*)() const>(
-            *this, &ComboBox::items_property_value);
-    items_registration.set = detail::BoundMemberFunction<
-        void (ComboBox::*)(const BindingValue&)>(
-            *this, &ComboBox::set_items_property);
-    items_registration.connect_changed =
-        detail::EventChangeConnector<>(items_changed_);
-    items_registration.reset = detail::BoundMemberFunction<
-        void (ComboBox::*)()>(*this, &ComboBox::reset_items_property);
-    items_registration.should_serialize = detail::BoundMemberFunction<
-        bool (ComboBox::*)() const noexcept>(
-            *this, &ComboBox::should_serialize_items_property);
-    define_bindable_property(std::move(items_registration));
-
-    gui_forms::PropertyRegistration index_registration;
-    index_registration.descriptor = {
-        "selected_index", BindingValueKind::signed_integer, "Behavior",
-        "Zero-based selected item index, or -1 when no item is selected.",
-        BindingValue{std::int64_t{-1}}, Dirty::paint | Dirty::semantics};
-    // The user chooses it, so a form binding writes it back by default.
-    index_registration.descriptor.binding_direction = PropertyBindingDirection::two_way;
-    index_registration.get = detail::BoundMemberFunction<
-        BindingValue (ComboBox::*)() const>(
-            *this, &ComboBox::selected_index_property_value);
-    index_registration.set = detail::BoundMemberFunction<
-        void (ComboBox::*)(const BindingValue&)>(
-            *this, &ComboBox::set_selected_index_property);
-    index_registration.connect_changed =
-        detail::EventChangeConnector<std::optional<std::size_t>>(
-            selected_index_changed_);
-    define_bindable_property(std::move(index_registration));
-
-    // What a form document sets besides the items (stage FD6.3). None
-    // raises a change event.
-
 }
 
 BindingValue ComboBox::items_property_value() const {
@@ -1151,6 +1100,51 @@ void ComboBox::append_interactions(std::vector<InteractionDeclaration>& interact
     interactions.insert(interactions.end(), combo_box_interactions.begin(), combo_box_interactions.end());
 }
 
+namespace {
+
+// The items collection and the selected index in their BindingValue forms:
+// hand table entries (combo_box.json extra_entries) over the CollectionCell
+// and the selection.
+PropertyDescriptor combo_box_items_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "items";
+    descriptor.kind = BindingValueKind::collection;
+    descriptor.category = "Data";
+    descriptor.description = "Ordered text items presented by the drop-down.";
+    descriptor.default_value = BindingValue{make_property_collection("String", BindingValueKind::text, {})};
+    descriptor.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
+    descriptor.serialization_visibility = PropertySerializationVisibility::content;
+    descriptor.bindable = false;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_combo_box_items() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        combo_box_items_descriptor(), PropertyOperations{true, true, true, true});
+    return descriptor;
+}
+
+PropertyDescriptor combo_box_selected_index_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "selected_index";
+    descriptor.kind = BindingValueKind::signed_integer;
+    descriptor.category = "Behavior";
+    descriptor.description = "Zero-based selected item index, or -1 when no item is selected.";
+    descriptor.default_value = BindingValue{std::int64_t{-1}};
+    descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    // The user chooses it, so a form binding writes it back by default.
+    descriptor.binding_direction = PropertyBindingDirection::two_way;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_combo_box_selected_index() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        combo_box_selected_index_descriptor(), PropertyOperations{true, true, false, true});
+    return descriptor;
+}
+
+} // namespace
+
 // property_codemod begin ComboBox (tools/property_families/combo_box.json; generated, do not edit)
 
 namespace {
@@ -1274,7 +1268,7 @@ ComboBoxFilter PropertyValueTraits<ComboBoxFilter>::from_binding(const BindingVa
 }
 
 const std::array<PropertyEntry, ComboBox::combo_box_property_count>& ComboBox::combo_box_property_entries() noexcept {
-    static constexpr std::array<PropertyEntry, 4U> own{{
+    static constexpr std::array<PropertyEntry, 6U> own{{
         {"text", &describe_combo_box_text,
          &read_cell_entry<ComboBox, decltype(&ComboBox::text), &ComboBox::text>,
          &write_cell_entry<ComboBox, decltype(&ComboBox::text), &ComboBox::text>,
@@ -1295,6 +1289,16 @@ const std::array<PropertyEntry, ComboBox::combo_box_property_count>& ComboBox::c
          &write_cell_entry<ComboBox, decltype(&ComboBox::drop_down_filter), &ComboBox::drop_down_filter>,
          nullptr, nullptr, nullptr,
          nullptr},
+        {"items", &describe_combo_box_items,
+         &read_member_entry<ComboBox, decltype(&ComboBox::items_property_value), &ComboBox::items_property_value>,
+         &write_member_entry<ComboBox, decltype(&ComboBox::set_items_property), &ComboBox::set_items_property>,
+         &reset_member_entry<ComboBox, decltype(&ComboBox::reset_items_property), &ComboBox::reset_items_property>, &should_serialize_member_entry<ComboBox, decltype(&ComboBox::should_serialize_items_property), &ComboBox::should_serialize_items_property>, nullptr,
+         &connect_event_entry<ComboBox, decltype(&ComboBox::items_changed_), &ComboBox::items_changed_>},
+        {"selected_index", &describe_combo_box_selected_index,
+         &read_member_entry<ComboBox, decltype(&ComboBox::selected_index_property_value), &ComboBox::selected_index_property_value>,
+         &write_member_entry<ComboBox, decltype(&ComboBox::set_selected_index_property), &ComboBox::set_selected_index_property>,
+         nullptr, nullptr, nullptr,
+         &connect_event_entry<ComboBox, decltype(&ComboBox::selected_index_changed_), &ComboBox::selected_index_changed_>},
     }};
     static_assert(property_names_distinct(own), "ComboBox's property table names a property twice");
     static const std::array<PropertyEntry, combo_box_property_count> entries =

@@ -153,5 +153,8 @@
   "test": {
     "type": "DomainUpDown",
     "include": "gui_forms/controls/panel/domain_up_down/domain_up_down.hpp"
-  }
+  },
+  "extra_entries": [
+    "{\"items\", &describe_domain_up_down_items,\n         &read_member_entry<DomainUpDown, decltype(&DomainUpDown::items_property_value), &DomainUpDown::items_property_value>,\n         &write_member_entry<DomainUpDown, decltype(&DomainUpDown::set_items_property), &DomainUpDown::set_items_property>,\n         &reset_member_entry<DomainUpDown, decltype(&DomainUpDown::reset_items_property), &DomainUpDown::reset_items_property>, &should_serialize_member_entry<DomainUpDown, decltype(&DomainUpDown::should_serialize_items_property), &DomainUpDown::should_serialize_items_property>, nullptr,\n         nullptr}"
+  ]
 }

@@ -189,7 +189,7 @@ GalleryShell build_gallery_shell(const GalleryTree& compiled) {
             StableId(std::string(navigation_id_prefix) + std::string((*entry.page).id)),
             std::string((*entry.page).title));
         (*navigation).font = {FontRole::control, 12.0, 400, false, 0.24};
-        (*navigation).set_visual_style(ButtonVisualStyle::command);
+        (*navigation).visual_style = ButtonVisualStyle::command;
         (*navigation).set_style(page_style());
         (*navigation).set_bounds({16.0, navigation_y, 190.0, 24.0});
         (*sidebar).add_child(navigation);
@@ -290,8 +290,8 @@ GalleryShell build_gallery_shell(const GalleryTree& compiled) {
     (*status_surface).add_at((*context).status, {18.0, 10.0, 800.0, 24.0});
     std::shared_ptr<gui_forms::CheckBox> live = make_control<CheckBox>(
         StableId("gallery.status.live"), "Live animation");
-    (*live).set_checked(true);
-    (*live).set_indicator_style(ChoiceIndicatorStyle::toggle);
+    (*live).checked = true;
+    (*live).indicator_style = ChoiceIndicatorStyle::toggle;
     (*status_surface).add_at(live, {846.0, 8.0, 180.0, 28.0});
 
     // The form document's diagnostics overlay; hidden until the command toggles it.
@@ -399,7 +399,7 @@ public:
         if (!context) return;
         ++(*context).timer_ticks;
         const double cycle = static_cast<double>((*context).timer_ticks % 20U) / 19.0;
-        (*(*context).timer_progress).set_value(cycle * 100.0);
+        (*(*context).timer_progress).value = cycle * 100.0;
         constexpr double travel = 98.0;
         const double eased = 0.5 - std::cos(cycle * 6.283185307179586) * 0.5;
         (*(*context).timer_motion).set_design_bounds(

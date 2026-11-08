@@ -119,12 +119,12 @@ private:
         close_overlay();
         (*document_.gallery_overlays_status).set_text(reason == OverlayDismissReason::click_away
                                 ? "Dismissed by click-away · the press did not fall through to the page"
-                                : "Dismissed by Escape · intercepted before the focused field");
+                                : "Dismissed by Escape · intercepted before the focused field";
     }
 
     void on_close_clicked() {
         close_overlay();
-        (*document_.gallery_overlays_status).set_text("Closed by its button · focus restored to the anchor");
+        (*document_.gallery_overlays_status).text = "Closed by its button · focus restored to the anchor";
     }
 
     // The Window may revoke the overlay itself (for example when its owner is
@@ -152,7 +152,7 @@ private:
 
     void on_placement_changed() {
         if (!open()) {
-            (*document_.gallery_overlays_status).set_text("Placement policy retained · it applies when the next overlay opens");
+            (*document_.gallery_overlays_status).text = "Placement policy retained · it applies when the next overlay opens";
             return;
         }
         (*layer_).placement = placement();
@@ -161,14 +161,14 @@ private:
 
     void on_click_away_changed(const bool enabled) {
         (*layer_).dismiss_on_click_away = enabled;
-        (*document_.gallery_overlays_status).set_text(enabled ? "Click-away requests dismissal"
-                                    : "Click-away is swallowed; use Escape or the Close button");
+        (*document_.gallery_overlays_status).text = enabled ? "Click-away requests dismissal"
+                                    : "Click-away is swallowed; use Escape or the Close button";
     }
 
     void on_escape_changed(const bool enabled) {
         (*layer_).dismiss_on_escape = enabled;
-        (*document_.gallery_overlays_status).set_text(enabled ? "Escape requests dismissal"
-                                    : "Escape reaches the focused field instead");
+        (*document_.gallery_overlays_status).text = enabled ? "Escape requests dismissal"
+                                    : "Escape reaches the focused field instead";
     }
 
     // The public resolver is deterministic, so the status can state the
@@ -185,7 +185,7 @@ private:
                            std::to_string(static_cast<int>(resolved.bounds.y));
         if (resolved.width_clamped) text += " · width clamped";
         if (resolved.height_clamped) text += " · height clamped";
-        (*document_.gallery_overlays_status).set_text(std::move(text));
+        (*document_.gallery_overlays_status).text = std::move(text);
     }
 
     std::array<std::shared_ptr<Button>, 3> anchors_;

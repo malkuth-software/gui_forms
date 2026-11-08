@@ -29,8 +29,8 @@ public:
         (*root).add_child(check);
         (*root).add_child(slider);
 #ifdef GUI_FORMS_AUTHORING_BASELINE
-        (*check).set_checked(true);
-        (*slider).set_value(40.0);
+        (*check).checked = true;
+        (*slider).value = 40.0;
 #else
         command.set_checked(true);
         (*check).bind(command);

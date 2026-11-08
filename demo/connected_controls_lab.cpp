@@ -179,10 +179,10 @@ struct SelectTarget final {
 
     void operator()(ButtonBase&) const {
         if (const std::shared_ptr<VisualInspectorView> strong = view.lock()) {
-            (*strong).set_target_stable_id(target);
+            (*strong).target_stable_id = target;
         }
         if (const std::shared_ptr<VisualInspectorOverlay> strong = overlay.lock()) {
-            (*strong).set_target_stable_id(target);
+            (*strong).target_stable_id = target;
         }
     }
 };
@@ -279,8 +279,8 @@ std::unique_ptr<Window> make_connected_controls_lab() {
     (*three_default).set_default_button(true);
     std::shared_ptr<CheckBox> three_checked = segment<CheckBox>(
         "connected-controls.three.checked", "Checked", {154.0, 262.0, 132.0, 42.0}, root);
-    (*three_checked).set_appearance(CheckBoxAppearance::button);
-    (*three_checked).set_checked(true);
+    (*three_checked).appearance = CheckBoxAppearance::button;
+    (*three_checked).checked = true;
     std::shared_ptr<Button> three_disabled = segment<Button>(
         "connected-controls.three.disabled", "Disabled", {286.0, 262.0, 138.0, 42.0}, root);
     (*three_disabled).enabled = false;
@@ -378,7 +378,7 @@ std::unique_ptr<Window> make_connected_controls_lab() {
         std::shared_ptr<Button> selector = segment<Button>(
             "connected-controls.target." + std::to_string(index),
             targets[index].first, {x, y, 132.0, 30.0}, root);
-        (*selector).set_visual_style(ButtonVisualStyle::command);
+        (*selector).visual_style = ButtonVisualStyle::command;
         (*root).retain((*selector).clicked().subscribe(
             *root, SelectTarget{inspector, overlay, targets[index].second}));
     }

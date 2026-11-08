@@ -2,6 +2,8 @@
 
 #include "gui_forms/binding/child_property_view/child_property_view.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/container_control.hpp"
+#include "gui_forms/controls/scrollable_control/container_control/responsive_track_panel/responsive_track_panel_values/responsive_track_panel_values.hpp"
+#include "gui_forms/controls/scrollable_control/container_control/responsive_track_panel/responsive_track_panel_capabilities/responsive_track_panel_capabilities.hpp"
 
 #include <array>
 
@@ -14,11 +16,6 @@
 #include <vector>
 
 namespace gui_forms {
-
-enum class ResponsiveTrackOrientation : std::uint8_t {
-    horizontal,
-    vertical,
-};
 
 enum class ResponsiveTrackSizeMode : std::uint8_t {
     fixed,
@@ -161,7 +158,7 @@ struct ChildTrackCapability {
 // intact while removing the subtree from paint, hit testing, focus, and
 // semantics.
 class ResponsiveTrackPanel final : public ContainerControl,
-                                   public ChildTrackCapability<ResponsiveTrackPanel> {
+                                   public ChildTrackCapability<ResponsiveTrackPanel>, public ResponsiveTrackPanelCapabilities<ResponsiveTrackPanel> {
 public:
     explicit ResponsiveTrackPanel(StableId stable_id);
 
@@ -170,13 +167,6 @@ public:
     [[nodiscard]] static const std::array<ChildPropertyEntry, track_child_property_count>&
     track_child_property_entries() noexcept;
     [[nodiscard]] std::span<const ChildPropertyEntry> child_property_table() const noexcept override;
-
-    [[nodiscard]] ResponsiveTrackOrientation orientation() const noexcept {
-        return orientation_;
-    }
-    void set_orientation(ResponsiveTrackOrientation orientation);
-    [[nodiscard]] double track_gap() const noexcept { return track_gap_; }
-    void set_track_gap(double gap);
 
     [[nodiscard]] std::span<const ResponsiveTrackSpec> track_specs() const noexcept {
         return track_specs_;
@@ -210,11 +200,6 @@ protected:
 private:
     friend struct ChildTrackCapability<ResponsiveTrackPanel>;
 
-    // The panel settings as form properties (study 10, section 6); the
-    // track specs as a text collection, one "<mode> <minimum> <preferred>
-    // <maximum>" item per track, optionally followed by "weight <w>",
-    // "hidden" and "priority <n>".
-    void register_panel_properties();
     [[nodiscard]] BindingValue track_specs_property() const;
     void set_track_specs_property(const BindingValue& value);
 
@@ -236,15 +221,28 @@ private:
     void reconcile_metadata();
     static void validate_specs(std::span<const ResponsiveTrackSpec> specs);
 
-    ResponsiveTrackOrientation orientation_{
-        ResponsiveTrackOrientation::horizontal};
-    double track_gap_{};
     std::vector<ResponsiveTrackSpec> track_specs_{ResponsiveTrackSpec{}};
     ChildTrackMap child_tracks_;
     FocusFallbackMap focus_fallbacks_;
     std::unordered_set<std::size_t> revealed_tracks_;
     ResponsiveTrackResolution committed_resolution_;
     std::uint64_t committed_resolution_revision_{};
+    // property_codemod begin ResponsiveTrackPanel (tools/property_families/responsive_track_panel.json; generated, do not edit)
+public:
+    // ResponsiveTrackPanel's property table: Control's entries, then its own.
+    static constexpr std::size_t responsive_track_panel_property_count = Control::control_property_count + 3U;
+    [[nodiscard]] static const std::array<PropertyEntry, responsive_track_panel_property_count>& responsive_track_panel_property_entries() noexcept;
+    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
+
+private:
+    friend struct ResponsiveTrackAxisCapability<ResponsiveTrackPanel>;
+    friend struct ResponsiveTrackGapCapability<ResponsiveTrackPanel>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(orientation)& cell, ResponsiveTrackOrientation& incoming);
+    void written(const decltype(orientation)& cell);
+    void prepare_write(const decltype(track_gap)& cell, double& incoming);
+    void written(const decltype(track_gap)& cell);
+    // property_codemod end ResponsiveTrackPanel
 };
 
 } // namespace gui_forms

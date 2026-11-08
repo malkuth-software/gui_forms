@@ -12,16 +12,39 @@
 #include "gui_forms/pages.hpp"
 #include "gui_forms/window.hpp"
 
+#include <algorithm>
 #include <chrono>
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 namespace gui_forms::abi1 {
 
+namespace {
+
+bool descriptor_name_less(const PropertyDescriptor& left, const PropertyDescriptor& right) {
+    return left.name < right.name;
+}
+
+// The type's properties (C-8a): its static property table, walked in name
+// order. A stock control registers nothing in the instance registry, so the
+// table is all of them; only a foreign object (a C ABI custom control) adds
+// registrations, which property_descriptors() merges.
+std::vector<PropertyDescriptor> table_descriptors(const Control& control) {
+    const std::span<const PropertyEntry> table = control.property_table();
+    std::vector<PropertyDescriptor> descriptors{};
+    descriptors.reserve(table.size());
+    for (const PropertyEntry& entry : table) descriptors.push_back(entry.describe());
+    std::sort(descriptors.begin(), descriptors.end(), descriptor_name_less);
+    return descriptors;
+}
+
+} // namespace
+
 void record_control(const Control& control, SchemaSample& sample) {
     sample.anatomy = &control.anatomy();
-    sample.properties = control.property_descriptors();
+    sample.properties = table_descriptors(control);
     sample.child_properties = control.child_property_descriptors();
     sample.interactions = control.interactions();
     sample.recorded = true;

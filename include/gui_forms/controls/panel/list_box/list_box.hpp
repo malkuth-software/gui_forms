@@ -161,7 +161,7 @@ private:
     // property_codemod begin ListBox (tools/property_families/list_box.json; generated, do not edit)
 public:
     // ListBox's property table: Panel's entries, then its own.
-    static constexpr std::size_t list_box_property_count = Panel::panel_property_count + 1U;
+    static constexpr std::size_t list_box_property_count = Panel::panel_property_count + 2U;
     [[nodiscard]] static const std::array<PropertyEntry, list_box_property_count>& list_box_property_entries() noexcept;
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
 

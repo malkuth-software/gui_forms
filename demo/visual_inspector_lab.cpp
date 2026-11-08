@@ -119,8 +119,8 @@ struct SelectTarget final {
         const std::shared_ptr<VisualInspectorView> strong_view = view.lock();
         const std::shared_ptr<VisualInspectorOverlay> strong_overlay =
             overlay.lock();
-        if (strong_view) (*strong_view).set_target_stable_id(target);
-        if (strong_overlay) (*strong_overlay).set_target_stable_id(target);
+        if (strong_view) (*strong_view).target_stable_id = target;
+        if (strong_overlay) (*strong_overlay).target_stable_id = target;
     }
 };
 
@@ -169,7 +169,7 @@ std::unique_ptr<Window> make_visual_inspector_lab() {
 
     std::shared_ptr<Button> primary = make_control<Button>(
         StableId("visual-inspector.specimen-button"), "Focus, hover, and press me");
-    (*primary).set_visual_style(ButtonVisualStyle::accent);
+    (*primary).visual_style = ButtonVisualStyle::accent;
     (*primary).font = {FontRole::control, 12.0, 700, false, 0.12};
     add_at(card, primary, {24.0, 138.0, 230.0, 42.0});
 
@@ -218,7 +218,7 @@ std::unique_ptr<Window> make_visual_inspector_lab() {
         std::shared_ptr<Button> selector = make_control<Button>(
             StableId("visual-inspector.target." + std::to_string(index)),
             target_specs[index].first);
-        (*selector).set_visual_style(ButtonVisualStyle::command);
+        (*selector).visual_style = ButtonVisualStyle::command;
         add_at(root, selector,
                {28.0 + static_cast<double>(index % 2U) * 250.0,
                 412.0 + static_cast<double>(index / 2U) * 48.0,
