@@ -3054,8 +3054,8 @@ void example() {
         std::make_shared<gf::ColorCommand>(std::make_shared<gf::Command>("doc.colour", "Font colour"));
     std::shared_ptr<gf::RibbonColorPicker> picker =
         gf::make_control<gf::RibbonColorPicker>(gf::StableId("doc.colour-picker"));
-    (*picker).set_text("Font &colour");
-    (*picker).set_command(command);
+    (*picker).text = "Font &colour";
+    (*picker).command = command;
 }
 }  // namespace doc_example_RibbonColorPicker_1
 
@@ -3066,7 +3066,7 @@ void example() {
     std::shared_ptr<gf::RibbonFontControl> font =
         gf::make_control<gf::RibbonFontControl>(gf::StableId("doc.font-control"));
     (*font).set_families({"Portsmouth Rapids", "Carlito"});
-    (*font).set_command(command);
+    (*font).command = command;
 }
 }  // namespace doc_example_RibbonFontControl_1
 

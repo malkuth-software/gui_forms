@@ -395,7 +395,7 @@ private:
         (*font).command = font_command_;
         std::shared_ptr<RibbonColorPicker> colour =
             make_control<RibbonColorPicker>(StableId("gallery.commands.ribbon-file-area.colour"));
-        (*colour).set_text("Font &colour");
+        (*colour).text = "Font &colour";
         (*colour).command = color_command_;
         const std::shared_ptr<Ribbon>& ribbon = document_.gallery_commands_ribbon_file_area_bar;
         RibbonTabSpec home{.stable_id = "file-area.home", .text = "&Home"};

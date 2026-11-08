@@ -59,6 +59,8 @@
 #include "gui_forms/controls/quick_access_toolbar/quick_access_toolbar.hpp"
 #include "gui_forms/controls/raster_canvas/raster_canvas.hpp"
 #include "gui_forms/controls/ribbon/ribbon.hpp"
+#include "gui_forms/controls/ribbon_color_picker/ribbon_color_picker.hpp"
+#include "gui_forms/controls/ribbon_font_control/ribbon_font_control.hpp"
 #include "gui_forms/controls/ribbon_gallery/ribbon_gallery.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/container_control.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/split_container/split_container.hpp"
@@ -1469,6 +1471,26 @@ void test_ribbon_properties() {
     }
 }
 
+void test_ribbon_color_picker_properties() {
+    std::shared_ptr<RibbonColorPicker> control = make_control<RibbonColorPicker>(StableId("generated.ribboncolorpicker"));
+    // command: no sample for std::shared_ptr<ColorCommand>; give the property a "sample".
+    {
+        const ImageId sample = ImageId{7U};
+        (*control).image = sample;
+        expect((*control).image.read() == sample, "RibbonColorPicker.image: a write stores");
+    }
+    {
+        const std::string sample = std::string{"&Highlight"};
+        (*control).text = sample;
+        expect((*control).text.read() == sample, "RibbonColorPicker.text: a write stores");
+    }
+}
+
+void test_ribbon_font_control_properties() {
+    std::shared_ptr<RibbonFontControl> control = make_control<RibbonFontControl>(StableId("generated.ribbonfontcontrol"));
+    // command: no sample for std::shared_ptr<FontCommand>; give the property a "sample".
+}
+
 void test_ribbon_gallery_properties() {
     std::shared_ptr<RibbonGallery> control = make_control<RibbonGallery>(StableId("generated.ribbongallery"));
     // command: no sample for std::shared_ptr<GalleryCommand>; give the property a "sample".
@@ -2069,6 +2091,8 @@ int main() {
     test_raster_canvas_properties();
     test_review_card_properties();
     test_ribbon_properties();
+    test_ribbon_color_picker_properties();
+    test_ribbon_font_control_properties();
     test_ribbon_gallery_properties();
     test_rich_text_box_properties();
     test_scaled_group_box_properties();

@@ -7,6 +7,7 @@
 #include "gui_forms/event.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/controls/ribbon_color_picker/ribbon_color_picker_capabilities/ribbon_color_picker_capabilities.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -34,7 +35,7 @@ enum class RibbonPaletteEntryKind : std::uint8_t { automatic, palette, recent };
 // RibbonCommandKind::color_picker.
 //
 // Not yet: theme colour shades, a "More colours" dialog and live preview.
-class RibbonColorPicker final : public Control {
+class RibbonColorPicker final : public Control, public RibbonColorPickerCapabilities<RibbonColorPicker> {
 public:
     // Development bounds, not measured capacity.
     static constexpr std::size_t maximum_palette = 60U;
@@ -43,24 +44,11 @@ public:
     explicit RibbonColorPicker(StableId stable_id);
     ~RibbonColorPicker() override;
 
-    [[nodiscard]] std::shared_ptr<ColorCommand> command() const noexcept { return command_; }
-    void set_command(std::shared_ptr<ColorCommand> command);
-    // The colour shown, or none for Automatic: the command's, or the
-    // picker's own.
-    [[nodiscard]] std::optional<Color> value() const;
-    void set_value(std::optional<Color> value);
     // The palette colours, ten to a row; the ten standard colours by
     // default. Throws std::invalid_argument for an empty palette, a repeated
     // colour, or more than maximum_palette.
     [[nodiscard]] std::span<const Color> palette() const noexcept { return palette_; }
     void set_palette(std::vector<Color> palette);
-    // The face's icon, over the colour bar.
-    [[nodiscard]] ImageId image() const noexcept { return image_; }
-    void set_image(ImageId image);
-    // The picker's accessible name ("Font colour"), with an optional
-    // mnemonic. Throws std::invalid_argument for invalid UTF-8.
-    [[nodiscard]] const std::string& text() const noexcept { return text_; }
-    void set_text(GUI_FORMS_LOCALIZABLE(text) std::string text);
     // The size the picker measures, in logical units at the current text
     // scale.
     [[nodiscard]] Size natural_size() const noexcept;
@@ -180,13 +168,10 @@ private:
     void on_layer_dismissed(OverlayDismissReason reason);
     void on_overlay_revoked();
 
-    std::shared_ptr<ColorCommand> command_{};
     SubscriptionToken command_value_{};
     SubscriptionToken command_state_{};
     std::optional<Color> own_value_{};
     std::vector<Color> palette_{};
-    ImageId image_{};
-    std::string text_{"Colour"};
     Zone hot_{Zone::none};
     Zone pressed_{Zone::none};
     bool focused_{};
@@ -207,6 +192,22 @@ private:
 
     Event<const std::optional<Color>&> value_changed_{};
     Event<bool> palette_open_changed_{};
+    // property_codemod begin RibbonColorPicker (tools/property_families/ribbon_color_picker.json; generated, do not edit)
+private:
+    friend struct RibbonColorPickerCommandCapability<RibbonColorPicker>;
+    friend struct RibbonColorPickerValueCapability<RibbonColorPicker>;
+    friend struct RibbonColorPickerImageCapability<RibbonColorPicker>;
+    friend struct TextCapability<RibbonColorPicker>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(command)& cell, std::shared_ptr<ColorCommand>& incoming);
+    void written(const decltype(command)& cell);
+    void write_view(const decltype(value)& cell, std::optional<Color> incoming);
+    [[nodiscard]] std::optional<Color> read_view(const decltype(value)& cell) const;
+    void prepare_write(const decltype(image)& cell, ImageId& incoming);
+    void written(const decltype(image)& cell);
+    void prepare_write(const decltype(text)& cell, std::string& incoming);
+    void written(const decltype(text)& cell);
+    // property_codemod end RibbonColorPicker
 };
 
 } // namespace gui_forms

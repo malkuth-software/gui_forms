@@ -4,6 +4,7 @@
 #include "gui_forms/control.hpp"
 #include "gui_forms/controls/panel/combo_box/combo_box.hpp"
 #include "gui_forms/event.hpp"
+#include "gui_forms/controls/ribbon_font_control/ribbon_font_control_capabilities/ribbon_font_control_capabilities.hpp"
 
 #include <cstdint>
 #include <memory>
@@ -23,7 +24,7 @@ namespace gui_forms {
 //
 // Not yet: typing a family or size that is not listed, and drawing each
 // family in its own face in the list.
-class RibbonFontControl final : public Control {
+class RibbonFontControl final : public Control, public RibbonFontControlCapabilities<RibbonFontControl> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
     // Development bounds, not measured capacity.
@@ -50,14 +51,6 @@ public:
     // The size the control measures, in logical units at the current text
     // scale.
     [[nodiscard]] Size natural_size() const noexcept;
-
-    [[nodiscard]] std::shared_ptr<FontCommand> command() const noexcept { return command_; }
-    void set_command(std::shared_ptr<FontCommand> command);
-    // The value shown: the command's, or the control's own.
-    [[nodiscard]] FontChoice value() const;
-    // Sets the value as the program does (the command's set_value when there
-    // is one). Throws std::invalid_argument for a value FontCommand refuses.
-    void set_value(FontChoice value);
 
     [[nodiscard]] std::shared_ptr<ComboBox> family_box() const noexcept { return family_; }
     [[nodiscard]] std::shared_ptr<ComboBox> size_box() const noexcept { return size_; }
@@ -115,7 +108,6 @@ private:
     std::shared_ptr<ComboBox> size_;
     SubscriptionToken family_changed_{};
     SubscriptionToken size_changed_{};
-    std::shared_ptr<FontCommand> command_{};
     SubscriptionToken command_value_{};
     SubscriptionToken command_state_{};
     std::vector<std::string> families_{};
@@ -127,6 +119,16 @@ private:
     // are not taken for the user's choice.
     bool synchronizing_{};
     Event<const FontChoice&> value_changed_{};
+    // property_codemod begin RibbonFontControl (tools/property_families/ribbon_font_control.json; generated, do not edit)
+private:
+    friend struct RibbonFontControlCommandCapability<RibbonFontControl>;
+    friend struct RibbonFontControlValueCapability<RibbonFontControl>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(command)& cell, std::shared_ptr<FontCommand>& incoming);
+    void written(const decltype(command)& cell);
+    void write_view(const decltype(value)& cell, FontChoice incoming);
+    [[nodiscard]] FontChoice read_view(const decltype(value)& cell) const;
+    // property_codemod end RibbonFontControl
 };
 
 } // namespace gui_forms

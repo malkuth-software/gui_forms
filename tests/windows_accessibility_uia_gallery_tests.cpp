@@ -1629,8 +1629,8 @@ struct BeginAction final {
                 Delegate<ButtonBase&>::bind<ClickCounter, &ClickCounter::clicked>(out.clicks));
         }
         const std::shared_ptr<RibbonColorPicker> picker = std::dynamic_pointer_cast<RibbonColorPicker>(control);
-        if (picker && (*picker).command()) {
-            const std::shared_ptr<Command>& command = (*(*picker).command()).command();
+        if (picker && (*picker).command.read()) {
+            const std::shared_ptr<Command>& command = (*(*picker).command.read()).command();
             out.invocation_subscription = (*command).invoked().subscribe(
                 Delegate<const CommandInvocation&>::bind<InvocationCounter, &InvocationCounter::invoked>(
                     out.invocations));

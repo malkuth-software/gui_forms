@@ -1,0 +1,111 @@
+{
+  "family": "RibbonColorPicker",
+  "step": "M-S8",
+  "declaring": "RibbonColorPicker",
+  "header": "include/gui_forms/controls/ribbon_color_picker/ribbon_color_picker.hpp",
+  "source": "src/controls/ribbon_color_picker/ribbon_color_picker.cpp",
+  "capabilities_header": "include/gui_forms/controls/ribbon_color_picker/ribbon_color_picker_capabilities/ribbon_color_picker_capabilities.hpp",
+  "base": "Control",
+  "shared": [
+    "TextCapability"
+  ],
+  "includes": [
+    "gui_forms/commands/color_command/color_command.hpp",
+    "gui_forms/types.hpp"
+  ],
+  "test": {
+    "type": "RibbonColorPicker",
+    "include": "gui_forms/controls/ribbon_color_picker/ribbon_color_picker.hpp"
+  },
+  "properties": [
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "command",
+      "capability": "RibbonColorPickerCommand",
+      "value": "std::shared_ptr<ColorCommand>",
+      "hooks": "hand",
+      "hand": [
+        "prepare drops the old subscriptions before a change",
+        "written subscribes to the new command and invalidates"
+      ],
+      "effects": "Dirty::paint | Dirty::semantics",
+      "comment": "The colour command whose value the picker shows and commits, or null; without one the picker keeps its own value.",
+      "getter": "command",
+      "setter": "set_command",
+      "field": "command_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "value",
+      "capability": "RibbonColorPickerValue",
+      "value": "std::optional<Color>",
+      "storage": "view",
+      "field": null,
+      "hooks": "hand",
+      "hand": [
+        "a view: the command's value when there is one, else the picker's own"
+      ],
+      "effects": null,
+      "comment": "The colour shown, or none for Automatic: the command's, or the picker's own. A write goes to the command's set_value when there is one.",
+      "getter": "value",
+      "setter": "set_value"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "image",
+      "capability": "RibbonColorPickerImage",
+      "value": "ImageId",
+      "hooks": "generated",
+      "hand": [],
+      "effects": "Dirty::paint",
+      "comment": "The face's icon, over the colour bar.",
+      "sample": "ImageId{7U}",
+      "getter": "image",
+      "setter": "set_image",
+      "field": "image_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": "text",
+      "table": null,
+      "event": null,
+      "name": "text",
+      "capability": "Text",
+      "value": "std::string",
+      "initial": "\"Colour\"",
+      "hooks": "hand",
+      "hand": [
+        "prepare refuses text that is not valid UTF-8"
+      ],
+      "effects": "Dirty::semantics",
+      "comment": "The picker's accessible name (\"Font colour\"), with an optional mnemonic (Text). Text that is not valid UTF-8 throws std::invalid_argument.",
+      "sample": "std::string{\"&Highlight\"}",
+      "getter": "text",
+      "setter": "set_text",
+      "field": "text_"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "palette",
+      "reason": "wholesale collection replacement (section 4)"
+    }
+  ]
+}

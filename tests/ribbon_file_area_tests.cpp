@@ -156,7 +156,7 @@ void font_control() {
     (*command).set_value({"Carlito", 12.0});
     std::shared_ptr<RibbonFontControl> control = make_control<RibbonFontControl>(StableId("font"));
     (*control).set_families({"Carlito", "Portsmouth", "Tahoma"});
-    (*control).set_command(command);
+    (*control).command = command;
     Window window(control, {200.0, 22.0});
     window.perform_layout();
     const std::shared_ptr<ComboBox> family = (*control).family_box();
@@ -197,9 +197,9 @@ void font_control() {
 void color_picker() {
     std::shared_ptr<ColorCommand> command = std::make_shared<ColorCommand>(std::make_shared<Command>("color", "Colour"));
     std::shared_ptr<RibbonColorPicker> picker = make_control<RibbonColorPicker>(StableId("picker"));
-    (*picker).set_command(command);
-    (*picker).set_text("Font &colour");
-    (*picker).set_image(ImageId{4U});
+    (*picker).command = command;
+    (*picker).text = "Font &colour";
+    (*picker).image = ImageId{4U};
     Window window(picker, {300.0, 300.0});
     window.perform_layout();
     require((*picker).natural_size().width == 34.0 && (*picker).parts().arrow.present &&
@@ -499,7 +499,7 @@ void color_palette_shrinks_while_open() {
     static_cast<void>((*command).commit(Color::rgba(1, 2, 3), "test"));
     static_cast<void>((*command).commit(Color::rgba(4, 5, 6), "test"));
     std::shared_ptr<RibbonColorPicker> picker = make_control<RibbonColorPicker>(StableId("shrinking"));
-    (*picker).set_command(command);
+    (*picker).command = command;
     Window window(picker, {300.0, 300.0});
     window.perform_layout();
     require(window.request_focus(picker), "the picker takes focus");

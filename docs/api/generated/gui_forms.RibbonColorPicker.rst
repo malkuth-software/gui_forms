@@ -7,7 +7,7 @@ gui_forms::RibbonColorPicker
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: RibbonColorPicker final : public Control
+.. cpp:class:: RibbonColorPicker final : public Control, public RibbonColorPickerCapabilities<RibbonColorPicker>
 
    ``#include <gui_forms/controls/ribbon_color_picker/ribbon_color_picker.hpp>``
 
@@ -35,18 +35,18 @@ gui_forms::RibbonColorPicker
 
       **value** : ``std::optional<Color>``
          The colour shown, or none for Automatic: the command's, or the picker's
-         own. :cpp:func:`set_value <gui_forms::RibbonColorPicker::set_value>` sets it as the program does.
-
-      **palette** : ``std::span<const Color>``, default the ten standard colours
-         The palette colours. :cpp:func:`set_palette <gui_forms::RibbonColorPicker::set_palette>` throws ``std::invalid_argument`` for an
-         empty palette, a repeated colour, or more than
-         ``RibbonColorPicker::maximum_palette`` (60).
+         own. ``set_value`` sets it as the program does.
 
       **image** : ``ImageId``
          The face's icon, over the colour bar.
 
       **text** : ``std::string``, default ``"Colour"``
          The picker's accessible name, with an optional mnemonic.
+
+      **palette** : ``std::span<const Color>``, default the ten standard colours
+         The palette colours. :cpp:func:`set_palette <gui_forms::RibbonColorPicker::set_palette>` throws ``std::invalid_argument`` for an
+         empty palette, a repeated colour, or more than
+         ``RibbonColorPicker::maximum_palette`` (60).
 
       **natural_size** : ``Size``, read-only
          The size the picker measures at the current text scale (34 by 22 units
@@ -132,8 +132,8 @@ gui_forms::RibbonColorPicker
           std::make_shared<gf::ColorCommand>(std::make_shared<gf::Command>("doc.colour", "Font colour"));
       std::shared_ptr<gf::RibbonColorPicker> picker =
           gf::make_control<gf::RibbonColorPicker>(gf::StableId("doc.colour-picker"));
-      (*picker).set_text("Font &colour");
-      (*picker).set_command(command);
+      (*picker).text = "Font &colour";
+      (*picker).command = command;
 
 
    .. rubric:: Construction
@@ -143,22 +143,22 @@ gui_forms::RibbonColorPicker
 
    .. rubric:: Properties
 
-   .. cpp:function:: std::shared_ptr<ColorCommand> command() const noexcept
+   .. cpp:member:: std::shared_ptr<ColorCommand> command
 
       The :cpp:class:`ColorCommand <gui_forms::ColorCommand>` it shows and commits to, or null.
 
-   .. cpp:function:: void set_command(std::shared_ptr<ColorCommand> command)
-
-      Sets :cpp:func:`command <gui_forms::RibbonColorPicker::command>`; see the property's description above.
-
-   .. cpp:function:: std::optional<Color> value() const
+   .. cpp:member:: std::optional<Color> value
 
       The colour shown, or none for Automatic: the command's, or the picker's
-      own. :cpp:func:`set_value <gui_forms::RibbonColorPicker::set_value>` sets it as the program does.
+      own. ``set_value`` sets it as the program does.
 
-   .. cpp:function:: void set_value(std::optional<Color> value)
+   .. cpp:member:: ImageId image
 
-      Sets :cpp:func:`value <gui_forms::RibbonColorPicker::value>`; see the property's description above.
+      The face's icon, over the colour bar.
+
+   .. cpp:member:: std::string text
+
+      The picker's accessible name, with an optional mnemonic.
 
    .. cpp:function:: std::span<const Color> palette() const noexcept
 
@@ -169,22 +169,6 @@ gui_forms::RibbonColorPicker
    .. cpp:function:: void set_palette(std::vector<Color> palette)
 
       Sets :cpp:func:`palette <gui_forms::RibbonColorPicker::palette>`; see the property's description above.
-
-   .. cpp:function:: ImageId image() const noexcept
-
-      The face's icon, over the colour bar.
-
-   .. cpp:function:: void set_image(ImageId image)
-
-      Sets :cpp:func:`image <gui_forms::RibbonColorPicker::image>`; see the property's description above.
-
-   .. cpp:function:: const std::string& text() const noexcept
-
-      The picker's accessible name, with an optional mnemonic.
-
-   .. cpp:function:: void set_text(std::string text)
-
-      Sets :cpp:func:`text <gui_forms::RibbonColorPicker::text>`; see the property's description above.
 
    .. cpp:function:: Size natural_size() const noexcept
 

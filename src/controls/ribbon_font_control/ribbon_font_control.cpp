@@ -1,6 +1,7 @@
 #include "gui_forms/controls/ribbon_font_control/ribbon_font_control.hpp"
 
 #include "gui_forms/text.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <array>
 #include <cmath>
@@ -87,7 +88,7 @@ void RibbonFontControl::set_families(std::vector<std::string> families) {
     synchronizing_ = true;
     (*family_).items = families_;
     synchronizing_ = false;
-    show(value());
+    show(value.read());
 }
 
 void RibbonFontControl::set_sizes(std::vector<double> sizes) {
@@ -105,7 +106,7 @@ void RibbonFontControl::set_sizes(std::vector<double> sizes) {
     synchronizing_ = true;
     (*size_).items = std::move(texts);
     synchronizing_ = false;
-    show(value());
+    show(value.read());
 }
 
 void RibbonFontControl::set_field_widths(double family, double size) {
@@ -120,38 +121,47 @@ void RibbonFontControl::set_field_widths(double family, double size) {
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test);
 }
 
-void RibbonFontControl::set_command(std::shared_ptr<FontCommand> command) {
+// A changed command first drops the old one's subscriptions.
+void RibbonFontControl::prepare_write(const decltype(command)&, std::shared_ptr<FontCommand>& incoming) {
     require_mutable();
-    if (command_ == command) return;
+    if (command.read() == incoming) return;
     command_value_.disconnect();
     command_state_.disconnect();
-    command_ = std::move(command);
-    if (command_) {
-        const std::weak_ptr<RibbonFontControl> weak =
-            std::static_pointer_cast<RibbonFontControl>(shared_from_this());
-        command_value_ = (*command_).value_changed().subscribe(*this, CommandValueChanged{weak});
-        command_state_ = (*(*command_).command()).state_changed().subscribe(*this, CommandStateChanged{weak});
-    }
-    sync_enabled();
-    show(value());
 }
 
-FontChoice RibbonFontControl::value() const {
-    if (command_) return (*command_).value();
+void RibbonFontControl::written(const decltype(command)&) {
+    const std::shared_ptr<FontCommand> bound = command.read();
+    if (bound) {
+        const std::weak_ptr<RibbonFontControl> weak =
+            std::static_pointer_cast<RibbonFontControl>(shared_from_this());
+        command_value_ = (*bound).value_changed().subscribe(*this, CommandValueChanged{weak});
+        command_state_ = (*(*bound).command()).state_changed().subscribe(*this, CommandStateChanged{weak});
+    }
+    sync_enabled();
+    show(value.read());
+}
+
+// value is a view: the command's value when there is one, else the
+// control's own.
+FontChoice RibbonFontControl::read_view(const decltype(value)&) const {
+    const std::shared_ptr<FontCommand>& bound = command.read();
+    if (bound) return (*bound).value();
     return own_value_;
 }
 
-void RibbonFontControl::set_value(FontChoice value) {
+
+void RibbonFontControl::write_view(const decltype(value)&, FontChoice incoming) {
     require_mutable();
-    if (command_) {
-        (*command_).set_value(std::move(value));
+    const std::shared_ptr<FontCommand> bound = command.read();
+    if (bound) {
+        (*bound).set_value(std::move(incoming));
         return;
     }
-    if (!FontCommand::valid_value(value)) {
+    if (!FontCommand::valid_value(incoming)) {
         throw std::invalid_argument("RibbonFontControl value is not a valid font choice");
     }
-    if (own_value_ == value) return;
-    own_value_ = std::move(value);
+    if (own_value_ == incoming) return;
+    own_value_ = std::move(incoming);
     show(own_value_);
     value_changed_.emit(own_value_);
 }
@@ -179,7 +189,7 @@ void RibbonFontControl::CommandStateChanged::operator()(const CommandState&) con
 // choice commits to the command (or becomes the control's own value).
 void RibbonFontControl::field_changed(Field field, std::optional<std::size_t> index) {
     if (synchronizing_ || !index) return;
-    FontChoice chosen = value();
+    FontChoice chosen = value.read();
     if (field == Field::family) {
         if (*index >= families_.size()) return;
         chosen.family = families_[*index];
@@ -187,11 +197,11 @@ void RibbonFontControl::field_changed(Field field, std::optional<std::size_t> in
         if (*index >= sizes_.size()) return;
         chosen.size = sizes_[*index];
     }
-    if (command_) {
+    if (command.read()) {
         const Control::Ptr lifetime = shared_from_this();
-        const bool committed = (*command_).commit(chosen, stable_id().value());
+        const bool committed = (*command.read()).commit(chosen, stable_id().value());
         // A refused commit leaves the fields showing the command's value.
-        if (!committed && is_alive()) show(value());
+        if (!committed && is_alive()) show(value.read());
         return;
     }
     if (own_value_ == chosen) return;
@@ -217,7 +227,7 @@ void RibbonFontControl::show(const FontChoice& value) {
 }
 
 void RibbonFontControl::sync_enabled() {
-    const bool enabled = !command_ || (*command_).state().enabled;
+    const bool enabled = !command.read() || (*command.read()).state().enabled;
     (*family_).enabled = enabled;
     (*size_).enabled = enabled;
 }
@@ -324,5 +334,9 @@ void RibbonFontControl::append_interactions(std::vector<InteractionDeclaration>&
     Control::append_interactions(interactions);
     interactions.insert(interactions.end(), font_control_interactions.begin(), font_control_interactions.end());
 }
+
+// property_codemod begin RibbonFontControl (tools/property_families/ribbon_font_control.json; generated, do not edit)
+
+// property_codemod end RibbonFontControl
 
 } // namespace gui_forms

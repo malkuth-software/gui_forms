@@ -574,10 +574,10 @@ void place_menus(FixtureBuilder& builder) {
     (*font).set_families({"Carlito", "Portsmouth"});
     std::shared_ptr<RibbonColorPicker> colour = builder.place(
         make_control<RibbonColorPicker>(StableId("ribbon-color-picker")), 30.0);
-    (*colour).set_text("Font &colour");
+    (*colour).text = "Font &colour";
     std::shared_ptr<Command> font_colour = builder.command("stock.font_colour", "Font colour");
     builder.fixture().color_command = std::make_shared<ColorCommand>(font_colour);
-    (*colour).set_command(builder.fixture().color_command);
+    (*colour).command = builder.fixture().color_command;
 
     builder.omit("context_menu", "component; an overlay that exists only while open");
     builder.omit("command", "component; published through the menus, strips and ribbon that present it");

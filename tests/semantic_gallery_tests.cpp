@@ -733,8 +733,8 @@ ActionResult perform_candidate(Window& window, const std::string& key, const Act
     // A colour picker's press commits its colour again through its command,
     // which changes no state when the colour is the same.
     const std::shared_ptr<RibbonColorPicker> picker = std::dynamic_pointer_cast<RibbonColorPicker>(control);
-    if (picker && (*picker).command()) {
-        const std::shared_ptr<Command>& command = (*(*picker).command()).command();
+    if (picker && (*picker).command.read()) {
+        const std::shared_ptr<Command>& command = (*(*picker).command.read()).command();
         invocation_subscription = (*command).invoked().subscribe(
             Delegate<const CommandInvocation&>::bind<InvocationCounter, &InvocationCounter::invoked>(invocations));
     }

@@ -170,6 +170,14 @@ Related types
      -  
    * - :cpp:class:`RibbonColorPicker::Parts <gui_forms::RibbonColorPicker::Parts>`
      - Stage T1 anatomy, as dot members; its states are Control's.
+   * - :cpp:class:`RibbonColorPickerCapabilities <gui_forms::RibbonColorPickerCapabilities>`
+     - Every RibbonColorPicker capability, in the order the declaring class takes them.
+   * - :cpp:class:`RibbonColorPickerCommandCapability <gui_forms::RibbonColorPickerCommandCapability>`
+     - The colour command whose value the picker shows and commits, or null; without one the picker keeps its own value.
+   * - :cpp:class:`RibbonColorPickerImageCapability <gui_forms::RibbonColorPickerImageCapability>`
+     - The face's icon, over the colour bar.
+   * - :cpp:class:`RibbonColorPickerValueCapability <gui_forms::RibbonColorPickerValueCapability>`
+     - The colour shown, or none for Automatic: the command's, or the picker's own.
    * - :cpp:class:`RibbonCommandClick <gui_forms::RibbonCommandClick>`
      - A click on a button-family command (or its split face), after its Command ran.
    * - :cpp:class:`RibbonCommandSpec <gui_forms::RibbonCommandSpec>`
@@ -184,6 +192,12 @@ Related types
      - Whether the ribbon adds itself to its window's F6 regions when it is attached (owner decision 17).
    * - :cpp:class:`RibbonFontControl::Parts <gui_forms::RibbonFontControl::Parts>`
      - Stage T1 anatomy, as dot members; its states are Control's.
+   * - :cpp:class:`RibbonFontControlCapabilities <gui_forms::RibbonFontControlCapabilities>`
+     - Every RibbonFontControl capability, in the order the declaring class takes them.
+   * - :cpp:class:`RibbonFontControlCommandCapability <gui_forms::RibbonFontControlCommandCapability>`
+     - The font command whose value the fields show and commit, or null; without one the control keeps its own value.
+   * - :cpp:class:`RibbonFontControlValueCapability <gui_forms::RibbonFontControlValueCapability>`
+     - The value shown: the command's, or the control's own.
    * - :cpp:class:`RibbonGallery::Category <gui_forms::RibbonGallery::Category>`
      -  
    * - :cpp:class:`RibbonGallery::CategoryParts <gui_forms::RibbonGallery::CategoryParts>`
@@ -1184,6 +1198,85 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> RibbonColorPickerCapabilities : public RibbonColorPickerCommandCapability<Declaring>, public RibbonColorPickerValueCapability<Declaring>, public RibbonColorPickerImageCapability<Declaring>, public TextCapability<Declaring>
+
+   ``#include <gui_forms/controls/ribbon_color_picker/ribbon_color_picker_capabilities/ribbon_color_picker_capabilities.hpp>``
+
+   Every RibbonColorPicker capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: RibbonColorPickerCapabilities()
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::shared_ptr<ColorCommand> command
+
+      The colour command whose value the picker shows and commits, or null; without one the picker keeps its own value.
+
+   .. cpp:member:: std::optional<Color> value
+
+      The colour shown, or none for Automatic: the command's, or the picker's own. A write goes to the command's set_value when there is one.
+
+   .. cpp:member:: ImageId image
+
+      The face's icon, over the colour bar.
+
+   .. cpp:member:: std::string text
+
+      The text the control shows (Text).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RibbonColorPickerCommandCapability
+
+   ``#include <gui_forms/controls/ribbon_color_picker/ribbon_color_picker_capabilities/ribbon_color_picker_capabilities.hpp>``
+
+   The colour command whose value the picker shows and commits, or null; without one the picker keeps its own value.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonColorPickerCommandCapability& capability, std::shared_ptr<ColorCommand> incoming)
+
+   .. cpp:member:: PropertyCell<std::shared_ptr<ColorCommand>, RibbonColorPickerCommandCapability<Declaring>> command
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RibbonColorPickerImageCapability
+
+   ``#include <gui_forms/controls/ribbon_color_picker/ribbon_color_picker_capabilities/ribbon_color_picker_capabilities.hpp>``
+
+   The face's icon, over the colour bar.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonColorPickerImageCapability& capability, ImageId incoming)
+
+   .. cpp:member:: PropertyCell<ImageId, RibbonColorPickerImageCapability<Declaring>> image
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RibbonColorPickerValueCapability
+
+   ``#include <gui_forms/controls/ribbon_color_picker/ribbon_color_picker_capabilities/ribbon_color_picker_capabilities.hpp>``
+
+   The colour shown, or none for Automatic: the command's, or the picker's own. A write goes to the command's set_value when there is one.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonColorPickerValueCapability& capability, std::optional<Color> incoming)
+
+   .. cpp:function:: static std::optional<Color> read(const RibbonColorPickerValueCapability& capability)
+
+   .. cpp:member:: PropertyView<std::optional<Color>, RibbonColorPickerValueCapability<Declaring>> value
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: RibbonCommandClick final
 
    ``#include <gui_forms/controls/ribbon/ribbon.hpp>``
@@ -1307,6 +1400,57 @@ Related types
    .. cpp:member:: PartGeometry family_field
 
    .. cpp:member:: PartGeometry size_field
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RibbonFontControlCapabilities : public RibbonFontControlCommandCapability<Declaring>, public RibbonFontControlValueCapability<Declaring>
+
+   ``#include <gui_forms/controls/ribbon_font_control/ribbon_font_control_capabilities/ribbon_font_control_capabilities.hpp>``
+
+   Every RibbonFontControl capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::shared_ptr<FontCommand> command
+
+      The font command whose value the fields show and commit, or null; without one the control keeps its own value.
+
+   .. cpp:member:: FontChoice value
+
+      The value shown: the command's, or the control's own. A write sets it as the program does (the command's set_value when there is one); a value FontCommand refuses throws std::invalid_argument.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RibbonFontControlCommandCapability
+
+   ``#include <gui_forms/controls/ribbon_font_control/ribbon_font_control_capabilities/ribbon_font_control_capabilities.hpp>``
+
+   The font command whose value the fields show and commit, or null; without one the control keeps its own value.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonFontControlCommandCapability& capability, std::shared_ptr<FontCommand> incoming)
+
+   .. cpp:member:: PropertyCell<std::shared_ptr<FontCommand>, RibbonFontControlCommandCapability<Declaring>> command
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RibbonFontControlValueCapability
+
+   ``#include <gui_forms/controls/ribbon_font_control/ribbon_font_control_capabilities/ribbon_font_control_capabilities.hpp>``
+
+   The value shown: the command's, or the control's own. A write sets it as the program does (the command's set_value when there is one); a value FontCommand refuses throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonFontControlValueCapability& capability, FontChoice incoming)
+
+   .. cpp:function:: static FontChoice read(const RibbonFontControlValueCapability& capability)
+
+   .. cpp:member:: PropertyView<FontChoice, RibbonFontControlValueCapability<Declaring>> value
 
 .. cpp:namespace:: gui_forms
 

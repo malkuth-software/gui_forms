@@ -1,0 +1,71 @@
+{
+  "family": "RibbonFontControl",
+  "step": "M-S8",
+  "declaring": "RibbonFontControl",
+  "header": "include/gui_forms/controls/ribbon_font_control/ribbon_font_control.hpp",
+  "source": "src/controls/ribbon_font_control/ribbon_font_control.cpp",
+  "capabilities_header": "include/gui_forms/controls/ribbon_font_control/ribbon_font_control_capabilities/ribbon_font_control_capabilities.hpp",
+  "base": "Control",
+  "shared": [],
+  "includes": [
+    "gui_forms/commands/font_command/font_command.hpp"
+  ],
+  "test": {
+    "type": "RibbonFontControl",
+    "include": "gui_forms/controls/ribbon_font_control/ribbon_font_control.hpp"
+  },
+  "properties": [
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "command",
+      "capability": "RibbonFontControlCommand",
+      "value": "std::shared_ptr<FontCommand>",
+      "hooks": "hand",
+      "hand": [
+        "prepare drops the old subscriptions before a change",
+        "written subscribes to the new command, syncs the enabled state and shows its value"
+      ],
+      "effects": null,
+      "comment": "The font command whose value the fields show and commit, or null; without one the control keeps its own value.",
+      "getter": "command",
+      "setter": "set_command",
+      "field": "command_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "value",
+      "capability": "RibbonFontControlValue",
+      "value": "FontChoice",
+      "storage": "view",
+      "field": null,
+      "hooks": "hand",
+      "hand": [
+        "a view: the command's value when there is one, else the control's own"
+      ],
+      "effects": null,
+      "comment": "The value shown: the command's, or the control's own. A write sets it as the program does (the command's set_value when there is one); a value FontCommand refuses throws std::invalid_argument.",
+      "getter": "value",
+      "setter": "set_value"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "families, sizes",
+      "reason": "wholesale collection replacement (section 4)"
+    },
+    {
+      "name": "field_widths",
+      "reason": "multi-value call (section 4)"
+    }
+  ]
+}

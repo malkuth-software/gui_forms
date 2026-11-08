@@ -7,7 +7,7 @@ gui_forms::RibbonFontControl
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: RibbonFontControl final : public Control
+.. cpp:class:: RibbonFontControl final : public Control, public RibbonFontControlCapabilities<RibbonFontControl>
 
    ``#include <gui_forms/controls/ribbon_font_control/ribbon_font_control.hpp>``
 
@@ -30,6 +30,13 @@ gui_forms::RibbonFontControl
 
    :Properties:
 
+      **command** : ``std::shared_ptr<FontCommand>``
+         The :cpp:class:`FontCommand <gui_forms::FontCommand>` it shows and commits to, or null.
+
+      **value** : ``FontChoice``
+         The value shown: the command's, or the control's own. ``set_value`` sets it
+         as the program does (the command's ``set_value`` when there is one).
+
       **families** : ``std::span<const std::string>``
          The families offered, in order. :cpp:func:`set_families <gui_forms::RibbonFontControl::set_families>` throws
          ``std::invalid_argument`` for an empty, repeated, multi-line or invalid
@@ -50,13 +57,6 @@ gui_forms::RibbonFontControl
 
       **natural_size** : ``Size``, read-only
          The size the control measures at the current text scale.
-
-      **command** : ``std::shared_ptr<FontCommand>``
-         The :cpp:class:`FontCommand <gui_forms::FontCommand>` it shows and commits to, or null.
-
-      **value** : ``FontChoice``
-         The value shown: the command's, or the control's own. :cpp:func:`set_value <gui_forms::RibbonFontControl::set_value>` sets it
-         as the program does (the command's :cpp:func:`set_value <gui_forms::RibbonFontControl::set_value>` when there is one).
 
       **family_box** : ``std::shared_ptr<ComboBox>``, read-only
          The family :cpp:class:`ComboBox <gui_forms::ComboBox>`.
@@ -119,7 +119,7 @@ gui_forms::RibbonFontControl
       std::shared_ptr<gf::RibbonFontControl> font =
           gf::make_control<gf::RibbonFontControl>(gf::StableId("doc.font-control"));
       (*font).set_families({"Portsmouth Rapids", "Carlito"});
-      (*font).set_command(command);
+      (*font).command = command;
 
 
    .. rubric:: Construction
@@ -128,6 +128,15 @@ gui_forms::RibbonFontControl
 
 
    .. rubric:: Properties
+
+   .. cpp:member:: std::shared_ptr<FontCommand> command
+
+      The :cpp:class:`FontCommand <gui_forms::FontCommand>` it shows and commits to, or null.
+
+   .. cpp:member:: FontChoice value
+
+      The value shown: the command's, or the control's own. ``set_value`` sets it
+      as the program does (the command's ``set_value`` when there is one).
 
    .. cpp:function:: std::span<const std::string> families() const noexcept
 
@@ -162,23 +171,6 @@ gui_forms::RibbonFontControl
    .. cpp:function:: Size natural_size() const noexcept
 
       The size the control measures at the current text scale.
-
-   .. cpp:function:: std::shared_ptr<FontCommand> command() const noexcept
-
-      The :cpp:class:`FontCommand <gui_forms::FontCommand>` it shows and commits to, or null.
-
-   .. cpp:function:: void set_command(std::shared_ptr<FontCommand> command)
-
-      Sets :cpp:func:`command <gui_forms::RibbonFontControl::command>`; see the property's description above.
-
-   .. cpp:function:: FontChoice value() const
-
-      The value shown: the command's, or the control's own. :cpp:func:`set_value <gui_forms::RibbonFontControl::set_value>` sets it
-      as the program does (the command's :cpp:func:`set_value <gui_forms::RibbonFontControl::set_value>` when there is one).
-
-   .. cpp:function:: void set_value(FontChoice value)
-
-      Sets :cpp:func:`value <gui_forms::RibbonFontControl::value>`; see the property's description above.
 
    .. cpp:function:: std::shared_ptr<ComboBox> family_box() const noexcept
 
