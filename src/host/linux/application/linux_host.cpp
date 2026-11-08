@@ -9,6 +9,8 @@
 #include <X11/Xatom.h>
 #include <X11/Xutil.h>
 #include <X11/keysym.h>
+#include <X11/extensions/Xfixes.h>
+#include <X11/extensions/shapeconst.h>
 #include <algorithm>
 #include <bit>
 #include <chrono>
@@ -553,14 +555,6 @@ struct WriteText final {
     return (*(*window).services).write_clipboard_text(text);
   }
 };
-struct Tooltip final {
-  HostServiceStatus operator()(const HostTooltipRequest &) const {
-    return {HostServiceError::unsupported};
-  }
-};
-struct NoOperation final {
-  void operator()() const {}
-};
 } // namespace
 void Wake::operator()() const noexcept {
   const char byte = 1;
@@ -731,10 +725,13 @@ NativeWindow::NativeWindow(Runtime &host, LinuxApplicationWindow source)
     attributes.colormap = colormap;
     attributes.border_pixel = 0UL;
     attributes.background_pixel = 0UL;
+    // A popup or Splash (SPLASH_STUDY D5 (b)) is placed and stacked by the
+    // program, never decorated or moved by a window manager.
+    attributes.override_redirect = entry.popup.has_value() ? True : False;
     xid = XCreateWindow(runtime.display, RootWindow(runtime.display, screen), 60, 60,
                         static_cast<unsigned>(size.width), static_cast<unsigned>(size.height), 0,
                         argb_visual.depth, InputOutput, argb_visual.visual,
-                        CWColormap | CWBorderPixel | CWBackPixel, &attributes);
+                        CWColormap | CWBorderPixel | CWBackPixel | CWOverrideRedirect, &attributes);
     visual = argb_visual.visual;
     depth = argb_visual.depth;
     alpha_mask = argb_visual.alpha_mask;
@@ -782,6 +779,8 @@ NativeWindow::NativeWindow(Runtime &host, LinuxApplicationWindow source)
   wm.flags = InputHint;
   wm.input = True;
   XSetWMHints(runtime.display, xid, &wm);
+  if (entry.popup.has_value())
+    mark_transient(*entry.popup);
   utility = entry.tool_window || entry.floating != HostWindowFloating::none;
   if (utility) {
     // Set while unmapped, so the window manager reads them when it first
@@ -818,6 +817,34 @@ NativeWindow::NativeWindow(Runtime &host, LinuxApplicationWindow source)
                                           services.get());
   closing_token = (*session).closing().subscribe(Closing{this});
 }
+// Types a popup or Splash window for the compositing manager (EWMH
+// _NET_WM_WINDOW_TYPE: a tooltip, a splash screen, a popup menu) and gives a
+// Splash an empty input shape (XFixes, ShapeInput), so the pointer passes
+// through it to the windows beneath. Never focused: the input hint is off.
+void NativeWindow::mark_transient(const HostPopupPlacement &popup) {
+  const char *type_name = "_NET_WM_WINDOW_TYPE_POPUP_MENU";
+  if (popup.kind == HostTransientKind::tool_tip)
+    type_name = "_NET_WM_WINDOW_TYPE_TOOLTIP";
+  if (popup.kind == HostTransientKind::splashscreen)
+    type_name = "_NET_WM_WINDOW_TYPE_SPLASH";
+  XSetWindowAttributes attributes{};
+  attributes.override_redirect = True;
+  XChangeWindowAttributes(runtime.display, xid, CWOverrideRedirect, &attributes);
+  const Atom type = runtime.atom(type_name);
+  XChangeProperty(runtime.display, xid, runtime.atom("_NET_WM_WINDOW_TYPE"),
+                  XA_ATOM, 32, PropModeReplace,
+                  reinterpret_cast<const unsigned char *>(&type), 1);
+  XWMHints wm{};
+  wm.flags = InputHint;
+  wm.input = False;
+  XSetWMHints(runtime.display, xid, &wm);
+  if (!host_transient_is_splash(popup.kind))
+    return;
+  const XserverRegion empty = XFixesCreateRegion(runtime.display, nullptr, 0);
+  XFixesSetWindowShapeRegion(runtime.display, xid, ShapeInput, 0, 0, empty);
+  XFixesDestroyRegion(runtime.display, empty);
+}
+
 NativeWindow::~NativeWindow() {
   (*entry.model).set_dispatch_wake_handler({});
   (*entry.model).set_paint_wake_handler({});
@@ -873,8 +900,7 @@ void NativeWindow::ready() {
                                   ActionKind::close};
   if (entry.options.host_ready)
     entry.options.host_ready(Wake{runtime.wake_pipe[1]}, close_window,
-                             Dialog{this}, Tooltip{}, NoOperation{},
-                             ReadText{this}, WriteText{this});
+                             Dialog{this}, ReadText{this}, WriteText{this});
   if (entry.options.full_screen_ready)
     entry.options.full_screen_ready(WindowAction{
         weak_from_this(), runtime.actions, ActionKind::fullscreen});

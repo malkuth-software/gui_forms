@@ -49,13 +49,23 @@ HostWindowAdmission X11Windowing::open(LinuxApplicationWindow entry,
     owner_id = *found;
     owner_xid = (*owner).xid;
   }
+  const std::optional<HostPopupPlacement> popup = entry.popup;
+  // An override-redirect window never receives the keyboard focus from a
+  // window manager, so a focus-taking popup is not offered: the core shows
+  // it as an overlay in its owner instead (NativePopupRefusal::host_refused).
+  if (popup.has_value() && (*popup).focus == HostPopupFocus::takes_focus) {
+    admission.status.error = HostServiceError::unsupported;
+    return admission;
+  }
   const HostWindowKind kind =
-      host_window_kind(owner_id.valid(), entry.tool_window, entry.floating, false);
+      host_window_kind(owner_id.valid(), entry.tool_window, entry.floating, popup.has_value());
   const bool floating = host_window_kind_traits(kind).floating;
   HostWindowDescription description;
   description.stable_id = entry.stable_id;
   description.owner = owner_id;
   description.kind = kind;
+  if (popup.has_value())
+    description.transient = (*popup).kind;
   admission = admit(description);
   if (!admission.status.accepted())
     return admission;
@@ -75,6 +85,12 @@ HostWindowAdmission X11Windowing::open(LinuxApplicationWindow entry,
     admission.window = {};
     return admission;
   }
+  // A popup is where the program put it, before it is first mapped.
+  if (popup.has_value()) {
+    const Rect content{(*popup).origin.x, (*popup).origin.y, (*window).size.width,
+                       (*window).size.height};
+    static_cast<void>((*window).request_frame(content));
+  }
   if (!runtime) {
     window_created(id, initially_visible);
     return admission;
@@ -83,6 +99,18 @@ HostWindowAdmission X11Windowing::open(LinuxApplicationWindow entry,
   report_native_frame(*window);
   window_created(id, initially_visible);
   return admission;
+}
+
+bool X11Windowing::supports_popup_windows() const noexcept {
+  if (!runtime_.compositor)
+    return false;
+  const bool alpha = (*runtime_.compositor).argb().found && (*runtime_.compositor).compositor_present();
+  return alpha;
+}
+
+bool X11Windowing::supports_splash_windows() const noexcept {
+  const bool splash = supports_popup_windows();
+  return splash;
 }
 
 HostServiceStatus X11Windowing::show_impl(HostWindowId window) {

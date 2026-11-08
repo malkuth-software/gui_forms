@@ -46,6 +46,9 @@ public:
 
     ToolTipBubble(StableId stable_id, std::string text, ToolTipLines lines);
 
+    // Shows `text` with `lines` (swapped in: `lines` receives the old lines'
+    // storage for reuse) and asks for layout, paint and semantics again.
+    void set_content(std::string_view text, ToolTipLines& lines);
     // The face's size for these lines.
     [[nodiscard]] Size face_size() const noexcept;
     void on_paint(Painter& painter, Rect local_damage) override;

@@ -2079,10 +2079,6 @@
       "status": "OBSERVED: bundle 007 typed-dialog envelope review; M4 builds and focused tests pass",
       "summary": "HostDialogResult couples portable service status and exact request identity to the matching typed result variant."
     },
-    "HostTooltipRequest": {
-      "status": "OBSERVED: bundle 007 transient-service value review; M4 builds and focused tests pass",
-      "summary": "HostTooltipRequest carries UTF-8 text, root-client logical anchor, and bounded lifetime while adapters own screen clamping/nonactivation."
-    },
     "HostModalTransition": {
       "status": "OBSERVED: bundle 007 modal event review; M4 builds and focused tests pass",
       "summary": "HostModalTransition carries exact dialog request, committed modal depth, and enter/leave direction."
@@ -3284,8 +3280,8 @@
         "get_pointer_capture": "Reports whether the control currently owns capture.",
         "show_path_dialog": "Builds a host-neutral path dialog request, routes it to the active host, and records the result by request identity.",
         "last_dialog_path": "Copies the last accepted path through the ABI buffer contract.",
-        "show_tooltip": "Builds and routes a bounded host tooltip request for owner-relative geometry.",
-        "hide_tooltip": "Dismisses the owner tooltip through the active host service.",
+        "show_tooltip": "Shows the owner window's own tooltip (a Splash window where the host has them, else the overlay) below an owner-relative point, for a bounded or unbounded duration.",
+        "hide_tooltip": "Hides the owner window's tooltip when it describes the owner control.",
         "run_window": "Transitions the root handle through created/running/stopping/stopped host phases using the admitted headless, AppKit, or Win32 adapter.",
         "last_host_trace": "Copies the latest structured host trace through the ABI buffer contract.",
         "retain": "Increments an admitted slot reference count without overflow.",

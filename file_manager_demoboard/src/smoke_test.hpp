@@ -58,8 +58,7 @@ struct SmokeTestTick final {
 using HostReadyCallback = std::function<void(
     std::function<void()>, std::function<void()>,
     std::function<gui_forms::HostDialogResult(const gui_forms::HostDialogRequest&)>,
-    std::function<gui_forms::HostServiceStatus(const gui_forms::HostTooltipRequest&)>,
-    std::function<void()>, std::function<gui_forms::HostClipboardTextResult()>,
+    std::function<gui_forms::HostClipboardTextResult()>,
     std::function<gui_forms::HostServiceStatus(std::string_view)>)>;
 
 struct SmokeTestHostReady final {
@@ -68,8 +67,6 @@ struct SmokeTestHostReady final {
 
     void operator()(std::function<void()> wake, std::function<void()> request_close,
                     std::function<gui_forms::HostDialogResult(const gui_forms::HostDialogRequest&)> show_dialog,
-                    std::function<gui_forms::HostServiceStatus(const gui_forms::HostTooltipRequest&)> show_tooltip,
-                    std::function<void()> hide_tooltip,
                     std::function<gui_forms::HostClipboardTextResult()> read_clipboard_text,
                     std::function<gui_forms::HostServiceStatus(std::string_view)> write_clipboard_text) const {
         (*state).request_close = request_close;
@@ -80,7 +77,6 @@ struct SmokeTestHostReady final {
             *root, interval, (*state).started + interval, SmokeTestTick{state});
         if (previous) {
             previous(std::move(wake), std::move(request_close), std::move(show_dialog),
-                     std::move(show_tooltip), std::move(hide_tooltip),
                      std::move(read_clipboard_text), std::move(write_clipboard_text));
         }
     }

@@ -68,7 +68,6 @@ using gui_forms::HostSoundCueRequest;
 using gui_forms::HostServices;
 using gui_forms::HostSession;
 using gui_forms::HostShutdownEvent;
-using gui_forms::HostTooltipRequest;
 using gui_forms::KeyAction;
 using gui_forms::KeyEvent;
 using gui_forms::LiveSurfacePresentation;

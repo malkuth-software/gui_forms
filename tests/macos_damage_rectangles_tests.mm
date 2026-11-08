@@ -692,7 +692,6 @@ struct Ready final {
     std::shared_ptr<State> state{};
     void operator()(std::function<void()>, std::function<void()> close,
         std::function<HostDialogResult(const HostDialogRequest&)>,
-        std::function<HostServiceStatus(const HostTooltipRequest&)>, std::function<void()>,
         std::function<HostClipboardTextResult()>, std::function<HostServiceStatus(std::string_view)>) const {
         (*state).close = std::move(close);
         set_stage(*state, Stage::first_frame);

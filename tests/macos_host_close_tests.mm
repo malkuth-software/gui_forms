@@ -88,8 +88,6 @@ void run_rearm_cycle(const std::shared_ptr<RearmProbeState>& state);
 using VoidHostCallback = std::function<void()>;
 using ShowDialogCallback = std::function<gui_forms::HostDialogResult(
     const gui_forms::HostDialogRequest&)>;
-using ShowTooltipCallback = std::function<gui_forms::HostServiceStatus(
-    const gui_forms::HostTooltipRequest&)>;
 using ReadClipboardCallback =
     std::function<gui_forms::HostClipboardTextResult()>;
 using WriteClipboardCallback =
@@ -393,8 +391,6 @@ public:
         VoidHostCallback wake,
         VoidHostCallback request_close,
         ShowDialogCallback,
-        ShowTooltipCallback,
-        VoidHostCallback,
         ReadClipboardCallback,
         WriteClipboardCallback) const {
         // Exercise the exact transport used by pause/resume: disconnect the

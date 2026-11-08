@@ -94,8 +94,7 @@ struct HostReady final {
     std::shared_ptr<WindowBridge> bridge{};
     void operator()(std::function<void()> wake, std::function<void()> request_close,
                     std::function<HostDialogResult(const HostDialogRequest&)>,
-                    std::function<HostServiceStatus(const HostTooltipRequest&)>,
-                    std::function<void()>, std::function<HostClipboardTextResult()>,
+                    std::function<HostClipboardTextResult()>,
                     std::function<HostServiceStatus(std::string_view)>) const noexcept {
         (*(*bridge).state).request_close = std::move(request_close);
         (*bridge).host_ready = true;
@@ -279,6 +278,10 @@ HostServiceError runtime_entry_refusal(const ApplicationWindow& entry, const Hos
     // A host that opens no popup windows refuses a popup before any native
     // request (HostWindowing::supports_popup_windows).
     if (entry.popup.has_value() && !windowing.supports_popup_windows()) return HostServiceError::unsupported;
+    if (entry.popup.has_value() && host_transient_is_splash((*entry.popup).kind) &&
+        !windowing.supports_splash_windows()) {
+        return HostServiceError::unsupported;
+    }
     std::optional<HostWindowId> owner{};
     if (!entry.owner_id.empty()) {
         owner = windowing.find(entry.owner_id);

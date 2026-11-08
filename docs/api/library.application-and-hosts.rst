@@ -163,8 +163,6 @@ Related types
      - HostShutdownEvent is the empty terminal teardown signal admitted from any nonterminal lifecycle where policy allows it.
    * - :cpp:class:`HostSoundCueRequest <gui_forms::HostSoundCueRequest>`
      - HostSoundCueRequest carries semantic meaning, normalized gain, and caller-supplied monotonic time for reproducible coalescing.
-   * - :cpp:class:`HostTooltipRequest <gui_forms::HostTooltipRequest>`
-     - HostTooltipRequest carries UTF-8 text, root-client logical anchor, and bounded lifetime while adapters own screen clamping/nonactivation.
    * - :cpp:class:`HostTrayIconEvent <gui_forms::HostTrayIconEvent>`
      -  
    * - :cpp:class:`HostTrayIconId <gui_forms::HostTrayIconId>`
@@ -1153,6 +1151,10 @@ Related types
 
    Where a native popup window opens and how it takes focus (owner, 2026-11-04): carried by its window entry (ApplicationWindow::popup and each adapter's native entry). Programs open popups through Window::open_native_popup, which fills this in.
 
+   .. cpp:member:: HostTransientKind kind
+
+      A Splash kind takes no input, so its focus is always passive; an entry declaring takes_focus with a Splash kind is invalid. Default: ``{HostTransientKind::popup}``.
+
    .. cpp:member:: HostPopupFocus focus
 
       Default: ``{HostPopupFocus::passive}``.
@@ -1773,20 +1775,6 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: HostTooltipRequest final
-
-   ``#include <gui_forms/host/types/host_types.hpp>``
-
-   HostTooltipRequest carries UTF-8 text, root-client logical anchor, and bounded lifetime while adapters own screen clamping/nonactivation.
-
-   .. cpp:member:: std::string text
-
-   .. cpp:member:: Point anchor
-
-   .. cpp:member:: std::uint32_t duration_milliseconds
-
-.. cpp:namespace:: gui_forms
-
 .. cpp:struct:: HostTrayIconEvent final
 
    ``#include <gui_forms/host/types/host_types.hpp>``
@@ -1932,6 +1920,10 @@ Related types
 
       Default: ``{HostWindowKind::standard}``.
 
+   .. cpp:member:: HostTransientKind transient
+
+      For a popup: what it is for. A Splash needs supports_splash_windows(). Default: ``{HostTransientKind::popup}``.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: HostWindowFrame final
@@ -2071,7 +2063,7 @@ Related types
 
    .. cpp:function:: HostWindowAdmission admit(const HostWindowDescription& description)
 
-      Validates and records a window before its native creation. Rules: the stable id is 1 to 1024 bytes of UTF-8 without NUL and unique among live windows; at most maximum_windows live windows; the owner, when given, is live; exactly one primary, admitted first, without an owner; a standard window has an owner; a floating window is owned by the primary window, and at most maximum_floating_windows are live; a popup has an owner and needs supports_popup_windows() (else unsupported). After mark_started() an admission needs runtime_windows and may not be primary. A refused admission changes nothing.
+      Validates and records a window before its native creation. Rules: the stable id is 1 to 1024 bytes of UTF-8 without NUL and unique among live windows; at most maximum_windows live windows; the owner, when given, is live; exactly one primary, admitted first, without an owner; a standard window has an owner; a floating window is owned by the primary window, and at most maximum_floating_windows are live; a popup has an owner and needs supports_popup_windows(), and a Splash popup also supports_splash_windows() (else unsupported). After mark_started() an admission needs runtime_windows and may not be primary. A refused admission changes nothing.
 
    .. cpp:function:: void window_created(HostWindowId window, bool initially_visible) noexcept
 
@@ -2111,6 +2103,10 @@ Related types
    .. cpp:function:: virtual bool supports_popup_windows() const noexcept
 
       Whether the adapter opens native popup windows (HostWindowKind::popup) during the run. False unless the adapter says so; admit() refuses a popup as unsupported without it.
+
+   .. cpp:function:: virtual bool supports_splash_windows() const noexcept
+
+      Whether the adapter opens Splash popup windows (HostTransientKind tool_tip and splashscreen): click-through, never key, never activated. False unless the adapter can; admit() refuses a Splash as unsupported without it, and the core then falls back to an overlay. A host reports false only when it truly cannot (owner, 2026-11-08: SPLASH_STUDY D5).
 
    .. cpp:function:: virtual HostWindowFrameResult frame_impl(HostWindowId window) = 0
 
@@ -2335,7 +2331,7 @@ Related types
 
    .. cpp:member:: std::function<void(HostCloseRequest &)> close_request
 
-   .. cpp:member:: std::function<void(std::function<void()> wake, std::function<void()> request_close, std::function<HostDialogResult(const HostDialogRequest &)> show_dialog, std::function<HostServiceStatus(const HostTooltipRequest &)> show_tooltip, std::function<void()> hide_tooltip, std::function<HostClipboardTextResult()> read_clipboard_text, std::function<HostServiceStatus(std::string_view)> write_clipboard_text)> host_ready
+   .. cpp:member:: std::function<void(std::function<void()> wake, std::function<void()> request_close, std::function<HostDialogResult(const HostDialogRequest &)> show_dialog, std::function<HostClipboardTextResult()> read_clipboard_text, std::function<HostServiceStatus(std::string_view)> write_clipboard_text)> host_ready
 
    .. cpp:member:: std::function<void()> dispatch_pending
 
@@ -2455,7 +2451,7 @@ Related types
 
    .. cpp:member:: std::function<void(HostCloseRequest&)> close_request
 
-   .. cpp:member:: std::function<void(std::function<void()> wake, std::function<void()> request_close, std::function<HostDialogResult(const HostDialogRequest&)> show_dialog, std::function<HostServiceStatus(const HostTooltipRequest&)> show_tooltip, std::function<void()> hide_tooltip, std::function<HostClipboardTextResult()> read_clipboard_text, std::function<HostServiceStatus(std::string_view)> write_clipboard_text)> host_ready
+   .. cpp:member:: std::function<void(std::function<void()> wake, std::function<void()> request_close, std::function<HostDialogResult(const HostDialogRequest&)> show_dialog, std::function<HostClipboardTextResult()> read_clipboard_text, std::function<HostServiceStatus(std::string_view)> write_clipboard_text)> host_ready
 
    .. cpp:member:: std::function<void()> dispatch_pending
 
@@ -2920,7 +2916,7 @@ Related types
 
    .. cpp:member:: std::function<void(HostCloseRequest&)> close_request
 
-   .. cpp:member:: std::function<void(std::function<void()> wake, std::function<void()> request_close, std::function<HostDialogResult(const HostDialogRequest&)> show_dialog, std::function<HostServiceStatus(const HostTooltipRequest&)> show_tooltip, std::function<void()> hide_tooltip, std::function<HostClipboardTextResult()> read_clipboard_text, std::function<HostServiceStatus(std::string_view)> write_clipboard_text)> host_ready
+   .. cpp:member:: std::function<void(std::function<void()> wake, std::function<void()> request_close, std::function<HostDialogResult(const HostDialogRequest&)> show_dialog, std::function<HostClipboardTextResult()> read_clipboard_text, std::function<HostServiceStatus(std::string_view)> write_clipboard_text)> host_ready
 
    .. cpp:member:: std::function<void()> dispatch_pending
 
@@ -3367,6 +3363,18 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: HostTransientKind
+
+   ``#include <gui_forms/host/windowing/host_windowing.hpp>``
+
+   .. cpp:enumerator:: popup
+
+   .. cpp:enumerator:: tool_tip
+
+   .. cpp:enumerator:: splashscreen
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: HostTrayIconAction
 
    ``#include <gui_forms/host/types/host_types.hpp>``
@@ -3725,6 +3733,12 @@ Functions, constants and aliases
 .. cpp:function:: HostWindowKindTraits host_window_kind_traits(HostWindowKind kind) noexcept
 
 .. cpp:function:: const char* host_popup_focus_name(HostPopupFocus focus) noexcept
+
+.. cpp:function:: const char* host_transient_kind_name(HostTransientKind kind) noexcept
+
+.. cpp:function:: bool host_transient_is_splash(HostTransientKind kind) noexcept
+
+   Whether ``kind`` is a Splash (takes no input): tool_tip and splashscreen.
 
 .. cpp:function:: HostWindowKind host_window_kind(bool has_owner, bool tool_window, HostWindowFloating floating, bool popup) noexcept
 

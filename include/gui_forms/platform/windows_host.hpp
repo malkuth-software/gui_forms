@@ -67,8 +67,6 @@ struct WindowsHostOptions final {
     std::function<void(std::function<void()> wake,
                        std::function<void()> request_close,
                        std::function<HostDialogResult(const HostDialogRequest&)> show_dialog,
-                       std::function<HostServiceStatus(const HostTooltipRequest&)> show_tooltip,
-                       std::function<void()> hide_tooltip,
                        std::function<HostClipboardTextResult()> read_clipboard_text,
                        std::function<HostServiceStatus(std::string_view)> write_clipboard_text)> host_ready;
     std::function<void()> dispatch_pending;

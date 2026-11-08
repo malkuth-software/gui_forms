@@ -1168,8 +1168,7 @@ struct HostReady final {
 
     void operator()(std::function<void()>, std::function<void()> request_close,
                     std::function<HostDialogResult(const HostDialogRequest&)>,
-                    std::function<HostServiceStatus(const HostTooltipRequest&)>,
-                    std::function<void()>, std::function<HostClipboardTextResult()>,
+                    std::function<HostClipboardTextResult()>,
                     std::function<HostServiceStatus(std::string_view)>) const {
         try {
             run(*window);

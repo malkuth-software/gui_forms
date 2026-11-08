@@ -118,6 +118,20 @@ const char* host_popup_focus_name(HostPopupFocus focus) noexcept {
     return "passive";
 }
 
+const char* host_transient_kind_name(HostTransientKind kind) noexcept {
+    switch (kind) {
+    case HostTransientKind::popup: return "popup";
+    case HostTransientKind::tool_tip: return "tool_tip";
+    case HostTransientKind::splashscreen: return "splashscreen";
+    }
+    return "popup";
+}
+
+bool host_transient_is_splash(HostTransientKind kind) noexcept {
+    const bool splash = kind == HostTransientKind::tool_tip || kind == HostTransientKind::splashscreen;
+    return splash;
+}
+
 HostWindowKind host_window_kind(bool has_owner, bool tool_window,
                                 HostWindowFloating floating, bool popup) noexcept {
     if (popup) return HostWindowKind::popup;
@@ -374,6 +388,10 @@ bool HostWindowing::supports_popup_windows() const noexcept {
     return false;
 }
 
+bool HostWindowing::supports_splash_windows() const noexcept {
+    return false;
+}
+
 HostWindowAdmission HostWindowing::admit(const HostWindowDescription& description) {
     HostWindowAdmission result;
     if (std::this_thread::get_id() != ui_thread_) {
@@ -389,6 +407,11 @@ HostWindowAdmission HostWindowing::admit(const HostWindowDescription& descriptio
         return result;
     }
     if (description.kind == HostWindowKind::popup && !supports_popup_windows()) {
+        result.status = reject(HostServiceError::unsupported);
+        return result;
+    }
+    if (description.kind == HostWindowKind::popup && host_transient_is_splash(description.transient) &&
+        !supports_splash_windows()) {
         result.status = reject(HostServiceError::unsupported);
         return result;
     }

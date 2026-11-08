@@ -115,6 +115,12 @@ ToolTipBubble::ToolTipBubble(StableId stable_id, std::string text, ToolTipLines 
     set_focusable(false);
 }
 
+void ToolTipBubble::set_content(const std::string_view text, ToolTipLines& lines) {
+    text_.assign(text);
+    std::swap(lines_, lines);
+    invalidate(Dirty::layout | Dirty::paint | Dirty::semantics);
+}
+
 Size ToolTipBubble::face_size() const noexcept {
     const double text_height = static_cast<double>(lines_.lines.size()) * lines_.line_height;
     const Size size{lines_.text_width + 2.0 * horizontal_margin, text_height + 2.0 * vertical_margin};

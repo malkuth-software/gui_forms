@@ -131,6 +131,9 @@ public:
     // borderless, non-activating panels (GUIFormsPopupPanel); their alpha
     // is the transparent backdrop the popup model requests.
     [[nodiscard]] bool supports_popup_windows() const noexcept override { return true; }
+    // Splash windows (owner, 2026-11-08: APP_WINDOW_RULES_DESIGN Part S) are
+    // the same panels, ignoring the mouse and never key, at their own level.
+    [[nodiscard]] bool supports_splash_windows() const noexcept override { return true; }
 
 private:
     // Releases a window whose initialization failed, before it was shown.
@@ -191,6 +194,7 @@ MacApplicationRun::OpenOutcome MacApplicationRun::open(MacApplicationWindow entr
     description.stable_id = entry.stable_id;
     description.owner = owner_id;
     description.kind = kind;
+    if (popup.has_value()) description.transient = (*popup).kind;
     outcome.admission = admit(description);
     if (!outcome.admission.status.accepted()) {
         outcome.failure_code = 2;
@@ -219,13 +223,25 @@ MacApplicationRun::OpenOutcome MacApplicationRun::open(MacApplicationWindow entr
         // activating the application, kept above its owner as a child
         // window; only a focus-taking popup becomes key. Its shadow is
         // drawn by the program in its own pixels, not by AppKit.
-        const BOOL takesFocus = (*popup).focus == gui_forms::HostPopupFocus::takes_focus ? YES : NO;
+        const bool splash = gui_forms::host_transient_is_splash((*popup).kind);
+        const BOOL takesFocus =
+            !splash && (*popup).focus == gui_forms::HostPopupFocus::takes_focus ? YES : NO;
         GUIFormsPopupPanel* popupPanel = [[GUIFormsPopupPanel alloc] initWithContentRect:frame
                                                                               takesFocus:takesFocus];
         [popupPanel setHidesOnDeactivate:NO];
         [popupPanel setFloatingPanel:NO];
         [popupPanel setBecomesKeyOnlyIfNeeded:YES];
         [popupPanel setHasShadow:NO];
+        if (splash) {
+            // A Splash takes no input (owner, 2026-11-08): clicks pass to the
+            // windows beneath it. A tooltip stands above the program's
+            // popups and menus, as the host tooltip did; a splashscreen
+            // floats above the program's windows.
+            [popupPanel setIgnoresMouseEvents:YES];
+            const NSWindowLevel level = (*popup).kind == gui_forms::HostTransientKind::tool_tip
+                ? NSStatusWindowLevel : NSFloatingWindowLevel;
+            [popupPanel setLevel:level];
+        }
         nativeWindow = popupPanel;
     } else if (panel) {
         nativeWindow = [[NSPanel alloc] initWithContentRect:frame styleMask:style
@@ -328,6 +344,8 @@ MacApplicationRun::OpenOutcome MacApplicationRun::open(MacApplicationWindow entr
                                      NSMaxY(work) - placed.size.height);
         [nativeWindow setFrame:placed display:NO];
     }
+    // A Splash is never a drop target: it takes no input.
+    if (popup.has_value() && gui_forms::host_transient_is_splash((*popup).kind)) [view unregisterDraggedTypes];
 
     if ([view initializeHost] == NO) {
         abandon_open(id, nativeWindow, ownerWindow, view);
@@ -340,7 +358,6 @@ MacApplicationRun::OpenOutcome MacApplicationRun::open(MacApplicationWindow entr
         const std::function<void()> dispatchPending = entry.options.dispatch_pending;
         entry.options.host_ready(DispatchAndCollectWake(view, dispatchPending),
                                  RequestNativeClose(nativeWindow), ShowNativeDialog(view),
-                                 ShowNativeTooltip(view), HideNativeTooltip(view),
                                  ReadNativeClipboard(view), WriteNativeClipboard(view));
     }
     if (entry.options.full_screen_ready) {

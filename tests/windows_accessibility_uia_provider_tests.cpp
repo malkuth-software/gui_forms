@@ -685,8 +685,7 @@ struct HostReady final {
     std::thread* client{};
     void operator()(std::function<void()>, std::function<void()> request_close,
                     std::function<HostDialogResult(const HostDialogRequest&)>,
-                    std::function<HostServiceStatus(const HostTooltipRequest&)>,
-                    std::function<void()>, std::function<HostClipboardTextResult()>,
+                    std::function<HostClipboardTextResult()>,
                     std::function<HostServiceStatus(std::string_view)>) const {
         (*context).request_close = std::move(request_close);
         (*context).hwnd = test_support::own_gui_forms_window(fixture_title);
@@ -757,8 +756,7 @@ struct DecoyReady final {
     std::thread* waiter{};
     void operator()(std::function<void()>, std::function<void()> close,
                     std::function<HostDialogResult(const HostDialogRequest&)>,
-                    std::function<HostServiceStatus(const HostTooltipRequest&)>,
-                    std::function<void()>, std::function<HostClipboardTextResult()>,
+                    std::function<HostClipboardTextResult()>,
                     std::function<HostServiceStatus(std::string_view)>) const {
         *request_close = std::move(close);
         *waiter = std::thread(DecoyWait{done, (*window).dispatcher(), request_close});

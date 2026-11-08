@@ -289,7 +289,6 @@ struct AppState final {
 
 using VoidCallback = std::function<void()>;
 using ShowDialogCallback = std::function<gui_forms::HostDialogResult(const gui_forms::HostDialogRequest&)>;
-using ShowTooltipCallback = std::function<gui_forms::HostServiceStatus(const gui_forms::HostTooltipRequest&)>;
 using ReadClipboardCallback = std::function<gui_forms::HostClipboardTextResult()>;
 using WriteClipboardCallback = std::function<gui_forms::HostServiceStatus(std::string_view)>;
 
@@ -297,7 +296,7 @@ class StartDumping final {
 public:
     explicit StartDumping(AppState& state) noexcept : state_(state) {}
 
-    void operator()(VoidCallback, VoidCallback, ShowDialogCallback, ShowTooltipCallback, VoidCallback,
+    void operator()(VoidCallback, VoidCallback, ShowDialogCallback,
                     ReadClipboardCallback, WriteClipboardCallback) const {
         if (state_.dump_path.empty()) return;
         gui_forms::Window& window = *state_.window;

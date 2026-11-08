@@ -108,11 +108,31 @@ enum class HostPopupFocus : std::uint8_t {
 
 [[nodiscard]] const char* host_popup_focus_name(HostPopupFocus focus) noexcept;
 
+// What a native popup window is for (owner, 2026-11-08: APP_WINDOW_RULES_DESIGN
+// Part S). One lightweight transient window serves two kinds that differ only
+// in input: a Popup takes pointer input in its own surface, a Splash takes
+// none (click-through, never key, never activated).
+enum class HostTransientKind : std::uint8_t {
+    // A Popup: today's native popup, its focus declared by HostPopupFocus.
+    popup,
+    // A Splash tooltip: no input, above the program's popups and menus.
+    tool_tip,
+    // A Splash splashscreen: no input, above the program's windows.
+    splashscreen,
+};
+
+[[nodiscard]] const char* host_transient_kind_name(HostTransientKind kind) noexcept;
+// Whether `kind` is a Splash (takes no input): tool_tip and splashscreen.
+[[nodiscard]] bool host_transient_is_splash(HostTransientKind kind) noexcept;
+
 // Where a native popup window opens and how it takes focus (owner,
 // 2026-11-04): carried by its window entry (ApplicationWindow::popup and
 // each adapter's native entry). Programs open popups through
 // Window::open_native_popup, which fills this in.
 struct HostPopupPlacement final {
+    // A Splash kind takes no input, so its focus is always passive; an entry
+    // declaring takes_focus with a Splash kind is invalid.
+    HostTransientKind kind{HostTransientKind::popup};
     HostPopupFocus focus{HostPopupFocus::passive};
     // The client area's origin in desktop logical units, each coordinate
     // within HostWindowing::maximum_desktop_coordinate; the client size is
@@ -139,6 +159,8 @@ struct HostWindowDescription final {
     // Invalid for a window without an owner.
     HostWindowId owner{};
     HostWindowKind kind{HostWindowKind::standard};
+    // For a popup: what it is for. A Splash needs supports_splash_windows().
+    HostTransientKind transient{HostTransientKind::popup};
 };
 
 struct HostWindowAdmission final {
@@ -309,6 +331,12 @@ public:
     // during the run. False unless the adapter says so; admit() refuses a
     // popup as unsupported without it.
     [[nodiscard]] virtual bool supports_popup_windows() const noexcept;
+    // Whether the adapter opens Splash popup windows (HostTransientKind
+    // tool_tip and splashscreen): click-through, never key, never activated.
+    // False unless the adapter can; admit() refuses a Splash as unsupported
+    // without it, and the core then falls back to an overlay. A host reports
+    // false only when it truly cannot (owner, 2026-11-08: SPLASH_STUDY D5).
+    [[nodiscard]] virtual bool supports_splash_windows() const noexcept;
     [[nodiscard]] Event<const HostWindowFrameEvent&>& frame_changed() noexcept {
         return frame_changed_;
     }
@@ -326,8 +354,8 @@ public:
     // given, is live; exactly one primary, admitted first, without an
     // owner; a standard window has an owner; a floating window is owned by
     // the primary window, and at most maximum_floating_windows are live; a
-    // popup has an owner and needs supports_popup_windows() (else
-    // unsupported). After mark_started() an admission needs runtime_windows
+    // popup has an owner and needs supports_popup_windows(), and a Splash
+    // popup also supports_splash_windows() (else unsupported). After mark_started() an admission needs runtime_windows
     // and may not be primary. A refused admission changes nothing.
     [[nodiscard]] HostWindowAdmission admit(const HostWindowDescription& description);
     // The native window exists, hidden. Records whether the program wants it

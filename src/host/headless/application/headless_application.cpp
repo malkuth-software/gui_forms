@@ -163,6 +163,10 @@ bool HeadlessWindowing::supports_popup_windows() const noexcept {
     return true;
 }
 
+bool HeadlessWindowing::supports_splash_windows() const noexcept {
+    return splash_windows_;
+}
+
 void HeadlessWindowing::create_native(HostWindowId window, std::string_view stable_id,
                                       Rect content, Size minimum_size, bool decorated) {
     NativeWindow entry;
@@ -518,6 +522,7 @@ ApplicationWindowOpenResult HeadlessApplication::open(ApplicationWindow&& source
     description.stable_id = source.stable_id;
     description.owner = owner;
     description.kind = kind;
+    if (popup.has_value()) description.transient = (*popup).kind;
     const HostWindowAdmission admission = windowing_.admit(description);
     if (!admission.status.accepted()) {
         result.status = admission.status;
@@ -571,7 +576,10 @@ ApplicationWindowOpenResult HeadlessApplication::open(ApplicationWindow&& source
         line << "open id=" << window.id.value << " kind=" << host_window_kind_name(kind)
              << " owner=" << owner.value << " visible=" << (window.options.initially_visible ? 1 : 0)
              << " runtime=" << (runtime ? 1 : 0);
-        if (popup.has_value()) line << " focus=" << host_popup_focus_name((*popup).focus);
+        if (popup.has_value()) {
+            line << " focus=" << host_popup_focus_name((*popup).focus)
+                 << " transient=" << host_transient_kind_name((*popup).kind);
+        }
         windowing_.note(line.str());
     }
     windowing_.report_frame(window.id, windowing_.native_frame(window.id));

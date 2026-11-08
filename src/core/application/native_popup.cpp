@@ -71,7 +71,8 @@ std::optional<Rect> work_area_at(const HostMonitorResult& monitors, Point point)
 }
 } // namespace
 
-NativePopupRefusal native_popup_refusal(const std::weak_ptr<ApplicationWindowState>& owner) noexcept {
+NativePopupRefusal native_popup_refusal(const std::weak_ptr<ApplicationWindowState>& owner,
+                                        const HostTransientKind kind) noexcept {
     const std::shared_ptr<ApplicationWindowState> state = owner.lock();
     const std::shared_ptr<ApplicationRunState> run = owner_run(state);
     if (!run || !(*state).id.valid()) return NativePopupRefusal::no_run;
@@ -79,25 +80,38 @@ NativePopupRefusal native_popup_refusal(const std::weak_ptr<ApplicationWindowSta
     const bool available = windowing.capabilities().supports(HostCapability::runtime_windows) &&
                            windowing.supports_popup_windows();
     if (!available) return NativePopupRefusal::unsupported;
+    if (host_transient_is_splash(kind) && !windowing.supports_splash_windows()) {
+        return NativePopupRefusal::unsupported;
+    }
     return NativePopupRefusal::none;
 }
 
-std::shared_ptr<NativePopupRecord> open_native_popup_window(const NativePopupOpening& opening) {
-    if (native_popup_refusal(opening.owner) != NativePopupRefusal::none) return nullptr;
-    const std::shared_ptr<ApplicationWindowState> owner = opening.owner.lock();
-    const ApplicationWindowHandle owner_handle = ApplicationHandleAccess::make(owner);
+std::optional<Rect> desktop_placement(const std::weak_ptr<ApplicationWindowState>& owner, const Rect bounds) {
+    const std::shared_ptr<ApplicationWindowState> state = owner.lock();
+    if (!owner_run(state)) return std::nullopt;
+    const ApplicationWindowHandle owner_handle = ApplicationHandleAccess::make(state);
     const HostWindowFrameResult owner_frame = owner_handle.frame();
-    if (!owner_frame.status.accepted()) return nullptr;
-
-    // Placement: the bounds in the owner's client area, as desktop logical
-    // units, kept inside the work area under the popup's origin.
+    if (!owner_frame.status.accepted()) return std::nullopt;
+    // The bounds in the owner's client area, as desktop logical units, kept
+    // inside the work area under the origin.
     const Rect client = owner_frame.frame.content;
-    Rect placed{client.x + opening.bounds.x, client.y + opening.bounds.y, opening.bounds.width,
-                opening.bounds.height};
+    Rect placed{client.x + bounds.x, client.y + bounds.y, bounds.width, bounds.height};
     const ApplicationWindows windows = owner_handle.windows();
     const HostMonitorResult monitors = windows.monitors();
     const std::optional<Rect> work_area = work_area_at(monitors, Point{placed.x, placed.y});
     if (work_area.has_value()) placed = clamp_to_work_area(placed, *work_area);
+    return placed;
+}
+
+std::shared_ptr<NativePopupRecord> open_native_popup_window(const NativePopupOpening& opening) {
+    if (native_popup_refusal(opening.owner, opening.kind) != NativePopupRefusal::none) return nullptr;
+    if (host_transient_is_splash(opening.kind) && opening.focus != HostPopupFocus::passive) return nullptr;
+    const std::shared_ptr<ApplicationWindowState> owner = opening.owner.lock();
+    const ApplicationWindowHandle owner_handle = ApplicationHandleAccess::make(owner);
+    const std::optional<Rect> placement = desktop_placement(opening.owner, opening.bounds);
+    if (!placement.has_value()) return nullptr;
+    const Rect placed = *placement;
+    const ApplicationWindows windows = owner_handle.windows();
 
     const Size size{opening.bounds.width, opening.bounds.height};
     std::unique_ptr<Window> model = std::make_unique<Window>(opening.content, size, opening.resources);
@@ -112,7 +126,7 @@ std::shared_ptr<NativePopupRecord> open_native_popup_window(const NativePopupOpe
     }
 
     ApplicationWindow entry{};
-    entry.stable_id = (*owner).stable_id + "/popup." + std::to_string(opening.serial);
+    entry.stable_id = (*owner).stable_id + "/" + std::string(opening.name) + "." + std::to_string(opening.serial);
     entry.owner_id = (*owner).stable_id;
     entry.model = std::move(model);
     entry.options.title = std::string();
@@ -122,7 +136,9 @@ std::shared_ptr<NativePopupRecord> open_native_popup_window(const NativePopupOpe
     // The popup's own alpha surface: its shadow and any clear part show
     // what lies beneath (owner, 2026-11-04, answer 4).
     entry.options.non_opaque = true;
+    entry.options.initially_visible = opening.initially_visible;
     HostPopupPlacement popup{};
+    popup.kind = opening.kind;
     popup.focus = opening.focus;
     popup.origin = DesktopLogicalPoint{placed.x, placed.y};
     entry.popup = popup;

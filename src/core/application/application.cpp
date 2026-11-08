@@ -109,8 +109,11 @@ bool valid_window_entry(const ApplicationWindow& entry) {
         const double bound = HostWindowing::maximum_desktop_coordinate;
         const bool origin_valid = std::isfinite(origin.x) && std::isfinite(origin.y) &&
                                   std::abs(origin.x) <= bound && std::abs(origin.y) <= bound;
+        // A Splash takes no input, so it never takes focus.
+        const bool focus_valid = !host_transient_is_splash((*entry.popup).kind) ||
+                                 (*entry.popup).focus == HostPopupFocus::passive;
         const bool popup_valid = !entry.tool_window && entry.floating == HostWindowFloating::none &&
-                                 !entry.owner_id.empty() && origin_valid;
+                                 !entry.owner_id.empty() && origin_valid && focus_valid;
         return popup_valid;
     }
     // A floating window has an owner and is not a tool window in the host's

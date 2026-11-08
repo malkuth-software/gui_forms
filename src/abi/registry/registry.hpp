@@ -3,6 +3,9 @@
 #include "../control_adapters/abi_control_adapters.hpp"
 #include "../error/abi_error.hpp"
 
+#include <chrono>
+#include <optional>
+
 namespace gui_forms::abi::detail {
 
 enum class SlotKind {
@@ -81,9 +84,6 @@ struct ControlRecord final {
     std::function<void()> host_close;
     std::function<gui_forms::HostDialogResult(
         const gui_forms::HostDialogRequest&)> host_dialog;
-    std::function<gui_forms::HostServiceStatus(
-        const gui_forms::HostTooltipRequest&)> host_tooltip_show;
-    std::function<void()> host_tooltip_hide;
     std::function<gui_forms::HostClipboardTextResult()> host_clipboard_read;
     std::function<gui_forms::HostServiceStatus(std::string_view)> host_clipboard_write;
     std::string last_dialog_path;
@@ -1651,6 +1651,11 @@ public:
         return GF_OK;
     }
 
+    // The v0 tooltip entry points show and hide the owner window's own
+    // tooltip presenter (a Splash window where the host has them, else the
+    // overlay), as a program request for the owner control: the text below
+    // the point (x, y) of the owner's bounds, for `duration_milliseconds`
+    // (0: until hidden). An owner in no running window shows nothing.
     gf_result show_tooltip(gf_handle owner_handle, gf_string_view text,
                            double x, double y,
                            std::uint32_t duration_milliseconds) {
@@ -1663,35 +1668,9 @@ public:
             return fail(GF_ERROR_INVALID_ARGUMENT,
                         "tooltip text must be a bounded UTF-8 view without NUL");
         }
-        std::shared_ptr<ControlRecord> owner;
-        std::function<gui_forms::HostServiceStatus(
-            const gui_forms::HostTooltipRequest&)> provider;
-        gui_forms::Point anchor;
-        {
-            std::scoped_lock lock(mutex_);
-            if (const gf_result result = control_locked(owner_handle, owner);
-                result != GF_OK) return result;
-            if (const gf_result result = require_thread(*owner); result != GF_OK) {
-                return result;
-            }
-            const std::shared_ptr<ControlRecord> root = root_record_locked(owner);
-            if (!root) return fail(GF_ERROR_INVALID_ARGUMENT,
-                                   "tooltip owner has no retained root");
-            provider = (*root).host_tooltip_show;
-            const Rect bounds = (*(*owner).control).absolute_bounds();
-            anchor = {bounds.x + x, bounds.y + y};
-        }
-        if (!provider) return GF_OK;
-        const gui_forms::HostServiceStatus result = provider(
-            {std::move(text_value), anchor, duration_milliseconds});
-        return result.accepted() ? GF_OK :
-            fail(GF_ERROR_INTERNAL,
-                 std::string("tooltip host failed: ") +
-                 gui_forms::host_service_error_name(result.error));
-    }
-
-    gf_result hide_tooltip(gf_handle owner_handle) {
-        std::function<void()> hide;
+        Control::Ptr control;
+        Window* window{};
+        Rect anchor{};
         {
             std::scoped_lock lock(mutex_);
             std::shared_ptr<ControlRecord> owner;
@@ -1703,9 +1682,41 @@ public:
             const std::shared_ptr<ControlRecord> root = root_record_locked(owner);
             if (!root) return fail(GF_ERROR_INVALID_ARGUMENT,
                                    "tooltip owner has no retained root");
-            hide = (*root).host_tooltip_hide;
+            control = (*owner).control;
+            window = (*control).attached_window();
+            const Rect bounds = (*control).absolute_bounds();
+            anchor = Rect{bounds.x + x, bounds.y + y, 0.0, 0.0};
         }
-        if (hide) hide();
+        if (window == nullptr) return GF_OK;
+        std::optional<std::chrono::milliseconds> duration;
+        if (duration_milliseconds != 0U) duration = std::chrono::milliseconds(duration_milliseconds);
+        try {
+            (*window).show_requested_tool_tip(control, std::string(), std::move(text_value), anchor, duration);
+        } catch (const std::exception& error) {
+            return fail(GF_ERROR_INTERNAL, std::string("tooltip show failed: ") + error.what());
+        }
+        return GF_OK;
+    }
+
+    gf_result hide_tooltip(gf_handle owner_handle) {
+        Control::Ptr control;
+        Window* window{};
+        {
+            std::scoped_lock lock(mutex_);
+            std::shared_ptr<ControlRecord> owner;
+            if (const gf_result result = control_locked(owner_handle, owner);
+                result != GF_OK) return result;
+            if (const gf_result result = require_thread(*owner); result != GF_OK) {
+                return result;
+            }
+            const std::shared_ptr<ControlRecord> root = root_record_locked(owner);
+            if (!root) return fail(GF_ERROR_INVALID_ARGUMENT,
+                                   "tooltip owner has no retained root");
+            control = (*owner).control;
+            window = (*control).attached_window();
+        }
+        // Only the owner's own tooltip: another control's stays.
+        if (window != nullptr && (*window).tool_tip_target() == control) (*window).hide_tool_tip();
         return GF_OK;
     }
 
@@ -2575,15 +2586,11 @@ private:
             std::function<void()> close,
             std::function<gui_forms::HostDialogResult(
                 const gui_forms::HostDialogRequest&)> dialog,
-            std::function<gui_forms::HostServiceStatus(
-                const gui_forms::HostTooltipRequest&)> tooltip_show,
-            std::function<void()> tooltip_hide,
             std::function<gui_forms::HostClipboardTextResult()> clipboard_read,
             std::function<gui_forms::HostServiceStatus(
                 std::string_view)> clipboard_write) const {
             (*registry).publish_host(
                 record, std::move(wake), std::move(close), std::move(dialog),
-                std::move(tooltip_show), std::move(tooltip_hide),
                 std::move(clipboard_read), std::move(clipboard_write));
         }
     };
@@ -2883,9 +2890,6 @@ private:
                       std::function<void()> request_close,
                       std::function<gui_forms::HostDialogResult(
                           const gui_forms::HostDialogRequest&)> dialog = {},
-                      std::function<gui_forms::HostServiceStatus(
-                          const gui_forms::HostTooltipRequest&)> tooltip_show = {},
-                      std::function<void()> tooltip_hide = {},
                       std::function<gui_forms::HostClipboardTextResult()>
                           clipboard_read = {},
                       std::function<gui_forms::HostServiceStatus(std::string_view)>
@@ -2899,8 +2903,6 @@ private:
             (*root).host_wake = std::move(wake);
             (*root).host_close = std::move(request_close);
             (*root).host_dialog = std::move(dialog);
-            (*root).host_tooltip_show = std::move(tooltip_show);
-            (*root).host_tooltip_hide = std::move(tooltip_hide);
             (*root).host_clipboard_read = std::move(clipboard_read);
             (*root).host_clipboard_write = std::move(clipboard_write);
             (*root).host_phase = AbiHostPhase::ready;
@@ -2936,8 +2938,6 @@ private:
         (*root).host_wake = {};
         (*root).host_close = {};
         (*root).host_dialog = {};
-        (*root).host_tooltip_show = {};
-        (*root).host_tooltip_hide = {};
         (*root).host_clipboard_read = {};
         (*root).host_clipboard_write = {};
         (*root).dispatch_wake_pending = false;

@@ -33,6 +33,13 @@ public:
   HostWindowAdmission open(LinuxApplicationWindow entry, bool runtime);
   // Reports the window's current frame (ConfigureNotify, first map).
   void report_native_frame(NativeWindow &window);
+  // Popup and Splash windows (owner, 2026-11-08: SPLASH_STUDY D5 (b)):
+  // override-redirect windows with the 32-bit ARGB visual, opened while a
+  // compositing manager owns _NET_WM_CM_S<n>. Without one the server has no
+  // per-pixel alpha for the program's shadow, so the host truly cannot and
+  // reports false; the core then shows an overlay.
+  [[nodiscard]] bool supports_popup_windows() const noexcept override;
+  [[nodiscard]] bool supports_splash_windows() const noexcept override;
 
 protected:
   HostWindowFrameResult frame_impl(HostWindowId window) override;
@@ -148,6 +155,8 @@ public:
   NativeWindow(Runtime &runtime, LinuxApplicationWindow entry);
   ~NativeWindow();
   void attach();
+  // Types and shapes a popup or Splash window before it is first mapped.
+  void mark_transient(const HostPopupPlacement &popup);
   void ready();
   void event(XEvent &event);
   void update();

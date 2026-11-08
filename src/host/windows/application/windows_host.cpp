@@ -69,7 +69,6 @@ namespace gui_forms::host {
 namespace {
 
 constexpr wchar_t window_class_name[] = L"GUIForms.Window.v1";
-constexpr wchar_t tooltip_class_name[] = L"GUIForms.ToolTip.v1";
 constexpr UINT_PTR scheduler_timer = 1;
 constexpr UINT_PTR modal_live_surface_timer = 2;
 constexpr UINT live_surface_period_milliseconds = 16;
@@ -562,55 +561,6 @@ double native_monitor_scale(HMONITOR monitor) noexcept {
 }
 
 #include "../services/windows_host_services.hpp"
-
-// A tooltip's content is painted by the window's text engine (ADR-004) into
-// top-down BGRA pixels; the popup only presents them.
-struct TooltipPopup final {
-    HWND window{};
-    std::wstring text;
-    std::vector<std::uint32_t> pixels;
-    int width{};
-    int height{};
-};
-
-LRESULT CALLBACK tooltip_window_procedure(HWND window, UINT message,
-                                          WPARAM wparam, LPARAM lparam) {
-    TooltipPopup* state = reinterpret_cast<TooltipPopup*>(
-        GetWindowLongPtrW(window, GWLP_USERDATA));
-    if (message == WM_NCCREATE) {
-        const CREATESTRUCTW* create =
-            reinterpret_cast<const CREATESTRUCTW*>(lparam);
-        state = static_cast<TooltipPopup*>((*create).lpCreateParams);
-        SetWindowLongPtrW(window, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(state));
-        (*state).window = window;
-    }
-    switch (message) {
-    case WM_ERASEBKGND: return 1;
-    case WM_TIMER: DestroyWindow(window); return 0;
-    case WM_PAINT: {
-        PAINTSTRUCT paint{};
-        HDC dc = BeginPaint(window, &paint);
-        if (state && !(*state).pixels.empty()) {
-            BITMAPINFO info{};
-            info.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-            info.bmiHeader.biWidth = (*state).width;
-            info.bmiHeader.biHeight = -(*state).height;
-            info.bmiHeader.biPlanes = 1;
-            info.bmiHeader.biBitCount = 32;
-            info.bmiHeader.biCompression = BI_RGB;
-            SetDIBitsToDevice(dc, 0, 0, static_cast<DWORD>((*state).width), static_cast<DWORD>((*state).height),
-                              0, 0, 0, static_cast<UINT>((*state).height), (*state).pixels.data(), &info,
-                              DIB_RGB_COLORS);
-        }
-        EndPaint(window, &paint);
-        return 0;
-    }
-    case WM_NCDESTROY:
-        if (state) (*state).window = nullptr;
-        return 0;
-    default: return DefWindowProcW(window, message, wparam, lparam);
-    }
-}
 
 Modifier modifiers() noexcept {
     Modifier result = Modifier::none;
@@ -1224,9 +1174,6 @@ class WindowsHostState final {
 #if defined(GUI_FORMS_WINDOWS_PREPARED_TEXT_TEST)
     friend struct PreparedHostFixture;
 #endif
-#if defined(GUI_FORMS_WINDOWS_TOOLTIP_TEST)
-    friend struct TooltipHostFixture;
-#endif
 public:
     WindowsHostState(std::unique_ptr<Window> model, WindowsHostOptions options)
         : model_(std::move(model)), options_(std::move(options)),
@@ -1280,7 +1227,6 @@ public:
             CloseHandle(live_frame_clock_);
             live_frame_clock_ = nullptr;
         }
-        hide_tooltip();
         if (model_) {
             (*model_).set_paint_wake_handler({});
             (*model_).set_text_metrics_provider(nullptr);
@@ -1349,13 +1295,6 @@ public:
                         const HostDialogRequest&)>(
                             services_, &HostServices::show_dialog),
                 gui_forms::detail::BoundMemberFunction<
-                    HostServiceStatus (WindowsHostState::*)(
-                        const HostTooltipRequest&)>(
-                            *this, &WindowsHostState::show_tooltip),
-                gui_forms::detail::BoundMemberFunction<
-                    void (WindowsHostState::*)() noexcept>(
-                        *this, &WindowsHostState::hide_tooltip),
-                gui_forms::detail::BoundMemberFunction<
                     HostClipboardTextResult (HostServices::*)()>(
                         services_, &HostServices::read_clipboard_text),
                 gui_forms::detail::BoundMemberFunction<
@@ -1418,6 +1357,9 @@ public:
     // A passive native popup (HostPopupFocus::passive): a click does not
     // activate it. Set before the native window is created.
     void mark_passive_popup() noexcept { passive_popup_ = true; }
+    // A Splash takes no input: the pointer passes through it to the
+    // windows beneath (HTTRANSPARENT, SPLASH_STUDY D4 (a)).
+    void mark_splash() noexcept { splash_ = true; }
 
     // Application-scope windowing (windows_application_run.inc). Bound before
     // the native window is created; the run outlives this state.
@@ -1555,6 +1497,11 @@ public:
             }
             dispatch(HostActivationEvent{LOWORD(wparam) != WA_INACTIVE});
             collect_damage(); return 0;
+        case WM_NCHITTEST:
+            // A Splash is never hit: the message goes to the window beneath
+            // it on this thread (its owner, for a tooltip).
+            if (splash_) return HTTRANSPARENT;
+            break;
         case WM_MOUSEACTIVATE:
             if (trace_win32_input()) {
                 std::fprintf(stderr, "win32-input=mouse-activate|hit:%u|message:%u|active:%d|focus:%d\n",
@@ -1869,6 +1816,7 @@ private:
         return session_.dispatch(std::move(event));
     }
 
+<<<<<<< ours
     HostServiceStatus show_tooltip(const HostTooltipRequest& request) {
         hide_tooltip();
         if (request.text.empty()) return {};
@@ -2031,6 +1979,11 @@ private:
     // the hover time and rectangle (SPI_GETMOUSEHOVERTIME, ..WIDTH,
     // ..HEIGHT), the rectangles in logical pixels. Windows reports hover
     // itself (WM_MOUSEHOVER), so native_hover is set.
+=======
+    // The system's double-click interval (GetDoubleClickTime, which Windows
+    // keeps between 1 and 5000 milliseconds), reported after attach and on
+    // WM_SETTINGCHANGE whenever it differs from the last report.
+>>>>>>> theirs
     void report_input_settings() {
         const UINT read = GetDoubleClickTime();
         std::uint32_t interval = static_cast<std::uint32_t>(read);
@@ -3316,13 +3269,14 @@ private:
     bool frame_capture_completed_{};
     bool frame_capture_saved_{};
     NativePhase native_phase_{NativePhase::creating};
-    TooltipPopup tooltip_;
     // The application run this window belongs to (observing; the run owns
     // this state) and the window's identity in it. Null for run_windows.
     WindowsApplicationRun* run_{};
     HostWindowId window_id_{};
     // mark_passive_popup: never activated by a click.
     bool passive_popup_{};
+    // mark_splash: transparent to the pointer.
+    bool splash_{};
     // The reason WM_DESTROY reports: user for every native close, application
     // when the run destroys the window (HostWindowing::destroy_window).
     HostCloseReason destroy_reason_{HostCloseReason::user};
@@ -3366,9 +3320,6 @@ LRESULT CALLBACK window_procedure(HWND window, UINT message, WPARAM wparam, LPAR
 #if defined(GUI_FORMS_WINDOWS_PREPARED_TEXT_TEST)
 #include "windows_prepared_text_fixture.inc"
 #endif
-#if defined(GUI_FORMS_WINDOWS_TOOLTIP_TEST)
-#include "windows_tooltip_fixture.inc"
-#endif
 
 } // namespace
 
@@ -3379,11 +3330,6 @@ void run_windows_dib_lifecycle_fixture() {
 #endif
 #if defined(GUI_FORMS_WINDOWS_PREPARED_TEXT_TEST)
 void run_windows_prepared_text_fixture(const std::span<const std::byte> fonts) { PreparedHostFixture::run(fonts); }
-#endif
-#if defined(GUI_FORMS_WINDOWS_TOOLTIP_TEST)
-void run_windows_tooltip_fixture(const std::filesystem::path& fonts) {
-    TooltipHostFixture::run(fonts);
-}
 #endif
 
 // accessibility: MSAA and UI Automation publication of the semantic tree,

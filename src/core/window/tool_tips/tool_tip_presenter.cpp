@@ -1,6 +1,7 @@
 #include "tool_tip_presenter.hpp"
 
 #include "tool_tip_bubble.hpp"
+#include "../../application/transient_window.hpp"
 #include "gui_forms/application.hpp"
 
 #include <algorithm>
@@ -47,6 +48,10 @@ void ToolTipPresenter::OverlayClosed::operator()() const {
     (*presenter).overlay_closed();
 }
 
+void ToolTipPresenter::TransientClosed::operator()() const {
+    (*presenter).transient_closed();
+}
+
 ToolTipPresenter::ToolTipPresenter(Window& window) noexcept : window_(window) {}
 
 ToolTipPresenter::~ToolTipPresenter() {
@@ -55,9 +60,15 @@ ToolTipPresenter::~ToolTipPresenter() {
 
 void ToolTipPresenter::shutdown() noexcept {
     wake_.disconnect();
+    // The Splash window's close is not heard while the presenter ends.
+    transient_closed_.disconnect();
     // The overlay's destructor disconnects its overlay before the state goes.
     state_ = Idle{};
     keyboard_subject_ = ToolTipSubject{};
+    // Destroys the Splash window (its content detached first), then the
+    // bubble it showed.
+    transient_.reset();
+    transient_bubble_.reset();
 }
 
 // --- Switches and the things that may show -------------------------------
@@ -166,6 +177,26 @@ std::optional<ToolTipEvent> ToolTipPresenter::open(ToolTipOrigin origin, ToolTip
     lines.font = (*control).effective_font(tool_tip_font);
     break_tool_tip_lines(*control, subject.text, settings.maximum_width, lines);
 
+    ToolTipEvent change{};
+    change.target_stable_id = std::string((*control).stable_id().value());
+    change.item_id = subject.item_id;
+    change.text = subject.text;
+    change.shown = true;
+    change.keyboard_initiated = origin == ToolTipOrigin::keyboard;
+    const std::chrono::milliseconds stay = duration.value_or(settings.auto_pop_delay);
+
+    // The tooltip Splash window where the run can open one (owner,
+    // 2026-11-08: APP_WINDOW_RULES_DESIGN Part S); else the overlay below.
+    Showing splash{};
+    splash.origin = origin;
+    splash.subject = std::move(subject);
+    if (show_in_splash(splash, lines)) {
+        state_ = std::move(splash);
+        if (stay.count() > 0) arm(FrameClock::now() + stay);
+        return change;
+    }
+    subject = std::move(splash.subject);
+
     const std::string prefix = "tooltip." + std::to_string(next_overlay_);
     ++next_overlay_;
     std::shared_ptr<ToolTipLayer> layer = make_control<ToolTipLayer>(StableId(prefix + ".layer"));
@@ -186,23 +217,60 @@ std::optional<ToolTipEvent> ToolTipPresenter::open(ToolTipOrigin origin, ToolTip
         (*overlay).closed = (*closed).subscribe(OverlayClosed{this});
     }
 
-    ToolTipEvent change{};
-    change.target_stable_id = std::string((*control).stable_id().value());
-    change.item_id = subject.item_id;
-    change.text = subject.text;
-    change.shown = true;
-    change.keyboard_initiated = origin == ToolTipOrigin::keyboard;
-
     Showing showing{};
     showing.origin = origin;
     showing.subject = std::move(subject);
     showing.overlay = std::move(overlay);
     position(showing);
     state_ = std::move(showing);
-
-    const std::chrono::milliseconds stay = duration.value_or(settings.auto_pop_delay);
     if (stay.count() > 0) arm(FrameClock::now() + stay);
     return change;
+}
+
+TransientWindow* ToolTipPresenter::splash_window() {
+    if (transient_ && (*transient_).connected()) return transient_.get();
+    if (transient_refused_) return nullptr;
+    // A run that cannot open one now (no run yet, a host without Splash
+    // windows) is asked again on a later show; that check opens nothing.
+    if (native_popup_refusal(window_.application_window_, HostTransientKind::tool_tip) !=
+        NativePopupRefusal::none) {
+        return nullptr;
+    }
+    transient_closed_.disconnect();
+    transient_.reset();
+    TransientWindowOpening opening{};
+    opening.owner = window_.application_window_;
+    opening.kind = HostTransientKind::tool_tip;
+    opening.serial = next_overlay_;
+    ++next_overlay_;
+    opening.key_bindings = window_.key_bindings();
+    opening.resources = window_.resources();
+    transient_ = TransientWindow::open(opening);
+    if (!transient_) {
+        transient_refused_ = true;
+        return nullptr;
+    }
+    transient_closed_ = (*transient_).closed().subscribe(TransientClosed{this});
+    return transient_.get();
+}
+
+bool ToolTipPresenter::show_in_splash(Showing& showing, ToolTipLines& lines) {
+    TransientWindow* splash = splash_window();
+    if (splash == nullptr) return false;
+    if (!transient_bubble_) {
+        transient_bubble_ = make_control<ToolTipBubble>(StableId("tooltip.splash.bubble"), std::string(),
+                                                       ToolTipLines{});
+    }
+    (*transient_bubble_).set_content(showing.subject.text, lines);
+    const bool placed = position(showing);
+    return placed;
+}
+
+void ToolTipPresenter::transient_closed() {
+    Showing* showing = std::get_if<Showing>(&state_);
+    const bool shown_there = showing != nullptr && (*showing).overlay == nullptr;
+    transient_closed_.disconnect();
+    if (shown_there) raise(close(Idle{}));
 }
 
 std::optional<ToolTipEvent> ToolTipPresenter::close(State next) {
@@ -220,6 +288,7 @@ std::optional<ToolTipEvent> ToolTipPresenter::close(State next) {
     change.text = (*showing).subject.text;
     change.shown = false;
     change.keyboard_initiated = (*showing).origin == ToolTipOrigin::keyboard;
+    if ((*showing).overlay == nullptr && transient_) (*transient_).hide();
     // Moving the state out first leaves the presenter consistent while the
     // overlay's destructor detaches the overlay.
     State previous = std::move(state_);
@@ -239,12 +308,34 @@ void ToolTipPresenter::replace(ToolTipOrigin origin, ToolTipSubject subject,
 // Below the thing for keyboard focus and the program, below and right of
 // the pointer otherwise; above when it would leave the window's bottom, and
 // kept 4 units inside the client area.
-void ToolTipPresenter::position(Showing& showing) {
+//
+// In the Splash window the bubble may leave the window: the face is placed
+// the same way without the client clamp, then kept inside the monitor's
+// work area (detail::desktop_placement), the window holding the face and
+// its shadow's outsets.
+bool ToolTipPresenter::position(Showing& showing) {
+    const bool anchored = showing.origin != ToolTipOrigin::pointer;
+    const Rect anchor = showing.subject.anchor;
+    if (showing.overlay == nullptr) {
+        if (!transient_ || !transient_bubble_) return false;
+        const Size face = (*transient_bubble_).face_size();
+        const Insets outsets = (*transient_bubble_).visual_outsets();
+        const double x = anchored ? anchor.x + 8.0 : pointer_.x + 14.0;
+        const double y = anchored ? anchor.y + anchor.height + 7.0 : pointer_.y + 19.0;
+        const Rect window_bounds{x - outsets.left, y - outsets.top, face.width + outsets.left + outsets.right,
+                                 face.height + outsets.top + outsets.bottom};
+        const std::optional<Rect> desktop = desktop_placement(window_.application_window_, window_bounds);
+        if (!desktop.has_value()) return false;
+        if (!transient_layer_) transient_layer_ = make_control<ToolTipLayer>(StableId("tooltip.splash.layer"));
+        if ((*transient_bubble_).parent() != transient_layer_) (*transient_layer_).add_child(transient_bubble_);
+        (*transient_bubble_).set_requested_bounds({outsets.left, outsets.top, face.width, face.height});
+        if ((*transient_).shown()) return (*transient_).move(*desktop);
+        const bool shown = (*transient_).show(transient_layer_, *desktop);
+        return shown;
+    }
     const std::shared_ptr<ToolTipBubble>& bubble = (*showing.overlay).bubble;
     const Rect current = (*bubble).requested_bounds();
     const Size client = window_.client_size();
-    const bool anchored = showing.origin != ToolTipOrigin::pointer;
-    const Rect anchor = showing.subject.anchor;
     double x = anchored ? anchor.x + 8.0 : pointer_.x + 14.0;
     double y = anchored ? anchor.y + anchor.height + 7.0 : pointer_.y + 19.0;
     if (x + current.width > client.width - 4.0) {
@@ -256,6 +347,7 @@ void ToolTipPresenter::position(Showing& showing) {
     y = std::clamp(y, 4.0, std::max(4.0, client.height - current.height - 4.0));
     x = std::clamp(x, 4.0, std::max(4.0, client.width - current.width - 4.0));
     (*bubble).set_requested_bounds({x, y, current.width, current.height});
+    return true;
 }
 
 void ToolTipPresenter::raise(const std::optional<ToolTipEvent>& change) {
@@ -406,6 +498,18 @@ void ToolTipPresenter::key_handled() {
 
 void ToolTipPresenter::root_arranged() {
     Showing* showing = std::get_if<Showing>(&state_);
+    // In the Splash window nothing closes the bubble with its control, as
+    // the overlay's owner rule does in the window: the layout after the
+    // control left, hid or was disabled closes it here.
+    if (showing != nullptr && (*showing).overlay == nullptr) {
+        const Control::Ptr shown = (*showing).subject.control.lock();
+        const bool stays = shown && (*shown).is_alive() && (*shown).attached_window() == &window_ &&
+                           available(window_.tool_tip_settings(), *shown);
+        if (!stays) {
+            raise(close(Idle{}));
+            return;
+        }
+    }
     if (showing == nullptr || (*showing).origin == ToolTipOrigin::pointer || !(*showing).subject.item_id.empty()) {
         return;
     }

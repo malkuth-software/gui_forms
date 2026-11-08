@@ -287,6 +287,11 @@ struct RuntimeWindowsProbe final {
     bool native_styles{};
     bool native_owner{};
     bool native_placed{};
+    // A tooltip Splash window (owner, 2026-11-08: SPLASH_STUDY): whether it
+    // opened, and on Win32 its styles and pointer transparency.
+    HostServiceStatus splash_open{};
+    bool splash_styles{};
+    bool splash_transparent{};
     // Every window of this thread the main window owns, described for a
     // failed check (class, styles); empty when the check passed.
     std::string native_windows{};
@@ -370,6 +375,48 @@ void check_native_popup(RuntimeWindowsProbe& state, HWND owner, Rect bounds) {
         std::fabs(static_cast<double>(popup_origin.y) - expected_y) <= 1.0;
 }
 #endif
+#if defined(_WIN32)
+// Reads the one hidden tooltip Splash window `owner` owns: topmost, never
+// activated, and transparent to the pointer (HTTRANSPARENT, SPLASH_STUDY D4).
+void check_splash_window(RuntimeWindowsProbe& state, HWND owner) {
+    PopupWindows popups{};
+    popups.owner = owner;
+    static_cast<void>(GetClassNameW(owner, popups.owner_class, 128));
+    EnumThreadWindows(GetCurrentThreadId(), &collect_popup_window, reinterpret_cast<LPARAM>(&popups));
+    if (popups.count != 1U) return;
+    const HWND splash = popups.found[0];
+    const LONG_PTR extended = GetWindowLongPtrW(splash, GWL_EXSTYLE);
+    state.splash_styles = (extended & WS_EX_TOPMOST) != 0 && (extended & WS_EX_NOACTIVATE) != 0 &&
+        (extended & WS_EX_TOOLWINDOW) != 0;
+    const LRESULT hit = SendMessageW(splash, WM_NCHITTEST, 0, 0);
+    state.splash_transparent = hit == HTTRANSPARENT;
+}
+#endif
+// Opens a hidden tooltip Splash window owned by the main window, checks it
+// and destroys it.
+void open_splash_window(RuntimeWindowsProbe& state, const ApplicationWindows& windows) {
+    ApplicationWindow entry{};
+    entry.stable_id = "main/splash.tool_tip";
+    entry.owner_id = "main";
+    entry.model = make_window();
+    entry.options.initial_size = {120.0, 40.0};
+    entry.options.minimum_size = {1.0, 1.0};
+    entry.options.initially_visible = false;
+    entry.options.non_opaque = true;
+    entry.options.print_metrics_on_close = false;
+    HostPopupPlacement placement{};
+    placement.kind = HostTransientKind::tool_tip;
+    placement.origin = DesktopLogicalPoint{40.0, 40.0};
+    entry.popup = placement;
+    const ApplicationWindowOpenResult opened = windows.open_window(std::move(entry));
+    state.splash_open = opened.status;
+    if (!opened.status.accepted()) return;
+#if defined(_WIN32)
+    const HWND main_window = FindWindowW(nullptr, L"GUI.Forms runtime windows fixture");
+    if (main_window != nullptr) check_splash_window(state, main_window);
+#endif
+    static_cast<void>(windows.destroy_window(opened.window));
+}
 // Opens one passive and one focus-taking popup from the main window, and
 // closes them.
 void open_native_popups(RuntimeWindowsProbe& state, Window& window) {
@@ -464,6 +511,7 @@ struct RuntimeMainReady final {
                 state.floating_destroy = windows.destroy_window(floating_window.window);
             }
             open_native_popups(state, window);
+            open_splash_window(state, windows);
         }
         require(handle.request_close().accepted(), "runtime fixture close failed");
     }
@@ -516,16 +564,27 @@ void check_runtime_windows() {
     require(probe.native_styles, "the popup window is an undecorated, non-activating tool");
     require(probe.native_placed, "the popup sits at the owner's client origin plus its bounds");
     require(probe.focus_surface == NativePopupSurface::native, "a focus-taking popup opens a native window");
+    require(probe.splash_open.accepted(), "Win32 opens a tooltip Splash window");
+    require(probe.splash_styles, "the Splash window is a topmost, non-activating tool");
+    require(probe.splash_transparent, "the Splash window is transparent to the pointer");
 #elif defined(__APPLE__)
     // AppKit opens popup windows as borderless, non-activating panels
     // (phase (d)); their native record is not readable from this C++ test.
     require(probe.passive_surface == NativePopupSurface::native && probe.passive_refusal == NativePopupRefusal::none,
             "a passive popup opens a native window");
     require(probe.focus_surface == NativePopupSurface::native, "a focus-taking popup opens a native window");
+    require(probe.splash_open.accepted(), "AppKit opens a tooltip Splash window");
 #else
-    require(probe.passive_surface == NativePopupSurface::overlay &&
-                probe.passive_refusal == NativePopupRefusal::unsupported,
-            "a host without popup windows falls back to an overlay");
+    // X11 opens popup and Splash windows (SPLASH_STUDY D5 (b)) while a
+    // compositing manager gives per-pixel alpha, and otherwise truly cannot;
+    // a focus-taking popup is never offered (override-redirect).
+    const bool x11_windows = probe.passive_surface == NativePopupSurface::native &&
+                             probe.passive_refusal == NativePopupRefusal::none;
+    const bool x11_overlay = probe.passive_surface == NativePopupSurface::overlay &&
+                             probe.passive_refusal == NativePopupRefusal::unsupported;
+    require(x11_windows || x11_overlay, "X11 opens a popup window with a compositor, else an overlay");
+    require(probe.focus_surface == NativePopupSurface::overlay, "a focus-taking popup is an overlay on X11");
+    require(probe.splash_open.accepted() == x11_windows, "X11 opens Splash windows exactly when it opens popups");
 #endif
     require(probe.passive_closed, "disconnecting closes the popup");
 }

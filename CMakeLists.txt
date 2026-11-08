@@ -230,6 +230,7 @@ add_custom_command(
 add_library(gui_forms_core STATIC
     src/core/application/application.cpp
     src/core/application/native_popup.cpp
+    src/core/application/transient_window.cpp
     src/core/window/native_popup/native_popup_window.cpp
     src/core/application/window_frame_drag.cpp
     src/core/application/workspace_transaction.cpp
@@ -2461,30 +2462,6 @@ if(GUI_FORMS_BUILD_TESTS)
             add_test(NAME gui_forms_windows_dib_lifecycle_tests
                      COMMAND gui_forms_windows_dib_lifecycle_tests)
             set_tests_properties(gui_forms_windows_dib_lifecycle_tests PROPERTIES TIMEOUT 30)
-            add_executable(gui_forms_windows_tooltip_tests
-                tests/windows_tooltip_tests.cpp
-                src/host/windows/application/windows_host.cpp
-                src/host/windows/fonts/sealed_pages_windows.cpp
-                src/host/windows/accessibility/windows_accessibility.cpp
-                src/host/windows/accessibility/windows_semantic_source.cpp
-                src/host/windows/accessibility/windows_automation.cpp
-                src/host/windows/accessibility/windows_text_automation.cpp
-                src/host/windows/services/windows_clipboard_image.cpp
-                src/host/windows/services/windows_notify_icons.cpp
-                src/host/windows/paint_endpoint/windows_compatibility_paint_endpoint.cpp
-                src/host/windows/raster/dib_frame_store.cpp
-                src/host/windows/compositor/windows_compositor.cpp)
-            target_include_directories(gui_forms_windows_tooltip_tests PRIVATE
-                include src/host/windows)
-            target_compile_definitions(gui_forms_windows_tooltip_tests PRIVATE
-                WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00
-                GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB=1 GUI_FORMS_WINDOWS_TOOLTIP_TEST=1)
-            target_link_libraries(gui_forms_windows_tooltip_tests PRIVATE
-                gui_forms_core gui_forms_skia gui_forms_text_engine user32 gdi32 ole32 oleaut32 oleacc uiautomationcore uuid
-                comdlg32 shell32)
-            add_test(NAME gui_forms_windows_tooltip_tests
-                     COMMAND gui_forms_windows_tooltip_tests "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
-            set_tests_properties(gui_forms_windows_tooltip_tests PROPERTIES TIMEOUT 30)
             if(TARGET gui_forms_prepared_text_impl)
                 add_executable(gui_forms_windows_prepared_text_tests
                     tests/windows_prepared_text_tests.cpp
@@ -4090,6 +4067,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_native_popup_tests tests/native_popup_tests.cpp)
     target_link_libraries(gui_forms_native_popup_tests PRIVATE gui_forms_host_headless gui_forms_controls)
     add_test(NAME gui_forms_native_popup_tests COMMAND gui_forms_native_popup_tests)
+    add_executable(gui_forms_splash_window_tests tests/splash_window_tests.cpp)
+    target_link_libraries(gui_forms_splash_window_tests PRIVATE gui_forms_host_headless gui_forms_controls)
+    add_test(NAME gui_forms_splash_window_tests COMMAND gui_forms_splash_window_tests)
     add_executable(gui_forms_shared_resources_tests tests/shared_resources_tests.cpp)
     target_link_libraries(gui_forms_shared_resources_tests PRIVATE gui_forms_controls gui_forms_host_headless)
     add_test(NAME gui_forms_shared_resources_tests COMMAND gui_forms_shared_resources_tests)
@@ -5306,7 +5286,7 @@ endif()
 # the Windows host with the tests that compile windows_host.cpp, the last six by including it textually.
 foreach(gui_forms_swizzle_target IN ITEMS gui_forms_core gui_forms_controls
         gui_drawing_c_api gui_forms_host_windows
-        gui_forms_windows_dib_lifecycle_tests gui_forms_windows_tooltip_tests
+        gui_forms_windows_dib_lifecycle_tests
         gui_forms_windows_prepared_text_tests gui_forms_windows_backplane_replay_tests
         gui_forms_windows_canvas_raster_tests gui_forms_windows_content_pixels_tests
         gui_forms_windows_control_snapshot_tests gui_forms_windows_damage_rectangles_tests
@@ -5368,8 +5348,7 @@ foreach(gui_forms_foreground_name IN ITEMS
         gui_forms_gallery_interaction_tests
         gui_forms_windows_accessibility_tests
         gui_forms_windows_dib_lifecycle_tests
-        gui_forms_windows_prepared_text_tests
-        gui_forms_windows_tooltip_tests)
+        gui_forms_windows_prepared_text_tests)
     if(TEST ${gui_forms_foreground_name})
         gui_forms_foreground_test(${gui_forms_foreground_name})
     endif()

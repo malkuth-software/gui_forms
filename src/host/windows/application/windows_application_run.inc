@@ -188,6 +188,10 @@ public:
     // per-pixel alpha is the transparent backdrop through DWM's blur-behind
     // with an empty region (windows_compositor.cpp).
     [[nodiscard]] bool supports_popup_windows() const noexcept override { return true; }
+    // Splash windows (owner, 2026-11-08: APP_WINDOW_RULES_DESIGN Part S,
+    // SPLASH_STUDY D4) are the same popup windows, never activated, topmost,
+    // and transparent to the pointer (WM_NCHITTEST answers HTTRANSPARENT).
+    [[nodiscard]] bool supports_splash_windows() const noexcept override { return true; }
 
 protected:
     HostServiceStatus show_impl(HostWindowId window) override;
@@ -283,6 +287,7 @@ WindowsApplicationRun::OpenOutcome WindowsApplicationRun::open(WindowsApplicatio
     description.stable_id = entry.stable_id;
     description.owner = owner_id;
     description.kind = kind;
+    if (popup.has_value()) description.transient = (*popup).kind;
     outcome.admission = admit(description);
     if (!outcome.admission.status.accepted()) {
         outcome.failure_code = 2;
@@ -309,10 +314,16 @@ WindowsApplicationRun::OpenOutcome WindowsApplicationRun::open(WindowsApplicatio
     const WindowsWindowStyles styles = windows_window_styles(kind, entry.tool_window, entry.options);
     const DWORD style = styles.style;
     DWORD ex_style = styles.extended;
-    const bool passive_popup = popup.has_value() && (*popup).focus == HostPopupFocus::passive;
+    const bool splash_popup = popup.has_value() && host_transient_is_splash((*popup).kind);
+    const bool passive_popup = popup.has_value() && ((*popup).focus == HostPopupFocus::passive || splash_popup);
     if (passive_popup) {
         ex_style = ex_style | WS_EX_NOACTIVATE;
         (*window_slot.state).mark_passive_popup();
+    }
+    if (splash_popup) {
+        // Above the program's popups and windows, as the host tooltip was.
+        ex_style = ex_style | WS_EX_TOPMOST;
+        (*window_slot.state).mark_splash();
     }
     const double initial_scale = query_scale(owner);
     const Size initial_size = entry.options.capture_size.has_value()

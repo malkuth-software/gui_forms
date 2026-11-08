@@ -84,7 +84,6 @@ using gui_forms::HostSoundCueRequest;
 using gui_forms::HostServices;
 using gui_forms::HostSession;
 using gui_forms::HostShutdownEvent;
-using gui_forms::HostTooltipRequest;
 using gui_forms::KeyAction;
 using gui_forms::KeyEvent;
 using gui_forms::LiveSurfacePresentation;
@@ -875,6 +874,9 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
     NSRange _selectedRange;
     NSTrackingArea* _trackingArea;
     dispatch_source_t _wakeSource;
+    // The sRGB colour space every present tags the raster with: immutable,
+    // made once per view instead of once per draw, released in dealloc.
+    CGColorSpaceRef _presentColorSpace;
     std::unique_ptr<MacDisplayLinkTrace> _displayTrace;
     CADisplayLink* _displayLink;
     BOOL _hostOccluded;
@@ -903,8 +905,6 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
     // The surface epoch of the receipt the raster's front presents; 0 before
     // the first presented frame.
     std::uint64_t _frontSurfaceEpoch;
-    NSPanel* _tooltipPanel;
-    NSTimer* _tooltipTimer;
     std::uint64_t _lastSemanticGeneration;
     // The key the cached accessibility children were built under; read only
     // while _semanticAccessibilityChildren is not nil.
@@ -997,9 +997,6 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
 - (HostDialogResult)showHostDialog:(const HostDialogRequest&)request;
 - (HostClipboardTextResult)readHostClipboard;
 - (HostServiceStatus)writeHostClipboard:(std::string_view)text;
-- (HostServiceStatus)showHostTooltip:(const HostTooltipRequest&)request;
-- (void)hideHostTooltip;
-- (void)tooltipTimerFired:(NSTimer*)timer;
 - (DragEvent)dragEventFor:(id<NSDraggingInfo>)sender action:(DragAction)action;
 - (std::string)metricsJSON;
 - (std::string)hostJSON;
@@ -1948,6 +1945,7 @@ void post_perform_close(NSWindow* window) {
         _selectedRange = NSMakeRange(NSNotFound, 0);
         _displayLink = nil;
         _hostOccluded = NO;
+        _presentColorSpace = CGColorSpaceCreateWithName(kCGColorSpaceSRGB);
         _wakeSource = dispatch_source_create(
             DISPATCH_SOURCE_TYPE_TIMER, 0, 0, dispatch_get_main_queue());
         // The source owns its context; its finalizer deletes it.
@@ -2329,7 +2327,10 @@ void post_perform_close(NSWindow* window) {
         dispatch_source_cancel(_wakeSource);
         _wakeSource = nil;
     }
-    [self hideHostTooltip];
+    if (_presentColorSpace != nullptr) {
+        CGColorSpaceRelease(_presentColorSpace);
+        _presentColorSpace = nullptr;
+    }
     if (_hostSession != nullptr) {
         (*_hostSession).shutdown();
         _hostSession.reset();
@@ -2350,7 +2351,6 @@ void post_perform_close(NSWindow* window) {
         return {{HostServiceError::after_shutdown}, request.request_id,
                 HostPathDialogResult{}};
     }
-    [self hideHostTooltip];
     return (*_hostServices).show_dialog(request);
 }
 
@@ -2364,87 +2364,6 @@ void post_perform_close(NSWindow* window) {
 - (HostServiceStatus)writeHostClipboard:(std::string_view)text {
     if (_hostServices == nullptr) return {HostServiceError::after_shutdown};
     return (*_hostServices).write_clipboard_text(text);
-}
-
-- (HostServiceStatus)showHostTooltip:(const HostTooltipRequest&)request {
-    [self hideHostTooltip];
-    if (request.text.empty()) return {};
-    NSString* text = native_string(request.text);
-    if (text == nil) return {HostServiceError::invalid_utf8};
-    NSFont* font = [NSFont fontWithName:@"Lucida Grande" size:12.0];
-    if (font == nil) font = [NSFont systemFontOfSize:12.0];
-    NSDictionary* attributes = @{NSFontAttributeName: font};
-    const NSRect measured = [text boundingRectWithSize:NSMakeSize(360.0, CGFLOAT_MAX)
-                                               options:NSStringDrawingUsesLineFragmentOrigin |
-                                                       NSStringDrawingUsesFontLeading
-                                            attributes:attributes];
-    const CGFloat width = std::clamp(std::ceil(measured.size.width) + 16.0,
-                                     40.0, 376.0);
-    const CGFloat height = std::max(24.0, std::ceil(measured.size.height) + 10.0);
-    NSTextField* label = [[NSTextField alloc]
-        initWithFrame:NSMakeRect(8.0, 5.0, width - 16.0, height - 10.0)];
-    label.stringValue = text;
-    label.font = font;
-    label.textColor = [NSColor colorWithSRGBRed:31.0 / 255.0
-                                          green:37.0 / 255.0
-                                           blue:44.0 / 255.0 alpha:1.0];
-    label.bordered = NO;
-    label.editable = NO;
-    label.selectable = NO;
-    label.drawsBackground = NO;
-    label.lineBreakMode = NSLineBreakByWordWrapping;
-    label.usesSingleLineMode = NO;
-    NSPanel* panel = [[NSPanel alloc]
-        initWithContentRect:NSMakeRect(0.0, 0.0, width, height)
-                  styleMask:NSWindowStyleMaskBorderless |
-                            NSWindowStyleMaskNonactivatingPanel
-                    backing:NSBackingStoreBuffered defer:NO];
-    panel.releasedWhenClosed = NO;
-    panel.opaque = YES;
-    panel.backgroundColor = [NSColor colorWithSRGBRed:1.0 green:1.0
-                                                 blue:240.0 / 255.0 alpha:1.0];
-    panel.hasShadow = YES;
-    panel.level = NSStatusWindowLevel;
-    panel.ignoresMouseEvents = YES;
-    panel.contentView = label;
-    NSPoint anchor = [self convertPoint:NSMakePoint(request.anchor.x,
-                                                    request.anchor.y)
-                                  toView:nil];
-    anchor = [self.window convertPointToScreen:anchor];
-    NSRect work = self.window.screen.visibleFrame;
-    CGFloat x = std::clamp(anchor.x, NSMinX(work),
-                           std::max(NSMinX(work), NSMaxX(work) - width));
-    CGFloat y = std::clamp(anchor.y - height, NSMinY(work),
-                           std::max(NSMinY(work), NSMaxY(work) - height));
-    [panel setFrameOrigin:NSMakePoint(x, y)];
-    [self.window addChildWindow:panel ordered:NSWindowAbove];
-    [panel orderFrontRegardless];
-    _tooltipPanel = panel;
-    if (request.duration_milliseconds != 0U) {
-        // The timer retains its target until it fires or is invalidated, as
-        // the block it replaces retained the view.
-        _tooltipTimer = [NSTimer scheduledTimerWithTimeInterval:request.duration_milliseconds / 1000.0
-                                                         target:self
-                                                       selector:@selector(tooltipTimerFired:)
-                                                       userInfo:nil
-                                                        repeats:NO];
-    }
-    return {};
-}
-
-- (void)tooltipTimerFired:(NSTimer*)timer {
-    static_cast<void>(timer);
-    [self hideHostTooltip];
-}
-
-- (void)hideHostTooltip {
-    [_tooltipTimer invalidate];
-    _tooltipTimer = nil;
-    if (_tooltipPanel != nil) {
-        [self.window removeChildWindow:_tooltipPanel];
-        [_tooltipPanel orderOut:nil];
-        _tooltipPanel = nil;
-    }
 }
 
 - (void)setFrameSize:(NSSize)newSize {
@@ -3152,7 +3071,7 @@ void post_perform_close(NSWindow* window) {
             std::chrono::steady_clock::now();
         CGDataProviderRef provider = CGDataProviderCreateWithData(
             nullptr, pixels, _raster.byte_size(), nullptr);
-        CGColorSpaceRef colorSpace = CGColorSpaceCreateWithName(kCGColorSpaceSRGB);
+        CGColorSpaceRef colorSpace = _presentColorSpace;
         // An opaque window presents opaque pixels, as the other hosts do: the
         // frame's alpha reaches the window server only while a non-opaque
         // backdrop is granted (stage T5).
@@ -3199,7 +3118,6 @@ void post_perform_close(NSWindow* window) {
         const std::chrono::steady_clock::time_point releaseStarted =
             std::chrono::steady_clock::now();
         if (image != nullptr) CGImageRelease(image);
-        CGColorSpaceRelease(colorSpace);
         CGDataProviderRelease(provider);
         const std::chrono::steady_clock::time_point releaseEnded =
             std::chrono::steady_clock::now();
@@ -3945,6 +3863,8 @@ void finish_run(MacRunEnd& end) {
 
 @implementation GUIFormsPopupPanel
 - (instancetype)initWithContentRect:(NSRect)contentRect takesFocus:(BOOL)takesFocus {
+    // A Splash (no input) is made with takesFocus NO and then told to
+    // ignore the mouse (MacApplicationRun::open).
     const NSWindowStyleMask style = NSWindowStyleMaskBorderless | NSWindowStyleMaskNonactivatingPanel;
     self = [super initWithContentRect:contentRect styleMask:style backing:NSBackingStoreBuffered defer:NO];
     if (self != nil) _takesFocus = takesFocus;
@@ -4198,29 +4118,6 @@ private:
     GUIFormsView* view_;
 };
 
-class ShowNativeTooltip final {
-public:
-    explicit ShowNativeTooltip(GUIFormsView* view) noexcept : view_(view) {}
-
-    HostServiceStatus operator()(const HostTooltipRequest& request) const
-    {
-        return [view_ showHostTooltip:request];
-    }
-
-private:
-    GUIFormsView* view_;
-};
-
-class HideNativeTooltip final {
-public:
-    explicit HideNativeTooltip(GUIFormsView* view) noexcept : view_(view) {}
-
-    void operator()() const { [view_ hideHostTooltip]; }
-
-private:
-    GUIFormsView* view_;
-};
-
 class ReadNativeClipboard final {
 public:
     explicit ReadNativeClipboard(GUIFormsView* view) noexcept : view_(view) {}
@@ -4379,8 +4276,6 @@ int run_macos(std::unique_ptr<Window> model, MacHostOptions options) {
                 DispatchAndCollectWake(view, dispatchPending),
                 RequestNativeClose(nativeWindow),
                 ShowNativeDialog(view),
-                ShowNativeTooltip(view),
-                HideNativeTooltip(view),
                 ReadNativeClipboard(view),
                 WriteNativeClipboard(view));
         }

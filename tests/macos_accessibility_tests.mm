@@ -727,7 +727,6 @@ void walk_and_close(void* context) {
 
 using VoidCallback = std::function<void()>;
 using ShowDialogCallback = std::function<gui_forms::HostDialogResult(const gui_forms::HostDialogRequest&)>;
-using ShowTooltipCallback = std::function<gui_forms::HostServiceStatus(const gui_forms::HostTooltipRequest&)>;
 using ReadClipboardCallback = std::function<gui_forms::HostClipboardTextResult()>;
 using WriteClipboardCallback = std::function<gui_forms::HostServiceStatus(std::string_view)>;
 
@@ -735,8 +734,8 @@ class ScheduleWalk final {
 public:
     explicit ScheduleWalk(RunState& state) noexcept : state_(state) {}
 
-    void operator()(VoidCallback, VoidCallback request_close, ShowDialogCallback, ShowTooltipCallback,
-                    VoidCallback, ReadClipboardCallback, WriteClipboardCallback) const {
+    void operator()(VoidCallback, VoidCallback request_close, ShowDialogCallback,
+                    ReadClipboardCallback, WriteClipboardCallback) const {
         state_.request_close = std::move(request_close);
         const dispatch_time_t when = dispatch_time(DISPATCH_TIME_NOW, 300 * NSEC_PER_MSEC);
         dispatch_after_f(when, dispatch_get_main_queue(), &state_, &walk_and_close);

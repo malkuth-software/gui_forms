@@ -48,6 +48,9 @@ public:
     HeadlessWindowing(HeadlessApplication& application, HostCapabilities capabilities);
     // The headless host opens native popups (stage T5, phase (a)).
     [[nodiscard]] bool supports_popup_windows() const noexcept override;
+    // True by default; tests turn it off to see the overlay fallback.
+    [[nodiscard]] bool supports_splash_windows() const noexcept override;
+    void set_splash_windows(bool supported) noexcept { splash_windows_ = supported; }
 
     // Replaces the simulated monitors (desktop logical units). An empty
     // list is ignored.
@@ -128,6 +131,7 @@ private:
     std::vector<NativeWindow> natives_;
     std::vector<HostWindowId> order_;
     std::string trace_;
+    bool splash_windows_{true};
 };
 
 // A deterministic multi-window application for tests: Application::run's

@@ -46,6 +46,10 @@
 
 namespace gui_forms {
 
+namespace abi::detail {
+class Registry;
+} // namespace abi::detail
+
 class UpdateScope;
 class Timer;
 class BackgroundWorker;
@@ -1149,6 +1153,8 @@ private:
     friend class Window;
     friend class SubSurface;
     friend class SubSurfaceHost;
+    // The C ABI's v0 show_tooltip, a program request like SubSurfaceHost's.
+    friend class abi::detail::Registry;
     friend class SurfaceRoot;
     friend class Control;
     // How the newest focus change came about, for a control that forwards
