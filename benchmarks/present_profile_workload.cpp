@@ -1,7 +1,7 @@
 // Present profile workload (SK2). Measurement only: it selects nothing and
 // claims nothing about speed by itself.
 //
-// One window of the native host, through Application::run, repaints its whole
+// One window of the native host, through Application.run, repaints its whole
 // client area every frame; the window's own instrumentation reports what the
 // host spent presenting each frame. It exists to compare the present path
 // before and after a change to the framebuffer's pixel format (SK2: BGRA8
@@ -196,6 +196,11 @@ struct ProbeReady final {
 } // namespace
 
 int main(const int argc, char** const argv) {
+    // The program's application (APP_WINDOW_RULES_DESIGN A.2): windows made
+    // from here join it, and it runs them.
+    ApplicationCreateResult created = Application::create(ApplicationConfig{});
+    if (!created) return 1;
+    Application& application = *created.application;
     PresentRun run{};
     const std::shared_ptr<PresentProbe> probe =
         gui_forms::make_control<PresentProbe>(StableId("present.profile.root"), run);
@@ -206,7 +211,7 @@ int main(const int argc, char** const argv) {
     options.initial_size = client_size;
     options.minimizable = false;
     options.ready = ProbeReady{&run, &scale, probe.get()};
-    const ApplicationResult result = Application::run(std::move(window), std::move(options));
+    const ApplicationResult result = application.run(std::move(window), std::move(options));
     static_cast<void>(Application::shutdown());
     if (!result.accepted()) {
         std::cerr << "present profile: the application did not run\n";

@@ -275,10 +275,21 @@ void install_page_fixtures(Window& window) {
     }
 }
 
-// Compiles the Gallery's project theme (demo/themes/gallery) into the
-// window's resources and selects it for every window sharing them. The
-// package is embedded and checked at build time, so a refusal or any
-// finding is a defect of the build: std::logic_error, naming the first.
+// A Gallery theme compile that refused or found anything is a defect of the
+// build: std::logic_error, naming the first finding.
+void require_clean_gallery_theme(bool succeeded, std::span<const ThemeCompileDiagnostic> findings) {
+    if (succeeded && findings.empty()) return;
+    std::string finding = "the Gallery theme package was not compiled cleanly";
+    if (!findings.empty()) {
+        const ThemeCompileDiagnostic& first = findings.front();
+        finding += ": " + first.code + " " + first.name + " in " + first.file;
+    }
+    throw std::logic_error(finding);
+}
+
+// Without an application (tests): compiles the Gallery's project theme
+// (demo/themes/gallery) into the window's resources and selects it for every
+// window sharing them.
 void select_gallery_theme(Window& window) {
     const std::shared_ptr<ApplicationResources> resources = window.resources();
     const ThemeLibrary library{};
@@ -287,18 +298,24 @@ void select_gallery_theme(Window& window) {
     options.controls = stock_control_anatomies();
     const ThemeCompileResult result =
         (*resources).compile_theme_package(gallery_theme_package(), library, options);
-    if (!result.succeeded() || !result.diagnostics().empty()) {
-        std::string finding = "the Gallery theme package was not compiled cleanly";
-        if (!result.diagnostics().empty()) {
-            const ThemeCompileDiagnostic& first = result.diagnostics().front();
-            finding += ": " + first.code + " " + first.name + " in " + first.file;
-        }
-        throw std::logic_error(finding);
-    }
+    require_clean_gallery_theme(result.succeeded(), result.diagnostics());
     (*resources).set_theme(result.theme());
 }
 
 }  // namespace
+
+std::unique_ptr<Application> create_gallery_application()
+{
+    ApplicationConfig config{};
+    config.theme.packages.push_back(gallery_theme_package());
+    ApplicationCreateResult created = Application::create(std::move(config));
+    if (created.error == ApplicationCreateError::already_exists) {
+        throw std::logic_error("the Gallery application: another application is current");
+    }
+    require_clean_gallery_theme(static_cast<bool>(created), created.findings);
+    std::unique_ptr<Application> application = std::move(created.application);
+    return application;
+}
 
 std::unique_ptr<Window> make_gallery()
 {
@@ -306,7 +323,7 @@ std::unique_ptr<Window> make_gallery()
     GalleryShell shell = build_gallery_shell(tree);
     std::unique_ptr<gui_forms::Window> window =
         std::make_unique<Window>(std::move(shell.root), gallery_default_size);
-    select_gallery_theme(*window);
+    if ((*window).application() == nullptr) select_gallery_theme(*window);
     (*tree.context).window = window.get();
     (*tree.context).synchronize("gallery.initial");
     const ImageLoadResult status_badge =

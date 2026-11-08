@@ -100,6 +100,9 @@ public:
     void set_theme(std::shared_ptr<const Theme> theme);
     // The program's own theme: theme() but while a user theme replaces it.
     [[nodiscard]] const Theme& program_theme() const noexcept { return *program_theme_; }
+    // The program's theme shared, for other resources (a window of the same
+    // application with its own image quotas) to take the same theme.
+    [[nodiscard]] std::shared_ptr<const Theme> program_theme_ptr() const noexcept { return program_theme_; }
 
     // Whether the windows follow the host's light or dark preference (T4
     // theme variants): off by default, so a program keeps the scheme it

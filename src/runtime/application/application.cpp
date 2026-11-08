@@ -231,7 +231,7 @@ NativeWindow prepare_one(ApplicationWindow& source, BridgeScope& scope,
     entry.model = std::move(source.model);
     // One key map for the application's windows, floating ones included
     // (owner decision DK-44).
-    (*entry.model).set_key_bindings(Application::key_bindings());
+    (*entry.model).set_key_bindings((*run).key_bindings);
     entry.options.title = (*bridge).options.title;
     entry.options.initial_size = (*bridge).options.initial_size;
     entry.options.minimum_size = (*bridge).options.minimum_size;
@@ -394,6 +394,7 @@ ApplicationResult Application::run(std::vector<ApplicationWindow> windows) {
     const std::shared_ptr<CallbackFailure> failure = std::make_shared<CallbackFailure>();
     const std::shared_ptr<detail::ApplicationRunState> run_state =
         std::make_shared<detail::ApplicationRunState>();
+    (*run_state).key_bindings = key_bindings_;
 #if defined(GUI_FORMS_APPLICATION_MACOS)
     std::vector<host::MacApplicationWindow> native{};
     prepare(windows, bridges, failure, run_state, native);

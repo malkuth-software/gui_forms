@@ -37,6 +37,9 @@ struct ApplicationRunWindow final {
 struct ApplicationRunState final {
     std::thread::id thread{std::this_thread::get_id()};
     bool closed{};
+    // The running application's keyboard-command keys (DK-44), given to
+    // every window the run opens.
+    std::shared_ptr<KeyBindings> key_bindings{};
     // Borrowed from the adapter while the run lives; cleared before the
     // adapter destroys it.
     HostWindowing* windowing{};

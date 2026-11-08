@@ -100,6 +100,11 @@ struct Ready {
 };
 }
 int main() {
+    // The program's application (APP_WINDOW_RULES_DESIGN A.2): windows made
+    // from here join it, and it runs them.
+    ApplicationCreateResult created = Application::create(ApplicationConfig{});
+    if (!created) return 1;
+    Application& application = *created.application;
     try {
         std::shared_ptr<Panel> root = make_control<Panel>(StableId("root"));
         std::shared_ptr<Button> button = make_control<Button>(StableId("button"), "Draw mark");
@@ -116,7 +121,7 @@ int main() {
         (*details).accessible_name = "Details page"; (*tabs).add_page(details);
         Probe probe; SubscriptionToken token = (*button).clicked().subscribe(Delegate<ButtonBase&>::bind<Probe, &Probe::clicked>(probe));
         ApplicationWindowOptions options; options.title = "GUI.Forms accessibility fixture"; options.ready = Ready{&probe, number, text, tabs};
-        const ApplicationResult result = Application::run(std::make_unique<gui_forms::Window>(root, Size{400, 300}), options);
+        const ApplicationResult result = application.run(std::make_unique<gui_forms::Window>(root, Size{400, 300}), options);
         if (result.callback_exception) { std::rethrow_exception(result.callback_exception); }
         require(result.accepted(), "native fixture completed");
         BSTR name = nullptr;

@@ -67,6 +67,10 @@ Types
 
       The program's own theme: theme() but while a user theme replaces it.
 
+   .. cpp:function:: std::shared_ptr<const Theme> program_theme_ptr() const noexcept
+
+      The program's theme shared, for other resources (a window of the same application with its own image quotas) to take the same theme.
+
    .. cpp:function:: bool automatic_colour_scheme() const noexcept
 
    .. cpp:function:: void set_automatic_colour_scheme(bool automatic)

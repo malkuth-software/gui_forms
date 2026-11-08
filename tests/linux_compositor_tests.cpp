@@ -451,6 +451,11 @@ bool grants_in_order(const std::vector<WindowBackdropGrant> &grants) {
 } // namespace
 
 int main() {
+  // The program's application (APP_WINDOW_RULES_DESIGN A.2): windows made
+  // from here join it, and it runs them.
+  ApplicationCreateResult created = Application::create(ApplicationConfig{});
+  if (!created) return 1;
+  Application& application = *created.application;
   const HostCapabilities capabilities = Application::capabilities();
   if (!capabilities.supports(HostCapability::transparent_windows) ||
       !capabilities.supports(HostCapability::compositor_notifications)) {
@@ -481,7 +486,7 @@ int main() {
   options.initial_size = Size{window_width, window_height};
   options.non_opaque = true;
   options.ready = GateReady{};
-  const ApplicationResult result = Application::run(std::move(model), std::move(options));
+  const ApplicationResult result = application.run(std::move(model), std::move(options));
   stop_process(gate.xcompmgr);
   gate.timer.disconnect();
   gate.changes.disconnect();

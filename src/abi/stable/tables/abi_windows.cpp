@@ -15,6 +15,7 @@
 
 #include <cmath>
 #include <cstdint>
+#include <stdexcept>
 #include <functional>
 #include <memory>
 #include <string>
@@ -235,7 +236,17 @@ gf_status run_window(gf_object root, const gf_run_options* options) {
     }
     ApplicationResult result{};
     try {
-        result = Application::run(std::move(window), std::move(window_options));
+        // The program's current application runs the window; a C program
+        // that made none gets one for this run (its configuration through
+        // the ABI is a later step).
+        Application* application = Application::current();
+        ApplicationCreateResult made{};
+        if (application == nullptr) {
+            made = Application::create(ApplicationConfig{});
+            if (!made) throw std::logic_error("GUI.Forms: the run's application was refused");
+            application = made.application.get();
+        }
+        result = (*application).run(std::move(window), std::move(window_options));
     } catch (...) {
         engine().detach_window();
         registry().end_run();

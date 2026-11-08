@@ -122,11 +122,12 @@ validation_snapshot
 semantic_generation
     A number that changes whenever the semantic (accessibility) tree may
     have changed.
-tool_tips_shown : default follows ``Application::tool_tips_shown()``
+tool_tips_shown : default follows the application's ``tool_tips_shown()``
     Whether the window's tooltip presenter shows tooltips when the pointer
     rests or keyboard focus arrives. `set_tool_tips_shown` takes an
-    optional: unset, the window follows the program switch,
-    `Application::set_tool_tips_shown`. Turning it off closes a tooltip that
+    optional: unset, the window follows the switch of the application it
+    joined (`Application::set_tool_tips_shown`), and shows tooltips when it
+    joined none. Turning it off closes a tooltip that
     shows. `show_tool_tip` shows one regardless.
 tool_tip_settings
     The window's `ToolTipSettings`: the initial, reshow and auto-pop delays,

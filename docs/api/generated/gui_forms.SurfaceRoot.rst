@@ -208,7 +208,7 @@ gui_forms::SurfaceRoot
          Returns the captured pointer identity or zero.
 
       **tool_tips_shown_setting** : ``std::optional<bool>``, read-only
-         Tooltips (owner, 2026-10-28). The window has one presenter, which shows the plain tooltip text of its controls and of their authored parts (see ToolTipSettings) in a retained, input-transparent overlay. The window's switch, when set, decides whether its tooltips show; unset, the default, the program's switch decides (Application::tool_tips_shown). Turning tooltips off closes one that shows. UI thread.
+         Tooltips (owner, 2026-10-28). The window has one presenter, which shows the plain tooltip text of its controls and of their authored parts (see ToolTipSettings) in a retained, input-transparent overlay. The window's switch, when set, decides whether its tooltips show; unset, the default, the switch of the application the window joined decides (Application::tool_tips_shown), and with none they show. Turning tooltips off closes one that shows. UI thread.
 
       **tool_tips_shown** : ``bool``, default follows ``Application::tool_tips_shown()``
          Whether the window's tooltip presenter shows tooltips when the pointer
@@ -762,7 +762,7 @@ gui_forms::SurfaceRoot
 
    .. cpp:function:: std::optional<bool> tool_tips_shown_setting() const noexcept
 
-      Tooltips (owner, 2026-10-28). The window has one presenter, which shows the plain tooltip text of its controls and of their authored parts (see ToolTipSettings) in a retained, input-transparent overlay. The window's switch, when set, decides whether its tooltips show; unset, the default, the program's switch decides (Application::tool_tips_shown). Turning tooltips off closes one that shows. UI thread.
+      Tooltips (owner, 2026-10-28). The window has one presenter, which shows the plain tooltip text of its controls and of their authored parts (see ToolTipSettings) in a retained, input-transparent overlay. The window's switch, when set, decides whether its tooltips show; unset, the default, the switch of the application the window joined decides (Application::tool_tips_shown), and with none they show. Turning tooltips off closes one that shows. UI thread.
 
    .. cpp:function:: bool tool_tips_shown() const noexcept
 

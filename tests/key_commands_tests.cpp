@@ -308,7 +308,9 @@ void application_key_map() {
         refused = true;
     }
     require(refused && first.key_bindings() == second.key_bindings(), "a null set is refused");
-    require(Application::key_bindings() && Application::key_bindings() == Application::key_bindings(),
+    const ApplicationCreateResult created = Application::create(ApplicationConfig{});
+    require(static_cast<bool>(created) && (*created.application).key_bindings() != nullptr &&
+                (*created.application).key_bindings() == (*created.application).key_bindings(),
             "the application has one set");
 }
 

@@ -1,15 +1,67 @@
-The entry point that presents windows on the platform's native host.
+The application: what every window shares, and the entry point that presents
+windows on the platform's native host.
 
-`Application::run` takes one or more retained `Window` models, gives each a
-native window, pumps native events until the primary window closes and then
-returns an `ApplicationResult`. It is the C++ counterpart of Windows Forms'
-`Application.Run`. The class has only static members and cannot be
-constructed. Link `GUIForms::Application`, which contains the one native host
-the SDK was built with; renderer-free programs and tests use `Window`
-directly and need no host.
+A program makes one with `Application::create` before its windows. The result
+owns the application, or refuses with nothing made. While it lives it is the
+current application (`Application::current`). Every top-level `Window` made on
+its thread joins it: the window shares its resources (the image registry and
+the theme, compiled once by `create`), starts from its presentation defaults
+and follows its tooltip switch. Popups, dialogs, menus and tooltips open from a
+window and take that window's configuration. Without an application, which is
+how tests and renderer-free programs work, a window makes its own resources
+with the built-in theme.
+
+`run` takes one or more retained `Window` models, gives each a native window,
+pumps native events until the primary window closes and then returns an
+`ApplicationResult`. It is the C++ counterpart of Windows Forms'
+`Application.Run`. Link `GUIForms::Application`, which contains the one native
+host the SDK was built with, for `run` and `capabilities`; the rest is part of
+`GUIForms::Core`.
 
 Methods
 -------
+create
+    `create(ApplicationConfig)` compiles the configured theme into fresh
+    resources and registers the application as current: first the base
+    (`ApplicationThemeConfig::base`), then the program's package, with
+    imports from `ApplicationThemeConfig::library` and the stock anatomies
+    plus `ApplicationThemeConfig::controls`. It returns an
+    `ApplicationCreateResult` holding the application and the compile's
+    warnings in `findings`. Refused, with nothing made: `already_exists`
+    while another application is current; `invalid_argument` for more than
+    one package, until the multi-package compile lands; `theme_refused` when
+    the compile refuses the theme, with its diagnostics in `findings`.
+current
+    The current application, or null. Any thread may ask, but use the
+    application only on its own thread.
+close
+    Ends the application's time as current, before it is destroyed. While a
+    window that joined it lives, `close` is refused with `windows_alive`
+    and changes nothing. After it, `create` may make another application,
+    and windows made from then on do not join this one. Calling it again
+    does nothing. Destroying an application that still has windows reports
+    them on stderr; they keep the resources they share and read nothing
+    more from it.
+closed
+    Whether `close` has run.
+window_count
+    The windows that joined the application and are alive.
+resources
+    The resources every joined window shares, unless it was made with its
+    own.
+presentation_settings
+    The presentation defaults (`ApplicationConfig::presentation`) that a
+    joined window starts from, until the host reports its own.
+key_bindings
+    The application's one set of keyboard-command keys (owner decision
+    DK-44). `run` gives it to every window it runs, so a rebinding in any
+    window holds in all.
+set_tool_tips_shown
+    The program's tooltip switch: whether tooltips show in every joined
+    window whose own switch is unset (`Window::set_tool_tips_shown`). On by
+    default. A tooltip that already shows stays until it closes. Any thread.
+tool_tips_shown
+    The program's tooltip switch.
 run
     `run(std::unique_ptr<Window>, ApplicationWindowOptions)` presents one
     window, with the stable ID `"main"`. `run(std::vector<ApplicationWindow>)`
@@ -42,7 +94,8 @@ See Also
 ApplicationWindowOptions : Title, sizes and callbacks for one window.
 ApplicationWindowHandle : Show, hide, retitle or close a running window.
 ApplicationWindow : One entry of a multi-window run.
-ApplicationResult : What `run`, `validate` and `shutdown` return.
+ApplicationResult : What `run`, `close`, `validate` and `shutdown` return.
+ApplicationConfig : The theme, presentation defaults and image quotas an application is made with.
 Window : The retained model each native window presents.
 
 Notes
@@ -67,6 +120,8 @@ throwing:
   `ApplicationResult::native_exit_code`.
 - `ApplicationError::after_shutdown`: `shutdown` has already run in this
   process.
+- `ApplicationError::windows_alive`: from `close`, while a window that
+  joined the application lives.
 
 The rules `validate` checks: between 1 and 64 windows; every stable ID
 nonempty, unique, at most 1024 bytes of valid UTF-8 without NUL; an owner ID,
@@ -103,6 +158,9 @@ so this example is compiled but not run:
    };
 
    void example() {
+       gf::ApplicationCreateResult created = gf::Application::create(gf::ApplicationConfig{});
+       if (!created) return;
+       gf::Application& application = *created.application;
        Greeter greeter;
        std::unique_ptr<gf::Window> window =
            std::make_unique<gf::Window>(greeter.root, gf::Size{480.0, 140.0});
@@ -110,7 +168,7 @@ so this example is compiled but not run:
        options.title = "Greeter";
        options.initial_size = {480.0, 140.0};
        options.minimum_size = {320.0, 140.0};
-       gf::ApplicationResult result = gf::Application::run(std::move(window), std::move(options));
+       gf::ApplicationResult result = application.run(std::move(window), std::move(options));
        if (!result.accepted()) {
            std::fprintf(stderr, "run failed: %d\n", static_cast<int>(result.error));
        }

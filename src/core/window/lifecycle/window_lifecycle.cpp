@@ -1,4 +1,5 @@
 #include "gui_forms/window.hpp"
+#include "gui_forms/application.hpp"
 #include "gui_forms/theme/gui_forms_theme/gui_forms_theme.hpp"
 #include "gui_forms/host/services/host_services.hpp"
 #include "gui_forms/surface_material/painting/surface_material_painting.hpp"
@@ -23,17 +24,69 @@
 #include <unordered_set>
 
 namespace gui_forms {
+namespace {
+
+// The current application, when a window made on this thread may join it.
+Application* joinable_application() noexcept {
+    Application* const current = Application::current();
+    if (current == nullptr) return nullptr;
+    const bool here = (*current).resources() && (*(*current).resources()).check_access();
+    return here ? current : nullptr;
+}
+
+// The resources of a window made without its own: the application's, or
+// fresh ones with the built-in theme.
+std::shared_ptr<ApplicationResources> default_window_resources(Application* application) {
+    if (application != nullptr) return (*application).resources();
+    std::shared_ptr<ApplicationResources> own = std::make_shared<ApplicationResources>(ImageRegistryLimits{});
+    return own;
+}
+
+// Fresh resources with `limits`, taking the application's theme.
+std::shared_ptr<ApplicationResources> limited_window_resources(Application* application,
+                                                               ImageRegistryLimits limits) {
+    std::shared_ptr<ApplicationResources> own = std::make_shared<ApplicationResources>(limits);
+    if (application != nullptr) (*own).set_theme((*(*application).resources()).program_theme_ptr());
+    return own;
+}
+
+// The application an explicit window joins: refused off its thread or
+// once closed.
+Application& checked_application(Application& application) {
+    if (application.closed()) throw std::logic_error("GUI.Forms window: the application is closed");
+    if (!(*application.resources()).check_access()) {
+        throw std::logic_error("GUI.Forms window: the application belongs to another thread");
+    }
+    return application;
+}
+
+} // namespace
 
 Window::Window(Control::Ptr root, Size client_size)
-    : Window(std::move(root), client_size, ImageRegistryLimits{}) {}
+    : Window(std::move(root), client_size, default_window_resources(joinable_application()),
+             joinable_application()) {}
+
+Window::Window(Application& application, Control::Ptr root, Size client_size)
+    : Window(std::move(root), client_size, checked_application(application).resources(), &application) {}
 
 Window::Window(Control::Ptr root, Size client_size, ImageRegistryLimits image_limits)
-    : Window(std::move(root), client_size, std::make_shared<ApplicationResources>(image_limits)) {}
+    : Window(std::move(root), client_size, limited_window_resources(joinable_application(), image_limits),
+             joinable_application()) {}
 
 Window::Window(Control::Ptr root, Size client_size,
                std::shared_ptr<ApplicationResources> resources)
+    : Window(std::move(root), client_size, std::move(resources), joinable_application()) {}
+
+Window::Window(Control::Ptr root, Size client_size, std::shared_ptr<ApplicationResources> resources,
+               Application* application)
     : SurfaceRoot(std::move(root), client_size, std::move(resources)) {
     presenting_window_ = this;
+    // A joined window starts from the application's presentation, before
+    // its tree attaches.
+    if (application != nullptr) {
+        presentation_settings_ = (*application).presentation_settings();
+        application_tool_tips_shown_ = (*application).tool_tips_shown_;
+    }
     tool_tips_ = std::make_unique<detail::ToolTipPresenter>(*this);
     alerts_ = std::make_unique<detail::WindowAlerts>(*this);
     initialize_cursor_identity();
@@ -66,6 +119,7 @@ Window::Window(Control::Ptr root, Size client_size,
     metrics_.record_dirty_mark(initial_damage.area());
     // Last: a constructor that throws never leaves itself registered.
     (*resources_).attach(*this);
+    if (application != nullptr) (*application).join(*this);
 }
 Window::~Window() {
     // The tooltip presenter goes first: it holds an overlay and a wake, and
@@ -75,6 +129,7 @@ Window::~Window() {
     if (alerts_) (*alerts_).shutdown();
     invalidate_cursor_interaction(CursorError::closing);
     release_tree();
+    if (application_ != nullptr) (*application_).leave(*this);
     (*resources_).detach(*this);
     (*lifetime_).window = nullptr;
 }

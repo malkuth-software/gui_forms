@@ -29,6 +29,13 @@ void require(bool condition, const char* message) {
 void require(bool condition, const std::string& message) {
     if (!condition) throw std::runtime_error(message);
 }
+// The test program's application (Application::create; one per process),
+// made on first use and kept until the program ends.
+Application& test_application() {
+    static ApplicationCreateResult created = Application::create(ApplicationConfig{});
+    require(static_cast<bool>(created), "the test application is made");
+    return *created.application;
+}
 std::unique_ptr<Window> make_window() {
     const std::shared_ptr<Control> root = make_control<Control>(StableId("native.application.root"));
     std::unique_ptr<Window> window = std::make_unique<Window>(root, Size{360.0, 240.0});
@@ -112,7 +119,7 @@ struct Ready final {
         const HostServiceStatus hidden = handle.hide();
         (*probe).primary_hide_rejected = hidden.error == HostServiceError::invalid_argument;
         std::unique_ptr<Window> recursive_window = make_window();
-        const ApplicationResult recursive = Application::run(std::move(recursive_window));
+        const ApplicationResult recursive = test_application().run(std::move(recursive_window));
         (*probe).recursive_rejected = recursive.error == ApplicationError::already_running;
         const ApplicationResult nested_shutdown = Application::shutdown();
         (*probe).shutdown_rejected = nested_shutdown.error == ApplicationError::already_running;
@@ -159,7 +166,7 @@ ApplicationResult run_probe(Probe& probe) {
     options.closing = Closing{&probe};
     options.closed = Closed{&probe};
     std::unique_ptr<Window> window = make_window();
-    const ApplicationResult result = Application::run(std::move(window), std::move(options));
+    const ApplicationResult result = test_application().run(std::move(window), std::move(options));
     return result;
 }
 struct DispatchProbe final {
@@ -203,7 +210,7 @@ ApplicationResult run_dispatch_probe(DispatchProbe& probe) {
     options.ready = DispatchReady{&probe};
     options.dispatch_pending = DrainPending{&probe};
     std::unique_ptr<Window> window = make_window();
-    const ApplicationResult result = Application::run(std::move(window), std::move(options));
+    const ApplicationResult result = test_application().run(std::move(window), std::move(options));
     return result;
 }
 #if defined(_WIN32)
@@ -238,7 +245,7 @@ void check_character_normalization() {
     options.initial_size = {360, 240};
     options.ready = CharacterReady{editor};
     std::unique_ptr<Window> window = std::make_unique<Window>(editor, Size{360.0, 240.0});
-    const ApplicationResult result = Application::run(std::move(window), std::move(options));
+    const ApplicationResult result = test_application().run(std::move(window), std::move(options));
     if (result.callback_exception) std::rethrow_exception(result.callback_exception);
     require(result.accepted(), "native character normalization fixture failed");
     if ((*editor).text.read() != "A\xF0\x9F\x98\x80Z") {
@@ -468,7 +475,7 @@ void check_runtime_windows() {
     options.initial_size = {360, 240};
     options.print_metrics_on_close = false;
     options.ready = RuntimeMainReady{&probe};
-    const ApplicationResult result = Application::run(make_window(), std::move(options));
+    const ApplicationResult result = test_application().run(make_window(), std::move(options));
     if (result.callback_exception) std::rethrow_exception(result.callback_exception);
     require(result.accepted(), "runtime windows fixture failed");
     if (!probe.supported) return;
@@ -540,7 +547,7 @@ void check_shutdown() {
     require(ended.accepted(), "shutdown after the last run refused");
     const ApplicationResult again = Application::shutdown();
     require(again.error == ApplicationError::after_shutdown, "second shutdown accepted");
-    const ApplicationResult late = Application::run(make_window());
+    const ApplicationResult late = test_application().run(make_window());
     require(late.error == ApplicationError::after_shutdown, "run after shutdown accepted");
 }
 void run_checks() {

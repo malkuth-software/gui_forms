@@ -5,6 +5,7 @@
 #include "tool_tip_route.hpp"
 #include "../../scheduler/request/scheduled_frame_request.hpp"
 
+#include <atomic>
 #include <cmath>
 #include <stdexcept>
 #include <string>
@@ -30,7 +31,9 @@ void SurfaceRoot::set_tool_tips_shown(std::optional<bool> shown) {
 }
 
 bool SurfaceRoot::tool_tips_shown() const noexcept {
-    const bool shown = tool_tips_shown_.value_or(Application::tool_tips_shown());
+    bool program_shown = true;
+    if (application_tool_tips_shown_) program_shown = (*application_tool_tips_shown_).load(std::memory_order_relaxed);
+    const bool shown = tool_tips_shown_.value_or(program_shown);
     return shown;
 }
 

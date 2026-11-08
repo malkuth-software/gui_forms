@@ -2,13 +2,17 @@
 
 #include "gui_forms/host/types/host_types.hpp"
 #include "gui_forms/host/windowing/host_windowing.hpp"
+#include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 #include "gui_forms/window.hpp"
 
+#include <atomic>
 #include <cstddef>
 #include <exception>
 #include <functional>
 #include <limits>
 #include <memory>
+#include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -32,6 +36,8 @@ enum class ApplicationError : std::uint8_t {
     callback_failure,
     // Application::shutdown has already run in this process.
     after_shutdown,
+    // Application::close while windows of the application are alive.
+    windows_alive,
 };
 
 struct ApplicationResult final {
@@ -198,32 +204,127 @@ private:
     std::weak_ptr<detail::ApplicationRunState> run_{};
 };
 
-/// Runs the selected native host through one portable C++ entry point.
-/// Link GUIForms::Application for run/capabilities; validation and handles
-/// are part of GUIForms::Core. Window models are consumed even on failure.
+// The application's theme (APP_WINDOW_RULES_DESIGN A.2): the base sheet,
+// then the program's packages in order, compiled once by
+// Application::create.
+struct ApplicationThemeConfig final {
+    // The process default's base until T4 makes gui_forms the default
+    // (default_theme()).
+    ThemeCompileBase base{ThemeCompileBase::windows_professional};
+    // The program's packages, in compile order. At most one until the
+    // multi-package compile (T4) lands: more is invalid_argument.
+    std::vector<ThemePackage> packages{};
+    // The installed packages a package's `@import` may name.
+    ThemeLibrary library{};
+    // The application's own control types, beside the stock ones, that a
+    // selector may name. Borrowed for the call to create only.
+    std::span<const ControlAnatomy> controls{};
+};
+
+// Everything an application is made with. Move-only (it holds a library).
+struct ApplicationConfig final {
+    ApplicationThemeConfig theme{};
+    // The presentation defaults every window of the application starts
+    // with, until the host reports its own; GUI.Forms' defaults when unset.
+    std::optional<PresentationSettings> presentation{};
+    // The quotas of the application's shared image registry.
+    ImageRegistryLimits image_limits{};
+};
+
+enum class ApplicationCreateError : std::uint8_t {
+    none,
+    // An application is current already; there is one at a time.
+    already_exists,
+    // The theme was refused; ApplicationCreateResult::findings say why.
+    theme_refused,
+    // A configuration this version cannot make (several theme packages).
+    invalid_argument,
+};
+
+class Application;
+
+// What Application::create gave: an application owned by the caller, with
+// the theme compile's warnings in `findings`, or a refusal with nothing
+// made and, for theme_refused, the compile's diagnostics.
+struct ApplicationCreateResult final {
+    ApplicationCreateError error{ApplicationCreateError::none};
+    std::unique_ptr<Application> application{};
+    std::vector<ThemeCompileDiagnostic> findings{};
+
+    [[nodiscard]] explicit operator bool() const noexcept {
+        const bool created = application != nullptr;
+        return created;
+    }
+};
+
+/// The application (APP_WINDOW_RULES_DESIGN Part A): made once by
+/// `create`, owned by the program, and the current application while it
+/// lives. It owns what every window shares: the resources (the image
+/// registry and the theme, compiled once at create), the presentation
+/// defaults, the keyboard-command keys (DK-44) and the tooltip switch.
+///
+/// A top-level Window made on the application's thread while it is current
+/// joins it: it shares its resources (unless given its own) and starts from
+/// its presentation. Popups, dialogs, menus and tooltips open from a
+/// window and take its configuration. With no current application (tests,
+/// headless use) a window makes its own resources with the built-in theme.
+///
+/// Link GUIForms::Application for `run` and `capabilities`; the rest is
+/// part of GUIForms::Core. Window models given to `run` are consumed even
+/// on failure. UI thread: every member but the tooltip switch and current().
 class Application final {
 public:
-    Application() = delete;
     static constexpr std::size_t maximum_windows = 64U;
+    // Makes the application and registers it as current: compiles its
+    // theme (the base, then the packages) into fresh resources. Refused,
+    // making nothing, while another application is current
+    // (already_exists), for more than one package (invalid_argument) or
+    // when the compile refuses the theme (theme_refused).
+    [[nodiscard]] static ApplicationCreateResult create(ApplicationConfig config);
+    // The current application, or null. Read on any thread; use it only on
+    // the application's own thread.
+    [[nodiscard]] static Application* current() noexcept;
+    // Unregisters the application. Windows still joined to it are reported
+    // on stderr (a destructor cannot refuse) and left: they keep the theme
+    // and resources they share, and read nothing more from it.
+    ~Application();
+    Application(const Application&) = delete;
+    Application& operator=(const Application&) = delete;
+    Application(Application&&) = delete;
+    Application& operator=(Application&&) = delete;
+
+    // Ends the application's time as current, before its destruction:
+    // refused with windows_alive while a window joined to it lives, then
+    // changing nothing. After it, `create` may make another application and
+    // windows made from then on do not join this one. Calling it again
+    // accepts and does nothing.
+    [[nodiscard]] ApplicationResult close();
+    [[nodiscard]] bool closed() const noexcept { return closed_; }
+    // The windows joined to the application and alive.
+    [[nodiscard]] std::size_t window_count() const noexcept { return window_count_; }
+    // The resources every joined window shares unless made with its own.
+    [[nodiscard]] const std::shared_ptr<ApplicationResources>& resources() const noexcept { return resources_; }
+    // The presentation defaults a joined window starts from.
+    [[nodiscard]] const PresentationSettings& presentation_settings() const noexcept { return presentation_; }
+
     [[nodiscard]] static ApplicationResult validate(
         const std::vector<ApplicationWindow>& windows);
     [[nodiscard]] static HostCapabilities capabilities();
     // The application's one set of keyboard-command keys (owner decision
     // DK-44): `run` gives it to every window it runs, before the host
     // attaches, so the host seeds it once and a rebinding in any window
-    // holds in all. Made on first use; lives as long as the process. UI
-    // thread only.
-    [[nodiscard]] static const std::shared_ptr<KeyBindings>& key_bindings();
+    // holds in all.
+    [[nodiscard]] const std::shared_ptr<KeyBindings>& key_bindings() const noexcept { return key_bindings_; }
     // The program's tooltip switch (owner, 2026-10-28): whether tooltips
-    // show in every window whose own switch is unset
+    // show in every joined window whose own switch is unset
     // (Window::set_tool_tips_shown). On by default. A window reads it when
     // a tooltip would show, so a tooltip that already shows stays until it
     // closes. Any thread.
-    static void set_tool_tips_shown(bool shown) noexcept;
-    [[nodiscard]] static bool tool_tips_shown() noexcept;
-    [[nodiscard]] static ApplicationResult run(
+    void set_tool_tips_shown(bool shown) noexcept;
+    [[nodiscard]] bool tool_tips_shown() const noexcept;
+    [[nodiscard]] ApplicationResult run(
         std::unique_ptr<Window> window, ApplicationWindowOptions options = {});
-    [[nodiscard]] static ApplicationResult run(
+    [[nodiscard]] ApplicationResult run(
         std::vector<ApplicationWindow> windows);
     // Ends the rendering library once per process, after the last `run`: it
     // frees stx_skia's caches and singletons. Call it when the last `run` has
@@ -233,6 +334,25 @@ public:
     // after_shutdown. A process that ends without it, a crash included,
     // leaks nothing: the library holds only process memory.
     [[nodiscard]] static ApplicationResult shutdown();
+
+private:
+    friend class Window;
+    Application(std::shared_ptr<ApplicationResources> resources, PresentationSettings presentation);
+    // Called by Window: joins and leaves the application's window list
+    // (intrusive, O(1), allocating nothing). UI thread.
+    void join(Window& window) noexcept;
+    void leave(Window& window) noexcept;
+
+    std::shared_ptr<ApplicationResources> resources_{};
+    PresentationSettings presentation_{};
+    std::shared_ptr<KeyBindings> key_bindings_{};
+    // Shared with joined windows, which read it from their threads.
+    std::shared_ptr<std::atomic<bool>> tool_tips_shown_{};
+    // The joined windows, oldest first.
+    Window* first_window_{};
+    Window* last_window_{};
+    std::size_t window_count_{};
+    bool closed_{};
 };
 
 } // namespace gui_forms

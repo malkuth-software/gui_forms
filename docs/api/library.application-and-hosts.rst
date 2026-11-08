@@ -35,8 +35,14 @@ Related types
    :class: autosummary longtable
    :widths: 35 65
 
+   * - :cpp:class:`ApplicationConfig <gui_forms::ApplicationConfig>`
+     - Everything an application is made with.
+   * - :cpp:class:`ApplicationCreateResult <gui_forms::ApplicationCreateResult>`
+     - What Application::create gave: an application owned by the caller, with the theme compile's warnings in ``findings``, or a refusal with nothing made and, for theme_refused, the compile's diagnostics.
    * - :cpp:class:`ApplicationResult <gui_forms::ApplicationResult>`
      -  
+   * - :cpp:class:`ApplicationThemeConfig <gui_forms::ApplicationThemeConfig>`
+     - The application's theme (APP_WINDOW_RULES_DESIGN A.2): the base sheet, then the program's packages in order, compiled once by Application::create.
    * - :cpp:class:`ApplicationWindow <gui_forms::ApplicationWindow>`
      -  
    * - :cpp:class:`ApplicationWindowAtResult <gui_forms::ApplicationWindowAtResult>`
@@ -246,6 +252,40 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: ApplicationConfig final
+
+   ``#include <gui_forms/application/application.hpp>``
+
+   Everything an application is made with. Move-only (it holds a library).
+
+   .. cpp:member:: ApplicationThemeConfig theme
+
+   .. cpp:member:: std::optional<PresentationSettings> presentation
+
+      The presentation defaults every window of the application starts with, until the host reports its own; GUI.Forms' defaults when unset.
+
+   .. cpp:member:: ImageRegistryLimits image_limits
+
+      The quotas of the application's shared image registry.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ApplicationCreateResult final
+
+   ``#include <gui_forms/application/application.hpp>``
+
+   What Application::create gave: an application owned by the caller, with the theme compile's warnings in ``findings``, or a refusal with nothing made and, for theme_refused, the compile's diagnostics.
+
+   .. cpp:member:: ApplicationCreateError error
+
+      Default: ``{ApplicationCreateError::none}``.
+
+   .. cpp:member:: std::unique_ptr<Application> application
+
+   .. cpp:member:: std::vector<ThemeCompileDiagnostic> findings
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ApplicationResult final
 
    ``#include <gui_forms/application/application.hpp>``
@@ -266,6 +306,30 @@ Related types
       Default: ``{std::numeric_limits<std::size_t>::max()}``.
 
    .. cpp:member:: std::exception_ptr callback_exception
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ApplicationThemeConfig final
+
+   ``#include <gui_forms/application/application.hpp>``
+
+   The application's theme (APP_WINDOW_RULES_DESIGN A.2): the base sheet, then the program's packages in order, compiled once by Application::create.
+
+   .. cpp:member:: ThemeCompileBase base
+
+      The process default's base until T4 makes gui_forms the default (default_theme()). Default: ``{ThemeCompileBase::windows_professional}``.
+
+   .. cpp:member:: std::vector<ThemePackage> packages
+
+      The program's packages, in compile order. At most one until the multi-package compile (T4) lands: more is invalid_argument.
+
+   .. cpp:member:: ThemeLibrary library
+
+      The installed packages a package's ``@import`` may name.
+
+   .. cpp:member:: std::span<const ControlAnatomy> controls
+
+      The application's own control types, beside the stock ones, that a selector may name. Borrowed for the call to create only.
 
 .. cpp:namespace:: gui_forms
 
@@ -2899,6 +2963,20 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: ApplicationCreateError
+
+   ``#include <gui_forms/application/application.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: already_exists
+
+   .. cpp:enumerator:: theme_refused
+
+   .. cpp:enumerator:: invalid_argument
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: ApplicationError
 
    ``#include <gui_forms/application/application.hpp>``
@@ -2918,6 +2996,8 @@ Enumerations
    .. cpp:enumerator:: callback_failure
 
    .. cpp:enumerator:: after_shutdown
+
+   .. cpp:enumerator:: windows_alive
 
 .. cpp:namespace:: gui_forms
 

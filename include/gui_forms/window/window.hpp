@@ -8,11 +8,22 @@ namespace gui_forms {
 class NativePopupToken;
 struct NativePopupOptions;
 
+class Application;
+
 // A top-level window: a SurfaceRoot (its control tree, thread and
 // dispatcher) presented through a native host.
+//
+// A window made on the current application's thread joins that
+// application (Application::current; APP_WINDOW_RULES_DESIGN A.2): it
+// shares the application's resources unless given its own, starts from its
+// presentation defaults and reads its tooltip switch, and leaves it when
+// destroyed. With no current application it makes its own resources.
 class Window : public SurfaceRoot {
 public:
     explicit Window(Control::Ptr root, Size client_size = {});
+    // Joins `application` explicitly, for a program that wants the
+    // dependency visible: std::logic_error off its thread or once closed.
+    Window(Application& application, Control::Ptr root, Size client_size = {});
     /// Uses explicit per-window image quotas. The two-argument constructor
     /// retains the normal defaults; large-document consumers choose a budget.
     Window(Control::Ptr root, Size client_size, ImageRegistryLimits image_limits);
@@ -99,9 +110,21 @@ public:
     [[nodiscard]] NativePopupToken open_native_popup(const Control::Ptr& owner, const Control::Ptr& content,
                                                      Rect bounds, const NativePopupOptions& options);
 
+    // The application this window joined, or null (none was current, or it
+    // was destroyed first).
+    [[nodiscard]] Application* application() const noexcept { return application_; }
+
 private:
     friend class SurfaceRoot;
     friend class HostSession;
+    friend class Application;
+    Window(Control::Ptr root, Size client_size, std::shared_ptr<ApplicationResources> resources,
+           Application* application);
+    // The application joined and the neighbours in its window list
+    // (Application::join); observers, cleared when either side goes.
+    Application* application_{};
+    Window* previous_in_application_{};
+    Window* next_in_application_{};
     // Native popups opened by this window, numbering their stable ids.
     std::uint64_t native_popup_serial_{};
     // Called by HostSession: seeds the window's bindings with the host's

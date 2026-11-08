@@ -96,10 +96,15 @@ private:
 };
 
 int main() {
+    // The program's application (APP_WINDOW_RULES_DESIGN A.2): windows made
+    // from here join it, and it runs them.
+    gf::ApplicationCreateResult created = gf::Application::create(gf::ApplicationConfig{});
+    if (!created) return 1;
+    gf::Application& application = *created.application;
     try {
         Gallery gallery{};
         std::unique_ptr<gf::Window> window = std::make_unique<gf::Window>(gallery.root, gf::Size{760.0, 610.0});
-        const gf::ApplicationResult result = gf::Application::run(std::move(window),
+        const gf::ApplicationResult result = application.run(std::move(window),
             {.title = "GUI.Forms — shared state and collections",
              .initial_size = {760.0, 610.0}, .minimum_size = {760.0, 610.0}});
         // Once, after the last run: ends the rendering library for the process.

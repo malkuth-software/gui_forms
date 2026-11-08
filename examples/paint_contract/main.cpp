@@ -75,6 +75,11 @@ struct CloseWhenReady final {
 } // namespace
 
 int main() {
+    // The program's application (APP_WINDOW_RULES_DESIGN A.2): windows made
+    // from here join it, and it runs them.
+    ApplicationCreateResult created = Application::create(ApplicationConfig{});
+    if (!created) return 1;
+    Application& application = *created.application;
     using namespace gui_forms;
     Document document;
     document.pixels[0] = 231U; // Hidden color in a completely transparent pixel.
@@ -133,7 +138,7 @@ int main() {
     options.initial_size = {240, 180};
     options.ready = CloseWhenReady{};
     options.print_metrics_on_close = false;
-    const ApplicationResult result = Application::run(std::move(window), std::move(options));
+    const ApplicationResult result = application.run(std::move(window), std::move(options));
     // Once, after the last run: ends the rendering library for the process.
     const ApplicationResult ended = Application::shutdown();
     return result.accepted() && ended.accepted() ? 0 : 1;

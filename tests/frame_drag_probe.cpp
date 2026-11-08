@@ -174,6 +174,11 @@ struct MainReady final {
 } // namespace
 
 int main(int argc, char** argv) {
+    // The program's application (APP_WINDOW_RULES_DESIGN A.2): windows made
+    // from here join it, and it runs them.
+    ApplicationCreateResult created = Application::create(ApplicationConfig{});
+    if (!created) return 1;
+    Application& application = *created.application;
     const bool manual = argc > 1 && std::strcmp(argv[1], "--manual") == 0;
     Script script{};
     ApplicationWindowOptions options{};
@@ -182,7 +187,7 @@ int main(int argc, char** argv) {
     options.ready = MainReady{&script, manual};
     const std::shared_ptr<Panel> root = make_control<Panel>(StableId("probe.root"));
     const ApplicationResult result =
-        Application::run(std::make_unique<Window>(root, Size{480.0, 320.0}), std::move(options));
+        application.run(std::make_unique<Window>(root, Size{480.0, 320.0}), std::move(options));
     const int code = result.accepted() ? 0 : 1;
     return code;
 }

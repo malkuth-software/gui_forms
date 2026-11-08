@@ -10,6 +10,13 @@ headless tools: call `perform_layout`, feed it input with `dispatch_pointer`
 and `dispatch_key`, run posted work with `drain_posted_work`, and read the
 results.
 
+A window made on the thread of the current application (see `Application`)
+joins it. It shares the application's resources unless it was given its own,
+starts from the application's presentation defaults, follows its tooltip
+switch, and leaves the application when destroyed. With no current
+application, as in tests, the window makes its own resources with the
+built-in theme.
+
 Everything but the native-host connection is declared on its base,
 `SurfaceRoot`: the control tree, layout, focus, input, painting, the
 posted-work queue, overlays, accelerators, tooltips and the counters. `Window`
@@ -25,23 +32,33 @@ root
     root throws `std::invalid_argument`, a root with a parent or a disposed
     root throws `std::logic_error`, and so does a stable ID used twice in the
     tree.
+application
+    The application to join explicitly, for a program that wants the
+    dependency visible. Joining an application that is closed, or from
+    another thread than the application's, throws `std::logic_error`.
 client_size
     The logical size of the client area, `{0, 0}` by default. A native host
     keeps it in step with the native window through `resize`.
 image_limits
-    Quotas for the window's image registry. The two-argument constructor
-    uses the default quotas.
+    Quotas for the window's image registry: the window has resources of its
+    own, with the joined application's theme. The other constructors use the
+    default quotas.
 resources
     An `ApplicationResources` to share with other windows: one image
     registry and one theme for all of them, so an `ImageId`, an `ImageList`
     and the theme hold in each and a control subtree moved between them
     keeps its images. The window takes the resources' current theme. Null
     resources throw `std::invalid_argument`; resources made on another
-    thread throw `std::logic_error`. The other constructors make resources
-    of the window's own.
+    thread throw `std::logic_error`. The window still joins the current
+    application. Without `resources` or `image_limits`, a joined window
+    shares the application's resources, and a window that joined none makes
+    its own.
 
 Methods
 -------
+application
+    The application the window joined, or null: none was current when it
+    was made, or the application was destroyed first.
 resize
     Changes the client size and marks the whole tree for layout, which runs
     at the next flush or geometry read. A negative size throws

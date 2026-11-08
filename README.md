@@ -39,9 +39,11 @@ struct Greeter final : gf::Component {
 };
 
 int main() {
+    gf::ApplicationCreateResult created = gf::Application::create(gf::ApplicationConfig{});
+    if (!created) return 1;
     Greeter greeter{};
     std::unique_ptr<gf::Window> window = std::make_unique<gf::Window>(greeter.root, gf::Size{480.0, 140.0});
-    return gf::Application::run(std::move(window),
+    return (*created.application).run(std::move(window),
         {.title = "First window", .initial_size = {480.0, 140.0},
          .minimum_size = {320.0, 140.0}}).accepted() ? 0 : 1;
 }

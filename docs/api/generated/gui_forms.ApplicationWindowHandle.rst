@@ -131,11 +131,14 @@ gui_forms::ApplicationWindowHandle
       };
 
       void example() {
+          gf::ApplicationCreateResult created = gf::Application::create(gf::ApplicationConfig{});
+          if (!created) return;
+          gf::Application& application = *created.application;
           Editor editor;
           gf::ApplicationWindowOptions options;
           options.title = "Editor";
           options.ready = KeepHandle{&editor};
-          gf::ApplicationResult result = gf::Application::run(
+          gf::ApplicationResult result = application.run(
               std::make_unique<gf::Window>(editor.root, gf::Size{640.0, 480.0}), std::move(options));
           static_cast<void>(result);
       }

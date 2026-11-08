@@ -48,10 +48,14 @@ private:
 
 int main() {
     try {
+        // The application first: the windows made after it join it.
+        gf::ApplicationCreateResult created = gf::Application::create(gf::ApplicationConfig{});
+        if (!created) return 1;
+        gf::Application& application = *created.application;
         Greeter greeter{};
         std::unique_ptr<gf::Window> window =
             std::make_unique<gf::Window>(greeter.root, gf::Size{480.0, 140.0});
-        const gf::ApplicationResult result = gf::Application::run(
+        const gf::ApplicationResult result = application.run(
             std::move(window),
             {.title = "GUI.Forms — first window",
              .initial_size = {480.0, 140.0},
@@ -92,6 +96,12 @@ Mutation is imperative and synchronous
   The host paints on a later frame using the accumulated damage
   bounds, which may include gaps between changed areas. See
   [Update scopes and dirtiness](update-scopes-and-dirtiness).
+
+The application comes first
+: `Application::create` makes the program's application: its theme is
+  compiled once, and every window made after it on the same thread joins it
+  and shares its resources. A refusal (another application, a refused theme)
+  makes nothing. The application must outlive its windows.
 
 `Window` is the retained model; `Application::run` is the host
 : `Window` binds to the thread that constructs it and owns the root, focus,

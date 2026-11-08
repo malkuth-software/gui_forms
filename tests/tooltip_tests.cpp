@@ -393,7 +393,13 @@ void test_maximum_width_is_bounded_and_shapes_overlay() {
 }
 
 void test_window_and_program_switches() {
+    // The fixture's window joins the application, made first and destroyed
+    // after it.
+    const ApplicationCreateResult created = Application::create(ApplicationConfig{});
+    require(static_cast<bool>(created), "the application is made");
+    Application& application = *created.application;
     Fixture fixture;
+    require(fixture.window.application() == &application, "the window joins the current application");
     ToolTipSettings settings = fixture.window.tool_tip_settings();
     settings.initial_delay = 1ms;
     fixture.window.set_tool_tip_settings(settings);
@@ -409,7 +415,7 @@ void test_window_and_program_switches() {
     hover(fixture.window, {60.0, 60.0});
     require(!fixture.window.next_wake(), "a window with tooltips off waits for nothing");
     fixture.window.set_tool_tips_shown(std::nullopt);
-    Application::set_tool_tips_shown(false);
+    application.set_tool_tips_shown(false);
     require(!fixture.window.tool_tips_shown(), "an unset window follows the program's switch");
     hover(fixture.window, {390.0, 210.0});
     hover(fixture.window, {60.0, 60.0});
@@ -420,7 +426,7 @@ void test_window_and_program_switches() {
     hover(fixture.window, {60.0, 60.0});
     fire_next(fixture.window);
     require(fixture.window.tool_tip_visible(), "a window switched on shows its tooltips");
-    Application::set_tool_tips_shown(true);
+    application.set_tool_tips_shown(true);
     fixture.window.show_tool_tip(fixture.button, 0ms);
     fixture.window.set_tool_tips_shown(false);
     require(fixture.window.tool_tip_visible(), "a tooltip the program showed stays whatever the switches");

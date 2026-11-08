@@ -120,10 +120,13 @@ gui_forms::ApplicationWindows
       };
 
       void example() {
+          gf::ApplicationCreateResult created = gf::Application::create(gf::ApplicationConfig{});
+          if (!created) return;
+          gf::Application& application = *created.application;
           gf::ApplicationWindowOptions options;
           options.title = "Editor";
           options.ready = OpenPalette{};
-          gf::ApplicationResult result = gf::Application::run(
+          gf::ApplicationResult result = application.run(
               std::make_unique<gf::Window>(gf::make_control<gf::Panel>(gf::StableId("editor")),
                                            gf::Size{640.0, 480.0}),
               std::move(options));

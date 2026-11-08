@@ -24,6 +24,7 @@
 #include "gui_forms/surface_root/requests/surface_requests.hpp"
 #include "gui_forms/visual_inspection/types/visual_inspection_types.hpp"
 
+#include <atomic>
 #include <chrono>
 #include <array>
 #include <compare>
@@ -743,8 +744,9 @@ public:
     // shows the plain tooltip text of its controls and of their authored
     // parts (see ToolTipSettings) in a retained, input-transparent overlay.
     // The window's switch, when set, decides whether its tooltips show;
-    // unset, the default, the program's switch decides
-    // (Application::tool_tips_shown). Turning tooltips off closes one that
+    // unset, the default, the switch of the application the window joined
+    // decides (Application::tool_tips_shown), and with none they show.
+    // Turning tooltips off closes one that
     // shows. UI thread.
     [[nodiscard]] std::optional<bool> tool_tips_shown_setting() const noexcept {
         return tool_tips_shown_;
@@ -1703,6 +1705,9 @@ private:
     std::unique_ptr<detail::ToolTipRoute> tool_tips_;
     ToolTipSettings tool_tip_settings_{};
     std::optional<bool> tool_tips_shown_{};
+    // The joined application's switch (Application::tool_tips_shown), shared
+    // so it outlives the application; null for a window that joined none.
+    std::shared_ptr<const std::atomic<bool>> application_tool_tips_shown_{};
     std::optional<ToolTipRequestRecord> tool_tip_request_{};
     std::uint64_t next_tool_tip_request_{1};
     // Where this root's alerts go (detail::AlertRoute): a window shows them,
