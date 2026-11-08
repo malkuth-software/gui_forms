@@ -176,7 +176,7 @@ void gf_kit_rules(gf_kit* kit) {
     memset(&active, 0, sizeof(active));
     active.struct_size = (uint32_t)sizeof(active);
     active.kind = GF_RULE_CONDITION_WINDOW_ACTIVE;
-    active.negated = 1u;
+    active.negated = 0u; /* a window starts active */
     call_rule.conditions = &active;
     call_rule.condition_count = 1u;
     gf_rule_token call_token = 0u;

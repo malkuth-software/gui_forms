@@ -1,7 +1,7 @@
 {
   "format": "gf-abi-host-capabilities/1",
   "description": "What each native host reports through GF_TABLE_HOST: its platform name, the host protocol revision and its capabilities, by their gf_host_capability names in lower case. gui_forms_abi_capability_matrix checks the row of the host it runs on; a host's report changing without its row is a failure.",
-  "protocol_version": 10,
+  "protocol_version": 11,
   "hosts": [
     {
       "platform": "win32-dib",
