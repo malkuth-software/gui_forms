@@ -78,6 +78,10 @@ Related types
      - Whether the card is selected; a change raises selected_changed.
    * - :cpp:class:`CardSelectionBehaviorPropertyCapability <gui_forms::CardSelectionBehaviorPropertyCapability>`
      - Whether activation only notifies (manual, the default) or also selects or toggles the card before activated is raised.
+   * - :cpp:class:`ContainerControlAutoValidateCapability <gui_forms::ContainerControlAutoValidateCapability>`
+     - How focus changes validate the controls they leave (Windows Forms' AutoValidate); inherit takes the nearest container's policy (effective_auto_validate resolves it).
+   * - :cpp:class:`ContainerControlCapabilities <gui_forms::ContainerControlCapabilities>`
+     - Every ContainerControl capability, in the order the declaring class takes them.
    * - :cpp:class:`GroupBox::Parts <gui_forms::GroupBox::Parts>`
      - Stage T1 anatomy, as dot members: a face, the frame and the caption.
    * - :cpp:class:`GroupBoxCapabilities <gui_forms::GroupBoxCapabilities>`
@@ -318,6 +322,38 @@ Related types
    .. cpp:member:: PropertyCell<CardSelectionBehavior, CardSelectionBehaviorPropertyCapability<Declaring>> selection_behavior
 
       Default: ``{CardSelectionBehavior::manual}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ContainerControlAutoValidateCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/container_control_capabilities/container_control_capabilities.hpp>``
+
+   How focus changes validate the controls they leave (Windows Forms' AutoValidate); inherit takes the nearest container's policy (effective_auto_validate resolves it). A change raises auto_validate_changed. A value outside the AutoValidate choices throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ContainerControlAutoValidateCapability& capability, AutoValidate incoming)
+
+   .. cpp:member:: PropertyCell<AutoValidate, ContainerControlAutoValidateCapability<Declaring>> auto_validate
+
+      Default: ``{AutoValidate::inherit}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ContainerControlCapabilities : public ContainerControlAutoValidateCapability<Declaring>
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/container_control_capabilities/container_control_capabilities.hpp>``
+
+   Every ContainerControl capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: AutoValidate auto_validate
+
+      How focus changes validate the controls they leave (Windows Forms' AutoValidate); inherit takes the nearest container's policy (effective_auto_validate resolves it). A change raises auto_validate_changed. A value outside the AutoValidate choices throws std::invalid_argument.
 
 .. cpp:namespace:: gui_forms
 

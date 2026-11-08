@@ -1,0 +1,56 @@
+{
+  "family": "ContainerControl",
+  "step": "M-S8",
+  "declaring": "ContainerControl",
+  "header": "include/gui_forms/controls/scrollable_control/container_control/container_control.hpp",
+  "source": "src/controls/scrollable_control/container_control/container_control.cpp",
+  "capabilities_header": "include/gui_forms/controls/scrollable_control/container_control/container_control_capabilities/container_control_capabilities.hpp",
+  "base": "ScrollableControl",
+  "shared": [],
+  "includes": [
+    "gui_forms/control/control/control.hpp"
+  ],
+  "test": {
+    "type": "ContainerControl",
+    "include": "gui_forms/controls/scrollable_control/container_control/container_control.hpp"
+  },
+  "properties": [
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hand": [],
+      "name": "auto_validate",
+      "capability": "ContainerControlAutoValidate",
+      "value": "AutoValidate",
+      "initial": "AutoValidate::inherit",
+      "comment": "How focus changes validate the controls they leave (Windows Forms' AutoValidate); inherit takes the nearest container's policy (effective_auto_validate resolves it). A change raises auto_validate_changed. A value outside the AutoValidate choices throws std::invalid_argument.",
+      "getter": "auto_validate",
+      "setter": "set_auto_validate",
+      "field": "auto_validate_",
+      "event": "auto_validate_changed_",
+      "hooks": "generated",
+      "effects": null,
+      "prepare": [
+        "if (incoming != AutoValidate::inherit && incoming != AutoValidate::disable &&",
+        "    incoming != AutoValidate::enable_prevent_focus_change &&",
+        "    incoming != AutoValidate::enable_allow_focus_change) {",
+        "    throw std::invalid_argument(\"GUI.Forms AutoValidate value is invalid\");",
+        "}"
+      ],
+      "sample": "AutoValidate::disable"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "effective_auto_validate",
+      "reason": "read-only, resolved through the container ancestry"
+    },
+    {
+      "name": "active_control",
+      "reason": "run-time focus state, changed through request_active_control and clear_active_control"
+    }
+  ]
+}

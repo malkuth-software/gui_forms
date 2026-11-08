@@ -7,7 +7,7 @@ gui_forms::ContainerControl
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: ContainerControl : public ScrollableControl
+.. cpp:class:: ContainerControl : public ScrollableControl, public ContainerControlCapabilities<ContainerControl>
 
    ``#include <gui_forms/controls/scrollable_control/container_control/container_control.hpp>``
 
@@ -30,10 +30,6 @@ gui_forms::ContainerControl
 
    :Properties:
 
-      **active_control** : ``Control::Ptr``, read-only
-         The focused control when it is a descendant of this container, or null
-         when focus is elsewhere or the container is not in a window.
-
       **auto_validate** : ``AutoValidate``, default ``AutoValidate::inherit``
          How validation runs when focus leaves a control inside this container.
          :cpp:enumerator:`AutoValidate::inherit <gui_forms::AutoValidate::inherit>` uses the policy of the nearest enclosing
@@ -43,6 +39,10 @@ gui_forms::ContainerControl
          lets focus move anyway; :cpp:enumerator:`AutoValidate::disable <gui_forms::AutoValidate::disable>` does not validate on
          focus changes. An unknown value throws ``std::invalid_argument``.
 
+      **active_control** : ``Control::Ptr``, read-only
+         The focused control when it is a descendant of this container, or null
+         when focus is elsewhere or the container is not in a window.
+
       **effective_auto_validate** : ``AutoValidate``, read-only
          The policy in force: this container's own, or the nearest enclosing
          container's, or :cpp:enumerator:`AutoValidate::enable_prevent_focus_change <gui_forms::AutoValidate::enable_prevent_focus_change>` when none
@@ -51,7 +51,7 @@ gui_forms::ContainerControl
    :Events:
 
       **auto_validate_changed** : ``Event<AutoValidate>``
-         Raised after :cpp:func:`auto_validate <gui_forms::ContainerControl::auto_validate>` changes, with the new value.
+         Raised after :cpp:member:`auto_validate <gui_forms::ContainerControl::auto_validate>` changes, with the new value.
 
    :Inherited:
 
@@ -155,12 +155,7 @@ gui_forms::ContainerControl
 
    .. rubric:: Properties
 
-   .. cpp:function:: Control::Ptr active_control() const noexcept
-
-      The focused control when it is a descendant of this container, or null
-      when focus is elsewhere or the container is not in a window.
-
-   .. cpp:function:: AutoValidate auto_validate() const noexcept
+   .. cpp:member:: AutoValidate auto_validate
 
       How validation runs when focus leaves a control inside this container.
       :cpp:enumerator:`AutoValidate::inherit <gui_forms::AutoValidate::inherit>` uses the policy of the nearest enclosing
@@ -170,9 +165,10 @@ gui_forms::ContainerControl
       lets focus move anyway; :cpp:enumerator:`AutoValidate::disable <gui_forms::AutoValidate::disable>` does not validate on
       focus changes. An unknown value throws ``std::invalid_argument``.
 
-   .. cpp:function:: void set_auto_validate(AutoValidate value)
+   .. cpp:function:: Control::Ptr active_control() const noexcept
 
-      Sets :cpp:func:`auto_validate <gui_forms::ContainerControl::auto_validate>`; see the property's description above.
+      The focused control when it is a descendant of this container, or null
+      when focus is elsewhere or the container is not in a window.
 
    .. cpp:function:: AutoValidate effective_auto_validate() const noexcept
 
@@ -185,7 +181,7 @@ gui_forms::ContainerControl
 
    .. cpp:function:: Event<AutoValidate>& auto_validate_changed() noexcept
 
-      Raised after :cpp:func:`auto_validate <gui_forms::ContainerControl::auto_validate>` changes, with the new value.
+      Raised after :cpp:member:`auto_validate <gui_forms::ContainerControl::auto_validate>` changes, with the new value.
 
 
    .. rubric:: Methods

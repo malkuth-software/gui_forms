@@ -43,6 +43,7 @@
 #include "gui_forms/controls/panel/token_box/token_box.hpp"
 #include "gui_forms/controls/panel/tree_list_view/tree_list_view.hpp"
 #include "gui_forms/controls/panel/tree_view/tree_view.hpp"
+#include "gui_forms/controls/scrollable_control/container_control/container_control.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/split_container/split_container.hpp"
 #include "gui_forms/controls/scrollable_control/scrollable_control.hpp"
 #include "gui_forms/controls/search_field/search_field.hpp"
@@ -346,6 +347,21 @@ void test_combo_box_properties() {
         expect((*control).auto_complete_source.read() == sample, "ComboBox.auto_complete_source: a write stores");
     }
     // auto_complete_custom_source: no sample for std::shared_ptr<AutoCompleteStringCollection>; give the property a "sample".
+}
+
+void test_container_control_properties() {
+    std::shared_ptr<ContainerControl> control = make_control<ContainerControl>(StableId("generated.containercontrol"));
+    {
+        const AutoValidate sample = AutoValidate::disable;
+        int raises = 0;
+        const SubscriptionToken token = (*control).auto_validate_changed().subscribe(RaiseCounter{&raises});
+        (*control).auto_validate = sample;
+        expect((*control).auto_validate.read() == sample, "ContainerControl.auto_validate: a write stores");
+        expect(raises == 1, "ContainerControl.auto_validate: a changed write raises once");
+        (*control).auto_validate = sample;
+        expect(raises == 1, "ContainerControl.auto_validate: an equal write raises nothing");
+        static_cast<void>(token);
+    }
 }
 
 void test_correspondence_view_properties() {
@@ -1561,6 +1577,7 @@ int main() {
     test_choice_group_properties();
     test_color_value_editor_properties();
     test_combo_box_properties();
+    test_container_control_properties();
     test_correspondence_view_properties();
     test_data_grid_view_properties();
     test_date_time_picker_properties();

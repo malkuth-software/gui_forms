@@ -174,14 +174,14 @@ void test_focus_validation_order_cancellation_and_policy() {
 
     require(fixture.window.request_focus(fixture.editor),
             "editor must regain focus for allow-focus policy coverage");
-    (*fixture.root).set_auto_validate(AutoValidate::enable_allow_focus_change);
+    (*fixture.root).auto_validate = AutoValidate::enable_allow_focus_change;
     std::shared_ptr<gui_forms::ContainerControl> nested = make_control<ContainerControl>(
         StableId("validation.nested.policy"));
     (*fixture.root).add_child(nested);
     require((*nested).effective_auto_validate() ==
                 AutoValidate::enable_allow_focus_change,
             "nested containers must inherit the nearest authored AutoValidate policy");
-    (*nested).set_auto_validate(AutoValidate::disable);
+    (*nested).auto_validate = AutoValidate::disable;
     require((*nested).effective_auto_validate() == AutoValidate::disable,
             "a nested authored AutoValidate policy must override its ancestor");
     require(fixture.window.request_focus(fixture.destination) &&
