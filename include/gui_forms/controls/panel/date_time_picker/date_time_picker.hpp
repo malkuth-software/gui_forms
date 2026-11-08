@@ -16,6 +16,10 @@ namespace gui_forms {
 
 class DateTimePicker final : public Panel, public DateTimePickerCapabilities<DateTimePicker> {
 public:
+    // The picker's style property hides Panel::style(), as the method it
+    // replaces did; without this the name is ambiguous between the bases.
+    using DateTimePickerCapabilities<DateTimePicker>::style;
+
     explicit DateTimePicker(StableId stable_id);
 
     void set_range(DateTimeValue earliest, DateTimeValue latest);
