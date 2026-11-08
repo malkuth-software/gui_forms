@@ -319,7 +319,6 @@
       "summary": "ScrollableControl owns the retained scrolling state machine: overflow discovery, viewport/display rectangles, two axis policies, wheel/button/track/thumb interaction, pointer capture, semantic virtual scrollbars, scroll events, and child exposure.",
       "methods": {
         "ScrollableControl": "Constructs horizontal and vertical ScrollProperties bound to this owner and enables full-drag behavior by default.",
-        "set_auto_scroll_margin": "Clamps negative x/y margins to zero, rejects non-finite ones, and writes auto_scroll_margin.",
         "scroll_position": "Returns the nonnegative internal content offset.",
         "display_rectangle": "Returns the translated content rectangle whose origin reflects the current negative scroll offset.",
         "viewport_rectangle": "Returns the resolved local client viewport after visible scrollbar extents are consumed.",

@@ -42,9 +42,7 @@ gui_forms::ScrollableControl
          Extra space added beyond the right-most and bottom-most child when the
          content size is computed, and kept around a control that
          :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>` reveals. Writing it rejects
-         a negative or non-finite size with ``std::invalid_argument``;
-         ``set_auto_scroll_margin(x, y)`` clamps negative values to zero and rejects
-         only non-finite ones.
+         a negative or non-finite size with ``std::invalid_argument``.
 
       **auto_scroll_min_size** : ``Size``, default ``{0.0, 0.0}``
          A minimum content size, so the control can scroll over an area larger
@@ -138,8 +136,6 @@ gui_forms::ScrollableControl
       * - :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`
         - Scrolls the shortest distance that brings a descendant, plus :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, into the viewport, then subtracts the descendant's ``auto_scroll_offset``.
       * - :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`
-        -  
-      * - :cpp:func:`set_auto_scroll_margin <gui_forms::ScrollableControl::set_auto_scroll_margin>`
         -  
       * - :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`
         - Sets or clears flags.
@@ -265,9 +261,7 @@ gui_forms::ScrollableControl
       Extra space added beyond the right-most and bottom-most child when the
       content size is computed, and kept around a control that
       :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>` reveals. Writing it rejects
-      a negative or non-finite size with ``std::invalid_argument``;
-      ``set_auto_scroll_margin(x, y)`` clamps negative values to zero and rejects
-      only non-finite ones.
+      a negative or non-finite size with ``std::invalid_argument``.
 
    .. cpp:member:: Size auto_scroll_min_size
 
@@ -401,8 +395,6 @@ gui_forms::ScrollableControl
       is visible and the control is a descendant, and it never raises :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`.
 
    .. cpp:function:: static const std::array<PropertyEntry, scrollable_control_property_count>& scrollable_control_property_entries() noexcept
-
-   .. cpp:function:: void set_auto_scroll_margin(double x, double y)
 
    .. cpp:function:: void set_scroll_state(std::uint32_t bit, bool value)
 

@@ -76,13 +76,6 @@ void ScrollableControl::written(const decltype(auto_scroll_margin)&) {
                Dirty::semantics | Dirty::accessibility);
 }
 
-void ScrollableControl::set_auto_scroll_margin(double x, double y) {
-    if (!std::isfinite(x) || !std::isfinite(y)) {
-        throw std::invalid_argument("AutoScrollMargin must be finite");
-    }
-    auto_scroll_margin = Size{std::max(0.0, x), std::max(0.0, y)};
-}
-
 void ScrollableControl::prepare_write(const decltype(auto_scroll_min_size)&, Size& incoming) {
     require_mutable();
     validate_size(incoming, "AutoScrollMinSize must be finite and nonnegative");

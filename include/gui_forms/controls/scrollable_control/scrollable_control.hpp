@@ -24,7 +24,6 @@ public:
     // With auto scroll, a size change can show or hide a scroll bar on
     // either axis, which moves the client area every child is placed in.
     [[nodiscard]] ResizeAxes layout_resize_response() const noexcept override;
-    void set_auto_scroll_margin(double x, double y);
     [[nodiscard]] Point scroll_position() const noexcept {
         return scroll_position_;
     }

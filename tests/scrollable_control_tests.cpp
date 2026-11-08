@@ -204,9 +204,9 @@ void test_control_into_view_offset_and_minimum_extent() {
     } catch (const std::invalid_argument&) {
         invalid_margin = true;
     }
-    (*panel).set_auto_scroll_margin(-5.0, 9.0);
+    (*panel).auto_scroll_margin = Size{0.0, 9.0};
     require(invalid_margin && (*panel).auto_scroll_margin.read() == Size{0.0, 9.0},
-            "property assignment must reject negative margins while the Forms helper clamps them");
+            "property assignment must reject negative margins and store a valid one");
 }
 
 } // namespace

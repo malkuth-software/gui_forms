@@ -152,10 +152,6 @@
   ],
   "not_properties": [
     {
-      "name": "set_auto_scroll_margin(double x, double y)",
-      "reason": "Windows Forms' SetAutoScrollMargin method: clamps negative components to zero"
-    },
-    {
       "name": "hscroll, vscroll",
       "reason": "views of the scroll bars' visibility, kept with the bars (ScrollProperties)"
     }
