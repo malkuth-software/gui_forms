@@ -350,7 +350,7 @@ private:
             project_folder(folder);
             return;
         }
-        (*tree_).selected_id = project[folder].id;
+        (*tree_).selected_id = std::string(project[folder].id);
     }
 
     void project_objects() {
