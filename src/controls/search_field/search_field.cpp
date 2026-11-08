@@ -2,6 +2,7 @@
 
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "gui_forms/controls/panel/text_box/text_box.hpp"
+#include "gui_forms/engine/motion_clock/motion_clock.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
@@ -187,9 +188,48 @@ void SearchField::editor_focus_changed(bool focused) {
 
 void SearchField::on_detached_from_window() noexcept {
     search_timer_.disconnect();
+    if (window() != nullptr) (*window()).motion_clock().withdraw_control_ambient(*this);
+    busy_phase_ = 0.0;
     editor_focused_ = false;
     hot_clear_ = false;
     pressed_clear_ = false;
+}
+
+bool SearchField::busy_moves() const noexcept {
+    const Window* const host = window();
+    if (host == nullptr || !busy.read()) return false;
+    const bool moves = !(*host).motion_clock().ambient_suppressed();
+    return moves;
+}
+
+void SearchField::update_busy_ambient(bool painting) {
+    if (window() == nullptr) return;
+    MotionClock& clock = (*window()).motion_clock();
+    if (!busy_moves()) {
+        clock.withdraw_control_ambient(*this);
+        return;
+    }
+    if (!painting && !clock.control_ambient(*this)) return;
+    // A frame per 60 Hz refresh: the segment moves about a pixel a frame
+    // across a field of ordinary width.
+    const FrameInterval interval = std::chrono::ceil<FrameInterval>(std::chrono::duration<double>(1.0 / 60.0));
+    const bool started = clock.enlist_control_ambient(*this, interval);
+    if (!started) return;
+    // The sweep starts or resumes from the strip's start, with no catch-up
+    // for a pause.
+    busy_start_ = clock.now();
+    busy_phase_ = 0.0;
+    busy_paints_seen_ = ~std::uint64_t{0};
+}
+
+bool SearchField::on_ambient_frame(FrameTime now) {
+    if (busy_paints_ == busy_paints_seen_) return false;
+    busy_paints_seen_ = busy_paints_;
+    const double elapsed = std::chrono::duration<double>(now - busy_start_).count();
+    const double period = std::chrono::duration<double>(busy_sweep_period).count();
+    busy_phase_ = std::fmod(std::max(0.0, elapsed) / period, 1.0);
+    invalidate(Dirty::paint);
+    return true;
 }
 
 bool SearchField::focus_visible() const noexcept {
@@ -215,8 +255,16 @@ SearchField::Placement SearchField::placement(Size size) const {
     const double content_height = std::min(size.height, editor_height_ > 0.0 ? editor_height_ : size.height);
     placed.content = Rect{content_x, std::floor(centre - content_height * 0.5), content_width, content_height};
     if (busy.read()) {
-        placed.activity = Rect{2.0, std::max(0.0, size.height - activity_height - 2.0), std::max(0.0, size.width - 4.0),
-                               activity_height};
+        const Rect strip{2.0, std::max(0.0, size.height - activity_height - 2.0), std::max(0.0, size.width - 4.0),
+                         activity_height};
+        placed.activity = strip;
+        if (busy_moves()) {
+            // The segment runs from the strip's start to its end, then
+            // starts again; it is always wholly inside the strip.
+            const double segment = strip.width * busy_segment_share;
+            const double left = strip.x + (strip.width - segment) * busy_phase_;
+            placed.activity = Rect{left, strip.y, segment, activity_height};
+        }
     }
     return placed;
 }
@@ -276,6 +324,8 @@ void SearchField::on_paint(Painter& painter, Rect) {
         paint_part(painter, *this, clear_mark);
     }
     if (busy.read()) {
+        ++busy_paints_;
+        update_busy_ambient(true);
         PartPaint activity{.role = PartRole::activity, .bounds = placed.activity, .states = states,
                            .family = ControlVisualRole::progress};
         paint_part(painter, *this, activity);
@@ -439,6 +489,19 @@ std::string SearchField::read_view(const decltype(placeholder_text)&) const {
     return value;
 }
 
+void SearchField::prepare_write(const decltype(busy)&, bool&) {
+    require_mutable();
+}
+
+// Turning busy on shows the strip, whose next paint starts the sweep;
+// turning it off withdraws the field from the motion clock.
+void SearchField::written(const decltype(busy)&) {
+    invalidate(Dirty::paint | Dirty::semantics);
+    if (busy.read()) return;
+    busy_phase_ = 0.0;
+    update_busy_ambient(false);
+}
+
 // property_codemod begin SearchField (tools/property_families/search_field.json; generated, do not edit)
 
 namespace {
@@ -535,14 +598,6 @@ void SearchField::prepare_write(const decltype(search_delay)&, std::chrono::mill
 }
 
 void SearchField::written(const decltype(search_delay)&) {}
-
-void SearchField::prepare_write(const decltype(busy)&, bool&) {
-    require_mutable();
-}
-
-void SearchField::written(const decltype(busy)&) {
-    invalidate(Dirty::paint | Dirty::semantics);
-}
 
 // property_codemod end SearchField
 

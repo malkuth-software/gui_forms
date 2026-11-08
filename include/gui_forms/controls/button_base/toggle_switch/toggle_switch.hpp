@@ -2,6 +2,7 @@
 
 #include "gui_forms/controls/button_base/button_base.hpp"
 #include "gui_forms/controls/button_base/toggle_switch/toggle_switch_capabilities/toggle_switch_capabilities.hpp"
+#include "gui_forms/engine/motion_value/motion_value.hpp"
 
 #include <array>
 #include <cstddef>
@@ -22,9 +23,16 @@ namespace gui_forms {
 // only.
 //
 // To assistive technology it is a toggle_switch (hosts without a mapping
-// publish a check box), named by its label, checked while on. The thumb
-// moves at once; its motion waits for the frame scheduler's reduced-motion
-// gate.
+// publish a check box), named by its label, checked while on.
+//
+// The thumb travels to its new end on the window's motion clock whenever
+// `checked` changes; the state, the event and the semantics change at once.
+// Under reduced motion, in an occluded window or outside a window the thumb
+// stands at its end at once.
+// The thumb's travel: a smoothstep move of 150 ms (design language §9.2,
+// within motion_duration_ceiling).
+inline constexpr FrameInterval toggle_switch_thumb_duration = std::chrono::milliseconds(150);
+
 class ToggleSwitch final : public ButtonBase, public ToggleSwitchCapabilities<ToggleSwitch> {
 public:
     explicit ToggleSwitch(StableId stable_id, std::string initial_text = {});
@@ -33,6 +41,9 @@ public:
     [[nodiscard]] Event<bool>& checked_changed() noexcept { return checked_changed_; }
     // The state text that shows now: on_text while on, off_text while off.
     [[nodiscard]] const std::string& state_text() const noexcept;
+    // Where the thumb stands: 0 at the track's start (off), 1 at its end
+    // (on), between while it travels.
+    [[nodiscard]] double thumb_position() const noexcept { return thumb_travel_.current(); }
 
     [[nodiscard]] Size measure(Size available) override;
     void on_paint(Painter& painter, Rect local_damage) override;
@@ -72,6 +83,9 @@ private:
     [[nodiscard]] FontSpec label_font() const noexcept;
 
     Event<bool> checked_changed_;
+    // The thumb's position from 0 to 1, owned by the switch and advanced by
+    // its window's motion clock.
+    MotionValue thumb_travel_;
     // property_codemod begin ToggleSwitch (tools/property_families/toggle_switch.json; generated, do not edit)
 public:
     // ToggleSwitch's property table: ButtonBase's entries, then its own.

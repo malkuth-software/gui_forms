@@ -8,6 +8,7 @@
 #include <array>
 #include <chrono>
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <span>
 #include <string>
@@ -21,7 +22,10 @@ class TextBox;
 // A text field for a query (W-4): a well holding the search mark, an inner
 // TextBox (made after construction and owned as the only child), a clear
 // mark while there is text, and an activity strip along the bottom while
-// `busy`.
+// `busy`. The strip is an ambient effect on the window's motion clock: a
+// segment runs along it once per busy_sweep_period while the field is
+// drawn. Under reduced motion, with ambient motion off or in an occluded
+// window it is a still strip the field's width.
 //
 // Each change of the text raises text_changed and, once typing has paused
 // for search_delay (on the window's frame schedule; at once outside a
@@ -36,6 +40,11 @@ class TextBox;
 // it carries the editor's selection and its text layout and selection
 // requests reach the editor, which is not published separately (coordinator
 // ruling). The editor takes the keyboard focus, which the node reports.
+// One sweep of the busy strip's segment, and the segment's share of the
+// strip's width.
+inline constexpr FrameInterval busy_sweep_period = std::chrono::milliseconds(1200);
+inline constexpr double busy_segment_share = 0.3;
+
 class SearchField final : public Control, public SearchFieldCapabilities<SearchField> {
 public:
     // The inner editor is made after construction (make_control calls
@@ -92,6 +101,9 @@ protected:
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
     void on_detached_from_window() noexcept override;
+    // One ambient frame of the busy strip: the segment advances to `now`.
+    // False when the field was not drawn since the last frame.
+    bool on_ambient_frame(FrameTime now) override;
 
 private:
     // The search delay's target: runs on the UI thread from the window's
@@ -115,6 +127,13 @@ private:
     void editor_committed(const std::string& value);
     void editor_cancelled();
     void editor_focus_changed(bool focused);
+    // Whether the busy strip's segment sweeps now (busy, in a window whose
+    // ambient motion is not suppressed).
+    [[nodiscard]] bool busy_moves() const noexcept;
+    // Enlists the field on its window's motion clock while the strip
+    // sweeps (`painting`: from on_paint; otherwise only an enlisted field
+    // is updated), and withdraws it otherwise.
+    void update_busy_ambient(bool painting);
 
     std::shared_ptr<TextBox> editor_{};
     SubscriptionToken editor_text_;
@@ -127,6 +146,12 @@ private:
     Event<> cleared_;
     // The editor's natural height from the last measure.
     double editor_height_{};
+    // The sweep's start on the motion clock, its phase from 0 to 1, and the
+    // paints counted so that a field no longer drawn drops off the clock.
+    FrameTime busy_start_{};
+    double busy_phase_{};
+    std::uint64_t busy_paints_{};
+    std::uint64_t busy_paints_seen_{};
     bool editor_focused_{};
     bool hot_clear_{};
     bool pressed_clear_{};

@@ -93,10 +93,14 @@ gui_forms::SearchField
    The search delay runs on the window's frame schedule. Escape in a field
    with text clears it; in an empty field Escape goes on to the containers
    and the window's cancel button. The well and the marks take the theme's
-   ``editor`` family and the activity strip the ``progress`` family; the
-   strip is static. To assistive technology the field is a ``search_box`` (a
-   host without a mapping publishes a text box) whose value is the query and
-   which is busy while :cpp:member:`busy <gui_forms::SearchField::busy>`.
+   ``editor`` family and the activity strip the ``progress`` family. While the
+   field is busy and drawn, a segment runs along the strip once every 1.2 s on
+   the window's motion clock; under reduced motion, with ambient motion off or
+   in an occluded window the strip is still and as wide as the field. To
+   assistive technology the field is one ``search_box`` node (a host without a
+   mapping publishes a text box) whose value is the query, which carries the
+   editor's selection and text and is busy while :cpp:member:`busy <gui_forms::SearchField::busy>`; the editor is not
+   published separately.
 
    .. rubric:: Examples
 
@@ -195,6 +199,10 @@ gui_forms::SearchField
 
    .. cpp:function:: bool on_semantic_action(SemanticAction action, std::string_view value) override
 
+   .. cpp:function:: SemanticTextResult on_semantic_text_layout(SemanticTextLayout& layout) override
+
+   .. cpp:function:: SemanticTextResult on_set_semantic_text_selection(SemanticTextSelection selection) override
+
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
 
    .. cpp:function:: AnatomyStateSet anatomy_states() const override
@@ -210,6 +218,12 @@ gui_forms::SearchField
    .. cpp:function:: void on_detached_from_window() noexcept override
 
       *Protected.*
+
+   .. cpp:function:: bool on_ambient_frame(FrameTime now) override
+
+      *Protected.*
+
+      One ambient frame of the busy strip: the segment advances to ``now``. False when the field was not drawn since the last frame.
 
    .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
 

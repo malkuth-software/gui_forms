@@ -132,8 +132,10 @@
         "reset": null,
         "registry": false
       },
-      "hooks": "generated",
-      "hand": [],
+      "hooks": "hand",
+      "hand": [
+        "written starts or stops the activity strip's ambient motion"
+      ],
       "sample": "true"
     }
   ],

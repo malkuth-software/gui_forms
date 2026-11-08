@@ -7,6 +7,8 @@
 
 #include "gui_forms/gui_forms.hpp"
 #include "gui_forms/controls/collections/choice_group.hpp"
+#include "gui_forms/engine/motion_clock/motion_clock.hpp"
+#include "gui_forms/types/painter/painter.hpp"
 
 #include <chrono>
 #include <cmath>
@@ -15,6 +17,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -630,6 +633,21 @@ void test_window_toast_refusals() {
             "dismissing content that does not show changes nothing");
 }
 
+// The motion clock's time, set by the test (engine_pop_tests' pattern), so
+// that no motion test depends on the host's clock. Declared before the
+// window whose clock borrows it, so it outlives the installation.
+class ManualTime final : public MotionTimeSource {
+public:
+    [[nodiscard]] FrameTime now() const noexcept override { return time; }
+    FrameTime time{std::chrono::seconds(1000)};
+};
+
+// Advances the test's time by `step` and polls the window there.
+void advance(Window& window, ManualTime& time, std::chrono::milliseconds step) {
+    time.time += step;
+    static_cast<void>(window.poll_frame_schedule(time.time));
+}
+
 // Records the order of a switch's checked_changed and clicked events.
 struct SwitchRecorder final {
     std::vector<std::string> seen{};
@@ -654,7 +672,9 @@ void test_toggle_switch() {
     const std::shared_ptr<ToggleSwitch> toggle = make_control<ToggleSwitch>(StableId("display.switch"), "Wi-Fi");
     (*toggle).set_requested_bounds(Rect{10.0, 10.0, 240.0, 28.0});
     (*root).add_child(toggle);
+    ManualTime time;
     Window window(root, Size{400.0, 200.0});
+    window.motion_clock().set_time_source(&time);
     window.perform_layout();
     SwitchRecorder recorder;
     on((*toggle).checked_changed(), recorder, &SwitchRecorder::on_checked);
@@ -667,6 +687,9 @@ void test_toggle_switch() {
 
     (*toggle).checked = true;
     require(recorder.seen.size() == 1U && recorder.seen[0] == "checked:on", "a write raises checked_changed once");
+    // The thumb travels on the motion clock; a frame past the move's end
+    // settles it.
+    advance(window, time, std::chrono::milliseconds(150));
     (*toggle).checked = true;
     require(recorder.seen.size() == 1U, "an equal write raises nothing");
     require((*toggle).anatomy_states().contains(AnatomyState::checked), "an on switch is in the checked state");
@@ -846,6 +869,124 @@ void test_search_field_in_window() {
     require(release.handled && (*field).text.read().empty(), "releasing over the clear mark clears the field");
 }
 
+// Draws nothing: on_paint runs for its effects on the motion clock.
+class NullPainter final : public Painter {
+public:
+    void save() override {}
+    void restore() override {}
+    void translate(Point) override {}
+    void clip_rect(Rect) override {}
+    void fill_rect(Rect, Color) override {}
+    void fill_rounded_rect(Rect, double, Color) override {}
+    void stroke_rect(Rect, Color, double) override {}
+    void stroke_rounded_rect(Rect, double, Color, double) override {}
+    void fill_linear_gradient(Rect, Point, Point, std::span<const GradientStop>) override {}
+    void fill_linear_gradient_spread(Rect, Point, Point, std::span<const GradientStop>, GradientSpreadMode) override {}
+    void fill_radial_gradient(Rect, Point, Size, std::span<const GradientStop>) override {}
+    void draw_line(Point, Point, Color, double) override {}
+    void draw_text_utf8(Point, std::string_view, FontSpec, Color) override {}
+    void draw_image(ImageId, Rect, double) override {}
+};
+
+void set_reduced_motion(Window& window, bool reduced) {
+    PresentationSettings settings = window.presentation_settings();
+    settings.reduced_motion = reduced;
+    window.set_presentation_settings(settings);
+}
+
+// The thumb travels on the motion clock and settles at its end; reduced
+// motion puts it there at once, and outside a window it jumps.
+void test_toggle_switch_motion() {
+    const std::shared_ptr<ToggleSwitch> loose = make_control<ToggleSwitch>(StableId("display.switch.loose"), "Loose");
+    (*loose).checked = true;
+    require((*loose).thumb_position() == 1.0, "outside a window the thumb stands at its end at once");
+
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("display.switch-motion.root"));
+    const std::shared_ptr<ToggleSwitch> toggle = make_control<ToggleSwitch>(StableId("display.switch.motion"), "Moving");
+    (*toggle).set_requested_bounds(Rect{10.0, 10.0, 200.0, 28.0});
+    (*root).add_child(toggle);
+    ManualTime time;
+    Window window(root, Size{300.0, 100.0});
+    window.motion_clock().set_time_source(&time);
+    window.perform_layout();
+    MotionClock& clock = window.motion_clock();
+    require((*toggle).thumb_position() == 0.0 && clock.moving_count() == 0U, "an off switch rests at the start");
+
+    (*toggle).checked = true;
+    require((*toggle).checked.read() && (*toggle).thumb_position() < 1.0 && clock.moving_count() == 1U &&
+                window.next_wake().has_value(),
+            "turning the switch on starts the thumb's travel; the state changes at once");
+    advance(window, time, std::chrono::milliseconds(75));
+    const double midway = (*toggle).thumb_position();
+    require(midway == 0.5, "halfway through the 150 ms smoothstep the thumb is halfway");
+    advance(window, time, std::chrono::milliseconds(75));
+    require((*toggle).thumb_position() == 1.0 && clock.moving_count() == 0U && !window.next_wake().has_value(),
+            "past the move's end the thumb settles and the window rests");
+
+    (*toggle).checked = false;
+    require(clock.moving_count() == 1U, "turning it off starts the travel back");
+    set_reduced_motion(window, true);
+    require((*toggle).thumb_position() == 0.0 && clock.moving_count() == 0U,
+            "turning reduced motion on puts the moving thumb at its end");
+    (*toggle).checked = true;
+    require((*toggle).thumb_position() == 1.0 && clock.moving_count() == 0U && !window.next_wake().has_value(),
+            "under reduced motion the thumb has no travel");
+    window.perform_layout();
+    const ToggleSwitch::Parts parts = (*toggle).parts();
+    require(parts.thumb.bounds.x + parts.thumb.bounds.width + 3.0 == parts.track.bounds.x + parts.track.bounds.width,
+            "the thumb stands at the track's end, one inset in");
+}
+
+// The busy strip's segment runs on the motion clock while the field is
+// drawn; it drops off the clock when the field is not drawn, and is a
+// still, full strip under reduced motion.
+void test_search_field_busy_motion() {
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("display.search-motion.root"));
+    const std::shared_ptr<SearchField> field = make_control<SearchField>(StableId("display.search.motion"));
+    (*field).set_requested_bounds(Rect{10.0, 10.0, 300.0, 32.0});
+    (*root).add_child(field);
+    ManualTime time;
+    Window window(root, Size{400.0, 100.0});
+    window.motion_clock().set_time_source(&time);
+    window.perform_layout();
+    MotionClock& clock = window.motion_clock();
+    const Rect bounds{0.0, 0.0, 300.0, 32.0};
+    NullPainter idle_painter;
+    (*field).on_paint(idle_painter, bounds);
+    require(!clock.control_ambient(*field) && !window.next_wake().has_value(), "an idle field is not on the clock");
+
+    (*field).busy = true;
+    NullPainter first;
+    (*field).on_paint(first, bounds);
+    const SearchField::Parts at_start = (*field).parts();
+    require(clock.control_ambient(*field) && window.next_wake().has_value() && at_start.activity.present &&
+                at_start.activity.bounds.width < 296.0,
+            "a drawn busy field sweeps a segment on the motion clock");
+    advance(window, time, std::chrono::milliseconds(300));
+    const SearchField::Parts later = (*field).parts();
+    // A quarter of the 1.2 s sweep: a quarter of the strip less the segment.
+    const double expected_x = at_start.activity.bounds.x + (296.0 - 296.0 * busy_segment_share) * 0.25;
+    require(std::abs(later.activity.bounds.x - expected_x) < 1e-9,
+            "a frame moves the segment along the strip by the elapsed share of the sweep");
+    advance(window, time, std::chrono::milliseconds(300));
+    advance(window, time, std::chrono::milliseconds(300));
+    require(!clock.control_ambient(*field), "a field not drawn between frames drops off the clock");
+
+    set_reduced_motion(window, true);
+    NullPainter still;
+    (*field).on_paint(still, bounds);
+    const SearchField::Parts reduced = (*field).parts();
+    require(!clock.control_ambient(*field) && reduced.activity.present && reduced.activity.bounds.width == 296.0,
+            "under reduced motion the strip is still and as wide as the field");
+    set_reduced_motion(window, false);
+    NullPainter again;
+    (*field).on_paint(again, bounds);
+    require(clock.control_ambient(*field), "with motion allowed again the next paint sweeps");
+    (*field).busy = false;
+    require(!clock.control_ambient(*field) && !(*field).parts().activity.present,
+            "turning busy off withdraws the strip and its motion");
+}
+
 } // namespace
 
 int main() {
@@ -862,6 +1003,8 @@ int main() {
     test_toggle_switch();
     test_search_field_alone();
     test_search_field_in_window();
+    test_toggle_switch_motion();
+    test_search_field_busy_motion();
     std::cout << "display control tests passed\n";
     return EXIT_SUCCESS;
 }

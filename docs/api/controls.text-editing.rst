@@ -1810,3 +1810,15 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::size_t maximum_auto_complete_suggestions
 
    The most candidates a suggestion list shows; later matches are dropped. Value: ``256U``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/controls/search_field/search_field.hpp>``
+
+.. cpp:var:: constexpr FrameInterval busy_sweep_period
+
+   A text field for a query (W-4): a well holding the search mark, an inner TextBox (made after construction and owned as the only child), a clear mark while there is text, and an activity strip along the bottom while ``busy``. The strip is an ambient effect on the window's motion clock: a segment runs along it once per busy_sweep_period while the field is drawn. Under reduced motion, with ambient motion off or in an occluded window it is a still strip the field's width. Each change of the text raises text_changed and, once typing has paused for search_delay (on the window's frame schedule; at once outside a window or with a zero delay), search_requested with the query. Enter raises search_requested at once. Escape, or the clear mark, empties a field that has text: that raises cleared, then search_requested with the empty query. Escape in an empty field goes on to the containers and the window's cancel button. To assistive technology it is one search_box node (hosts without a mapping publish a text box) whose value is the query, busy while ``busy``: it carries the editor's selection and its text layout and selection requests reach the editor, which is not published separately (coordinator ruling). The editor takes the keyboard focus, which the node reports. One sweep of the busy strip's segment, and the segment's share of the strip's width. Value: ``std::chrono::milliseconds(1200)``.
+
+.. cpp:var:: constexpr double busy_segment_share
+
+   Value: ``0.3``.

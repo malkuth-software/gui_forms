@@ -37,8 +37,10 @@
         "reset": null,
         "registry": false
       },
-      "hooks": "generated",
-      "hand": [],
+      "hooks": "hand",
+      "hand": [
+        "written moves the thumb on the motion clock (at once under reduced motion), then raises checked_changed"
+      ],
       "sample": "true"
     },
     {

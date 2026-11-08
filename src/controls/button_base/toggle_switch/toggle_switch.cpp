@@ -65,7 +65,29 @@ constexpr std::array<InteractionDeclaration, 1> toggle_switch_interactions{{
 } // namespace
 
 ToggleSwitch::ToggleSwitch(StableId stable_id, std::string initial_text)
-    : ButtonBase(std::move(stable_id), std::move(initial_text)) {}
+    : ButtonBase(std::move(stable_id), std::move(initial_text)),
+      thumb_travel_(*this, MotionCurve::timed(toggle_switch_thumb_duration, MotionEasing::smoothstep), 0.0) {
+    // One unit of the position is the thumb's whole travel, for the
+    // settled condition; each step repaints the switch.
+    static_cast<void>(thumb_travel_.set_extent(track_width - track_height));
+    thumb_travel_.set_invalidation(Dirty::paint);
+}
+
+void ToggleSwitch::prepare_write(const decltype(checked)&, bool&) {
+    require_mutable();
+}
+
+// The thumb starts toward its new end before checked_changed is raised, so
+// a handler reads the switch already moving. If the clock cannot take the
+// move, the exception propagates with the new value stored and the thumb
+// where it stood.
+void ToggleSwitch::written(const decltype(checked)&) {
+    invalidate(Dirty::paint | Dirty::semantics);
+    const double end = checked.read() ? 1.0 : 0.0;
+    const MotionStart started = thumb_travel_.animate_to(end);
+    static_cast<void>(started);
+    publish_change(checked_changed_, checked.read());
+}
 
 const std::string& ToggleSwitch::state_text() const noexcept {
     if (checked.read()) return on_text.read();
@@ -84,8 +106,11 @@ ToggleSwitch::Placement ToggleSwitch::placement(Size size) const {
     const double centre = size.height * 0.5;
     placed.track = Rect{0.0, std::floor(centre - track_height * 0.5), track_width, track_height};
     const double thumb_side = track_height - 2.0 * thumb_inset;
-    const double thumb_x = checked.read() ? placed.track.x + track_width - thumb_inset - thumb_side
-                                          : placed.track.x + thumb_inset;
+    // The thumb travels from one inset to the other: the track's width less
+    // the thumb and both insets, track_width - track_height (the extent the
+    // constructor gives the position).
+    const double travel = track_width - thumb_side - 2.0 * thumb_inset;
+    const double thumb_x = placed.track.x + thumb_inset + travel * thumb_travel_.current();
     placed.thumb = Rect{thumb_x, placed.track.y + thumb_inset, thumb_side, thumb_side};
     double x = track_width + gap;
     const std::string shown = display_text();
@@ -320,15 +345,6 @@ const std::array<PropertyEntry, ToggleSwitch::toggle_switch_property_count>& Tog
 std::span<const PropertyEntry> ToggleSwitch::property_table() const noexcept {
     const std::array<PropertyEntry, toggle_switch_property_count>& entries = toggle_switch_property_entries();
     return std::span<const PropertyEntry>(entries);
-}
-
-void ToggleSwitch::prepare_write(const decltype(checked)&, bool&) {
-    require_mutable();
-}
-
-void ToggleSwitch::written(const decltype(checked)&) {
-    invalidate(Dirty::paint | Dirty::semantics);
-    publish_change(checked_changed_, checked.read());
 }
 
 void ToggleSwitch::prepare_write(const decltype(on_text)&, std::string& incoming) {

@@ -2052,6 +2052,14 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
+``#include <gui_forms/controls/button_base/toggle_switch/toggle_switch.hpp>``
+
+.. cpp:var:: constexpr FrameInterval toggle_switch_thumb_duration
+
+   A switch that is on or off at once (W-4): a rounded track with a thumb at its end, the label after it and, when given, the state text after the label (on_text or off_text). Unlike a CheckBox it has no third state and stands for a setting that takes effect as it is turned. Activation (a click, Space or the press action) turns ``checked`` over, which raises checked_changed, and then raises clicked and runs the bound command, as a CheckBox does. A write to ``checked`` raises checked_changed only. To assistive technology it is a toggle_switch (hosts without a mapping publish a check box), named by its label, checked while on. The thumb travels to its new end on the window's motion clock whenever ``checked`` changes; the state, the event and the semantics change at once. Under reduced motion, in an occluded window or outside a window the thumb stands at its end at once. The thumb's travel: a smoothstep move of 150 ms (design language §9.2, within motion_duration_ceiling). Value: ``std::chrono::milliseconds(150)``.
+
+.. cpp:namespace:: gui_forms
+
 ``#include <gui_forms/inspection/property_editor_registry/property_editor_registry.hpp>``
 
 .. cpp:type:: PropertyEditorFactory = std::function<std::optional<PropertyEditorBinding>(const PropertyEditorRequest&)>

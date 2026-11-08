@@ -25,6 +25,9 @@ off_text : default empty
 state_text
     The state text that shows now: `on_text` while on, `off_text` while
     off.
+thumb_position
+    Where the thumb stands, from 0 at the track's start (off) to 1 at its
+    end (on); between while it travels.
 
 Events
 ------
@@ -41,9 +44,11 @@ Notes
 -----
 The track and the thumb take the theme's ``choice`` family; the thumb is
 drawn as the toggle knob. The natural width keeps room for the wider of the
-two state texts, so turning the switch does not change its size. The thumb
-moves at once: its motion waits for the frame scheduler's reduced-motion
-gate. To assistive technology the switch is a ``toggle_switch`` (a host
+two state texts, so turning the switch does not change its size. When
+`checked` changes the thumb travels to its new end in 150 ms on the
+window's motion clock, while the state, the event and the semantics change
+at once; under reduced motion, in an occluded window or outside a window it
+stands at its end at once. To assistive technology the switch is a ``toggle_switch`` (a host
 without a mapping publishes a check box), named by its label and checked
 while on.
 
