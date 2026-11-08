@@ -83,7 +83,7 @@ struct ContrastRow final {
     bool selected{};
     bool high_contrast{};
     // The dark presentation (T4 phase 5): measured only for a theme with a
-    // derived dark variant. Never set with high_contrast.
+    // derived or authored dark variant. Never set with high_contrast.
     bool dark{};
     ContrastPair pair{ContrastPair::text};
     Color foreground{};
@@ -101,7 +101,7 @@ struct ContrastCounts final {
 };
 
 // Clears `rows` and fills it with `theme`'s report: for each presentation
-// (ordinary, then dark when the theme derives a dark variant, then high
+// (ordinary, then dark when the theme has a dark variant, then high
 // contrast), family, surface state and selection (not
 // selected, then selected), the pairs that apply to that family and state,
 // in ContrastPair order. Disabled controls measure their text only, as

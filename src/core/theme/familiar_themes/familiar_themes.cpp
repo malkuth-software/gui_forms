@@ -783,6 +783,471 @@ constexpr std::string_view windows7_style_sheet = R"css(/* windows7-style: an Ae
 }
 )css";
 
+constexpr std::string_view macos_style_sheet = R"css(/* macos-style, light: a macOS-like look (stage T4, phase 7), following
+   Puppertino 2.0 (https://puppertino.com/, puppertino.css): the elevated
+   background #ffffff, translucent grey plates (#00000014, hot #0000001c,
+   pressed #00000029) with 6-unit corners, text #000000d9, white fields
+   with 6-unit corners and a soft shadow, the accent push button, the list
+   selection #0165e2, the menu selection #0069f9 with white text, a
+   6-unit progress track #00000016 with the accent fill #0088ff, boxes of
+   #00000004 with 12-unit corners, help tags of #ececece0 with Puppertino's
+   two shadows. Puppertino draws no frames: macOS separates its controls by
+   fill and shadow.
+   Contrast fixes on enabled elements (the boundary gate is 3:1, text
+   4.5:1): plates, fields, cards and help tags gain a #949494 frame, and a
+   hot toolbar button or row the same (every Puppertino edge is below 1.5:1
+   on white); muted text is #00000090 (#00000080 is 3.7:1 on a pressed
+   plate); the accent push button, badge and links are #0069f9 (white on
+   the accent #0088ff is 3.5:1; Puppertino's menu selection blue passes)
+   and the accent button presses to #005bd9; the focus ring is the opaque
+   #0069f9 (Puppertino's #0088ff80 halo is under 3:1 on a plate), white on
+   the accent; a pressed check box is #00000029 (muted text on
+   Puppertino's #00000030 is 4.4:1). Disabled text keeps Puppertino's tertiary #00000040:
+   disabled controls are exempt. */
+
+* {
+  color: #000000d9;
+  muted-color: #00000090;
+  glyph-color: #000000d9;
+  outline-color: #0069f9;
+  default-outline: 1px #0069f9;
+}
+
+:family(window), :family(panel) {
+  background: #ffffff;
+  border: 1px solid #0000001f;
+  border-radius: 0;
+}
+:family(card) {
+  background: #00000004;
+  border: 1px solid #949494;
+  border-radius: 12px;
+}
+:family(notice) {
+  background: #00000004;
+  border: 1px solid #ffffff00;
+  border-radius: 12px;
+}
+:family(tool-tip) {
+  background: #ececece0;
+  border: 1px solid #949494;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px #00000033, 0 0 2px #00000066;
+  color: #1a1a1a;
+  glyph-color: #1a1a1a;
+}
+:family(window):state(selected), :family(panel):state(selected), :family(card):state(selected),
+:family(notice):state(selected), :family(tool-tip):state(selected) {
+  background: #00000024;
+  border-color: #949494;
+}
+
+:family(button) {
+  background: #00000014;
+  border: 1px solid #949494;
+  border-radius: 6px;
+}
+:family(button):hover {
+  background: #0000001c;
+}
+:family(button):active, :family(button):state(selected) {
+  background: #00000029;
+}
+:family(button):state(pending), :family(choice):state(pending) {
+  border-color: #8a6100;
+}
+:family(button):invalid, :family(choice):invalid {
+  border-color: #d6513c;
+}
+:family(button):disabled {
+  background: #0000000a;
+  border-color: #0000001f;
+}
+
+/* Check and radio boxes: Puppertino's #0000001a box with 5-unit corners;
+   checked, the mark takes the accent (the box's fill would lie under the
+   label too). */
+:family(choice) {
+  background: #0000001a;
+  border: 1px solid #949494;
+  border-radius: 5px;
+}
+:family(choice):active {
+  background: #00000029;
+}
+:family(choice):state(selected) {
+  glyph-color: #0069f9;
+}
+:family(choice):disabled {
+  background: #0000000d;
+  border-color: #0000001f;
+}
+
+:family(accent-button) {
+  background: #0069f9;
+  border: 1px solid #0069f9;
+  border-radius: 6px;
+  color: #ffffff;
+  muted-color: #ffffff;
+  glyph-color: #ffffff;
+  outline-color: #ffffff;
+}
+:family(accent-button):active {
+  background: #005bd9;
+  border-color: #005bd9;
+}
+:family(accent-button):state(pending) {
+  border-color: #8a6100;
+}
+:family(accent-button):invalid {
+  border-color: #d6513c;
+}
+:family(accent-button):disabled {
+  background: #0069f966;
+  border-color: #0069f900;
+  color: #ffffff80;
+  muted-color: #ffffff80;
+  glyph-color: #ffffff80;
+  outline-color: #0069f9;
+}
+
+/* Toolbar buttons: Puppertino's capsules, clear at rest, #0000001a hot. */
+:family(command-button) {
+  background: #ffffff00;
+  border: 1px solid #ffffff00;
+  border-radius: 14px;
+}
+:family(command-button):hover {
+  background: #0000001a;
+  border-color: #949494;
+}
+:family(command-button):active, :family(command-button):state(selected) {
+  background: #00000029;
+  border-color: #949494;
+}
+
+:family(editor) {
+  background: #ffffff;
+  border: 1px solid #949494;
+  border-radius: 6px;
+  box-shadow: 0 0.5px 2.5px #0000004d;
+}
+:family(editor):active {
+  border-color: #007aff;
+}
+:family(editor):state(pending) {
+  border-color: #8a6100;
+}
+:family(editor):invalid {
+  border-color: #d6513c;
+}
+:family(editor):disabled {
+  background: #ffffff80;
+  border-color: #0000000a;
+  box-shadow: none;
+}
+
+:family(progress) {
+  background: #00000016;
+  border: 1px solid #ffffff00;
+  border-radius: 3px;
+}
+:family(progress):state(selected) {
+  background: #0088ff;
+  color: #000000;
+  muted-color: #000000;
+  glyph-color: #000000;
+}
+:family(progress):disabled, :family(progress):state(selected):disabled {
+  background: #0000000d;
+}
+
+:family(menu-item), :family(selection) {
+  background: #ffffff00;
+  border: 1px solid #ffffff00;
+  border-radius: 6px;
+}
+:family(menu-item):hover, :family(menu-item):active, :family(menu-item):state(selected) {
+  background: #0069f9;
+  border-color: #0069f9;
+  color: #ffffff;
+  muted-color: #ffffff;
+  glyph-color: #ffffff;
+  outline-color: #ffffff;
+}
+:family(selection):hover, :family(selection):active {
+  background: #0000000d;
+  border-color: #949494;
+}
+:family(selection):state(selected) {
+  background: #0165e2;
+  border-color: #0165e2;
+  color: #ffffff;
+  muted-color: #ffffff;
+  glyph-color: #ffffff;
+  outline-color: #ffffff;
+}
+:family(menu-item):state(selected):disabled, :family(selection):state(selected):disabled {
+  background: #00000024;
+  border-color: #ffffff00;
+  outline-color: #0069f9;
+}
+
+:family(link), :family(visited-link) {
+  background: #ffffff00;
+  border: 1px solid #ffffff00;
+  border-radius: 0;
+  color: #0069f9;
+  glyph-color: #0069f9;
+}
+
+:family(badge) {
+  background: #0069f9;
+  border: 1px solid #0069f9;
+  border-radius: 6px;
+  color: #ffffff;
+  muted-color: #ffffff;
+  glyph-color: #ffffff;
+}
+:family(badge):disabled {
+  background: #0000000a;
+  border-color: #ffffff00;
+}
+
+:disabled, :state(selected):disabled {
+  color: #00000040;
+  muted-color: #00000040;
+  glyph-color: #00000040;
+}
+)css";
+
+constexpr std::string_view macos_style_dark_sheet = R"css(/* macos-style, dark: Puppertino 2.0's dark appearance (.p-dark-mode):
+   the elevated background #1c1c1e, translucent white plates (#ffffff12,
+   hot #ffffff1c, pressed #ffffff29), text #ffffffd9, fields #1e1e1e, the
+   list selection #0a6cf0, the menu selection #0069f9, a #ffffff16
+   progress track with the accent fill #0091ff, help tags of #00000080
+   with a #ffffff26 inner rim. The light sheet's shapes stand.
+   Contrast fixes on enabled elements: plates, fields, cards, help tags,
+   hot toolbar buttons and rows gain a #676767 frame (Puppertino's edges
+   are below 1.5:1 on #1c1c1e); muted text is #ffffff8f (#ffffff8c is
+   4.4:1 on a pressed plate); the accent push button and badge are
+   #0a6cf0 (white on the accent #0091ff is 3.2:1; Puppertino's dark list
+   selection passes), pressing to #0a5fd6; a pressed check box is
+   #ffffff29 (the accent mark on #ffffff30 is 2.9:1). Disabled text keeps
+   Puppertino's #ffffff40: disabled controls are exempt. */
+
+* {
+  color: #ffffffd9;
+  muted-color: #ffffff8f;
+  glyph-color: #ffffffd9;
+  outline-color: #0091ff;
+  default-outline: 1px #0091ff;
+}
+
+:family(window), :family(panel) {
+  background: #1c1c1e;
+  border: 1px solid #ffffff1a;
+  border-radius: 0;
+}
+:family(card) {
+  background: #ffffff04;
+  border: 1px solid #676767;
+  border-radius: 12px;
+}
+:family(notice) {
+  background: #ffffff04;
+  border: 1px solid #ffffff00;
+  border-radius: 12px;
+}
+:family(tool-tip) {
+  background: #00000080;
+  border: 1px solid #676767;
+  border-radius: 6px;
+  keylines: #ffffff26;
+  color: #f5f5f5;
+  glyph-color: #f5f5f5;
+}
+:family(window):state(selected), :family(panel):state(selected), :family(card):state(selected),
+:family(notice):state(selected), :family(tool-tip):state(selected) {
+  background: #ffffff24;
+  border-color: #676767;
+}
+
+:family(button) {
+  background: #ffffff12;
+  border: 1px solid #676767;
+  border-radius: 6px;
+}
+:family(button):hover {
+  background: #ffffff1c;
+}
+:family(button):active, :family(button):state(selected) {
+  background: #ffffff29;
+}
+:family(button):state(pending), :family(choice):state(pending) {
+  border-color: #e0a000;
+}
+:family(button):invalid, :family(choice):invalid {
+  border-color: #ff4245;
+}
+:family(button):disabled {
+  background: #ffffff0a;
+  border-color: #ffffff1a;
+}
+
+:family(choice) {
+  background: #ffffff1a;
+  border: 1px solid #676767;
+  border-radius: 5px;
+}
+:family(choice):active {
+  background: #ffffff29;
+}
+:family(choice):state(selected) {
+  glyph-color: #0091ff;
+}
+:family(choice):disabled {
+  background: #ffffff0a;
+  border-color: #ffffff1a;
+}
+
+:family(accent-button) {
+  background: #0a6cf0;
+  border: 1px solid #0a6cf0;
+  border-radius: 6px;
+  color: #ffffff;
+  muted-color: #ffffff;
+  glyph-color: #ffffff;
+  outline-color: #ffffff;
+}
+:family(accent-button):active {
+  background: #0a5fd6;
+  border-color: #0a5fd6;
+}
+:family(accent-button):state(pending) {
+  border-color: #e0a000;
+}
+:family(accent-button):invalid {
+  border-color: #ff4245;
+}
+:family(accent-button):disabled {
+  background: #0a6cf066;
+  border-color: #0a6cf000;
+  color: #ffffff80;
+  muted-color: #ffffff80;
+  glyph-color: #ffffff80;
+  outline-color: #0091ff;
+}
+
+:family(command-button) {
+  background: #ffffff00;
+  border: 1px solid #ffffff00;
+  border-radius: 14px;
+}
+:family(command-button):hover {
+  background: #ffffff17;
+  border-color: #676767;
+}
+:family(command-button):active, :family(command-button):state(selected) {
+  background: #ffffff29;
+  border-color: #676767;
+}
+
+:family(editor) {
+  background: #1e1e1e;
+  border: 1px solid #676767;
+  border-radius: 6px;
+  box-shadow: 0 0.5px 2.5px #0000004d;
+}
+:family(editor):active {
+  border-color: #0091ff;
+}
+:family(editor):state(pending) {
+  border-color: #e0a000;
+}
+:family(editor):invalid {
+  border-color: #ff4245;
+}
+:family(editor):disabled {
+  background: #1e1e1e80;
+  border-color: #ffffff0a;
+  box-shadow: none;
+}
+
+:family(progress) {
+  background: #ffffff16;
+  border: 1px solid #ffffff00;
+  border-radius: 3px;
+}
+:family(progress):state(selected) {
+  background: #0091ff;
+  color: #000000;
+  muted-color: #000000;
+  glyph-color: #000000;
+}
+:family(progress):disabled, :family(progress):state(selected):disabled {
+  background: #ffffff0e;
+}
+
+:family(menu-item), :family(selection) {
+  background: #ffffff00;
+  border: 1px solid #ffffff00;
+  border-radius: 6px;
+}
+:family(menu-item):hover, :family(menu-item):active, :family(menu-item):state(selected) {
+  background: #0069f9;
+  border-color: #0069f9;
+  color: #ffffff;
+  muted-color: #ffffff;
+  glyph-color: #ffffff;
+  outline-color: #ffffff;
+}
+:family(selection):hover, :family(selection):active {
+  background: #ffffff0d;
+  border-color: #676767;
+}
+:family(selection):state(selected) {
+  background: #0a6cf0;
+  border-color: #0a6cf0;
+  color: #ffffff;
+  muted-color: #ffffff;
+  glyph-color: #ffffff;
+  outline-color: #ffffff;
+}
+:family(menu-item):state(selected):disabled, :family(selection):state(selected):disabled {
+  background: #ffffff24;
+  border-color: #ffffff00;
+  outline-color: #0091ff;
+}
+
+:family(link), :family(visited-link) {
+  background: #ffffff00;
+  border: 1px solid #ffffff00;
+  border-radius: 0;
+  color: #0091ff;
+  glyph-color: #0091ff;
+}
+
+:family(badge) {
+  background: #0a6cf0;
+  border: 1px solid #0a6cf0;
+  border-radius: 6px;
+  color: #ffffff;
+  muted-color: #ffffff;
+  glyph-color: #ffffff;
+}
+:family(badge):disabled {
+  background: #ffffff0a;
+  border-color: #ffffff00;
+}
+
+:disabled, :state(selected):disabled {
+  color: #ffffff40;
+  muted-color: #ffffff40;
+  glyph-color: #ffffff40;
+}
+)css";
+
 // What a theme's sheet cannot say: its focus ring (dotted or solid, its
 // width) and whether pressed content moves; and the compatibility colours
 // controls outside the role model read.
@@ -803,11 +1268,14 @@ struct FamiliarStructure final {
     Color visited_link{};
 };
 
-// One theme's description: its id, its floor sheet and its structure.
+// One theme's description: its id, its floor sheet, its dark floor sheet
+// (empty for a light-only theme) and its structure.
 struct FamiliarDescription final {
     std::string_view id{};
     std::string_view sheet{};
     std::string_view file{};
+    std::string_view dark_sheet{};
+    std::string_view dark_file{};
     FamiliarStructure structure{};
 };
 
@@ -880,6 +1348,25 @@ constexpr std::array<FamiliarDescription, familiar_theme_count> descriptions{{
                    .accent_light = Color::rgba(204, 232, 255),
                    .link = Color::rgba(0, 102, 204),
                    .visited_link = Color::rgba(128, 0, 128)}},
+    {.id = "macos-style",
+     .sheet = macos_style_sheet,
+     .file = "macos-style/floor.css",
+     .dark_sheet = macos_style_dark_sheet,
+     .dark_file = "macos-style/floor-dark.css",
+     .structure = {.dotted_focus = false,
+                   .focus_width = 2.0,
+                   .pressed_content_offset = Point{},
+                   .face = Color::rgba(235, 235, 235),
+                   .face_light = Color::rgba(255, 255, 255),
+                   .paper = Color::rgba(255, 255, 255),
+                   .border = Color::rgba(148, 148, 148),
+                   .dark_border = Color::rgba(148, 148, 148),
+                   .text = Color::rgba(38, 38, 38),
+                   .disabled_text = Color::rgba(191, 191, 191),
+                   .accent = Color::rgba(0, 105, 249),
+                   .accent_light = Color::rgba(214, 214, 214),
+                   .link = Color::rgba(0, 105, 249),
+                   .visited_link = Color::rgba(0, 105, 249)}},
 }};
 
 // The recipe the sheet's fields are evaluated onto: the theme's focus
@@ -919,9 +1406,28 @@ FamiliarThemeBuild build_familiar_theme(const FamiliarDescription& description) 
         detail::evaluate_floor_sheet(description.file, description.sheet, recipe_structure(structure), *definition);
     result.diagnostics = std::move(evaluated.diagnostics);
     result.compile_operations = evaluated.operations;
-    // Light only (the header): the ordinary records serve a dark context.
+    // Light only unless the theme has a dark sheet (the header): then the
+    // dark sheet is evaluated the same way onto a copy of the definition,
+    // and its ordinary and selected records become the theme's authored
+    // dark ones. A refused dark sheet leaves the theme light only.
     (*definition).dark_variant = ThemeDarkVariant::none;
     (*definition).colour_schemes = ColourSchemeSet{.light = true, .dark = false};
+    if (!description.dark_sheet.empty()) {
+        const std::unique_ptr<ThemeDefinition> dark = std::make_unique<ThemeDefinition>(*definition);
+        detail::FloorSheetEvaluation dark_evaluated = detail::evaluate_floor_sheet(
+            description.dark_file, description.dark_sheet, recipe_structure(structure), *dark);
+        result.diagnostics.insert(result.diagnostics.end(), dark_evaluated.diagnostics.begin(),
+                                  dark_evaluated.diagnostics.end());
+        result.compile_operations += dark_evaluated.operations;
+        if (dark_evaluated.evaluated) {
+            for (std::size_t index = 0U; index < control_visual_role_count; ++index) {
+                (*definition).roles[index].dark = (*dark).roles[index].ordinary;
+                (*definition).roles[index].dark_selected = (*dark).roles[index].selected;
+            }
+            (*definition).dark_variant = ThemeDarkVariant::authored;
+            (*definition).colour_schemes = ColourSchemeSet{.light = true, .dark = true};
+        }
+    }
     result.theme = Theme::create(*definition);
     const std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     result.build_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
@@ -946,6 +1452,10 @@ const FamiliarThemeBuild& windows7_style_build() {
     static const FamiliarThemeBuild build = build_familiar_theme(descriptions[3]);
     return build;
 }
+const FamiliarThemeBuild& macos_style_build() {
+    static const FamiliarThemeBuild build = build_familiar_theme(descriptions[4]);
+    return build;
+}
 
 } // namespace
 
@@ -968,11 +1478,18 @@ std::string_view familiar_theme_floor_sheet(FamiliarTheme theme) noexcept {
     return descriptions[index].sheet;
 }
 
+std::string_view familiar_theme_dark_floor_sheet(FamiliarTheme theme) noexcept {
+    const std::size_t index = static_cast<std::size_t>(theme);
+    if (index >= familiar_theme_count) return {};
+    return descriptions[index].dark_sheet;
+}
+
 const FamiliarThemeBuild& familiar_theme_build(FamiliarTheme theme) {
     switch (theme) {
     case FamiliarTheme::modern_flat: return modern_flat_build();
     case FamiliarTheme::xp_style: return xp_style_build();
     case FamiliarTheme::windows7_style: return windows7_style_build();
+    case FamiliarTheme::macos_style: return macos_style_build();
     case FamiliarTheme::classic:
     case FamiliarTheme::count:
     // A value outside the themes (a caller's error, the header) is the

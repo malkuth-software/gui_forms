@@ -377,7 +377,7 @@ void measure_theme_contrast(const Theme& theme, std::vector<ContrastRow>& rows) 
     };
     const std::array<Presentation, 3> presentations{
         Presentation{false, false}, Presentation{false, true}, Presentation{true, false}};
-    const bool measures_dark = theme.definition().dark_variant == ThemeDarkVariant::derived;
+    const bool measures_dark = theme.definition().dark_variant != ThemeDarkVariant::none;
     const std::array<bool, 2> selections{false, true};
     for (const Presentation& presentation : presentations) {
         if (presentation.dark && !measures_dark) continue;

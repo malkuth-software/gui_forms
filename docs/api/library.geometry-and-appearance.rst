@@ -1085,7 +1085,7 @@ Types
 
    .. cpp:member:: std::array<ControlVisualRecipe, control_surface_state_count> dark
 
-      The dark variant's records (stage T4 phase 5): derived from the ordinary and selected ones when the theme asks for a derived dark variant (ThemeDefinition::dark_variant), otherwise copies of them. Theme::create fills them; authored values are replaced.
+      The dark variant's records (stage T4 phase 5): derived from the ordinary and selected ones when the theme asks for a derived dark variant (ThemeDefinition::dark_variant), kept as written when it asks for an authored one, otherwise copies of them. Theme::create fills them; authored values are replaced.
 
    .. cpp:member:: std::array<ControlVisualRecipe, control_surface_state_count> dark_selected
 
@@ -5853,6 +5853,8 @@ Enumerations
 
    .. cpp:enumerator:: windows7_style
 
+   .. cpp:enumerator:: macos_style
+
    .. cpp:enumerator:: count
 
 .. cpp:namespace:: gui_forms
@@ -6811,6 +6813,8 @@ Enumerations
 
    .. cpp:enumerator:: derived
 
+   .. cpp:enumerator:: authored
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: ThemeDiagnosticSeverity
@@ -7718,7 +7722,7 @@ Functions, constants and aliases
 
 .. cpp:function:: std::string_view familiar_theme_id(FamiliarTheme theme) noexcept
 
-   The theme's id (``classic``, ``modern-flat``, ``xp-style``, ``windows7-style``); empty for ``count``.
+   The theme's id (``classic``, ``modern-flat``, ``xp-style``, ``windows7-style``, ``macos-style``); empty for ``count``.
 
 .. cpp:function:: std::optional<FamiliarTheme> familiar_theme_named(std::string_view id) noexcept
 
@@ -7727,6 +7731,10 @@ Functions, constants and aliases
 .. cpp:function:: std::string_view familiar_theme_floor_sheet(FamiliarTheme theme) noexcept
 
    The theme's floor sheet (``<id>/floor.css`` in diagnostics). Static storage; empty for ``count``.
+
+.. cpp:function:: std::string_view familiar_theme_dark_floor_sheet(FamiliarTheme theme) noexcept
+
+   The theme's dark floor sheet (``<id>/floor-dark.css``), whose records the theme's dark colour scheme resolves (ThemeDarkVariant::authored). Static storage; empty for a light-only theme and for ``count``.
 
 .. cpp:function:: const FamiliarThemeBuild& familiar_theme_build(FamiliarTheme theme)
 

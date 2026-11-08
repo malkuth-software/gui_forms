@@ -13,21 +13,24 @@
 
 namespace gui_forms {
 
-// The Windows-familiar themes (stage T4, phase 7; owner decisions of
-// 2026-10-13): looks a Windows user recognises, recreated in the theme
-// language, never Microsoft's bitmaps. Literal Windows rendering (raised
-// buttons, sunken cells) lives only in these themes. Each is a floor sheet
-// of `:family()` blocks (as the default theme's), evaluated once into its
-// recipes over a structure-only recipe; none has a parts sheet, so parts
-// the engine paints draw from those recipes. Each follows its visual
-// reference where the engine can express it: 7.css for windows7-style,
-// XP.css for xp-style and its Windows 98 sheet for classic. A reference
-// value an enabled control would draw below the contrast gate (4.5:1
-// text, 3:1 boundaries, glyphs and focus) is darkened to meet it, and the
-// sheet says so; disabled controls are exempt (WCAG's inactive
-// components), so they keep the references' values. They are light
-// only; high contrast is derived from the role model, as for every theme. `windows-professional` (windows_professional_theme)
-// stays the Windows-familiar theme it was.
+// The familiar themes (stage T4, phase 7; owner decisions of 2026-10-13
+// and 2026-11-08): looks a Windows or macOS user recognises, recreated in
+// the theme language, never the vendors' bitmaps. Literal Windows
+// rendering (raised buttons, sunken cells) lives only in these themes.
+// Each is a floor sheet of `:family()` blocks (as the default theme's),
+// evaluated once into its recipes over a structure-only recipe; none has a
+// parts sheet, so parts the engine paints draw from those recipes. Each
+// follows its visual reference where the engine can express it: 7.css for
+// windows7-style, XP.css for xp-style and its Windows 98 sheet for
+// classic, Puppertino for macos-style. A reference value an enabled
+// control would draw below the contrast gate (4.5:1 text, 3:1 boundaries,
+// glyphs and focus) is changed to meet it, and the sheet says so; disabled
+// controls are exempt (WCAG's inactive components), so they keep the
+// references' values. The Windows-familiar themes are light only (a dark
+// colour scheme resolves their light records); macos-style has a dark
+// floor sheet too, from Puppertino's dark appearance. High contrast is
+// derived from the role model, as for every theme. `windows-professional`
+// (windows_professional_theme) stays the Windows-familiar theme it was.
 enum class FamiliarTheme : std::uint8_t {
     // `classic`: the Windows 98 look, procedural bevels on #C0C0C0.
     classic,
@@ -39,13 +42,16 @@ enum class FamiliarTheme : std::uint8_t {
     // `windows7-style`: an Aero-like look; its window glass waits for T5,
     // and until then its windows are opaque.
     windows7_style,
+    // `macos-style`: a macOS-like look after Puppertino, translucent plates
+    // with round corners, light and dark.
+    macos_style,
     count,
 };
 
 inline constexpr std::size_t familiar_theme_count = static_cast<std::size_t>(FamiliarTheme::count);
 
-// The theme's id (`classic`, `modern-flat`, `xp-style`, `windows7-style`);
-// empty for `count`.
+// The theme's id (`classic`, `modern-flat`, `xp-style`, `windows7-style`,
+// `macos-style`); empty for `count`.
 [[nodiscard]] std::string_view familiar_theme_id(FamiliarTheme theme) noexcept;
 
 // The theme `id` names, or none.
@@ -54,6 +60,11 @@ inline constexpr std::size_t familiar_theme_count = static_cast<std::size_t>(Fam
 // The theme's floor sheet (`<id>/floor.css` in diagnostics). Static
 // storage; empty for `count`.
 [[nodiscard]] std::string_view familiar_theme_floor_sheet(FamiliarTheme theme) noexcept;
+
+// The theme's dark floor sheet (`<id>/floor-dark.css`), whose records the
+// theme's dark colour scheme resolves (ThemeDarkVariant::authored).
+// Static storage; empty for a light-only theme and for `count`.
+[[nodiscard]] std::string_view familiar_theme_dark_floor_sheet(FamiliarTheme theme) noexcept;
 
 // A built theme and what building it measured. When the floor sheet is
 // refused, `theme` keeps windows-professional's recipes under the theme's

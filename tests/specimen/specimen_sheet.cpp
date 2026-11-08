@@ -5,7 +5,7 @@
 // contrast at scales 1 and 2, written as contact sheets with a hash
 // manifest, and with the contrast measured in pixels where text sits.
 //
-//   gui_forms_specimen_sheet --out <directory> [--repeat] [--theme <gui-forms|classic|modern-flat|xp-style|windows7-style>] [--light]
+//   gui_forms_specimen_sheet --out <directory> [--repeat] [--theme <gui-forms|classic|modern-flat|xp-style|windows7-style|macos-style>] [--light]
 //   gui_forms_specimen_sheet --smoke
 //
 // The Gallery's own theme (windows-professional) is drawn unless --theme
@@ -894,12 +894,12 @@ int main(int argument_count, char** arguments) {
             options.out = std::filesystem::path(arguments[index + 1]);
             ++index;
         } else {
-            std::cerr << "usage: gui_forms_specimen_sheet (--out <directory> [--repeat] [--theme <gui-forms|classic|modern-flat|xp-style|windows7-style>] [--light] | --smoke)\n";
+            std::cerr << "usage: gui_forms_specimen_sheet (--out <directory> [--repeat] [--theme <gui-forms|classic|modern-flat|xp-style|windows7-style|macos-style>] [--light] | --smoke)\n";
             return 2;
         }
     }
     if (!options.smoke && options.out.empty()) {
-        std::cerr << "usage: gui_forms_specimen_sheet (--out <directory> [--repeat] [--theme <gui-forms|classic|modern-flat|xp-style|windows7-style>] [--light] | --smoke)\n";
+        std::cerr << "usage: gui_forms_specimen_sheet (--out <directory> [--repeat] [--theme <gui-forms|classic|modern-flat|xp-style|windows7-style|macos-style>] [--light] | --smoke)\n";
         return 2;
     }
     if (!options.out.empty()) std::filesystem::create_directories(options.out);

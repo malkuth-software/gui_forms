@@ -27,15 +27,18 @@ a dark window, so a package on `gui-forms` writes no dark values of its own.
 The built-in themes are themselves sheets. `gui-forms` draws its control
 families from a floor sheet (`gui_forms_floor_sheet()`) of `:family()`
 blocks, read once into its recipes when the theme is first built. The
-Windows-familiar themes are made the same way: `familiar_theme(FamiliarTheme)`
-returns `classic` (Windows 98 bevels), `modern-flat`, `xp-style` (Luna-like)
-or `windows7-style` (Aero-like, opaque until glass arrives), each light only,
-with high contrast derived as for every theme. Each follows its visual
-reference wherever the engine can express it: 7.css
-(https://khang-nd.github.io/7.css/) for `windows7-style` and XP.css
+familiar themes are made the same way: `familiar_theme(FamiliarTheme)`
+returns `classic` (Windows 98 bevels), `modern-flat`, `xp-style` (Luna-like),
+`windows7-style` (Aero-like, opaque until glass arrives), each light only,
+or `macos-style` (macOS-like, light and dark: its dark colour scheme
+resolves a second floor sheet, `familiar_theme_dark_floor_sheet()`, as an
+authored dark variant), with high contrast derived as for every theme.
+Each follows its visual reference wherever the engine can express it:
+7.css (https://khang-nd.github.io/7.css/) for `windows7-style`, XP.css
 (https://botoxparty.github.io/XP.css/, which also covers Windows 98) for
-`xp-style` and `classic`. A reference value that an enabled control would
-draw below the contrast gate is darkened to meet it, and each sheet's
+`xp-style` and `classic`, and Puppertino (https://puppertino.com/) for
+`macos-style`. A reference value that an enabled control would
+draw below the contrast gate is changed to meet it, and each sheet's
 comment names it. Disabled text and disabled controls' boundaries are
 exempt from the gate, as WCAG exempts inactive components, so every theme
 keeps its disabled colours. They are themes a window may

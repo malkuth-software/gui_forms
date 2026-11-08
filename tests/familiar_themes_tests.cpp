@@ -1,8 +1,9 @@
-// The Windows-familiar themes (stage T4, phase 7): each floor sheet
-// compiles with no diagnostics within the work bound and round-trips to
-// identical bytes; each theme carries its id, is built once, passes every
-// gated contrast pair in light and high contrast, and resolves its own
-// recipes, unlike the others'; the ids name the themes and nothing else.
+// The familiar themes (stage T4, phase 7): each floor sheet (and dark
+// floor sheet) compiles with no diagnostics within the work bound and
+// round-trips to identical bytes; each theme carries its id, is built
+// once, passes every gated contrast pair in light, dark (macos-style) and
+// high contrast, and resolves its own recipes, unlike the others'; the
+// ids name the themes and nothing else.
 // Disabled text and disabled boundaries are exempt, not gated.
 // With GUI_FORMS_CONTRAST_REPORT_DIRECTORY=<path> it writes each theme's
 // report as <path>/<id>.tsv, for the stage record.
@@ -121,14 +122,22 @@ void each_theme_builds() {
         require(build.compile_operations <= sheet.size() * operations_per_byte_bound,
                 "the compile stays within its work bound");
         round_trip(id, sheet);
+        const std::string_view dark_sheet = familiar_theme_dark_floor_sheet(which);
+        if (!dark_sheet.empty()) round_trip(id, dark_sheet);
+        const bool dark = (*build.theme).definition().dark_variant == ThemeDarkVariant::authored;
+        require(dark == !dark_sheet.empty(), "exactly a theme with a dark sheet has an authored dark variant");
+        require((*build.theme).supports(ColourScheme::dark) == dark,
+                "exactly a theme with a dark sheet offers the dark colour scheme");
     }
+    require(!familiar_theme_dark_floor_sheet(FamiliarTheme::macos_style).empty(), "macos-style has a dark sheet");
     require(!familiar_theme_named("gui-forms"), "the default theme is not a familiar one");
     require(!familiar_theme_named("windows-professional"), "windows-professional keeps its own entry");
     require(familiar_theme_id(FamiliarTheme::count).empty(), "count names no theme");
 }
 
-// Light and high contrast: every gated pair meets its minimum. The themes
-// are light only, so their dark rows are their light ones.
+// Light, dark (for a theme with a dark sheet) and high contrast: every
+// gated pair meets its minimum. A light-only theme is not measured dark:
+// its dark rows are its light ones.
 void each_theme_contrast() {
     const char* const directory = std::getenv("GUI_FORMS_CONTRAST_REPORT_DIRECTORY");
     std::size_t failed = 0U;
@@ -168,6 +177,17 @@ void each_theme_is_its_own() {
     require(classic.dotted_focus, "classic's focus ring is dotted");
     const ControlVisualRecipe& flat = buttons[static_cast<std::size_t>(FamiliarTheme::modern_flat)];
     require(flat.material.keylines.empty() && !flat.dotted_focus, "modern-flat's button is flat, its ring solid");
+    // macos-style's dark records are its dark sheet's; a light-only
+    // theme's dark records are its light ones.
+    ControlVisualContext dark{};
+    dark.dark = true;
+    const std::shared_ptr<const Theme> macos = familiar_theme(FamiliarTheme::macos_style);
+    const ControlVisualRecipe& macos_light = (*macos).resolve(ControlVisualRole::button, resting);
+    const ControlVisualRecipe& macos_dark = (*macos).resolve(ControlVisualRole::button, dark);
+    require(!(macos_dark == macos_light), "macos-style's dark button is not its light one");
+    const std::shared_ptr<const Theme> classic_theme = familiar_theme(FamiliarTheme::classic);
+    require((*classic_theme).resolve(ControlVisualRole::button, dark) == classic,
+            "a light-only theme's dark button is its light one");
 }
 
 } // namespace

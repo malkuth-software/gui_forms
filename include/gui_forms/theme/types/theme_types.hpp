@@ -221,7 +221,8 @@ struct ControlRoleRecipes final {
         high_contrast_selected;
     // The dark variant's records (stage T4 phase 5): derived from the
     // ordinary and selected ones when the theme asks for a derived dark
-    // variant (ThemeDefinition::dark_variant), otherwise copies of them.
+    // variant (ThemeDefinition::dark_variant), kept as written when it
+    // asks for an authored one, otherwise copies of them.
     // Theme::create fills them; authored values are replaced.
     std::array<ControlVisualRecipe, control_surface_state_count> dark;
     std::array<ControlVisualRecipe, control_surface_state_count> dark_selected;
@@ -481,9 +482,11 @@ struct ThemeWindowBackdrop final {
 };
 
 // Whether a theme has a dark variant (stage T4 phase 5): none (a dark
-// colour scheme resolves the ordinary records) or derived from the
-// ordinary records by the dark colour rule (derive_dark_recipes).
-enum class ThemeDarkVariant : std::uint8_t { none, derived };
+// colour scheme resolves the ordinary records), derived from the
+// ordinary records by the dark colour rule (derive_dark_recipes), or
+// authored: the definition's own dark and dark_selected records stand
+// (a familiar theme's dark floor sheet, T4 phase 7).
+enum class ThemeDarkVariant : std::uint8_t { none, derived, authored };
 
 // A theme's whole authored description. Its role recipes are held out of
 // line (ControlRoleTable), so the definition itself is a small value, but
