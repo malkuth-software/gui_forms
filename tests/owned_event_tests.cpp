@@ -645,16 +645,6 @@ public:
     int invocations{};
 };
 
-class CountedTrackBar final : public gf::TrackBar {
-public:
-    explicit CountedTrackBar(gf::StableId id) : gf::TrackBar(std::move(id)) {}
-    void set_value(const double value) override {
-        ++writes;
-        gf::TrackBar::set_value(value);
-    }
-    int writes{};
-};
-
 class DestroyValue final : public gf::Component {
 public:
     explicit DestroyValue(std::unique_ptr<gf::Value<int>>& value) : value_(value) {}
@@ -665,8 +655,10 @@ private:
 
 void test_shared_scalar_state() {
     gf::Value<double> volume(15.0);
-    CountedTrackBar first(gf::StableId("first"));
-    CountedTrackBar second(gf::StableId("second"));
+    // The value is a property view, so each control's one write shows as
+    // one value_changed: observer.changes counts both.
+    gf::TrackBar first(gf::StableId("first"));
+    gf::TrackBar second(gf::StableId("second"));
     StateObserver observer{};
     first.bind(volume);
     second.bind(volume);
@@ -675,11 +667,8 @@ void test_shared_scalar_state() {
     gf::on(first.scroll(), observer, &StateObserver::scroll);
     require(first.value.read() == 15.0 && second.value.read() == 15.0,
             "model must win at bind time");
-    first.writes = 0;
-    second.writes = 0;
     first.value = 20.0;
     require(volume.get() == 20.0 && second.value.read() == 20.0 &&
-                first.writes == 1 && second.writes == 1 &&
                 observer.changes == 2 && observer.inputs == 0,
             "programmatic writes synchronize once without user input or origin reentry");
     std::size_t allocations = 0U;
@@ -1038,7 +1027,7 @@ void test_choice_images_and_section_keyboard() {
     const gf::ImageLoadResult loaded = window.load_bgra32_premultiplied(1U, 1U, 4U, pixel);
     require(static_cast<bool>(loaded), "image fixture must load");
     (*choices).set_items({{.id = 1, .label = "Red", .image = loaded.image, .accessible_name = "Red tile"}});
-    require((*choices).item(0).image() == loaded.image &&
+    require((*choices).item(0).image.read() == loaded.image &&
                 (*choices).item(0).semantic_descriptor().name == "Red tile",
             "choice images and accessible names reach the retained item control");
     const std::shared_ptr<gf::ExpandableSections> sections = gf::make_control<gf::ExpandableSections>(gf::StableId("keyboard-sections"));

@@ -953,7 +953,7 @@ void scrolling() {
     require((*grid).current_cell() == cell_at(10U, 0U) && (*grid).first_displayed_row().value > 0U &&
                 (*grid).displayed_row_end().value > 10U,
             "moving below the displayed rows scrolls them");
-    require(static_cast<std::size_t>((*(*grid).vertical_scroll_bar()).value()) == (*grid).first_displayed_row().value,
+    require(static_cast<std::size_t>((*(*grid).vertical_scroll_bar()).value.read()) == (*grid).first_displayed_row().value,
             "the vertical bar follows the first displayed row");
     require(key(window, PhysicalKey::end) && (*grid).horizontal_scroll_offset() > 0.0,
             "moving to the last column scrolls it into view");
@@ -964,7 +964,7 @@ void scrolling() {
     require(window.dispatch_pointer(wheel) && (*grid).first_displayed_row().value + 3U == before,
             "a wheel notch scrolls three rows");
     window.perform_layout();
-    (*(*grid).vertical_scroll_bar()).set_value(20.0);
+    (*(*grid).vertical_scroll_bar()).value = 20.0;
     require((*grid).first_displayed_row() == row_at(20U), "moving the bar scrolls the rows");
 }
 

@@ -69,7 +69,7 @@ struct TabControlSizeModeCapability {
 // A tab's size: its height across the row, and its width along it in TabSizeMode::fixed (default 120 by 30). A size that is not finite, under 24 by 18 or over 1024 by 1024 throws std::invalid_argument.
 template <typename Declaring>
 struct TabControlItemSizeCapability {
-    PropertyCell<Size, TabControlItemSizeCapability<Declaring>> item_size{120.0, 30.0};
+    PropertyCell<Size, TabControlItemSizeCapability<Declaring>> item_size{Size{120.0, 30.0}};
 
     static void assign(TabControlItemSizeCapability& capability, Size incoming) {
         Declaring& control = static_cast<Declaring&>(capability);

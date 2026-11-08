@@ -242,7 +242,7 @@ void modal_presentation() {
                 recorder.verifications.size() == 2U && !recorder.verifications[1],
             "a verification write goes through the check box and raises verification_changed");
     (*dialog).verification_checked = true;
-    require((*(*dialog).verification_check_box()).checked() && recorder.verifications.size() == 3U,
+    require((*(*dialog).verification_check_box()).checked.read() && recorder.verifications.size() == 3U,
             "the verification state is checked again for the result below");
     (*dialog).set_progress_value(250.0);
     require((*dialog).page().progress_bar && (*(*dialog).page().progress_bar).value == 100.0,

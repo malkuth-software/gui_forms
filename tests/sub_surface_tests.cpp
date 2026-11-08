@@ -58,7 +58,7 @@ public:
     SolidContent(std::shared_ptr<Probe> probe, Color color) : probe_(std::move(probe)), color_(color) {}
     Control::Ptr build_root() override {
         std::shared_ptr<DrawingSurface> surface = std::make_shared<DrawingSurface>(StableId("sub.solid"));
-        (*surface).set_background(color_);
+        (*surface).background = color_;
         const std::lock_guard<std::mutex> lock((*probe_).mutex);
         (*probe_).surface = surface;
         (*probe_).built_on = std::this_thread::get_id();
@@ -84,7 +84,7 @@ public:
         const std::lock_guard<std::mutex> lock((*probe_).mutex);
         const std::shared_ptr<DrawingSurface> surface = (*probe_).surface.lock();
         if (!surface) return;
-        (*surface).set_background(color_);
+        (*surface).background = color_;
         (*probe_).saw_no_window = (*surface).attached_window() == nullptr;
         (*probe_).saw_surface_root = (*surface).attached_surface_root() != nullptr;
         if (SurfaceRoot* const root = (*surface).attached_surface_root()) {

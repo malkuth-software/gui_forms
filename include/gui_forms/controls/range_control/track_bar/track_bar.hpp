@@ -10,12 +10,6 @@
 
 namespace gui_forms {
 
-enum class TrackBarVisualStyle : std::uint8_t {
-    classic,
-    filled,
-    compact,
-};
-
 class TrackBar : public RangeControl, public TrackBarCapabilities<TrackBar> {
 public:
     explicit TrackBar(StableId stable_id);

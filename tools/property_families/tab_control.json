@@ -94,7 +94,7 @@
       "name": "item_size",
       "capability": "TabControlItemSize",
       "value": "Size",
-      "initial": "120.0, 30.0",
+      "initial": "Size{120.0, 30.0}",
       "hooks": "hand",
       "hand": [
         "written configures the strip and invalidates"
