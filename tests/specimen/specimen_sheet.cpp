@@ -5,11 +5,12 @@
 // contrast at scales 1 and 2, written as contact sheets with a hash
 // manifest, and with the contrast measured in pixels where text sits.
 //
-//   gui_forms_specimen_sheet --out <directory> [--repeat] [--theme gui-forms] [--light]
+//   gui_forms_specimen_sheet --out <directory> [--repeat] [--theme <gui-forms|classic|modern-flat|xp-style|windows7-style>] [--light]
 //   gui_forms_specimen_sheet --smoke
 //
 // The Gallery's own theme (windows-professional) is drawn unless --theme
-// names the default theme `gui-forms` (stage T4, phase 3); --light
+// names the default theme `gui-forms` (stage T4, phase 3) or a
+// Windows-familiar theme (phase 7, familiar_theme_named); --light
 // captures light only, at scales 1 and 2.
 //
 // A full run writes, under <directory>, one PNG contact sheet per
@@ -884,16 +885,20 @@ int main(int argument_count, char** arguments) {
         } else if (argument == "--theme" && index + 1 < argument_count && std::string_view(arguments[index + 1]) == "gui-forms") {
             options.theme = gui_forms_theme();
             ++index;
+        } else if (argument == "--theme" && index + 1 < argument_count &&
+                   familiar_theme_named(std::string_view(arguments[index + 1]))) {
+            options.theme = familiar_theme(*familiar_theme_named(std::string_view(arguments[index + 1])));
+            ++index;
         } else if (argument == "--out" && index + 1 < argument_count) {
             options.out = std::filesystem::path(arguments[index + 1]);
             ++index;
         } else {
-            std::cerr << "usage: gui_forms_specimen_sheet (--out <directory> [--repeat] [--theme gui-forms] [--light] | --smoke)\n";
+            std::cerr << "usage: gui_forms_specimen_sheet (--out <directory> [--repeat] [--theme <gui-forms|classic|modern-flat|xp-style|windows7-style>] [--light] | --smoke)\n";
             return 2;
         }
     }
     if (!options.smoke && options.out.empty()) {
-        std::cerr << "usage: gui_forms_specimen_sheet (--out <directory> [--repeat] [--theme gui-forms] [--light] | --smoke)\n";
+        std::cerr << "usage: gui_forms_specimen_sheet (--out <directory> [--repeat] [--theme <gui-forms|classic|modern-flat|xp-style|windows7-style>] [--light] | --smoke)\n";
         return 2;
     }
     if (!options.out.empty()) std::filesystem::create_directories(options.out);

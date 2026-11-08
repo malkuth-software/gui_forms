@@ -32,4 +32,24 @@ struct BuiltInThemeCompilation final {
                                                              std::string_view sheet,
                                                              std::span<const ControlAnatomy> controls);
 
+// What evaluating a floor sheet found (evaluate_floor_sheet): every
+// diagnostic in the order found, the compiler's work, and whether the
+// sheet compiled and so replaced the families' recipes.
+struct FloorSheetEvaluation final {
+    std::vector<ThemeCompileDiagnostic> diagnostics{};
+    std::uint64_t operations{};
+    bool evaluated{};
+};
+
+// Compiles floor sheet `sheet`, named `file` in its diagnostics, onto
+// `definition` (read for the compile) against the stock control types and,
+// when it compiles, replaces every family's recipes in `definition` with
+// the sheet's, evaluated over `structure` (fill_family_recipes; T4 floor
+// sheet, owner option 1). A refused sheet leaves `definition` unchanged.
+// The built-in themes `gui-forms` and the Windows-familiar ones make their
+// floors this way.
+[[nodiscard]] FloorSheetEvaluation evaluate_floor_sheet(std::string_view file, std::string_view sheet,
+                                                        const ControlVisualRecipe& structure,
+                                                        ThemeDefinition& definition);
+
 } // namespace gui_forms::detail

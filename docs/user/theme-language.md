@@ -24,6 +24,15 @@ and may read its colour roles, and its dark variant is derived by rule: the
 package's colours are written in light terms and darken by the same rule in
 a dark window, so a package on `gui-forms` writes no dark values of its own.
 
+The built-in themes are themselves sheets. `gui-forms` draws its control
+families from a floor sheet (`gui_forms_floor_sheet()`) of `:family()`
+blocks, read once into its recipes when the theme is first built. The
+Windows-familiar themes are made the same way: `familiar_theme(FamiliarTheme)`
+returns `classic` (Windows 2000 bevels), `modern-flat`, `xp-style` (Luna-like)
+or `windows7-style` (Aero-like, opaque until glass arrives), each light only,
+with high contrast derived as for every theme. They are themes a window may
+show (`SurfaceRoot::set_theme`, or `ApplicationResources::set_theme` for every window), not bases a package compiles onto.
+
 An application's theme is the base and its packages in order:
 `compile_theme_packages` (and `ApplicationResources::compile_theme_packages`)
 compiles `ThemeCompileOptions::base`, then each package with its imports, as

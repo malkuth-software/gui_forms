@@ -2,12 +2,14 @@
 
 #include "gui_forms/engine/primitive_registry/primitive_registry.hpp"
 #include "gui_forms/theme/gui_forms_theme/gui_forms_theme.hpp"
+#include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
 
 #include "../../image/resource_pixels.hpp"
 #include "../../resources/image_registry/image_registry_access.hpp"
 #include "../../theme_language/compiler/theme_compiler.hpp"
 #include "../../theme_language/package/theme_header.hpp"
 #include "../../theme_language/package/theme_package.hpp"
+#include "../theme/floor_sheet.hpp"
 #include "../theme/theme_access.hpp"
 #include "built_in_theme.hpp"
 #include "control_inline_style.hpp"
@@ -1354,6 +1356,23 @@ detail::BuiltInThemeCompilation detail::compile_built_in_theme(const ThemeDefini
     (*record).requires_engine = current_engine_version;
     std::shared_ptr<const ThemeSourceRecord> kept(std::move(record));
     result.theme = ThemeAccess::create_holding(*definition, {}, std::move(kept));
+    return result;
+}
+
+detail::FloorSheetEvaluation detail::evaluate_floor_sheet(std::string_view file, std::string_view sheet,
+                                                          const ControlVisualRecipe& structure,
+                                                          ThemeDefinition& definition) {
+    FloorSheetEvaluation result{};
+    BuiltInThemeCompilation compiled = compile_built_in_theme(definition, file, sheet, stock_control_anatomies());
+    result.diagnostics = std::move(compiled.diagnostics);
+    result.operations = compiled.operations;
+    if (compiled.theme == nullptr) return result;
+    const CompiledThemeRules& rules = (*compiled.theme).engine().rules();
+    for (std::size_t index = 0U; index < control_visual_role_count; ++index) {
+        const ControlVisualRole role = static_cast<ControlVisualRole>(index);
+        fill_family_recipes(rules, role, structure, definition.roles[index]);
+    }
+    result.evaluated = true;
     return result;
 }
 

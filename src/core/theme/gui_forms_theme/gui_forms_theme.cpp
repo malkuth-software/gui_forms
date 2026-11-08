@@ -2,7 +2,6 @@
 
 #include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
 
-#include "../theme/floor_sheet.hpp"
 #include "../theme_compiler/built_in_theme.hpp"
 
 #include <chrono>
@@ -421,18 +420,10 @@ FloorEvaluation evaluate_floor() {
     definition.compatibility.accent_light = Color::rgba(207, 226, 250);
     // The sheet is compiled onto windows-professional's floor, whose
     // recipes it never reads: only its rules are evaluated.
-    detail::BuiltInThemeCompilation compiled =
-        detail::compile_built_in_theme(definition, floor_sheet_file, floor_sheet, stock_control_anatomies());
-    result.diagnostics = std::move(compiled.diagnostics);
-    result.operations = compiled.operations;
-    if (compiled.theme != nullptr) {
-        const CompiledThemeRules& rules = (*compiled.theme).engine().rules();
-        const ControlVisualRecipe structure = recipe_structure();
-        for (std::size_t index = 0U; index < control_visual_role_count; ++index) {
-            const ControlVisualRole role = static_cast<ControlVisualRole>(index);
-            detail::fill_family_recipes(rules, role, structure, definition.roles[index]);
-        }
-    }
+    detail::FloorSheetEvaluation evaluated =
+        detail::evaluate_floor_sheet(floor_sheet_file, floor_sheet, recipe_structure(), definition);
+    result.diagnostics = std::move(evaluated.diagnostics);
+    result.operations = evaluated.operations;
     // The dark variant, derived by rule (T4 phase 5; design language 5.8).
     definition.dark_variant = ThemeDarkVariant::derived;
     definition.colour_schemes = ColourSchemeSet{.light = true, .dark = true};

@@ -258,6 +258,7 @@ add_library(gui_forms_core STATIC
     src/core/theme/theme/theme.cpp
     src/core/theme/contrast/theme_contrast.cpp
     src/core/theme/dark_variant/dark_variant.cpp
+    src/core/theme/familiar_themes/familiar_themes.cpp
     src/core/theme/gui_forms_theme/gui_forms_theme.cpp
     src/core/theme/stock_anatomies/stock_anatomies.cpp
     src/core/theme/theme_compiler/theme_compiler.cpp
@@ -2867,6 +2868,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_gui_forms_theme_tests tests/gui_forms_theme_tests.cpp)
     target_link_libraries(gui_forms_gui_forms_theme_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_gui_forms_theme_tests COMMAND gui_forms_gui_forms_theme_tests)
+    add_executable(gui_forms_familiar_themes_tests tests/familiar_themes_tests.cpp)
+    target_link_libraries(gui_forms_familiar_themes_tests PRIVATE gui_forms_core)
+    add_test(NAME gui_forms_familiar_themes_tests COMMAND gui_forms_familiar_themes_tests)
     add_executable(gui_forms_owner_draw_tests tests/owner_draw_tests.cpp)
     target_link_libraries(gui_forms_owner_draw_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_owner_draw_tests COMMAND gui_forms_owner_draw_tests)
