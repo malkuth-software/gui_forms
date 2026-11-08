@@ -327,7 +327,7 @@ GalleryTree build_gallery_tree()
     (*document.gallery_collection).select_index(0U);
     SurfaceMaterial backplane;
     backplane.fills = {MaterialFillLayer::solid(backplane_wash)};
-    (*document.gallery_backplane).set_material(std::move(backplane));
+    (*document.gallery_backplane).material = std::move(backplane);
     (*context).collection_drop_ = (*document.gallery_collection).dropped().subscribe(
         Delegate<const std::string&>::bind<GalleryContext, &GalleryContext::collection_dropped>(*context));
 
