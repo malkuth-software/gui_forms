@@ -2,8 +2,9 @@
 // publishing into a LiveSurface its SubSurfaceHost composes (threaded
 // sub-surfaces design note sections 2, 6, 7 and 9), stage S3, input and
 // focus forwarding (section 4), S3.3, tooltips asked of the parent
-// (section 15), S4, effects on a sub-surface (section 14), and S5,
-// accessibility (section 5).
+// (section 15), S4, effects on a sub-surface (section 14), S5,
+// accessibility (section 5), and the host's stopped and pairing_missed
+// notices (decision 6, section 9).
 
 #include "gui_forms/gui_forms.hpp"
 #include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
@@ -475,6 +476,135 @@ void host_in_window() {
     require(!(*host).started(), "leaving the window stops and joins the thread");
     const std::lock_guard<std::mutex> lock((*probe).mutex);
     require((*probe).surface.expired(), "the sub-surface's tree is released");
+}
+
+// What the host's notices raised, in order: written and read on the test's
+// (the window's) thread.
+struct NoticeLog final {
+    std::vector<SubSurfaceStopped> stopped;
+    std::vector<std::uint64_t> pairing_missed;
+};
+
+class RecordStopped final {
+public:
+    explicit RecordStopped(std::shared_ptr<NoticeLog> log) : log_(std::move(log)) {}
+    void operator()(const SubSurfaceStopped& stopped) const { (*log_).stopped.push_back(stopped); }
+
+private:
+    std::shared_ptr<NoticeLog> log_;
+};
+
+class RecordPairingMissed final {
+public:
+    explicit RecordPairingMissed(std::shared_ptr<NoticeLog> log) : log_(std::move(log)) {}
+    void operator()(std::uint64_t epoch) const { (*log_).pairing_missed.push_back(epoch); }
+
+private:
+    std::shared_ptr<NoticeLog> log_;
+};
+
+// A redraw-all update the sub-surface holds until the test releases it, so
+// the epoch it rides publishes no frame in time.
+struct HeldUpdate final : public SubSurfaceContentUpdate {
+    explicit HeldUpdate(std::shared_ptr<std::atomic<bool>> released) : released(std::move(released)) {}
+    std::shared_ptr<std::atomic<bool>> released;
+};
+
+// A solid root whose updates wait for their release (HeldUpdate).
+class HoldingContent final : public SubSurfaceContent {
+public:
+    Control::Ptr build_root() override {
+        std::shared_ptr<DrawingSurface> surface = std::make_shared<DrawingSurface>(StableId("sub.holding"));
+        (*surface).set_background(green);
+        return surface;
+    }
+    void apply_update(SubSurfaceContentUpdate& update) override {
+        HeldUpdate* const held = dynamic_cast<HeldUpdate*>(&update);
+        if (held == nullptr) return;
+        const std::chrono::steady_clock::time_point limit = std::chrono::steady_clock::now() + wait_limit;
+        while (!(*(*held).released).load(std::memory_order_acquire) && std::chrono::steady_clock::now() < limit) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+    }
+};
+
+// Runs the window's posted work until the log holds `stopped` stop notices
+// and `missed` pairing notices.
+[[nodiscard]] bool drain_until_noticed(Window& window, const NoticeLog& log, std::size_t stopped,
+                                       std::size_t missed) {
+    const std::chrono::steady_clock::time_point limit = std::chrono::steady_clock::now() + wait_limit;
+    while (std::chrono::steady_clock::now() < limit) {
+        static_cast<void>(window.drain_posted_work());
+        if (log.stopped.size() >= stopped && log.pairing_missed.size() >= missed) return true;
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    return false;
+}
+
+// Decision 6 and section 9: `stopped` once per thread, for a failure and
+// for a stop the host made, and `pairing_missed` once per epoch presented
+// unpaired; each raised by posted work, never inside the stop or the
+// present that found it.
+void host_notices_stops_and_missed_pairings() {
+    std::shared_ptr<Panel> root = std::make_shared<Panel>(StableId("sub.root"));
+    std::shared_ptr<SubSurfaceHost> host = std::make_shared<SubSurfaceHost>(StableId("sub.host"));
+    (*host).set_requested_bounds(Rect{10.0, 10.0, 40.0, 20.0});
+    std::shared_ptr<NoticeLog> log = std::make_shared<NoticeLog>();
+    SubscriptionToken stopped = (*host).stopped().subscribe(RecordStopped(log));
+    SubscriptionToken missed = (*host).pairing_missed().subscribe(RecordPairingMissed(log));
+    (*host).set_content(std::make_unique<NullContent>(), true);
+    (*root).add_child(host);
+    FillRaster raster;
+    Window window(root, Size{200.0, 100.0});
+    window.set_framebuffer_painter(&raster);
+    window.flush();
+    require(drain_until_noticed(window, *log, 1U, 0U), "a failed content raises stopped");
+    require((*log).stopped[0].state == SubSurfaceState::failed && !(*log).stopped[0].failure.empty(),
+            "stopped names the failure");
+
+    // Replacing the failed content: its end was told already.
+    (*host).set_content(std::make_unique<HoldingContent>(), true);
+    window.flush();
+    static_cast<void>(window.drain_posted_work());
+    require((*log).stopped.size() == 1U, "a noticed failure is not told again when stopped");
+    const std::shared_ptr<LiveSurface> surface = (*host).live_surface();
+    require(static_cast<bool>(surface), "the new content started");
+    const std::uint64_t first = (*host).content_epoch();
+    require(wait_for_content_tag(*surface, first), "the new content publishes");
+    static_cast<void>(window.take_live_surface_presentations(true));
+
+    // An epoch held past the one-frame wait is presented unpaired once and
+    // told once, after the present.
+    std::shared_ptr<std::atomic<bool>> released = std::make_shared<std::atomic<bool>>(false);
+    const std::uint64_t held = (*host).redraw_all(std::make_unique<HeldUpdate>(released));
+    require(held == first + 1U, "the held update rides a new epoch");
+    static_cast<void>(window.take_live_surface_presentations(true));
+    require(window.metrics().snapshot().live_unpaired_presentations == 0U, "the first present waits");
+    static_cast<void>(window.take_live_surface_presentations(true));
+    require(window.metrics().snapshot().live_unpaired_presentations >= 1U, "the second presents unpaired");
+    require((*log).pairing_missed.empty(), "nothing is raised inside the present");
+    require(drain_until_noticed(window, *log, 1U, 1U), "the missed pairing is told by posted work");
+    require((*log).pairing_missed[0] == held, "pairing_missed carries the required epoch");
+    static_cast<void>(window.take_live_surface_presentations(true));
+    static_cast<void>(window.drain_posted_work());
+    require((*log).pairing_missed.size() == 1U, "one notice per epoch");
+    (*released).store(true, std::memory_order_release);
+    require(wait_for_content_tag(*surface, held), "the released epoch publishes");
+
+    // A stop the host makes is told after it, not within it.
+    (*host).set_content(nullptr, true);
+    require((*log).stopped.size() == 1U, "stopped is not raised inside set_content");
+    require(drain_until_noticed(window, *log, 2U, 1U), "the host's stop raises stopped");
+    require((*log).stopped[1].state == SubSurfaceState::stopped && (*log).stopped[1].failure.empty(),
+            "a host stop is stopped, without a failure");
+
+    // A host destroyed before its notice runs raises nothing.
+    (*host).set_content(std::make_unique<HoldingContent>(), true);
+    window.flush();
+    static_cast<void>((*root).remove_child((*host).runtime_id()));
+    host.reset();
+    static_cast<void>(window.drain_posted_work());
+    require((*log).stopped.size() == 2U, "a released host raises nothing");
 }
 
 // Stage S3: input and focus forwarding (design note section 4).
@@ -1996,6 +2126,7 @@ int run_all() {
     new_epochs_are_produced_without_pacing();
     start_stop_stress();
     host_in_window();
+    host_notices_stops_and_missed_pairings();
     caret_falls_back_to_left_edge();
     input_reaches_sub_surface_in_order();
     host_forwards_input_and_focus();

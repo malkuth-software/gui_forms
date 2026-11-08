@@ -46,6 +46,24 @@ private:
     std::weak_ptr<LiveSurfaceIdleWake> state_{};
 };
 
+// Posted to the window's dispatcher when a live surface's frame was
+// presented unpaired: tells the control's listener on the window's thread,
+// after the present, unless the control released it first.
+class NoticePairingMissed final {
+public:
+    NoticePairingMissed(std::weak_ptr<LiveSurfacePairingListener> listener, std::uint64_t content_tag) noexcept
+        : listener_(std::move(listener)), content_tag_(content_tag) {}
+    void operator()() const {
+        const std::shared_ptr<LiveSurfacePairingListener> listener = listener_.lock();
+        if (!listener) return;
+        (*listener).live_surface_pairing_missed(content_tag_);
+    }
+
+private:
+    std::weak_ptr<LiveSurfacePairingListener> listener_;
+    std::uint64_t content_tag_{};
+};
+
 // The window rectangle in which a live surface's newest frame may differ
 // from the frame its presenter last sampled. Only the next generation of the
 // sampled epoch can be narrowed to the frame's own damage, because the damage
@@ -784,6 +802,19 @@ bool Window::require_live_surface_content(const Control::Ptr& control,
     return true;
 }
 
+bool Window::set_live_surface_pairing_listener(const Control::Ptr& control,
+                                               std::weak_ptr<LiveSurfacePairingListener> listener) {
+    require_root_thread("live-surface pairing listener");
+    if (!control) return false;
+    const LiveSurfaceRegistrationMap::iterator entry =
+        live_surface_registrations_.find((*control).runtime_id().value);
+    if (entry == live_surface_registrations_.end()) return false;
+    // The previous listener is released after the swap.
+    std::weak_ptr<LiveSurfacePairingListener> previous = std::move(listener);
+    std::swap((*entry).second.pairing_listener, previous);
+    return true;
+}
+
 void Window::set_live_surface_idle_wake_handler(std::function<void()> wake) {
     require_root_thread("live-surface idle handler");
     std::shared_ptr<detail::LiveSurfaceIdleWake> replacement{};
@@ -1010,7 +1041,18 @@ Window::take_live_surface_presentations(const bool include_unchanged,
                         (*control).runtime_id(), registration.surface,
                         destination, visible_clip, damage_limited, !content_behind});
                 }
-                if (content_behind && !clips.empty()) metrics_.record_live_unpaired_presentation();
+                if (content_behind && !clips.empty()) {
+                    metrics_.record_live_unpaired_presentation();
+                    // Told once per required tag, by a task posted to this
+                    // thread: the listener runs after this present, never
+                    // inside it (a closed dispatcher refuses the post).
+                    const bool untold = registration.required_content_tag > registration.pairing_missed_tag;
+                    if (untold && !registration.pairing_listener.expired()) {
+                        registration.pairing_missed_tag = registration.required_content_tag;
+                        static_cast<void>(dispatcher().begin_invoke(detail::NoticePairingMissed(
+                            registration.pairing_listener, registration.required_content_tag)));
+                    }
+                }
             }
             registration.sampled_epoch = snapshot.epoch;
             registration.sampled_generation = snapshot.published_generation;

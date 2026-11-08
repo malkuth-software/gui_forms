@@ -201,6 +201,22 @@ private:
     std::weak_ptr<SubSurfaceSemanticsListener> target_;
 };
 
+// Posted to the parent's dispatcher when the thread ended on its own:
+// tells the listener on the parent's thread, unless the parent released it
+// first.
+class NoticeEnd final {
+public:
+    explicit NoticeEnd(std::weak_ptr<SubSurfaceEndListener> target) noexcept : target_(std::move(target)) {}
+    void operator()() const {
+        const std::shared_ptr<SubSurfaceEndListener> target = target_.lock();
+        if (!target) return;
+        (*target).sub_surface_ended();
+    }
+
+private:
+    std::weak_ptr<SubSurfaceEndListener> target_;
+};
+
 // How long a frame waits before trying again for a LiveSurface buffer when
 // the presenter holds every one (rare: three buffers by default).
 constexpr std::chrono::milliseconds publish_retry_interval{4};
@@ -303,9 +319,29 @@ void SubSurfaceLoop::run(std::unique_ptr<SubSurfaceLoop> loop) noexcept {
     // stays alive through the copy below.
     const std::shared_ptr<detail::SubSurfaceChannel> channel = (*loop).channel_;
     loop.reset();
-    const std::lock_guard<std::mutex> lock((*channel).mutex);
-    (*channel).state = end;
-    (*channel).failure = std::move(failure);
+    WindowDispatcher parent;
+    std::weak_ptr<SubSurfaceEndListener> target;
+    {
+        const std::lock_guard<std::mutex> lock((*channel).mutex);
+        (*channel).state = end;
+        (*channel).failure = std::move(failure);
+        // Only an end the parent did not ask for is told (a failure while
+        // a stop is requested is the stop's: the parent joins and reads it).
+        if (end == SubSurfaceState::failed && !(*channel).stop_requested) {
+            parent = (*channel).end_dispatcher;
+            target = (*channel).end_listener;
+        }
+    }
+    if (target.expired()) return;
+    // Posted outside the channel's lock (lock order: the parent's dispatcher
+    // is never taken under it). A parent that closed refuses the post, and a
+    // post that cannot allocate is dropped: this thread has nowhere to
+    // report either, and the parent still reads state() and failure().
+    try {
+        static_cast<void>(parent.begin_invoke(NoticeEnd(std::move(target))));
+    } catch (const std::exception&) {
+        return;
+    }
 }
 
 void SubSurfaceLoop::run_tree() {
@@ -780,6 +816,18 @@ std::shared_ptr<const SemanticSnapshot> SubSurfaceThread::take_semantics() {
     const std::lock_guard<std::mutex> lock((*channel_).mutex);
     (*channel_).semantics_notice_pending = false;
     return (*channel_).semantics;
+}
+
+void SubSurfaceThread::set_end_listener(WindowDispatcher parent, std::weak_ptr<SubSurfaceEndListener> target) {
+    if (!target.expired() && !parent.window_alive()) {
+        throw std::invalid_argument("GUI.Forms sub-surface end listener needs a live parent dispatcher");
+    }
+    // The previous dispatcher and target are released after the lock.
+    WindowDispatcher previous_parent = std::move(parent);
+    std::weak_ptr<SubSurfaceEndListener> previous_target = std::move(target);
+    const std::lock_guard<std::mutex> lock((*channel_).mutex);
+    std::swap((*channel_).end_dispatcher, previous_parent);
+    std::swap((*channel_).end_listener, previous_target);
 }
 
 void SubSurfaceThread::stop() noexcept {

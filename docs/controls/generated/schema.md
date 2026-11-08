@@ -3124,7 +3124,10 @@ States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
 Properties beyond every control's: none.
 
-Interactions beyond every control's: none.
+| Interaction | Payload |
+|---|---|
+| `stopped` | `SubSurfaceStopped` |
+| `pairing_missed` | `std::uint64_t` |
 
 ## `easing_preview` (EasingPreview, control)
 

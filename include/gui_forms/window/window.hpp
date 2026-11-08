@@ -14,6 +14,16 @@ class NativePopupToken;
 struct NativePopupOptions;
 
 class Application;
+// Told that a live surface's frame was presented unpaired: older than the
+// content tag its control required (Window::require_live_surface_content),
+// once per required tag. Called on the window's thread only, through the
+// window's dispatcher, never inside the present path that found it; a
+// listener the control released first receives nothing.
+class LiveSurfacePairingListener {
+public:
+    virtual ~LiveSurfacePairingListener() = default;
+    virtual void live_surface_pairing_missed(std::uint64_t content_tag) = 0;
+};
 
 // A top-level window: a SurfaceRoot (its control tree, thread and
 // dispatcher) presented through a native host.
@@ -77,6 +87,12 @@ public:
     // one is ignored. False when `control` has no registration.
     bool require_live_surface_content(const Control::Ptr& control,
                                       std::uint64_t content_tag);
+    // Where the notice of an unpaired presentation of the surface
+    // registered for `control` goes, held weakly; replaces any earlier
+    // listener (an empty one: none). A new surface for the control drops
+    // it. False when `control` has no registration. UI thread.
+    bool set_live_surface_pairing_listener(const Control::Ptr& control,
+                                           std::weak_ptr<LiveSurfacePairingListener> listener);
     // Returns surfaces with a new generation or a changed placement
     // (destination, clip or crossing overlays). Failed native batches request
     // unchanged generations too, with current visibility and overlay clips;
@@ -227,6 +243,10 @@ private:
         // carry, and whether the present tick before already waited for it.
         std::uint64_t required_content_tag{};
         bool pairing_waited{};
+        // Who hears of unpaired presentations, and the newest required tag
+        // already told (one notice per required tag).
+        std::weak_ptr<LiveSurfacePairingListener> pairing_listener{};
+        std::uint64_t pairing_missed_tag{};
     };
     using LiveSurfaceRegistrationMap =
         std::unordered_map<std::uint64_t, LiveSurfaceRegistration>;

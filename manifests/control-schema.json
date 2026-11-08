@@ -7862,7 +7862,9 @@
         {"name": "pointer_preview_observed", "payload": "PointerEvent", "mutable_payload": false},
         {"name": "focus_observed", "payload": "bool", "mutable_payload": false},
         {"name": "arranged_bounds_changed", "payload": "Rect", "mutable_payload": false},
-        {"name": "help_requested", "payload": "HelpRequestEvent", "mutable_payload": true}
+        {"name": "help_requested", "payload": "HelpRequestEvent", "mutable_payload": true},
+        {"name": "stopped", "payload": "SubSurfaceStopped", "mutable_payload": false},
+        {"name": "pairing_missed", "payload": "std::uint64_t", "mutable_payload": false}
       ]
     },
     {
