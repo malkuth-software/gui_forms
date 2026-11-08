@@ -339,6 +339,10 @@ Related types
 
       The application's own control types, beside the stock ones, that a selector may name. Borrowed for the call to create only.
 
+   .. cpp:member:: const EffectRegistry* effects
+
+      The effects the packages' ``effect`` may name (EP-3), usually built_in_effect_registry(); a name it does not hold refuses the theme (E417). Borrowed for the call to create only. Null, only the names' form is checked.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: ApplicationWindow final
@@ -3270,6 +3274,10 @@ Enumerations
    .. cpp:enumerator:: compositor_notifications
 
    .. cpp:enumerator:: presentation_preferences
+
+   .. cpp:enumerator:: transient_surfaces
+
+   .. cpp:enumerator:: opaque_transient_surfaces
 
 .. cpp:namespace:: gui_forms
 

@@ -79,14 +79,14 @@ void test_input_and_rules(gui_forms::Window& window) {
     // row (a top index at the newest line showed that line alone).
     for (std::size_t round = 0U; round < 12U; ++round) press(window, center(target), Modifier::none, 1U);
     window.perform_layout();
-    const std::size_t lines = (*log).items.read().size();
-    require(lines > 40U && find_line(*log, "MouseDown · primary ×1") == down,
+    const std::size_t line_count = (*log).items.read().size();
+    require(line_count > 40U && find_line(*log, "MouseDown · primary ×1") == down,
             "the log appends: earlier events stay in the history");
     const ListBox& list = *log;
     const double row_height = list.item_height.read() * list.effective_text_scale();
     const std::size_t rows = static_cast<std::size_t>(
         std::floor(std::max(0.0, list.arranged_bounds().height - 4.0) / row_height));
-    require(rows > 1U && list.top_index.read() + rows == lines,
+    require(rows > 1U && list.top_index.read() + rows == line_count,
             "the newest line is the bottom row of a full view");
 
     // Arm the rules through the bound check box.

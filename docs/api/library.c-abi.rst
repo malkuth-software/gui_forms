@@ -212,6 +212,8 @@ Types
      -  
    * - :cpp:class:`gf_size <gf_size>`
      - gf_size projects renderer-neutral logical dimensions across the stable C ABI.
+   * - :cpp:class:`gf_splashscreen_options <gf_splashscreen_options>`
+     - gf_splashscreen_options (C ABI 1.1) is what runtime.splashscreen_show shows: PNG artwork whose pixel size is the window's (160 to 1600 per extent), a UTF-8 status line and an optional progress in [0, 1], in fixed built-in styling (owner ruling Q-S1 (a)).
    * - :cpp:class:`gf_string_view <gf_string_view>`
      - gf_string_view is a non-owning bounded byte view; operations validate null/size and UTF-8 rules before copying.
    * - :cpp:class:`gf_subsurface_content <gf_subsurface_content>`
@@ -1865,6 +1867,10 @@ Types
 
    .. cpp:member:: gf_host_capability available
 
+   .. cpp:member:: gf_transient_surface_kind transient_surfaces
+
+   .. cpp:member:: uint32_t reserved
+
 .. cpp:namespace:: 0
 
 .. cpp:struct:: gf_host_table
@@ -2339,7 +2345,7 @@ Types
 
    ``#include <gui_forms/c/gf_abi.h>``
 
-   gf_runtime_table (GF_TABLE_RUNTIME) reports the versions and copies out or clears the calling thread's error detail, from any thread.
+   gf_runtime_table (GF_TABLE_RUNTIME) reports the versions and copies out or clears the calling thread's error detail, from any thread. Since 1.1 it also shows the splashscreen before any object or window (splashscreen_show, set_status, set_progress, close), on the thread that will be the UI thread; the library's first window hands it over.
 
 
    .. rubric:: Methods
@@ -2349,6 +2355,14 @@ Types
    .. cpp:member:: gf_status (*error_detail)(gf_error_detail* detail, char* message_buffer, uint64_t message_capacity, uint64_t* message_required)
 
    .. cpp:member:: gf_status (*clear_error)(void)
+
+   .. cpp:member:: gf_status (*splashscreen_show)(const gf_splashscreen_options* options, gf_splashscreen* splashscreen)
+
+   .. cpp:member:: gf_status (*splashscreen_set_status)(gf_splashscreen splashscreen, gf_utf8_view status)
+
+   .. cpp:member:: gf_status (*splashscreen_set_progress)(gf_splashscreen splashscreen, uint32_t show_progress, double progress)
+
+   .. cpp:member:: gf_status (*splashscreen_close)(gf_splashscreen splashscreen)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -2802,6 +2816,26 @@ Types
    .. cpp:member:: double width
 
    .. cpp:member:: double height
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_splashscreen_options
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   gf_splashscreen_options (C ABI 1.1) is what runtime.splashscreen_show shows: PNG artwork whose pixel size is the window's (160 to 1600 per extent), a UTF-8 status line and an optional progress in [0, 1], in fixed built-in styling (owner ruling Q-S1 (a)).
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t show_progress
+
+   .. cpp:member:: const uint8_t* artwork
+
+   .. cpp:member:: uint64_t artwork_size
+
+   .. cpp:member:: gf_utf8_view status
+
+   .. cpp:member:: double progress
 
 .. cpp:namespace:: 0
 
@@ -3393,6 +3427,14 @@ Types
    .. cpp:function:: gf_status version(gf_abi_version_info* info) const noexcept
 
    .. cpp:function:: gf_status error_detail(gf_error_detail* detail, char* message_buffer, uint64_t message_capacity, uint64_t* message_required) const noexcept
+
+   .. cpp:function:: gf_status splashscreen_show(const gf_splashscreen_options* options, gf_splashscreen* splashscreen) const noexcept
+
+   .. cpp:function:: gf_status splashscreen_set_status(gf_splashscreen splashscreen, gf_utf8_view status) const noexcept
+
+   .. cpp:function:: gf_status splashscreen_set_progress(gf_splashscreen splashscreen, uint32_t show_progress, double progress) const noexcept
+
+   .. cpp:function:: gf_status splashscreen_close(gf_splashscreen splashscreen) const noexcept
 
 .. cpp:namespace:: gui_forms::abi
 

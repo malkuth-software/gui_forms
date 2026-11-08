@@ -64,6 +64,40 @@ public:
         return called;
     }
 
+    [[nodiscard]] gf_status splashscreen_show(const gf_splashscreen_options* options,
+                                              gf_splashscreen* splashscreen) const noexcept {
+        if (table_.struct_size < 40u || table_.splashscreen_show == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.splashscreen_show(options, splashscreen);
+        return called;
+    }
+
+    [[nodiscard]] gf_status splashscreen_set_status(gf_splashscreen splashscreen, gf_utf8_view status) const noexcept {
+        if (table_.struct_size < 48u || table_.splashscreen_set_status == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.splashscreen_set_status(splashscreen, status);
+        return called;
+    }
+
+    [[nodiscard]] gf_status splashscreen_set_progress(gf_splashscreen splashscreen, uint32_t show_progress,
+                                                      double progress) const noexcept {
+        if (table_.struct_size < 56u || table_.splashscreen_set_progress == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.splashscreen_set_progress(splashscreen, show_progress, progress);
+        return called;
+    }
+
+    [[nodiscard]] gf_status splashscreen_close(gf_splashscreen splashscreen) const noexcept {
+        if (table_.struct_size < 64u || table_.splashscreen_close == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.splashscreen_close(splashscreen);
+        return called;
+    }
+
 private:
     gf_runtime_table table_;
 };

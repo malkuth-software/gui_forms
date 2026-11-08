@@ -40,7 +40,7 @@ Semantic actions: `focus`, `press`, `select`, `increment`, `decrement`, `expand`
 
 Semantic states: `enabled`, `visible`, `focusable`, `focused`, `selected`, `checked`, `mixed`, `read_only`, `expanded`, `busy`, `protected_content`, `invalid`, `checkable`, `multiselectable`.
 
-Semantic node fields: `position_in_set`, `set_size`, `has_popup`, `controlled_panel`, `orientation`, `level`, `modal`, `row_index`, `column_index`, `row_count`, `column_count`, `access_key`, `small_step`, `large_step`, `text_selection`, `multiline`, `tool_tip`, `announces_on_appearance`.
+Semantic node fields: `position_in_set`, `set_size`, `has_popup`, `controlled_panel`, `orientation`, `level`, `modal`, `row_index`, `column_index`, `row_count`, `column_count`, `access_key`, `small_step`, `large_step`, `text_selection`, `multiline`, `tool_tip`.
 
 ## Engine
 

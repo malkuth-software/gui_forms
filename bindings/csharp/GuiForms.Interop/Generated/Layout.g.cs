@@ -41,14 +41,29 @@ public static unsafe class Layout
             failures += expect(output, "gf_error_detail.message_size offset", (long)((byte*)&value.message_size - start), 16);
         }
         {
+            gf_splashscreen_options value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_splashscreen_options size", sizeof(gf_splashscreen_options), 48);
+            failures += expect(output, "gf_splashscreen_options.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_splashscreen_options.show_progress offset", (long)((byte*)&value.show_progress - start), 4);
+            failures += expect(output, "gf_splashscreen_options.artwork offset", (long)((byte*)&value.artwork - start), 8);
+            failures += expect(output, "gf_splashscreen_options.artwork_size offset", (long)((byte*)&value.artwork_size - start), 16);
+            failures += expect(output, "gf_splashscreen_options.status offset", (long)((byte*)&value.status - start), 24);
+            failures += expect(output, "gf_splashscreen_options.progress offset", (long)((byte*)&value.progress - start), 40);
+        }
+        {
             gf_runtime_table value = default;
             byte* start = (byte*)&value;
-            failures += expect(output, "gf_runtime_table size", sizeof(gf_runtime_table), 32);
+            failures += expect(output, "gf_runtime_table size", sizeof(gf_runtime_table), 64);
             failures += expect(output, "gf_runtime_table.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
             failures += expect(output, "gf_runtime_table.abi_minor offset", (long)((byte*)&value.abi_minor - start), 4);
             failures += expect(output, "gf_runtime_table.version offset", (long)((byte*)&value.version - start), 8);
             failures += expect(output, "gf_runtime_table.error_detail offset", (long)((byte*)&value.error_detail - start), 16);
             failures += expect(output, "gf_runtime_table.clear_error offset", (long)((byte*)&value.clear_error - start), 24);
+            failures += expect(output, "gf_runtime_table.splashscreen_show offset", (long)((byte*)&value.splashscreen_show - start), 32);
+            failures += expect(output, "gf_runtime_table.splashscreen_set_status offset", (long)((byte*)&value.splashscreen_set_status - start), 40);
+            failures += expect(output, "gf_runtime_table.splashscreen_set_progress offset", (long)((byte*)&value.splashscreen_set_progress - start), 48);
+            failures += expect(output, "gf_runtime_table.splashscreen_close offset", (long)((byte*)&value.splashscreen_close - start), 56);
         }
         {
             gf_logical_point value = default;
@@ -470,10 +485,12 @@ public static unsafe class Layout
         {
             gf_host_capabilities value = default;
             byte* start = (byte*)&value;
-            failures += expect(output, "gf_host_capabilities size", sizeof(gf_host_capabilities), 16);
+            failures += expect(output, "gf_host_capabilities size", sizeof(gf_host_capabilities), 24);
             failures += expect(output, "gf_host_capabilities.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
             failures += expect(output, "gf_host_capabilities.protocol_version offset", (long)((byte*)&value.protocol_version - start), 4);
             failures += expect(output, "gf_host_capabilities.available offset", (long)((byte*)&value.available - start), 8);
+            failures += expect(output, "gf_host_capabilities.transient_surfaces offset", (long)((byte*)&value.transient_surfaces - start), 16);
+            failures += expect(output, "gf_host_capabilities.reserved offset", (long)((byte*)&value.reserved - start), 20);
         }
         {
             gf_file_filter value = default;

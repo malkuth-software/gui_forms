@@ -209,6 +209,21 @@
       "type": "uint32"
     },
     {
+      "name": "GF_SPLASHSCREEN_MAXIMUM_STATUS_BYTES",
+      "value": 512,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SPLASHSCREEN_MINIMUM_EXTENT",
+      "value": 160,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SPLASHSCREEN_MAXIMUM_EXTENT",
+      "value": 1600,
+      "type": "uint32"
+    },
+    {
       "name": "GF_OBJECT_STATE_ALIVE",
       "value": 0,
       "type": "uint32"
@@ -777,6 +792,36 @@
       "name": "GF_HOST_CAPABILITY_WINDOWS_PAINT_ENDPOINT",
       "value": 4294967296,
       "type": "uint64"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_TRANSIENT_SURFACES",
+      "value": 8589934592,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_TRANSIENT_SURFACE_TOOLTIP",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_TRANSIENT_SURFACE_SPLASHSCREEN",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_TRANSIENT_SURFACE_POPUP",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_TRANSIENT_SURFACE_TRANSLUCENT",
+      "value": 8,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_TRANSIENT_SURFACE_OPAQUE",
+      "value": 16,
+      "type": "uint32"
     },
     {
       "name": "GF_POINTER_CURSOR_ARROW",
@@ -1373,6 +1418,10 @@
       "type": "uint64_t"
     },
     {
+      "name": "gf_splashscreen",
+      "type": "uint64_t"
+    },
+    {
       "name": "gf_object_state",
       "type": "uint32_t"
     },
@@ -1451,6 +1500,10 @@
     {
       "name": "gf_host_capability",
       "type": "uint64_t"
+    },
+    {
+      "name": "gf_transient_surface_kind",
+      "type": "uint32_t"
     },
     {
       "name": "gf_pointer_cursor",
@@ -1666,9 +1719,53 @@
       ]
     },
     {
+      "name": "gf_splashscreen_options",
+      "kind": "extensible",
+      "size": 48,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "show_progress",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "artwork",
+          "type": "const uint8_t*",
+          "offset": 8,
+          "size": 8
+        },
+        {
+          "name": "artwork_size",
+          "type": "uint64_t",
+          "offset": 16,
+          "size": 8
+        },
+        {
+          "name": "status",
+          "type": "gf_utf8_view",
+          "offset": 24,
+          "size": 16
+        },
+        {
+          "name": "progress",
+          "type": "double",
+          "offset": 40,
+          "size": 8
+        }
+      ]
+    },
+    {
       "name": "gf_runtime_table",
       "kind": "table",
-      "size": 32,
+      "size": 64,
       "align": 8,
       "fields": [
         {
@@ -1737,6 +1834,86 @@
             "parameters": []
           },
           "since": "1.0"
+        },
+        {
+          "name": "splashscreen_show",
+          "type": "function",
+          "offset": 32,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "options",
+                "type": "const gf_splashscreen_options*"
+              },
+              {
+                "name": "splashscreen",
+                "type": "gf_splashscreen*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "splashscreen_set_status",
+          "type": "function",
+          "offset": 40,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "splashscreen",
+                "type": "gf_splashscreen"
+              },
+              {
+                "name": "status",
+                "type": "gf_utf8_view"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "splashscreen_set_progress",
+          "type": "function",
+          "offset": 48,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "splashscreen",
+                "type": "gf_splashscreen"
+              },
+              {
+                "name": "show_progress",
+                "type": "uint32_t"
+              },
+              {
+                "name": "progress",
+                "type": "double"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "splashscreen_close",
+          "type": "function",
+          "offset": 56,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "splashscreen",
+                "type": "gf_splashscreen"
+              }
+            ]
+          },
+          "since": "1.1"
         }
       ]
     },
@@ -4596,7 +4773,7 @@
     {
       "name": "gf_host_capabilities",
       "kind": "extensible",
-      "size": 16,
+      "size": 24,
       "align": 8,
       "fields": [
         {
@@ -4616,6 +4793,18 @@
           "type": "gf_host_capability",
           "offset": 8,
           "size": 8
+        },
+        {
+          "name": "transient_surfaces",
+          "type": "gf_transient_surface_kind",
+          "offset": 16,
+          "size": 4
+        },
+        {
+          "name": "reserved",
+          "type": "uint32_t",
+          "offset": 20,
+          "size": 4
         }
       ]
     },

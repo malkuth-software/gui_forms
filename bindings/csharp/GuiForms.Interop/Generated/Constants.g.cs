@@ -45,6 +45,9 @@ public static class Constants
     public const uint GF_TABLE_RULES = 19u;
     public const uint GF_TABLE_WINDOWS_PAINT_ENDPOINT = 256u;
     public const uint GF_ABI_ENTRY_SLOT = 4294967295u;
+    public const uint GF_SPLASHSCREEN_MAXIMUM_STATUS_BYTES = 512u;
+    public const uint GF_SPLASHSCREEN_MINIMUM_EXTENT = 160u;
+    public const uint GF_SPLASHSCREEN_MAXIMUM_EXTENT = 1600u;
     public const uint GF_OBJECT_STATE_ALIVE = 0u;
     public const uint GF_OBJECT_STATE_DISPOSING = 1u;
     public const uint GF_OBJECT_STATE_DISPOSED = 2u;
@@ -159,6 +162,12 @@ public static class Constants
     public const ulong GF_HOST_CAPABILITY_COMPOSITOR_NOTIFICATIONS = 1073741824ul;
     public const ulong GF_HOST_CAPABILITY_PRESENTATION_PREFERENCES = 2147483648ul;
     public const ulong GF_HOST_CAPABILITY_WINDOWS_PAINT_ENDPOINT = 4294967296ul;
+    public const ulong GF_HOST_CAPABILITY_TRANSIENT_SURFACES = 8589934592ul;
+    public const uint GF_TRANSIENT_SURFACE_TOOLTIP = 1u;
+    public const uint GF_TRANSIENT_SURFACE_SPLASHSCREEN = 2u;
+    public const uint GF_TRANSIENT_SURFACE_POPUP = 4u;
+    public const uint GF_TRANSIENT_SURFACE_TRANSLUCENT = 8u;
+    public const uint GF_TRANSIENT_SURFACE_OPAQUE = 16u;
     public const uint GF_POINTER_CURSOR_ARROW = 0u;
     public const uint GF_POINTER_CURSOR_TEXT = 1u;
     public const uint GF_POINTER_CURSOR_HAND = 2u;

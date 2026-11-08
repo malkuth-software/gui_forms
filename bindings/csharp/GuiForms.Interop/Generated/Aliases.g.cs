@@ -4,6 +4,7 @@
 global using gf_status = int;
 global using gf_table_id = uint;
 global using gf_object = ulong;
+global using gf_splashscreen = ulong;
 global using gf_object_state = uint;
 global using gf_value_kind = uint;
 global using gf_font_role = uint;
@@ -24,6 +25,7 @@ global using gf_theme_outcome = uint;
 global using gf_theme_severity = uint;
 global using gf_theme_diagnostic_text = uint;
 global using gf_host_capability = ulong;
+global using gf_transient_surface_kind = uint;
 global using gf_pointer_cursor = uint;
 global using gf_dialog_kind = uint;
 global using gf_message_buttons = uint;

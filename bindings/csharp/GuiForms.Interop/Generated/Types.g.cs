@@ -36,7 +36,19 @@ public unsafe struct gf_error_detail
     public ulong message_size;
 }
 
-/// <summary>gf_runtime_table (table, 32 bytes).</summary>
+/// <summary>gf_splashscreen_options (extensible, 48 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_splashscreen_options
+{
+    public uint struct_size;
+    public uint show_progress;
+    public byte* artwork;
+    public ulong artwork_size;
+    public gf_utf8_view status;
+    public double progress;
+}
+
+/// <summary>gf_runtime_table (table, 64 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_runtime_table
 {
@@ -45,6 +57,10 @@ public unsafe struct gf_runtime_table
     public delegate* unmanaged[Cdecl]<gf_abi_version_info*, gf_status> version;
     public delegate* unmanaged[Cdecl]<gf_error_detail*, byte*, ulong, ulong*, gf_status> error_detail;
     public delegate* unmanaged[Cdecl]<gf_status> clear_error;
+    public delegate* unmanaged[Cdecl]<gf_splashscreen_options*, gf_splashscreen*, gf_status> splashscreen_show;
+    public delegate* unmanaged[Cdecl]<gf_splashscreen, gf_utf8_view, gf_status> splashscreen_set_status;
+    public delegate* unmanaged[Cdecl]<gf_splashscreen, uint, double, gf_status> splashscreen_set_progress;
+    public delegate* unmanaged[Cdecl]<gf_splashscreen, gf_status> splashscreen_close;
 }
 
 /// <summary>gf_logical_point (record, 16 bytes).</summary>
@@ -498,13 +514,15 @@ public unsafe struct gf_themes_table
     public delegate* unmanaged[Cdecl]<byte*, uint, uint, ulong, ulong*, gf_status> load_pixels;
 }
 
-/// <summary>gf_host_capabilities (extensible, 16 bytes).</summary>
+/// <summary>gf_host_capabilities (extensible, 24 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_host_capabilities
 {
     public uint struct_size;
     public uint protocol_version;
     public gf_host_capability available;
+    public gf_transient_surface_kind transient_surfaces;
+    public uint reserved;
 }
 
 /// <summary>gf_file_filter (record, 32 bytes).</summary>

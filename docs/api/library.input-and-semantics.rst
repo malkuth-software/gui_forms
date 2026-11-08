@@ -641,6 +641,10 @@ Types
 
       Host-normalized click cardinality. Move/wheel events report zero or one; a second native press in the platform double-click sequence reports two. Default: ``{1U}``.
 
+   .. cpp:member:: WheelDeltaUnit wheel_unit
+
+      The unit of wheel_delta (a wheel event's only). Default: ``{WheelDeltaUnit::lines}``.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: SemanticDescriptor final
@@ -696,6 +700,8 @@ Types
    .. cpp:member:: std::optional<SemanticTextSelection> text_selection
 
    .. cpp:member:: bool multiline
+
+   .. cpp:member:: bool announces_on_appearance
 
    .. cpp:member:: SemanticState states
 
@@ -768,6 +774,8 @@ Types
    .. cpp:member:: std::optional<SemanticTextSelection> text_selection
 
    .. cpp:member:: bool multiline
+
+   .. cpp:member:: bool announces_on_appearance
 
    .. cpp:member:: std::string tool_tip
 
@@ -1254,6 +1262,16 @@ Enumerations
 
    .. cpp:enumerator:: document
 
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: WheelDeltaUnit
+
+   ``#include <gui_forms/events/input_events/input_events.hpp>``
+
+   .. cpp:enumerator:: lines
+
+   .. cpp:enumerator:: pixels
+
 Functions, constants and aliases
 --------------------------------
 
@@ -1314,6 +1332,10 @@ Functions, constants and aliases
 .. cpp:function:: std::span<const char* const> semantic_field_names() noexcept
 
    The node fields the vocabulary admits, by name, for the schema export.
+
+.. cpp:function:: bool semantic_announcement_due(const SemanticNode* previous, const SemanticNode& current) noexcept
+
+   Whether a host asks assistive technology to speak ``current``'s name now, at polite priority (DK-51; the toast, owner ruling 2026-11-08). ``current`` is a node the host is publishing and ``previous`` the same node (same control, same virtual child) at the host's last publication, or null when the node is new. Due when ``current`` is a live region with a non-empty name and either ``previous`` had another name, or the node is new and announces on appearance. Every host decides through this one rule: UI Automation raises the live-region event, AppKit posts an announcement request, AT-SPI emits object:announcement; the text spoken is ``current.name``.
 
 .. cpp:function:: std::uint64_t virtual_semantic_runtime_id(std::string_view stable_id) noexcept
 

@@ -4929,6 +4929,10 @@ Types
 
       The theme the sheets compile onto; windows_professional unless the caller chooses gui_forms. With gui_forms, ``controls`` names the stock control types too: the light sheet's rules for a type outside it are warnings that drop them, named for ``gui-forms/light.css``. Default: ``{ThemeBase::windows_professional}``.
 
+   .. cpp:member:: const EffectRegistry* effects
+
+      The effects a sheet's ``effect`` may name (EP-3), borrowed for the call; usually built_in_effect_registry(). A name it does not hold refuses the package (E417, at the name). Null, only the name's form is checked, and a control checks its effect when it attaches it.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:class:: ThemeCompileResult final
