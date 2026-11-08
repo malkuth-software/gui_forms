@@ -47,5 +47,7 @@ void test_notices_and_badges(gui_forms::Window& window);
 void test_retained_layout_panels(gui_forms::Window& window);
 void test_css_layout_panels(gui_forms::Window& window);
 void test_control_spectrum(gui_forms::Window& window);
+void test_input_and_rules(gui_forms::Window& window);
+void test_theme_settings(gui_forms::Window& window);
 
 } // namespace gallery_pages_tests

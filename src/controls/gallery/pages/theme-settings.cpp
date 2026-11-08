@@ -29,7 +29,7 @@ constexpr std::size_t theme_choice_count = static_cast<std::size_t>(ThemeChoice:
 enum class ThemeScope : std::uint8_t {
     // The resources' theme: every window sharing them.
     every_window,
-    // This window alone (SurfaceRoot::set_theme_override, Part K).
+    // This window alone (GalleryContext::show_window_theme, Part K).
     this_window,
     // The preview group alone (Control::set_theme_override).
     preview,
@@ -90,7 +90,7 @@ std::optional<FamiliarTheme> familiar_for(const ThemeChoice choice) noexcept {
 // handler runs on the UI thread, which compile_theme_package requires.
 class ThemeSettingsPage final : public gui_forms::Component {
 public:
-    explicit ThemeSettingsPage(const std::shared_ptr<Surface>& body);
+    ThemeSettingsPage(const std::shared_ptr<Surface>& body, const std::shared_ptr<PageContext>& context);
 
 private:
     // The document binds the Command and the Value (FD-6).
@@ -106,6 +106,7 @@ private:
     void offer_dark(const Theme& theme);
     void refresh_state();
     void report(std::string text);
+    void show_window_theme(Window& window, std::shared_ptr<const Theme> theme);
 
     void on_theme_selected(const ListSelectionChange& change);
     void on_scheme_checked(bool checked);
@@ -113,6 +114,10 @@ private:
     void on_follow_host(bool follow);
     void on_restore();
 
+    // The shell's page context, which owns this page (its components): an
+    // observation, so no cycle. Its `compiled` GalleryContext shows a
+    // theme in the Gallery window alone (show_window_theme).
+    std::weak_ptr<PageContext> context_{};
     Command restore_{"gallery.theme-settings.restore.command", "Restore the Gallery theme"};
     Value<bool> follow_host_{false};
     // Declared after the Command and the Value its controls bind, so it is
@@ -130,7 +135,9 @@ private:
     bool updating_scheme_{};
 };
 
-ThemeSettingsPage::ThemeSettingsPage(const std::shared_ptr<Surface>& body) {
+ThemeSettingsPage::ThemeSettingsPage(const std::shared_ptr<Surface>& body,
+                                     const std::shared_ptr<PageContext>& context)
+    : context_(context) {
     document_.initialize_component(*this);
     mount_document(body);
     on((*document_.gallery_theme_settings_themes).selection_changed(), *this,
@@ -235,13 +242,13 @@ void ThemeSettingsPage::apply_theme() {
         switch (scope()) {
         case ThemeScope::every_window:
             preview.clear_theme_override();
-            (*target).set_theme_override(nullptr);
+            show_window_theme(*target, nullptr);
             window_override_ = false;
             (*resources).set_theme(theme);
             break;
         case ThemeScope::this_window:
             preview.clear_theme_override();
-            (*target).set_theme_override(theme);
+            show_window_theme(*target, theme);
             window_override_ = true;
             break;
         case ThemeScope::preview:
@@ -329,6 +336,18 @@ void ThemeSettingsPage::report(std::string text) {
     (*document_.gallery_theme_settings_state_resources).set_text(std::move(text));
 }
 
+// The Gallery's own hook for a window theme (GalleryContext::
+// show_window_theme, Part K); a page context without the Gallery's
+// context (a page built alone) sets the window's override directly.
+void ThemeSettingsPage::show_window_theme(Window& window, std::shared_ptr<const Theme> theme) {
+    const std::shared_ptr<PageContext> context = context_.lock();
+    if (context && (*context).compiled) {
+        (*(*context).compiled).show_window_theme(std::move(theme));
+        return;
+    }
+    window.set_theme_override(std::move(theme));
+}
+
 void ThemeSettingsPage::on_theme_selected(const ListSelectionChange& change) {
     static_cast<void>(change);
     const std::optional<std::size_t> index = (*document_.gallery_theme_settings_themes).selected_index();
@@ -378,7 +397,7 @@ void ThemeSettingsPage::on_restore() {
         return;
     }
     (*document_.gallery_theme_settings_preview).clear_theme_override();
-    (*target).set_theme_override(nullptr);
+    show_window_theme(*target, nullptr);
     window_override_ = false;
     if (original_) (*(*target).resources()).set_theme(original_);
     selected_.reset();
@@ -398,7 +417,7 @@ void ThemeSettingsPage::on_restore() {
 
 void add_theme_settings(const std::shared_ptr<Surface>& page,
                         const std::shared_ptr<PageContext>& context) {
-    (*context).components.add(std::make_shared<ThemeSettingsPage>(page));
+    (*context).components.add(std::make_shared<ThemeSettingsPage>(page, context));
 }
 
 } // namespace gui_forms::gallery::pages

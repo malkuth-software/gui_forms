@@ -1607,6 +1607,8 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         src/controls/gallery/pages/typography-and-inspection.cpp
         src/controls/gallery/pages/semantic-feedback.cpp
         src/controls/gallery/pages/notices-and-badges.cpp
+        src/controls/gallery/pages/input-and-rules.cpp
+        src/controls/gallery/pages/theme-settings.cpp
     )
     add_library(gui_forms_gallery_model STATIC
         src/controls/gallery_controls.cpp
@@ -1679,6 +1681,10 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         CLASS SemanticFeedbackDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/notices-and-badges.form
         CLASS NoticesAndBadgesDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/input-and-rules.form
+        CLASS InputAndRulesDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/theme-settings.form
+        CLASS ThemeSettingsDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/control-spectrum.form
         CLASS ControlSpectrumDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/retained-layout-panels.form
@@ -1710,6 +1716,7 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
             demo/pages/images-and-drawing.form demo/pages/ranges-and-progress.form
             demo/pages/semantic-feedback.form demo/pages/control-spectrum.form
             demo/pages/notices-and-badges.form
+            demo/pages/input-and-rules.form demo/pages/theme-settings.form
             demo/pages/retained-layout-panels.form demo/pages/responsive-layouts.form
             demo/pages/css-layout-panels.form
             demo/pages/checked-collections.form demo/pages/choices-and-sections.form
@@ -4232,6 +4239,8 @@ if(GUI_FORMS_BUILD_TESTS)
             tests/gallery_pages/typography-and-inspection_tests.cpp
             tests/gallery_pages/semantic-feedback_tests.cpp
             tests/gallery_pages/notices-and-badges_tests.cpp
+            tests/gallery_pages/input-and-rules_tests.cpp
+            tests/gallery_pages/theme-settings_tests.cpp
             tests/gallery_pages/anatomy_coverage_tests.cpp
             tests/gallery_pages/schema_export_tests.cpp
         )

@@ -109,6 +109,14 @@ void add_semantic_feedback(const std::shared_ptr<Surface>& page,
 void add_notices_and_badges(const std::shared_ptr<Surface>& page,
                             const std::shared_ptr<PageContext>& context);
 
+// input-and-rules
+void add_input_and_rules(const std::shared_ptr<Surface>& page,
+                         const std::shared_ptr<PageContext>& context);
+
+// theme-settings
+void add_theme_settings(const std::shared_ptr<Surface>& page,
+                        const std::shared_ptr<PageContext>& context);
+
 // Fills the body `page` of one page, reading and extending the shell's
 // `context` (the status line, timers, providers, the Gallery's model).
 using PageBuilder = void (*)(const std::shared_ptr<Surface>& page, const std::shared_ptr<PageContext>& context);
@@ -122,7 +130,7 @@ struct PageBuilderEntry final {
 // (demo/gallery_page_specs.hpp, which places it in the navigation) and one
 // row here; the shell refuses a page with neither a form page nor a row
 // (std::logic_error at construction).
-inline constexpr std::array<PageBuilderEntry, 28> page_builders{{
+inline constexpr std::array<PageBuilderEntry, 30> page_builders{{
     {"control-spectrum", &add_control_spectrum},
     {"ranges-and-progress", &add_ranges},
     {"containers-and-focus", &add_containers},
@@ -151,6 +159,8 @@ inline constexpr std::array<PageBuilderEntry, 28> page_builders{{
     {"typography-and-inspection", &add_typography_and_inspection},
     {"semantic-feedback", &add_semantic_feedback},
     {"notices-and-badges", &add_notices_and_badges},
+    {"input-and-rules", &add_input_and_rules},
+    {"theme-settings", &add_theme_settings},
 }};
 
 } // namespace gui_forms::gallery::pages

@@ -93,6 +93,16 @@ void test_registry_pages_gallery() {
     test_control_spectrum(window);
 }
 
+// The input-and-rules and theme-settings pages change the window (its
+// rules, its theme and presentation overrides), so they run in a window
+// of their own.
+void test_input_and_theme_gallery() {
+    std::unique_ptr<Window> owned = gallery::make_gallery();
+    Window& window = *owned;
+    test_input_and_rules(window);
+    test_theme_settings(window);
+}
+
 } // namespace
 } // namespace gallery_pages_tests
 
@@ -121,6 +131,7 @@ int main(int argc, char** argv) {
         test_dispatcher_gallery();
         test_dock_anchor_gallery_interaction();
         test_registry_pages_gallery();
+        test_input_and_theme_gallery();
         test_anatomy_coverage();
         test_schema_export();
         std::cout << "gui_forms_gallery_pages_tests: all tests passed\n";
