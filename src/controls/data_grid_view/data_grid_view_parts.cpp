@@ -1026,12 +1026,30 @@ DataGridView::CellParts DataGridView::cell_parts(DataGridViewRowPosition row, st
 
 DataGridView::CellLayout DataGridView::cell_layout(DataGridViewRowPosition row, std::size_t column,
                                                    const GridLayout& layout) const {
+    CellLayout result = cell_layout(row, column, layout, false);
+    return result;
+}
+
+DataGridView::CellLayout DataGridView::cell_layout(DataGridViewRowPosition row, std::size_t column,
+                                                   const GridLayout& layout, bool provide_text) const {
     CellLayout result;
-    const std::uint64_t revision = structure_revision_;
-    result.content = formatted_cell(row, column);
-    // A formatting handler that changed the grid leaves no parts to lay out.
-    if (structure_revision_ != revision) return result;
-    result.content.text = shown_text(row, column, std::move(result.content.text));
+    // A provided cell's text is the region's: its value is not asked for and
+    // cell_formatting is not raised, so its style is the inherited one. A
+    // wrapped cell needs its text here, for its lines.
+    if (provide_text && column < columns_.size() && columns_[column].kind == DataGridViewColumnKind::text) {
+        DataGridViewCellStyle inherited = inherited_cell_style(row, column);
+        if (!inherited.wrap_mode.value_or(false)) {
+            result.content.style = std::move(inherited);
+            result.text_provided = true;
+        }
+    }
+    if (!result.text_provided) {
+        const std::uint64_t revision = structure_revision_;
+        result.content = formatted_cell(row, column);
+        // A formatting handler that changed the grid leaves no parts to lay out.
+        if (structure_revision_ != revision) return result;
+        result.content.text = shown_text(row, column, std::move(result.content.text));
+    }
     const DataGridViewCellStyle& style = result.content.style;
     CellParts& record = result.parts;
     const Rect clip = layout.data;
@@ -1457,9 +1475,10 @@ namespace {
 } // namespace
 
 bool DataGridView::resolve_cell(DataGridViewRowPosition row, std::size_t column, const GridLayout& layout,
-                                Point offset, DataGridViewCellsSnapshot& into, DataGridViewCellsCell& resolved) {
+                                Point offset, CellTextSource source, DataGridViewCellsSnapshot& into,
+                                DataGridViewCellsCell& resolved) {
     const std::uint64_t revision = structure_revision_;
-    const CellLayout placed = cell_layout(row, column, layout);
+    const CellLayout placed = cell_layout(row, column, layout, source.provided);
     if (structure_revision_ != revision) return false;
     const CellParts& parts = placed.parts;
     resolved = DataGridViewCellsCell{};
@@ -1496,6 +1515,10 @@ bool DataGridView::resolve_cell(DataGridViewRowPosition row, std::size_t column,
     for (const WrappedTextLine& line : placed.lines) {
         into.lines.push_back(DataGridViewCellsTextRange{text_begin + line.begin_byte, text_begin + line.end_byte});
     }
+    // A provided cell's empty range is filled on the region's thread.
+    if (placed.text_provided) {
+        resolved.provided = DataGridViewCellsProvided{.provided = true, .row = source.row, .column = column};
+    }
     resolved.lines_box = moved_rect(placed.lines_box, offset);
     resolved.line_height = placed.line_height;
     resolved.content_box = moved_rect(placed.content_box, offset);
@@ -1518,7 +1541,7 @@ bool DataGridView::paint_cell(Painter& painter, DataGridViewRowPosition row, std
     paint_scratch_.text.clear();
     paint_scratch_.lines.clear();
     DataGridViewCellsCell resolved{};
-    if (!resolve_cell(row, column, layout, Point{}, paint_scratch_, resolved)) return false;
+    if (!resolve_cell(row, column, layout, Point{}, CellTextSource{}, paint_scratch_, resolved)) return false;
     if (!resolved.parts.cell.present) return true;
     paint_data_grid_view_cell_selection(painter, *this, resolved);
     // Owner drawing (owner decision W-Q6) replaces the content parts unless

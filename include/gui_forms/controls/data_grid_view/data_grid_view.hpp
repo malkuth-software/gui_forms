@@ -265,8 +265,10 @@ struct DataGridViewRowValuesEvent final {
 // with set_virtual_rows and set_virtual_row_order, by change with
 // insert_virtual_rows, remove_virtual_rows and move_virtual_row, or on demand
 // through a DataGridViewRowWindowSource); the grid asks for values by ID.
-// It asks for the cells it shows, the current cell, and cells semantics or the
-// application read through the grid; it never asks for any other row. Calls
+// It asks for the cells it shows (except the text cells a cell region's
+// DataGridViewCellsTextProvider fills on its own thread), the current cell,
+// and cells semantics or the application read through the grid; it never
+// asks for any other row. Calls
 // arrive on the grid's UI thread, from paint, layout, input and the grid's own
 // methods. The provider may not mutate the grid from inside a call.
 class DataGridViewCellValueProvider {
@@ -450,6 +452,20 @@ public:
     // std::invalid_argument, changing nothing, for an empty, repeated or
     // invalid UTF-8 ID.
     void set_virtual_row_order(std::vector<DataGridViewRowId> order);
+
+    // The cell region's own text model (threaded sub-surfaces decision 3(a),
+    // DataGridViewCellsTextProvider): owned by the grid until the region
+    // exists, then moved with the region's content to its thread, which
+    // alone calls it; a running region restarts with the new one. While the
+    // rows are virtual and cells_on_sub_surface is on, the visible text
+    // cells (text columns, not wrapped, not the new row) reach the region
+    // without their values: the provider fills their text there. Null
+    // removes it; the region then shows those cells resolved on the UI
+    // thread again. The provider goes with the region: turning
+    // cells_on_sub_surface off releases it (on the region's thread).
+    void set_cells_text_provider(std::unique_ptr<DataGridViewCellsTextProvider> provider);
+    // Whether a cells text provider is set (held or moved to the region).
+    [[nodiscard]] bool cells_text_provided() const noexcept { return cells_text_provided_; }
 
     // -- the virtual row order (owner decision W-5) ----------------------
     // Virtual rows whose order a window source keeps: the grid starts in the
@@ -1162,7 +1178,10 @@ private:
     // `lines` is empty when the text is not wrapped.
     struct CellLayout final {
         CellParts parts{};
+        // With text_provided, the style alone: the text is the region's
+        // provider's, and no value was asked for or formatted.
         FormattedCell content{};
+        bool text_provided{};
         Rect content_box{};
         std::vector<WrappedTextLine> lines{};
         Rect lines_box{};
@@ -1177,6 +1196,11 @@ private:
     [[nodiscard]] static AuthoredColours authored_colours(const DataGridViewCellStyle& style, bool selected);
     [[nodiscard]] CellLayout cell_layout(DataGridViewRowPosition row, std::size_t column,
                                          const GridLayout& layout) const;
+    // The same, leaving the text to the region's provider when `provide_text`
+    // and the cell is one it fills (a text column, not wrapped):
+    // CellLayout::text_provided says which it did.
+    [[nodiscard]] CellLayout cell_layout(DataGridViewRowPosition row, std::size_t column, const GridLayout& layout,
+                                         bool provide_text) const;
     [[nodiscard]] CellParts cell_parts(DataGridViewRowPosition row, std::size_t column,
                                        const GridLayout& layout) const;
     // A link cell's link within the cell's content area: its text's extent,
@@ -1223,12 +1247,20 @@ private:
     // grid's structure: the paint then stops.
     [[nodiscard]] bool paint_cell(Painter& painter, DataGridViewRowPosition row, std::size_t column,
                                   const GridLayout& layout);
+    // Where a resolved cell's text comes from: resolved here, or, when
+    // `provided`, from the region's provider for the row at `row` of the
+    // snapshot's provided_rows, if the cell is one it fills.
+    struct CellTextSource final {
+        bool provided{};
+        std::size_t row{};
+    };
     // Resolves one cell for the shared cell painter (stage S7), its parts
     // moved by `offset`, appending its text and wrapped lines to `into`'s
-    // buffers. False when a cell_formatting handler changed the grid's
-    // structure (nothing is appended then).
+    // buffers (none for a provided cell). False when a cell_formatting
+    // handler changed the grid's structure (nothing is appended then).
     [[nodiscard]] bool resolve_cell(DataGridViewRowPosition row, std::size_t column, const GridLayout& layout,
-                                    Point offset, DataGridViewCellsSnapshot& into, DataGridViewCellsCell& resolved);
+                                    Point offset, CellTextSource source, DataGridViewCellsSnapshot& into,
+                                    DataGridViewCellsCell& resolved);
     // The cell region (cells_on_sub_surface): resolves the visible cells
     // into a snapshot in the region's coordinates and sends it with a new
     // content epoch. False when a handler changed the grid's structure: the
@@ -1378,6 +1410,10 @@ private:
     // editor and the bars, transparent to hit testing (the grid keeps its
     // input) and no tab stop.
     std::shared_ptr<SubSurfaceHost> cells_host_{};
+    // set_cells_text_provider: the provider while no region holds it, and
+    // whether one is set (here or in the region's content).
+    std::unique_ptr<DataGridViewCellsTextProvider> cells_text_provider_{};
+    bool cells_text_provided_{};
     // One resolved cell's text and lines while the grid paints its cells
     // itself, kept so that its buffers are reused from cell to cell.
     DataGridViewCellsSnapshot paint_scratch_{};

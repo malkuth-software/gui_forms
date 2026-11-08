@@ -26,6 +26,9 @@ constexpr ControlAnatomy cells_anatomy{.control_id = "data_grid_view",
 
 [[nodiscard]] bool cell_valid(const DataGridViewCellsSnapshot& snapshot, const DataGridViewCellsCell& cell) noexcept {
     if (!range_within(cell.text, snapshot.text.size())) return false;
+    if (cell.provided.provided && (cell.provided.row >= snapshot.provided_rows.size() || cell.lines.count != 0U)) {
+        return false;
+    }
     const std::size_t line_total = snapshot.lines.size();
     if (cell.lines.first > line_total || cell.lines.count > line_total - cell.lines.first) return false;
     for (std::size_t index = 0U; index < cell.lines.count; ++index) {
@@ -285,10 +288,35 @@ Control::Ptr DataGridViewCellsContent::build_root() {
     return root;
 }
 
+DataGridViewCellsTextProvider::~DataGridViewCellsTextProvider() = default;
+
 void DataGridViewCellsContent::apply_update(SubSurfaceContentUpdate& update) {
     DataGridViewCellsUpdate* const cells_update = dynamic_cast<DataGridViewCellsUpdate*>(&update);
     if (cells_update == nullptr || !cells_) return;
+    if (provider_) fill_provided((*cells_update).snapshot);
     static_cast<void>((*cells_).set_snapshot(std::move((*cells_update).snapshot)));
+}
+
+void DataGridViewCellsContent::fill_provided(DataGridViewCellsSnapshot& snapshot) {
+    requests_.clear();
+    request_cells_.clear();
+    // A provided cell naming no row is left for set_snapshot to refuse.
+    for (std::size_t index = 0U; index < snapshot.cells.size(); ++index) {
+        const DataGridViewCellsProvided& provided = snapshot.cells[index].provided;
+        if (!provided.provided || provided.row >= snapshot.provided_rows.size()) continue;
+        DataGridViewCellsTextRequest request{};
+        request.row_id = snapshot.provided_rows[provided.row];
+        request.column = provided.column;
+        requests_.push_back(request);
+        request_cells_.push_back(index);
+    }
+    if (requests_.empty()) return;
+    ranges_.assign(requests_.size(), DataGridViewCellsTextRange{});
+    (*provider_).fill_cell_texts(std::span<const DataGridViewCellsTextRequest>(requests_), snapshot.text,
+                                 std::span<DataGridViewCellsTextRange>(ranges_));
+    for (std::size_t request = 0U; request < requests_.size(); ++request) {
+        snapshot.cells[request_cells_[request]].text = ranges_[request];
+    }
 }
 
 } // namespace gui_forms

@@ -4,7 +4,8 @@
 // is checked whole, the shared cell painter draws a resolved cell's parts in
 // the grid's order, and SubSurfaceHost::redraw_all carries each snapshot
 // with its content epoch, so the frame tagged with an epoch shows that
-// epoch's snapshot (newest wins; a resize keeps a waiting update).
+// epoch's snapshot (newest wins; a resize keeps a waiting update); and a
+// region text provider fills virtual rows' cells on the region's thread.
 
 #include "gui_forms/gui_forms.hpp"
 #include "gui_forms/controls/data_grid_view/data_grid_view.hpp"
@@ -191,6 +192,11 @@ void snapshots_are_checked_whole() {
     line_outside.lines.push_back(DataGridViewCellsTextRange{5U, 10U});
     line_outside.cells[0].lines = DataGridViewCellsLineRange{0U, 1U};
     require(!data_grid_view_cells_snapshot_valid(line_outside), "a line outside its cell's text is refused");
+    DataGridViewCellsSnapshot provided_without_row = one_cell("alpha");
+    provided_without_row.cells[0].provided = DataGridViewCellsProvided{.provided = true, .row = 0U, .column = 0U};
+    require(!data_grid_view_cells_snapshot_valid(provided_without_row), "a provided cell naming no row is refused");
+    provided_without_row.provided_rows.push_back("v0");
+    require(data_grid_view_cells_snapshot_valid(provided_without_row), "a provided cell naming its row is valid");
 
     DataGridViewCells cells(StableId("grid"));
     require(cells.set_snapshot(good), "a valid snapshot is taken");
@@ -424,11 +430,120 @@ void grid_sends_its_cells_to_its_region() {
     require(contains(plain.texts, "r10c0"), "without the region the UI thread paints the cells");
 }
 
+// The UI thread's virtual-mode provider: counts what it is asked.
+class CountingValues final : public DataGridViewCellValueProvider {
+public:
+    [[nodiscard]] BindingValue cell_value(const DataGridViewRowId& row, std::size_t column) const override {
+        ++asked;
+        return BindingValue{"ui " + row.value + ":" + std::to_string(column)};
+    }
+    bool push_cell_value(const DataGridViewRowId&, std::size_t, const BindingValue&) override { return false; }
+
+    mutable std::size_t asked{};
+};
+
+// What the region's text provider saw: written on the region's thread, read
+// by the test, under the mutex.
+struct ProvidedLog final {
+    std::mutex mutex;
+    std::size_t calls{};
+    std::size_t cells{};
+    bool off_test_thread{true};
+    bool released{};
+};
+
+// The region's provider: each cell's text is "p <row id>:<column>".
+class RegionTexts final : public DataGridViewCellsTextProvider {
+public:
+    RegionTexts(std::shared_ptr<ProvidedLog> log, std::thread::id test_thread)
+        : log_(std::move(log)), test_thread_(test_thread) {}
+    ~RegionTexts() override {
+        const std::lock_guard<std::mutex> lock((*log_).mutex);
+        (*log_).released = true;
+    }
+    void fill_cell_texts(std::span<const DataGridViewCellsTextRequest> requests, std::string& text,
+                         std::span<DataGridViewCellsTextRange> ranges) noexcept override {
+        for (std::size_t index = 0U; index < requests.size(); ++index) {
+            const std::size_t begin = text.size();
+            text += "p ";
+            text += requests[index].row_id;
+            text += ':';
+            text += std::to_string(requests[index].column);
+            ranges[index] = DataGridViewCellsTextRange{begin, text.size()};
+        }
+        const std::lock_guard<std::mutex> lock((*log_).mutex);
+        ++(*log_).calls;
+        (*log_).cells += requests.size();
+        if (std::this_thread::get_id() == test_thread_) (*log_).off_test_thread = false;
+    }
+
+private:
+    std::shared_ptr<ProvidedLog> log_;
+    std::thread::id test_thread_{};
+};
+
+// Decision 3(a), the virtual-mode half: with virtual rows and a cells text
+// provider, the region's thread fills the text cells; the UI thread neither
+// asks its value provider nor formats them; the provider goes with the
+// region.
+void region_provider_fills_virtual_cells() {
+    std::shared_ptr<TextLog> log = std::make_shared<TextLog>();
+    std::shared_ptr<DataGridView> grid = make_control<DataGridView>(StableId("grid.virtual"));
+    std::vector<DataGridViewColumn> columns;
+    columns.push_back({.name = "a", .header_text = "A", .width = 80.0});
+    columns.push_back({.name = "b", .header_text = "B", .width = 80.0});
+    (*grid).set_columns(std::move(columns));
+    std::shared_ptr<CountingValues> values = std::make_shared<CountingValues>();
+    std::vector<DataGridViewRowId> order;
+    for (std::size_t index = 0U; index < 100U; ++index) order.push_back(DataGridViewRowId{"v" + std::to_string(index)});
+    (*grid).set_virtual_rows(values, std::move(order));
+    std::shared_ptr<ProvidedLog> provided = std::make_shared<ProvidedLog>();
+    (*grid).set_cells_text_provider(std::make_unique<RegionTexts>(provided, std::this_thread::get_id()));
+    require((*grid).cells_text_provided(), "the grid holds the provider");
+    (*grid).cells_on_sub_surface = true;
+    TextRaster raster(log);
+    Window window(grid, Size{300.0, 200.0});
+    window.set_framebuffer_painter(&raster);
+    window.flush();
+    std::shared_ptr<SubSurfaceHost> host{};
+    const std::span<const Control::Ptr> children = (*grid).children();
+    if (!children.empty()) host = std::dynamic_pointer_cast<SubSurfaceHost>(children[0]);
+    require(static_cast<bool>(host) && (*host).started(), "the region runs");
+
+    const std::size_t asked_before = (*values).asked;
+    TextPainter first({});
+    static_cast<void>(window.paint(first));
+    require((*values).asked == asked_before, "the paint asks the UI provider for no provided cell");
+    const std::shared_ptr<LiveSurface> surface = (*host).live_surface();
+    require(wait_for_content_tag(*surface, (*host).content_epoch()), "the region publishes the paint's epoch");
+    const std::vector<std::string> shown = newest_frame(*log);
+    require(contains(shown, "p v0:0") && contains(shown, "p v0:1") && contains(shown, "p v1:0"),
+            "the region's provider fills the visible cells");
+    require(!contains(shown, "ui v0:0"), "no UI-thread value reaches the region");
+    {
+        const std::lock_guard<std::mutex> lock((*provided).mutex);
+        require((*provided).calls >= 1U && (*provided).cells >= 4U, "one call fills a snapshot's cells");
+        require((*provided).off_test_thread, "the provider runs on the region's thread");
+    }
+
+    // The values the UI thread reads through the grid still come from its
+    // own provider.
+    require((*grid).cell_value(DataGridViewRowPosition{0U}, 0U) == BindingValue{std::string("ui v0:0")},
+            "the grid's own reads use the UI provider");
+
+    (*grid).cells_on_sub_surface = false;
+    window.flush();
+    require(!(*grid).cells_text_provided(), "the provider goes with the region");
+    const std::lock_guard<std::mutex> lock((*provided).mutex);
+    require((*provided).released, "the provider is released when the region stops");
+}
+
 int run_all() {
     snapshots_are_checked_whole();
     cells_paint_resolved_parts();
     region_shows_each_epochs_snapshot();
     grid_sends_its_cells_to_its_region();
+    region_provider_fills_virtual_cells();
     return 0;
 }
 
