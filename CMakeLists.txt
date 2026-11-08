@@ -3214,6 +3214,20 @@ if(GUI_FORMS_BUILD_TESTS)
                 CLASS NoteDialogForm NAMESPACE form_generated
                 TYPES "note_card,form_generated::NoteCard,user_control,generated/note_card.hpp")
             add_test(NAME gui_forms_form_application_type_tests COMMAND gui_forms_form_application_type_tests)
+            # Stage B: the classes deriving from the root's type.
+            add_executable(gui_forms_form_derived_class_tests tests/form_language/form_derived_class_tests.cpp)
+            target_link_libraries(gui_forms_form_derived_class_tests PRIVATE gui_forms_controls)
+            target_include_directories(gui_forms_form_derived_class_tests PRIVATE
+                ${CMAKE_CURRENT_SOURCE_DIR}/tests/form_language)
+            gui_forms_add_form(gui_forms_form_derived_class_tests tests/form_language/generated/sample_dialog.form
+                CLASS SampleDialogWindow NAMESPACE form_generated OUTPUT gui_forms_forms/sample_dialog_window.hpp
+                MODEL form_generated::SampleModel MODEL_HEADER generated/sample_model.hpp)
+            gui_forms_add_form(gui_forms_form_derived_class_tests tests/form_language/generated/derived_panel.form
+                CLASS DerivedPanel NAMESPACE form_generated
+                MODEL form_generated::SampleModel MODEL_HEADER generated/sample_model.hpp)
+            gui_forms_add_form(gui_forms_form_derived_class_tests tests/form_language/generated/plain_panel.form
+                CLASS PlainPanel NAMESPACE form_generated DERIVED)
+            add_test(NAME gui_forms_form_derived_class_tests COMMAND gui_forms_form_derived_class_tests)
         endif()
     endif()
 

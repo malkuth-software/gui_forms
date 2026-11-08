@@ -1,0 +1,7 @@
+/* A control root generated as a derived class (stage B): the build makes
+   DerivedPanel, a UserControl subclass, with gui_forms_add_form MODEL. */
+user-control panel.root {
+  padding: 2;
+  check-box panel.flag { text: "Flag"; checked: bind(auto_save_); tab-index: 0; }
+  button panel.go { text: "Go"; tab-index: 1; command: bind(accept_); }
+}

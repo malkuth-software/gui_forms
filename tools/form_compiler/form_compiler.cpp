@@ -69,6 +69,7 @@ struct Arguments final {
 void print_usage() {
     std::cerr << "usage: gui_forms_form_compiler <document.form> --class <Name> --output <header>\n"
                  "                               [--namespace <a::b>] [--type <name>,<class>,<base>,<header>]...\n"
+                 "                               [--derived] [--model <a::Type>] [--model-header <header>]\n"
                  "                               [--check]\n";
 }
 
@@ -89,6 +90,15 @@ std::optional<Arguments> read_arguments(std::span<char* const> words) {
         } else if (word == "--type" && has_value) {
             ++index;
             arguments.types.emplace_back(words[index]);
+        } else if (word == "--derived") {
+            arguments.options.derived = true;
+        } else if (word == "--model" && has_value) {
+            ++index;
+            arguments.options.derived = true;
+            arguments.options.model_type = words[index];
+        } else if (word == "--model-header" && has_value) {
+            ++index;
+            arguments.options.model_header = words[index];
         } else if (word == "--output" && has_value) {
             ++index;
             arguments.output = words[index];

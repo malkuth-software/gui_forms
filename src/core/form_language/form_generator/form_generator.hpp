@@ -70,6 +70,19 @@ struct FormGeneratorOptions final {
     std::string namespace_name{};
     // The document's name as the header's first comment cites it.
     std::string source_name{};
+    // Stage B (APP_WINDOW_RULES_DESIGN Part B): the class derives from the
+    // root's type instead of being a document over an owner. A form root
+    // gives a gui_forms::Window subclass whose constructors take the model
+    // (and, in an overload, the Application); a control root gives a
+    // subclass of its type made with make(model). Opt-in until the Gallery
+    // migrates.
+    bool derived{};
+    // The model a derived class binds: a `::`-separated name, required when
+    // the form binds (E812 otherwise).
+    std::string model_type{};
+    // The header that declares the model, included by the generated header
+    // when not empty (a path as an #include names it).
+    std::string model_header{};
 };
 
 enum class FormGenerateOutcome : std::uint8_t {
