@@ -329,10 +329,29 @@ SemanticDescriptor SearchField::semantic_descriptor() const {
     descriptor.description =
         accessible_description.read().empty() ? placeholder_text.read() : accessible_description.read();
     descriptor.value = text.read();
+    // The editor shows the value, so its selection and caret index it.
+    if (editor_) descriptor.text_selection = (*editor_).semantic_descriptor().text_selection;
     if (busy.read()) descriptor.states |= SemanticState::busy;
     descriptor.actions = {SemanticAction::focus, SemanticAction::set_value};
     descriptor.exposed = true;
+    // One node (coordinator ruling): the editor is the field's
+    // implementation, not a node of its own, as a MaskedTextBox's is.
+    descriptor.include_descendants = false;
     return descriptor;
+}
+
+// The text requests of the one published node reach the editor, whose
+// text is the published value.
+SemanticTextResult SearchField::on_semantic_text_layout(SemanticTextLayout& layout) {
+    if (!editor_) return SemanticTextResult::no_text;
+    const SemanticTextResult result = (*editor_).on_semantic_text_layout(layout);
+    return result;
+}
+
+SemanticTextResult SearchField::on_set_semantic_text_selection(SemanticTextSelection selection) {
+    if (!editor_) return SemanticTextResult::no_text;
+    const SemanticTextResult result = (*editor_).on_set_semantic_text_selection(selection);
+    return result;
 }
 
 // Focus goes to the editor; a set value is written as the text, which the

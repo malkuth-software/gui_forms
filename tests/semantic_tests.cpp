@@ -668,6 +668,36 @@ void test_specialised_roles() {
             "the snapshot's JSON names both roles");
 }
 
+// A SearchField (coordinator ruling) is one search_box node: the inner
+// editor is not published, the node carries the query, the editor's
+// selection and the focus, and its text requests reach the editor.
+void test_search_field_is_one_node() {
+    std::shared_ptr<Panel> root = make_control<Panel>(StableId("single.root"));
+    std::shared_ptr<SearchField> field = make_control<SearchField>(StableId("single.search"));
+    (*field).set_requested_bounds({0, 0, 200, 30});
+    (*field).accessible_name = std::string{"Search"};
+    (*root).add_child(field);
+    Window window(root, {240, 60});
+    (*field).text = std::string{"ab"};
+    require(window.request_focus((*field).editor()), "the editor takes the focus");
+    window.perform_layout();
+    const SemanticSnapshot snapshot = window.semantic_snapshot();
+    const SemanticNode* node = find_node(snapshot.roots, "single.search");
+    require(node != nullptr && (*node).role == SemanticRole::search_box && (*node).value == "ab" &&
+                (*node).children.empty() && !find_node(snapshot.roots, "single.search.editor"),
+            "the field is one search_box node and its editor is not published");
+    require((*node).text_selection.has_value() && has_semantic_state((*node).states, SemanticState::focused),
+            "the node carries the editor's selection and its focus");
+    SemanticTextLayout layout;
+    require(window.semantic_text_layout((*field).runtime_id(), layout) == SemanticTextResult::done &&
+                layout.graphemes.size() == 2U,
+            "the node's text layout is the editor's");
+    const SemanticTextSelection all{Utf8Offset(0U), Utf8Offset(2U)};
+    require(window.set_semantic_text_selection((*field).runtime_id(), all) == SemanticTextResult::done &&
+                (*(*field).editor()).semantic_descriptor().text_selection == std::optional<SemanticTextSelection>{all},
+            "a selection set on the node selects in the editor");
+}
+
 void test_meter_role_reaches_the_snapshot() {
     require(std::string_view(semantic_role_name(SemanticRole::meter)) == "meter",
             "the meter role has its name");
@@ -904,6 +934,7 @@ int main() {
         test_stage_a_vocabulary_reaches_the_snapshot();
         test_meter_role_reaches_the_snapshot();
         test_specialised_roles();
+        test_search_field_is_one_node();
         test_semantics_enforce_ui_thread();
         std::cout << "gui_forms_semantic_tests: all tests passed\n";
         return EXIT_SUCCESS;

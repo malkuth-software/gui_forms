@@ -31,9 +31,11 @@ class TextBox;
 // empty query. Escape in an empty field goes on to the containers and the
 // window's cancel button.
 //
-// To assistive technology it is a search_box (hosts without a mapping
-// publish a text box) whose value is the query, busy while `busy`; the
-// inner editor is its child and takes the focus.
+// To assistive technology it is one search_box node (hosts without a
+// mapping publish a text box) whose value is the query, busy while `busy`:
+// it carries the editor's selection and its text layout and selection
+// requests reach the editor, which is not published separately (coordinator
+// ruling). The editor takes the keyboard focus, which the node reports.
 class SearchField final : public Control, public SearchFieldCapabilities<SearchField> {
 public:
     // The inner editor is made after construction (make_control calls
@@ -65,6 +67,8 @@ public:
     void on_pointer(PointerEvent& event) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     bool on_semantic_action(SemanticAction action, std::string_view value) override;
+    [[nodiscard]] SemanticTextResult on_semantic_text_layout(SemanticTextLayout& layout) override;
+    [[nodiscard]] SemanticTextResult on_set_semantic_text_selection(SemanticTextSelection selection) override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     [[nodiscard]] AnatomyStateSet anatomy_states() const override;
     // Stage T1 anatomy, as dot members (see Control::Parts). `well` is the
