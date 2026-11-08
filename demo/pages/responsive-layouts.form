@@ -11,8 +11,8 @@
    The page keeps in code what a form does not yet express: the stage
    width's Value<double> and the slider's step sizes, the command bars'
    items, the shelf's overflow actuator, the master/detail layout and its
-   two roles, the commands, the status texts and the page style. The
-   Gallery theme styles the classes. */
+   two roles, the scroller's face (see the page), the commands, the status
+   texts and the page style. The Gallery theme styles the classes. */
 scaled-panel gallery.responsive.document {
   design-size: 1000 660;
 
@@ -206,7 +206,6 @@ scaled-panel gallery.responsive.document {
     classes: "paper" "group-caption";
     panel gallery.responsive.scroll {
       accessible-name: "Column scroller specimen";
-      classes: "specimen-viewport";
       border-style: sunken;
       auto-scroll: true;
       bounds: 18 30 694 48;

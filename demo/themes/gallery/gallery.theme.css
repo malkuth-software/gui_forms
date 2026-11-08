@@ -29,12 +29,11 @@
    background-color alone lies under the recipe's gradient layers (CSS). */
 .paper::part(face) { background: #ffffff; }
 
-/* Specimen faces: the tinted panels that stand for a layout's tracks and
-   viewports on the Gallery's layout pages. */
+/* Specimen faces: the tinted panels that stand for a layout's tracks on
+   the Gallery's layout pages. */
 .specimen-navigation::part(face) { background: #e1ebf3; }
 .specimen-inspector::part(face) { background: #f5f3eb; }
 .specimen-activity::part(face) { background: #eef4ec; }
-.specimen-viewport::part(face) { background: #eef3f7; }
 
 /* Type roles (the .form font refusal, E813): each object names its type
    role in `classes`; a typography specimen's font is content and stays in

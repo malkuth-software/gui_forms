@@ -127,6 +127,10 @@ private:
         static_cast<void>(view.set_detail(detail));
         (*document_.gallery_responsive_master_detail_show_detail).bind(show_detail_);
         (*document_.gallery_responsive_master_detail_show_master).bind(show_master_);
+        // The scroller's face stays the page's fill: a themed face paints its
+        // sunken edge as a part raster whose bottom corners differ from the
+        // direct stroke by up to 11 levels in 8 pixels.
+        (*document_.gallery_responsive_scroll).set_background(Color::rgba(238, 243, 247));
         (*document_.gallery_responsive_scroll_previous).bind(scroll_previous_);
         (*document_.gallery_responsive_scroll_next).bind(scroll_next_);
     }

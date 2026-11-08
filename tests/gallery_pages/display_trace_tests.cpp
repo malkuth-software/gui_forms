@@ -545,8 +545,9 @@ struct PageDigest final {
 // control count follows. Recorded again: states-and-diagnostics.
 //
 // responsive-layouts became a form document (FD6.3): its four track tiles
-// and its scroller name their faces by class, so the Gallery theme paints
-// them as parts instead of the page's fills and strokes. Recorded again.
+// name their faces by class, so the Gallery theme paints them as parts
+// instead of the page's fills and strokes. Recorded again; a 1280 x 820
+// capture at scale 1 is pixel-identical to the page before.
 //
 // typography-and-inspection's entry is the trace with the RuntimeId the
 // specimen has when this test runs first (#1328 since L8a on main); the digest
@@ -578,7 +579,7 @@ constexpr std::array<PageDigest, 31> expected_digests{{
     {"tree-and-object-views", 0xe3db9316c5b9f256ULL},
     {"choices-and-sections", 0x645f4d73f05c1950ULL},
     {"value-editors", 0xde01fa2d69bfd844ULL},
-    {"responsive-layouts", 0xf48366f0ffcff668ULL},
+    {"responsive-layouts", 0x32350b9adc99d846ULL},
     {"anchored-overlays", 0xa32f4aaa22f2dcf4ULL},
     {"live-surfaces", 0x73767712b8e50f6cULL},
     {"typography-and-inspection", 0x558e28500aa51a02ULL},
