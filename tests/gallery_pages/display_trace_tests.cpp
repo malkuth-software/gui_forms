@@ -566,8 +566,8 @@ constexpr std::array<PageDigest, 32> expected_digests{{
     {"ranges-and-progress", 0x92c145f9c09bee4fULL},
     {"containers-and-focus", 0x3f5402c6a521b5daULL},
     {"animation-laboratory", 0xc30a1f803ec517afULL},
-    {"states-and-diagnostics", 0xfc48d793bc7ac1aaULL},
-    {"text-and-input", 0xac8acc8a10059c12ULL},
+    {"states-and-diagnostics", 0xef1a439a09a4db60ULL},
+    {"text-and-input", 0xfab9143c9729484fULL},
     {"collections-and-overlays", 0xfcf22e062057fe87ULL},
     {"values-and-spinners", 0x3077a41f4b244622ULL},
     {"images-and-drawing", 0x96553116472e0919ULL},
@@ -582,16 +582,16 @@ constexpr std::array<PageDigest, 32> expected_digests{{
     {"docking-workspace", 0xb27a5b5ee12a4b1dULL},
     {"commands-and-menus", 0xa2ec969d524e6ce8ULL},
     {"tree-and-object-views", 0xbca79588f40ee576ULL},
-    {"choices-and-sections", 0x97c24a96b4910520ULL},
+    {"choices-and-sections", 0x19f993c3e3bb5546ULL},
     {"value-editors", 0x63b34d8904412602ULL},
     {"responsive-layouts", 0x2e95614deff737feULL},
     {"anchored-overlays", 0xe36288afc85a021eULL},
     {"live-surfaces", 0xf0aa97eb465ab9d6ULL},
-    {"typography-and-inspection", 0x48277f081792f29dULL},
+    {"typography-and-inspection", 0x69baa80d088b457bULL},
     {"semantic-feedback", 0xf905a8eecfbc5fbbULL},
     // W-4 added this page and its navigation row: every digest is to be
     // re-recorded (GUI_FORMS_GALLERY_TRACE_PRINT=1) by the integrator.
-    {"notices-and-badges", 0xb1425b21a1469fd4ULL},
+    {"notices-and-badges", 0xa4d2b5521d2b95e6ULL},
 }};
 
 std::uint64_t expected_digest(std::string_view page) {
