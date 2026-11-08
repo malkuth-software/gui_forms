@@ -3929,7 +3929,8 @@ HostCapabilities macos_capabilities() {
                 HostCapability::transparent_windows |
                 HostCapability::window_backdrops |
                 HostCapability::compositor_notifications |
-                HostCapability::presentation_preferences,
+                HostCapability::presentation_preferences |
+                HostCapability::transient_surfaces,
             macos_key_map()};
 }
 

@@ -100,6 +100,10 @@ constexpr gf_runtime_table runtime_table{
     .version = &runtime_version,
     .error_detail = &runtime_error_detail,
     .clear_error = &runtime_clear_error,
+    .splashscreen_show = &gui_forms::abi1::runtime_splashscreen_show,
+    .splashscreen_set_status = &gui_forms::abi1::runtime_splashscreen_set_status,
+    .splashscreen_set_progress = &gui_forms::abi1::runtime_splashscreen_set_progress,
+    .splashscreen_close = &gui_forms::abi1::runtime_splashscreen_close,
 };
 
 // The complete table for an id, or no table. Every table is a constant with

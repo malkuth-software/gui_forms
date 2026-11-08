@@ -49,6 +49,7 @@ whole record for logs.
 | `window_backdrops` | a system material behind a transparent window | yes | yes (Windows 11 22H2 and later) | no |
 | `compositor_notifications` | compositor and preference changes reported at run time | yes | yes | yes |
 | `presentation_preferences` | the host's high contrast and reduced transparency fed to each window; its light or dark preference and accent and highlight colours reported (Windows only so far) | yes | yes | no |
+| `transient_surfaces` | tooltips and the splashscreen in Splash windows, menus, drop-downs and pickers in Popup windows, each the host's own window beside its owner; translucent with the library's shadow and fade (C: `GF_HOST_CAPABILITY_TRANSIENT_SURFACES`, kinds in `gf_host_capabilities.transient_surfaces`) | yes | yes | yes (opaque, with no shadow or fade, without a compositing manager: `opaque_transient_surfaces`, `GF_TRANSIENT_SURFACE_OPAQUE`) |
 
 The table reflects the bits each adapter currently advertises; read
 `Application::capabilities()` rather than this page in code.

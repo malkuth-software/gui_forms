@@ -3201,7 +3201,8 @@ HostCapabilities windows_capabilities() {
                 HostCapability::transparent_windows |
                 HostCapability::window_backdrops |
                 HostCapability::compositor_notifications |
-                HostCapability::presentation_preferences,
+                HostCapability::presentation_preferences |
+                HostCapability::transient_surfaces,
             // Windows follows the PC keyboard convention (Ctrl+F4 closes a
             // document).
             pc_key_map()};

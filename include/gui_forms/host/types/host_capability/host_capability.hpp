@@ -67,6 +67,18 @@ enum class HostCapability : std::uint64_t {
     // The host's high-contrast and reduced-transparency settings reported
     // and fed to each window's PresentationSettings (owner decision T5-Q7).
     presentation_preferences = 1ULL << 31U,
+    // Transient surfaces (owner, 2026-11-08: APP_WINDOW_RULES_DESIGN Part
+    // S): Splash windows (tooltips, the splashscreen) and Popup windows
+    // (menus, drop-downs, pickers) opened during the run, translucent with
+    // the core's shadow and fade where the compositor allows it
+    // (HostWindowing::supports_popup_windows, supports_splash_windows,
+    // transient_windows_translucent). Additive flags; no protocol version
+    // change.
+    transient_surfaces = 1ULL << 32U,
+    // Transient surfaces may be opaque, with no shadow or fade, as the
+    // compositor decides at run time (X11 without a compositing manager;
+    // owner, 2026-11-08: Q-S2 (b)). Reported with transient_surfaces.
+    opaque_transient_surfaces = 1ULL << 33U,
 };
 
 [[nodiscard]] constexpr HostCapability operator|(HostCapability left,

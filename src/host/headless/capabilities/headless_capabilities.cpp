@@ -36,7 +36,8 @@ HostCapabilities headless_capabilities() {
                 HostCapability::transparent_windows |
                 HostCapability::window_backdrops |
                 HostCapability::compositor_notifications |
-                HostCapability::presentation_preferences,
+                HostCapability::presentation_preferences |
+                HostCapability::transient_surfaces,
             // The reference host reports the PC convention.
             pc_key_map()};
 }

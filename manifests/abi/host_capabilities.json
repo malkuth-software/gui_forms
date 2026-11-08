@@ -11,7 +11,7 @@
         "accessibility", "sound_cues", "clipboard_images", "frame_capture", "notification_area",
         "notification_area_messages", "notification_area_menus", "runtime_windows", "window_frames",
         "screen_pointer", "window_at_point", "window_ordering", "transparent_windows", "window_backdrops",
-        "compositor_notifications", "presentation_preferences", "windows_paint_endpoint"
+        "compositor_notifications", "presentation_preferences", "windows_paint_endpoint", "transient_surfaces"
       ]
     },
     {
@@ -22,7 +22,7 @@
         "dialogs", "accessibility", "sound_cues", "clipboard_images", "frame_capture", "notification_area",
         "notification_area_menus", "runtime_windows", "window_frames", "screen_pointer", "window_at_point",
         "window_ordering", "transparent_windows", "window_backdrops", "compositor_notifications",
-        "presentation_preferences"
+        "presentation_preferences", "transient_surfaces"
       ]
     },
     {
@@ -32,7 +32,7 @@
         "pointer_capture", "cursor", "clipboard", "typed_drag_destination", "dialogs", "accessibility",
         "sound_cues", "clipboard_images", "frame_capture", "runtime_windows", "window_frames",
         "screen_pointer", "window_at_point", "window_ordering", "transparent_windows",
-        "compositor_notifications"
+        "compositor_notifications", "transient_surfaces"
       ]
     }
   ]

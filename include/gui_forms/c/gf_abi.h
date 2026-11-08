@@ -163,9 +163,49 @@ typedef struct gf_error_detail {
 } gf_error_detail;
 
 /*
+ * The splashscreen (since 1.1; C++ Splashscreen, APP_WINDOW_RULES_DESIGN
+ * Part S): a borderless window centred on the primary monitor, taking no
+ * input, shown while the program loads, before any object or window and
+ * before GF_TABLE_APPLICATION's create. It is the program's artwork plus one
+ * status line and an optional progress bar in fixed built-in styling, with
+ * no colours or geometry of the program's (owner ruling Q-S1 (a)). It
+ * closes when the library's first window is ready (the handover), or at
+ * splashscreen_close. One shows at a time.
+ */
+typedef uint64_t gf_splashscreen;
+
+/* The most bytes of one splashscreen status line. */
+#define GF_SPLASHSCREEN_MAXIMUM_STATUS_BYTES 512u
+/* The artwork's least and greatest extent, in pixels. */
+#define GF_SPLASHSCREEN_MINIMUM_EXTENT 160u
+#define GF_SPLASHSCREEN_MAXIMUM_EXTENT 1600u
+
+/*
+ * What a splashscreen shows. An input record: struct_size at least the 1.1
+ * size. artwork holds artwork_size bytes of a PNG file whose pixel size,
+ * one logical unit per pixel, is the window's size (each extent from
+ * GF_SPLASHSCREEN_MINIMUM_EXTENT to _MAXIMUM_EXTENT); the status and the
+ * bar are drawn over its bottom edge. status is UTF-8, at most
+ * GF_SPLASHSCREEN_MAXIMUM_STATUS_BYTES. With show_progress non-zero a bar
+ * shows progress, in [0, 1]. Everything is copied during the call.
+ */
+typedef struct gf_splashscreen_options {
+    uint32_t struct_size;
+    uint32_t show_progress;
+    const uint8_t* artwork;
+    uint64_t artwork_size;
+    gf_utf8_view status;
+    double progress;
+} gf_splashscreen_options;
+
+/*
  * GF_TABLE_RUNTIME: version and error detail. Its functions may be called
  * from any thread, and they never record a failure of their own, so reading
- * the detail does not replace it.
+ * the detail does not replace it. The splashscreen functions (since 1.1)
+ * are the exception to the threads rule: they run on the thread that shows
+ * the splashscreen, which should be the thread that will be the UI thread,
+ * and may be called before the library has a UI thread; another thread is
+ * refused with GF_STATUS_WRONG_THREAD.
  */
 typedef struct gf_runtime_table {
     uint32_t struct_size;
@@ -185,6 +225,42 @@ typedef struct gf_runtime_table {
                                       uint64_t* message_required);
     /* Forgets the calling thread's last failure. */
     gf_status (GF_CALL* clear_error)(void);
+    /*
+     * Since 1.1. Shows the splashscreen of options and presents its first
+     * frame before it returns; splashscreen receives its handle, valid until
+     * splashscreen_close. GF_STATUS_INVALID_ARGUMENT for a record smaller
+     * than the 1.1 size, a null splashscreen, artwork that is not a PNG file
+     * or has an extent out of range, a status that is not UTF-8 or too long,
+     * or a progress outside [0, 1] with show_progress; GF_STATUS_INVALID_STATE
+     * while another splashscreen's handle is open (shown, or handed over and
+     * not yet closed); GF_STATUS_UNSUPPORTED_CAPABILITY when the host has no
+     * splashscreen (no display, a host without
+     * GF_TRANSIENT_SURFACE_SPLASHSCREEN) or could not present it. Nothing
+     * shows after a failure, and the program goes on without one.
+     */
+    gf_status (GF_CALL* splashscreen_show)(const gf_splashscreen_options* options, gf_splashscreen* splashscreen);
+    /*
+     * Since 1.1. Replaces the status line and presents the frame at once.
+     * After the handover it accepts and presents nothing.
+     * GF_STATUS_STALE_HANDLE for a handle that is not the current
+     * splashscreen's; GF_STATUS_INVALID_ARGUMENT, changing nothing, for text
+     * that is not UTF-8 or too long; GF_STATUS_UNSUPPORTED_CAPABILITY when
+     * the frame could not be presented.
+     */
+    gf_status (GF_CALL* splashscreen_set_status)(gf_splashscreen splashscreen, gf_utf8_view status);
+    /*
+     * Since 1.1. Shows the bar at progress, in [0, 1], or hides it when
+     * show_progress is zero (progress is then ignored), and presents the
+     * frame at once; as set_status otherwise.
+     */
+    gf_status (GF_CALL* splashscreen_set_progress)(gf_splashscreen splashscreen, uint32_t show_progress,
+                                                   double progress);
+    /*
+     * Since 1.1. Closes the splashscreen's window if it still shows and ends
+     * its handle; another may be shown after. GF_STATUS_STALE_HANDLE for a
+     * handle that is not the current splashscreen's.
+     */
+    gf_status (GF_CALL* splashscreen_close)(gf_splashscreen splashscreen);
 } gf_runtime_table;
 
 /*
@@ -1147,13 +1223,37 @@ typedef uint64_t gf_host_capability;
 #define GF_HOST_CAPABILITY_PRESENTATION_PREFERENCES 2147483648ull
 /* The library has GF_TABLE_WINDOWS_PAINT_ENDPOINT (Windows only). */
 #define GF_HOST_CAPABILITY_WINDOWS_PAINT_ENDPOINT 4294967296ull
+/* Since 1.1: transient surfaces, the host's own windows for tooltips and
+ * the splashscreen (Splash: no input) and for menus, drop-downs and pickers
+ * (Popup: input through the owner window). Which kinds, and whether they
+ * are translucent, is gf_host_capabilities.transient_surfaces. Without it
+ * each kind is shown inside its owner window instead. */
+#define GF_HOST_CAPABILITY_TRANSIENT_SURFACES 8589934592ull
 
-/* The host's report. An output record. protocol_version is the host
- * protocol's revision; available is a set of gf_host_capability bits. */
+/* gf_transient_surface_kind (since 1.1): the transient surfaces a host
+ * opens, one bit each, and how they are drawn. */
+typedef uint32_t gf_transient_surface_kind;
+#define GF_TRANSIENT_SURFACE_TOOLTIP 1u
+#define GF_TRANSIENT_SURFACE_SPLASHSCREEN 2u
+#define GF_TRANSIENT_SURFACE_POPUP 4u
+/* Drawn with per-pixel alpha: the library's shadow and fade around them. */
+#define GF_TRANSIENT_SURFACE_TRANSLUCENT 8u
+/* May be drawn opaque, with no shadow or fade, as the desktop decides while
+ * the program runs (X11 without a compositing manager). Reported with
+ * TRANSLUCENT when the host draws either way. */
+#define GF_TRANSIENT_SURFACE_OPAQUE 16u
+
+/* The host's report. An output record (struct_size at least the 1.0 size,
+ * 16; a 1.0 record receives the 1.0 fields only). protocol_version is the
+ * host protocol's revision; available is a set of gf_host_capability bits.
+ * Since 1.1, transient_surfaces is a set of gf_transient_surface_kind bits,
+ * zero without GF_HOST_CAPABILITY_TRANSIENT_SURFACES; reserved is zero. */
 typedef struct gf_host_capabilities {
     uint32_t struct_size;
     uint32_t protocol_version;
     gf_host_capability available;
+    gf_transient_surface_kind transient_surfaces;
+    uint32_t reserved;
 } gf_host_capabilities;
 
 /* gf_pointer_cursor: the pointer's shape over the running window. */

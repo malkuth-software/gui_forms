@@ -101,6 +101,8 @@ void gf_kit_subsurfaces(gf_kit* kit);
 void gf_kit_application(gf_kit* kit);
 /* A window's rules (GF_TABLE_RULES), on a created window. */
 void gf_kit_rules(gf_kit* kit);
+void gf_kit_splashscreen_refusals(gf_kit* kit);
+void gf_kit_splashscreen(gf_kit* kit);
 void gf_kit_host(gf_kit* kit);
 /* The host checks that need a running window; from its ready callback. */
 void gf_kit_host_running(gf_kit* kit);

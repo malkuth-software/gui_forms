@@ -1654,7 +1654,9 @@ HostCapabilities linux_capabilities() {
               HostCapability::screen_pointer | HostCapability::window_at_point |
               HostCapability::window_ordering |
               HostCapability::transparent_windows |
-              HostCapability::compositor_notifications,
+              HostCapability::compositor_notifications |
+              HostCapability::transient_surfaces |
+              HostCapability::opaque_transient_surfaces,
           // X11 desktops follow the PC keyboard convention.
           pc_key_map()};
 }
