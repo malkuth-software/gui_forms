@@ -4712,9 +4712,9 @@ Types
 
       The host's colour hints the sheets' env() reads (T4 theme variants), as compiled: a theme compiled again reads new hints. Empty, every env() reads its fallback. ApplicationResources::compile_theme_package and compile_user_theme pass the resources' (system_colour_hints) where these are empty.
 
-   .. cpp:member:: ThemeCompileBase base
+   .. cpp:member:: ThemeBase base
 
-      The theme the sheets compile onto; windows_professional unless the caller chooses gui_forms. With gui_forms, ``controls`` names the stock control types too: the light sheet's rules for a type outside it are warnings that drop them, named for ``gui-forms/light.css``. Default: ``{ThemeCompileBase::windows_professional}``.
+      The theme the sheets compile onto; windows_professional unless the caller chooses gui_forms. With gui_forms, ``controls`` names the stock control types too: the light sheet's rules for a type outside it are warnings that drop them, named for ``gui-forms/light.css``. Default: ``{ThemeBase::windows_professional}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -6624,7 +6624,7 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:enum-class:: ThemeCompileBase
+.. cpp:enum-class:: ThemeBase
 
    ``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>``
 
@@ -7633,6 +7633,14 @@ Functions, constants and aliases
 
    Compiles ``package`` with its ``@import`` closure among ``library``'s packages (one cascade: imported sheets first, and the later definition of a colour role or ``@keyframes`` wins) onto the built-in professional theme. Its image resources are loaded into ``images`` and owned by the compiled theme: each is removed from ``images`` when the last theme holding it is released, so replacing or dropping a theme removes its images. Themes compiled through one library that load the same bytes into one registry share one image. A refusal leaves none of its own. The package itself need not be installed. Compiles through one library, and the release of their themes, are not safe to run concurrently.
 
+.. cpp:function:: ThemeCompileResult compile_theme_packages(std::span<const ThemePackage> packages, const ThemeLibrary& library, ImageRegistry& images, const ThemeCompileOptions& options)
+
+   Compiles an application's theme (APP_WINDOW_RULES_DESIGN.md section A): ``options.base``, then ``packages`` in their order, each with its ``@import`` closure among ``library``'s packages, as one cascade, so a later package overrides an earlier one and may read its colour roles. A package another imports again keeps its earlier place. The theme is named after the last package, or is the base alone, under the base's id, when ``packages`` is empty. Every package is verified before any is compiled; two of one name, or more than maximum_theme_packages, are refused (E601), and the findings name each package's files. The combined sheets are bounded as one closure's are (1 MiB). Images are owned as compile_theme_package's are; compile_theme_package is the one-package case.
+
+.. cpp:function:: std::shared_ptr<const Theme> default_compiled_theme()
+
+   The process default theme: the theme a window shows while no application is current, the compiled base default_theme_base names alone. Built on the first call (thread-safe) and never recompiled; every call returns the same theme.
+
 .. cpp:function:: ThemeCompileResult compile_user_theme(const UserThemeFiles& files, const ThemeLibrary& program, ImageRegistry& images, const ThemeCompileOptions& options, ThemeRuleSet set, UserThemeHeader* header = nullptr)
 
    Compiles a user theme as the package its files imply (USER_THEMES.md section 3): its sub-sheets in filename order (byte order of their names) and then its main file, one cascade; an ``@import`` of a sub-sheet (``@import "editor.css";``) places it there instead, and an ``@import`` of another name imports the program's package of that name from ``program``, pinned to the installed one. The main file opens with an ``@theme`` header (refused without, E601); its ``engine`` descriptor bounds the engine (E607). ``set`` chooses the levels: ThemeRuleSet::user for a theme layered under the program's (ApplicationResources::set_user_theme under the layered policy), ThemeRuleSet::program for one replacing it. Images are owned as compile_theme_package's are. ``header``, when given, receives the main file's header once it is read, whether or not the theme then compiles (present false where the main file has none or does not read).
@@ -7644,6 +7652,14 @@ Functions, constants and aliases
 .. cpp:function:: ThemeCompileResult compile_installed_theme(std::string_view name, const ThemeLibrary& library, ImageRegistry& images, const ThemeCompileOptions& options)
 
    As compile_theme_package, for the installed package named ``name``; an unknown name is refused (E603).
+
+.. cpp:var:: constexpr ThemeBase default_theme_base
+
+   The base of the process default theme (default_compiled_theme()), the one place that chooses it: windows_professional until default_theme() switches to gui-forms (stage T4 phase 6, an owner decision). Value: ``ThemeBase::windows_professional``.
+
+.. cpp:var:: constexpr std::size_t maximum_theme_packages
+
+   The most packages compile_theme_packages takes: 16, as many as one package's ``@import`` closure may hold. Value: ``16U``.
 
 .. cpp:var:: constexpr std::size_t maximum_user_theme_files
 

@@ -149,6 +149,12 @@ public:
     // leaves none. On the UI thread (std::logic_error elsewhere).
     [[nodiscard]] ThemeCompileResult compile_theme_package(const ThemePackage& package, const ThemeLibrary& library,
                                                            const ThemeCompileOptions& options);
+    // As compile_theme_package, for an application's theme: the base, then
+    // `packages` in their order, as one cascade (compile_theme_packages).
+    // On the UI thread (std::logic_error elsewhere).
+    [[nodiscard]] ThemeCompileResult compile_theme_packages(std::span<const ThemePackage> packages,
+                                                            const ThemeLibrary& library,
+                                                            const ThemeCompileOptions& options);
     // The selected user theme, or null.
     [[nodiscard]] const Theme* user_theme() const noexcept { return user_theme_.get(); }
     // The selected user theme shared, for resources of another thread (a

@@ -126,6 +126,10 @@ Types
 
       Compiles a program theme package into these resources' registry (compile_theme_package against ``library``), so the theme's images are images of every window sharing these resources. Selects nothing (set_theme does); the theme's images live while it does, and a refusal leaves none. On the UI thread (std::logic_error elsewhere).
 
+   .. cpp:function:: ThemeCompileResult compile_theme_packages(std::span<const ThemePackage> packages, const ThemeLibrary& library, const ThemeCompileOptions& options)
+
+      As compile_theme_package, for an application's theme: the base, then ``packages`` in their order, as one cascade (compile_theme_packages). On the UI thread (std::logic_error elsewhere).
+
    .. cpp:function:: void register_icon(std::string_view identifier, ImageId image, IconOverride policy)
 
       Program icons (T3 user themes). Registers ``image``, an image of these resources, as the icon ``identifier``. std::invalid_argument when the identifier is invalid or already registered, or the image is not one of these resources'; nothing changes then. The image stays the program's: removing it leaves icon() naming an image no longer there.

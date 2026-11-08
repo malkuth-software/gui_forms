@@ -18,11 +18,20 @@ sheets it imports (imported sheets first, as in CSS) and returns either a
 
 The sheets compile onto a built-in theme, whose recipes stand wherever they
 set nothing: `windows-professional` unless `ThemeCompileOptions::base` is
-`ThemeCompileBase::gui_forms`. Onto GUI.Forms' own theme (`gui-forms`), its
+`ThemeBase::gui_forms`. Onto GUI.Forms' own theme (`gui-forms`), its
 light sheet comes first in the cascade, so the package's rules override it
 and may read its colour roles, and its dark variant is derived by rule: the
 package's colours are written in light terms and darken by the same rule in
 a dark window, so a package on `gui-forms` writes no dark values of its own.
+
+An application's theme is the base and its packages in order:
+`compile_theme_packages` (and `ApplicationResources::compile_theme_packages`)
+compiles `ThemeCompileOptions::base`, then each package with its imports, as
+one cascade, so a later package overrides an earlier one and may read its
+colour roles. The theme is named after the last package; with no packages it
+is the base alone. While no application is current, windows show the process
+default, `default_compiled_theme()`, the base `default_theme_base` names,
+built once.
 
 - An **error** refuses the whole theme. Nothing of it is installed; the theme
   in use stays in use, and the images the refused compilation loaded are

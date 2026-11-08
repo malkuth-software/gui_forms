@@ -14387,6 +14387,37 @@
           "page": "gui-forms-applicationresources-compile-theme-package-themecompileresult-const-themepackage-const-themelibrary--a5ec5f2336.html"
         },
         {
+          "id": "gui_forms::ApplicationResources::compile_theme_packages|ThemeCompileResult (std::span<const ThemePackage>, const ThemeLibrary &, const ThemeCompileOptions &)",
+          "name": "compile_theme_packages",
+          "type": "ThemeCompileResult (std::span<const ThemePackage>, const ThemeLibrary &, const ThemeCompileOptions &)",
+          "namespace": "gui_forms::ApplicationResources",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [
+            {
+              "name": "packages",
+              "type": "std::span<const ThemePackage>",
+              "declaration": "std::span<const ThemePackage> packages"
+            },
+            {
+              "name": "library",
+              "type": "const ThemeLibrary &",
+              "declaration": "const ThemeLibrary& library"
+            },
+            {
+              "name": "options",
+              "type": "const ThemeCompileOptions &",
+              "declaration": "const ThemeCompileOptions& options"
+            }
+          ],
+          "declaration": "[[nodiscard]] ThemeCompileResult compile_theme_packages(std::span<const ThemePackage> packages, const ThemeLibrary& library, const ThemeCompileOptions& options)",
+          "comment": "",
+          "header": "gui_forms/resources/application_resources/application_resources.hpp",
+          "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
+          "line": 152,
+          "page": "gui-forms-applicationresources-compile-theme-packages-themecompileresult-std-span-const-themepackage-const-the-a4761fa508.html"
+        },
+        {
           "id": "gui_forms::ApplicationResources::user_theme|const Theme *() const noexcept",
           "name": "user_theme",
           "type": "const Theme *() const noexcept",
@@ -14398,7 +14429,7 @@
           "comment": "",
           "header": "gui_forms/resources/application_resources/application_resources.hpp",
           "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-          "line": 150,
+          "line": 156,
           "page": "gui-forms-applicationresources-user-theme-const-theme-const-noexcept-f82c5e3b01.html"
         },
         {
@@ -14413,7 +14444,7 @@
           "comment": "",
           "header": "gui_forms/resources/application_resources/application_resources.hpp",
           "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-          "line": 153,
+          "line": 159,
           "page": "gui-forms-applicationresources-user-theme-ptr-std-shared-ptr-const-theme-const-noexcept-d2fc26c52a.html"
         },
         {
@@ -14428,7 +14459,7 @@
           "comment": "",
           "header": "gui_forms/resources/application_resources/application_resources.hpp",
           "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-          "line": 155,
+          "line": 161,
           "page": "gui-forms-applicationresources-user-theme-rules-const-compiledthemerules-const-noexcept-0d3f2e9cbb.html"
         },
         {
@@ -14459,7 +14490,7 @@
           "comment": "",
           "header": "gui_forms/resources/application_resources/application_resources.hpp",
           "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-          "line": 162,
+          "line": 168,
           "page": "gui-forms-applicationresources-register-icon-void-std-string-view-imageid-iconoverride-36fab9d50f.html"
         },
         {
@@ -14474,7 +14505,7 @@
           "comment": "",
           "header": "gui_forms/resources/application_resources/application_resources.hpp",
           "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-          "line": 165,
+          "line": 171,
           "page": "gui-forms-applicationresources-icon-declarations-std-span-const-icondeclaration-const-noexcept-fcdab886be.html"
         },
         {
@@ -14495,7 +14526,7 @@
           "comment": "",
           "header": "gui_forms/resources/application_resources/application_resources.hpp",
           "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-          "line": 171,
+          "line": 177,
           "page": "gui-forms-applicationresources-icon-std-optional-imageid-std-string-view-const-noexcept-7990b2ede9.html"
         },
         {
@@ -14516,7 +14547,7 @@
           "comment": "",
           "header": "gui_forms/resources/application_resources/application_resources.hpp",
           "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-          "line": 174,
+          "line": 180,
           "page": "gui-forms-applicationresources-program-icon-std-optional-imageid-std-string-view-const-noexcept-f10074e996.html"
         },
         {
@@ -14531,7 +14562,7 @@
           "comment": "",
           "header": "gui_forms/resources/application_resources/application_resources.hpp",
           "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-          "line": 177,
+          "line": 183,
           "page": "gui-forms-applicationresources-window-count-std-size-t-const-noexcept-6e680b4146.html"
         },
         {
@@ -14552,7 +14583,7 @@
           "comment": "",
           "header": "gui_forms/resources/application_resources/application_resources.hpp",
           "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-          "line": 182,
+          "line": 188,
           "page": "gui-forms-applicationresources-load-png-imageloadresult-std-span-const-std-byte-a473a4abf4.html"
         },
         {
@@ -14588,7 +14619,7 @@
           "comment": "",
           "header": "gui_forms/resources/application_resources/application_resources.hpp",
           "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-          "line": 183,
+          "line": 189,
           "page": "gui-forms-applicationresources-load-bgra32-premultiplied-imageloadresult-std-uint32-t-std-uint32-t-std-uint64--7f3deff1cc.html"
         },
         {
@@ -14614,7 +14645,7 @@
           "comment": "",
           "header": "gui_forms/resources/application_resources/application_resources.hpp",
           "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-          "line": 186,
+          "line": 192,
           "page": "gui-forms-applicationresources-replace-png-imageloadresult-imageid-std-span-const-std-byte-652803943d.html"
         },
         {
@@ -14635,7 +14666,7 @@
           "comment": "",
           "header": "gui_forms/resources/application_resources/application_resources.hpp",
           "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-          "line": 187,
+          "line": 193,
           "page": "gui-forms-applicationresources-remove-image-bool-imageid-d67bdf1160.html"
         }
       ],
@@ -129581,7 +129612,7 @@
       "kind": "class",
       "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
       "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-      "line": 135,
+      "line": 140,
       "declaration": "class InlineStyleResult final",
       "comment": "",
       "access": "public",
@@ -129605,7 +129636,7 @@
           "comment": "",
           "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
           "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 137,
+          "line": 142,
           "page": "gui-forms-inlinestyleresult-applied-inlinestyleresult-std-vector-themecompilediagnostic-noexcept-e4f60baefe.html"
         },
         {
@@ -129626,7 +129657,7 @@
           "comment": "",
           "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
           "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 138,
+          "line": 143,
           "page": "gui-forms-inlinestyleresult-refused-inlinestyleresult-std-vector-themecompilediagnostic-noexcept-4aa0700e44.html"
         },
         {
@@ -129641,7 +129672,7 @@
           "comment": "",
           "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
           "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 140,
+          "line": 145,
           "page": "gui-forms-inlinestyleresult-succeeded-bool-const-noexcept-5acfe758e7.html"
         },
         {
@@ -129656,7 +129687,7 @@
           "comment": "",
           "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
           "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 142,
+          "line": 147,
           "page": "gui-forms-inlinestyleresult-diagnostics-std-span-const-themecompilediagnostic-const-noexcept-e7ae13c0ef.html"
         }
       ],
@@ -254028,6 +254059,53 @@
       "enclosing_type": null
     },
     {
+      "id": "gui_forms::ThemeBase",
+      "name": "ThemeBase",
+      "namespace": "gui_forms",
+      "kind": "enum",
+      "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
+      "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
+      "line": 104,
+      "declaration": "enum class ThemeBase : std::uint8_t",
+      "comment": "",
+      "access": "public",
+      "bases": [],
+      "members": [
+        {
+          "id": "gui_forms::ThemeBase::windows_professional|gui_forms::ThemeBase",
+          "name": "windows_professional",
+          "type": "gui_forms::ThemeBase",
+          "namespace": "gui_forms::ThemeBase",
+          "kind": "EnumConstantDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "windows_professional",
+          "comment": "",
+          "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
+          "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
+          "line": 104,
+          "page": "gui-forms-themebase-windows-professional-gui-forms-themebase-6339ff0f9c.html"
+        },
+        {
+          "id": "gui_forms::ThemeBase::gui_forms|gui_forms::ThemeBase",
+          "name": "gui_forms",
+          "type": "gui_forms::ThemeBase",
+          "namespace": "gui_forms::ThemeBase",
+          "kind": "EnumConstantDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "gui_forms",
+          "comment": "",
+          "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
+          "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
+          "line": 104,
+          "page": "gui-forms-themebase-gui-forms-gui-forms-themebase-55f53b887a.html"
+        }
+      ],
+      "page": "gui-forms-themebase-4bd86c9338.html",
+      "enclosing_type": null
+    },
+    {
       "id": "gui_forms::ThemeChoice",
       "name": "ThemeChoice",
       "namespace": "gui_forms",
@@ -254214,53 +254292,6 @@
       "enclosing_type": null
     },
     {
-      "id": "gui_forms::ThemeCompileBase",
-      "name": "ThemeCompileBase",
-      "namespace": "gui_forms",
-      "kind": "enum",
-      "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
-      "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-      "line": 104,
-      "declaration": "enum class ThemeCompileBase : std::uint8_t",
-      "comment": "",
-      "access": "public",
-      "bases": [],
-      "members": [
-        {
-          "id": "gui_forms::ThemeCompileBase::windows_professional|gui_forms::ThemeCompileBase",
-          "name": "windows_professional",
-          "type": "gui_forms::ThemeCompileBase",
-          "namespace": "gui_forms::ThemeCompileBase",
-          "kind": "EnumConstantDecl",
-          "access": "public",
-          "parameters": [],
-          "declaration": "windows_professional",
-          "comment": "",
-          "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 104,
-          "page": "gui-forms-themecompilebase-windows-professional-gui-forms-themecompilebase-21ff93a2e2.html"
-        },
-        {
-          "id": "gui_forms::ThemeCompileBase::gui_forms|gui_forms::ThemeCompileBase",
-          "name": "gui_forms",
-          "type": "gui_forms::ThemeCompileBase",
-          "namespace": "gui_forms::ThemeCompileBase",
-          "kind": "EnumConstantDecl",
-          "access": "public",
-          "parameters": [],
-          "declaration": "gui_forms",
-          "comment": "",
-          "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 104,
-          "page": "gui-forms-themecompilebase-gui-forms-gui-forms-themecompilebase-b12486a98d.html"
-        }
-      ],
-      "page": "gui-forms-themecompilebase-26d047dc03.html",
-      "enclosing_type": null
-    },
-    {
       "id": "gui_forms::ThemeCompileDiagnostic",
       "name": "ThemeCompileDiagnostic",
       "namespace": "gui_forms",
@@ -254419,7 +254450,7 @@
       "kind": "struct",
       "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
       "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-      "line": 107,
+      "line": 112,
       "declaration": "struct ThemeCompileOptions final",
       "comment": "",
       "access": "public",
@@ -254437,7 +254468,7 @@
           "comment": "",
           "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
           "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 111,
+          "line": 116,
           "page": "gui-forms-themecompileoptions-controls-std-span-const-controlanatomy-2f64e787f7.html"
         },
         {
@@ -254452,7 +254483,7 @@
           "comment": "",
           "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
           "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 114,
+          "line": 119,
           "page": "gui-forms-themecompileoptions-published-values-std-span-const-std-string-2bc5304018.html"
         },
         {
@@ -254467,7 +254498,7 @@
           "comment": "",
           "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
           "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 117,
+          "line": 122,
           "page": "gui-forms-themecompileoptions-icons-std-span-const-icondeclaration-24f8c71857.html"
         },
         {
@@ -254482,23 +254513,23 @@
           "comment": "",
           "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
           "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 123,
+          "line": 128,
           "page": "gui-forms-themecompileoptions-system-colours-systemcolourhints-cc0a47c078.html"
         },
         {
-          "id": "gui_forms::ThemeCompileOptions::base|ThemeCompileBase",
+          "id": "gui_forms::ThemeCompileOptions::base|ThemeBase",
           "name": "base",
-          "type": "ThemeCompileBase",
+          "type": "ThemeBase",
           "namespace": "gui_forms::ThemeCompileOptions",
           "kind": "FieldDecl",
           "access": "public",
           "parameters": [],
-          "declaration": "ThemeCompileBase base{ThemeCompileBase::windows_professional}",
+          "declaration": "ThemeBase base{ThemeBase::windows_professional}",
           "comment": "",
           "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
           "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 128,
-          "page": "gui-forms-themecompileoptions-base-themecompilebase-ae30ff9a99.html"
+          "line": 133,
+          "page": "gui-forms-themecompileoptions-base-themebase-2cc9975256.html"
         }
       ],
       "page": "gui-forms-themecompileoptions-2677918c70.html",
@@ -254511,7 +254542,7 @@
       "kind": "class",
       "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
       "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-      "line": 158,
+      "line": 163,
       "declaration": "class ThemeCompileResult final",
       "comment": "",
       "access": "public",
@@ -254540,7 +254571,7 @@
           "comment": "",
           "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
           "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 160,
+          "line": 165,
           "page": "gui-forms-themecompileresult-compiled-themecompileresult-std-shared-ptr-const-theme-std-vector-themecompiledia-dbb91a91f2.html"
         },
         {
@@ -254561,7 +254592,7 @@
           "comment": "",
           "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
           "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 162,
+          "line": 167,
           "page": "gui-forms-themecompileresult-refused-themecompileresult-std-vector-themecompilediagnostic-noexcept-ad5577a3d1.html"
         },
         {
@@ -254576,7 +254607,7 @@
           "comment": "",
           "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
           "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 164,
+          "line": 169,
           "page": "gui-forms-themecompileresult-succeeded-bool-const-noexcept-dc64be89af.html"
         },
         {
@@ -254591,7 +254622,7 @@
           "comment": "",
           "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
           "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 166,
+          "line": 171,
           "page": "gui-forms-themecompileresult-theme-std-shared-ptr-const-theme-const-noexcept-b28ec1be1f.html"
         },
         {
@@ -254606,7 +254637,7 @@
           "comment": "",
           "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
           "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 169,
+          "line": 174,
           "page": "gui-forms-themecompileresult-diagnostics-std-span-const-themecompilediagnostic-const-noexcept-48e6629af1.html"
         }
       ],
@@ -255952,7 +255983,7 @@
       "kind": "struct",
       "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
       "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-      "line": 247,
+      "line": 278,
       "declaration": "struct ThemePackageExport final",
       "comment": "",
       "access": "public",
@@ -255970,7 +256001,7 @@
           "comment": "",
           "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
           "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 248,
+          "line": 279,
           "page": "gui-forms-themepackageexport-files-userthemefiles-f92f256624.html"
         },
         {
@@ -255985,7 +256016,7 @@
           "comment": "",
           "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
           "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 249,
+          "line": 280,
           "page": "gui-forms-themepackageexport-omitted-std-vector-std-string-9f1fd990d7.html"
         }
       ],
@@ -270831,7 +270862,7 @@
       "kind": "struct",
       "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
       "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-      "line": 204,
+      "line": 235,
       "declaration": "struct UserThemeFiles final",
       "comment": "",
       "access": "public",
@@ -270849,7 +270880,7 @@
           "comment": "",
           "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
           "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 205,
+          "line": 236,
           "page": "gui-forms-userthemefiles-name-std-string-dbfa693fc1.html"
         },
         {
@@ -270864,7 +270895,7 @@
           "comment": "",
           "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
           "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 206,
+          "line": 237,
           "page": "gui-forms-userthemefiles-main-sheet-std-string-d7fd91251d.html"
         },
         {
@@ -270879,7 +270910,7 @@
           "comment": "",
           "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
           "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 207,
+          "line": 238,
           "page": "gui-forms-userthemefiles-files-std-vector-themepackagefile-526c5f63d4.html"
         }
       ],
@@ -270940,7 +270971,7 @@
       "kind": "struct",
       "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
       "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-      "line": 217,
+      "line": 248,
       "declaration": "struct UserThemeHeader final",
       "comment": "",
       "access": "public",
@@ -270958,7 +270989,7 @@
           "comment": "",
           "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
           "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 219,
+          "line": 250,
           "page": "gui-forms-userthemeheader-present-bool-fb733a9ec3.html"
         },
         {
@@ -270973,7 +271004,7 @@
           "comment": "",
           "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
           "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 220,
+          "line": 251,
           "page": "gui-forms-userthemeheader-version-std-string-ec59198460.html"
         },
         {
@@ -270988,7 +271019,7 @@
           "comment": "",
           "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
           "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 221,
+          "line": 252,
           "page": "gui-forms-userthemeheader-author-std-string-f1f68c20b3.html"
         },
         {
@@ -271003,7 +271034,7 @@
           "comment": "",
           "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
           "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 222,
+          "line": 253,
           "page": "gui-forms-userthemeheader-provenance-std-string-d77b5d58cd.html"
         }
       ],
@@ -288880,8 +288911,44 @@
       "comment": "",
       "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
       "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-      "line": 257,
+      "line": 288,
       "page": "gui-forms-compile-installed-theme-themecompileresult-std-string-view-const-themelibrary-imageregistry-const-th-d3a03a2cc3.html"
+    },
+    {
+      "id": "gui_forms::compile_theme_packages|ThemeCompileResult (std::span<const ThemePackage>, const ThemeLibrary &, ImageRegistry &, const ThemeCompileOptions &)",
+      "name": "compile_theme_packages",
+      "type": "ThemeCompileResult (std::span<const ThemePackage>, const ThemeLibrary &, ImageRegistry &, const ThemeCompileOptions &)",
+      "namespace": "gui_forms",
+      "kind": "FunctionDecl",
+      "access": "public",
+      "parameters": [
+        {
+          "name": "packages",
+          "type": "std::span<const ThemePackage>",
+          "declaration": "std::span<const ThemePackage> packages"
+        },
+        {
+          "name": "library",
+          "type": "const ThemeLibrary &",
+          "declaration": "const ThemeLibrary& library"
+        },
+        {
+          "name": "images",
+          "type": "ImageRegistry &",
+          "declaration": "ImageRegistry& images"
+        },
+        {
+          "name": "options",
+          "type": "const ThemeCompileOptions &",
+          "declaration": "const ThemeCompileOptions& options"
+        }
+      ],
+      "declaration": "[[nodiscard]] ThemeCompileResult compile_theme_packages(std::span<const ThemePackage> packages, const ThemeLibrary& library, ImageRegistry& images, const ThemeCompileOptions& options)",
+      "comment": "",
+      "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
+      "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
+      "line": 218,
+      "page": "gui-forms-compile-theme-packages-themecompileresult-std-span-const-themepackage-const-themelibrary-imageregist-ca0cecca50.html"
     },
     {
       "id": "gui_forms::compile_theme_package|ThemeCompileResult (const ThemePackage &, const ThemeLibrary &, ImageRegistry &, const ThemeCompileOptions &)",
@@ -288916,7 +288983,7 @@
       "comment": "",
       "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
       "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-      "line": 194,
+      "line": 199,
       "page": "gui-forms-compile-theme-package-themecompileresult-const-themepackage-const-themelibrary-imageregistry-const-t-46fdb037e1.html"
     },
     {
@@ -288962,7 +289029,7 @@
       "comment": "",
       "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
       "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-      "line": 238,
+      "line": 269,
       "page": "gui-forms-compile-user-theme-themecompileresult-const-userthemefiles-const-themelibrary-imageregistry-const-th-a5c8b58f12.html"
     },
     {
@@ -289480,6 +289547,21 @@
       "source": "include/gui_forms/anatomy/types/anatomy_types.hpp",
       "line": 387,
       "page": "gui-forms-declares-state-bool-const-controlanatomy-anatomystate-noexcept-3367a32427.html"
+    },
+    {
+      "id": "gui_forms::default_compiled_theme|std::shared_ptr<const Theme> ()",
+      "name": "default_compiled_theme",
+      "type": "std::shared_ptr<const Theme> ()",
+      "namespace": "gui_forms",
+      "kind": "FunctionDecl",
+      "access": "public",
+      "parameters": [],
+      "declaration": "[[nodiscard]] std::shared_ptr<const Theme> default_compiled_theme()",
+      "comment": "",
+      "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
+      "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
+      "line": 226,
+      "page": "gui-forms-default-compiled-theme-std-shared-ptr-const-theme-58973683c2.html"
     },
     {
       "id": "gui_forms::default_parameters|PrimitiveParameterBlock (const PrimitiveDescriptor &) noexcept",
@@ -290706,7 +290788,7 @@
       "comment": "",
       "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
       "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-      "line": 253,
+      "line": 284,
       "page": "gui-forms-export-theme-packages-std-vector-themepackageexport-const-themelibrary-f6f22af556.html"
     },
     {
@@ -307254,6 +307336,21 @@
       "page": "gui-forms-default-live-surface-buffer-count-const-std-size-t-8b2781cac3.html"
     },
     {
+      "id": "gui_forms::default_theme_base|const ThemeBase",
+      "name": "default_theme_base",
+      "type": "const ThemeBase",
+      "namespace": "gui_forms",
+      "kind": "VarDecl",
+      "access": "public",
+      "parameters": [],
+      "declaration": "inline constexpr ThemeBase default_theme_base = ThemeBase::windows_professional",
+      "comment": "",
+      "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
+      "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
+      "line": 109,
+      "page": "gui-forms-default-theme-base-const-themebase-2a09a6f570.html"
+    },
+    {
       "id": "gui_forms::display_frame_interval|const FrameInterval",
       "name": "display_frame_interval",
       "type": "const FrameInterval",
@@ -309204,6 +309301,21 @@
       "page": "gui-forms-maximum-theme-folder-files-const-std-size-t-1e872869ba.html"
     },
     {
+      "id": "gui_forms::maximum_theme_packages|const std::size_t",
+      "name": "maximum_theme_packages",
+      "type": "const std::size_t",
+      "namespace": "gui_forms",
+      "kind": "VarDecl",
+      "access": "public",
+      "parameters": [],
+      "declaration": "inline constexpr std::size_t maximum_theme_packages = 16U",
+      "comment": "",
+      "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
+      "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
+      "line": 204,
+      "page": "gui-forms-maximum-theme-packages-const-std-size-t-112d317814.html"
+    },
+    {
       "id": "gui_forms::maximum_user_theme_bytes|const std::size_t",
       "name": "maximum_user_theme_bytes",
       "type": "const std::size_t",
@@ -309215,7 +309327,7 @@
       "comment": "",
       "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
       "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-      "line": 214,
+      "line": 245,
       "page": "gui-forms-maximum-user-theme-bytes-const-std-size-t-808629432b.html"
     },
     {
@@ -309230,7 +309342,7 @@
       "comment": "",
       "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
       "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-      "line": 213,
+      "line": 244,
       "page": "gui-forms-maximum-user-theme-files-const-std-size-t-5189fde48e.html"
     },
     {

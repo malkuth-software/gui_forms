@@ -13,6 +13,7 @@
 #include <cstddef>
 #include <iostream>
 #include <memory>
+#include <span>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -333,7 +334,7 @@ void test_atomic_swap() {
 } // namespace
 
 // The base theme (T4 phase 6): unset, a package compiles onto
-// windows-professional as before; with ThemeCompileBase::gui_forms, onto
+// windows-professional as before; with ThemeBase::gui_forms, onto
 // GUI.Forms' own theme, its light sheet first in the cascade, and a
 // diagnostic in the package's sheet is still named for that sheet's line.
 void test_base_theme() {
@@ -352,7 +353,7 @@ void test_base_theme() {
     stock.push_back(controls[0]);
     ThemeCompileOptions onto = options();
     onto.controls = stock;
-    onto.base = ThemeCompileBase::gui_forms;
+    onto.base = ThemeBase::gui_forms;
     const ThemeCompileResult based =
         compile_theme_package(package("based", "#pad { outline: 3px solid }"), library, images, onto);
     require(based.succeeded() && based.diagnostics().empty(), "a package compiles onto gui-forms");
@@ -376,8 +377,56 @@ void test_base_theme() {
             "a refusal over gui-forms still names the package's sheet and line");
 }
 
+// An application's theme (APP_WINDOW_RULES_DESIGN.md section A): the base,
+// then the packages in order as one cascade, the later overriding, under
+// the last package's id; no package gives the base alone; two of one name
+// are refused; a finding names its own package's sheet. The process
+// default is built once.
+void test_application_theme() {
+    ImageRegistry images{};
+    const ThemeLibrary library{};
+    std::vector<ControlAnatomy> stock(stock_control_anatomies().begin(), stock_control_anatomies().end());
+    stock.push_back(controls[0]);
+    ThemeCompileOptions onto = options();
+    onto.controls = stock;
+    onto.base = ThemeBase::gui_forms;
+    const std::array<ThemePackage, 2> layered{
+        {package("first", "#pad { outline: 3px solid }"), package("second", "#pad { outline: 5px solid }")}};
+    const ThemeCompileResult both = compile_theme_packages(layered, library, images, onto);
+    require(both.succeeded() && both.diagnostics().empty(), "two packages compile onto gui-forms");
+    if (both.succeeded()) {
+        require((*both.theme()).id() == "second" &&
+                    (*both.theme()).definition().dark_variant == ThemeDarkVariant::derived,
+                "the theme is named after the last package, on gui-forms' recipes");
+        const std::shared_ptr<Pad> pad = make_control<Pad>(StableId("pad"));
+        const ResolvedControlRecipe recipe = resolved(*both.theme(), *pad);
+        require(recipe.recipe().focus_width == 5.0, "the later package overrides");
+    }
+    const ThemeCompileResult alone = compile_theme_packages(std::span<const ThemePackage>{}, library, images, onto);
+    require(alone.succeeded() && alone.diagnostics().empty() && (*alone.theme()).id() == "gui-forms",
+            "no package gives gui-forms alone");
+    const ThemeCompileResult plain =
+        compile_theme_packages(std::span<const ThemePackage>{}, library, images, options());
+    require(plain.succeeded() && (*plain.theme()).id() == (*default_theme()).id() &&
+                (*plain.theme()).definition().dark_variant == ThemeDarkVariant::none,
+            "no package onto windows-professional gives it alone");
+    const std::array<ThemePackage, 2> twice{{package("same", "#pad {}"), package("same", "#pad {}")}};
+    const ThemeCompileResult doubled = compile_theme_packages(twice, library, images, onto);
+    require(!doubled.succeeded() && has(doubled, "E601", "same/theme.json", 0U, "listed twice"),
+            "two packages of one name are refused");
+    const std::array<ThemePackage, 2> faulty{
+        {package("first", "#pad {}"), package("second", "#pad {}\n#pad { opacity: 2 }")}};
+    const ThemeCompileResult refused = compile_theme_packages(faulty, library, images, onto);
+    require(!refused.succeeded() && has(refused, "E403", "second/theme.theme.css", 2U, ""),
+            "a refusal names its own package's sheet and line");
+    const std::shared_ptr<const Theme> process = default_compiled_theme();
+    require(process != nullptr && process == default_compiled_theme() && (*process).id() == (*default_theme()).id(),
+            "the process default is built once, from the default base");
+}
+
 int main() {
     test_base_theme();
+    test_application_theme();
     test_one_package();
     test_published_values();
     test_resources();
