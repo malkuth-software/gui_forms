@@ -311,10 +311,31 @@ enum class ControlLookupError : std::uint8_t {
     none,
     // The ID is empty: unnamed controls share it, so it names none.
     empty_id,
-    // No control in the root's subtree has the ID.
+    // No control attached to the window has the ID.
     not_found,
-    // Two or more controls have it; none is chosen.
-    ambiguous,
+};
+
+// What one window overrides of what it would otherwise read from its
+// owner (APP_WINDOW_RULES_DESIGN K.1): its application, or for a popup or
+// floating window the window that opened it, which shares its table. A
+// window with no override stores none: SurfaceRoot holds a null pointer
+// until the first, which allocates this record; clearing the last releases
+// it. A read is one branch: the field when set, else the owner's.
+struct WindowOverrides final {
+    // Presentation fields that win over the window's own settings.
+    PresentationOverrides presentation{};
+    // A theme for this window alone (immutable, shared by reference); null
+    // shows its resources' theme.
+    std::shared_ptr<const Theme> theme{};
+    // The window's own keyboard-command table, or one it was given to share
+    // (set_key_bindings); null reads the owner's.
+    std::shared_ptr<KeyBindings> key_bindings{};
+
+    // Whether nothing is overridden.
+    [[nodiscard]] bool empty() const noexcept {
+        const bool none = presentation.empty() && !theme && !key_bindings;
+        return none;
+    }
 };
 
 // What SurfaceRoot::control found: the one control with the ID, or why
@@ -402,10 +423,10 @@ public:
     void reset_activity_metrics();
 
     [[nodiscard]] Control::Ptr root() const noexcept { return root_; }
-    // The control with `stable_id` in the root's subtree (stage B, B.3: a
-    // runtime-loaded form's controls, a rule's target), searched whole so a
-    // repeated ID is refused rather than resolved by order. Overlays and
-    // popups are not searched. Changes nothing.
+    // The control attached to the window with `stable_id` (stage B, B.3: a
+    // runtime-loaded form's controls, a rule's target), as find() gives it
+    // but with the reason when there is none. Stable IDs are unique within a
+    // window (attaching a repeated one is refused). Changes nothing.
     [[nodiscard]] ControlLookup control(std::string_view stable_id) const;
     [[nodiscard]] Size client_size() const noexcept { return client_size_; }
     // The root slot (stage B, B.2a): the client rectangle less the chrome
@@ -436,15 +457,20 @@ public:
     void set_text_scale(double text_scale);
     // The window's own settings, before its overrides.
     [[nodiscard]] const PresentationSettings& presentation_base() const noexcept { return presentation_base_; }
-    // Overrides fields of the window's settings, copy on write: a window
-    // without overrides stores none, and an empty record releases them.
-    // std::invalid_argument when the result is not valid
-    // (validate_presentation_settings), changing nothing.
+    // Overrides fields of the window's settings, copy on write (the
+    // presentation of WindowOverrides): a window without overrides stores
+    // none, and an empty record clears them. std::invalid_argument when the
+    // result is not valid (validate_presentation_settings), changing nothing.
     void set_presentation_overrides(const PresentationOverrides& overrides);
-    // The window's overrides, or null when it has none.
-    [[nodiscard]] const PresentationOverrides* presentation_overrides() const noexcept {
-        return presentation_overrides_.get();
-    }
+    // The window's presentation overrides, or null when it has none.
+    [[nodiscard]] const PresentationOverrides* presentation_overrides() const noexcept;
+    // Everything the window overrides, or null when it overrides nothing
+    // (no record is allocated until the first override).
+    [[nodiscard]] const WindowOverrides* overrides() const noexcept { return overrides_.get(); }
+    // Shows `theme` in this window alone, whatever its resources' theme
+    // (ApplicationResources::set_theme no longer reaches it); null returns
+    // to the resources' theme. Root thread.
+    void set_theme_override(std::shared_ptr<const Theme> theme);
     // The host installs its terminal text engine through this non-owning,
     // renderer-neutral seam. Replacing it invalidates measurement so controls
     // never retain geometry produced by a previous font/raster profile.
@@ -598,20 +624,35 @@ public:
     }
     // The keys of the named keyboard commands (owner decisions DK-30 and
     // DK-44): the window's KeyBindings, which an application shares among all
-    // its windows (Application gives every window it runs its one set, and a
-    // floating window takes its main window's). A window made alone has a
-    // set of its own. The first HostSession to attach seeds the set with the
-    // host's defaults (HostCapabilities::key_map); the PC convention holds
-    // until then. Controls ask through Control::effective_key_map.
-    [[nodiscard]] const KeyMap& key_map() const noexcept { return (*key_bindings_).map(); }
-    [[nodiscard]] const std::shared_ptr<KeyBindings>& key_bindings() const noexcept { return key_bindings_; }
-    // Shares `bindings` with this window. A null pointer throws
-    // std::invalid_argument and changes nothing.
+    // its windows (a joined window reads its application's set, and a
+    // floating or popup window shares its opener's). The first HostSession
+    // to attach seeds the set with the host's defaults
+    // (HostCapabilities::key_map); the PC convention holds until then.
+    // Controls ask through Control::effective_key_map.
+    //
+    // Lazily (APP_WINDOW_RULES_DESIGN K.1): a window makes no table of its
+    // own. It reads the table it was given (set_key_bindings), else its
+    // application's, else the PC convention; only a window-local rebinding
+    // makes a table of its own, copied from the one it read.
+    [[nodiscard]] const KeyMap& key_map() const noexcept;
+    // The table the window reads: the one it holds, else its application's;
+    // null while it reads the PC convention.
+    [[nodiscard]] const std::shared_ptr<KeyBindings>& key_bindings() const noexcept;
+    // The table the window reads, made now (one allocation) when it reads
+    // the PC convention, so that another window can share it. Root thread.
+    [[nodiscard]] std::shared_ptr<KeyBindings> share_key_bindings();
+    // Shares `bindings` with this window; sharing the table it already
+    // reads stores nothing. A null pointer throws std::invalid_argument and
+    // changes nothing.
     void set_key_bindings(std::shared_ptr<KeyBindings> bindings);
-    // KeyBindings::rebind and restore on the window's set, for every window
-    // sharing it. Throw std::invalid_argument as those do.
+    // KeyBindings::rebind and restore on the window's table: one it holds
+    // is changed for every window sharing it; one it only reads is copied
+    // first, so the change is this window's alone. Throw
+    // std::invalid_argument as those do, changing nothing.
     void rebind_key_command(KeyCommand command, KeyBinding binding);
     void restore_key_command(KeyCommand command);
+    // Drops the table the window holds, so it reads its owner's again.
+    void clear_key_bindings();
 
     [[nodiscard]] UpdateScope begin_update();
     void perform_layout();
@@ -1772,7 +1813,14 @@ private:
     // The window's own settings (from its application, its host or the
     // program) and its overrides, null until the first (copy on write).
     PresentationSettings presentation_base_{};
-    std::unique_ptr<PresentationOverrides> presentation_overrides_{};
+    // What the window overrides (K.1): null until the first override.
+    std::unique_ptr<WindowOverrides> overrides_{};
+    // The record, made on the first override.
+    WindowOverrides& edit_overrides();
+    // Releases the record once nothing is overridden.
+    void release_empty_overrides() noexcept;
+    // The theme the window follows: its override, else its resources'.
+    [[nodiscard]] std::shared_ptr<const Theme> followed_theme() const;
     TextMetricsProvider* text_metrics_provider_{};
     Painter* framebuffer_painter_{};
     // The backplane replay's framebuffer (C6), made from the framebuffer
@@ -2102,9 +2150,15 @@ private:
     // chain with a blur asks for the main window's material, falling back to
     // transparent; otherwise the theme's request.
     [[nodiscard]] WindowBackdropRequest implied_backdrop_request() const;
-    // The keyboard commands' keys, shared with the application's other
-    // windows (see key_map); never null.
-    std::shared_ptr<KeyBindings> key_bindings_{std::make_shared<KeyBindings>()};
+    // The application's keyboard-command table, read while the window holds
+    // none of its own (key_map): taken by reference when the window joins
+    // (no allocation), and kept if the application goes first, as its
+    // resources are. Null for a window that joined none.
+    std::shared_ptr<KeyBindings> inherited_key_bindings_{};
+    // The table the window holds, else the application's it reads; made
+    // (one allocation) for a window with neither, which then holds it.
+    // Used to seed or share a table.
+    [[nodiscard]] KeyBindings& held_key_bindings();
     // The window's rules (rules()), null until first used. Made by the
     // rules library (gui_forms_controls), whose deleter the pointer carries,
     // so the core never names RuleSet's members. offer_key_rules_ is the key

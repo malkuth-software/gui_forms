@@ -108,6 +108,15 @@ KeyMap pc_key_map() {
 
 KeyBindings::KeyBindings() : defaults_(pc_key_map()), effective_(pc_key_map()) {}
 
+std::shared_ptr<KeyBindings> KeyBindings::copy_bindings() const {
+    std::shared_ptr<KeyBindings> copied = std::make_shared<KeyBindings>();
+    (*copied).defaults_ = defaults_;
+    (*copied).effective_ = effective_;
+    (*copied).rebound_ = rebound_;
+    (*copied).seeded_ = seeded_;
+    return copied;
+}
+
 void KeyBindings::rebind(KeyCommand command, KeyBinding binding) {
     effective_.set_binding(command, binding);
     rebound_[static_cast<std::size_t>(command)] = true;

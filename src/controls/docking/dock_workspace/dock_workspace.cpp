@@ -970,7 +970,7 @@ void DockWorkspace::open_window(const DockFloatingSite& site, WorkspaceTransacti
     entry.floating = record.kind;
     entry.model = std::make_unique<Window>(control, Size{frame.width, frame.height}, (*main).resources());
     // One application key set (owner decision DK-44).
-    (*entry.model).set_key_bindings((*main).key_bindings());
+    (*entry.model).set_key_bindings((*main).share_key_bindings());
     entry.options.title = record.title;
     entry.options.initial_size = Size{frame.width, frame.height};
     entry.options.minimum_size = Size{std::clamp(minimum.width, smallest_floating_window.width, frame.width),

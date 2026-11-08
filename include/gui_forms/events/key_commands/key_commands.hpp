@@ -161,6 +161,9 @@ public:
     // The host's defaults, taken the first time only; false, changing
     // nothing, once seeded.
     bool seed(const KeyMap& defaults);
+    // A new set equal to this one, shared by nobody yet: a window's
+    // copy-on-write table (APP_WINDOW_RULES_DESIGN K.1). One allocation.
+    [[nodiscard]] std::shared_ptr<KeyBindings> copy_bindings() const;
 
 private:
     KeyMap defaults_;

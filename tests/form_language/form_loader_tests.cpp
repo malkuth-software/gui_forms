@@ -471,10 +471,10 @@ void test_load_window() {
                 window.control("settings.none").error == ControlLookupError::not_found &&
                 window.control("settings.none").control == nullptr,
             "lookup: an empty ID and an absent one, refused");
-    (*root).add_child(gui_forms::make_control<gui_forms::Button>(gui_forms::StableId("settings.ok")));
-    const ControlLookup repeated = window.control("settings.ok");
-    require(repeated.error == ControlLookupError::ambiguous && repeated.control == nullptr,
-            "lookup: a repeated ID is refused, not resolved by order");
+    // Stable IDs are unique in a window: a detached control is no longer found.
+    static_cast<void>((*root).remove_child((*ok.control).runtime_id()));
+    require(window.control("settings.ok").error == ControlLookupError::not_found,
+            "lookup: a detached control is not found");
 
     FormSources missing{};
     ThemeDiagnosticList refusals{};

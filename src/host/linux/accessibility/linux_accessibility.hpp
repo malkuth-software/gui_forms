@@ -22,7 +22,9 @@ class LinuxAccessibility final {
     ~LinuxAccessibility();
     LinuxAccessibility(const LinuxAccessibility&) = delete;
     LinuxAccessibility& operator=(const LinuxAccessibility&) = delete;
-    // Publishes the model's semantic tree when its generation changed.
+    // Publishes the model's semantic tree when its generation changed, once
+    // a client has asked for it (a frame's children, or an action): before
+    // that no snapshot is built (APP_WINDOW_RULES_DESIGN K.1).
     void update();
     void set_title(const std::string& title);
     // Marks every published object defunct and releases it; `model` is no

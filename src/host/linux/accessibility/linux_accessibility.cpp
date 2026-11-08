@@ -256,8 +256,16 @@ const gchar* name(AtkObject* object) { return data(object).node.name.c_str(); }
 const gchar* description(AtkObject* object) { return data(object).node.description.c_str(); }
 AtkObject* parent(AtkObject* object) { return data(object).live ? data(object).parent : nullptr; }
 gint index_in_parent(AtkObject* object) { return data(object).live ? data(object).index : -1; }
-gint child_count(AtkObject* object) { return data(object).live ? static_cast<gint>(data(object).children.size()) : 0; }
+// Defined after LinuxAccessibility::Impl: publishes the window's tree the
+// first time a client asks a frame for its children (K.1: the tree is
+// built on the first client query, not when the window opens).
+void publish_on_query(AtkObject* object);
+gint child_count(AtkObject* object) {
+    publish_on_query(object);
+    return data(object).live ? static_cast<gint>(data(object).children.size()) : 0;
+}
 AtkObject* child_at(AtkObject* object, gint index) {
+    publish_on_query(object);
     const NodeData& value = data(object);
     if (!value.live || index < 0 || static_cast<std::size_t>(index) >= value.children.size()) { return nullptr; }
     return ATK_OBJECT(g_object_ref(value.children[index]));
@@ -983,6 +991,13 @@ gint offset_at_point(AtkText* object, gint x, gint y, AtkCoordType coordinates) 
     return result;
 }
 }
+void publish_on_query(AtkObject* object) {
+    NodeData& value = data(object);
+    if (!value.frame || value.owner == nullptr) return;
+    LinuxAccessibility::Impl& owner = *value.owner;
+    if (owner.model == nullptr || owner.published) return;
+    owner.update();
+}
 LinuxAccessibility::LinuxAccessibility(Display* display, ::Window native, Window& model, const std::string& title)
     : impl_(std::make_unique<Impl>()) {
     (*impl_).display = display; (*impl_).native = native; (*impl_).model = &model;
@@ -1000,7 +1015,7 @@ LinuxAccessibility::LinuxAccessibility(Display* display, ::Window native, Window
     frame.index = static_cast<int>(data(application_root).children.size()); frame.node.name = title;
     data(application_root).children.push_back((*impl_).frame);
     g_signal_emit_by_name(application_root, "children-changed::add", frame.index, (*impl_).frame, nullptr);
-    update();
+    // No snapshot yet: the first client query publishes the tree.
 }
 LinuxAccessibility::~LinuxAccessibility() { detach(); }
 void LinuxAccessibility::set_title(const std::string& title) {
@@ -1029,7 +1044,11 @@ void LinuxAccessibility::detach() {
         atk_bridge_adaptor_cleanup(); g_object_unref(application_root); application_root = nullptr;
     }
 }
-void LinuxAccessibility::update() { (*impl_).update(); }
+void LinuxAccessibility::update() {
+    // Nothing is published, so nothing announced, until a client has asked.
+    if (!(*impl_).published) return;
+    (*impl_).update();
+}
 void accessibility_dispatch() {
     for (int i = 0; i < 16 && g_main_context_pending(nullptr); ++i) { g_main_context_iteration(nullptr, false); }
 }

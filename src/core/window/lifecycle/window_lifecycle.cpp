@@ -92,6 +92,8 @@ Window::Window(Control::Ptr root, Size client_size, std::shared_ptr<ApplicationR
     : SurfaceRoot(std::move(root), client_size, std::move(resources)) {
     presenting_window_ = this;
     if (application != nullptr) application_tool_tips_shown_ = (*application).tool_tips_shown_;
+    // The application's key table, read until a window-local change (K.1).
+    if (application != nullptr) inherited_key_bindings_ = (*application).key_bindings();
     tool_tips_ = std::make_unique<detail::ToolTipPresenter>(*this);
     toasts_ = std::make_unique<detail::ToastPresenter>(*this);
     alerts_ = std::make_unique<detail::WindowAlerts>(*this);
@@ -392,11 +394,25 @@ PresentationSettings overridden_presentation(PresentationSettings settings,
     return settings;
 }
 
+WindowOverrides& SurfaceRoot::edit_overrides() {
+    if (!overrides_) overrides_ = std::make_unique<WindowOverrides>();
+    return *overrides_;
+}
+
+void SurfaceRoot::release_empty_overrides() noexcept {
+    if (overrides_ && (*overrides_).empty()) overrides_.reset();
+}
+
+const PresentationOverrides* SurfaceRoot::presentation_overrides() const noexcept {
+    if (!overrides_ || (*overrides_).presentation.empty()) return nullptr;
+    return &(*overrides_).presentation;
+}
+
 void SurfaceRoot::set_presentation_settings(PresentationSettings settings) {
     require_root_thread("presentation settings mutation");
     validate_presentation_settings(settings);
     PresentationSettings effective = settings;
-    if (presentation_overrides_) effective = overridden_presentation(settings, *presentation_overrides_);
+    if (overrides_) effective = overridden_presentation(settings, (*overrides_).presentation);
     validate_presentation_settings(effective);
     presentation_base_ = settings;
     apply_presentation(effective);
@@ -407,11 +423,10 @@ void SurfaceRoot::set_presentation_overrides(const PresentationOverrides& overri
     const PresentationSettings effective = overridden_presentation(presentation_base_, overrides);
     validate_presentation_settings(effective);
     if (overrides.empty()) {
-        presentation_overrides_.reset();
-    } else if (presentation_overrides_) {
-        *presentation_overrides_ = overrides;
+        if (overrides_) (*overrides_).presentation = PresentationOverrides{};
+        release_empty_overrides();
     } else {
-        presentation_overrides_ = std::make_unique<PresentationOverrides>(overrides);
+        edit_overrides().presentation = overrides;
     }
     apply_presentation(effective);
 }
@@ -470,7 +485,7 @@ void SurfaceRoot::apply_presentation(PresentationSettings settings) {
     // The theme for the new scheme: the application's where it has the
     // variant, else GUI.Forms' own (T4 theme variants). A handler above may
     // have changed the scheme again; the scheme in force decides.
-    if (scheme_switched && resources_) show_theme(scheme_theme((*resources_).theme_ptr()));
+    if (scheme_switched && resources_) show_theme(scheme_theme(followed_theme()));
     // The window's media changed: its rules may give another backdrop, or
     // another colour for a role in tint(). Where a theme shown above has
     // lowered it already, this changes nothing.
@@ -517,7 +532,27 @@ void SurfaceRoot::set_theme(std::shared_ptr<const Theme> theme) {
 }
 
 void SurfaceRoot::apply_theme(const std::shared_ptr<const Theme>& theme) {
+    // A window showing its own theme keeps it.
+    if (overrides_ && (*overrides_).theme) return;
     show_theme(scheme_theme(theme));
+}
+
+std::shared_ptr<const Theme> SurfaceRoot::followed_theme() const {
+    if (overrides_ && (*overrides_).theme) return (*overrides_).theme;
+    const std::shared_ptr<const Theme> shared = (*resources_).theme_ptr();
+    return shared;
+}
+
+void SurfaceRoot::set_theme_override(std::shared_ptr<const Theme> theme) {
+    require_root_thread("theme override");
+    if (theme) {
+        edit_overrides().theme = std::move(theme);
+    } else if (overrides_) {
+        (*overrides_).theme = nullptr;
+        release_empty_overrides();
+    }
+    if (!resources_) return;
+    show_theme(scheme_theme(followed_theme()));
 }
 
 void SurfaceRoot::show_theme(const std::shared_ptr<const Theme>& shown) {
@@ -577,25 +612,100 @@ void SurfaceRoot::set_active(bool active) {
 
 // Nothing a control shows depends on the key map yet (no control displays a
 // command's keys), so changing it invalidates nothing.
+namespace {
+
+// The PC convention, read by a window holding no table and joined to no
+// application. Made once; never changed.
+const KeyBindings& pc_key_bindings() {
+    static const KeyBindings convention{};
+    return convention;
+}
+
+// The null table key_bindings() names for a window reading the convention.
+const std::shared_ptr<KeyBindings>& no_key_bindings() {
+    static const std::shared_ptr<KeyBindings> none{};
+    return none;
+}
+
+} // namespace
+
+const KeyMap& SurfaceRoot::key_map() const noexcept {
+    if (overrides_ && (*overrides_).key_bindings) return (*(*overrides_).key_bindings).map();
+    if (inherited_key_bindings_) return (*inherited_key_bindings_).map();
+    return pc_key_bindings().map();
+}
+
+const std::shared_ptr<KeyBindings>& SurfaceRoot::key_bindings() const noexcept {
+    if (overrides_ && (*overrides_).key_bindings) return (*overrides_).key_bindings;
+    if (inherited_key_bindings_) return inherited_key_bindings_;
+    return no_key_bindings();
+}
+
+KeyBindings& SurfaceRoot::held_key_bindings() {
+    if (overrides_ && (*overrides_).key_bindings) return *(*overrides_).key_bindings;
+    if (inherited_key_bindings_) return *inherited_key_bindings_;
+    WindowOverrides& overrides = edit_overrides();
+    overrides.key_bindings = std::make_shared<KeyBindings>();
+    return *overrides.key_bindings;
+}
+
+std::shared_ptr<KeyBindings> SurfaceRoot::share_key_bindings() {
+    require_root_thread("key binding sharing");
+    static_cast<void>(held_key_bindings());
+    std::shared_ptr<KeyBindings> shared = key_bindings();
+    return shared;
+}
+
 void SurfaceRoot::set_key_bindings(std::shared_ptr<KeyBindings> bindings) {
     require_root_thread("key binding mutation");
     if (!bindings) throw std::invalid_argument("GUI.Forms window key bindings may not be null");
-    key_bindings_ = std::move(bindings);
+    // Sharing the application's table, which the window reads already,
+    // stores nothing.
+    const bool held = overrides_ && (*overrides_).key_bindings;
+    if (!held && bindings == inherited_key_bindings_) return;
+    edit_overrides().key_bindings = std::move(bindings);
 }
 
 void SurfaceRoot::rebind_key_command(KeyCommand command, KeyBinding binding) {
     require_root_thread("key binding mutation");
-    (*key_bindings_).rebind(command, binding);
+    const bool held = overrides_ && (*overrides_).key_bindings;
+    if (held) {
+        (*(*overrides_).key_bindings).rebind(command, binding);
+        return;
+    }
+    // A window-local rebinding: the table it read, copied, then changed;
+    // refused, the copy is dropped and nothing is stored.
+    const KeyBindings& read = inherited_key_bindings_ ? *inherited_key_bindings_ : pc_key_bindings();
+    std::shared_ptr<KeyBindings> local = read.copy_bindings();
+    (*local).rebind(command, binding);
+    edit_overrides().key_bindings = std::move(local);
 }
 
 void SurfaceRoot::restore_key_command(KeyCommand command) {
     require_root_thread("key binding mutation");
-    (*key_bindings_).restore(command);
+    const bool held = overrides_ && (*overrides_).key_bindings;
+    if (held) {
+        (*(*overrides_).key_bindings).restore(command);
+        return;
+    }
+    const KeyBindings& read = inherited_key_bindings_ ? *inherited_key_bindings_ : pc_key_bindings();
+    std::shared_ptr<KeyBindings> local = read.copy_bindings();
+    (*local).restore(command);
+    edit_overrides().key_bindings = std::move(local);
+}
+
+void SurfaceRoot::clear_key_bindings() {
+    require_root_thread("key binding mutation");
+    if (!overrides_) return;
+    (*overrides_).key_bindings = nullptr;
+    release_empty_overrides();
 }
 
 void Window::install_host_key_map(const KeyMap& defaults) {
     require_root_thread("host key map installation");
-    static_cast<void>((*key_bindings_).seed(defaults));
+    // Seeds the table the window holds or reads (its application's, shared
+    // by the application's windows), made now for a window with neither.
+    static_cast<void>(held_key_bindings().seed(defaults));
 }
 
 void SurfaceRoot::set_text_scale(double text_scale) {

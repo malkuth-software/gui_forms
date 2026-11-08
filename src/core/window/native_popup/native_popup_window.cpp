@@ -113,7 +113,7 @@ NativePopupToken Window::open_native_popup(const Control::Ptr& owner, const Cont
         opening.bounds = bounds;
         opening.focus = options.focus;
         opening.backdrop = options.backdrop;
-        opening.key_bindings = key_bindings_;
+        opening.key_bindings = share_key_bindings();
         opening.resources = resources();
         std::shared_ptr<detail::NativePopupRecord> record = detail::open_native_popup_window(opening);
         if (record) {

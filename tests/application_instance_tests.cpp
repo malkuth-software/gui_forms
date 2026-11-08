@@ -6,6 +6,7 @@
 
 #include "gui_forms/application.hpp"
 #include "gui_forms/gui_forms.hpp"
+#include "support/theme_definition_heap.hpp"
 
 #include <cstdlib>
 #include <iostream>
@@ -222,6 +223,80 @@ void test_presentation_and_overrides() {
             "the application's theme reaches shared and own resources");
 }
 
+// Copy-on-write overrides and lazy key tables (APP_WINDOW_RULES_DESIGN
+// K.1): a window stores no override and makes no key table until it
+// overrides something; a joined window reads its application's table by
+// reference; a window-local rebinding copies it and leaves the application
+// and its other windows alone; clearing the last override releases the
+// record; a theme override is the window's alone.
+void test_window_overrides() {
+    {
+        Window alone(make_root("overrides.alone"), Size{200.0, 100.0});
+        require(alone.overrides() == nullptr && alone.key_bindings() == nullptr && alone.key_map() == pc_key_map(),
+                "a window alone stores no override and reads the PC convention");
+        const KeyBinding rebound{{PhysicalKey::w, Modifier::meta}, {}};
+        alone.rebind_key_command(KeyCommand::close_document, rebound);
+        require(alone.overrides() != nullptr && alone.key_bindings() != nullptr &&
+                    alone.key_map().binding(KeyCommand::close_document) == rebound,
+                "a rebinding makes the window's own table");
+        alone.clear_key_bindings();
+        require(alone.overrides() == nullptr && alone.key_map() == pc_key_map(),
+                "clearing the table releases the record");
+        bool refused = false;
+        try {
+            alone.rebind_key_command(static_cast<KeyCommand>(255U), rebound);
+        } catch (const std::invalid_argument&) {
+            refused = true;
+        }
+        require(refused && alone.overrides() == nullptr, "a refused rebinding stores nothing");
+    }
+
+    ApplicationCreateResult created = Application::create(ApplicationConfig{});
+    require(static_cast<bool>(created), "overrides: the application is made");
+    if (!created) return;
+    Application& application = *created.application;
+    {
+        Window first(make_root("overrides.first"), Size{200.0, 100.0});
+        Window second(make_root("overrides.second"), Size{200.0, 100.0});
+        require(first.overrides() == nullptr && first.key_bindings() == application.key_bindings(),
+                "a joined window reads its application's table, storing nothing");
+        first.set_key_bindings(application.key_bindings());
+        require(first.overrides() == nullptr, "sharing the table it reads stores nothing");
+        require(first.share_key_bindings() == application.key_bindings() && first.overrides() == nullptr,
+                "sharing a joined window's table hands out the application's");
+
+        const KeyBinding rebound{{PhysicalKey::w, Modifier::meta}, {}};
+        first.rebind_key_command(KeyCommand::close_document, rebound);
+        require(first.overrides() != nullptr && first.key_map().binding(KeyCommand::close_document) == rebound,
+                "a window-local rebinding copies the table");
+        require((*application.key_bindings()).map() == pc_key_map() && second.key_map() == pc_key_map(),
+                "the application's table and its other windows are unchanged");
+
+        first.set_presentation_overrides(PresentationOverrides{.text_scale = 1.5});
+        first.clear_key_bindings();
+        require(first.overrides() != nullptr && first.key_bindings() == application.key_bindings(),
+                "the record stays while another field is overridden");
+        first.set_presentation_overrides(PresentationOverrides{});
+        require(first.overrides() == nullptr, "clearing the last override releases the record");
+
+        const std::unique_ptr<ThemeDefinition> definition = test_support::professional_definition();
+        (*definition).id = "overrides.window-only";
+        const std::shared_ptr<const Theme> own = Theme::create(*definition);
+        const std::shared_ptr<const Theme> shared = first.theme_ptr();
+        first.set_theme_override(own);
+        require(first.overrides() != nullptr && first.theme_ptr() == own && second.theme_ptr() == shared,
+                "a theme override is the window's alone");
+        application.set_theme(gui_forms_theme());
+        require(first.theme_ptr() == own && second.theme_ptr() == gui_forms_theme(),
+                "the application's theme does not replace a window's override");
+        first.set_theme_override(nullptr);
+        require(first.overrides() == nullptr && first.theme_ptr() == gui_forms_theme(),
+                "cleared, the window follows its resources' theme again");
+    }
+    const ApplicationResult closed = application.close();
+    require(closed.accepted(), "overrides: the application closes");
+}
+
 } // namespace
 
 int main() {
@@ -233,6 +308,7 @@ int main() {
         test_other_thread_does_not_join();
         test_application_destroyed_first();
         test_presentation_and_overrides();
+        test_window_overrides();
     } catch (const std::exception& error) {
         std::cerr << "FAIL: " << error.what() << '\n';
         return EXIT_FAILURE;
