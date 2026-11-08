@@ -7,13 +7,13 @@ gui_forms::ColorValueEditor
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: ColorValueEditor final : public Panel
+.. cpp:class:: ColorValueEditor final : public Panel, public ColorValueEditorCapabilities<ColorValueEditor>
 
    ``#include <gui_forms/controls/panel/color_value_editor/color_value_editor.hpp>``
 
    A colour field: a swatch beside a text box that edits the colour as hexadecimal text.
 
-   A colour value editor shows its :cpp:func:`value <gui_forms::ColorValueEditor::value>` as a swatch, drawn over a
+   A colour value editor shows its :cpp:member:`value <gui_forms::ColorValueEditor::value>` as a swatch, drawn over a
    checkerboard so that transparency shows, and as ``#RRGGBBAA`` text in an
    :cpp:func:`editor <gui_forms::ColorValueEditor::editor>` text box. The user types a colour and presses Enter to commit it,
    or Escape to put the current colour back. :cpp:class:`PropertyGrid <gui_forms::PropertyGrid>` uses it for
@@ -29,24 +29,24 @@ gui_forms::ColorValueEditor
          semantic actions address the control by this ID. The text box is created
          as ``<stable_id>.text``.
 
-      **value** : ``Color``, default ``{}``
-         The starting colour. The default, :cpp:class:`Color <gui_forms::Color>` with no arguments, is opaque
-         black.
+      **initial_value** : ``Color``, default ``{}``
+         The starting colour, which becomes :cpp:member:`value <gui_forms::ColorValueEditor::value>`. The default, :cpp:class:`Color <gui_forms::Color>` with no
+         arguments, is opaque black.
 
    :Properties:
 
       **value** : ``Color``
-         The current colour. :cpp:func:`set_value <gui_forms::ColorValueEditor::set_value>` shows the new colour in the swatch and
+         The current colour. A write shows the new colour in the swatch and
          the text box and clears an invalid state left by a rejected edit; it
          does not raise :cpp:func:`value_changed <gui_forms::ColorValueEditor::value_changed>`.
-
-      **editor** : ``std::shared_ptr<TextBox>``, read-only
-         The :cpp:class:`TextBox <gui_forms::TextBox>` the user types into. It uses a monospace font.
 
       **swatch_width** : ``double``, default ``30``
          The width of the swatch at the left, from 12 to 96; a width outside that
          range, or one that is not finite, throws ``std::invalid_argument``. The
          text box fills the rest of the control.
+
+      **editor** : ``std::shared_ptr<TextBox>``, read-only
+         The :cpp:class:`TextBox <gui_forms::TextBox>` the user types into. It uses a monospace font.
 
       **parts** : ``Parts``, read-only
 
@@ -56,7 +56,7 @@ gui_forms::ColorValueEditor
 
       **value_changed** : ``Event<Color>``
          Raised when the user commits text that names a different colour. It
-         carries the new colour. It is not raised by :cpp:func:`set_value <gui_forms::ColorValueEditor::set_value>`.
+         carries the new colour. It is not raised by a write to :cpp:member:`value <gui_forms::ColorValueEditor::value>`.
 
       **edit_failed** : ``Event<const PropertyEditorInputError&>``
          Raised when the user commits text that is not a colour. It carries a
@@ -98,7 +98,7 @@ gui_forms::ColorValueEditor
    .. rubric:: Notes
 
    :cpp:func:`value_changed <gui_forms::ColorValueEditor::value_changed>` is raised only when the user commits an edit, never when
-   :cpp:func:`set_value <gui_forms::ColorValueEditor::set_value>` changes the value. An application that changes the colour
+   Writing :cpp:member:`value <gui_forms::ColorValueEditor::value>` changes it. An application that changes the colour
    itself already knows the new colour; observe :cpp:func:`value_changed <gui_forms::ColorValueEditor::value_changed>` to learn what
    the user chose.
 
@@ -131,12 +131,12 @@ gui_forms::ColorValueEditor
           gf::make_control<gf::ColorValueEditor>(gf::StableId("lamp.tint"));
       std::optional<gf::Color> parsed =
           gf::ColorValueEditor::parse_value(" #2a6fb4 ");   // opaque 42, 111, 180
-      if (parsed) (*tint).set_value(*parsed);              // no event is raised
+      if (parsed) (*tint).value = *parsed;              // no event is raised
       std::shared_ptr<gf::Label> caption = gf::make_control<gf::Label>(
           gf::StableId("lamp.caption"),
-          gf::ColorValueEditor::format_value((*tint).value()));   // "#2A6FB4FF"
+          gf::ColorValueEditor::format_value((*tint).value.read()));   // "#2A6FB4FF"
 
-   React to colours the user commits. :cpp:func:`set_value <gui_forms::ColorValueEditor::set_value>` does not raise
+   React to colours the user commits. A write to :cpp:member:`value <gui_forms::ColorValueEditor::value>` does not raise
    :cpp:func:`value_changed <gui_forms::ColorValueEditor::value_changed>`, so the handler sees only the user's choices:
 
    .. code-block:: cpp
@@ -160,7 +160,7 @@ gui_forms::ColorValueEditor
 
       void example() {
           Lamp lamp;
-          (*lamp.tint).set_value(gf::Color::rgba(16, 32, 48));   // chosen is unchanged
+          (*lamp.tint).value = gf::Color::rgba(16, 32, 48);   // chosen is unchanged
           (*lamp.tint).set_requested_bounds({0.0, 0.0, 200.0, 28.0});
           gf::Window window(lamp.tint, {200.0, 28.0});
           window.perform_layout();
@@ -174,34 +174,26 @@ gui_forms::ColorValueEditor
 
    .. rubric:: Construction
 
-   .. cpp:function:: explicit ColorValueEditor(StableId stable_id, Color value = {})
+   .. cpp:function:: explicit ColorValueEditor(StableId stable_id, Color initial_value = {})
 
 
    .. rubric:: Properties
 
-   .. cpp:function:: Color value() const noexcept
+   .. cpp:member:: Color value
 
-      The current colour. :cpp:func:`set_value <gui_forms::ColorValueEditor::set_value>` shows the new colour in the swatch and
+      The current colour. A write shows the new colour in the swatch and
       the text box and clears an invalid state left by a rejected edit; it
       does not raise :cpp:func:`value_changed <gui_forms::ColorValueEditor::value_changed>`.
 
-   .. cpp:function:: void set_value(Color value)
-
-      Sets :cpp:func:`value <gui_forms::ColorValueEditor::value>`; see the property's description above.
-
-   .. cpp:function:: std::shared_ptr<TextBox> editor() const noexcept
-
-      The :cpp:class:`TextBox <gui_forms::TextBox>` the user types into. It uses a monospace font.
-
-   .. cpp:function:: double swatch_width() const noexcept
+   .. cpp:member:: double swatch_width
 
       The width of the swatch at the left, from 12 to 96; a width outside that
       range, or one that is not finite, throws ``std::invalid_argument``. The
       text box fills the rest of the control.
 
-   .. cpp:function:: void set_swatch_width(double width)
+   .. cpp:function:: std::shared_ptr<TextBox> editor() const noexcept
 
-      Sets :cpp:func:`swatch_width <gui_forms::ColorValueEditor::swatch_width>`; see the property's description above.
+      The :cpp:class:`TextBox <gui_forms::TextBox>` the user types into. It uses a monospace font.
 
    .. cpp:function:: Parts parts() const
 
@@ -213,7 +205,7 @@ gui_forms::ColorValueEditor
    .. cpp:function:: Event<Color>& value_changed() noexcept
 
       Raised when the user commits text that names a different colour. It
-      carries the new colour. It is not raised by :cpp:func:`set_value <gui_forms::ColorValueEditor::set_value>`.
+      carries the new colour. It is not raised by a write to :cpp:member:`value <gui_forms::ColorValueEditor::value>`.
 
    .. cpp:function:: Event<const PropertyEditorInputError&>& edit_failed() noexcept
 
@@ -229,7 +221,7 @@ gui_forms::ColorValueEditor
       Creates the text box. ``make_control`` calls it; calling it again does
       nothing.
 
-   .. cpp:function:: static std::string format_value(Color value)
+   .. cpp:function:: static std::string format_value(Color colour)
 
       Returns the canonical text for a colour: ``#`` followed by red, green,
       blue and alpha as two upper-case hexadecimal digits each, for example

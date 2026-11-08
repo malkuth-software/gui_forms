@@ -47,24 +47,24 @@ void test_value_editors(gui_forms::Window& window) {
     (*(*color).editor()).select_all();
     require(window.dispatch_text({"#2A6FB4FF"}) &&
                 window.dispatch_key({KeyAction::down, PhysicalKey::enter}) &&
-                (*color).value() == Color::rgba(42, 111, 180, 255) &&
+                (*color).value.read() == Color::rgba(42, 111, 180, 255) &&
                 (*preview).background() == Color::rgba(42, 111, 180, 255) &&
                 (*properties).value("gallery.value-editors.properties.tint") == "#2A6FB4FF" &&
                 (*rack_tint).text.read() == "#2A6FB4FF",
             "a typed color commit must reach the preview, the list row and the rack field");
 
     // FlagsValueEditor: the overlay is a real CheckedListBox; a check commits.
-    (*flags).set_dropped_down(true);
+    (*flags).dropped_down = true;
     const std::shared_ptr<gui_forms::CheckedListBox> bits = std::dynamic_pointer_cast<CheckedListBox>(
         window.find("gallery.value-editors.flags.overlay.list"));
     require(bits && (*bits).items.read().size() == 5U && (*bits).item_checked(1U) &&
                 (*bits).item_checked(2U) && !(*bits).item_checked(3U),
             "the flags overlay must expose every edge bit with synchronized checks");
     (*bits).set_item_checked(3U, true);
-    require((*flags).value().name == "Top, Left, Right" && (*flags).value().value == 7 &&
+    require((*flags).value.read().name == "Top, Left, Right" && (*flags).value.read().value == 7 &&
                 (*properties).value("gallery.value-editors.properties.edges") == "Top, Left, Right",
             "checking a flags bit must commit the typed value and project it into the list");
-    (*flags).set_dropped_down(false);
+    (*flags).dropped_down = false;
     require(!window.find("gallery.value-editors.flags.overlay.list"),
             "closing the flags editor must unregister its overlay subtree");
 
@@ -95,12 +95,12 @@ void test_value_editors(gui_forms::Window& window) {
     require(window.dispatch_text({"teal"}) &&
                 window.dispatch_key({KeyAction::down, PhysicalKey::enter}) &&
                 (*rack).modules()[0].fields[2].validation_message == "Use #RRGGBB or #RRGGBBAA" &&
-                (*color).value() == Color::rgba(42, 111, 180, 255),
+                (*color).value.read() == Color::rgba(42, 111, 180, 255),
             "an invalid rack tint must publish validation and leave the color unchanged");
     (*rack_tint).select_all();
     require(window.dispatch_text({"#102030FF"}) &&
                 window.dispatch_key({KeyAction::down, PhysicalKey::enter}) &&
-                (*color).value() == Color::rgba(16, 32, 48, 255) &&
+                (*color).value.read() == Color::rgba(16, 32, 48, 255) &&
                 (*rack).modules()[0].fields[2].validation_message.empty() &&
                 (*preview).background() == Color::rgba(16, 32, 48, 255),
             "a valid rack tint must re-enter through the ColorValueEditor and clear validation");
@@ -123,8 +123,8 @@ void test_value_editors(gui_forms::Window& window) {
 
     // Reset record: programmatic setters restore every view.
     click(window, window.find("gallery.value-editors.reset"));
-    require((*color).value() == Color::rgba(39, 116, 184, 255) &&
-                (*flags).value().name == "Top, Left" &&
+    require((*color).value.read() == Color::rgba(39, 116, 184, 255) &&
+                (*flags).value.read().name == "Top, Left" &&
                 (*properties).value("gallery.value-editors.properties.channel") == "FM" &&
                 (*rack_channel).selected_index.read() == std::optional<std::size_t>{1U},
             "the reset Command must restore the fixture in every view");

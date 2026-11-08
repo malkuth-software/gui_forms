@@ -64,6 +64,12 @@ Related types
      - Stage T1 anatomy, as dot members.
    * - :cpp:class:`ColorValueEditor::States <gui_forms::ColorValueEditor::States>`
      -  
+   * - :cpp:class:`ColorValueEditorCapabilities <gui_forms::ColorValueEditorCapabilities>`
+     - Every ColorValueEditor capability, in the order the declaring class takes them.
+   * - :cpp:class:`ColorValueEditorSwatchWidthCapability <gui_forms::ColorValueEditorSwatchWidthCapability>`
+     - The width of the colour swatch before the text, 12 to 96 (std::invalid_argument otherwise).
+   * - :cpp:class:`ColorValueEditorValueCapability <gui_forms::ColorValueEditorValueCapability>`
+     - The edited colour; a view, since committing the text moves it and an equal write still restores the text and the normal status.
    * - :cpp:class:`DomainUpDown::Parts <gui_forms::DomainUpDown::Parts>`
      - Stage T1 anatomy, as dot members.
    * - :cpp:class:`DomainUpDown::States <gui_forms::DomainUpDown::States>`
@@ -86,6 +92,16 @@ Related types
      - Stage T1 anatomy, as dot members.
    * - :cpp:class:`FlagsValueEditor::States <gui_forms::FlagsValueEditor::States>`
      -  
+   * - :cpp:class:`FlagsValueEditorCapabilities <gui_forms::FlagsValueEditorCapabilities>`
+     - Every FlagsValueEditor capability, in the order the declaring class takes them.
+   * - :cpp:class:`FlagsValueEditorDescriptorCapability <gui_forms::FlagsValueEditorDescriptorCapability>`
+     - The flags enumeration the editor offers; a view, since the form properties rebuild it.
+   * - :cpp:class:`FlagsValueEditorDroppedDownCapability <gui_forms::FlagsValueEditorDroppedDownCapability>`
+     - Whether the list of flags is open; a view, since the list closes itself.
+   * - :cpp:class:`FlagsValueEditorOverlayWidthCapability <gui_forms::FlagsValueEditorOverlayWidthCapability>`
+     - The width of the list of flags, 80 to 1024 (std::invalid_argument otherwise); a change reopens an open list.
+   * - :cpp:class:`FlagsValueEditorValueCapability <gui_forms::FlagsValueEditorValueCapability>`
+     - The checked flags, normalized against descriptor; a view, since the list's checks move it.
    * - :cpp:class:`InstrumentFieldChange <gui_forms::InstrumentFieldChange>`
      - InstrumentFieldChange carries stable module and field identities, previous/current text, and whether the transition is a committed edit.
    * - :cpp:class:`InstrumentFieldSpec <gui_forms::InstrumentFieldSpec>`
@@ -288,6 +304,59 @@ Related types
    .. cpp:member:: bool invalid
 
    .. cpp:member:: bool pending
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ColorValueEditorCapabilities : public ColorValueEditorValueCapability<Declaring>, public ColorValueEditorSwatchWidthCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/color_value_editor/color_value_editor_capabilities/color_value_editor_capabilities.hpp>``
+
+   Every ColorValueEditor capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: Color value
+
+      The edited colour; a view, since committing the text moves it and an equal write still restores the text and the normal status. A write raises no event.
+
+   .. cpp:member:: double swatch_width
+
+      The width of the colour swatch before the text, 12 to 96 (std::invalid_argument otherwise).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ColorValueEditorSwatchWidthCapability
+
+   ``#include <gui_forms/controls/panel/color_value_editor/color_value_editor_capabilities/color_value_editor_capabilities.hpp>``
+
+   The width of the colour swatch before the text, 12 to 96 (std::invalid_argument otherwise).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ColorValueEditorSwatchWidthCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, ColorValueEditorSwatchWidthCapability<Declaring>> swatch_width
+
+      Default: ``{30.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ColorValueEditorValueCapability
+
+   ``#include <gui_forms/controls/panel/color_value_editor/color_value_editor_capabilities/color_value_editor_capabilities.hpp>``
+
+   The edited colour; a view, since committing the text moves it and an equal write still restores the text and the normal status. A write raises no event.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ColorValueEditorValueCapability& capability, Color incoming)
+
+   .. cpp:function:: static Color read(const ColorValueEditorValueCapability& capability)
+
+   .. cpp:member:: PropertyView<Color, ColorValueEditorValueCapability<Declaring>> value
 
 .. cpp:namespace:: gui_forms
 
@@ -519,6 +588,101 @@ Related types
    .. cpp:member:: bool invalid
 
    .. cpp:member:: bool pending
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> FlagsValueEditorCapabilities : public FlagsValueEditorDescriptorCapability<Declaring>, public FlagsValueEditorValueCapability<Declaring>, public FlagsValueEditorDroppedDownCapability<Declaring>, public FlagsValueEditorOverlayWidthCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/flags_value_editor/flags_value_editor_capabilities/flags_value_editor_capabilities.hpp>``
+
+   Every FlagsValueEditor capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: PropertyEnumDescriptor descriptor
+
+      The flags enumeration the editor offers; a view, since the form properties rebuild it. It must be a valid flags descriptor with at least one positive single-bit choice that can represent the current value (std::invalid_argument otherwise); a change normalizes the value and reopens an open list.
+
+   .. cpp:member:: PropertyEnumValue value
+
+      The checked flags, normalized against descriptor; a view, since the list's checks move it. A value the descriptor cannot represent throws std::invalid_argument.
+
+   .. cpp:member:: bool dropped_down
+
+      Whether the list of flags is open; a view, since the list closes itself. A write opens or closes it and raises drop_down_changed.
+
+   .. cpp:member:: double overlay_width
+
+      The width of the list of flags, 80 to 1024 (std::invalid_argument otherwise); a change reopens an open list.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> FlagsValueEditorDescriptorCapability
+
+   ``#include <gui_forms/controls/panel/flags_value_editor/flags_value_editor_capabilities/flags_value_editor_capabilities.hpp>``
+
+   The flags enumeration the editor offers; a view, since the form properties rebuild it. It must be a valid flags descriptor with at least one positive single-bit choice that can represent the current value (std::invalid_argument otherwise); a change normalizes the value and reopens an open list.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(FlagsValueEditorDescriptorCapability& capability, PropertyEnumDescriptor incoming)
+
+   .. cpp:function:: static PropertyEnumDescriptor read(const FlagsValueEditorDescriptorCapability& capability)
+
+   .. cpp:member:: PropertyView<PropertyEnumDescriptor, FlagsValueEditorDescriptorCapability<Declaring>> descriptor
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> FlagsValueEditorDroppedDownCapability
+
+   ``#include <gui_forms/controls/panel/flags_value_editor/flags_value_editor_capabilities/flags_value_editor_capabilities.hpp>``
+
+   Whether the list of flags is open; a view, since the list closes itself. A write opens or closes it and raises drop_down_changed.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(FlagsValueEditorDroppedDownCapability& capability, bool incoming)
+
+   .. cpp:function:: static bool read(const FlagsValueEditorDroppedDownCapability& capability)
+
+   .. cpp:member:: PropertyView<bool, FlagsValueEditorDroppedDownCapability<Declaring>> dropped_down
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> FlagsValueEditorOverlayWidthCapability
+
+   ``#include <gui_forms/controls/panel/flags_value_editor/flags_value_editor_capabilities/flags_value_editor_capabilities.hpp>``
+
+   The width of the list of flags, 80 to 1024 (std::invalid_argument otherwise); a change reopens an open list.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(FlagsValueEditorOverlayWidthCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, FlagsValueEditorOverlayWidthCapability<Declaring>> overlay_width
+
+      Default: ``{240.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> FlagsValueEditorValueCapability
+
+   ``#include <gui_forms/controls/panel/flags_value_editor/flags_value_editor_capabilities/flags_value_editor_capabilities.hpp>``
+
+   The checked flags, normalized against descriptor; a view, since the list's checks move it. A value the descriptor cannot represent throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(FlagsValueEditorValueCapability& capability, PropertyEnumValue incoming)
+
+   .. cpp:function:: static PropertyEnumValue read(const FlagsValueEditorValueCapability& capability)
+
+   .. cpp:member:: PropertyView<PropertyEnumValue, FlagsValueEditorValueCapability<Declaring>> value
 
 .. cpp:namespace:: gui_forms
 

@@ -103,10 +103,73 @@ void test_date_time_picker() {
     require((*picker).style.read() == authored, "a style write is read back");
 }
 
+void test_color_value_editor() {
+    std::shared_ptr<ColorValueEditor> editor =
+        make_control<ColorValueEditor>(StableId("caps.colour"), Color::rgba(1, 2, 3));
+    require((*editor).value.read() == Color::rgba(1, 2, 3), "the constructor's colour is the value");
+    (*(*editor).editor()).text = std::string("not a colour");
+    (*editor).value = Color::rgba(1, 2, 3);
+    require((*(*editor).editor()).text.read() == ColorValueEditor::format_value(Color::rgba(1, 2, 3)),
+            "an equal write still restores the text");
+    bool refused = false;
+    try {
+        (*editor).swatch_width = 97.0;
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*editor).swatch_width.read() == 30.0, "a swatch wider than 96 is refused");
+}
+
+PropertyEnumDescriptor edges_descriptor() {
+    PropertyEnumDescriptor descriptor;
+    descriptor.type_name = "Edges";
+    descriptor.flags = true;
+    descriptor.choices.push_back(PropertyEnumChoice{"None", 0});
+    descriptor.choices.push_back(PropertyEnumChoice{"Top", 1});
+    descriptor.choices.push_back(PropertyEnumChoice{"Left", 2});
+    return descriptor;
+}
+
+void test_flags_value_editor() {
+    std::shared_ptr<FlagsValueEditor> editor = make_control<FlagsValueEditor>(
+        StableId("caps.flags"), edges_descriptor(), PropertyEnumValue{"Edges", "", 3});
+    require((*editor).value.read().name == "Top, Left" && (*editor).descriptor.read() == edges_descriptor(),
+            "the constructor normalizes the value against the descriptor");
+    (*editor).value = PropertyEnumValue{"Edges", "", 1};
+    require((*editor).value.read().name == "Top", "a value write is normalized");
+    bool refused = false;
+    try {
+        (*editor).value = PropertyEnumValue{"Edges", "", 8};
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*editor).value.read().value == 1, "a bit no choice declares is refused");
+    PropertyEnumDescriptor not_flags = edges_descriptor();
+    not_flags.flags = false;
+    refused = false;
+    try {
+        (*editor).descriptor = not_flags;
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*editor).descriptor.read().flags, "a descriptor without flags is refused");
+    refused = false;
+    try {
+        (*editor).overlay_width = 79.0;
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*editor).overlay_width.read() == 240.0, "a list narrower than 80 is refused");
+    (*editor).dropped_down = true;
+    require(!(*editor).dropped_down.read(), "a detached editor keeps its list closed");
+}
+
 } // namespace
 
 int main() {
     test_date_time_picker();
+    test_color_value_editor();
+    test_flags_value_editor();
     std::cout << "gui_forms_picker_capabilities_tests: all tests passed\n";
     return 0;
 }

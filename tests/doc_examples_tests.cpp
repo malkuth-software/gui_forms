@@ -629,10 +629,10 @@ void example() {
         gf::make_control<gf::ColorValueEditor>(gf::StableId("lamp.tint"));
     std::optional<gf::Color> parsed =
         gf::ColorValueEditor::parse_value(" #2a6fb4 ");   // opaque 42, 111, 180
-    if (parsed) (*tint).set_value(*parsed);              // no event is raised
+    if (parsed) (*tint).value = *parsed;              // no event is raised
     std::shared_ptr<gf::Label> caption = gf::make_control<gf::Label>(
         gf::StableId("lamp.caption"),
-        gf::ColorValueEditor::format_value((*tint).value()));   // "#2A6FB4FF"
+        gf::ColorValueEditor::format_value((*tint).value.read()));   // "#2A6FB4FF"
 }
 }  // namespace doc_example_ColorValueEditor_1
 
@@ -656,7 +656,7 @@ struct Lamp final : gf::Component {
 
 void example() {
     Lamp lamp;
-    (*lamp.tint).set_value(gf::Color::rgba(16, 32, 48));   // chosen is unchanged
+    (*lamp.tint).value = gf::Color::rgba(16, 32, 48);   // chosen is unchanged
     (*lamp.tint).set_requested_bounds({0.0, 0.0, 200.0, 28.0});
     gf::Window window(lamp.tint, {200.0, 28.0});
     window.perform_layout();
@@ -1573,8 +1573,8 @@ void example() {
     std::shared_ptr<gf::FlagsValueEditor> editor =
         gf::make_control<gf::FlagsValueEditor>(
             gf::StableId("frame.edges"), edges, gf::PropertyEnumValue{"Edges", "", 3});
-    // (*editor).value().name is "Top, Left"
-    (*editor).set_value(gf::PropertyEnumValue{"Edges", "", 0});   // "None", no event
+    // (*editor).value.read().name is "Top, Left"
+    (*editor).value = gf::PropertyEnumValue{"Edges", "", 0};   // "None", no event
 }
 }  // namespace doc_example_FlagsValueEditor_1
 
@@ -1604,12 +1604,12 @@ void example() {
     (*root).add_child(frame.edges);
     gf::Window window(root, {320.0, 240.0});
     window.perform_layout();
-    (*frame.edges).set_dropped_down(true);
+    (*frame.edges).dropped_down = true;
     std::shared_ptr<gf::CheckedListBox> list = std::dynamic_pointer_cast<gf::CheckedListBox>(
         window.find("frame.edges.overlay.list"));
     if (list) (*list).set_item_checked(3U, true);   // the "Right" row
     // drawn is "Top, Left, Right"
-    (*frame.edges).set_dropped_down(false);
+    (*frame.edges).dropped_down = false;
 }
 }  // namespace doc_example_FlagsValueEditor_2
 

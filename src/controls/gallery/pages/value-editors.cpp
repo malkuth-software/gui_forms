@@ -82,9 +82,9 @@ private:
     }
 
     void build_editors() {
-        (*color_).set_value(fixture_tint);
+        (*color_).value = fixture_tint;
         (*preview_).set_background(fixture_tint);
-        (*flags_).set_overlay_width(236.0);
+        (*flags_).overlay_width = 236.0;
     }
 
     void build_binding() {
@@ -211,7 +211,7 @@ private:
             if (parsed) {
                 // A programmatic set_value publishes no value_changed (only a
                 // user commit does), so the owner projects the colour itself.
-                (*color_).set_value(*parsed);
+                (*color_).value = *parsed;
                 color_changed(*parsed);
             } else {
                 static_cast<void>((*rack_).set_field_validation(
@@ -237,10 +237,10 @@ private:
         static_cast<void>((*properties_).set_reset_enabled(name_row, false));
         static_cast<void>((*rack_).set_field_value(module_id, "name", name_));
         static_cast<void>((*rack_).set_field_value(module_id, "channel", channel_));
-        (*color_).set_value(fixture_tint);
+        (*color_).value = fixture_tint;
         color_changed(fixture_tint);
-        (*flags_).set_value(PropertyEnumValue{"Edges", "Top, Left", 3});
-        flags_changed((*flags_).value());
+        (*flags_).value = PropertyEnumValue{"Edges", "Top, Left", 3};
+        flags_changed((*flags_).value.read());
         enabled_.set(true);
         (*editor_status_).set_text("Record reset · programmatic setters emitted no user commits");
     }

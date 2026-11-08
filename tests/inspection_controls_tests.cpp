@@ -966,13 +966,13 @@ void test_default_flags_and_color_property_editors() {
 
     std::shared_ptr<gui_forms::FlagsValueEditor> flags = std::dynamic_pointer_cast<FlagsValueEditor>(
         (*grid).editor("Anchor"));
-    require(flags && (*flags).value().name == "top, left" &&
+    require(flags && (*flags).value.read().name == "top, left" &&
                 (*flags).semantic_descriptor().role == SemanticRole::combo_box,
             "the default enum editor service must project flags through a retained multi-choice editor");
-    (*flags).set_overlay_width(286.0);
-    require((*flags).overlay_width() == 286.0,
+    (*flags).overlay_width = 286.0;
+    require((*flags).overlay_width.read() == 286.0,
             "flags editor overlay width must retain caller customization");
-    (*flags).set_dropped_down(true);
+    (*flags).dropped_down = true;
     std::shared_ptr<gui_forms::CheckedListBox> choices = std::dynamic_pointer_cast<CheckedListBox>(window.find(
         std::string((*flags).stable_id().value()) + ".overlay.list"));
     require(choices && (*choices).items.read().size() == 5U &&
@@ -980,9 +980,9 @@ void test_default_flags_and_color_property_editors() {
             "the flags overlay must expose zero and each independent bit with synchronized checks");
     (*choices).set_item_checked(4U, true);
     require(has_anchor((*target).anchor.read(), AnchorStyles::right) &&
-                (*flags).value().name == "top, left, right",
+                (*flags).value.read().name == "top, left, right",
             "checking a flags row must immediately commit the typed enum through PropertyGrid");
-    (*flags).set_dropped_down(false);
+    (*flags).dropped_down = false;
     require(!window.find(std::string((*flags).stable_id().value()) +
                          ".overlay.list"),
             "closing a flags editor must synchronously unregister its overlay subtree");
@@ -991,9 +991,9 @@ void test_default_flags_and_color_property_editors() {
         (*grid).editor("ForeColor"));
     require(color != nullptr,
             "the default color service must create a retained color editor");
-    (*color).set_swatch_width(42.0);
+    (*color).swatch_width = 42.0;
     require((*color).editor() &&
-                (*color).swatch_width() == 42.0 &&
+                (*color).swatch_width.read() == 42.0 &&
                 (*(*color).editor()).text.read() ==
                     ColorValueEditor::format_value((*target).foreground()),
             "the default color service must provide canonical text and a retained swatch editor");
@@ -1007,7 +1007,7 @@ void test_default_flags_and_color_property_editors() {
     require(window.dispatch_text({"#2A6FB4CC"}) &&
                 window.dispatch_key({KeyAction::down, PhysicalKey::enter}) &&
                 (*target).foreground() == Color::rgba(42, 111, 180, 204) &&
-                (*color).value() == (*target).foreground(),
+                (*color).value.read() == (*target).foreground(),
             "a valid color commit must preserve alpha and use the target's typed setter");
     const Color retained = (*target).foreground();
     (*(*color).editor()).select_all();
@@ -1212,19 +1212,19 @@ BindingValue text_list(std::initializer_list<const char*> items) {
 
 void test_flags_editor_form_properties() {
     std::shared_ptr<FlagsValueEditor> empty = make_control<FlagsValueEditor>(StableId("flags.empty"));
-    require((*empty).descriptor().choices.empty() && (*empty).value().name.empty(),
+    require((*empty).descriptor.read().choices.empty() && (*empty).value.read().name.empty(),
             "an unwritten flags editor holds no flags");
 
     std::shared_ptr<FlagsValueEditor> flags = make_control<FlagsValueEditor>(StableId("flags.form"));
     (*flags).set_property_value("checked_flags", text_list({"Top", "Left"}));
-    require((*flags).descriptor().choices.empty(), "checked flags wait for the flag names");
+    require((*flags).descriptor.read().choices.empty(), "checked flags wait for the flag names");
     (*flags).set_property_value("flag_names", text_list({"Top", "Left", "Right", "Bottom"}));
     (*flags).set_property_value("none_name", BindingValue{std::string("None")});
     (*flags).set_property_value("enumeration_name", BindingValue{std::string("Edges")});
     const PropertyEnumDescriptor expected{
         "Edges", {{"None", 0}, {"Top", 1}, {"Left", 2}, {"Right", 4}, {"Bottom", 8}}, true};
-    require((*flags).descriptor() == expected, "the form properties describe the enumeration");
-    require((*flags).value() == PropertyEnumValue{"Edges", "Top, Left", 3}, "the checked flags are the value");
+    require((*flags).descriptor.read() == expected, "the form properties describe the enumeration");
+    require((*flags).value.read() == PropertyEnumValue{"Edges", "Top, Left", 3}, "the checked flags are the value");
     require((*flags).property_value("checked_flags") == text_list({"Top", "Left"}) &&
                 (*flags).property_value("flag_names") == text_list({"Top", "Left", "Right", "Bottom"}) &&
                 (*flags).property_value("none_name") == BindingValue{std::string("None")} &&
@@ -1236,7 +1236,7 @@ void test_flags_editor_form_properties() {
     } catch (const std::invalid_argument&) {
         refused = true;
     }
-    require(refused && (*flags).value() == PropertyEnumValue{"Edges", "Top, Left", 3},
+    require(refused && (*flags).value.read() == PropertyEnumValue{"Edges", "Top, Left", 3},
             "a checked name that is no flag's is refused and changes nothing");
 }
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/inspection/inspection_types.hpp"
+#include "gui_forms/controls/panel/flags_value_editor/flags_value_editor_capabilities/flags_value_editor_capabilities.hpp"
 
 #include <cstddef>
 #include <memory>
@@ -17,24 +18,12 @@ namespace gui_forms {
 // `none-name` (the name of no flag; empty for none) and `checked-flags`
 // (names among `flag-names`). Until `flag-names` is written the editor
 // holds no flags, shows no value and opens no list.
-class FlagsValueEditor final : public Panel {
+class FlagsValueEditor final : public Panel, public FlagsValueEditorCapabilities<FlagsValueEditor> {
 public:
     explicit FlagsValueEditor(StableId stable_id);
-    FlagsValueEditor(StableId stable_id, PropertyEnumDescriptor descriptor,
-                     PropertyEnumValue value);
+    FlagsValueEditor(StableId stable_id, PropertyEnumDescriptor initial_descriptor,
+                     PropertyEnumValue initial_value);
 
-    [[nodiscard]] const PropertyEnumDescriptor& descriptor() const noexcept {
-        return descriptor_;
-    }
-    void set_descriptor(PropertyEnumDescriptor descriptor);
-    [[nodiscard]] const PropertyEnumValue& value() const noexcept {
-        return value_;
-    }
-    void set_value(PropertyEnumValue value);
-    [[nodiscard]] bool dropped_down() const noexcept { return dropped_down_; }
-    void set_dropped_down(bool dropped_down);
-    [[nodiscard]] double overlay_width() const noexcept { return overlay_width_; }
-    void set_overlay_width(double width);
     [[nodiscard]] Event<const PropertyEnumValue&>& value_changed() noexcept {
         return value_changed_;
     }
@@ -48,7 +37,7 @@ public:
     void on_focus_changed(bool focused) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     bool on_semantic_action(SemanticAction action,
-                            std::string_view value) override;
+                            std::string_view action_value) override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     [[nodiscard]] AnatomyStateSet anatomy_states() const override;
     // Stage T1 anatomy, as dot members.
@@ -93,13 +82,13 @@ private:
     // descriptor and value; each setter records its part and applies the
     // whole once `flag-names` is written.
     [[nodiscard]] BindingValue enumeration_name_property() const;
-    void set_enumeration_name_property(const BindingValue& value);
+    void set_enumeration_name_property(const BindingValue& binding);
     [[nodiscard]] BindingValue flag_names_property() const;
-    void set_flag_names_property(const BindingValue& value);
+    void set_flag_names_property(const BindingValue& binding);
     [[nodiscard]] BindingValue none_name_property() const;
-    void set_none_name_property(const BindingValue& value);
+    void set_none_name_property(const BindingValue& binding);
     [[nodiscard]] BindingValue checked_flags_property() const;
-    void set_checked_flags_property(const BindingValue& value);
+    void set_checked_flags_property(const BindingValue& binding);
     void apply_form_flags();
 
     PropertyEnumDescriptor descriptor_;
@@ -118,13 +107,28 @@ private:
     SubscriptionToken overlay_check_;
     SubscriptionToken overlay_dismissal_;
     SubscriptionToken overlay_revocation_;
-    double overlay_width_{240.0};
     bool dropped_down_{};
     bool focused_{};
     bool synchronizing_overlay_{};
     bool closing_overlay_{};
     Event<const PropertyEnumValue&> value_changed_;
     Event<bool> drop_down_changed_;
+    // property_codemod begin FlagsValueEditor (tools/property_families/flags_value_editor.json; generated, do not edit)
+private:
+    friend struct FlagsValueEditorDescriptorCapability<FlagsValueEditor>;
+    friend struct FlagsValueEditorValueCapability<FlagsValueEditor>;
+    friend struct FlagsValueEditorDroppedDownCapability<FlagsValueEditor>;
+    friend struct FlagsValueEditorOverlayWidthCapability<FlagsValueEditor>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void write_view(const decltype(descriptor)& cell, PropertyEnumDescriptor incoming);
+    [[nodiscard]] PropertyEnumDescriptor read_view(const decltype(descriptor)& cell) const;
+    void write_view(const decltype(value)& cell, PropertyEnumValue incoming);
+    [[nodiscard]] PropertyEnumValue read_view(const decltype(value)& cell) const;
+    void write_view(const decltype(dropped_down)& cell, bool incoming);
+    [[nodiscard]] bool read_view(const decltype(dropped_down)& cell) const;
+    void prepare_write(const decltype(overlay_width)& cell, double& incoming);
+    void written(const decltype(overlay_width)& cell);
+    // property_codemod end FlagsValueEditor
 };
 
 } // namespace gui_forms

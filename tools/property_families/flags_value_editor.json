@@ -1,0 +1,113 @@
+{
+  "family": "FlagsValueEditor",
+  "step": "B8",
+  "declaring": "FlagsValueEditor",
+  "header": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
+  "source": "src/controls/panel/flags_value_editor/flags_value_editor.cpp",
+  "capabilities_header": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor_capabilities/flags_value_editor_capabilities.hpp",
+  "base": "Panel",
+  "shared": [],
+  "includes": [
+    "gui_forms/binding/value/binding_value.hpp"
+  ],
+  "properties": [
+    {
+      "name": "descriptor",
+      "capability": "FlagsValueEditorDescriptor",
+      "value": "PropertyEnumDescriptor",
+      "initial": null,
+      "comment": "The flags enumeration the editor offers; a view, since the form properties rebuild it. It must be a valid flags descriptor with at least one positive single-bit choice that can represent the current value (std::invalid_argument otherwise); a change normalizes the value and reopens an open list.",
+      "getter": "descriptor",
+      "setter": "set_descriptor",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto descriptor_ beside value_; write_view validates, normalizes the value and reopens the list"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "value",
+      "capability": "FlagsValueEditorValue",
+      "value": "PropertyEnumValue",
+      "initial": null,
+      "comment": "The checked flags, normalized against descriptor; a view, since the list's checks move it. A value the descriptor cannot represent throws std::invalid_argument.",
+      "getter": "value",
+      "setter": "set_value",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto value_, which the overlay's checks move; write_view normalizes and synchronizes the open list"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "dropped_down",
+      "capability": "FlagsValueEditorDroppedDown",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether the list of flags is open; a view, since the list closes itself. A write opens or closes it and raises drop_down_changed.",
+      "getter": "dropped_down",
+      "setter": "set_dropped_down",
+      "clear": null,
+      "field": null,
+      "event": "drop_down_changed_",
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto dropped_down_; write_view opens or closes the list"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "overlay_width",
+      "capability": "FlagsValueEditorOverlayWidth",
+      "value": "double",
+      "initial": "240.0",
+      "comment": "The width of the list of flags, 80 to 1024 (std::invalid_argument otherwise); a change reopens an open list.",
+      "getter": "overlay_width",
+      "setter": "set_overlay_width",
+      "clear": null,
+      "field": "overlay_width_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "prepare validates; written reopens an open list"
+      ],
+      "effects": null,
+      "sample": "300.0"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "enumeration_name, flag_names, none_name, checked_flags",
+      "reason": "form properties in the control's own table that rebuild descriptor and value together"
+    }
+  ],
+  "test": {
+    "type": "FlagsValueEditor",
+    "include": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp"
+  }
+}

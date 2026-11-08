@@ -64,7 +64,7 @@ struct FlagsEditorSynchronizer final {
         const PropertyEnumValue* flags = std::get_if<PropertyEnumValue>(&value);
         if (!retained || !flags) return;
         *synchronizing = true;
-        (*retained).set_value(*flags);
+        (*retained).value = *flags;
         *synchronizing = false;
     }
 };
@@ -103,7 +103,7 @@ struct ColorEditorSynchronizer final {
         const Color* color = std::get_if<Color>(&value);
         if (!retained || !color) return;
         *synchronizing = true;
-        (*retained).set_value(*color);
+        (*retained).value = *color;
         *synchronizing = false;
     }
 };

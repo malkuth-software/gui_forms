@@ -9,10 +9,12 @@
 #include "gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail.hpp"
 #include "gui_forms/controls/panel/card/card.hpp"
 #include "gui_forms/controls/panel/card/review_card/review_card.hpp"
+#include "gui_forms/controls/panel/color_value_editor/color_value_editor.hpp"
 #include "gui_forms/controls/panel/combo_box/combo_box.hpp"
 #include "gui_forms/controls/panel/correspondence_view/correspondence_view.hpp"
 #include "gui_forms/controls/panel/date_time_picker/date_time_picker.hpp"
 #include "gui_forms/controls/panel/domain_up_down/domain_up_down.hpp"
+#include "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp"
 #include "gui_forms/controls/panel/group_box/group_box.hpp"
 #include "gui_forms/controls/panel/group_box/scaled_group_box/scaled_group_box.hpp"
 #include "gui_forms/controls/panel/instrument_rack/instrument_rack.hpp"
@@ -220,6 +222,15 @@ void test_checked_list_box_properties() {
         const double sample = 18.0;
         (*control).indicator_size = sample;
         expect((*control).indicator_size.read() == sample, "CheckedListBox.indicator_size: a write stores");
+    }
+}
+
+void test_color_value_editor_properties() {
+    std::shared_ptr<ColorValueEditor> control = make_control<ColorValueEditor>(StableId("generated.colorvalueeditor"));
+    {
+        const double sample = 40.0;
+        (*control).swatch_width = sample;
+        expect((*control).swatch_width.read() == sample, "ColorValueEditor.swatch_width: a write stores");
     }
 }
 
@@ -568,6 +579,15 @@ void test_domain_up_down_properties() {
         const double sample = 24.0;
         (*control).button_width = sample;
         expect((*control).button_width.read() == sample, "DomainUpDown.button_width: a write stores");
+    }
+}
+
+void test_flags_value_editor_properties() {
+    std::shared_ptr<FlagsValueEditor> control = make_control<FlagsValueEditor>(StableId("generated.flagsvalueeditor"));
+    {
+        const double sample = 300.0;
+        (*control).overlay_width = sample;
+        expect((*control).overlay_width.read() == sample, "FlagsValueEditor.overlay_width: a write stores");
     }
 }
 
@@ -1114,11 +1134,13 @@ int main() {
     test_button_base_properties();
     test_card_properties();
     test_checked_list_box_properties();
+    test_color_value_editor_properties();
     test_combo_box_properties();
     test_correspondence_view_properties();
     test_data_grid_view_properties();
     test_date_time_picker_properties();
     test_domain_up_down_properties();
+    test_flags_value_editor_properties();
     test_group_box_properties();
     test_instrument_rack_properties();
     test_list_box_properties();
