@@ -37,7 +37,7 @@ has the claimed tree (`merge_of_head`).
 |---|---|---|
 | Promotion, `ci_promote.py lookup` | on `main`, before any tool is installed | the same tree passed on this platform: publish those bytes, install nothing, build and test nothing |
 | Exact reuse, `ci_reuse.py lookup` | after tools and identity | same tree, compiler and environment passed: restore that archive, skip build and tests |
-| Actions caches | otherwise | `.ccache` from `gui-objects-v2-<platform>-<compiler>-<tree>`, else the newest for the same compiler, else the same platform; third-party sources and Skia output from a key over `third_party/*.sh`, `*.patch`, `*.gn` and `cmake/Audio.cmake` |
+| Actions caches | otherwise | `.ccache` from `gui-objects-v2-<platform>-<compiler>-<tree>`, else the newest for the same compiler, else the same platform; miniaudio from a key over `cmake/Audio.cmake` (the stx checkout, with stx_skia and the text stack, is fetched at configure time from `stx.lock`) |
 | Seed, `ci_promote.py seed` | otherwise | objects from the first acceptable one of at most eight recent validated archives, on any branch, with the same compiler identity; every test still runs |
 | Build and test | otherwise | `ci_build.py`, the development text profiles and the native host tests |
 

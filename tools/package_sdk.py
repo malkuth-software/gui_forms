@@ -6,9 +6,9 @@ which a consumer builds GUI.Forms for its own host with tools/build_sdk.py:
 
   gui-forms-sdk-<version>/
     ...                         the release commit's tree (git archive)
-    third_party/harfbuzz/       HarfBuzz at fetch_text_stack.sh's pin (test/ and perf/ left out)
-    third_party/freetype/       FreeType at fetch_text_stack.sh's pin
-    third_party/libunibreak/    libunibreak at fetch_linebreak.sh's pin
+    stx/                        the stx repository at stx.lock's commit: the stx packages,
+                                stx_skia and every third-party source (third_party/), which
+                                build_sdk.py hands to the configure (FETCHCONTENT_SOURCE_DIR_GUI_FORMS_STX)
     third_party/miniaudio/      miniaudio at cmake/Audio.cmake's pin
     SDK_MANIFEST.json           the build entry point, every vendored source with
                                 its pin and tree digest, what a build still
@@ -86,16 +86,12 @@ class VendoredSource:
     excluded: tuple[str, ...]
 
 
+# stx carries stx_skia and every third-party source GUI.Forms builds (owner,
+# 2026-11-05); its workflows are left out, as no build reads them.
 VENDORED: tuple[VendoredSource, ...] = (
-    VendoredSource("harfbuzz", "third_party/harfbuzz", "https://github.com/harfbuzz/harfbuzz.git",
-                   "third_party/fetch_text_stack.sh", r"^harfbuzz_revision=(" + REVISION_PATTERN + r")$",
-                   "COPYING", ("test/", "perf/")),
-    VendoredSource("freetype", "third_party/freetype", "https://gitlab.freedesktop.org/freetype/freetype.git",
-                   "third_party/fetch_text_stack.sh", r"^freetype_revision=(" + REVISION_PATTERN + r")$",
-                   "LICENSE.TXT", ()),
-    VendoredSource("libunibreak", "third_party/libunibreak", "https://github.com/adah1972/libunibreak.git",
-                   "third_party/fetch_linebreak.sh", r"^revision=(" + REVISION_PATTERN + r")$",
-                   "LICENCE", ()),
+    VendoredSource("stx", "stx", "https://github.com/malkuth-software/stx.git",
+                   "stx.lock", r'^commit = "(' + REVISION_PATTERN + r')"$',
+                   "LICENSE", (".github/",)),
     VendoredSource("miniaudio", "third_party/miniaudio", "https://github.com/mackron/miniaudio.git",
                    "cmake/Audio.cmake", r"^\s*GIT_TAG (" + REVISION_PATTERN + r")$",
                    "LICENSE", ()),

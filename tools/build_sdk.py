@@ -107,9 +107,15 @@ def configure_command(target: str, source: Path, toolkit: Path, prefix: Path,
                       features: str = "default") -> list[str]:
     """The configure of target's SDK: ci_build.py's options with tests and programs off, plus features' options."""
     host: str = TARGET_HOSTS[target]
-    return ["cmake", "-S", str(source), "-B", str(toolkit), "-G", "Ninja",
-            *toolkit_configure.toolkit_options(source, prefix, False, False), *toolkit_configure.host_options(host),
-            *FEATURE_SETS[features]]
+    command: list[str] = ["cmake", "-S", str(source), "-B", str(toolkit), "-G", "Ninja",
+                          *toolkit_configure.toolkit_options(source, prefix, False, False),
+                          *toolkit_configure.host_options(host), *FEATURE_SETS[features]]
+    # A source SDK carries stx at stx.lock's commit (package_sdk.py), so the
+    # configure builds from it instead of fetching it.
+    vendored_stx: Path = source / "stx"
+    if (vendored_stx / "CMakeLists.txt").is_file():
+        command.append("-DFETCHCONTENT_SOURCE_DIR_GUI_FORMS_STX=" + str(vendored_stx))
+    return command
 
 
 def build(target: str, prefix: Path, jobs: int, work: Path, features: str = "default") -> None:

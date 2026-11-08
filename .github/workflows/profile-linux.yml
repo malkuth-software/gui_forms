@@ -65,16 +65,13 @@ jobs:
       - name: Identify and verify LLVM release compiler
         id: compiler
         run: python template_harness/harness/compiler_identity.py
-      # The native jobs' text-stack cache (native-platform.yml), with the
+      # The native jobs' dependency cache (native-platform.yml), with the
       # same paths so main's entry serves a scheduled run.
       - uses: actions/cache/restore@v4
         with:
           path: |
-            gui_forms/third_party/harfbuzz
-            gui_forms/third_party/freetype
-            gui_forms/third_party/libunibreak
             gui_forms/third_party/miniaudio
-          key: gui-deps-v4-${{ runner.os }}-${{ hashFiles('gui_forms/third_party/*.sh', 'gui_forms/third_party/*.patch', 'gui_forms/third_party/*.gn', 'gui_forms/cmake/Audio.cmake') }}
+          key: gui-deps-v5-${{ runner.os }}-${{ hashFiles('gui_forms/cmake/Audio.cmake') }}
       - name: Configure compiler cache
         run: |
           echo "CCACHE_DIR=$PWD/.ccache-profile" >> "$GITHUB_ENV"

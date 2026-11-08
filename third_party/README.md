@@ -1,36 +1,32 @@
-# Private third-party dependencies
+# Third-party sources
 
-The shaping stack is fetched by `fetch_text_stack.sh`: HarfBuzz 14.6.0 at
-`c7a7457b7385f33178e8cf87615ca077a810bbe7` and FreeType 2.14.2 at
-`f4205da14867c5387cd6a329b90ee10a6df6eeff`. HarfBuzz's optional raster,
-vector, GPU, subset and utility targets remain disabled. The upgrade and
-compiler-warning investigation are recorded in
-[`HARFBUZZ_14_6_INTAKE_2026-10-06.md`](HARFBUZZ_14_6_INTAKE_2026-10-06.md).
+This repository carries no third-party sources (owner, 2026-11-05). They are
+kept in the stx repository (malkuth-software/stx) at the commit `stx.lock`
+names, and `cmake/Stx.cmake` fetches that commit in every configuration and
+hands its `third_party/` to the build as `GUI_FORMS_STX_THIRD_PARTY_DIR`:
 
-The text engine uses libunibreak 8.0, pinned to
-`28a2756b864c343f438cd22537d49d394d4666a5` by `fetch_linebreak.sh`. Its private
-line-break subset implements Unicode 17 UAX #14. It was admitted for the
-logical text-mask profile only (2026-10-01). The owner widened the admission
-to the text engine on 2026-10-26 ("libunibreak is fine, can admit it"), so it
-is built wherever HarfBuzz text is (`GUI_FORMS_ENABLE_HARFBUZZ_TEXT`) and
-fetched wherever `fetch_text_stack.sh` runs. It is still excluded from builds
-without HarfBuzz text and from SDK exports. See
-[`LIBUNIBREAK_INTAKE_2026-10-01.md`](LIBUNIBREAK_INTAKE_2026-10-01.md) for the
-local conformance reproduction, caller-buffer boundary and license requirements.
+| stx path | What | GUI.Forms uses it for |
+|---|---|---|
+| `third_party/harfbuzz/` | HarfBuzz 14.6.0 at `c7a7457b`, without `test/` and `perf/` | shaping (`GUI_FORMS_ENABLE_HARFBUZZ_TEXT`) |
+| `third_party/freetype/` | FreeType 2.14.2 at `f4205da1` | glyph loading and rasterisation, with the options header in `cmake/freetype/` |
+| `third_party/libunibreak/` | libunibreak 8.0 at `28a2756b` | UAX #14 line breaking in the text engine (`cmake/LineBreak.cmake`) |
+| `third_party/md4c/` | MD4C 0.6.0 | the markdown framework's CommonMark parser |
+| `third_party/sheenbidi/` | SheenBidi 2.9.0 | bidirectional ordering in the text adapter |
+| `third_party/unicode/` | the Unicode 17 licence and the provenance of GUI.Forms' generated grapheme tables | the tables' attribution |
+| `stx_skia/` | the CPU Skia derivative (Skia `chrome/m152`, pruned and converted) | the Skia adapters, built by this build with its flags (`add_subdirectory`) |
 
-Unicode grapheme property tables and conformance cases are pinned, generated,
-and attributed under [`unicode/`](unicode/README.md). They are checked-in
-generated data so renderer-free builds stay offline.
+Each stx directory keeps its licence, its PROVENANCE file and its intake
+record (stx `third_party/README.md`), unchanged from when they were here. The
+moved files were blob-for-blob equal to this repository's at 06a78004.
 
-The CPU renderer is not here: it is `stx_skia/` at the repository root, a
-pruned, converted CPU derivative of Skia `chrome/m152`
-(`2a9b593bab4b2fd019fa494c8d401ff1fab0b883`) that builds with the tree; its
-README and PROVENANCE.md record what it keeps and why. No Skia type may leave
-`src/render/skia/`.
+What stays here:
 
-SheenBidi 2.9.0 is vendored under `sheenbidi/` for Unicode bidirectional ordering in the private text adapter. Its Headers and Source are unchanged from the pinned commit in PROVENANCE.md; Apache License 2.0 is included. Linux accessibility dynamically links the system ATK/AT-SPI bridge (LGPL 2.1 or later); it does not use GTK widgets.
+- `fetch_showcase_fallback_fonts.sh`, which refreshes the Noto fallback fonts
+  bundled in `assets/fonts/` from their pinned upstream files;
+- `SKIA_BUILD_EVIDENCE.md`, GUI.Forms' record of how its Skia builds were made;
+- miniaudio, which `cmake/Audio.cmake` fetches at its pin into
+  `third_party/miniaudio/` (ignored), for audio builds.
 
-MD4C 0.6.0 is vendored under `md4c/` for the markdown framework
-(`gui_forms/text/markdown/`), the owner's decision of 2026-10-28. Its files are
-unchanged from the pinned commit in `md4c/PROVENANCE.md`; MIT License included.
-The intake record is [`MD4C_INTAKE_2026-10-28.md`](MD4C_INTAKE_2026-10-28.md).
+No Skia type may leave `src/render/skia/`. Linux accessibility dynamically
+links the system ATK/AT-SPI bridge (LGPL 2.1 or later); it does not use GTK
+widgets.

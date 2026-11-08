@@ -56,8 +56,6 @@ jobs:
       # (cmake/LocalizablePlugin.cmake), /usr/lib/llvm-22 here.
       - name: Configure the tree
         run: |
-          sh gui_forms/third_party/fetch_text_stack.sh
-          sh gui_forms/third_party/fetch_linebreak.sh
           cmake -S gui_forms -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_TOOLCHAIN_FILE="$PWD/gui_forms/cmake/llvm22.cmake" \
             -DGUI_FORMS_BUILD_GALLERY=OFF -DGUI_FORMS_BUILD_TESTS=ON -DGUI_FORMS_BUILD_AUDIO=OFF \

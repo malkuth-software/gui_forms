@@ -7,9 +7,9 @@ All commands run from the repository root.
 
 ## Standard native build
 
-First follow [Installation](../user/install.md#configure-build-install) to fetch the text
-sources and configure for your platform. Linux requires an enabled X11 host;
-the CPU renderer, `stx_skia/`, builds with the tree on every platform.
+First follow [Installation](../user/install.md#configure-build-install) to configure for
+your platform. Linux requires an enabled X11 host; the CPU renderer,
+`stx_skia/` from the pinned stx checkout, builds with the tree on every platform.
 Then:
 
 ```sh
@@ -45,14 +45,17 @@ probes. They are not installed.
 
 ## Third-party dependencies
 
-Dependencies are pinned. Fetch HarfBuzz and FreeType explicitly before
-configuration. The CPU renderer, `stx_skia/` (a pruned CPU Skia derivative),
-is part of the repository and builds with the tree, as SheenBidi is vendored.
+Dependencies are pinned. This repository carries no third-party sources:
+configuring fetches the stx repository at the commit `stx.lock` names
+(`cmake/Stx.cmake`; `FETCHCONTENT_SOURCE_DIR_GUI_FORMS_STX` names a local
+checkout instead). It holds:
 
-| Script | Purpose |
+| stx path | Contents |
 |---|---|
-| `fetch_text_stack.sh` | HarfBuzz and FreeType |
-| `fetch_linebreak.sh` | libunibreak (UAX #14 line breaking), required with `fetch_text_stack.sh` before configuring `GUI_FORMS_ENABLE_HARFBUZZ_TEXT=ON` |
+| `stx_skia/` | the CPU renderer, a pruned CPU Skia derivative, built with the tree |
+| `third_party/harfbuzz/`, `third_party/freetype/` | HarfBuzz (without `test/` and `perf/`) and FreeType |
+| `third_party/libunibreak/` | libunibreak (UAX #14 line breaking) |
+| `third_party/md4c/`, `third_party/sheenbidi/`, `third_party/unicode/` | MD4C, SheenBidi and the Unicode data |
 
 Audio pulls miniaudio through `FetchContent` with digest checks. No package
 manager is consulted at configure time.

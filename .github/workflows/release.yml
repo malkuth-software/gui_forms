@@ -256,11 +256,8 @@ jobs:
         id: dependencies
         with:
           path: |
-            gui_forms/third_party/harfbuzz
-            gui_forms/third_party/freetype
-            gui_forms/third_party/libunibreak
             gui_forms/third_party/miniaudio
-          key: gui-deps-v4-${{ runner.os }}-${{ hashFiles('gui_forms/third_party/*.sh', 'gui_forms/third_party/*.patch', 'gui_forms/third_party/*.gn', 'gui_forms/cmake/Audio.cmake') }}
+          key: gui-deps-v5-${{ runner.os }}-${{ hashFiles('gui_forms/cmake/Audio.cmake') }}
       # Called from native.yml: this run's native job for the platform compiled
       # the toolkit and tests of this very tree and archived its .ccache (or,
       # on a promoted main run, the archive of the run that tested this tree).
@@ -324,11 +321,8 @@ jobs:
           tar -xf .ci/tested-objects/gui-programs-objects-${{ matrix.platform }}.tar
           rm -rf .ci/tested-objects
       # --- build, as tools/ci_build.py configures it, plus the programs ------------
-      # The CPU renderer, stx_skia/, is part of the tree and builds with it.
-      - name: Fetch pinned text sources
-        run: |
-          sh gui_forms/third_party/fetch_text_stack.sh
-          sh gui_forms/third_party/fetch_linebreak.sh
+      # The CPU renderer (stx_skia/) and the text stack come from the pinned stx
+      # checkout that configuring fetches (cmake/Stx.cmake, stx.lock).
       - name: Configure the programs
         run: |
           renderer="-DGUI_FORMS_ENABLE_SKIA=ON"
@@ -417,9 +411,6 @@ jobs:
         if: success() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && steps.dependencies.outputs.cache-hit != 'true'
         with:
           path: |
-            gui_forms/third_party/harfbuzz
-            gui_forms/third_party/freetype
-            gui_forms/third_party/libunibreak
             gui_forms/third_party/miniaudio
           key: ${{ steps.dependencies.outputs.cache-primary-key }}
       # The saved cache is this build's working set, not every generation up
@@ -461,7 +452,7 @@ jobs:
           miniaudio="$BUILD_DIR/_deps/gui_forms_miniaudio-src"
           if [ -f gui_forms/third_party/miniaudio/miniaudio.h ]; then miniaudio=gui_forms/third_party/miniaudio; fi
           python gui_forms/tools/package_sdk.py --version "$RELEASE_VERSION" --revision "${{ github.sha }}" --out dist \
-            --checkout "miniaudio=$miniaudio" --fetch-missing $COMPILER_CACHE
+            --checkout "stx=$BUILD_DIR/_deps/gui_forms_stx-src" --checkout "miniaudio=$miniaudio" --fetch-missing $COMPILER_CACHE
       - uses: actions/upload-artifact@v4
         with:
           name: gui-forms-programs-${{ matrix.platform }}

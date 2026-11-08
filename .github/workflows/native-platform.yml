@@ -264,11 +264,8 @@ jobs:
         if: steps.promotion.outputs.reused != 'true' && (steps.reuse.outputs.reused != 'true')
         with:
           path: |
-            gui_forms/third_party/harfbuzz
-            gui_forms/third_party/freetype
-            gui_forms/third_party/libunibreak
             gui_forms/third_party/miniaudio
-          key: gui-deps-v4-${{ runner.os }}-${{ hashFiles('gui_forms/third_party/*.sh', 'gui_forms/third_party/*.patch', 'gui_forms/third_party/*.gn', 'gui_forms/cmake/Audio.cmake') }}
+          key: gui-deps-v5-${{ runner.os }}-${{ hashFiles('gui_forms/cmake/Audio.cmake') }}
       - name: Find recent validated object seed across branches
         id: seed
         if: steps.promotion.outputs.reused != 'true' && steps.reuse.outputs.reused != 'true' && inputs.cold_build != true
@@ -335,8 +332,6 @@ jobs:
         if: steps.promotion.outputs.reused != 'true' && (runner.os == 'Windows' && steps.reuse.outputs.reused != 'true')
         shell: msys2 {0}
         run: |
-          sh gui_forms/third_party/fetch_text_stack.sh
-          sh gui_forms/third_party/fetch_linebreak.sh
           if [ -f .build/native-${{ inputs.platform }}/gui-forms/Testing/Temporary/LastTest.log ]; then
             cp .build/native-${{ inputs.platform }}/gui-forms/Testing/Temporary/LastTest.log .build/native-${{ inputs.platform }}/gui-forms/Testing/Temporary/SDKLastTest.log
           fi
@@ -357,8 +352,6 @@ jobs:
         if: steps.promotion.outputs.reused != 'true' && (runner.os != 'Windows' && steps.reuse.outputs.reused != 'true')
         shell: bash
         run: |
-          sh gui_forms/third_party/fetch_text_stack.sh
-          sh gui_forms/third_party/fetch_linebreak.sh
           if [ -f .build/native-${{ inputs.platform }}/gui-forms/Testing/Temporary/LastTest.log ]; then
             cp .build/native-${{ inputs.platform }}/gui-forms/Testing/Temporary/LastTest.log .build/native-${{ inputs.platform }}/gui-forms/Testing/Temporary/SDKLastTest.log
           fi
@@ -407,9 +400,6 @@ jobs:
         if: steps.promotion.outputs.reused != 'true' && (success() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && steps.reuse.outputs.reused != 'true' && steps.dependencies.outputs.cache-primary-key != '' && steps.dependencies.outputs.cache-hit != 'true')
         with:
           path: |
-            gui_forms/third_party/harfbuzz
-            gui_forms/third_party/freetype
-            gui_forms/third_party/libunibreak
             gui_forms/third_party/miniaudio
           key: ${{ steps.dependencies.outputs.cache-primary-key }}
       - name: Report cache statistics

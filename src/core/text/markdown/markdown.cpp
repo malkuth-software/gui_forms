@@ -10,7 +10,7 @@
 #include <system_error>
 #include <utility>
 
-// MD4C (third_party/md4c, MIT): the CommonMark parser. It calls back into
+// MD4C (stx third_party/md4c, MIT): the CommonMark parser. It calls back into
 // MarkdownParser with text that points into the source or at its own static
 // strings; nothing it passes is retained past a callback.
 #include "md4c.h"

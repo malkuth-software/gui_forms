@@ -76,12 +76,13 @@ finding:
 ```text
 python3 -B tools/check_house_style.py include src demo tests examples tools file_manager_demoboard fuzz
 python3 -B tools/check_lifetime_rules.py include src demo tests examples tools file_manager_demoboard
-python3 -B tools/check_stx_skia_style.py
 ```
 
-The third covers `stx_skia/`, whose files imported from Skia still carry
-findings while they are converted: it fails on any finding its shrink-only
-allowance does not list (`stx_skia/AGENTS.md`).
+`stx_skia/` and every third-party source (FreeType, HarfBuzz, libunibreak,
+md4c, SheenBidi, the Unicode data) live in the stx repository since
+2026-11-08; this repository pins that checkout in `stx.lock` and carries no
+third-party sources. `stx_skia/`'s own style check, with its shrink-only
+allowance, runs there (`stx_skia/AGENTS.md` in stx).
 
 The second checks two rules of sections 5 and 9: a function returning a
 borrow of a container or snapshot argument deletes its rvalue overload, and a
@@ -230,8 +231,9 @@ freeze an ABI merely because the current frontend experiment calls it.
   tests.
 - Control-gallery agent: `src/controls/`, `demo/`, demo resources, and gallery
   interaction tests.
-- Skia/host agent: `third_party/`, `src/render/skia/`, `src/host/macos/`, and
-  dependency/build integration specific to those paths.
+- Skia/host agent: `src/render/skia/`, `src/host/macos/`, the stx pin
+  (`stx.lock`, `cmake/Stx.cmake`), and dependency/build integration specific
+  to those paths.
 - Root agent: guardrails, cross-cutting build integration, final review,
   execution, visual inspection, and closure.
 

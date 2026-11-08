@@ -1,9 +1,11 @@
 # The stx commit GUI.Forms builds with, in lockstep (owner ruling 2026-11-03,
 # decision 3(a)): stx_zlib, stx_png, stx_conv (with stx_auxlib::simd),
-# stx_rtf2md and stx_vorbis. cmake/Stx.cmake fetches this commit, installs it
+# stx_rtf2md and stx_vorbis; since 2026-11-08 also stx_skia and every
+# third-party source (stx third_party/), which this build compiles from the
+# fetched source. cmake/Stx.cmake fetches this commit, installs it
 # into <build>/stx-prefix and finds the packages there; a local checkout
 # replaces it with -DFETCHCONTENT_SOURCE_DIR_GUI_FORMS_STX=<dir>, and
 # -DGUI_FORMS_STX_PREFIX=<dir> uses a prefix already installed.
 [stx]
 repository = "malkuth-software/stx"
-commit = "58b882011a0866e18b045baebf4c0bcb0b1a7602"
+commit = "1f5c6f54ef474c3abfc2db2aa4331aaf1ba807f6"

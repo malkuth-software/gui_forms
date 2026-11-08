@@ -27,8 +27,8 @@ from ci_build_steps import (BUILT_EVERYTHING, BUILT_NOTHING, BUILT_SELECTED, DEB
                             changed_tests_listing, configure_tree, ctest_selection, debug_info_mode, run,
                             sanitizer_options, selected_test_targets, test_listing, write_build_record)
 import native_tests
-from toolkit_configure import (HOST_OPTION_NAMES, fetch_line_break, fetch_text_stack,  # noqa: F401
-                               host_options, prepare_host, toolkit_options)
+from toolkit_configure import (HOST_OPTION_NAMES, host_options, prepare_host,  # noqa: F401
+                               toolkit_options)
 
 ROOT: Path = Path(__file__).resolve().parents[2]
 

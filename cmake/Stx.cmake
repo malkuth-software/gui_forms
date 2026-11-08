@@ -1,6 +1,7 @@
 # The stx libraries (stx_zlib, stx_png, stx_conv, stx_rtf2md and, for audio
 # builds, stx_vorbis) from malkuth-software/stx, consumed as an installed
-# prefix through find_package (owner ruling 2026-11-03, decision 3(a)).
+# prefix through find_package (owner ruling 2026-11-03, decision 3(a)), and the
+# stx source, from which this build adds stx_skia and the third-party sources.
 #
 # Inputs:
 # - stx.lock names the stx commit GUI.Forms builds with, in lockstep.
@@ -8,7 +9,8 @@
 #   a local stx checkout (lockstep development); it is rebuilt incrementally on
 #   every configure, so edits there reach this build.
 # - GUI_FORMS_STX_PREFIX=<dir> names a prefix where stx is already installed
-#   (a CI cache); nothing is fetched or built, and only the packages are read.
+#   (a CI cache); nothing is built there and only the packages are read, but
+#   the pinned source is still fetched for stx_skia and third_party/.
 # - GUI_FORMS_BUILD_AUDIO with GUI_FORMS_AUDIO_VORBIS_BACKEND=stx adds stx_vorbis.
 #
 # Outputs:
@@ -16,8 +18,14 @@
 #   stx_conv::stx_conv, stx_rtf2md::stx_rtf2md (and stx_vorbis's when asked);
 # - GUI_FORMS_STX_PREFIX_DIR, the prefix they come from, which the SDK install
 #   copies whole (GUIFormsConfig finds the packages beside GUI.Forms);
-# - GUI_FORMS_STX_SOURCE_DIR, the stx source (empty with GUI_FORMS_STX_PREFIX),
-#   for the targets that read stx sources: the fuzzers and the rtf2md corpus.
+# - GUI_FORMS_STX_SOURCE_DIR, the stx source at the pinned commit (or the local
+#   checkout), fetched with or without GUI_FORMS_STX_PREFIX: GUI.Forms builds
+#   stx_skia from it (add_subdirectory, with this build's flags; the stx
+#   install is made with STX_WITH_SKIA=OFF), and the fuzzers and the rtf2md
+#   corpus read it;
+# - GUI_FORMS_STX_THIRD_PARTY_DIR, its third_party/: FreeType, HarfBuzz,
+#   libunibreak, MD4C, SheenBidi and the Unicode data at their pins (owner,
+#   2026-11-05: the main repository carries no third-party sources).
 #
 # Without GUI_FORMS_STX_PREFIX, stx is configured, built and installed at
 # configure time into <build>/stx-prefix, with this build's compilers, build
@@ -32,36 +40,43 @@ if(GUI_FORMS_BUILD_AUDIO AND GUI_FORMS_AUDIO_VORBIS_BACKEND STREQUAL "stx")
     set(_gui_stx_with_vorbis ON)
 endif()
 
-set(GUI_FORMS_STX_SOURCE_DIR "")
+# The stx source is fetched in every configuration, a prefix or not: GUI.Forms
+# builds stx_skia and the third-party sources (stx third_party/) from it.
+file(STRINGS "${_gui_stx_root}/stx.lock" _gui_stx_lock REGEX "^(repository|commit) = ")
+set(_gui_stx_repository "")
+set(_gui_stx_commit "")
+foreach(_gui_stx_line IN LISTS _gui_stx_lock)
+    if(_gui_stx_line MATCHES "^repository = \"([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)\"$")
+        set(_gui_stx_repository "${CMAKE_MATCH_1}")
+    elseif(_gui_stx_line MATCHES "^commit = \"([0-9a-f]+)\"$")
+        set(_gui_stx_commit "${CMAKE_MATCH_1}")
+    endif()
+endforeach()
+string(LENGTH "${_gui_stx_commit}" _gui_stx_commit_length)
+if(_gui_stx_repository STREQUAL "" OR NOT _gui_stx_commit_length EQUAL 40)
+    message(FATAL_ERROR "stx.lock needs repository = \"owner/name\" and a 40-character commit")
+endif()
+FetchContent_Declare(gui_forms_stx
+    GIT_REPOSITORY https://github.com/${_gui_stx_repository}.git
+    GIT_TAG ${_gui_stx_commit}
+    GIT_CONFIG core.autocrlf=false
+    SOURCE_SUBDIR gui-forms-no-upstream-build)
+FetchContent_MakeAvailable(gui_forms_stx)
+set(GUI_FORMS_STX_SOURCE_DIR "${gui_forms_stx_SOURCE_DIR}")
+if(NOT EXISTS "${GUI_FORMS_STX_SOURCE_DIR}/CMakeLists.txt" OR
+   NOT EXISTS "${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/CMakeLists.txt")
+    message(FATAL_ERROR "the stx source at ${GUI_FORMS_STX_SOURCE_DIR} is not an stx checkout")
+endif()
+if(NOT EXISTS "${GUI_FORMS_STX_SOURCE_DIR}/stx_skia/CMakeLists.txt" OR
+   NOT EXISTS "${GUI_FORMS_STX_SOURCE_DIR}/third_party/md4c/md4c.c")
+    message(FATAL_ERROR "the stx source at ${GUI_FORMS_STX_SOURCE_DIR} has no stx_skia/ or third_party/ "
+                        "(stx.lock must name a commit after the move of 2026-11-08)")
+endif()
+set(GUI_FORMS_STX_THIRD_PARTY_DIR "${GUI_FORMS_STX_SOURCE_DIR}/third_party")
+
 if(NOT GUI_FORMS_STX_PREFIX STREQUAL "")
     set(GUI_FORMS_STX_PREFIX_DIR "${GUI_FORMS_STX_PREFIX}")
 else()
-    file(STRINGS "${_gui_stx_root}/stx.lock" _gui_stx_lock REGEX "^(repository|commit) = ")
-    set(_gui_stx_repository "")
-    set(_gui_stx_commit "")
-    foreach(_gui_stx_line IN LISTS _gui_stx_lock)
-        if(_gui_stx_line MATCHES "^repository = \"([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)\"$")
-            set(_gui_stx_repository "${CMAKE_MATCH_1}")
-        elseif(_gui_stx_line MATCHES "^commit = \"([0-9a-f]+)\"$")
-            set(_gui_stx_commit "${CMAKE_MATCH_1}")
-        endif()
-    endforeach()
-    string(LENGTH "${_gui_stx_commit}" _gui_stx_commit_length)
-    if(_gui_stx_repository STREQUAL "" OR NOT _gui_stx_commit_length EQUAL 40)
-        message(FATAL_ERROR "stx.lock needs repository = \"owner/name\" and a 40-character commit")
-    endif()
-    FetchContent_Declare(gui_forms_stx
-        GIT_REPOSITORY https://github.com/${_gui_stx_repository}.git
-        GIT_TAG ${_gui_stx_commit}
-        GIT_CONFIG core.autocrlf=false
-        SOURCE_SUBDIR gui-forms-no-upstream-build)
-    FetchContent_MakeAvailable(gui_forms_stx)
-    set(GUI_FORMS_STX_SOURCE_DIR "${gui_forms_stx_SOURCE_DIR}")
-    if(NOT EXISTS "${GUI_FORMS_STX_SOURCE_DIR}/CMakeLists.txt" OR
-       NOT EXISTS "${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/CMakeLists.txt")
-        message(FATAL_ERROR "the stx source at ${GUI_FORMS_STX_SOURCE_DIR} is not an stx checkout")
-    endif()
-
     set(GUI_FORMS_STX_PREFIX_DIR "${CMAKE_BINARY_DIR}/stx-prefix")
     set(_gui_stx_build "${CMAKE_BINARY_DIR}/stx-build")
     set(_gui_stx_stamp_file "${GUI_FORMS_STX_PREFIX_DIR}/gui-forms-stx.stamp")
@@ -73,6 +88,7 @@ else()
     set(_gui_stx_arguments
         -DSTX_BUILD_TESTS=OFF
         -DSTX_WITH_VORBIS=${_gui_stx_with_vorbis}
+        -DSTX_WITH_SKIA=OFF
         "-DCMAKE_INSTALL_PREFIX=${GUI_FORMS_STX_PREFIX_DIR}"
         "-DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}"
         "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}")

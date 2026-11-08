@@ -123,15 +123,11 @@ jobs:
           python3 -B -m unittest discover -s tools -p test_generate_library_docs.py
           python3 tools/generate_library_docs.py --check
           python3 -B ../template_harness/harness/check_house_style.py include src demo tests examples tools file_manager_demoboard fuzz
-          # stx_skia/: every C++ file, against the shrink-only allowance for the files
-          # imported from Skia that are still being converted (stx_skia/AGENTS.md).
-          python3 -B -m unittest discover -s tools -p test_check_stx_skia_style.py
-          python3 -B tools/check_stx_skia_style.py
           python3 -B -m unittest discover -s tools -p test_ci_build.py
           python3 -B -m unittest discover -s tools -p test_engine_gate.py
           python3 -B -m unittest discover -s tools -p test_profile_hot_paths.py
           python3 -B -m unittest discover -s tools/layout_oracle -p test_layout_oracle.py
-          python3 -B ../template_harness/harness/check_lifetime_rules.py include src demo tests examples tools file_manager_demoboard stx_skia fuzz
+          python3 -B ../template_harness/harness/check_lifetime_rules.py include src demo tests examples tools file_manager_demoboard fuzz
           python3 -B -m unittest discover -s tools -p test_check_test_registration.py
           python3 -B tools/check_test_registration.py
   # The site depends only on the tree (docs/requirements.txt pins its
@@ -287,11 +283,9 @@ jobs:
         with:
           path: |
             .ccache
-            gui_forms/third_party/harfbuzz
-            gui_forms/third_party/freetype
-          key: gui-sanitize-v1-${{ steps.debug-info.outputs.mode }}-${{ hashFiles('gui_forms/third_party/*.sh', 'gui_forms/third_party/*.patch', 'gui_forms/third_party/*.gn') }}-${{ github.sha }}
+          key: gui-sanitize-v1-${{ steps.debug-info.outputs.mode }}-${{ hashFiles('gui_forms/stx.lock') }}-${{ github.sha }}
           restore-keys: |
-            gui-sanitize-v1-${{ steps.debug-info.outputs.mode }}-${{ hashFiles('gui_forms/third_party/*.sh', 'gui_forms/third_party/*.patch', 'gui_forms/third_party/*.gn') }}-
+            gui-sanitize-v1-${{ steps.debug-info.outputs.mode }}-${{ hashFiles('gui_forms/stx.lock') }}-
       - name: Find sanitizer objects of the nearest branch
         id: seed
         if: steps.debug-info.outputs.mode == 'lines' && steps.receipt.outputs.reused != 'true'
@@ -379,8 +373,6 @@ jobs:
         with:
           path: |
             .ccache
-            gui_forms/third_party/harfbuzz
-            gui_forms/third_party/freetype
           key: ${{ steps.sanitizer-cache.outputs.cache-primary-key }}
       - uses: actions/upload-artifact@v4
         if: failure()

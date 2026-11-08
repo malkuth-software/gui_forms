@@ -66,7 +66,8 @@ details are under [Done and tested](#done-and-tested).
   join with the theme engine and full-fidelity glass are on main. Reflection,
   the stage gate and a rerun of the Mac measurements remain.
 - **Universal Skia:** one CPU Skia renderer on every host. `stx_skia/`, the
-  pruned and converted CPU derivative of Skia, builds with the tree on macOS,
+  pruned and converted CPU derivative of Skia (in the stx repository since
+  2026-11-08), builds with the tree on macOS,
   Linux and Windows (stage SK1b).
 
 ## 0.4 Flexible
@@ -230,7 +231,7 @@ gates as their own rows. "Done" means the deliverable exists and a test in
 - Compositor adapters on Windows, macOS and X11, with full-fidelity glass.
 - `stx_rtf2md`, the first-party rich-text library: one document model, a
   markdown-like dialect, and RTF read and written by meaning.
-- `stx_skia/`, the CPU renderer, built with the tree on every host.
+- `stx_skia/`, the CPU renderer (from the pinned stx checkout), built with the tree on every host.
 - Three demonstration programs (the Gallery and the Explore and
   Correspondence previews) on macOS, Windows and Linux, and a release
   pipeline that builds, tests, packages and launch-tests each of them before

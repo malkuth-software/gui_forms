@@ -256,8 +256,8 @@ platform specific.
 ## Build from source
 
 Prerequisites: CMake 3.25+, Ninja, LLVM 22.1 (selected by
-[`cmake/llvm22.cmake`](cmake/llvm22.cmake)) and Python 3.12+. Native builds
-require an explicit `sh third_party/fetch_text_stack.sh` before configuration.
+[`cmake/llvm22.cmake`](cmake/llvm22.cmake)) and Python 3.12+. Configuring fetches the stx checkout pinned in
+[`stx.lock`](stx.lock), which carries the CPU renderer and every third-party source.
 Follow [Install](https://gui-forms.readthedocs.io/user/install.html) for the platform-specific renderer,
 host and dependency preparation. CI reuses tested trees and publishes a
 compiler cache per platform; see

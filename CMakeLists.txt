@@ -164,16 +164,19 @@ include(CMakePackageConfigHelpers)
 # The stx libraries (malkuth-software/stx at stx.lock's commit): stx_zlib,
 # stx_png, stx_conv with its SIMD level (stx_auxlib::simd), the rich-text
 # library stx_rtf2md (notes:planning/stages/RT-rich-text/PLAN.md) and, for
-# audio builds, stx_vorbis, installed into a prefix and found by find_package.
+# audio builds, stx_vorbis, installed into a prefix and found by find_package;
+# and the stx source, from which this build adds stx_skia and the third-party
+# sources (GUI_FORMS_STX_THIRD_PARTY_DIR; owner, 2026-11-05: this repository
+# carries no third-party sources).
 include(cmake/Stx.cmake)
-# stx_skia/ is the CPU Skia derivative the Skia adapters draw with, built from source as part
-# of this tree; its headers are system headers here, as the imported Skia's were. Without the
+# stx_skia (the stx source's stx_skia/) is the CPU Skia derivative the Skia adapters draw with,
+# built from source as part of this build, with its flags; its headers are system headers here. Without the
 # adapters only its red/blue swap kernel, stx_skia::swizzle, is built: it links no Skia code,
 # and the core, the controls and the hosts swap RGBA and BGRA rows with it.
 if(NOT GUI_FORMS_ENABLE_SKIA)
     set(STX_SKIA_SWIZZLE_ONLY ON)
 endif()
-add_subdirectory(stx_skia SYSTEM)
+add_subdirectory("${GUI_FORMS_STX_SOURCE_DIR}/stx_skia" "${CMAKE_CURRENT_BINARY_DIR}/stx_skia" SYSTEM)
 
 if(GUI_FORMS_ENABLE_MACOS_HOST AND NOT APPLE)
     message(FATAL_ERROR "GUI_FORMS_ENABLE_MACOS_HOST requires Apple AppKit")
@@ -456,14 +459,15 @@ endif()
 target_link_libraries(gui_forms_core PRIVATE stx_conv::stx_conv)
 # rtf_conversion's reader and writer; no stx_rtf2md type is public.
 target_link_libraries(gui_forms_core PRIVATE stx_rtf2md::stx_rtf2md)
-# MD4C 0.6.0 (third_party/md4c, MIT; third_party/MD4C_INTAKE_2026-10-28.md), the
+# MD4C 0.6.0 (stx third_party/md4c, MIT; stx third_party/MD4C_INTAKE_2026-10-28.md), the
 # markdown framework's CommonMark parser. Its objects are part of Core, so no
 # target is added to the exports; its header stays private to markdown.cpp.
-add_library(gui_forms_md4c OBJECT third_party/md4c/md4c.c third_party/md4c/entity.c)
+add_library(gui_forms_md4c OBJECT "${GUI_FORMS_STX_THIRD_PARTY_DIR}/md4c/md4c.c"
+    "${GUI_FORMS_STX_THIRD_PARTY_DIR}/md4c/entity.c")
 set_target_properties(gui_forms_md4c PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_sources(gui_forms_core PRIVATE $<TARGET_OBJECTS:gui_forms_md4c>)
 set_source_files_properties(src/core/text/markdown/markdown.cpp PROPERTIES
-    INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/third_party/md4c)
+    INCLUDE_DIRECTORIES "${GUI_FORMS_STX_THIRD_PARTY_DIR}/md4c")
 set_property(TARGET gui_forms_core PROPERTY INTERFACE_GUI_FORMS_CORE_LINKAGE static)
 set_property(TARGET gui_forms_core APPEND PROPERTY COMPATIBLE_INTERFACE_STRING GUI_FORMS_CORE_LINKAGE)
 # Compatibility properties alone do not traverse LINK_ONLY dependencies of
@@ -493,13 +497,13 @@ set_target_properties(gui_forms_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 if(GUI_FORMS_ENABLE_HARFBUZZ_TEXT)
     set(GUI_FORMS_HARFBUZZ_ROOT
-        "${CMAKE_CURRENT_SOURCE_DIR}/third_party/harfbuzz")
+        "${GUI_FORMS_STX_THIRD_PARTY_DIR}/harfbuzz")
     set(GUI_FORMS_FREETYPE_ROOT
-        "${CMAKE_CURRENT_SOURCE_DIR}/third_party/freetype")
+        "${GUI_FORMS_STX_THIRD_PARTY_DIR}/freetype")
     if(NOT EXISTS "${GUI_FORMS_HARFBUZZ_ROOT}/CMakeLists.txt" OR
        NOT EXISTS "${GUI_FORMS_FREETYPE_ROOT}/CMakeLists.txt")
         message(FATAL_ERROR
-            "Pinned text sources are absent. Run third_party/fetch_text_stack.sh")
+            "The stx source at ${GUI_FORMS_STX_SOURCE_DIR} has no third_party/harfbuzz or third_party/freetype")
     endif()
 
     set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
@@ -542,12 +546,12 @@ if(GUI_FORMS_ENABLE_HARFBUZZ_TEXT)
                      EXCLUDE_FROM_ALL)
     unset(SKIP_INSTALL_ALL)
 
-    add_library(gui_forms_bidi STATIC third_party/sheenbidi/Source/SheenBidi.c)
-    target_include_directories(gui_forms_bidi PUBLIC third_party/sheenbidi/Headers)
+    add_library(gui_forms_bidi STATIC "${GUI_FORMS_STX_THIRD_PARTY_DIR}/sheenbidi/Source/SheenBidi.c")
+    target_include_directories(gui_forms_bidi PUBLIC "${GUI_FORMS_STX_THIRD_PARTY_DIR}/sheenbidi/Headers")
     target_compile_definitions(gui_forms_bidi PRIVATE SB_CONFIG_UNITY)
     set_target_properties(gui_forms_bidi PROPERTIES POSITION_INDEPENDENT_CODE ON)
     # UAX #14 line breaking (libunibreak 8.0), admitted to the text engine by
-    # the owner on 2026-10-26 (third_party/LIBUNIBREAK_INTAKE_2026-10-01.md).
+    # the owner on 2026-10-26 (stx third_party/LIBUNIBREAK_INTAKE_2026-10-01.md).
     include(cmake/LineBreak.cmake)
     add_library(gui_forms_text_engine STATIC
         src/render/text/harfbuzz/harfbuzz_font_engine.cpp
@@ -5094,18 +5098,18 @@ install(FILES LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms)
 # Every third-party component the SDK and the programs ship, with its licence
 # and the FreeType credit (THIRD_PARTY_NOTICES.md).
 install(FILES THIRD_PARTY_NOTICES.md DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms)
-install(FILES third_party/unicode/LICENSE.txt DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME Unicode-LICENSE.txt)
+install(FILES "${GUI_FORMS_STX_THIRD_PARTY_DIR}/unicode/LICENSE.txt" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME Unicode-LICENSE.txt)
 if(GUI_FORMS_ENABLE_HARFBUZZ_TEXT)
-    install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/third_party/harfbuzz/COPYING" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME HarfBuzz-COPYING.txt)
-    install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/third_party/freetype/docs/FTL.TXT" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME FreeType-FTL.txt)
+    install(FILES "${GUI_FORMS_STX_THIRD_PARTY_DIR}/harfbuzz/COPYING" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME HarfBuzz-COPYING.txt)
+    install(FILES "${GUI_FORMS_STX_THIRD_PARTY_DIR}/freetype/docs/FTL.TXT" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME FreeType-FTL.txt)
 endif()
 if(GUI_FORMS_ENABLE_SKIA)
-    install(FILES stx_skia/LICENSE-Skia DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME Skia-LICENSE.txt)
-    install(FILES stx_skia/LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_skia-LICENSE.txt)
+    install(FILES "${GUI_FORMS_STX_SOURCE_DIR}/stx_skia/LICENSE-Skia" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME Skia-LICENSE.txt)
+    install(FILES "${GUI_FORMS_STX_SOURCE_DIR}/stx_skia/LICENSE" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_skia-LICENSE.txt)
 endif()
 
-install(FILES third_party/sheenbidi/LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME SheenBidi-LICENSE.txt)
-install(FILES third_party/md4c/LICENSE.md DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME MD4C-LICENSE.txt)
+install(FILES "${GUI_FORMS_STX_THIRD_PARTY_DIR}/sheenbidi/LICENSE" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME SheenBidi-LICENSE.txt)
+install(FILES "${GUI_FORMS_STX_THIRD_PARTY_DIR}/md4c/LICENSE.md" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME MD4C-LICENSE.txt)
 
 # Windows: the installed DLLs embed the LLVM runtimes, winpthreads and the
 # MinGW-w64 CRT (add_link_options(-static) above). Their licences come from

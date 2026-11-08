@@ -1,7 +1,8 @@
 # Source-only Unicode 17 line breaking for the text engine. No headers or target are exported.
-set(GUI_FORMS_LINEBREAK_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/third_party/libunibreak/src")
+# libunibreak 8.0 at its pin, from the stx source's third_party/ (cmake/Stx.cmake).
+set(GUI_FORMS_LINEBREAK_SOURCE "${GUI_FORMS_STX_THIRD_PARTY_DIR}/libunibreak/src")
 if(NOT EXISTS "${GUI_FORMS_LINEBREAK_SOURCE}/linebreak.c")
-    message(FATAL_ERROR "Fetch the pinned line-break dependency with third_party/fetch_linebreak.sh")
+    message(FATAL_ERROR "The stx source at ${GUI_FORMS_STX_SOURCE_DIR} has no third_party/libunibreak")
 endif()
 add_library(gui_forms_linebreak STATIC
     "${GUI_FORMS_LINEBREAK_SOURCE}/unibreakbase.c"

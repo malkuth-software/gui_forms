@@ -30,7 +30,7 @@
    "areas": []},
   {"paths": ["CMakeLists.txt", "cmake/", "third_party/", ".github/", "assets/", "include/gui_forms/",
              "tools/ci_build.py", "tools/change_selection.py", "tools/test_areas.json", "tools/sanitizer/",
-             "harness.lock", "tools/harness_link.py",
+             "harness.lock", "stx.lock", "tools/harness_link.py",
              "tests/support/", "tests/fixtures/"],
    "areas": ["*"]},
   {"paths": ["docs/library/", "generated/", "examples/", "tools/"], "areas": ["docs"]},
