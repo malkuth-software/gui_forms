@@ -45,6 +45,7 @@
 #include "gui_forms/controls/panel/tree_view/tree_view.hpp"
 #include "gui_forms/controls/scrollable_control/scrollable_control.hpp"
 #include "gui_forms/controls/search_field/search_field.hpp"
+#include "gui_forms/controls/splitter/splitter.hpp"
 #include "gui_forms/controls/text_block/text_block.hpp"
 #include "gui_forms/controls/typography_specimen/typography_specimen.hpp"
 
@@ -1227,6 +1228,20 @@ void test_search_field_properties() {
     }
 }
 
+void test_splitter_properties() {
+    std::shared_ptr<Splitter> control = make_control<Splitter>(StableId("generated.splitter"));
+    {
+        const double sample = 80.0;
+        (*control).min_size = sample;
+        expect((*control).min_size.read() == sample, "Splitter.min_size: a write stores");
+    }
+    {
+        const double sample = 120.0;
+        (*control).min_extra = sample;
+        expect((*control).min_extra.read() == sample, "Splitter.min_extra: a write stores");
+    }
+}
+
 void test_text_block_properties() {
     std::shared_ptr<TextBlock> control = make_control<TextBlock>(StableId("generated.textblock"));
     {
@@ -1514,6 +1529,7 @@ int main() {
     test_scaled_panel_properties();
     test_scrollable_control_properties();
     test_search_field_properties();
+    test_splitter_properties();
     test_text_block_properties();
     test_text_box_properties();
     test_toggle_switch_properties();

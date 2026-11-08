@@ -1,0 +1,72 @@
+{
+  "family": "Splitter",
+  "step": "M-S8",
+  "declaring": "Splitter",
+  "header": "include/gui_forms/controls/splitter/splitter.hpp",
+  "source": "src/controls/splitter/splitter.cpp",
+  "capabilities_header": "include/gui_forms/controls/splitter/splitter_capabilities/splitter_capabilities.hpp",
+  "shared": [],
+  "includes": [],
+  "test": {
+    "type": "Splitter",
+    "include": "gui_forms/controls/splitter/splitter.hpp"
+  },
+  "properties": [
+    {
+      "name": "min_size",
+      "capability": "SplitterMinSize",
+      "value": "double",
+      "initial": "25.0",
+      "comment": "The least extent the target keeps (Windows Forms' MinSize, default 25). A negative or non-finite value throws std::invalid_argument and changes nothing; the next drag or split position uses it.",
+      "getter": "min_size",
+      "setter": "set_min_size",
+      "clear": null,
+      "field": "min_size_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": null,
+      "prepare": [
+        "require_extent(incoming, \"Splitter min_size must be finite and not negative\");"
+      ],
+      "sample": "80.0"
+    },
+    {
+      "name": "min_extra",
+      "capability": "SplitterMinExtra",
+      "value": "double",
+      "initial": "25.0",
+      "comment": "The least extent left for the rest of the dock area (Windows Forms' MinExtra, default 25). Refused as min_size is.",
+      "getter": "min_extra",
+      "setter": "set_min_extra",
+      "clear": null,
+      "field": "min_extra_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": null,
+      "prepare": [
+        "require_extent(incoming, \"Splitter min_extra must be finite and not negative\");"
+      ],
+      "sample": "120.0"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "split_position",
+      "reason": "the target's extent, computed from the current target; set_split_position resizes the target"
+    },
+    {
+      "name": "target",
+      "reason": "read-only, found from the dock layout"
+    }
+  ]
+}

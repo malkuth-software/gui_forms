@@ -2,6 +2,7 @@
 
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
 #include <array>
@@ -34,18 +35,6 @@ bool touches(double left, double right) noexcept {
 Splitter::Splitter(StableId stable_id) : Control(std::move(stable_id)) {
     dock = DockStyle::left;
     set_requested_bounds({0.0, 0.0, default_thickness, default_thickness});
-}
-
-void Splitter::set_min_size(double extent) {
-    require_mutable();
-    require_extent(extent, "Splitter min_size must be finite and not negative");
-    min_size_ = extent;
-}
-
-void Splitter::set_min_extra(double extent) {
-    require_mutable();
-    require_extent(extent, "Splitter min_extra must be finite and not negative");
-    min_extra_ = extent;
 }
 
 bool Splitter::horizontal_axis() const noexcept {
@@ -97,7 +86,7 @@ Control::Ptr Splitter::target() const {
 // area leaves after its other edge-docked children along this axis.
 Splitter::SplitLimits Splitter::limits(const Control& target) const {
     SplitLimits result{};
-    result.minimum = min_size_;
+    result.minimum = min_size.read();
     const Control::Ptr owner = parent();
     if (!owner) {
         result.maximum = result.minimum;
@@ -114,7 +103,7 @@ Splitter::SplitLimits Splitter::limits(const Control& target) const {
                                                  : (edge == DockStyle::top || edge == DockStyle::bottom);
         if (same_axis) shared -= extent_of(*sibling);
     }
-    result.maximum = std::max(result.minimum, shared - min_extra_);
+    result.maximum = std::max(result.minimum, shared - min_extra.read());
     return result;
 }
 
@@ -345,5 +334,23 @@ void Splitter::append_interactions(std::vector<InteractionDeclaration>& interact
     Control::append_interactions(interactions);
     interactions.insert(interactions.end(), splitter_interactions.begin(), splitter_interactions.end());
 }
+
+// property_codemod begin Splitter (tools/property_families/splitter.json; generated, do not edit)
+
+void Splitter::prepare_write(const decltype(min_size)&, double& incoming) {
+    require_mutable();
+    require_extent(incoming, "Splitter min_size must be finite and not negative");
+}
+
+void Splitter::written(const decltype(min_size)&) {}
+
+void Splitter::prepare_write(const decltype(min_extra)&, double& incoming) {
+    require_mutable();
+    require_extent(incoming, "Splitter min_extra must be finite and not negative");
+}
+
+void Splitter::written(const decltype(min_extra)&) {}
+
+// property_codemod end Splitter
 
 } // namespace gui_forms

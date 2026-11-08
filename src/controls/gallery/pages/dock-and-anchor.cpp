@@ -30,8 +30,8 @@ public:
         (*document_.gallery_splitter_canvas).set_background(Color::rgba(247, 249, 251));
         (*document_.gallery_splitter_folders).set_background(Color::rgba(225, 235, 243));
         (*document_.gallery_splitter_files).set_background(paper);
-        (*document_.gallery_splitter).set_min_size(80.0);
-        (*document_.gallery_splitter).set_min_extra(120.0);
+        (*document_.gallery_splitter).min_size = 80.0;
+        (*document_.gallery_splitter).min_extra = 120.0;
         on((*document_.gallery_dock_toggle_left).clicked(), *this, &DockAndAnchorPage::on_toggle_left);
         on((*document_.gallery_dock_swap_top).clicked(), *this, &DockAndAnchorPage::on_swap_top);
         on((*document_.gallery_anchor_resize).clicked(), *this, &DockAndAnchorPage::on_resize);

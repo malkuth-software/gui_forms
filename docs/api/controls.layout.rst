@@ -157,6 +157,12 @@ Related types
      - Stage T1 anatomy, as dot members.
    * - :cpp:class:`Splitter::States <gui_forms::Splitter::States>`
      -  
+   * - :cpp:class:`SplitterCapabilities <gui_forms::SplitterCapabilities>`
+     - Every Splitter capability, in the order the declaring class takes them.
+   * - :cpp:class:`SplitterMinExtraCapability <gui_forms::SplitterMinExtraCapability>`
+     - The least extent left for the rest of the dock area (Windows Forms' MinExtra, default 25).
+   * - :cpp:class:`SplitterMinSizeCapability <gui_forms::SplitterMinSizeCapability>`
+     - The least extent the target keeps (Windows Forms' MinSize, default 25).
    * - :cpp:class:`SplitterMoveEvent <gui_forms::SplitterMoveEvent>`
      - A move of a Splitter by the user.
    * - :cpp:class:`SplitterPanel::Parts <gui_forms::SplitterPanel::Parts>`
@@ -1171,6 +1177,59 @@ Related types
    .. cpp:member:: bool enabled
 
    .. cpp:member:: bool disabled
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SplitterCapabilities : public SplitterMinSizeCapability<Declaring>, public SplitterMinExtraCapability<Declaring>
+
+   ``#include <gui_forms/controls/splitter/splitter_capabilities/splitter_capabilities.hpp>``
+
+   Every Splitter capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: double min_size
+
+      The least extent the target keeps (Windows Forms' MinSize, default 25). A negative or non-finite value throws std::invalid_argument and changes nothing; the next drag or split position uses it.
+
+   .. cpp:member:: double min_extra
+
+      The least extent left for the rest of the dock area (Windows Forms' MinExtra, default 25). Refused as min_size is.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SplitterMinExtraCapability
+
+   ``#include <gui_forms/controls/splitter/splitter_capabilities/splitter_capabilities.hpp>``
+
+   The least extent left for the rest of the dock area (Windows Forms' MinExtra, default 25). Refused as min_size is.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SplitterMinExtraCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, SplitterMinExtraCapability<Declaring>> min_extra
+
+      Default: ``{25.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SplitterMinSizeCapability
+
+   ``#include <gui_forms/controls/splitter/splitter_capabilities/splitter_capabilities.hpp>``
+
+   The least extent the target keeps (Windows Forms' MinSize, default 25). A negative or non-finite value throws std::invalid_argument and changes nothing; the next drag or split position uses it.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SplitterMinSizeCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, SplitterMinSizeCapability<Declaring>> min_size
+
+      Default: ``{25.0}``.
 
 .. cpp:namespace:: gui_forms
 

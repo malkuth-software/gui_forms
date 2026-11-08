@@ -2,6 +2,7 @@
 
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/event.hpp"
+#include "gui_forms/controls/splitter/splitter_capabilities/splitter_capabilities.hpp"
 
 #include <optional>
 #include <span>
@@ -30,18 +31,10 @@ struct SplitterMoveEvent final {
 // for the rest of the parent's dock area. A splitter docked none or fill, or
 // one with no target, does nothing. The bar is painted by role (a face
 // plate) and takes no focus, as in Windows Forms.
-class Splitter final : public Control {
+class Splitter final : public Control, public SplitterCapabilities<Splitter> {
 public:
     explicit Splitter(StableId stable_id);
 
-    // The least extent the target keeps (Windows Forms' MinSize, default 25).
-    // Throws std::invalid_argument for a negative or non-finite value.
-    [[nodiscard]] double min_size() const noexcept { return min_size_; }
-    void set_min_size(double extent);
-    // The least extent left for the rest of the dock area (Windows Forms'
-    // MinExtra, default 25). Refused as min_size is.
-    [[nodiscard]] double min_extra() const noexcept { return min_extra_; }
-    void set_min_extra(double extent);
     // The target's extent along the splitter's axis, or none without a
     // target (Windows Forms' SplitPosition, -1 there).
     [[nodiscard]] std::optional<double> split_position() const;
@@ -97,8 +90,6 @@ private:
     void apply(Control& target, double extent);
     void end_drag();
 
-    double min_size_{25.0};
-    double min_extra_{25.0};
     bool hot_{};
     bool dragging_{};
     // The drag's start: the pointer along the axis, in window coordinates,
@@ -108,6 +99,16 @@ private:
     Control::WeakPtr drag_target_{};
     Event<SplitterMoveEvent&> splitter_moving_{};
     Event<const SplitterMoveEvent&> splitter_moved_{};
+    // property_codemod begin Splitter (tools/property_families/splitter.json; generated, do not edit)
+private:
+    friend struct SplitterMinSizeCapability<Splitter>;
+    friend struct SplitterMinExtraCapability<Splitter>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(min_size)& cell, double& incoming);
+    void written(const decltype(min_size)& cell);
+    void prepare_write(const decltype(min_extra)& cell, double& incoming);
+    void written(const decltype(min_extra)& cell);
+    // property_codemod end Splitter
 };
 
 } // namespace gui_forms
