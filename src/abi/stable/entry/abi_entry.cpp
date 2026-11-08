@@ -183,6 +183,7 @@ TableBytes find_table(gf_table_id table_id) noexcept {
     case GF_TABLE_APPLICATION:
         found.data = &gui_forms::abi1::application_table();
         found.size = sizeof(gf_application_table);
+        break;
     case GF_TABLE_RULES:
         found.data = &gui_forms::abi1::rules_table();
         found.size = sizeof(gf_rules_table);

@@ -128,8 +128,11 @@ AccessibilityProjection expected_ax_projection(const SemanticNode& node) {
                      has_semantic_action(node, SemanticAction::select) ||
                      has_semantic_action(node, SemanticAction::expand) ||
                      has_semantic_action(node, SemanticAction::collapse);
+    // A focusable element offers show-menu too: it is macOS's keyboard
+    // context request (owner's ruling, 2026-11-08).
     expected.show_menu = has_semantic_action(node, SemanticAction::show_menu) ||
-                         has_semantic_action(node, SemanticAction::expand);
+                         has_semantic_action(node, SemanticAction::expand) ||
+                         has_semantic_action(node, SemanticAction::focus);
     expected.increment = has_semantic_action(node, SemanticAction::increment);
     expected.decrement = has_semantic_action(node, SemanticAction::decrement);
     expected.focus_settable = has_semantic_action(node, SemanticAction::focus);
