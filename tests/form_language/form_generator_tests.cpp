@@ -18,6 +18,7 @@
 
 #include "gui_forms/gui_forms.hpp"
 
+#include <algorithm>
 #include <cstddef>
 #include <fstream>
 #include <iostream>
@@ -471,6 +472,54 @@ void test_presentation_fonts() {
     require(refused, "presentation fonts: each refused at its name, pointing at the theme; content stays");
 }
 
+// The refusal is staged complete (FD-5b): every writable colour or font
+// property of every registry type is refused with E813 at its name unless
+// its descriptor marks it as content, so a property a control adds later
+// is covered without a test of its own. Each property is written in a
+// document of its own, whose root is the type; the refusal comes before
+// the value is read, so one value per kind serves every property.
+void test_presentation_refused_registry_wide() {
+    const FormSchema schema = gui_forms::form_compiler::registry_form_schema();
+    std::size_t colours_refused = 0U;
+    std::size_t fonts_refused = 0U;
+    Workspace workspace{};
+    for (const FormSchemaType& type : schema.types) {
+        for (const gui_forms::PropertyDescriptor& property : type.properties) {
+            const bool colour = property.kind == gui_forms::BindingValueKind::color;
+            const bool font = property.kind == gui_forms::BindingValueKind::font;
+            if (!(colour || font) || property.content_value || !property.writable) continue;
+            std::string type_name = type.name;
+            std::replace(type_name.begin(), type_name.end(), '_', '-');
+            std::string property_name = property.name;
+            std::replace(property_name.begin(), property_name.end(), '_', '-');
+            const std::string_view value = colour ? "red" : "control 12";
+            std::string document = type_name;
+            document += " app.x { ";
+            document += property_name;
+            document += ": ";
+            document += value;
+            document += "; }\n";
+            const bool built = read_document(workspace, "presentation.form", document, schema);
+            bool refused = false;
+            for (const ThemeDiagnostic& record : workspace.diagnostics.records()) {
+                if (record.code == DiagnosticCode::form_presentation_property &&
+                    record.detail.find("project theme") != std::string::npos) {
+                    refused = true;
+                }
+            }
+            if (!refused) {
+                std::cerr << "  not refused: " << type.name << '.' << property.name << '\n';
+                print_diagnostics(workspace);
+            }
+            require(!built && refused, "presentation: every colour and font property refused, naming the theme");
+            if (colour && refused) ++colours_refused;
+            if (font && refused) ++fonts_refused;
+        }
+    }
+    require(colours_refused > 0U && fonts_refused > 0U,
+            "presentation: the registry has colour and font properties, and each was refused");
+}
+
 // A child writes what its parent provides (study section 10): the loader
 // stores it in the parent, the generator writes it through the parent, and
 // under a parent that does not provide it the model refuses it.
@@ -601,6 +650,7 @@ int main() {
     test_golden();
     test_fonts_and_items();
     test_presentation_fonts();
+    test_presentation_refused_registry_wide();
     test_attached_properties();
     test_spans();
     test_page_descriptors();
