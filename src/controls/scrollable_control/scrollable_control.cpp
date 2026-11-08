@@ -23,7 +23,13 @@ ScrollableControl::ScrollableControl(StableId stable_id)
     : Control(std::move(stable_id)),
       horizontal_scroll_(*this, ScrollOrientation::horizontal),
       vertical_scroll_(*this, ScrollOrientation::vertical) {
-
+    // A scrollable control paints only its scroll bars and their corner, at
+    // its right and bottom edges, and update_scrollbars repaints those when
+    // its viewport or content changes; the rest is its children's. So a
+    // resize in place keeps its pixels and damages only the strips it
+    // exposed or vacated (resize R-8). A derived type whose own paint
+    // depends on its size sets resize_redraw again.
+    Control::set_style(ControlStyles::resize_redraw, false);
 }
 
 void ScrollableControl::validate_size(Size size, const char* message) {
@@ -281,7 +287,22 @@ void ScrollableControl::arrange_scroll_viewport(Size client_size, Size measured_
         if (scrolled || paint_depends_on_size()) effects |= Dirty::paint;
         invalidate(effects);
     }
+    // A resize that keeps the bars still moves and rescales them: repaint
+    // the strips they occupy, before and after, when the rest keeps its
+    // pixels.
+    if (resized && !scrolled && !paint_depends_on_size() && (h || v)) invalidate_scroll_bar_strips(previous_viewport);
     if (previous_position != scroll_position_) on_scroll_position_changed();
+}
+
+// The strips the scroll bars and their corner occupy, right of and below
+// the narrower and shorter of `previous_viewport` and the current one, in
+// local coordinates (Control::invalidate clips them to the client area).
+void ScrollableControl::invalidate_scroll_bar_strips(Rect previous_viewport) {
+    const Rect bounds = committed_arranged_bounds();
+    const double right = std::min(previous_viewport.width, viewport_rectangle_.width);
+    const double bottom = std::min(previous_viewport.height, viewport_rectangle_.height);
+    if (vscroll() && bounds.width > right) invalidate(Rect{right, 0.0, bounds.width - right, bounds.height});
+    if (hscroll() && bounds.height > bottom) invalidate(Rect{0.0, bottom, bounds.width, bounds.height - bottom});
 }
 
 void ScrollableControl::adjust_scrollbars(bool display_scrollbars) {

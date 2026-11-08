@@ -35,6 +35,7 @@ using namespace gui_forms;
 constexpr double header_height = 30.0;
 constexpr double footer_height = 24.0;
 constexpr double column_width = 60.0;
+constexpr double list_width = 70.0;
 constexpr std::array<double, 3> scales{1.0, 1.5, 2.0};
 constexpr Size first_size{320.0, 200.0};
 // Width only, height only, both smaller (a corner), mixed, both larger.
@@ -112,12 +113,27 @@ std::unique_ptr<Scene> make_scene(Size size, double scale) {
     (*box).set_requested_bounds(Rect{8.0, 32.0, column_width - 16.0, box_height});
     (*box).anchor = AnchorStyles::top | AnchorStyles::bottom | AnchorStyles::left;
     (*column).add_child(box);
+    // A scrolling list docked right (resize R-8): a ScrollableControl keeps
+    // its pixels on a resize and repaints only its scroll bar's strip,
+    // whose thumb a height change rescales.
+    const std::shared_ptr<ScrollableControl> list = make_control<ScrollableControl>(StableId("list"));
+    (*list).set_requested_bounds(Rect{0.0, 0.0, list_width, size.height});
+    (*list).dock = DockStyle::right;
+    (*list).auto_scroll = true;
+    const std::shared_ptr<Panel> list_paper = make_control<Panel>(StableId("list.paper"));
+    (*list_paper).set_requested_bounds(Rect{0.0, 0.0, list_width - 20.0, 900.0});
+    (*list_paper).set_background(Color::rgba(236, 228, 214, 255));
+    (*list).add_child(list_paper);
+    const std::shared_ptr<Mark> list_mark = make_control<Mark>(StableId("list.mark"));
+    (*list_mark).set_requested_bounds(Rect{6.0, 6.0, 16.0, 16.0});
+    (*list).add_child(list_mark);
     const std::shared_ptr<Gauge> gauge = make_control<Gauge>(StableId("gauge"));
     (*gauge).dock = DockStyle::fill;
     // Dock order: the edges claim their sides first, the fill takes the rest.
     (*scene.root).add_child(header);
     (*scene.root).add_child(footer);
     (*scene.root).add_child(column);
+    (*scene.root).add_child(list);
     (*scene.root).add_child(gauge);
     scene.window = std::make_unique<Window>(scene.root, size);
     (*scene.window).set_scale(scale);

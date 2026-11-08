@@ -92,6 +92,9 @@ private:
 TabControl::TabControl(StableId stable_id)
     : ContainerControl(std::move(stable_id)), tab_set_(tab_set_options()) {
     set_focusable(true);
+    // The tab strip and the page frame are drawn to the control's size
+    // (ScrollableControl clears resize_redraw).
+    Control::set_style(ControlStyles::resize_redraw, true);
     // A page's tooltip shows over its tab header (owner, 2026-10-28).
     set_publishes_item_tool_tips(true);
     // Registered before the strip's handlers: the control shows the page

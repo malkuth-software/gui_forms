@@ -134,6 +134,9 @@ protected:
     [[nodiscard]] Parts scrollable_parts() const;
 
 private:
+    // update_scrollbars' repaint of the bars after a resize that kept
+    // them, for a control whose other paint keeps its pixels.
+    void invalidate_scroll_bar_strips(Rect previous_viewport);
     friend class ScrollProperties;
     enum class ScrollPart : std::uint8_t {
         none,
