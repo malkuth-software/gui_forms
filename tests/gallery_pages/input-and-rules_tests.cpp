@@ -50,8 +50,10 @@ void test_input_and_rules(gui_forms::Window& window) {
     require(target && log && statistics && armed && marked && button && clear,
             "the input-and-rules page publishes its target, log and rule controls by stable id");
 
-    // A click: MouseDown, then Click and MouseClick, then MouseUp.
-    click(window, target);
+    // A click: MouseDown, then Click and MouseClick, then MouseUp. A panel
+    // whose mouse events only have subscribers does not handle the pointer,
+    // so the press is dispatched without requiring it handled.
+    press(window, center(target), Modifier::none, 1U);
     const std::size_t down = find_line(*log, "MouseDown · primary ×1");
     const std::size_t clicked = find_line(*log, "Click", down == no_line ? 0U : down + 1U);
     const std::size_t mouse_click = find_line(*log, "MouseClick · primary ×1");
