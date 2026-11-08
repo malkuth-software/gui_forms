@@ -2,6 +2,7 @@
 
 #include "gui_forms/controls/panel/text_box/text_box.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
+#include "gui_forms/controls/panel/domain_up_down/domain_up_down_capabilities/domain_up_down_capabilities.hpp"
 
 #include <cstddef>
 #include <memory>
@@ -23,7 +24,7 @@ namespace gui_forms {
 // read-only field takes no text: a typed character selects the next item
 // that starts with it (ignoring ASCII case, wrapping past the end), and
 // otherwise the value changes only by stepping or set_selected_index.
-class DomainUpDown final : public Panel {
+class DomainUpDown final : public Panel, public DomainUpDownCapabilities<DomainUpDown> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
     explicit DomainUpDown(StableId stable_id);
@@ -40,28 +41,6 @@ public:
     // selected item clears the selection and keeps the text.
     void remove_item_at(std::size_t index);
     void clear_items();
-
-    // The selected item, or none when the text equals no item.
-    [[nodiscard]] std::optional<std::size_t> selected_index() const noexcept {
-        return selected_index_;
-    }
-    // Selects an item and shows its text, or clears the selection and keeps
-    // the text. Throws std::out_of_range for an index past the end.
-    void set_selected_index(std::optional<std::size_t> index);
-    [[nodiscard]] std::string text() const;
-    // Sets the field's text and re-matches the selection to it. Allowed on a
-    // read-only field: read-only stops typing, not the program.
-    void set_text(std::string text);
-
-    // Stepping past either end continues at the other while wrap is on.
-    [[nodiscard]] bool wrap() const noexcept { return wrap_; }
-    void set_wrap(bool wrap);
-    [[nodiscard]] bool read_only() const noexcept { return read_only_; }
-    void set_read_only(bool read_only);
-    [[nodiscard]] bool sorted() const noexcept { return sorted_; }
-    void set_sorted(bool sorted);
-    [[nodiscard]] double button_width() const noexcept { return button_width_; }
-    void set_button_width(double width);
 
     // The previous item (up) or the next (down). With no selection, up
     // selects the last item and down the first. No effect without items.
@@ -137,7 +116,7 @@ private:
     void select(std::optional<std::size_t> index, bool show_text);
     void match_text();
     void sort_items();
-    [[nodiscard]] std::optional<std::size_t> matching_index(std::string_view text) const;
+    [[nodiscard]] std::optional<std::size_t> matching_index(std::string_view candidate) const;
 
     std::shared_ptr<TextBox> editor_;
     Control::Ptr spinner_;
@@ -145,12 +124,30 @@ private:
     SubscriptionToken spinner_step_;
     std::vector<std::string> items_;
     std::optional<std::size_t> selected_index_{};
-    double button_width_{18.0};
-    bool wrap_{};
-    bool read_only_{};
-    bool sorted_{};
     bool synchronizing_{};
     Event<std::optional<std::size_t>> selected_index_changed_;
+    // property_codemod begin DomainUpDown (tools/property_families/domain_up_down.json; generated, do not edit)
+private:
+    friend struct DomainUpDownSelectedIndexCapability<DomainUpDown>;
+    friend struct DomainUpDownTextCapability<DomainUpDown>;
+    friend struct DomainUpDownWrapCapability<DomainUpDown>;
+    friend struct DomainUpDownReadOnlyCapability<DomainUpDown>;
+    friend struct DomainUpDownSortedCapability<DomainUpDown>;
+    friend struct DomainUpDownButtonWidthCapability<DomainUpDown>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void write_view(const decltype(selected_index)& cell, std::optional<std::size_t> incoming);
+    [[nodiscard]] std::optional<std::size_t> read_view(const decltype(selected_index)& cell) const;
+    void write_view(const decltype(text)& cell, std::string incoming);
+    [[nodiscard]] std::string read_view(const decltype(text)& cell) const;
+    void prepare_write(const decltype(wrap)& cell, bool& incoming);
+    void written(const decltype(wrap)& cell);
+    void prepare_write(const decltype(read_only)& cell, bool& incoming);
+    void written(const decltype(read_only)& cell);
+    void prepare_write(const decltype(sorted)& cell, bool& incoming);
+    void written(const decltype(sorted)& cell);
+    void prepare_write(const decltype(button_width)& cell, double& incoming);
+    void written(const decltype(button_width)& cell);
+    // property_codemod end DomainUpDown
 };
 
 } // namespace gui_forms

@@ -5,11 +5,13 @@
 #include "gui_forms/gui_forms.hpp"
 #include "gui_forms/controls/button_base/button/button.hpp"
 #include "gui_forms/controls/data_grid_view/data_grid_view.hpp"
+#include "gui_forms/controls/panel/domain_up_down/domain_up_down.hpp"
 #include "gui_forms/controls/panel/group_box/group_box.hpp"
 #include "gui_forms/controls/panel/group_box/scaled_group_box/scaled_group_box.hpp"
 #include "gui_forms/controls/panel/list_view/list_view.hpp"
 #include "gui_forms/controls/panel/masked_text_box/masked_text_box.hpp"
 #include "gui_forms/controls/panel/month_calendar/month_calendar.hpp"
+#include "gui_forms/controls/panel/numeric_up_down/numeric_up_down.hpp"
 #include "gui_forms/controls/panel/panel.hpp"
 #include "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp"
 #include "gui_forms/controls/panel/scaled_panel/scaled_panel.hpp"
@@ -306,6 +308,30 @@ void test_data_grid_view_properties() {
     }
 }
 
+void test_domain_up_down_properties() {
+    std::shared_ptr<DomainUpDown> control = make_control<DomainUpDown>(StableId("generated.domainupdown"));
+    {
+        const bool sample = !(*control).wrap.read();
+        (*control).wrap = sample;
+        expect((*control).wrap.read() == sample, "DomainUpDown.wrap: a write stores");
+    }
+    {
+        const bool sample = !(*control).read_only.read();
+        (*control).read_only = sample;
+        expect((*control).read_only.read() == sample, "DomainUpDown.read_only: a write stores");
+    }
+    {
+        const bool sample = !(*control).sorted.read();
+        (*control).sorted = sample;
+        expect((*control).sorted.read() == sample, "DomainUpDown.sorted: a write stores");
+    }
+    {
+        const double sample = 24.0;
+        (*control).button_width = sample;
+        expect((*control).button_width.read() == sample, "DomainUpDown.button_width: a write stores");
+    }
+}
+
 void test_group_box_properties() {
     std::shared_ptr<GroupBox> control = make_control<GroupBox>(StableId("generated.groupbox"));
     {
@@ -459,6 +485,54 @@ void test_month_calendar_properties() {
         const FontSpec sample = FontSpec{FontRole::control, 12.0, 700, false, 0.12};
         (*control).font = sample;
         expect((*control).font.read() == sample, "MonthCalendar.font: a write stores");
+    }
+}
+
+void test_numeric_up_down_properties() {
+    std::shared_ptr<NumericUpDown> control = make_control<NumericUpDown>(StableId("generated.numericupdown"));
+    {
+        const double sample = 25.0;
+        int raises = 0;
+        const SubscriptionToken token = (*control).value_changed().subscribe(RaiseCounter{&raises});
+        (*control).value = sample;
+        expect((*control).value.read() == sample, "NumericUpDown.value: a write stores");
+        expect(raises == 1, "NumericUpDown.value: a changed write raises once");
+        (*control).value = sample;
+        expect(raises == 1, "NumericUpDown.value: an equal write raises nothing");
+        static_cast<void>(token);
+        const std::optional<BindingValue> by_name = (*control).property_value("value");
+        expect(by_name && *by_name == PropertyValueTraits<double>::to_binding(sample),
+               "NumericUpDown.value: the table reads the cell");
+    }
+    {
+        const double sample = -10.0;
+        (*control).minimum = sample;
+        expect((*control).minimum.read() == sample, "NumericUpDown.minimum: a write stores");
+    }
+    {
+        const double sample = 50.0;
+        (*control).maximum = sample;
+        expect((*control).maximum.read() == sample, "NumericUpDown.maximum: a write stores");
+    }
+    {
+        const double sample = 0.5;
+        (*control).increment = sample;
+        expect((*control).increment.read() == sample, "NumericUpDown.increment: a write stores");
+    }
+    {
+        const std::uint8_t sample = std::uint8_t{2};
+        (*control).decimal_places = sample;
+        expect((*control).decimal_places.read() == sample, "NumericUpDown.decimal_places: a write stores");
+    }
+    {
+        const bool sample = !(*control).hexadecimal.read();
+        (*control).hexadecimal = sample;
+        expect((*control).hexadecimal.read() == sample, "NumericUpDown.hexadecimal: a write stores");
+    }
+    {
+        const double sample = 24.0;
+        (*control).button_width = sample;
+        expect((*control).button_width.read() == sample, "NumericUpDown.button_width: a write stores");
     }
 }
 
@@ -665,10 +739,12 @@ void test_tree_list_view_properties() {
 int main() {
     test_button_base_properties();
     test_data_grid_view_properties();
+    test_domain_up_down_properties();
     test_group_box_properties();
     test_list_view_properties();
     test_masked_text_box_properties();
     test_month_calendar_properties();
+    test_numeric_up_down_properties();
     test_panel_properties();
     test_rich_text_box_properties();
     test_scaled_group_box_properties();

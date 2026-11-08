@@ -452,7 +452,7 @@ void property_capabilities() {
     Fixture fixture = make_fixture("**Draft**");
     RichTextBox& box = *fixture.box;
     std::vector<std::string> texts;
-    const SubscriptionToken text_token = box.text_changed().subscribe(box, RecordText{&texts});
+    const SubscriptionToken text_token = box.text_changed().subscribe(RecordText{&texts});
     box.text = "Plain *text*";
     require(box.text.read() == "Plain *text*" && box.markdown() == "Plain \\*text\\*" && texts.size() == 1U &&
                 texts[0] == "Plain *text*",

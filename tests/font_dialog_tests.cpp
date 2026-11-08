@@ -62,7 +62,7 @@ void faces_and_styles() {
     dialog.set_font({FontRole::monospace, 14.0, 600, true});
     require(dialog.selection() == FontSpec{FontRole::monospace, 14.0, 700, true} &&
                 (*dialog.face_list()).selected_index() == 2U && (*dialog.style_list()).selected_index() == 3U &&
-                (*dialog.size_box()).value() == 14.0,
+                (*dialog.size_box()).value.read() == 14.0,
             "a font is shown at the nearest weight the faces have");
     (*dialog.face_list()).select_index(0U);
     require(dialog.selection().role == FontRole::control && !dialog.selection().italic &&
@@ -70,11 +70,11 @@ void faces_and_styles() {
                 (*dialog.style_list()).selected_index() == 1U,
             "Portsmouth Rapids has no italics: the style list shrinks and italic is dropped");
     (*dialog.style_list()).select_index(0U);
-    (*dialog.size_box()).set_value(20.0);
+    (*dialog.size_box()).value = 20.0;
     require(dialog.selection() == FontSpec{FontRole::control, 20.0, 400, false},
             "style and size controls change the selection");
     dialog.set_size_range(10.0, 16.0);
-    require(dialog.selection().size == 16.0 && (*dialog.size_box()).maximum() == 16.0,
+    require(dialog.selection().size == 16.0 && (*dialog.size_box()).maximum.read() == 16.0,
             "the size range clamps the selection");
     bool threw = false;
     try {
@@ -106,11 +106,11 @@ void overlay_ok_cancel_apply() {
             "a press outside the dialog does not reach the page or close it");
     static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, {50.0, 25.0}}));
 
-    (*dialog.size_box()).set_value(12.0);
+    (*dialog.size_box()).value = 12.0;
     require((*dialog.apply_button()).perform_click() && applied.size() == 1U && applied[0].size == 12.0 &&
                 dialog.font().size == 12.0 && dialog.is_open(),
             "Apply takes the selection and keeps the dialog open");
-    (*dialog.size_box()).set_value(18.0);
+    (*dialog.size_box()).value = 18.0;
     require(window.dispatch_key({KeyAction::down, PhysicalKey::escape}) && !dialog.is_open() &&
                 closed.size() == 1U && closed[0].result == DialogResult::cancel &&
                 dialog.font().size == 12.0 && window.focus_scope_depth() == 0U &&

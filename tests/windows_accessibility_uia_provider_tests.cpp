@@ -207,7 +207,7 @@ struct ReadModel final {
         (*state).clicks = (*fixture).clicks;
         (*state).checked = (*(*fixture).check).checked();
         (*state).text = std::string((*(*fixture).text).text());
-        (*state).number = (*(*fixture).number).value();
+        (*state).number = (*(*fixture).number).value.read();
         (*state).list_selection = (*(*fixture).list).selected_index();
         (*state).folder_expanded = (*(*fixture).tree).expanded("uia.tree.folder");
     }

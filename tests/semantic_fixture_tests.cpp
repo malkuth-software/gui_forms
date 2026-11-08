@@ -249,7 +249,7 @@ void check_provider_range(Checks& checks, Window& window, ProviderFixture& fixtu
            "the numeric field publishes its value and range");
     expect(checks,
            perform_on_control(window, *fixture.number, SemanticAction::set_value, "7") &&
-               (*fixture.number).value() == 7.0,
+               (*fixture.number).value.read() == 7.0,
            "set_value 7 sets the numeric field");
     const std::optional<SemanticNode> seven = read_node(window, "uia.number");
     expect(checks, seven && (*seven).numeric_value == 7.0, "the node's numeric value is 7");
@@ -257,7 +257,7 @@ void check_provider_range(Checks& checks, Window& window, ProviderFixture& fixtu
     // the control (the provider test checks that); the control itself never
     // holds one.
     static_cast<void>(perform_on_control(window, *fixture.number, SemanticAction::set_value, "11"));
-    expect(checks, (*fixture.number).value() <= 10.0, "a value past the maximum is never held");
+    expect(checks, (*fixture.number).value.read() <= 10.0, "a value past the maximum is never held");
 }
 
 void check_provider_selection(Checks& checks, Window& window, ProviderFixture& fixture) {

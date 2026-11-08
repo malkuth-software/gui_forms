@@ -1340,8 +1340,8 @@ void example() {
     std::shared_ptr<gf::DomainUpDown> mode =
         gf::make_control<gf::DomainUpDown>(gf::StableId("radio.mode"));
     (*mode).set_items({"AM", "FM", "USB", "LSB"});
-    (*mode).set_wrap(true);
-    (*mode).set_selected_index(3U);   // the field shows "LSB"
+    (*mode).wrap = true;
+    (*mode).selected_index = std::optional<std::size_t>{3U};   // the field shows "LSB"
     (*mode).down_button();            // wraps: the field shows "AM"
 }
 }  // namespace doc_example_DomainUpDown_1
@@ -2380,8 +2380,8 @@ void example() {
     std::shared_ptr<gf::NumericUpDown> zoom =
         gf::make_control<gf::NumericUpDown>(gf::StableId("view.zoom"));
     (*zoom).set_range(25.0, 400.0);
-    (*zoom).set_increment(25.0);
-    (*zoom).set_value(100.0);   // the editor shows "100"
+    (*zoom).increment = 25.0;
+    (*zoom).value = 100.0;   // the editor shows "100"
 }
 }  // namespace doc_example_NumericUpDown_1
 
@@ -2393,8 +2393,8 @@ struct PageSetup final : gf::Component {
 
     PageSetup() {
         (*margin).set_range(0.0, 3.0);
-        (*margin).set_increment(0.25);
-        (*margin).set_decimal_places(2U);
+        (*margin).increment = 0.25;
+        (*margin).decimal_places = 2U;
         gf::on((*margin).value_changed(), *this, &PageSetup::on_margin);
     }
     void on_margin(double value) { inches = value; }
@@ -2402,7 +2402,7 @@ struct PageSetup final : gf::Component {
 
 void example() {
     PageSetup setup;
-    (*setup.margin).set_value(1.25);   // the editor shows "1.25"
+    (*setup.margin).value = 1.25;   // the editor shows "1.25"
     (*setup.margin).set_requested_bounds({0.0, 0.0, 120.0, 28.0});
     gf::Window window(setup.margin, {120.0, 28.0});
     window.perform_layout();

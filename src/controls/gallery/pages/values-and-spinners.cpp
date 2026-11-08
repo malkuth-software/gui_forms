@@ -62,20 +62,20 @@ private:
     void build_numerics() {
         NumericUpDown& integer = *numerics_[0];
         integer.set_range(0.0, 100.0);
-        integer.set_value(42.0);
+        integer.value = 42.0;
         NumericUpDown& decimal = *numerics_[1];
         decimal.set_range(0.0, 10.0);
-        decimal.set_increment(0.25);
-        decimal.set_decimal_places(2U);
-        decimal.set_value(3.75);
+        decimal.increment = 0.25;
+        decimal.decimal_places = 2U;
+        decimal.value = 3.75;
         NumericUpDown& signed_range = *numerics_[2];
         signed_range.set_range(-120.0, 120.0);
-        signed_range.set_increment(5.0);
-        signed_range.set_value(-15.0);
+        signed_range.increment = 5.0;
+        signed_range.value = -15.0;
         NumericUpDown& hexadecimal = *numerics_[3];
         hexadecimal.set_range(0.0, 255.0);
-        hexadecimal.set_hexadecimal(true);
-        hexadecimal.set_value(175.0);
+        hexadecimal.hexadecimal = true;
+        hexadecimal.value = 175.0;
         for (std::size_t index = 0; index < numerics_.size(); ++index) {
             on((*numerics_[index]).value_changed(), *this, &ValuesPage::numeric_changed,
                static_cast<int>(index));
@@ -84,8 +84,8 @@ private:
 
     // The DomainUpDown below the numeric rows: demodulation modes, wrapping.
     void build_domain() {
-        (*domain_).set_wrap(true);
-        (*domain_).set_selected_index(1U);
+        (*domain_).wrap = true;
+        (*domain_).selected_index = 1U;
         on((*domain_).selected_index_changed(), *this, &ValuesPage::domain_changed);
     }
 

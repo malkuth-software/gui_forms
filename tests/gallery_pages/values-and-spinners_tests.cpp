@@ -9,7 +9,7 @@ void test_values_and_spinners(gui_forms::Window& window) {
     require(numeric && window.request_focus((*numeric).editor()),
             "gallery NumericUpDown must expose a focusable public editor");
     KeyEvent up{KeyAction::down, PhysicalKey::up};
-    require(window.dispatch_key(up) && (*numeric).value() == 4.0 &&
+    require(window.dispatch_key(up) && (*numeric).value.read() == 4.0 &&
                 (*(*numeric).editor()).text.read() == "4.00",
             "gallery NumericUpDown key step must synchronize value and editor");
 }
@@ -43,8 +43,8 @@ void test_values_and_spinners_binding(gui_forms::Window& window) {
             "gallery must dogfood the public metadata-driven PropertyGrid against a stock compound control");
     require(window.request_focus((*value_editor).editor()),
             "gallery PropertyGrid numeric editor must expose its ordinary retained text focus target");
-    (*value_editor).set_value(4.5);
-    require((*inspected_numeric).value() == 4.5,
+    (*value_editor).value = 4.5;
+    require((*inspected_numeric).value.read() == 4.5,
             "gallery PropertyGrid numeric factory must commit through the inspected NumericUpDown's registered Value property");
     const std::shared_ptr<gui_forms::ComboBox> items_target = std::dynamic_pointer_cast<ComboBox>(
         window.find("gallery.values.items-target"));

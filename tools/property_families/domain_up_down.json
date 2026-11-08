@@ -1,0 +1,157 @@
+{
+  "family": "DomainUpDown",
+  "step": "B4",
+  "declaring": "DomainUpDown",
+  "header": "include/gui_forms/controls/panel/domain_up_down/domain_up_down.hpp",
+  "source": "src/controls/panel/domain_up_down/domain_up_down.cpp",
+  "capabilities_header": "include/gui_forms/controls/panel/domain_up_down/domain_up_down_capabilities/domain_up_down_capabilities.hpp",
+  "base": "Panel",
+  "shared": [],
+  "includes": [],
+  "properties": [
+    {
+      "name": "selected_index",
+      "capability": "DomainUpDownSelectedIndex",
+      "value": "std::optional<std::size_t>",
+      "initial": null,
+      "comment": "The selected item (SelectedIndex), or none when the text equals no item; a view onto the selection the text follows. A write selects an item and shows its text, or clears the selection and keeps the text, and raises selected_index_changed. An index past the end throws std::out_of_range.",
+      "getter": "selected_index",
+      "setter": "set_selected_index",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto selected_index_: write_view checks the index and selects through select(index, true)"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "text",
+      "capability": "DomainUpDownText",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The field's text (Text); a view onto the editor. A write sets the editor's text and re-matches the selection to it. Allowed on a read-only field: read-only stops typing, not the program.",
+      "getter": "text",
+      "setter": "set_text",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto the editor's text; write_view writes it and re-matches the selection"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "wrap",
+      "capability": "DomainUpDownWrap",
+      "value": "bool",
+      "initial": null,
+      "comment": "Stepping past either end continues at the other while wrap is on (Wrap).",
+      "getter": "wrap",
+      "setter": "set_wrap",
+      "clear": null,
+      "field": "wrap_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": null
+    },
+    {
+      "name": "read_only",
+      "capability": "DomainUpDownReadOnly",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether typing is refused (ReadOnly): a typed character then selects the next item that starts with it. A change clears the editor's undo history.",
+      "getter": "read_only",
+      "setter": "set_read_only",
+      "clear": null,
+      "field": "read_only_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "written clears the editor's undo history and invalidates paint and semantics"
+      ],
+      "effects": null
+    },
+    {
+      "name": "sorted",
+      "capability": "DomainUpDownSorted",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether the items are kept sorted (Sorted): ASCII case folded, then byte order. Turning it on sorts them and re-matches the selection.",
+      "getter": "sorted",
+      "setter": "set_sorted",
+      "clear": null,
+      "field": "sorted_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "written sorts the items, re-matches the selection and invalidates semantics"
+      ],
+      "effects": null
+    },
+    {
+      "name": "button_width",
+      "capability": "DomainUpDownButtonWidth",
+      "value": "double",
+      "initial": "18.0",
+      "comment": "The width of the arrow buttons, 12 to 64 (std::out_of_range otherwise).",
+      "getter": "button_width",
+      "setter": "set_button_width",
+      "clear": null,
+      "field": "button_width_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": "Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "prepare": [
+        "if (!std::isfinite(incoming) || incoming < 12.0 || incoming > 64.0) {",
+        "    throw std::out_of_range(\"DomainUpDown button width must be finite and between 12 and 64\");",
+        "}"
+      ],
+      "sample": "24.0"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "items / set_items / add_item / remove_item_at / clear_items",
+      "reason": "a collection; W owns collections"
+    },
+    {
+      "name": "up_button / down_button",
+      "reason": "operations"
+    }
+  ],
+  "test": {
+    "type": "DomainUpDown",
+    "include": "gui_forms/controls/panel/domain_up_down/domain_up_down.hpp"
+  }
+}

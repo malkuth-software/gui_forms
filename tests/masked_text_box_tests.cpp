@@ -445,8 +445,8 @@ void masked_property_capabilities() {
     MaskedTextBox& box = *fixture.box;
     std::vector<std::string> masks;
     std::vector<bool> modes;
-    const SubscriptionToken mask_token = box.mask_changed().subscribe(box, RecordText{&masks});
-    const SubscriptionToken mode_token = box.overwrite_mode_changed().subscribe(box, RecordBool{&modes});
+    const SubscriptionToken mask_token = box.mask_changed().subscribe(RecordText{&masks});
+    const SubscriptionToken mode_token = box.overwrite_mode_changed().subscribe(RecordBool{&modes});
     require(box.set_text("1234").succeeded() && box.text() == "12-34", "the box starts with a placed text");
     box.mask = "0000";
     require(box.mask.read() == "0000" && box.text() == "1234" && masks.size() == 1U && masks[0] == "0000",

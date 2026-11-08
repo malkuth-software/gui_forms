@@ -25,7 +25,7 @@ struct NumericEditorSynchronizer final {
         const std::optional<double> converted = binding_value_to_number(value);
         if (!retained || !converted) return;
         *synchronizing = true;
-        (*retained).set_value(*converted);
+        (*retained).value = *converted;
         *synchronizing = false;
     }
 };
@@ -154,9 +154,9 @@ std::optional<PropertyEditorBinding> create_numeric_editor(
         StableId(request.stable_id));
     (*editor).set_range(std::numeric_limits<double>::lowest(),
                         std::numeric_limits<double>::max());
-    (*editor).set_increment(0.1);
-    (*editor).set_decimal_places(4U);
-    (*editor).set_value(*number);
+    (*editor).increment = 0.1;
+    (*editor).decimal_places = 4U;
+    (*editor).value = *number;
     (*editor).enabled = request.writable;
     (*editor).accessible_name = request.property_path;
     (*editor).accessible_description = request.descriptor.description;

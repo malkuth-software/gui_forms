@@ -1017,7 +1017,7 @@ void test_choice_numeric_defaults_manager_transfer_and_completion_order() {
         "SelectedIndex", source, "choice", formatted_immediate);
     const std::shared_ptr<Binding> amount = (*numeric).data_bindings().add(
         "Value", source, "amount", formatted_immediate);
-    require((*combo).selected_index() == 1U && (*numeric).value() == 42.0,
+    require((*combo).selected_index() == 1U && (*numeric).value.read() == 42.0,
             "ComboBox.SelectedIndex and NumericUpDown.Value must be stock bindable properties");
 
     bool binding_saw_committed_control = false;
@@ -1038,7 +1038,7 @@ void test_choice_numeric_defaults_manager_transfer_and_completion_order() {
         (*amount).binding_complete().subscribe(
             ObserveCommittedSourceAmount(
                 source, source_was_committed_before_completion));
-    (*numeric).set_value(64.0);
+    (*numeric).value = 64.0;
     require(source_was_committed_before_completion,
             "data-source BindingComplete must observe the already committed retained record");
 

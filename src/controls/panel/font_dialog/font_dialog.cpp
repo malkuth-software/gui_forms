@@ -116,8 +116,8 @@ void FontDialog::initialize_control_tree() {
         faces.push_back(std::string(face.family) + " (" + std::string(face.use) + ")");
     }
     (*face_list_).set_items(std::move(faces));
-    (*size_box_).set_decimal_places(1U);
-    (*size_box_).set_increment(1.0);
+    (*size_box_).decimal_places = 1U;
+    (*size_box_).increment = 1.0;
     (*size_box_).set_range(minimum_size_, maximum_size_);
     (*ok_button_).set_default_button(true);
     (*ok_button_).set_dialog_result(DialogResult::ok);
@@ -194,7 +194,7 @@ void FontDialog::show_selection() {
     for (std::size_t index = 0U; index < styles_.size(); ++index) {
         if (styles_[index] == style) (*style_list_).select_index(index);
     }
-    (*size_box_).set_value(selection_.size);
+    (*size_box_).value = selection_.size;
     synchronizing_ = false;
     invalidate(Dirty::paint | Dirty::semantics);
 }

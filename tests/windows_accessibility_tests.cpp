@@ -59,7 +59,7 @@ struct Ready {
         AccessibleOwner coordinate; coordinate.value = named(*root.value, L"Canvas X");
         require(coordinate.value, "numeric control named in tree");
         BSTR value = SysAllocString(L"37"); HRESULT status = (*coordinate.value).put_accValue(self(), value); SysFreeString(value);
-        require(status == S_OK && (*number).value() == 37, "MSAA numeric value changes retained control");
+        require(status == S_OK && (*number).value.read() == 37, "MSAA numeric value changes retained control");
         AccessibleOwner textbox; textbox.value = named(*root.value, L"Artwork text");
         require(textbox.value, "text control named in tree");
         value = SysAllocString(L"مرحبا ABC"); status = (*textbox.value).put_accValue(self(), value); SysFreeString(value);

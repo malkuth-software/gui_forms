@@ -68,6 +68,20 @@ Related types
      - Stage T1 anatomy, as dot members.
    * - :cpp:class:`DomainUpDown::States <gui_forms::DomainUpDown::States>`
      -  
+   * - :cpp:class:`DomainUpDownButtonWidthCapability <gui_forms::DomainUpDownButtonWidthCapability>`
+     - The width of the arrow buttons, 12 to 64 (std::out_of_range otherwise).
+   * - :cpp:class:`DomainUpDownCapabilities <gui_forms::DomainUpDownCapabilities>`
+     - Every DomainUpDown capability, in the order the declaring class takes them.
+   * - :cpp:class:`DomainUpDownReadOnlyCapability <gui_forms::DomainUpDownReadOnlyCapability>`
+     - Whether typing is refused (ReadOnly): a typed character then selects the next item that starts with it.
+   * - :cpp:class:`DomainUpDownSelectedIndexCapability <gui_forms::DomainUpDownSelectedIndexCapability>`
+     - The selected item (SelectedIndex), or none when the text equals no item; a view onto the selection the text follows.
+   * - :cpp:class:`DomainUpDownSortedCapability <gui_forms::DomainUpDownSortedCapability>`
+     - Whether the items are kept sorted (Sorted): ASCII case folded, then byte order.
+   * - :cpp:class:`DomainUpDownTextCapability <gui_forms::DomainUpDownTextCapability>`
+     - The field's text (Text); a view onto the editor.
+   * - :cpp:class:`DomainUpDownWrapCapability <gui_forms::DomainUpDownWrapCapability>`
+     - Stepping past either end continues at the other while wrap is on (Wrap).
    * - :cpp:class:`FlagsValueEditor::Parts <gui_forms::FlagsValueEditor::Parts>`
      - Stage T1 anatomy, as dot members.
    * - :cpp:class:`FlagsValueEditor::States <gui_forms::FlagsValueEditor::States>`
@@ -88,6 +102,22 @@ Related types
      - Stage T1 anatomy, as dot members.
    * - :cpp:class:`NumericUpDown::States <gui_forms::NumericUpDown::States>`
      -  
+   * - :cpp:class:`NumericUpDownButtonWidthCapability <gui_forms::NumericUpDownButtonWidthCapability>`
+     - The width of the arrow buttons, 12 to 64 (std::out_of_range otherwise).
+   * - :cpp:class:`NumericUpDownCapabilities <gui_forms::NumericUpDownCapabilities>`
+     - Every NumericUpDown capability, in the order the declaring class takes them.
+   * - :cpp:class:`NumericUpDownDecimalPlacesCapability <gui_forms::NumericUpDownDecimalPlacesCapability>`
+     - How many decimal places the editor shows (DecimalPlaces), at most 12 (std::invalid_argument).
+   * - :cpp:class:`NumericUpDownHexadecimalCapability <gui_forms::NumericUpDownHexadecimalCapability>`
+     - Whether the editor shows the value in hexadecimal (Hexadecimal); turning it on sets decimal_places to zero.
+   * - :cpp:class:`NumericUpDownIncrementCapability <gui_forms::NumericUpDownIncrementCapability>`
+     - How far one step moves the value (Increment); it must be finite and positive, or std::invalid_argument is thrown.
+   * - :cpp:class:`NumericUpDownMaximumCapability <gui_forms::NumericUpDownMaximumCapability>`
+     - The highest value (Maximum).
+   * - :cpp:class:`NumericUpDownMinimumCapability <gui_forms::NumericUpDownMinimumCapability>`
+     - The lowest value (Minimum).
+   * - :cpp:class:`NumericUpDownValueCapability <gui_forms::NumericUpDownValueCapability>`
+     - The current value (Value), within minimum and maximum; anything else, or a value that is not finite, throws std::out_of_range.
    * - :cpp:class:`PropertyConversionContext <gui_forms::PropertyConversionContext>`
      - PropertyConversionContext is an inspector-local culture label, decimal/group separator policy, and grouping flag.
    * - :cpp:class:`PropertyEditorBinding <gui_forms::PropertyEditorBinding>`
@@ -278,6 +308,137 @@ Related types
    .. cpp:member:: bool invalid
 
    .. cpp:member:: bool pending
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DomainUpDownButtonWidthCapability
+
+   ``#include <gui_forms/controls/panel/domain_up_down/domain_up_down_capabilities/domain_up_down_capabilities.hpp>``
+
+   The width of the arrow buttons, 12 to 64 (std::out_of_range otherwise).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DomainUpDownButtonWidthCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, DomainUpDownButtonWidthCapability<Declaring>> button_width
+
+      Default: ``{18.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DomainUpDownCapabilities : public DomainUpDownSelectedIndexCapability<Declaring>, public DomainUpDownTextCapability<Declaring>, public DomainUpDownWrapCapability<Declaring>, public DomainUpDownReadOnlyCapability<Declaring>, public DomainUpDownSortedCapability<Declaring>, public DomainUpDownButtonWidthCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/domain_up_down/domain_up_down_capabilities/domain_up_down_capabilities.hpp>``
+
+   Every DomainUpDown capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::optional<std::size_t> selected_index
+
+      The selected item (SelectedIndex), or none when the text equals no item; a view onto the selection the text follows. A write selects an item and shows its text, or clears the selection and keeps the text, and raises selected_index_changed. An index past the end throws std::out_of_range.
+
+   .. cpp:member:: std::string text
+
+      The field's text (Text); a view onto the editor. A write sets the editor's text and re-matches the selection to it. Allowed on a read-only field: read-only stops typing, not the program.
+
+   .. cpp:member:: bool wrap
+
+      Stepping past either end continues at the other while wrap is on (Wrap).
+
+   .. cpp:member:: bool read_only
+
+      Whether typing is refused (ReadOnly): a typed character then selects the next item that starts with it. A change clears the editor's undo history.
+
+   .. cpp:member:: bool sorted
+
+      Whether the items are kept sorted (Sorted): ASCII case folded, then byte order. Turning it on sorts them and re-matches the selection.
+
+   .. cpp:member:: double button_width
+
+      The width of the arrow buttons, 12 to 64 (std::out_of_range otherwise).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DomainUpDownReadOnlyCapability
+
+   ``#include <gui_forms/controls/panel/domain_up_down/domain_up_down_capabilities/domain_up_down_capabilities.hpp>``
+
+   Whether typing is refused (ReadOnly): a typed character then selects the next item that starts with it. A change clears the editor's undo history.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DomainUpDownReadOnlyCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, DomainUpDownReadOnlyCapability<Declaring>> read_only
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DomainUpDownSelectedIndexCapability
+
+   ``#include <gui_forms/controls/panel/domain_up_down/domain_up_down_capabilities/domain_up_down_capabilities.hpp>``
+
+   The selected item (SelectedIndex), or none when the text equals no item; a view onto the selection the text follows. A write selects an item and shows its text, or clears the selection and keeps the text, and raises selected_index_changed. An index past the end throws std::out_of_range.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DomainUpDownSelectedIndexCapability& capability, std::optional<std::size_t> incoming)
+
+   .. cpp:function:: static std::optional<std::size_t> read(const DomainUpDownSelectedIndexCapability& capability)
+
+   .. cpp:member:: PropertyView<std::optional<std::size_t>, DomainUpDownSelectedIndexCapability<Declaring>> selected_index
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DomainUpDownSortedCapability
+
+   ``#include <gui_forms/controls/panel/domain_up_down/domain_up_down_capabilities/domain_up_down_capabilities.hpp>``
+
+   Whether the items are kept sorted (Sorted): ASCII case folded, then byte order. Turning it on sorts them and re-matches the selection.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DomainUpDownSortedCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, DomainUpDownSortedCapability<Declaring>> sorted
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DomainUpDownTextCapability
+
+   ``#include <gui_forms/controls/panel/domain_up_down/domain_up_down_capabilities/domain_up_down_capabilities.hpp>``
+
+   The field's text (Text); a view onto the editor. A write sets the editor's text and re-matches the selection to it. Allowed on a read-only field: read-only stops typing, not the program.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DomainUpDownTextCapability& capability, std::string incoming)
+
+   .. cpp:function:: static std::string read(const DomainUpDownTextCapability& capability)
+
+   .. cpp:member:: PropertyView<std::string, DomainUpDownTextCapability<Declaring>> text
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DomainUpDownWrapCapability
+
+   ``#include <gui_forms/controls/panel/domain_up_down/domain_up_down_capabilities/domain_up_down_capabilities.hpp>``
+
+   Stepping past either end continues at the other while wrap is on (Wrap).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DomainUpDownWrapCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, DomainUpDownWrapCapability<Declaring>> wrap
 
 .. cpp:namespace:: gui_forms
 
@@ -488,6 +649,160 @@ Related types
    .. cpp:member:: bool invalid
 
    .. cpp:member:: bool pending
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> NumericUpDownButtonWidthCapability
+
+   ``#include <gui_forms/controls/panel/numeric_up_down/numeric_up_down_capabilities/numeric_up_down_capabilities.hpp>``
+
+   The width of the arrow buttons, 12 to 64 (std::out_of_range otherwise).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(NumericUpDownButtonWidthCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, NumericUpDownButtonWidthCapability<Declaring>> button_width
+
+      Default: ``{18.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> NumericUpDownCapabilities : public NumericUpDownValueCapability<Declaring>, public NumericUpDownMinimumCapability<Declaring>, public NumericUpDownMaximumCapability<Declaring>, public NumericUpDownIncrementCapability<Declaring>, public NumericUpDownDecimalPlacesCapability<Declaring>, public NumericUpDownHexadecimalCapability<Declaring>, public NumericUpDownButtonWidthCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/numeric_up_down/numeric_up_down_capabilities/numeric_up_down_capabilities.hpp>``
+
+   Every NumericUpDown capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: double value
+
+      The current value (Value), within minimum and maximum; anything else, or a value that is not finite, throws std::out_of_range. A change shows it in the editor and raises value_changed.
+
+   .. cpp:member:: double minimum
+
+      The lowest value (Minimum). A minimum above maximum raises maximum to it, and value is clamped into the range (raising value_changed), in that order. A value that is not finite throws std::invalid_argument.
+
+   .. cpp:member:: double maximum
+
+      The highest value (Maximum). A maximum below minimum lowers minimum to it, and value is clamped into the range (raising value_changed), in that order. A value that is not finite throws std::invalid_argument.
+
+   .. cpp:member:: double increment
+
+      How far one step moves the value (Increment); it must be finite and positive, or std::invalid_argument is thrown.
+
+   .. cpp:member:: std::uint8_t decimal_places
+
+      How many decimal places the editor shows (DecimalPlaces), at most 12 (std::invalid_argument). Any decimal places turn hexadecimal off.
+
+   .. cpp:member:: bool hexadecimal
+
+      Whether the editor shows the value in hexadecimal (Hexadecimal); turning it on sets decimal_places to zero.
+
+   .. cpp:member:: double button_width
+
+      The width of the arrow buttons, 12 to 64 (std::out_of_range otherwise).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> NumericUpDownDecimalPlacesCapability
+
+   ``#include <gui_forms/controls/panel/numeric_up_down/numeric_up_down_capabilities/numeric_up_down_capabilities.hpp>``
+
+   How many decimal places the editor shows (DecimalPlaces), at most 12 (std::invalid_argument). Any decimal places turn hexadecimal off.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(NumericUpDownDecimalPlacesCapability& capability, std::uint8_t incoming)
+
+   .. cpp:member:: PropertyCell<std::uint8_t, NumericUpDownDecimalPlacesCapability<Declaring>> decimal_places
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> NumericUpDownHexadecimalCapability
+
+   ``#include <gui_forms/controls/panel/numeric_up_down/numeric_up_down_capabilities/numeric_up_down_capabilities.hpp>``
+
+   Whether the editor shows the value in hexadecimal (Hexadecimal); turning it on sets decimal_places to zero.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(NumericUpDownHexadecimalCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, NumericUpDownHexadecimalCapability<Declaring>> hexadecimal
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> NumericUpDownIncrementCapability
+
+   ``#include <gui_forms/controls/panel/numeric_up_down/numeric_up_down_capabilities/numeric_up_down_capabilities.hpp>``
+
+   How far one step moves the value (Increment); it must be finite and positive, or std::invalid_argument is thrown.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(NumericUpDownIncrementCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, NumericUpDownIncrementCapability<Declaring>> increment
+
+      Default: ``{1.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> NumericUpDownMaximumCapability
+
+   ``#include <gui_forms/controls/panel/numeric_up_down/numeric_up_down_capabilities/numeric_up_down_capabilities.hpp>``
+
+   The highest value (Maximum). A maximum below minimum lowers minimum to it, and value is clamped into the range (raising value_changed), in that order. A value that is not finite throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(NumericUpDownMaximumCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, NumericUpDownMaximumCapability<Declaring>> maximum
+
+      Default: ``{100.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> NumericUpDownMinimumCapability
+
+   ``#include <gui_forms/controls/panel/numeric_up_down/numeric_up_down_capabilities/numeric_up_down_capabilities.hpp>``
+
+   The lowest value (Minimum). A minimum above maximum raises maximum to it, and value is clamped into the range (raising value_changed), in that order. A value that is not finite throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(NumericUpDownMinimumCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, NumericUpDownMinimumCapability<Declaring>> minimum
+
+      Default: ``{0.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> NumericUpDownValueCapability
+
+   ``#include <gui_forms/controls/panel/numeric_up_down/numeric_up_down_capabilities/numeric_up_down_capabilities.hpp>``
+
+   The current value (Value), within minimum and maximum; anything else, or a value that is not finite, throws std::out_of_range. A change shows it in the editor and raises value_changed.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(NumericUpDownValueCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, NumericUpDownValueCapability<Declaring>> value
+
+      Default: ``{0.0}``.
 
 .. cpp:namespace:: gui_forms
 

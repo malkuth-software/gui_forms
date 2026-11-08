@@ -7,7 +7,7 @@ gui_forms::DomainUpDown
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: DomainUpDown final : public Panel
+.. cpp:class:: DomainUpDown final : public Panel, public DomainUpDownCapabilities<DomainUpDown>
 
    ``#include <gui_forms/controls/panel/domain_up_down/domain_up_down.hpp>``
 
@@ -30,19 +30,14 @@ gui_forms::DomainUpDown
 
    :Properties:
 
-      **items** : ``std::span<const std::string>``
-         The strings, in display order. :cpp:func:`set_items <gui_forms::DomainUpDown::set_items>` replaces them, :cpp:func:`add_item <gui_forms::DomainUpDown::add_item>`
-         appends one and :cpp:func:`remove_item_at <gui_forms::DomainUpDown::remove_item_at>` removes one; an index past the end
-         throws ``std::out_of_range``.
-
       **selected_index** : ``std::optional<std::size_t>``, default none
-         The item the text equals, or none. :cpp:func:`set_selected_index <gui_forms::DomainUpDown::set_selected_index>` selects an item
+         The item the text equals, or none. ``set_selected_index`` selects an item
          and shows its text, or clears the selection and keeps the text; an index
          past the end throws ``std::out_of_range``.
 
       **text** : ``std::string``
-         The editor's text. :cpp:func:`set_text <gui_forms::DomainUpDown::set_text>` sets it and selects the item it equals,
-         even while :cpp:func:`read_only <gui_forms::DomainUpDown::read_only>` is on.
+         The editor's text. ``set_text`` sets it and selects the item it equals,
+         even while :cpp:member:`read_only <gui_forms::DomainUpDown::read_only>` is on.
 
       **wrap** : ``bool``, default ``false``
          Whether stepping past the last item continues at the first, and before
@@ -62,6 +57,11 @@ gui_forms::DomainUpDown
          The width of the spin buttons, from 12 to 64; a width outside that range
          throws ``std::out_of_range``.
 
+      **items** : ``std::span<const std::string>``
+         The strings, in display order. :cpp:func:`set_items <gui_forms::DomainUpDown::set_items>` replaces them, :cpp:func:`add_item <gui_forms::DomainUpDown::add_item>`
+         appends one and :cpp:func:`remove_item_at <gui_forms::DomainUpDown::remove_item_at>` removes one; an index past the end
+         throws ``std::out_of_range``.
+
       **editor** : ``std::shared_ptr<TextBox>``, read-only
          The :cpp:class:`TextBox <gui_forms::TextBox>` that shows the text.
 
@@ -72,7 +72,7 @@ gui_forms::DomainUpDown
    :Events:
 
       **selected_index_changed** : ``Event<std::optional<std::size_t>>``
-         Raised after :cpp:func:`selected_index <gui_forms::DomainUpDown::selected_index>` changes, whatever the cause: stepping,
+         Raised after :cpp:member:`selected_index <gui_forms::DomainUpDown::selected_index>` changes, whatever the cause: stepping,
          typing, a setter or a change to the items. It carries the new selection.
 
    :Inherited:
@@ -145,8 +145,8 @@ gui_forms::DomainUpDown
       std::shared_ptr<gf::DomainUpDown> mode =
           gf::make_control<gf::DomainUpDown>(gf::StableId("radio.mode"));
       (*mode).set_items({"AM", "FM", "USB", "LSB"});
-      (*mode).set_wrap(true);
-      (*mode).set_selected_index(3U);   // the field shows "LSB"
+      (*mode).wrap = true;
+      (*mode).selected_index = std::optional<std::size_t>{3U};   // the field shows "LSB"
       (*mode).down_button();            // wraps: the field shows "AM"
 
 
@@ -157,6 +157,39 @@ gui_forms::DomainUpDown
 
    .. rubric:: Properties
 
+   .. cpp:member:: std::optional<std::size_t> selected_index
+
+      The item the text equals, or none. ``set_selected_index`` selects an item
+      and shows its text, or clears the selection and keeps the text; an index
+      past the end throws ``std::out_of_range``.
+
+   .. cpp:member:: std::string text
+
+      The editor's text. ``set_text`` sets it and selects the item it equals,
+      even while :cpp:member:`read_only <gui_forms::DomainUpDown::read_only>` is on.
+
+   .. cpp:member:: bool wrap
+
+      Whether stepping past the last item continues at the first, and before
+      the first at the last. Without it a step stops at the end.
+
+   .. cpp:member:: bool read_only
+
+      Whether the field refuses text. A typed character then selects the next
+      item that starts with it, ignoring ASCII case and wrapping past the last
+      item; otherwise the value changes only by stepping or from the program.
+
+   .. cpp:member:: bool sorted
+
+      Whether the items are kept sorted: ignoring ASCII case, then by byte, so
+      ``"Apple"`` sorts before ``"apple"``. Turning it on sorts the list;
+      turning it off keeps the current order.
+
+   .. cpp:member:: double button_width
+
+      The width of the spin buttons, from 12 to 64; a width outside that range
+      throws ``std::out_of_range``.
+
    .. cpp:function:: std::span<const std::string> items() const noexcept
 
       The strings, in display order. :cpp:func:`set_items <gui_forms::DomainUpDown::set_items>` replaces them, :cpp:func:`add_item <gui_forms::DomainUpDown::add_item>`
@@ -166,63 +199,6 @@ gui_forms::DomainUpDown
    .. cpp:function:: void set_items(std::vector<std::string> items)
 
       Sets :cpp:func:`items <gui_forms::DomainUpDown::items>`; see the property's description above.
-
-   .. cpp:function:: std::optional<std::size_t> selected_index() const noexcept
-
-      The item the text equals, or none. :cpp:func:`set_selected_index <gui_forms::DomainUpDown::set_selected_index>` selects an item
-      and shows its text, or clears the selection and keeps the text; an index
-      past the end throws ``std::out_of_range``.
-
-   .. cpp:function:: void set_selected_index(std::optional<std::size_t> index)
-
-      Sets :cpp:func:`selected_index <gui_forms::DomainUpDown::selected_index>`; see the property's description above.
-
-   .. cpp:function:: std::string text() const
-
-      The editor's text. :cpp:func:`set_text <gui_forms::DomainUpDown::set_text>` sets it and selects the item it equals,
-      even while :cpp:func:`read_only <gui_forms::DomainUpDown::read_only>` is on.
-
-   .. cpp:function:: void set_text(std::string text)
-
-      Sets :cpp:func:`text <gui_forms::DomainUpDown::text>`; see the property's description above.
-
-   .. cpp:function:: bool wrap() const noexcept
-
-      Whether stepping past the last item continues at the first, and before
-      the first at the last. Without it a step stops at the end.
-
-   .. cpp:function:: void set_wrap(bool wrap)
-
-      Sets :cpp:func:`wrap <gui_forms::DomainUpDown::wrap>`; see the property's description above.
-
-   .. cpp:function:: bool read_only() const noexcept
-
-      Whether the field refuses text. A typed character then selects the next
-      item that starts with it, ignoring ASCII case and wrapping past the last
-      item; otherwise the value changes only by stepping or from the program.
-
-   .. cpp:function:: void set_read_only(bool read_only)
-
-      Sets :cpp:func:`read_only <gui_forms::DomainUpDown::read_only>`; see the property's description above.
-
-   .. cpp:function:: bool sorted() const noexcept
-
-      Whether the items are kept sorted: ignoring ASCII case, then by byte, so
-      ``"Apple"`` sorts before ``"apple"``. Turning it on sorts the list;
-      turning it off keeps the current order.
-
-   .. cpp:function:: void set_sorted(bool sorted)
-
-      Sets :cpp:func:`sorted <gui_forms::DomainUpDown::sorted>`; see the property's description above.
-
-   .. cpp:function:: double button_width() const noexcept
-
-      The width of the spin buttons, from 12 to 64; a width outside that range
-      throws ``std::out_of_range``.
-
-   .. cpp:function:: void set_button_width(double width)
-
-      Sets :cpp:func:`button_width <gui_forms::DomainUpDown::button_width>`; see the property's description above.
 
    .. cpp:function:: std::shared_ptr<TextBox> editor() const noexcept
 
@@ -237,7 +213,7 @@ gui_forms::DomainUpDown
 
    .. cpp:function:: Event<std::optional<std::size_t>>& selected_index_changed() noexcept
 
-      Raised after :cpp:func:`selected_index <gui_forms::DomainUpDown::selected_index>` changes, whatever the cause: stepping,
+      Raised after :cpp:member:`selected_index <gui_forms::DomainUpDown::selected_index>` changes, whatever the cause: stepping,
       typing, a setter or a change to the items. It carries the new selection.
 
 

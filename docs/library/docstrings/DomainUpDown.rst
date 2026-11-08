@@ -99,6 +99,6 @@ A mode field that wraps from the last mode back to the first:
    std::shared_ptr<gf::DomainUpDown> mode =
        gf::make_control<gf::DomainUpDown>(gf::StableId("radio.mode"));
    (*mode).set_items({"AM", "FM", "USB", "LSB"});
-   (*mode).set_wrap(true);
-   (*mode).set_selected_index(3U);   // the field shows "LSB"
+   (*mode).wrap = true;
+   (*mode).selected_index = std::optional<std::size_t>{3U};   // the field shows "LSB"
    (*mode).down_button();            // wraps: the field shows "AM"

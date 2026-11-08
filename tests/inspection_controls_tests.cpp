@@ -404,7 +404,7 @@ public:
         const std::optional<double> converted = binding_value_to_number(value);
         if (!retained || !converted) return;
         *synchronizing_ = true;
-        (*retained).set_value(*converted);
+        (*retained).value = *converted;
         *synchronizing_ = false;
     }
 
@@ -457,9 +457,9 @@ std::optional<PropertyEditorBinding> create_percent_stepper(
     std::shared_ptr<NumericUpDown> editor = make_control<NumericUpDown>(
         StableId(request.stable_id));
     (*editor).set_range(0.0, 1.0);
-    (*editor).set_increment(0.05);
-    (*editor).set_decimal_places(2U);
-    (*editor).set_value(*number);
+    (*editor).increment = 0.05;
+    (*editor).decimal_places = 2U;
+    (*editor).value = *number;
     std::shared_ptr<bool> synchronizing = std::make_shared<bool>(false);
     PropertyEditorBinding binding;
     binding.control = editor;
@@ -842,13 +842,13 @@ void test_instance_owned_converter_and_editor_registries() {
     const std::shared_ptr<gui_forms::NumericUpDown> editor = std::dynamic_pointer_cast<NumericUpDown>(
         (*grid).editor("Level"));
     require(parsed && std::get<double>(*parsed) == 0.75 && editor &&
-                (*editor).maximum() == 1.0 && (*editor).value() == 0.25 &&
+                (*editor).maximum.read() == 1.0 && (*editor).value.read() == 0.25 &&
                 (*(*grid).property_list()).value(
                     "inspection.services.grid.property.level") ==
                     "25.000000%",
             "descriptor service names must resolve through the supplied converter and editor registries");
-    (*editor).set_value(0.75);
-    require((*target).level() == 0.75 && (*editor).value() == 0.75 &&
+    (*editor).value = 0.75;
+    require((*target).level() == 0.75 && (*editor).value.read() == 0.75 &&
                 (*(*grid).property_list()).value(
                     "inspection.services.grid.property.level") ==
                     "75.000000%",
@@ -1122,7 +1122,7 @@ void test_property_typography_preserves_editors_and_updates_geometry() {
 
     const std::shared_ptr<NumericUpDown> numeric = make_control<NumericUpDown>(
         StableId("font.numeric"));
-    (*numeric).set_value(42.0);
+    (*numeric).value = 42.0;
     require((*properties).replace_editor("inspection.location", numeric),
             "numeric replacement editor must attach");
     const std::shared_ptr<TextBox> numeric_text = (*numeric).editor();
@@ -1144,7 +1144,7 @@ void test_property_typography_preserves_editors_and_updates_geometry() {
                 (*name).can_undo() && window.focused_control() == name &&
                 (*numeric_text).text.read() == "-" &&
                 (*numeric_text).selection() == numeric_selection &&
-                (*numeric).value() == 42.0 && changes == 0U,
+                (*numeric).value.read() == 42.0 && changes == 0U,
             "typography changes must preserve draft, selection, focus, undo and numeric value without publishing edits");
     test_support::TypographyPainter painter;
     (*properties).on_paint(painter, {0.0, 0.0, 440.0, 500.0});

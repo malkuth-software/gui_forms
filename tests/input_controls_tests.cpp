@@ -6,6 +6,7 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <stdexcept>
@@ -522,10 +523,10 @@ void test_combo_box_overlay_commit_dismiss_and_owner_revocation() {
 void test_numeric_up_down_composite_edit_spinner_and_keys() {
     std::shared_ptr<gui_forms::NumericUpDown> numeric = make_control<NumericUpDown>(StableId("input.numeric"));
     (*numeric).set_range(-10.0, 10.0);
-    (*numeric).set_increment(0.5);
-    (*numeric).set_decimal_places(1U);
-    (*numeric).set_button_width(30.0);
-    (*numeric).set_value(1.5);
+    (*numeric).increment = 0.5;
+    (*numeric).decimal_places = 1U;
+    (*numeric).button_width = 30.0;
+    (*numeric).value = 1.5;
     (*numeric).set_requested_bounds({0.0, 0.0, 180.0, 32.0});
     Window window(numeric, {180.0, 32.0});
     window.perform_layout();
@@ -538,15 +539,15 @@ void test_numeric_up_down_composite_edit_spinner_and_keys() {
     require(window.request_focus((*numeric).editor()),
             "NumericUpDown editor must accept retained focus");
     KeyEvent up{KeyAction::down, PhysicalKey::up};
-    require(window.dispatch_key(up) && (*numeric).value() == 2.0 &&
+    require(window.dispatch_key(up) && (*numeric).value.read() == 2.0 &&
                 (*(*numeric).editor()).text.read() == "2.0",
             "NumericUpDown parent preview must step before TextBox caret routing");
 
     (*(*numeric).editor()).select_all();
-    require(window.dispatch_text({"7.5"}) && (*numeric).value() == 7.5,
+    require(window.dispatch_text({"7.5"}) && (*numeric).value.read() == 7.5,
             "NumericUpDown must commit a complete in-range editor value");
     (*(*numeric).editor()).select_all();
-    require(window.dispatch_text({"99"}) && (*numeric).value() == 7.5,
+    require(window.dispatch_text({"99"}) && (*numeric).value.read() == 7.5,
             "NumericUpDown must preserve value during an out-of-range intermediate edit");
     KeyEvent enter{KeyAction::down, PhysicalKey::enter};
     require(window.dispatch_key(enter) && (*(*numeric).editor()).text.read() == "7.5",
@@ -557,10 +558,10 @@ void test_numeric_up_down_composite_edit_spinner_and_keys() {
     const Point lower{spin.x + spin.width * 0.5, spin.y + spin.height * 0.75};
     require(window.dispatch_pointer({PointerAction::down, PointerButton::primary, lower}) &&
                 window.dispatch_pointer({PointerAction::up, PointerButton::primary, lower}) &&
-                (*numeric).value() == 7.0,
+                (*numeric).value.read() == 7.0,
             "NumericUpDown spinner lower button must decrement by the public increment");
-    (*numeric).set_hexadecimal(true);
-    (*numeric).set_value(10.0);
+    (*numeric).hexadecimal = true;
+    (*numeric).value = 10.0;
     require((*(*numeric).editor()).text.read() == "A" && values.find("7.000000") != std::string::npos,
             "NumericUpDown hexadecimal formatting must retain ordered value events");
 }
@@ -704,6 +705,71 @@ void test_text_box_property_capabilities() {
             "a null custom source is refused and the box keeps its own");
 }
 
+// NumericUpDown's properties are capabilities. minimum and maximum move
+// each other as Windows Forms' do, then clamp value (raising value_changed).
+void test_numeric_up_down_property_capabilities() {
+    std::shared_ptr<gui_forms::NumericUpDown> numeric = make_control<NumericUpDown>(StableId("input.numeric.caps"));
+    std::vector<double> values;
+    const SubscriptionToken changed = (*numeric).value_changed().subscribe(
+        test_support::PushBack<std::vector<double>, double>(values));
+    (*numeric).value = 50.0;
+    require(values.size() == 1U && values[0] == 50.0, "a value write raises value_changed");
+    (*numeric).value = 50.0;
+    require(values.size() == 1U, "writing the current value raises nothing");
+    bool refused = false;
+    try {
+        (*numeric).value = 101.0;
+    } catch (const std::out_of_range&) {
+        refused = true;
+    }
+    require(refused && (*numeric).value.read() == 50.0, "a value outside the range is refused");
+
+    (*numeric).minimum = 150.0;
+    require((*numeric).minimum.read() == 150.0 && (*numeric).maximum.read() == 150.0 &&
+                (*numeric).value.read() == 150.0 && values.size() == 2U && values[1] == 150.0,
+            "a minimum above maximum raises maximum to it and clamps value");
+    (*numeric).maximum = 20.0;
+    require((*numeric).minimum.read() == 20.0 && (*numeric).maximum.read() == 20.0 &&
+                (*numeric).value.read() == 20.0 && values.size() == 3U,
+            "a maximum below minimum lowers minimum to it and clamps value");
+    (*numeric).set_range(0.0, 100.0);
+    require((*numeric).minimum.read() == 0.0 && (*numeric).maximum.read() == 100.0 &&
+                (*numeric).value.read() == 20.0 && values.size() == 3U,
+            "set_range writes both bounds; a value inside the range is kept");
+    refused = false;
+    try {
+        (*numeric).minimum = std::numeric_limits<double>::infinity();
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*numeric).minimum.read() == 0.0, "a bound that is not finite is refused");
+
+    (*numeric).decimal_places = 2U;
+    (*numeric).hexadecimal = true;
+    require((*numeric).hexadecimal.read() && (*numeric).decimal_places.read() == 0U,
+            "hexadecimal turns decimal places off");
+    (*numeric).decimal_places = 1U;
+    require(!(*numeric).hexadecimal.read() && (*numeric).decimal_places.read() == 1U,
+            "decimal places turn hexadecimal off");
+    refused = false;
+    try {
+        (*numeric).increment = 0.0;
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*numeric).increment.read() == 1.0, "a zero increment is refused");
+    refused = false;
+    try {
+        (*numeric).button_width = 8.0;
+    } catch (const std::out_of_range&) {
+        refused = true;
+    }
+    require(refused && (*numeric).button_width.read() == 18.0, "a button width under 12 is refused");
+    (*numeric).set_property_value("value", BindingValue{30.0});
+    require((*numeric).value.read() == 30.0 && values.size() == 4U, "a table write runs the same hooks");
+    static_cast<void>(changed);
+}
+
 int main() {
     try {
         test_unicode_editing_selection_and_history();
@@ -719,6 +785,7 @@ int main() {
         test_numeric_up_down_composite_edit_spinner_and_keys();
         test_list_box_model_stable_item_ids();
         test_text_box_property_capabilities();
+        test_numeric_up_down_property_capabilities();
         std::cout << "gui_forms_input_controls_tests: all tests passed\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {

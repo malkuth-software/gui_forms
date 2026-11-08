@@ -1,0 +1,194 @@
+{
+  "family": "NumericUpDown",
+  "step": "B4",
+  "declaring": "NumericUpDown",
+  "header": "include/gui_forms/controls/panel/numeric_up_down/numeric_up_down.hpp",
+  "source": "src/controls/panel/numeric_up_down/numeric_up_down.cpp",
+  "capabilities_header": "include/gui_forms/controls/panel/numeric_up_down/numeric_up_down_capabilities/numeric_up_down_capabilities.hpp",
+  "base": "Panel",
+  "shared": [],
+  "includes": [],
+  "properties": [
+    {
+      "name": "value",
+      "capability": "NumericUpDownValue",
+      "value": "double",
+      "initial": "0.0",
+      "comment": "The current value (Value), within minimum and maximum; anything else, or a value that is not finite, throws std::out_of_range. A change shows it in the editor and raises value_changed.",
+      "getter": "value",
+      "setter": "set_value",
+      "clear": null,
+      "field": "value_",
+      "event": "value_changed_",
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": {
+        "kind": "number",
+        "category": "Behavior",
+        "description": "Current numeric value.",
+        "default": "BindingValue{0.0}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": true,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "prepare refuses a value outside the range; written shows it in the editor, invalidates and raises value_changed"
+      ],
+      "sample": "25.0"
+    },
+    {
+      "name": "minimum",
+      "capability": "NumericUpDownMinimum",
+      "value": "double",
+      "initial": "0.0",
+      "comment": "The lowest value (Minimum). A minimum above maximum raises maximum to it, and value is clamped into the range (raising value_changed), in that order. A value that is not finite throws std::invalid_argument.",
+      "getter": "minimum",
+      "setter": "set_minimum",
+      "clear": null,
+      "field": "minimum_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "prepare refuses a value that is not finite; written raises maximum to it when needed, clamps value and invalidates"
+      ],
+      "effects": null,
+      "sample": "-10.0"
+    },
+    {
+      "name": "maximum",
+      "capability": "NumericUpDownMaximum",
+      "value": "double",
+      "initial": "100.0",
+      "comment": "The highest value (Maximum). A maximum below minimum lowers minimum to it, and value is clamped into the range (raising value_changed), in that order. A value that is not finite throws std::invalid_argument.",
+      "getter": "maximum",
+      "setter": "set_maximum",
+      "clear": null,
+      "field": "maximum_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "prepare refuses a value that is not finite; written lowers minimum to it when needed, clamps value and invalidates"
+      ],
+      "effects": null,
+      "sample": "50.0"
+    },
+    {
+      "name": "increment",
+      "capability": "NumericUpDownIncrement",
+      "value": "double",
+      "initial": "1.0",
+      "comment": "How far one step moves the value (Increment); it must be finite and positive, or std::invalid_argument is thrown.",
+      "getter": "increment",
+      "setter": "set_increment",
+      "clear": null,
+      "field": "increment_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": null,
+      "prepare": [
+        "if (!std::isfinite(incoming) || incoming <= 0.0) {",
+        "    throw std::invalid_argument(\"NumericUpDown increment must be finite and positive\");",
+        "}"
+      ],
+      "sample": "0.5"
+    },
+    {
+      "name": "decimal_places",
+      "capability": "NumericUpDownDecimalPlaces",
+      "value": "std::uint8_t",
+      "initial": null,
+      "comment": "How many decimal places the editor shows (DecimalPlaces), at most 12 (std::invalid_argument). Any decimal places turn hexadecimal off.",
+      "getter": "decimal_places",
+      "setter": "set_decimal_places",
+      "clear": null,
+      "field": "decimal_places_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "prepare refuses more than 12; written turns hexadecimal off, then shows the value"
+      ],
+      "effects": null,
+      "sample": "std::uint8_t{2}"
+    },
+    {
+      "name": "hexadecimal",
+      "capability": "NumericUpDownHexadecimal",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether the editor shows the value in hexadecimal (Hexadecimal); turning it on sets decimal_places to zero.",
+      "getter": "hexadecimal",
+      "setter": "set_hexadecimal",
+      "clear": null,
+      "field": "hexadecimal_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "written sets decimal_places to zero when on, then shows the value"
+      ],
+      "effects": null
+    },
+    {
+      "name": "button_width",
+      "capability": "NumericUpDownButtonWidth",
+      "value": "double",
+      "initial": "18.0",
+      "comment": "The width of the arrow buttons, 12 to 64 (std::out_of_range otherwise).",
+      "getter": "button_width",
+      "setter": "set_button_width",
+      "clear": null,
+      "field": "button_width_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": "Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "prepare": [
+        "if (!std::isfinite(incoming) || incoming < 12.0 || incoming > 64.0) {",
+        "    throw std::out_of_range(\"NumericUpDown button width must be finite and between 12 and 64\");",
+        "}"
+      ],
+      "sample": "24.0"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "set_range",
+      "reason": "writes minimum then maximum together; kept as a method"
+    }
+  ],
+  "test": {
+    "type": "NumericUpDown",
+    "include": "gui_forms/controls/panel/numeric_up_down/numeric_up_down.hpp"
+  }
+}

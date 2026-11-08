@@ -5,6 +5,7 @@
 #include "../text_items_property.hpp"
 #include "gui_forms/detail/bound_member_function.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
 #include <array>
@@ -136,7 +137,7 @@ void DomainUpDown::initialize_control_tree() {
 }
 
 void DomainUpDown::filter_edit(TextEdit& edit) {
-    if (!read_only_) return;
+    if (!read_only.read()) return;
     edit.verdict = TextEditVerdict::refuse;
     if (edit.kind != TextEditKind::typing || edit.replacement.empty()) return;
     // The first character typed, as its UTF-8 bytes (fewer when the
@@ -164,9 +165,9 @@ std::optional<std::size_t> DomainUpDown::next_item_starting_with(std::string_vie
     return std::nullopt;
 }
 
-std::optional<std::size_t> DomainUpDown::matching_index(std::string_view text) const {
+std::optional<std::size_t> DomainUpDown::matching_index(std::string_view candidate) const {
     for (std::size_t index = 0; index < items_.size(); ++index) {
-        if (equal_folded(items_[index], text)) return index;
+        if (equal_folded(items_[index], candidate)) return index;
     }
     return std::nullopt;
 }
@@ -184,11 +185,11 @@ void DomainUpDown::select(std::optional<std::size_t> index, bool show_text) {
 }
 
 void DomainUpDown::match_text() {
-    select(matching_index(text()), false);
+    select(matching_index(text.read()), false);
 }
 
 void DomainUpDown::sort_items() {
-    if (!sorted_) return;
+    if (!sorted.read()) return;
     std::stable_sort(items_.begin(), items_.end(), SortedItemOrder{});
 }
 
@@ -227,62 +228,54 @@ void DomainUpDown::clear_items() {
     invalidate(Dirty::semantics);
 }
 
-void DomainUpDown::set_selected_index(std::optional<std::size_t> index) {
+std::optional<std::size_t> DomainUpDown::read_view(const decltype(selected_index)&) const {
+    const std::optional<std::size_t> current = selected_index_;
+    return current;
+}
+
+void DomainUpDown::write_view(const decltype(selected_index)&, std::optional<std::size_t> incoming) {
     require_mutable();
-    if (index && *index >= items_.size()) {
+    if (incoming && *incoming >= items_.size()) {
         throw std::out_of_range("DomainUpDown selected index is past the end");
     }
-    select(index, true);
+    select(incoming, true);
 }
 
 // A copy: the editor's text view reads the editing engine by value.
-std::string DomainUpDown::text() const {
+std::string DomainUpDown::read_view(const decltype(text)&) const {
     if (!editor_) return std::string{};
     std::string current = (*editor_).text.read();
     return current;
 }
 
-void DomainUpDown::set_text(std::string text) {
+void DomainUpDown::write_view(const decltype(text)&, std::string incoming) {
     require_mutable();
     if (!editor_) return;
     synchronizing_ = true;
-    (*editor_).text = std::move(text);
+    (*editor_).text = std::move(incoming);
     synchronizing_ = false;
     match_text();
 }
 
-void DomainUpDown::set_wrap(bool wrap) {
+void DomainUpDown::prepare_write(const decltype(read_only)&, bool&) {
     require_mutable();
-    wrap_ = wrap;
 }
 
-void DomainUpDown::set_read_only(bool read_only) {
-    require_mutable();
-    if (read_only_ == read_only) return;
-    read_only_ = read_only;
+void DomainUpDown::written(const decltype(read_only)&) {
     // Undo and redo do not pass the edit filter; history from before the
     // field became read-only must not change it.
     if (editor_) (*editor_).clear_undo_history();
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
-void DomainUpDown::set_sorted(bool sorted) {
+void DomainUpDown::prepare_write(const decltype(sorted)&, bool&) {
     require_mutable();
-    if (sorted_ == sorted) return;
-    sorted_ = sorted;
+}
+
+void DomainUpDown::written(const decltype(sorted)&) {
     sort_items();
     match_text();
     invalidate(Dirty::semantics);
-}
-
-void DomainUpDown::set_button_width(double width) {
-    require_mutable();
-    if (!std::isfinite(width) || width < 12.0 || width > 64.0) {
-        throw std::out_of_range("DomainUpDown button width must be finite and between 12 and 64");
-    }
-    if (button_width_ == width) return;
-    button_width_ = width;
-    invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
 void DomainUpDown::step(std::ptrdiff_t offset) {
@@ -294,9 +287,9 @@ void DomainUpDown::step(std::ptrdiff_t offset) {
     } else {
         next = static_cast<std::ptrdiff_t>(*selected_index_) + offset;
         if (next < 0) {
-            next = wrap_ ? count - 1 : 0;
+            next = wrap.read() ? count - 1 : 0;
         } else if (next >= count) {
-            next = wrap_ ? 0 : count - 1;
+            next = wrap.read() ? 0 : count - 1;
         }
     }
     select(static_cast<std::size_t>(next), true);
@@ -319,17 +312,17 @@ void DomainUpDown::down_button() {
 
 void DomainUpDown::arrange(Rect final_bounds) {
     arrange_self(final_bounds);
-    // The spin column takes button_width_ (or the whole width, when narrower)
+    // The spin column takes button_width.read() (or the whole width, when narrower)
     // at the right; the field takes the rest.
     // Both sit inside the control's own border (the borderless editor
     // draws none of its own).
     const double inset = border_style.read() == BorderStyle::none ? 0.0 : 1.0;
     const double inner_width = std::max(0.0, final_bounds.width - 2.0 * inset);
     const double inner_height = std::max(0.0, final_bounds.height - 2.0 * inset);
-    const double button_width = std::min(button_width_, inner_width);
-    const double field_width = std::max(0.0, inner_width - button_width);
+    const double column_width = std::min(button_width.read(), inner_width);
+    const double field_width = std::max(0.0, inner_width - column_width);
     const Rect field{inset, inset, field_width, inner_height};
-    const Rect column{inset + field_width, inset, button_width, inner_height};
+    const Rect column{inset + field_width, inset, column_width, inner_height};
     if (editor_) set_child_layout(editor_, field);
     if (spinner_) set_child_layout(spinner_, column);
 }
@@ -360,11 +353,11 @@ SemanticDescriptor DomainUpDown::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::combo_box;
     descriptor.name = accessible_name.read();
-    descriptor.value = std::string(text());
+    descriptor.value = std::string(text.read());
     descriptor.description = accessible_description.read();
     descriptor.actions = {SemanticAction::focus, SemanticAction::increment,
                           SemanticAction::decrement, SemanticAction::set_value};
-    if (read_only_) descriptor.states |= SemanticState::read_only;
+    if (read_only.read()) descriptor.states |= SemanticState::read_only;
     descriptor.exposed = true;
     descriptor.include_descendants = false;
     return descriptor;
@@ -386,7 +379,7 @@ bool DomainUpDown::on_semantic_action(SemanticAction action, std::string_view va
             set_selected_index(index);
             return true;
         }
-        if (read_only_) return false;
+        if (read_only.read()) return false;
         set_text(std::string(value_text));
         return true;
     }
@@ -494,7 +487,7 @@ void DomainUpDown::publish_part_geometry(std::span<PartGeometry> geometry) const
 
 AnatomyStateSet DomainUpDown::anatomy_states() const {
     AnatomyStateSet states = ScrollableControl::anatomy_states();
-    if (read_only_) states.insert(AnatomyState::read_only);
+    if (read_only.read()) states.insert(AnatomyState::read_only);
     const ControlVisualStatus status = visual_status();
     if (status == ControlVisualStatus::invalid) {
         states.insert(AnatomyState::invalid);
@@ -518,5 +511,27 @@ void DomainUpDown::append_interactions(std::vector<InteractionDeclaration>& inte
     interactions.insert(interactions.end(), domain_up_down_interactions.begin(),
                         domain_up_down_interactions.end());
 }
+
+// property_codemod begin DomainUpDown (tools/property_families/domain_up_down.json; generated, do not edit)
+
+void DomainUpDown::prepare_write(const decltype(wrap)&, bool&) {
+    require_mutable();
+}
+
+void DomainUpDown::written(const decltype(wrap)&) {
+}
+
+void DomainUpDown::prepare_write(const decltype(button_width)&, double& incoming) {
+    require_mutable();
+    if (!std::isfinite(incoming) || incoming < 12.0 || incoming > 64.0) {
+        throw std::out_of_range("DomainUpDown button width must be finite and between 12 and 64");
+    }
+}
+
+void DomainUpDown::written(const decltype(button_width)&) {
+    invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+// property_codemod end DomainUpDown
 
 } // namespace gui_forms
