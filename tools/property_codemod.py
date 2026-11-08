@@ -1284,8 +1284,13 @@ def test_function(config):
     test = config["test"]
     family = config["family"]
     concrete = test["type"]
-    lines = [f"void test_{snake(family)}_properties() {{",
-             f"    std::shared_ptr<{concrete}> control = make_control<{concrete}>(StableId(\"generated.{family.lower()}\"));"]
+    # A control whose constructor needs more than its identity names the
+    # extra arguments in "arguments" and the statements declaring them in
+    # "setup".
+    arguments = "".join(", " + argument for argument in test.get("arguments", []))
+    lines = [f"void test_{snake(family)}_properties() {{"]
+    lines += ["    " + statement for statement in test.get("setup", [])]
+    lines.append(f"    std::shared_ptr<{concrete}> control = make_control<{concrete}>(StableId(\"generated.{family.lower()}\"){arguments});")
     for prop in config["properties"]:
         if prop.get("storage") == "view":
             continue

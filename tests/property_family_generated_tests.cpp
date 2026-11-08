@@ -5,6 +5,7 @@
 #include "gui_forms/gui_forms.hpp"
 #include "gui_forms/controls/button_base/button/button.hpp"
 #include "gui_forms/controls/data_grid_view/data_grid_view.hpp"
+#include "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp"
 #include "gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail.hpp"
 #include "gui_forms/controls/panel/card/card.hpp"
 #include "gui_forms/controls/panel/card/review_card/review_card.hpp"
@@ -55,6 +56,26 @@ struct RaiseCounter final {
         ++(*count);
     }
 };
+
+void test_anchored_overlay_layer_properties() {
+    const std::shared_ptr<Panel> anchor = make_control<Panel>(StableId("generated.anchoredoverlaylayer.anchor"));
+    std::shared_ptr<AnchoredOverlayLayer> control = make_control<AnchoredOverlayLayer>(StableId("generated.anchoredoverlaylayer"), anchor);
+    {
+        const AnchoredOverlayPlacement sample = AnchoredOverlayPlacement{Size{120.0, 80.0}, OverlayHorizontalAlignment::center, OverlayVerticalPreference::above, 2.0, 4.0, false};
+        (*control).placement = sample;
+        expect((*control).placement.read() == sample, "AnchoredOverlayLayer.placement: a write stores");
+    }
+    {
+        const bool sample = !(*control).dismiss_on_click_away.read();
+        (*control).dismiss_on_click_away = sample;
+        expect((*control).dismiss_on_click_away.read() == sample, "AnchoredOverlayLayer.dismiss_on_click_away: a write stores");
+    }
+    {
+        const bool sample = !(*control).dismiss_on_escape.read();
+        (*control).dismiss_on_escape = sample;
+        expect((*control).dismiss_on_escape.read() == sample, "AnchoredOverlayLayer.dismiss_on_escape: a write stores");
+    }
+}
 
 void test_breadcrumb_trail_properties() {
     std::shared_ptr<BreadcrumbTrail> control = make_control<BreadcrumbTrail>(StableId("generated.breadcrumbtrail"));
@@ -938,6 +959,7 @@ void test_tree_list_view_properties() {
 } // namespace
 
 int main() {
+    test_anchored_overlay_layer_properties();
     test_breadcrumb_trail_properties();
     test_button_base_properties();
     test_card_properties();

@@ -3,6 +3,7 @@
 #include "anchored_overlay_placement_utilities.hpp"
 #include "gui_forms/window.hpp"
 #include "../panel_anatomy.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <array>
 #include <algorithm>
@@ -14,10 +15,11 @@ namespace gui_forms {
 
 using anchored_overlay_detail::validate_placement;
 AnchoredOverlayLayer::AnchoredOverlayLayer(
-    StableId stable_id, Control::Ptr anchor, AnchoredOverlayPlacement placement)
-    : Panel(std::move(stable_id)), anchor_(anchor), placement_(placement) {
-    validate_placement(placement_);
+    StableId stable_id, Control::Ptr anchor, AnchoredOverlayPlacement initial_placement)
+    : Panel(std::move(stable_id)), anchor_(anchor) {
+    validate_placement(initial_placement);
     validate_anchor(anchor);
+    placement = initial_placement;
     set_paint_plane(PaintPlane::overlay);
     border_style = BorderStyle::none;
     set_background(Color::rgba(0, 0, 0, 0));
@@ -65,34 +67,8 @@ void AnchoredOverlayLayer::clear_content() {
                Dirty::hit_test | Dirty::semantics);
 }
 
-void AnchoredOverlayLayer::set_placement(AnchoredOverlayPlacement placement) {
-    require_mutable();
-    validate_placement(placement);
-    if (placement_.preferred_size == placement.preferred_size &&
-        placement_.horizontal_alignment == placement.horizontal_alignment &&
-        placement_.vertical_preference == placement.vertical_preference &&
-        placement_.gap == placement.gap &&
-        placement_.viewport_margin == placement.viewport_margin &&
-        placement_.allow_vertical_flip == placement.allow_vertical_flip) {
-        return;
-    }
-    placement_ = placement;
-    invalidate(Dirty::measure | Dirty::arrange | Dirty::paint |
-               Dirty::hit_test | Dirty::semantics);
-}
-
-void AnchoredOverlayLayer::set_dismiss_on_click_away(bool enabled) {
-    require_mutable();
-    dismiss_on_click_away_ = enabled;
-}
-
-void AnchoredOverlayLayer::set_dismiss_on_escape(bool enabled) {
-    require_mutable();
-    dismiss_on_escape_ = enabled;
-}
-
 Size AnchoredOverlayLayer::measure(Size available) {
-    if (content_) static_cast<void>((*content_).measure(placement_.preferred_size));
+    if (content_) static_cast<void>((*content_).measure(placement.read().preferred_size));
     return available;
 }
 
@@ -112,7 +88,7 @@ void AnchoredOverlayLayer::arrange(Rect final_bounds) {
     }
     resolved_ = resolve_anchored_overlay(
         (*anchor).absolute_bounds(), {layer_bounds.width, layer_bounds.height},
-        placement_);
+        placement.read());
     set_child_layout(content_, resolved_.bounds);
 }
 
@@ -128,7 +104,7 @@ bool AnchoredOverlayLayer::hit_test_local(Point local_point) const {
 }
 
 void AnchoredOverlayLayer::on_pointer(PointerEvent& event) {
-    if (dismiss_on_click_away_ && event.action == PointerAction::down &&
+    if (dismiss_on_click_away.read() && event.action == PointerAction::down &&
         event.button == PointerButton::primary) {
         dismiss_requested_.emit(OverlayDismissReason::click_away);
         event.handled = true;
@@ -136,7 +112,7 @@ void AnchoredOverlayLayer::on_pointer(PointerEvent& event) {
 }
 
 void AnchoredOverlayLayer::on_key_preview(KeyEvent& event) {
-    if (dismiss_on_escape_ && event.action == KeyAction::down &&
+    if (dismiss_on_escape.read() && event.action == KeyAction::down &&
         event.physical_key == PhysicalKey::escape) {
         dismiss_requested_.emit(OverlayDismissReason::escape_key);
         event.handled = true;
@@ -151,8 +127,6 @@ SemanticDescriptor AnchoredOverlayLayer::semantic_descriptor() const {
     descriptor.exposed = !descriptor.name.empty();
     return descriptor;
 }
-
-
 
 namespace {
 
@@ -182,5 +156,32 @@ void AnchoredOverlayLayer::append_interactions(std::vector<InteractionDeclaratio
     Panel::append_interactions(interactions);
     interactions.insert(interactions.end(), anchored_overlay_layer_interactions.begin(), anchored_overlay_layer_interactions.end());
 }
+
+// property_codemod begin AnchoredOverlayLayer (tools/property_families/anchored_overlay_layer.json; generated, do not edit)
+
+void AnchoredOverlayLayer::prepare_write(const decltype(placement)&, AnchoredOverlayPlacement& incoming) {
+    require_mutable();
+    anchored_overlay_detail::validate_placement(incoming);
+}
+
+void AnchoredOverlayLayer::written(const decltype(placement)&) {
+    invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+void AnchoredOverlayLayer::prepare_write(const decltype(dismiss_on_click_away)&, bool&) {
+    require_mutable();
+}
+
+void AnchoredOverlayLayer::written(const decltype(dismiss_on_click_away)&) {
+}
+
+void AnchoredOverlayLayer::prepare_write(const decltype(dismiss_on_escape)&, bool&) {
+    require_mutable();
+}
+
+void AnchoredOverlayLayer::written(const decltype(dismiss_on_escape)&) {
+}
+
+// property_codemod end AnchoredOverlayLayer
 
 } // namespace gui_forms

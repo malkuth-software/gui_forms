@@ -50,6 +50,14 @@ Related types
    :class: autosummary longtable
    :widths: 35 65
 
+   * - :cpp:class:`AnchoredOverlayLayerCapabilities <gui_forms::AnchoredOverlayLayerCapabilities>`
+     - Every AnchoredOverlayLayer capability, in the order the declaring class takes them.
+   * - :cpp:class:`AnchoredOverlayLayerDismissOnClickAwayCapability <gui_forms::AnchoredOverlayLayerDismissOnClickAwayCapability>`
+     - Whether a press outside the content raises dismiss_requested(click_away).
+   * - :cpp:class:`AnchoredOverlayLayerDismissOnEscapeCapability <gui_forms::AnchoredOverlayLayerDismissOnEscapeCapability>`
+     - Whether Escape raises dismiss_requested(escape_key).
+   * - :cpp:class:`AnchoredOverlayLayerPlacementCapability <gui_forms::AnchoredOverlayLayerPlacementCapability>`
+     - The overlay's preferred size, alignment, side, gap, margin and flip rule; resolved against the anchor on every arrangement (resolved_placement).
    * - :cpp:class:`AnchoredOverlayPlacement <gui_forms::AnchoredOverlayPlacement>`
      - AnchoredOverlayPlacement is the caller-authored geometry policy for preferred size, horizontal alignment, preferred vertical side, gap, viewport margin, and optional vertical flipping.
    * - :cpp:class:`AnchoredOverlayPlacementResult <gui_forms::AnchoredOverlayPlacementResult>`
@@ -102,6 +110,78 @@ Related types
      - The verification check box's state (Windows Forms' TaskDialogVerificationCheckBox.Checked); a view onto the page.
    * - :cpp:class:`ThreadExceptionReport <gui_forms::ThreadExceptionReport>`
      - What a ThreadExceptionDialog reports.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> AnchoredOverlayLayerCapabilities : public AnchoredOverlayLayerPlacementCapability<Declaring>, public AnchoredOverlayLayerDismissOnClickAwayCapability<Declaring>, public AnchoredOverlayLayerDismissOnEscapeCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer_capabilities/anchored_overlay_layer_capabilities.hpp>``
+
+   Every AnchoredOverlayLayer capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: AnchoredOverlayPlacement placement
+
+      The overlay's preferred size, alignment, side, gap, margin and flip rule; resolved against the anchor on every arrangement (resolved_placement). An invalid placement throws std::invalid_argument.
+
+   .. cpp:member:: bool dismiss_on_click_away
+
+      Whether a press outside the content raises dismiss_requested(click_away). The layer only reports it; the owner closes the overlay.
+
+   .. cpp:member:: bool dismiss_on_escape
+
+      Whether Escape raises dismiss_requested(escape_key). The layer only reports it; the owner closes the overlay.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> AnchoredOverlayLayerDismissOnClickAwayCapability
+
+   ``#include <gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer_capabilities/anchored_overlay_layer_capabilities.hpp>``
+
+   Whether a press outside the content raises dismiss_requested(click_away). The layer only reports it; the owner closes the overlay.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(AnchoredOverlayLayerDismissOnClickAwayCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, AnchoredOverlayLayerDismissOnClickAwayCapability<Declaring>> dismiss_on_click_away
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> AnchoredOverlayLayerDismissOnEscapeCapability
+
+   ``#include <gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer_capabilities/anchored_overlay_layer_capabilities.hpp>``
+
+   Whether Escape raises dismiss_requested(escape_key). The layer only reports it; the owner closes the overlay.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(AnchoredOverlayLayerDismissOnEscapeCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, AnchoredOverlayLayerDismissOnEscapeCapability<Declaring>> dismiss_on_escape
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> AnchoredOverlayLayerPlacementCapability
+
+   ``#include <gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer_capabilities/anchored_overlay_layer_capabilities.hpp>``
+
+   The overlay's preferred size, alignment, side, gap, margin and flip rule; resolved against the anchor on every arrangement (resolved_placement). An invalid placement throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(AnchoredOverlayLayerPlacementCapability& capability, AnchoredOverlayPlacement incoming)
+
+   .. cpp:member:: PropertyCell<AnchoredOverlayPlacement, AnchoredOverlayLayerPlacementCapability<Declaring>> placement
 
 .. cpp:namespace:: gui_forms
 

@@ -559,7 +559,7 @@ bool RibbonGallery::open_overlay(const Control::Ptr& anchor) {
             Delegate<OverlayDismissReason>::bind<RibbonGallery, &RibbonGallery::on_layer_dismissed>(*this));
     } else {
         (*layer_).set_anchor(anchor);
-        (*layer_).set_placement(placement);
+        (*layer_).placement = placement;
     }
     // The gallery owns its layer, and is the layer's content only while
     // open (release_layer_content).

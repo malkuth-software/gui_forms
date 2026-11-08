@@ -1900,7 +1900,7 @@ bool Ribbon::show_group_overlay(std::string_view group_id, MenuOpenMode mode) {
     placement.vertical_preference = OverlayVerticalPreference::below;
     placement.gap = overlay_gap;
     (*group_layer_).set_anchor(self);
-    (*group_layer_).set_placement(placement);
+    (*group_layer_).placement = placement;
     (*group_overlay_).set_anchor_x(absolute.x + placed.groups[group].x);
     const Size client = (*window).client_size();
     (*group_layer_).set_requested_bounds({0.0, 0.0, client.width, client.height});

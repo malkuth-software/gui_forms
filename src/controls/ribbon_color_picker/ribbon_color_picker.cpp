@@ -605,7 +605,7 @@ bool RibbonColorPicker::open_palette(MenuOpenMode mode) {
             Delegate<OverlayDismissReason>::bind<RibbonColorPicker, &RibbonColorPicker::on_layer_dismissed>(*this));
     }
     placement.preferred_size = palette_size();
-    (*layer_).set_placement(placement);
+    (*layer_).placement = placement;
     (*palette_overlay_).accessible_name = parse_mnemonic_text(text_).display_text;
     const Size client = (*window).client_size();
     (*layer_).set_requested_bounds({0.0, 0.0, client.width, client.height});

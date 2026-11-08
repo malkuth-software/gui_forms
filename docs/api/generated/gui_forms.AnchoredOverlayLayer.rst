@@ -7,7 +7,7 @@ gui_forms::AnchoredOverlayLayer
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: AnchoredOverlayLayer final : public Panel
+.. cpp:class:: AnchoredOverlayLayer final : public Panel, public AnchoredOverlayLayerCapabilities<AnchoredOverlayLayer>
 
    ``#include <gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp>``
 
@@ -34,12 +34,30 @@ gui_forms::AnchoredOverlayLayer
          The control the content is placed against. It must be live, or the
          constructor throws ``std::invalid_argument``.
 
-      **placement** : ``AnchoredOverlayPlacement``, default ``{}``
+      **initial_placement** : ``AnchoredOverlayPlacement``, default ``{}``
          The size and placement rules for the content, by default an
-         ``AnchoredOverlayPlacement{}``. Invalid geometry throws
+         ``AnchoredOverlayPlacement{}``; it becomes :cpp:member:`placement <gui_forms::AnchoredOverlayLayer::placement>`. Invalid geometry throws
          ``std::invalid_argument``.
 
    :Properties:
+
+      **placement** : ``AnchoredOverlayPlacement``, default ``AnchoredOverlayPlacement{}``
+         The content's preferred size (0 by 0 by default, so set it), its
+         horizontal alignment to the anchor
+         (:cpp:enumerator:`OverlayHorizontalAlignment::near <gui_forms::OverlayHorizontalAlignment::near>` by default), the side it prefers
+         (:cpp:enumerator:`OverlayVerticalPreference::below <gui_forms::OverlayVerticalPreference::below>` by default), the gap between anchor and
+         content (0), the margin kept from the window's edges (4), and whether it
+         may flip to the other side (true). Sizes, gap and margin must be finite
+         and nonnegative, or ``std::invalid_argument`` is thrown.
+
+      **dismiss_on_click_away** : ``bool``, default ``true``
+         Whether a primary-button press on the layer outside the content and the
+         anchor raises :cpp:func:`dismiss_requested <gui_forms::AnchoredOverlayLayer::dismiss_requested>`. Either way, such a press does not
+         reach the controls underneath.
+
+      **dismiss_on_escape** : ``bool``, default ``true``
+         Whether Escape raises :cpp:func:`dismiss_requested <gui_forms::AnchoredOverlayLayer::dismiss_requested>` while focus is inside the
+         layer. When false, Escape goes on to the focused control.
 
       **anchor** : ``Control::Ptr``
          The control the content is placed against, or null once it has been
@@ -52,28 +70,10 @@ gui_forms::AnchoredOverlayLayer
          be live, without a parent and not attached to a window, or
          ``std::invalid_argument`` is thrown.
 
-      **placement** : ``AnchoredOverlayPlacement``, default ``AnchoredOverlayPlacement{}``
-         The content's preferred size (0 by 0 by default, so set it), its
-         horizontal alignment to the anchor
-         (:cpp:enumerator:`OverlayHorizontalAlignment::near <gui_forms::OverlayHorizontalAlignment::near>` by default), the side it prefers
-         (:cpp:enumerator:`OverlayVerticalPreference::below <gui_forms::OverlayVerticalPreference::below>` by default), the gap between anchor and
-         content (0), the margin kept from the window's edges (4), and whether it
-         may flip to the other side (true). Sizes, gap and margin must be finite
-         and nonnegative, or ``std::invalid_argument`` is thrown.
-
       **resolved_placement** : ``AnchoredOverlayPlacementResult``, read-only
          Where the last layout put the content, in window client coordinates,
          whether it went above the anchor, and whether its width or height had
          to be reduced to fit. Empty while the anchor is hidden or detached.
-
-      **dismiss_on_click_away** : ``bool``, default ``true``
-         Whether a primary-button press on the layer outside the content and the
-         anchor raises :cpp:func:`dismiss_requested <gui_forms::AnchoredOverlayLayer::dismiss_requested>`. Either way, such a press does not
-         reach the controls underneath.
-
-      **dismiss_on_escape** : ``bool``, default ``true``
-         Whether Escape raises :cpp:func:`dismiss_requested <gui_forms::AnchoredOverlayLayer::dismiss_requested>` while focus is inside the
-         layer. When false, Escape goes on to the focused control.
 
    :Events:
 
@@ -204,10 +204,31 @@ gui_forms::AnchoredOverlayLayer
 
    .. rubric:: Construction
 
-   .. cpp:function:: AnchoredOverlayLayer(StableId stable_id, Control::Ptr anchor, AnchoredOverlayPlacement placement = {})
+   .. cpp:function:: AnchoredOverlayLayer(StableId stable_id, Control::Ptr anchor, AnchoredOverlayPlacement initial_placement = {})
 
 
    .. rubric:: Properties
+
+   .. cpp:member:: AnchoredOverlayPlacement placement
+
+      The content's preferred size (0 by 0 by default, so set it), its
+      horizontal alignment to the anchor
+      (:cpp:enumerator:`OverlayHorizontalAlignment::near <gui_forms::OverlayHorizontalAlignment::near>` by default), the side it prefers
+      (:cpp:enumerator:`OverlayVerticalPreference::below <gui_forms::OverlayVerticalPreference::below>` by default), the gap between anchor and
+      content (0), the margin kept from the window's edges (4), and whether it
+      may flip to the other side (true). Sizes, gap and margin must be finite
+      and nonnegative, or ``std::invalid_argument`` is thrown.
+
+   .. cpp:member:: bool dismiss_on_click_away
+
+      Whether a primary-button press on the layer outside the content and the
+      anchor raises :cpp:func:`dismiss_requested <gui_forms::AnchoredOverlayLayer::dismiss_requested>`. Either way, such a press does not
+      reach the controls underneath.
+
+   .. cpp:member:: bool dismiss_on_escape
+
+      Whether Escape raises :cpp:func:`dismiss_requested <gui_forms::AnchoredOverlayLayer::dismiss_requested>` while focus is inside the
+      layer. When false, Escape goes on to the focused control.
 
    .. cpp:function:: Control::Ptr anchor() const noexcept
 
@@ -230,44 +251,11 @@ gui_forms::AnchoredOverlayLayer
 
       Sets :cpp:func:`content <gui_forms::AnchoredOverlayLayer::content>`; see the property's description above.
 
-   .. cpp:function:: AnchoredOverlayPlacement placement() const noexcept
-
-      The content's preferred size (0 by 0 by default, so set it), its
-      horizontal alignment to the anchor
-      (:cpp:enumerator:`OverlayHorizontalAlignment::near <gui_forms::OverlayHorizontalAlignment::near>` by default), the side it prefers
-      (:cpp:enumerator:`OverlayVerticalPreference::below <gui_forms::OverlayVerticalPreference::below>` by default), the gap between anchor and
-      content (0), the margin kept from the window's edges (4), and whether it
-      may flip to the other side (true). Sizes, gap and margin must be finite
-      and nonnegative, or ``std::invalid_argument`` is thrown.
-
-   .. cpp:function:: void set_placement(AnchoredOverlayPlacement placement)
-
-      Sets :cpp:func:`placement <gui_forms::AnchoredOverlayLayer::placement>`; see the property's description above.
-
    .. cpp:function:: AnchoredOverlayPlacementResult resolved_placement() const noexcept
 
       Where the last layout put the content, in window client coordinates,
       whether it went above the anchor, and whether its width or height had
       to be reduced to fit. Empty while the anchor is hidden or detached.
-
-   .. cpp:function:: bool dismiss_on_click_away() const noexcept
-
-      Whether a primary-button press on the layer outside the content and the
-      anchor raises :cpp:func:`dismiss_requested <gui_forms::AnchoredOverlayLayer::dismiss_requested>`. Either way, such a press does not
-      reach the controls underneath.
-
-   .. cpp:function:: void set_dismiss_on_click_away(bool enabled)
-
-      Sets :cpp:func:`dismiss_on_click_away <gui_forms::AnchoredOverlayLayer::dismiss_on_click_away>`; see the property's description above.
-
-   .. cpp:function:: bool dismiss_on_escape() const noexcept
-
-      Whether Escape raises :cpp:func:`dismiss_requested <gui_forms::AnchoredOverlayLayer::dismiss_requested>` while focus is inside the
-      layer. When false, Escape goes on to the focused control.
-
-   .. cpp:function:: void set_dismiss_on_escape(bool enabled)
-
-      Sets :cpp:func:`dismiss_on_escape <gui_forms::AnchoredOverlayLayer::dismiss_on_escape>`; see the property's description above.
 
 
    .. rubric:: Events

@@ -1,0 +1,96 @@
+{
+  "family": "AnchoredOverlayLayer",
+  "step": "B6",
+  "declaring": "AnchoredOverlayLayer",
+  "header": "include/gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp",
+  "source": "src/controls/panel/anchored_overlay_layer/anchored_overlay_layer.cpp",
+  "capabilities_header": "include/gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer_capabilities/anchored_overlay_layer_capabilities.hpp",
+  "base": "Panel",
+  "shared": [],
+  "includes": [
+    "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_placement/anchored_overlay_placement.hpp"
+  ],
+  "properties": [
+    {
+      "name": "placement",
+      "capability": "AnchoredOverlayLayerPlacement",
+      "value": "AnchoredOverlayPlacement",
+      "initial": null,
+      "comment": "The overlay's preferred size, alignment, side, gap, margin and flip rule; resolved against the anchor on every arrangement (resolved_placement). An invalid placement throws std::invalid_argument.",
+      "getter": "placement",
+      "setter": "set_placement",
+      "clear": null,
+      "field": "placement_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": "Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "prepare": [
+        "anchored_overlay_detail::validate_placement(incoming);"
+      ],
+      "sample": "AnchoredOverlayPlacement{Size{120.0, 80.0}, OverlayHorizontalAlignment::center, OverlayVerticalPreference::above, 2.0, 4.0, false}"
+    },
+    {
+      "name": "dismiss_on_click_away",
+      "capability": "AnchoredOverlayLayerDismissOnClickAway",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether a press outside the content raises dismiss_requested(click_away). The layer only reports it; the owner closes the overlay.",
+      "getter": "dismiss_on_click_away",
+      "setter": "set_dismiss_on_click_away",
+      "clear": null,
+      "field": "dismiss_on_click_away_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": null
+    },
+    {
+      "name": "dismiss_on_escape",
+      "capability": "AnchoredOverlayLayerDismissOnEscape",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether Escape raises dismiss_requested(escape_key). The layer only reports it; the owner closes the overlay.",
+      "getter": "dismiss_on_escape",
+      "setter": "set_dismiss_on_escape",
+      "clear": null,
+      "field": "dismiss_on_escape_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": null
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "anchor",
+      "reason": "structural slot (G10)"
+    },
+    {
+      "name": "content",
+      "reason": "structural slot (G10)"
+    }
+  ],
+  "test": {
+    "type": "AnchoredOverlayLayer",
+    "include": "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp",
+    "setup": [
+      "const std::shared_ptr<Panel> anchor = make_control<Panel>(StableId(\"generated.anchoredoverlaylayer.anchor\"));"
+    ],
+    "arguments": [
+      "anchor"
+    ]
+  }
+}

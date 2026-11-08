@@ -103,9 +103,9 @@ private:
         const Size client = (*window).client_size();
         (*layer_).set_requested_bounds({0.0, 0.0, client.width, client.height});
         (*layer_).set_anchor(anchor.shared_from_this());
-        (*layer_).set_placement(placement());
-        (*layer_).set_dismiss_on_click_away(click_away_.get());
-        (*layer_).set_dismiss_on_escape(escape_.get());
+        (*layer_).placement = placement();
+        (*layer_).dismiss_on_click_away = click_away_.get();
+        (*layer_).dismiss_on_escape = escape_.get();
         token_ = (*window).open_overlay(anchor.shared_from_this(), layer_);
         scope_ = (*window).begin_focus_scope(layer_, field_);
         anchor.expanded_state = true;
@@ -155,18 +155,18 @@ private:
             (*document_.gallery_overlays_status).set_text("Placement policy retained · it applies when the next overlay opens");
             return;
         }
-        (*layer_).set_placement(placement());
+        (*layer_).placement = placement();
         report("Placement re-resolved while open");
     }
 
     void on_click_away_changed(const bool enabled) {
-        (*layer_).set_dismiss_on_click_away(enabled);
+        (*layer_).dismiss_on_click_away = enabled;
         (*document_.gallery_overlays_status).set_text(enabled ? "Click-away requests dismissal"
                                     : "Click-away is swallowed; use Escape or the Close button");
     }
 
     void on_escape_changed(const bool enabled) {
-        (*layer_).set_dismiss_on_escape(enabled);
+        (*layer_).dismiss_on_escape = enabled;
         (*document_.gallery_overlays_status).set_text(enabled ? "Escape requests dismissal"
                                     : "Escape reaches the focused field instead");
     }

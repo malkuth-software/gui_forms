@@ -447,7 +447,7 @@ void TextBox::place_auto_complete_list() {
     const double height = static_cast<double>(rows) * row_height + 4.0;
     AnchoredOverlayPlacement placement{};
     placement.preferred_size = Size{std::max(width, 80.0), height};
-    (*session.layer).set_placement(placement);
+    (*session.layer).placement = placement;
 }
 
 void TextBox::close_auto_complete_list() {

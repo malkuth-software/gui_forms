@@ -165,6 +165,29 @@ void test_breadcrumb_trail() {
     require(refused && (*trail).font.read() == larger, "an invalid font is refused");
 }
 
+void test_anchored_overlay_layer() {
+    std::shared_ptr<Panel> anchor = make_control<Panel>(StableId("caps.anchor"));
+    AnchoredOverlayPlacement initial{};
+    initial.gap = 3.0;
+    std::shared_ptr<AnchoredOverlayLayer> layer =
+        make_control<AnchoredOverlayLayer>(StableId("caps.layer"), anchor, initial);
+    require((*layer).placement.read() == initial, "the constructor's placement is stored");
+    AnchoredOverlayPlacement broken = initial;
+    broken.gap = -1.0;
+    bool refused = false;
+    try {
+        (*layer).placement = broken;
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*layer).placement.read() == initial, "a negative gap is refused");
+    require((*layer).dismiss_on_click_away.read() && (*layer).dismiss_on_escape.read(),
+            "both dismissals are reported by default");
+    (*layer).dismiss_on_escape = false;
+    require(!(*layer).dismiss_on_escape.read() && (*layer).dismiss_on_click_away.read(),
+            "the dismissals are independent");
+}
+
 } // namespace
 
 int main() {
@@ -172,6 +195,7 @@ int main() {
     test_property_list();
     test_cards();
     test_breadcrumb_trail();
+    test_anchored_overlay_layer();
     std::cout << "gui_forms_editor_composite_capabilities_tests: all tests passed\n";
     return EXIT_SUCCESS;
 }

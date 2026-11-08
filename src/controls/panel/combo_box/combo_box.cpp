@@ -348,9 +348,9 @@ void ComboBox::show_rows() {
     list.synchronize_scroll();
     if (editor_ && overlay_layer_ && window() != nullptr) {
         AnchoredOverlayLayer& layer = static_cast<AnchoredOverlayLayer&>(*overlay_layer_);
-        AnchoredOverlayPlacement placement = layer.placement();
+        AnchoredOverlayPlacement placement = layer.placement.read();
         placement.preferred_size.height = drop_down_height(rows_.size());
-        layer.set_placement(placement);
+        layer.placement = placement;
     }
 }
 
