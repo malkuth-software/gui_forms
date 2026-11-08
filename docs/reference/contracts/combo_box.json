@@ -20,69 +20,9 @@
       "reviewed": false,
       "summary": "Constructs a focusable choice field with handoff-ready transient overlay ownership."
     },
-    "gui_forms::ComboBox::items|std::span<const std::string> () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the authoritative ordered option strings."
-    },
-    "gui_forms::ComboBox::set_items|void (std::vector<std::string>)": {
-      "reviewed": false,
-      "summary": "Replaces options, repairs selection, synchronizes any open overlay, and publishes coherent changes."
-    },
-    "gui_forms::ComboBox::add_item|void (std::string)": {
-      "reviewed": false,
-      "summary": "Appends one option, synchronizes the open overlay, and invalidates retained state."
-    },
-    "gui_forms::ComboBox::selected_index|std::optional<std::size_t> () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the selected option index or no value."
-    },
-    "gui_forms::ComboBox::set_selected_index|void (std::optional<std::size_t>)": {
-      "reviewed": false,
-      "summary": "Validates the optional index, commits selection, synchronizes overlay state, and publishes a real change."
-    },
     "gui_forms::ComboBox::selected_text|std::string_view () const noexcept": {
       "reviewed": false,
       "summary": "Returns selected option text or an empty view when nothing is selected."
-    },
-    "gui_forms::ComboBox::placeholder_text|std::string_view () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the hint shown when no option is selected."
-    },
-    "gui_forms::ComboBox::set_placeholder_text|void (std::string)": {
-      "reviewed": false,
-      "summary": "Commits placeholder text and invalidates field paint and semantics."
-    },
-    "gui_forms::ComboBox::dropped_down|bool () const noexcept": {
-      "reviewed": false,
-      "summary": "Reports whether this control currently owns its transient overlay lease."
-    },
-    "gui_forms::ComboBox::set_dropped_down|void (bool)": {
-      "reviewed": false,
-      "summary": "Opens or closes through the common transient-owner state machine."
-    },
-    "gui_forms::ComboBox::maximum_drop_down_items|std::size_t () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the positive cap on visible overlay rows."
-    },
-    "gui_forms::ComboBox::set_maximum_drop_down_items|void (std::size_t)": {
-      "reviewed": false,
-      "summary": "Accepts a bounded positive row count and rebuilds overlay geometry when open."
-    },
-    "gui_forms::ComboBox::drop_down_width|double () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns zero for field-tracking width or an explicit logical overlay width."
-    },
-    "gui_forms::ComboBox::set_drop_down_width|void (double)": {
-      "reviewed": false,
-      "summary": "Accepts zero or a bounded finite width and repositions an open overlay within client bounds."
-    },
-    "gui_forms::ComboBox::font|FontSpec () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the retained field and overlay FontSpec."
-    },
-    "gui_forms::ComboBox::set_font|void (FontSpec)": {
-      "reviewed": false,
-      "summary": "Validates typography, synchronizes the overlay, and invalidates size, paint, and semantics."
     },
     "gui_forms::ComboBox::selected_index_changed|Event<std::optional<std::size_t>> &() noexcept": {
       "reviewed": false,

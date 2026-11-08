@@ -20,25 +20,9 @@
       "reviewed": false,
       "summary": "Constructs a ListBox with parallel check-state storage and checkable semantics."
     },
-    "gui_forms::CheckedListBox::set_items|void (std::vector<std::string>)": {
-      "reviewed": false,
-      "summary": "Replaces rows while preserving inherited collection laws and resizes check state coherently."
-    },
-    "gui_forms::CheckedListBox::add_item|void (std::string)": {
-      "reviewed": false,
-      "summary": "Appends an item with unchecked or explicitly supplied state through one synchronized collection path."
-    },
     "gui_forms::CheckedListBox::add_item|void (std::string, CheckState)": {
       "reviewed": false,
       "summary": "Appends an item with unchecked or explicitly supplied state through one synchronized collection path."
-    },
-    "gui_forms::CheckedListBox::remove_item|void (std::size_t)": {
-      "reviewed": false,
-      "summary": "Removes the row and its corresponding check state while preserving index alignment."
-    },
-    "gui_forms::CheckedListBox::clear_items|void ()": {
-      "reviewed": false,
-      "summary": "Clears inherited rows and all retained check states."
     },
     "gui_forms::CheckedListBox::item_check_state|CheckState (std::size_t) const": {
       "reviewed": false,
@@ -63,22 +47,6 @@
     "gui_forms::CheckedListBox::checked_indices|std::vector<std::size_t> () const": {
       "reviewed": false,
       "summary": "Returns indexes whose state is specifically checked."
-    },
-    "gui_forms::CheckedListBox::check_on_click|bool () const noexcept": {
-      "reviewed": false,
-      "summary": "Reports whether a row click toggles immediately or requires clicking the indicator/selected row again."
-    },
-    "gui_forms::CheckedListBox::set_check_on_click|void (bool)": {
-      "reviewed": false,
-      "summary": "Commits the click qualification policy and invalidates semantics."
-    },
-    "gui_forms::CheckedListBox::indicator_size|double () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the logical square check-indicator extent."
-    },
-    "gui_forms::CheckedListBox::set_indicator_size|void (double)": {
-      "reviewed": false,
-      "summary": "Accepts a finite 8–32 logical-pixel size and updates row text inset and painting."
     },
     "gui_forms::CheckedListBox::item_checking|Event<ItemCheckEvent &> &() noexcept": {
       "reviewed": false,
