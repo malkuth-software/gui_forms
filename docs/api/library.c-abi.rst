@@ -71,7 +71,7 @@ Types
    * - :cpp:class:`gf_api_v0 <gf_api_v0>`
      - gf_api_v0 is the size-versioned negotiated function table for generational control ownership, properties, layout/scroll, hierarchy, input, fields, dialogs/services, property proxies, callbacks, host execution, dispatch, and deterministic retirement.
    * - :cpp:class:`gf_application_config <gf_application_config>`
-     -  
+     - gf_application_config (C ABI 1.1) is what application.create makes the library's application with: the theme base, up to 16 packages compiled after it, and the presentation source.
    * - :cpp:class:`gf_application_table <gf_application_table>`
      -  
    * - :cpp:class:`gf_binding_arguments <gf_binding_arguments>`
@@ -1303,6 +1303,8 @@ Types
 .. cpp:struct:: gf_application_config
 
    ``#include <gui_forms/c/gf_abi.h>``
+
+   gf_application_config (C ABI 1.1) is what application.create makes the library's application with: the theme base, up to 16 packages compiled after it, and the presentation source. With GF_PRESENTATION_SOURCE_HOST windows start from GUI.Forms' defaults and follow the host's presentation reports (a later minor may start from the host's settings read at create); with GF_PRESENTATION_SOURCE_DEFAULTS they start from explicit defaults and still follow the host's reports.
 
    .. cpp:member:: uint32_t struct_size
 

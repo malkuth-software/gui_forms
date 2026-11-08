@@ -1909,14 +1909,18 @@ typedef uint32_t gf_theme_base;
 /* The library's own GUI.Forms sheet. */
 #define GF_THEME_BASE_GUI_FORMS 1u
 
-/* gf_presentation_source: where an application's windows take their
- * presentation defaults (text scale, high contrast, reduced motion and
- * transparency, sound, ambient motion, double-click interval) until their
- * host reports its own. */
+/* gf_presentation_source: how an application's windows take their
+ * presentation (text scale, high contrast, reduced motion and transparency,
+ * sound, ambient motion, double-click interval). With either source a
+ * window follows the presentation its host reports once the host reports
+ * it; the sources differ in what a window starts from. */
 typedef uint32_t gf_presentation_source;
-/* The host's settings, read when the application is made. */
+/* Start from GUI.Forms' defaults and follow the host's reports. A later
+ * minor may start from the host's settings as read when the application is
+ * made, where the host can report them before a window exists. */
 #define GF_PRESENTATION_SOURCE_HOST 0u
-/* GUI.Forms' defaults. */
+/* Start from explicit defaults, GUI.Forms' presentation defaults as this
+ * library defines them, and follow the host's reports. */
 #define GF_PRESENTATION_SOURCE_DEFAULTS 1u
 
 /* The most theme packages one application compiles; more are refused by
