@@ -644,11 +644,6 @@ void ModelBuilder::read_declaration(NodeIndex node, ObjectIndex owner, WrittenNa
     const std::string_view written = token_text(name_token);
     const FormObject& object = scratch.objects[owner.value];
     const std::string stable_id = object.stable_id;
-    if (written.starts_with(handler_prefix)) {
-        report(DiagnosticCode::form_handler_removed, name_token, stable_id, written,
-               "a form names no program code: attach the behaviour from program logic");
-        return;
-    }
     // An object of an unknown type has been reported once; its members
     // are not checked.
     if (object.schema_type >= schema_.types.size()) return;
@@ -670,6 +665,13 @@ void ModelBuilder::read_declaration(NodeIndex node, ObjectIndex owner, WrittenNa
             property = descriptor_position((*parent_type).child_properties, *registered);
             provider = FormPropertyProvider::parent_type;
         }
+    }
+    // A handler reference is refused (E816); a property whose name begins
+    // with "on" (a ToggleSwitch's on_text) is not one.
+    if (!property && written.starts_with(handler_prefix)) {
+        report(DiagnosticCode::form_handler_removed, name_token, stable_id, written,
+               "a form names no program code: attach the behaviour from program logic");
+        return;
     }
     if (!property) {
         const std::string detail = parent_type == nullptr
