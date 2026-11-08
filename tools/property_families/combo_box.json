@@ -25,7 +25,7 @@
       "setter": "set_selected_index",
       "clear": null,
       "field": null,
-      "event": null,
+      "event": "selected_index_changed_",
       "on_changed": true,
       "localizable": null,
       "table": null,

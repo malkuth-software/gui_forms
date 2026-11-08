@@ -1313,7 +1313,9 @@ std::span<const PropertyEntry> ComboBox::property_table() const noexcept {
     return std::span<const PropertyEntry>(entries);
 }
 
-void ComboBox::on_selected_index_changed() {}
+void ComboBox::on_selected_index_changed() {
+    publish_change(selected_index_changed_, selected_index.read());
+}
 
 void ComboBox::on_text_changed() {
     publish_change(text_changed_, text.read());
