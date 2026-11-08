@@ -103,8 +103,8 @@ void populate_page_body(std::string_view page_id,
 
 // The one place the retained page context is recovered from the root Tag.
 std::shared_ptr<PageContext> retained_page_context(const Window& window) {
-    const std::shared_ptr<gui_forms::ScaledPanel> root =
-        std::dynamic_pointer_cast<ScaledPanel>(window.root());
+    const std::shared_ptr<gui_forms::Panel> root =
+        std::dynamic_pointer_cast<Panel>(window.root());
     if (!root) return nullptr;
     const std::shared_ptr<PageContext>* const retained =
         std::any_cast<std::shared_ptr<PageContext>>(&(*root).tag());
@@ -144,14 +144,24 @@ GalleryShell build_gallery_shell(const GalleryTree& compiled) {
     // Pages capture the status line while they are built, so it exists first;
     // the status strip adopts it below.
     (*context).status = label("gallery.status.text", "", 11.0, 600, shell_blue_dark);
-    std::shared_ptr<gui_forms::ScaledPanel> root = make_control<ScaledPanel>(
-        StableId("gallery.shell"), gallery_default_size);
+    // The shell is laid out as a Windows Forms window is (owner, 2026-11-08):
+    // the command strip docked top, the navigation docked left down to the
+    // bottom edge, the status strip docked bottom beside it, the diagnostics
+    // docked right while shown, and the page area filling the rest. Nothing
+    // scales with the window, so a resize moves or resizes only the docked
+    // parts it reaches and repaints only what changed (resize R-8). The
+    // bounds below are the default window's (gallery_default_size), against
+    // which the anchored children keep their distances.
+    std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("gallery.shell"));
+    (*root).set_requested_bounds({0.0, 0.0, gallery_default_size.width, gallery_default_size.height});
     (*root).set_background(canvas);
     (*root).set_tag(context);
 
     // The form document's command strip: Reset, Diagnostics toggle, status badge.
     if (const Control::Ptr strip = compiled.mount("gallery.command-strip")) {
-        (*root).add_at(strip, {0.0, 0.0, 1280.0, 34.0});
+        (*strip).set_requested_bounds({0.0, 0.0, gallery_default_size.width, 34.0});
+        (*strip).dock = DockStyle::top;
+        (*root).add_child(strip);
     }
 
     const std::vector<NavigationEntry> order = navigation_order();
@@ -164,7 +174,9 @@ GalleryShell build_gallery_shell(const GalleryTree& compiled) {
     std::shared_ptr<gui_forms::ScrollableControl> sidebar = make_control<ScrollableControl>(
         StableId("gallery.sidebar"));
     (*sidebar).auto_scroll = true;
-    (*root).add_at(sidebar, {0.0, 34.0, 238.0, sidebar_height});
+    (*sidebar).set_requested_bounds({0.0, 34.0, 238.0, sidebar_height});
+    (*sidebar).dock = DockStyle::left;
+    (*root).add_child(sidebar);
     // First child, so it paints beneath the rows; sized to the content below.
     std::shared_ptr<gui_forms::Panel> sidebar_paper =
         make_control<Panel>(StableId("gallery.sidebar.paper"));
@@ -206,10 +218,45 @@ GalleryShell build_gallery_shell(const GalleryTree& compiled) {
     (*sidebar_paper).set_bounds({0.0, 0.0, 206.0, std::max(sidebar_height, navigation_y + 8.0)});
     (*sidebar).auto_scroll_min_size = {206.0, navigation_y + 8.0};
 
-    std::shared_ptr<gui_forms::ScaledPanel> content = make_control<Surface>(
-        StableId("gallery.content"), Size{1042.0, 742.0});
+    // The status strip, docked bottom beside the navigation: added before the
+    // page area, so it claims its edge first.
+    std::shared_ptr<gui_forms::Panel> status_surface = make_control<Panel>(StableId("gallery.status"));
+    (*status_surface).set_requested_bounds({238.0, 776.0, 1042.0, 44.0});
+    (*status_surface).dock = DockStyle::bottom;
+    (*status_surface).set_background(Color::rgba(225, 232, 238));
+    (*root).add_child(status_surface);
+    std::shared_ptr<gui_forms::Panel> status_rule =
+        make_control<Panel>(StableId("gallery.status.rule"));
+    (*status_rule).set_background(rule);
+    (*status_rule).set_requested_bounds({0.0, 0.0, 1042.0, 1.0});
+    (*status_rule).dock = DockStyle::top;
+    (*status_surface).add_child(status_rule);
+    (*(*context).status).set_requested_bounds({18.0, 10.0, 800.0, 24.0});
+    (*(*context).status).anchor = AnchorStyles::top | AnchorStyles::left | AnchorStyles::right;
+    (*status_surface).add_child((*context).status);
+    std::shared_ptr<gui_forms::CheckBox> live = make_control<CheckBox>(
+        StableId("gallery.status.live"), "Live animation");
+    (*live).set_checked(true);
+    (*live).set_indicator_style(ChoiceIndicatorStyle::toggle);
+    (*live).set_requested_bounds({846.0, 8.0, 180.0, 28.0});
+    (*live).anchor = AnchorStyles::top | AnchorStyles::right;
+    (*status_surface).add_child(live);
+
+    // The form document's diagnostics, docked right while shown (hidden until
+    // the command toggles it); added before the page area, which it narrows.
+    if (const Control::Ptr diagnostics = compiled.mount("gallery.diagnostics")) {
+        (*diagnostics).set_requested_bounds({1000.0, 34.0, 280.0, 742.0});
+        (*diagnostics).dock = DockStyle::right;
+        (*root).add_child(diagnostics);
+    }
+
+    // The page area fills the rest; each page's viewport is anchored to all
+    // four edges, keeping its 20-unit left margin.
+    std::shared_ptr<gui_forms::Panel> content = make_control<Panel>(StableId("gallery.content"));
+    (*content).set_requested_bounds({238.0, 34.0, 1042.0, 742.0});
+    (*content).dock = DockStyle::fill;
     (*content).set_background(canvas);
-    (*root).add_at(content, {238.0, 34.0, 1042.0, 742.0});
+    (*root).add_child(content);
     for (std::size_t index = 0; index < order.size(); ++index) {
         const GalleryPageSpec& spec = *order[index].page;
         const std::string surface_id =
@@ -234,7 +281,9 @@ GalleryShell build_gallery_shell(const GalleryTree& compiled) {
             StableId(surface_id + ".viewport"));
         (*viewport).auto_scroll = true;
         (*viewport).visible = index == 0U;
-        (*content).add_at(viewport, {20.0, 0.0, 1022.0, 742.0});
+        (*viewport).set_requested_bounds({20.0, 0.0, 1022.0, 742.0});
+        (*viewport).anchor = AnchorStyles::top | AnchorStyles::bottom | AnchorStyles::left | AnchorStyles::right;
+        (*content).add_child(viewport);
         std::shared_ptr<gui_forms::ScaledPanel> page = make_control<Surface>(
             StableId(surface_id), Size{1000.0, strip_height + 660.0});
         (*page).set_background(canvas);
@@ -279,25 +328,6 @@ GalleryShell build_gallery_shell(const GalleryTree& compiled) {
         (*context).pages.push_back(viewport);
     }
 
-    std::shared_ptr<gui_forms::ScaledPanel> status_surface = make_control<Surface>(
-        StableId("gallery.status"), Size{1042.0, 44.0});
-    (*status_surface).set_background(Color::rgba(225, 232, 238));
-    (*root).add_at(status_surface, {238.0, 776.0, 1042.0, 44.0});
-    std::shared_ptr<gui_forms::Panel> status_rule =
-        make_control<Panel>(StableId("gallery.status.rule"));
-    (*status_rule).set_background(rule);
-    (*status_surface).add_at(status_rule, {0.0, 0.0, 1042.0, 1.0});
-    (*status_surface).add_at((*context).status, {18.0, 10.0, 800.0, 24.0});
-    std::shared_ptr<gui_forms::CheckBox> live = make_control<CheckBox>(
-        StableId("gallery.status.live"), "Live animation");
-    (*live).checked = true;
-    (*live).indicator_style = ChoiceIndicatorStyle::toggle;
-    (*status_surface).add_at(live, {846.0, 8.0, 180.0, 28.0});
-
-    // The form document's diagnostics overlay; hidden until the command toggles it.
-    if (const Control::Ptr diagnostics = compiled.mount("gallery.diagnostics")) {
-        (*root).add_at(diagnostics, {1000.0, 34.0, 280.0, 742.0});
-    }
 
     const std::shared_ptr<ShellActions> actions = std::make_shared<ShellActions>(context);
     for (std::size_t index = 0; index < (*context).navigation.size(); ++index) {
