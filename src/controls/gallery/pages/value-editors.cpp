@@ -126,7 +126,7 @@ private:
     }
 
     void build_rack() {
-        (*rack_).set_module_width(640.0);
+        (*rack_).module_width = 640.0;
         (*rack_).set_modules({{
             std::string(module_id), "Lamp profile",
             {{"name", "Name", std::string(fixture_name), InstrumentFieldEditor::text, {}, {},

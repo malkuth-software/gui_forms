@@ -7,7 +7,7 @@ gui_forms::InstrumentRack
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: InstrumentRack final : public Panel
+.. cpp:class:: InstrumentRack final : public Panel, public InstrumentRackCapabilities<InstrumentRack>
 
    ``#include <gui_forms/controls/panel/instrument_rack/instrument_rack.hpp>``
 
@@ -33,17 +33,6 @@ gui_forms::InstrumentRack
 
    :Properties:
 
-      **modules** : ``std::vector<InstrumentModuleSpec>``
-         The modules as last set, updated as the user edits fields and toggles
-         modules. See :cpp:func:`set_modules <gui_forms::InstrumentRack::set_modules>` in the notes for the rules it checks.
-
-      **action_content** : ``Control::Ptr``
-         A control placed after the last module, at least the given minimum width
-         wide (170 by default) and filling the rest of its line, for buttons such
-         as "Add" and "Apply". It must not already have a parent, or
-         :cpp:func:`set_action_content <gui_forms::InstrumentRack::set_action_content>` throws ``std::invalid_argument``. Replacing it
-         disposes the previous one. There is none by default.
-
       **module_width** : ``double``
          The width of each module, never more than the rack's width. It must be
          finite and positive, or the setter throws ``std::invalid_argument``. The
@@ -58,14 +47,25 @@ gui_forms::InstrumentRack
          The space between modules and between lines. It must be finite and not
          negative, or the setter throws ``std::invalid_argument``. The default is 5.
 
-      **content_height** : ``double``, read-only
-         The height of all the lines of modules as last laid out, including the
-         padding.
-
       **scroll_offset** : ``double``
          How far the content is scrolled, clamped between 0 and :cpp:func:`content_height <gui_forms::InstrumentRack::content_height>`
          minus the visible height. A value that is not finite throws
          ``std::invalid_argument``. Replacing the modules scrolls back to the top.
+
+      **modules** : ``std::vector<InstrumentModuleSpec>``
+         The modules as last set, updated as the user edits fields and toggles
+         modules. See :cpp:func:`set_modules <gui_forms::InstrumentRack::set_modules>` in the notes for the rules it checks.
+
+      **action_content** : ``Control::Ptr``
+         A control placed after the last module, at least the given minimum width
+         wide (170 by default) and filling the rest of its line, for buttons such
+         as "Add" and "Apply". It must not already have a parent, or
+         :cpp:func:`set_action_content <gui_forms::InstrumentRack::set_action_content>` throws ``std::invalid_argument``. Replacing it
+         disposes the previous one. There is none by default.
+
+      **content_height** : ``double``, read-only
+         The height of all the lines of modules as last laid out, including the
+         padding.
 
    :Events:
 
@@ -260,6 +260,29 @@ gui_forms::InstrumentRack
 
    .. rubric:: Properties
 
+   .. cpp:member:: double module_width
+
+      The width of each module, never more than the rack's width. It must be
+      finite and positive, or the setter throws ``std::invalid_argument``. The
+      default is 210.
+
+   .. cpp:member:: double module_height
+
+      The height of each module; a module whose fields are stacked may be
+      taller. It must be finite and positive, or the setter throws
+      ``std::invalid_argument``. The default is 66.
+
+   .. cpp:member:: double rack_gap
+
+      The space between modules and between lines. It must be finite and not
+      negative, or the setter throws ``std::invalid_argument``. The default is 5.
+
+   .. cpp:member:: double scroll_offset
+
+      How far the content is scrolled, clamped between 0 and :cpp:func:`content_height <gui_forms::InstrumentRack::content_height>`
+      minus the visible height. A value that is not finite throws
+      ``std::invalid_argument``. Replacing the modules scrolls back to the top.
+
    .. cpp:function:: const std::vector<InstrumentModuleSpec>& modules() const noexcept
 
       The modules as last set, updated as the user edits fields and toggles
@@ -281,49 +304,10 @@ gui_forms::InstrumentRack
 
       Sets :cpp:func:`action_content <gui_forms::InstrumentRack::action_content>`; see the property's description above.
 
-   .. cpp:function:: double module_width() const noexcept
-
-      The width of each module, never more than the rack's width. It must be
-      finite and positive, or the setter throws ``std::invalid_argument``. The
-      default is 210.
-
-   .. cpp:function:: void set_module_width(double width)
-
-      Sets :cpp:func:`module_width <gui_forms::InstrumentRack::module_width>`; see the property's description above.
-
-   .. cpp:function:: double module_height() const noexcept
-
-      The height of each module; a module whose fields are stacked may be
-      taller. It must be finite and positive, or the setter throws
-      ``std::invalid_argument``. The default is 66.
-
-   .. cpp:function:: void set_module_height(double height)
-
-      Sets :cpp:func:`module_height <gui_forms::InstrumentRack::module_height>`; see the property's description above.
-
-   .. cpp:function:: double rack_gap() const noexcept
-
-      The space between modules and between lines. It must be finite and not
-      negative, or the setter throws ``std::invalid_argument``. The default is 5.
-
-   .. cpp:function:: void set_rack_gap(double gap)
-
-      Sets :cpp:func:`rack_gap <gui_forms::InstrumentRack::rack_gap>`; see the property's description above.
-
    .. cpp:function:: double content_height() const noexcept
 
       The height of all the lines of modules as last laid out, including the
       padding.
-
-   .. cpp:function:: double scroll_offset() const noexcept
-
-      How far the content is scrolled, clamped between 0 and :cpp:func:`content_height <gui_forms::InstrumentRack::content_height>`
-      minus the visible height. A value that is not finite throws
-      ``std::invalid_argument``. Replacing the modules scrolls back to the top.
-
-   .. cpp:function:: void set_scroll_offset(double offset)
-
-      Sets :cpp:func:`scroll_offset <gui_forms::InstrumentRack::scroll_offset>`; see the property's description above.
 
 
    .. rubric:: Events

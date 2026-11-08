@@ -5,6 +5,7 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
 #include "../panel_anatomy.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <array>
 #include <algorithm>
@@ -957,36 +958,36 @@ Control::Ptr InstrumentRack::action_content() const noexcept {
     return (*impl_).action_content;
 }
 
-double InstrumentRack::module_width() const noexcept { return (*impl_).module_width; }
+double InstrumentRack::read_view(const decltype(module_width)&) const { return (*impl_).module_width; }
 
-void InstrumentRack::set_module_width(double width) {
+void InstrumentRack::write_view(const decltype(module_width)&, double incoming) {
     require_mutable();
-    require_finite_positive(width, "module width");
-    if ((*impl_).module_width == width) return;
-    (*impl_).module_width = width;
+    require_finite_positive(incoming, "module width");
+    if ((*impl_).module_width == incoming) return;
+    (*impl_).module_width = incoming;
     invalidate(invalidation::bounds);
 }
 
-double InstrumentRack::module_height() const noexcept { return (*impl_).module_height; }
+double InstrumentRack::read_view(const decltype(module_height)&) const { return (*impl_).module_height; }
 
-void InstrumentRack::set_module_height(double height) {
+void InstrumentRack::write_view(const decltype(module_height)&, double incoming) {
     require_mutable();
-    require_finite_positive(height, "module height");
-    if ((*impl_).module_height == height) return;
-    (*impl_).module_height = height;
+    require_finite_positive(incoming, "module height");
+    if ((*impl_).module_height == incoming) return;
+    (*impl_).module_height = incoming;
     invalidate(invalidation::bounds);
 }
 
-double InstrumentRack::rack_gap() const noexcept { return (*impl_).rack_gap; }
+double InstrumentRack::read_view(const decltype(rack_gap)&) const { return (*impl_).rack_gap; }
 
-void InstrumentRack::set_rack_gap(double gap) {
+void InstrumentRack::write_view(const decltype(rack_gap)&, double incoming) {
     require_mutable();
-    if (!std::isfinite(gap) || gap < 0.0) {
+    if (!std::isfinite(incoming) || incoming < 0.0) {
         throw std::invalid_argument(
             "InstrumentRack gap must be finite and nonnegative");
     }
-    if ((*impl_).rack_gap == gap) return;
-    (*impl_).rack_gap = gap;
+    if ((*impl_).rack_gap == incoming) return;
+    (*impl_).rack_gap = incoming;
     invalidate(invalidation::bounds);
 }
 
@@ -1000,16 +1001,16 @@ double InstrumentRack::preferred_height(double available_width) const {
     return (*impl_).computed_content_height;
 }
 
-double InstrumentRack::scroll_offset() const noexcept { return (*impl_).scroll_offset; }
+double InstrumentRack::read_view(const decltype(scroll_offset)&) const { return (*impl_).scroll_offset; }
 
-void InstrumentRack::set_scroll_offset(double offset) {
+void InstrumentRack::write_view(const decltype(scroll_offset)&, double incoming) {
     require_mutable();
-    if (!std::isfinite(offset)) {
+    if (!std::isfinite(incoming)) {
         throw std::invalid_argument(
             "InstrumentRack scroll offset must be finite");
     }
     static_cast<void>((*impl_).compute_slots(committed_arranged_bounds().width));
-    (*impl_).scroll_offset = offset;
+    (*impl_).scroll_offset = incoming;
     (*impl_).clamp_scroll();
     (*impl_).arrange_children();
     invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
@@ -1032,7 +1033,7 @@ void InstrumentRack::on_pointer(PointerEvent& event) {
     Panel::on_pointer(event);
     if (event.action != PointerAction::wheel ||
         std::abs(event.wheel_delta.y) <= 0.001) return;
-    set_scroll_offset((*impl_).scroll_offset - event.wheel_delta.y);
+    scroll_offset = (*impl_).scroll_offset - event.wheel_delta.y;
     event.handled = true;
 }
 
@@ -1076,7 +1077,6 @@ void InstrumentRack::on_dispose() noexcept {
     (*impl_).action_content.reset();
 }
 
-
 namespace {
 
 // Its rows, modules and toolbars are child controls with their own anatomies.
@@ -1110,5 +1110,9 @@ void InstrumentRack::append_interactions(std::vector<InteractionDeclaration>& in
     Panel::append_interactions(interactions);
     interactions.insert(interactions.end(), instrument_rack_interactions.begin(), instrument_rack_interactions.end());
 }
+
+// property_codemod begin InstrumentRack (tools/property_families/instrument_rack.json; generated, do not edit)
+
+// property_codemod end InstrumentRack
 
 } // namespace gui_forms

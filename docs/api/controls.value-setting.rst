@@ -98,6 +98,16 @@ Related types
      - InstrumentModuleSpec is the authoritative caller model for one stable named module, its fields, status/state, priority, enablement, and removal policy.
    * - :cpp:class:`InstrumentModuleToggle <gui_forms::InstrumentModuleToggle>`
      - InstrumentModuleToggle carries stable module identity and the committed enabled state.
+   * - :cpp:class:`InstrumentRackCapabilities <gui_forms::InstrumentRackCapabilities>`
+     - Every InstrumentRack capability, in the order the declaring class takes them.
+   * - :cpp:class:`InstrumentRackModuleHeightCapability <gui_forms::InstrumentRackModuleHeightCapability>`
+     - The module height before text scaling; finite and positive (std::invalid_argument otherwise).
+   * - :cpp:class:`InstrumentRackModuleWidthCapability <gui_forms::InstrumentRackModuleWidthCapability>`
+     - The preferred module width before text scaling; finite and positive (std::invalid_argument otherwise).
+   * - :cpp:class:`InstrumentRackRackGapCapability <gui_forms::InstrumentRackRackGapCapability>`
+     - The gap between modules before text scaling; finite and nonnegative (std::invalid_argument otherwise).
+   * - :cpp:class:`InstrumentRackScrollOffsetCapability <gui_forms::InstrumentRackScrollOffsetCapability>`
+     - The vertical scroll position, clamped to the content; a view, since revealing a module moves it.
    * - :cpp:class:`NumericUpDown::Parts <gui_forms::NumericUpDown::Parts>`
      - Stage T1 anatomy, as dot members.
    * - :cpp:class:`NumericUpDown::States <gui_forms::NumericUpDown::States>`
@@ -621,6 +631,101 @@ Related types
    .. cpp:member:: std::string module_id
 
    .. cpp:member:: bool enabled
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> InstrumentRackCapabilities : public InstrumentRackModuleWidthCapability<Declaring>, public InstrumentRackModuleHeightCapability<Declaring>, public InstrumentRackRackGapCapability<Declaring>, public InstrumentRackScrollOffsetCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/instrument_rack/instrument_rack_capabilities/instrument_rack_capabilities.hpp>``
+
+   Every InstrumentRack capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: double module_width
+
+      The preferred module width before text scaling; finite and positive (std::invalid_argument otherwise). A view onto the rack's layout state; a change re-lays out the modules.
+
+   .. cpp:member:: double module_height
+
+      The module height before text scaling; finite and positive (std::invalid_argument otherwise). A view onto the rack's layout state; a change re-lays out the modules.
+
+   .. cpp:member:: double rack_gap
+
+      The gap between modules before text scaling; finite and nonnegative (std::invalid_argument otherwise). A view onto the rack's layout state; a change re-lays out the modules.
+
+   .. cpp:member:: double scroll_offset
+
+      The vertical scroll position, clamped to the content; a view, since revealing a module moves it. A non-finite offset throws std::invalid_argument.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> InstrumentRackModuleHeightCapability
+
+   ``#include <gui_forms/controls/panel/instrument_rack/instrument_rack_capabilities/instrument_rack_capabilities.hpp>``
+
+   The module height before text scaling; finite and positive (std::invalid_argument otherwise). A view onto the rack's layout state; a change re-lays out the modules.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(InstrumentRackModuleHeightCapability& capability, double incoming)
+
+   .. cpp:function:: static double read(const InstrumentRackModuleHeightCapability& capability)
+
+   .. cpp:member:: PropertyView<double, InstrumentRackModuleHeightCapability<Declaring>> module_height
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> InstrumentRackModuleWidthCapability
+
+   ``#include <gui_forms/controls/panel/instrument_rack/instrument_rack_capabilities/instrument_rack_capabilities.hpp>``
+
+   The preferred module width before text scaling; finite and positive (std::invalid_argument otherwise). A view onto the rack's layout state; a change re-lays out the modules.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(InstrumentRackModuleWidthCapability& capability, double incoming)
+
+   .. cpp:function:: static double read(const InstrumentRackModuleWidthCapability& capability)
+
+   .. cpp:member:: PropertyView<double, InstrumentRackModuleWidthCapability<Declaring>> module_width
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> InstrumentRackRackGapCapability
+
+   ``#include <gui_forms/controls/panel/instrument_rack/instrument_rack_capabilities/instrument_rack_capabilities.hpp>``
+
+   The gap between modules before text scaling; finite and nonnegative (std::invalid_argument otherwise). A view onto the rack's layout state; a change re-lays out the modules.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(InstrumentRackRackGapCapability& capability, double incoming)
+
+   .. cpp:function:: static double read(const InstrumentRackRackGapCapability& capability)
+
+   .. cpp:member:: PropertyView<double, InstrumentRackRackGapCapability<Declaring>> rack_gap
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> InstrumentRackScrollOffsetCapability
+
+   ``#include <gui_forms/controls/panel/instrument_rack/instrument_rack_capabilities/instrument_rack_capabilities.hpp>``
+
+   The vertical scroll position, clamped to the content; a view, since revealing a module moves it. A non-finite offset throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(InstrumentRackScrollOffsetCapability& capability, double incoming)
+
+   .. cpp:function:: static double read(const InstrumentRackScrollOffsetCapability& capability)
+
+   .. cpp:member:: PropertyView<double, InstrumentRackScrollOffsetCapability<Declaring>> scroll_offset
 
 .. cpp:namespace:: gui_forms
 

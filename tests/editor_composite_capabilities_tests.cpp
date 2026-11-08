@@ -237,6 +237,32 @@ void test_correspondence_view() {
     require((*view).font.read() == larger, "the font stores");
 }
 
+void test_instrument_rack() {
+    std::shared_ptr<InstrumentRack> rack = make_control<InstrumentRack>(StableId("caps.rack"));
+    (*rack).module_width = 240.0;
+    (*rack).module_height = 70.0;
+    (*rack).rack_gap = 0.0;
+    require((*rack).module_width.read() == 240.0 && (*rack).module_height.read() == 70.0 &&
+                (*rack).rack_gap.read() == 0.0,
+            "the rack's layout views store");
+    bool refused = false;
+    try {
+        (*rack).module_width = 0.0;
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*rack).module_width.read() == 240.0, "a zero module width is refused");
+    refused = false;
+    try {
+        (*rack).rack_gap = -1.0;
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*rack).rack_gap.read() == 0.0, "a negative gap is refused");
+    (*rack).scroll_offset = -50.0;
+    require((*rack).scroll_offset.read() == 0.0, "the scroll offset clamps to the content's start");
+}
+
 } // namespace
 
 int main() {
@@ -246,6 +272,7 @@ int main() {
     test_breadcrumb_trail();
     test_anchored_overlay_layer();
     test_correspondence_view();
+    test_instrument_rack();
     std::cout << "gui_forms_editor_composite_capabilities_tests: all tests passed\n";
     return EXIT_SUCCESS;
 }

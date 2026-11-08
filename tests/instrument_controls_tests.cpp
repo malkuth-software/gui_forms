@@ -268,9 +268,9 @@ void test_responsive_wrap_compact_stack_and_scroll() {
                 (*value).absolute_bounds().y > (*property).absolute_bounds().y &&
                 (*rack).content_height() > 300.0,
             "severe width must stack fields inside each instrument instead of crushing three columns");
-    (*rack).set_scroll_offset(10000.0);
-    require((*rack).scroll_offset() > 0.0 &&
-                (*rack).scroll_offset() <= (*rack).content_height() - 90.0,
+    (*rack).scroll_offset = 10000.0;
+    require((*rack).scroll_offset.read() > 0.0 &&
+                (*rack).scroll_offset.read() <= (*rack).content_height() - 90.0,
             "the rack's one bounded scroll plane must keep wrapped modules reachable");
 
     window.set_text_scale(2.25);

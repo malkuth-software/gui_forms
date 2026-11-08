@@ -14,6 +14,7 @@
 #include "gui_forms/controls/panel/domain_up_down/domain_up_down.hpp"
 #include "gui_forms/controls/panel/group_box/group_box.hpp"
 #include "gui_forms/controls/panel/group_box/scaled_group_box/scaled_group_box.hpp"
+#include "gui_forms/controls/panel/instrument_rack/instrument_rack.hpp"
 #include "gui_forms/controls/panel/list_box/checked_list_box/checked_list_box.hpp"
 #include "gui_forms/controls/panel/list_box/list_box.hpp"
 #include "gui_forms/controls/panel/list_view/list_view.hpp"
@@ -531,6 +532,10 @@ void test_group_box_properties() {
     }
 }
 
+void test_instrument_rack_properties() {
+    std::shared_ptr<InstrumentRack> control = make_control<InstrumentRack>(StableId("generated.instrumentrack"));
+}
+
 void test_list_box_properties() {
     std::shared_ptr<ListBox> control = make_control<ListBox>(StableId("generated.listbox"));
     {
@@ -989,6 +994,7 @@ int main() {
     test_data_grid_view_properties();
     test_domain_up_down_properties();
     test_group_box_properties();
+    test_instrument_rack_properties();
     test_list_box_properties();
     test_list_view_properties();
     test_masked_text_box_properties();

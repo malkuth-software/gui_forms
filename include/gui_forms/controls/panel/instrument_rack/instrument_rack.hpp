@@ -2,6 +2,7 @@
 
 #include "gui_forms/input_controls.hpp"
 #include "gui_forms/instrument/instrument_types.hpp"
+#include "gui_forms/controls/panel/instrument_rack/instrument_rack_capabilities/instrument_rack_capabilities.hpp"
 
 #include <memory>
 #include <optional>
@@ -11,7 +12,7 @@
 namespace gui_forms {
 
 // A bounded retained rack for compact editing instruments.
-class InstrumentRack final : public Panel {
+class InstrumentRack final : public Panel, public InstrumentRackCapabilities<InstrumentRack> {
 public:
     explicit InstrumentRack(StableId stable_id);
     ~InstrumentRack() override;
@@ -38,16 +39,8 @@ public:
                             double minimum_width = 170.0);
     [[nodiscard]] Control::Ptr action_content() const noexcept;
 
-    [[nodiscard]] double module_width() const noexcept;
-    void set_module_width(double width);
-    [[nodiscard]] double module_height() const noexcept;
-    void set_module_height(double height);
-    [[nodiscard]] double rack_gap() const noexcept;
-    void set_rack_gap(double gap);
     [[nodiscard]] double content_height() const noexcept;
     [[nodiscard]] double preferred_height(double available_width) const;
-    [[nodiscard]] double scroll_offset() const noexcept;
-    void set_scroll_offset(double offset);
 
     [[nodiscard]] Event<const InstrumentFieldChange&>& field_changed() noexcept {
         return field_changed_;
@@ -84,6 +77,22 @@ private:
     Event<const InstrumentModuleToggle&> module_toggled_;
     Event<const InstrumentModuleRequest&> remove_requested_;
     Event<const InstrumentModuleMoveRequest&> move_requested_;
+    // property_codemod begin InstrumentRack (tools/property_families/instrument_rack.json; generated, do not edit)
+private:
+    friend struct InstrumentRackModuleWidthCapability<InstrumentRack>;
+    friend struct InstrumentRackModuleHeightCapability<InstrumentRack>;
+    friend struct InstrumentRackRackGapCapability<InstrumentRack>;
+    friend struct InstrumentRackScrollOffsetCapability<InstrumentRack>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void write_view(const decltype(module_width)& cell, double incoming);
+    [[nodiscard]] double read_view(const decltype(module_width)& cell) const;
+    void write_view(const decltype(module_height)& cell, double incoming);
+    [[nodiscard]] double read_view(const decltype(module_height)& cell) const;
+    void write_view(const decltype(rack_gap)& cell, double incoming);
+    [[nodiscard]] double read_view(const decltype(rack_gap)& cell) const;
+    void write_view(const decltype(scroll_offset)& cell, double incoming);
+    [[nodiscard]] double read_view(const decltype(scroll_offset)& cell) const;
+    // property_codemod end InstrumentRack
 };
 
 } // namespace gui_forms
