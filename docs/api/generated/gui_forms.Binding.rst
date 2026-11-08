@@ -186,7 +186,7 @@ gui_forms::Binding
       std::shared_ptr<gf::Binding> binding =
           (*name).data_bindings().add("text", people, "name", options);
       // the text box shows "Ada"
-      (*name).set_text("Ada Lovelace");
+      (*name).text = "Ada Lovelace";
       // the current record's "name" field is now "Ada Lovelace"
 
    Show a price with two decimals and accept a leading dollar sign when the user
@@ -220,7 +220,7 @@ gui_forms::Binding
               (*price).data_bindings().add("text", items, "price", options);
           gf::on((*binding).parse(), field, &PriceField::on_parse);
           // the text box shows "12.50"
-          (*price).set_text("$13.25");
+          (*price).text = "$13.25";
           // the current record's "price" field is now 13.25
       }
 

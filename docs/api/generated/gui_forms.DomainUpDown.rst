@@ -40,7 +40,7 @@ gui_forms::DomainUpDown
          and shows its text, or clears the selection and keeps the text; an index
          past the end throws ``std::out_of_range``.
 
-      **text** : ``std::string_view``
+      **text** : ``std::string``
          The editor's text. :cpp:func:`set_text <gui_forms::DomainUpDown::set_text>` sets it and selects the item it equals,
          even while :cpp:func:`read_only <gui_forms::DomainUpDown::read_only>` is on.
 
@@ -177,7 +177,7 @@ gui_forms::DomainUpDown
 
       Sets :cpp:func:`selected_index <gui_forms::DomainUpDown::selected_index>`; see the property's description above.
 
-   .. cpp:function:: std::string_view text() const noexcept
+   .. cpp:function:: std::string text() const
 
       The editor's text. :cpp:func:`set_text <gui_forms::DomainUpDown::set_text>` sets it and selects the item it equals,
       even while :cpp:func:`read_only <gui_forms::DomainUpDown::read_only>` is on.

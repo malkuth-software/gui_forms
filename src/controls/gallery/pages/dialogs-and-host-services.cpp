@@ -620,7 +620,7 @@ void HostServicesPage::publish_cancelled() {
 }
 
 void HostServicesPage::write_clipboard(HostServices& host) {
-    const HostServiceStatus result = host.write_clipboard_text((*clipboard_).text());
+    const HostServiceStatus result = host.write_clipboard_text((*clipboard_).text.read());
     (*status_).set_text(std::string("Clipboard write · ") +
                         host_service_error_name(result.error));
 }
@@ -628,7 +628,7 @@ void HostServicesPage::write_clipboard(HostServices& host) {
 void HostServicesPage::read_clipboard(HostServices& host) {
     const HostClipboardTextResult result = host.read_clipboard_text();
     if (result.status.accepted() && result.has_text) {
-        (*clipboard_).set_text(result.text_utf8);
+        (*clipboard_).text = result.text_utf8;
     }
     (*status_).set_text(std::string("Clipboard read · ") +
                         host_service_error_name(result.status.error) +

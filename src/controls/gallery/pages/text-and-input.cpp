@@ -71,7 +71,7 @@ private:
     }
 
     void build_fields() {
-        (*document_.gallery_text_password).set_use_system_password_character(true);
+        (*document_.gallery_text_password).use_system_password_character = true;
         // Both are state events; the handler reads the field, so it takes no
         // event argument and serves either publisher.
         on((*primary_).text_changed(), *this, &TextAndInputPage::refresh_state);
@@ -115,10 +115,10 @@ private:
     // own collection, and an editable ComboBox that completes from its
     // items. Accepted completions report to the status label.
     void build_auto_complete() {
-        (*(*city_).auto_complete_custom_source()).add_range(
+        (*(*city_).auto_complete_custom_source.read()).add_range(
             {"Calgary", "Cambridge", "Canberra", "Cardiff", "Edinburgh", "Edmonton", "London", "Los Angeles"});
-        (*city_).set_auto_complete_source(AutoCompleteSource::custom_source);
-        (*city_).set_auto_complete_mode(AutoCompleteMode::suggest_append);
+        (*city_).auto_complete_source = AutoCompleteSource::custom_source;
+        (*city_).auto_complete_mode = AutoCompleteMode::suggest_append;
         (*band_).set_items({"Long wave", "Medium wave", "Short wave", "VHF FM", "UHF", "Microwave"});
         (*band_).set_drop_down_style(ComboBoxStyle::drop_down);
         (*band_).set_auto_complete_source(AutoCompleteSource::list_items);
@@ -220,7 +220,7 @@ private:
         (*clipboard_status_).set_text(
             std::string("Clipboard ") + std::string(command) +
             (accepted ? " · accepted" : " · unavailable or empty") + " · " +
-            std::to_string((*primary_).text().size()) + " UTF-8 bytes retained");
+            std::to_string((*primary_).text.read().size()) + " UTF-8 bytes retained");
     }
 
     std::shared_ptr<TextBox> primary_;

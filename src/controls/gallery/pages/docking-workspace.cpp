@@ -166,7 +166,7 @@ private:
     }
 
     void on_save_named() {
-        const std::string name((*document_.gallery_docking_name).text());
+        const std::string name((*document_.gallery_docking_name).text.read());
         if (name.empty()) return;
         if (!(*workspace_).save_named_layout(name)) return;
         std::vector<std::string> names{};

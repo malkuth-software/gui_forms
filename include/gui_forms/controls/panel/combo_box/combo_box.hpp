@@ -71,7 +71,7 @@ public:
     void set_drop_down_style(ComboBoxStyle style);
     // The field's text: the editor's in the drop_down style, the selected
     // item's otherwise.
-    [[nodiscard]] std::string_view text() const noexcept;
+    [[nodiscard]] std::string text() const;
     // In the drop_down style, sets the editor's text and selects the item it
     // equals (ignoring ASCII case), or clears the selection. In the
     // drop_down_list style, selects the first item equal to `text`, or clears

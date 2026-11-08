@@ -552,7 +552,7 @@ int run_focused_cpu_experiment() {
         if (index != 0U) entry.owner_id = "focused.cpu.0";
         const gui_forms::StableId editor_id("focused.editor." + std::to_string(index));
         probe.editors[index] = std::make_shared<gui_forms::TextBox>(editor_id);
-        (*probe.editors[index]).set_multiline(true);
+        (*probe.editors[index]).multiline = true;
         entry.model = std::make_unique<gui_forms::Window>(probe.editors[index], gui_forms::Size{640.0, 480.0});
         probe.models[index] = entry.model.get();
         const bool cleared = (*entry.model).request_focus({});

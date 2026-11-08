@@ -349,7 +349,7 @@ void take_and_put_between_views() {
             "added");
     Window window(root, {600.0, 200.0});
     window.perform_layout();
-    (*moving).set_text("unsaved words");
+    (*moving).text = "unsaved words";
     PageTakeResult taken = (*left).pages().take(PageId{"doc"});
     require(taken.status == PageEditStatus::applied && !(*moving).parent(),
             "a taken page's control leaves the view and is kept by the taken page");
@@ -357,7 +357,7 @@ void take_and_put_between_views() {
     require(page_edit_succeeded((*right).pages().select(PageId{"doc"}, PageSelectionCause::programmatic)),
             "selected in the new view");
     window.perform_layout();
-    require((*right).page_content(PageId{"doc"}) == moving && (*moving).text() == "unsaved words" &&
+    require((*right).page_content(PageId{"doc"}) == moving && (*moving).text.read() == "unsaved words" &&
                 (*moving).effectively_visible() && (*right).panel_identity(PageId{"doc"}) == "right.panel.doc" &&
                 (*left).panel_identity(PageId{"doc"}).empty(),
             "the control moves to the other view with its state and shows there");

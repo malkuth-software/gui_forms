@@ -262,12 +262,12 @@ void hosted_controls() {
     const std::vector<SemanticNode> children = (*strip).semantic_virtual_children();
     require(children.size() == 2U, "hosted controls describe themselves, not as virtual children");
 
-    (*find).set_text("needle");
+    (*find).text = "needle";
     std::vector<ToolStripItemSpec> next = hosted_items();
     next[1].choices = {"Fit"};
     next[3].kind = ToolStripItemKind::text_box;
     (*strip).set_items(std::move(next));
-    require((*strip).text_box("find") == find && (*find).text() == "needle",
+    require((*strip).text_box("find") == find && (*find).text.read() == "needle",
             "set_items keeps a hosted control of the same ID and kind, with its state");
     require((*(*strip).combo_box("zoom")).items().size() == 1U, "set_items updates a combo box's choices");
     require((*strip).text_box("load") != nullptr && (*strip).children().size() == 3U,

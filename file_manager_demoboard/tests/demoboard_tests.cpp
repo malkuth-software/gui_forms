@@ -277,12 +277,12 @@ int main() {
     std::shared_ptr<gui_forms::ListBox> completions = std::dynamic_pointer_cast<gui_forms::ListBox>(
         (*product).find("fm.path.matrix.completions"));
     require(path_editor && completions && (*path_editor).visible.read() &&
-                (*path_editor).text() == "/Users/quentin/Work/Projects/" &&
+                (*path_editor).text.read() == "/Users/quentin/Work/Projects/" &&
                 (*path_editor).selection().empty() &&
-                (*path_editor).selection().caret.value() == (*path_editor).text().size() &&
+                (*path_editor).selection().caret.value() == (*path_editor).text.read().size() &&
                 (*product).focused_control() == path_editor,
             "open tail must become the real public TextBox in place with caret at end");
-    (*path_editor).set_text("$PROJECTS/N");
+    (*path_editor).text = "$PROJECTS/N";
     const gui_forms::DispatcherSnapshot completion_dispatch =
         (*product).dispatcher_snapshot();
     require(completion_dispatch.pending == 1U &&
@@ -302,7 +302,7 @@ int main() {
                 (*product).focused_control() == path_editor &&
                 (*product).dispatch_key({gui_forms::KeyAction::down,
                                        gui_forms::PhysicalKey::tab}) &&
-                (*path_editor).text() ==
+                (*path_editor).text.read() ==
                     "/Users/quentin/Work/Projects/North Shore/" &&
                 (*product).focused_control() == path_editor,
             "completion navigation and Tab acceptance must leave text focus in the editor");
@@ -325,7 +325,7 @@ int main() {
     static_cast<void>((*product).drain_posted_work());
     path_editor = std::dynamic_pointer_cast<gui_forms::TextBox>(
         (*product).find("fm.path.matrix.editor"));
-    (*path_editor).set_text("$UNKNOWN/Projects");
+    (*path_editor).text = "$UNKNOWN/Projects";
     require((*product).dispatch_key({gui_forms::KeyAction::down,
                                    gui_forms::PhysicalKey::enter}) &&
                 (*product).find("fm.path.matrix") &&
@@ -499,8 +499,8 @@ int main() {
     const std::shared_ptr<gui_forms::TextBox> search_editor = std::dynamic_pointer_cast<gui_forms::TextBox>(
         (*debounced_search).find("fm.search.editor"));
     require(search_editor != nullptr, "Search requires the public navigation TextBox");
-    (*search_editor).set_text("invoice");
-    (*search_editor).set_text("invoice quartz");
+    (*search_editor).text = "invoice";
+    (*search_editor).text = "invoice quartz";
     require(!(*(*debounced_search).find("fm.search.surface")).visible.read() &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
                     (*debounced_search).find("fm.status.authority"))).text().find(
@@ -846,9 +846,9 @@ int main() {
             "duplicate session rename Enter commit must be handled");
     const gui_forms::EventStatistics rename_commit_statistics =
         (*property_list).value_committed().statistics();
-    require((*property_name).text() == "Facade Study.png",
+    require((*property_name).text.read() == "Facade Study.png",
             std::string("duplicate session rename must restore the previous editor value; actual: ") +
-                std::string((*property_name).text()) + "; model: " +
+                std::string((*property_name).text.read()) + "; model: " +
                 (*property_list).value("fm.property.name").value_or("<missing>") +
                 "; accessible: " + (*property_name).accessible_description.read() +
                 "; status: " + (*std::dynamic_pointer_cast<gui_forms::Label>(

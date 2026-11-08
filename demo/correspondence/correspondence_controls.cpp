@@ -246,8 +246,8 @@ void CorrespondenceShell::build_command_row() {
 
     // The search field docks right before the bar fills the remainder.
     search_ = make_control<TextBox>(StableId(std::string(ids::search)));
-    (*search_).set_placeholder_text("Search this folder");
-    (*search_).set_font(detail_font);
+    (*search_).placeholder_text = "Search this folder";
+    (*search_).font = detail_font;
     (*search_).set_style(correspondence_style());
     (*search_).dock = DockStyle::right;
     (*search_).set_requested_bounds({0.0, 0.0, search_width, 0.0});
@@ -356,10 +356,10 @@ void CorrespondenceShell::build_panes() {
     (*reading_).add_child(reading_date_);
 
     reading_body_ = make_control<TextBox>(StableId(std::string(ids::reading_body)));
-    (*reading_body_).set_multiline(true);
-    (*reading_body_).set_word_wrap(true);
-    (*reading_body_).set_read_only(true);
-    (*reading_body_).set_font(body_font);
+    (*reading_body_).multiline = true;
+    (*reading_body_).word_wrap = true;
+    (*reading_body_).read_only = true;
+    (*reading_body_).font = body_font;
     (*reading_body_).set_style(correspondence_style());
     (*reading_body_).border_style = BorderStyle::none;
     (*reading_body_).dock = DockStyle::fill;
@@ -434,10 +434,9 @@ void CorrespondenceShell::project_reading_pane() {
         (*reading_correspondent_).set_text("");
         (*reading_date_).set_text(std::string(folder_name(model_.selected_folder())) +
                                   " · " + plural(model_.visible_messages().size(), "message"));
-        (*reading_body_).set_text(
-            "Select a message in the list to read it here.\n\n"
+        (*reading_body_).text = "Select a message in the list to read it here.\n\n"
             "Every folder and message is a deterministic in-memory fixture: nothing is "
-            "sent, received, or written to disk.");
+            "sent, received, or written to disk.";
         return;
     }
     (*reading_subject_).set_text((*message).subject);
@@ -450,7 +449,7 @@ void CorrespondenceShell::project_reading_pane() {
     std::string date_line = (*message).date + " · " + std::string(folder_name((*message).folder));
     if ((*message).flagged) date_line += " · Flagged";
     (*reading_date_).set_text(date_line);
-    (*reading_body_).set_text((*message).body);
+    (*reading_body_).text = (*message).body;
 }
 
 void CorrespondenceShell::project_status() {

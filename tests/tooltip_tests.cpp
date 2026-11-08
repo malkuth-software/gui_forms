@@ -588,7 +588,7 @@ void test_typed_text_fields_show_hints() {
     (*notes).set_requested_bounds({20.0, 140.0, 300.0, 160.0});
     (*name).tool_tip_text = "Your full name";
     (*search).tool_tip_text = "Searches every folder";
-    (*search).set_placeholder_text("Search");
+    (*search).placeholder_text = "Search";
     (*copies).tool_tip_text = "How many copies";
     (*notes).tool_tip_text = "Notes for the reviewer";
     (*root).add_child(name);
@@ -609,7 +609,7 @@ void test_typed_text_fields_show_hints() {
     run_due(window);
     require(!window.tool_tip_visible(), "keyboard focus on a typed-text field shows no bubble");
     require(painted_text(window, "hint.name", "Your full name"), "the focused empty field shows its hint");
-    (*name).set_text("Ada");
+    (*name).text = "Ada";
     require(!painted_text(window, "hint.name", "Your full name"), "typed text replaces the hint");
 
     static_cast<void>(window.request_focus(search));
@@ -620,7 +620,7 @@ void test_typed_text_fields_show_hints() {
     static_cast<void>(window.request_focus(copies_editor));
     run_due(window);
     require(!window.tool_tip_visible(), "an up-down's edit field shows no bubble either");
-    (*copies_editor).set_text({});
+    (*copies_editor).text = std::string{};
     const std::string editor_id((*copies_editor).stable_id().value());
     require(painted_text(window, editor_id, "How many copies"), "an emptied up-down field shows the up-down's hint");
     (*copies).tool_tip_text = "Copies to print";

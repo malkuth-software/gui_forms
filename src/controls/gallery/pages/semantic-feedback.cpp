@@ -163,14 +163,14 @@ void SemanticFeedbackPage::refresh_records() {
     if (!feedback_) {
         (*accounting_).set_text("Retained 0 of " + std::to_string(retained_records) +
                                 " records · dropped 0");
-        (*trace_).set_text({});
+        (*trace_).text = std::string{};
         return;
     }
     (*accounting_).set_text(
         "Retained " + std::to_string((*feedback_).records().size()) + " of " +
         std::to_string((*feedback_).maximum_records()) + " records · dropped " +
         std::to_string((*feedback_).dropped_record_count()));
-    (*trace_).set_text((*feedback_).trace());
+    (*trace_).text = (*feedback_).trace();
 }
 
 void add_semantic_feedback(const std::shared_ptr<Surface>& page,

@@ -330,12 +330,12 @@ std::shared_ptr<ScaledPanel> make_navigation(ProductRefs& refs) {
     (*panel).add_at(refs.path_terminal, {936, 7, 35, 26});
     std::shared_ptr<gui_forms::TextBox> search = std::make_shared<TextBox>(StableId("fm.search.editor"));
     (*search).set_requested_bounds({980, 6, 463, 28});
-    (*search).set_placeholder_text("Search Projects and descendants");
+    (*search).placeholder_text = "Search Projects and descendants";
     (*search).set_style(house_style());
     // Enter runs the search (SearchController::on_search_committed) and
     // Escape leaves it (SearchController::on_search_cancelled).
-    (*search).set_accepts_enter(true);
-    (*search).set_accepts_escape(true);
+    (*search).accepts_enter = true;
+    (*search).accepts_escape = true;
     refs.search = search;
     (*panel).add_at(search, (*search).requested_bounds());
     return panel;
@@ -1263,7 +1263,7 @@ private:
         (*refs_.objects).accessible_name = location.title + " objects";
         (*refs_.tree).set_selected_id("fm.tree.node." + location.tree_id);
         (*refs_.title).set_text("File Manager  ·  " + location.title);
-        (*refs_.search).set_placeholder_text("Search " + location.title + " and descendants");
+        (*refs_.search).placeholder_text = "Search " + location.title + " and descendants";
         (*refs_.status_authority).set_text("Local navigation · " + location.id +
                                          " · index 86 current");
         (*refs_.status_summary).set_text(location.selected_ids.empty()
@@ -1469,7 +1469,7 @@ private:
 
         editor_ = make_control<TextBox>(StableId("fm.path.matrix.editor"));
         (*editor_).set_style(house_style());
-        (*editor_).set_font({FontRole::content, 11.0, 500, false});
+        (*editor_).font = FontSpec{FontRole::content, 11.0, 500, false};
         (*editor_).accessible_name = "Direct fixture path";
         (*editor_).accessible_description =
             "Type a fixture path or one of the admitted HOME and PROJECTS variables";
@@ -1560,7 +1560,7 @@ private:
         (*content_).set_design_bounds(*recents_, {10.0, 194.0, 840.0, 222.0});
         const std::string value =
             std::string(FixtureCatalogue::instance().current_path()) + "/";
-        (*editor_).set_text(value);
+        (*editor_).text = value;
         (*editor_).select(Utf8Offset(value.size()), Utf8Offset(value.size()));
         refresh_completions();
         if (Window* window = (*editor_).attached_window()) {
@@ -1590,7 +1590,7 @@ private:
     void refresh_completions() {
         if (!editor_ || !completions_) return;
         const std::uint64_t generation = ++completion_generation_;
-        std::vector<FixturePathCompletion> matches = FixtureCatalogue::instance().complete_path((*editor_).text());
+        std::vector<FixturePathCompletion> matches = FixtureCatalogue::instance().complete_path((*editor_).text.read());
         static_cast<void>(pending_completion_.cancel());
         pending_completion_ = (*editor_).begin_invoke(
             CompletionDelivery{this, generation, std::move(matches)});
@@ -1624,7 +1624,7 @@ private:
     void accept_completion(std::size_t index) {
         if (!editor_ || !completions_ || index >= (*completions_).items().size()) return;
         const std::string value((*completions_).items()[index]);
-        (*editor_).set_text(value);
+        (*editor_).text = value;
         (*editor_).select(Utf8Offset(value.size()), Utf8Offset(value.size()));
         if (Window* window = (*editor_).attached_window()) {
             static_cast<void>((*window).request_focus(editor_));
@@ -1658,7 +1658,7 @@ private:
         }
         if (event.physical_key == PhysicalKey::enter) {
             const FixturePathResolution result =
-                FixtureCatalogue::instance().resolve_path((*editor_).text());
+                FixtureCatalogue::instance().resolve_path((*editor_).text.read());
             if (result.valid) {
                 status_(result.explanation + " · " + result.expanded_path);
                 navigate_and_close(result.destination_id);
@@ -1825,9 +1825,9 @@ public:
             return true;
         }
         if (normalized != "search") return false;
-        const std::string query((*refs_.search).text().empty()
+        const std::string query((*refs_.search).text.read().empty()
             ? FixtureCatalogue::instance().search_query()
-            : (*refs_.search).text());
+            : (*refs_.search).text.read());
         show_search(query, true);
         return true;
     }
@@ -1952,7 +1952,7 @@ private:
         if (immediate) ++query_generation_;
         (*path_matrix_).dismiss();
         applying_ = true;
-        if ((*refs_.search).text() != query) (*refs_.search).set_text(query);
+        if ((*refs_.search).text.read() != query) (*refs_.search).text = query;
         applying_ = false;
         search_visible_ = true;
         (*refs_.folder_surface).visible = false;
@@ -2162,7 +2162,7 @@ public:
         (*refs_.palette_surface).visible = false;
         (*refs_.dna_surface).visible = false;
         (*refs_.title).set_text("File Manager  ·  Criteria");
-        (*refs_.search).set_placeholder_text("Search this virtual folder");
+        (*refs_.search).placeholder_text = "Search this virtual folder";
         update_actions();
         update_status();
         (*refs_.status_authority).set_text(

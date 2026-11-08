@@ -222,7 +222,7 @@ void test_controls_read_it() {
             "a button's text font");
     require((*group).text_font((*group).font.read()).size == 22.0 * (*group).effective_text_scale(),
             "a group box's caption font");
-    require((*box).text_font((*box).font()).size == 21.0 * (*box).effective_text_scale(), "a text box's font");
+    require((*box).text_font((*box).font.read()).size == 21.0 * (*box).effective_text_scale(), "a text box's font");
 }
 
 } // namespace

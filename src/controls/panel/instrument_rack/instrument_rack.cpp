@@ -356,7 +356,7 @@ struct InstrumentRack::Impl final {
         FieldState& state = (*module).fields[static_cast<std::size_t>(
             field - (*module).spec.fields.data())];
         synchronizing = true;
-        (*control).set_text(state.committed_value);
+        (*control).text = state.committed_value;
         (*field).value = state.committed_value;
         for (InstrumentModuleSpec& public_module : public_modules) {
             if (public_module.stable_id != module_id) continue;
@@ -405,7 +405,7 @@ struct InstrumentRack::Impl final {
             editor = choice;
         } else {
             std::shared_ptr<gui_forms::TextBox> text = make_control<TextBox>(StableId(id), field.value);
-            (*text).set_font(field_font);
+            (*text).font = field_font;
             editor = text;
         }
         (*editor).margin = Insets{};
@@ -431,8 +431,8 @@ struct InstrumentRack::Impl final {
         } else if (const std::shared_ptr<gui_forms::TextBox> text = std::dynamic_pointer_cast<TextBox>(state.editor)) {
             // Enter commits the field (TextFieldCommitted) and Escape reverts
             // it (TextFieldCancelled); neither goes further.
-            (*text).set_accepts_enter(true);
-            (*text).set_accepts_escape(true);
+            (*text).accepts_enter = true;
+            (*text).accepts_escape = true;
             state.changed = (*text).text_changed().subscribe(
                 owner, TextFieldChanged{this, module_id, field_id});
             state.committed = (*text).committed().subscribe(
@@ -572,7 +572,7 @@ struct InstrumentRack::Impl final {
                         std::distance(field.choices.begin(), selected))});
             } else if (const std::shared_ptr<gui_forms::TextBox> text = std::dynamic_pointer_cast<TextBox>(
                            field_state.editor)) {
-                (*text).set_text(field.value);
+                (*text).text = field.value;
             }
             (*state.panel).field_weights.push_back(field.width_weight);
         }
@@ -882,7 +882,7 @@ bool InstrumentRack::set_field_value(std::string_view module_id,
     (*module).fields[index].committed_value = (*field).value;
     if (const std::shared_ptr<gui_forms::TextBox> text = std::dynamic_pointer_cast<TextBox>(
             (*module).fields[index].editor)) {
-        (*text).set_text((*field).value);
+        (*text).text = (*field).value;
     } else if (const std::shared_ptr<gui_forms::ComboBox> choice = std::dynamic_pointer_cast<ComboBox>(
                    (*module).fields[index].editor)) {
         const std::vector<std::string>::iterator selected =

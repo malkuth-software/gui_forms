@@ -53,14 +53,14 @@ void BreadcrumbTrail::initialize_control_tree() {
     if (editor_) return;
     editor_ = make_control<TextBox>(StableId(editor_stable_id_));
     (*editor_).border_style = BorderStyle::none;
-    (*editor_).set_placeholder_text("Enter an exact path");
+    (*editor_).placeholder_text = "Enter an exact path";
     (*editor_).accessible_name = "Exact location path";
     // Enter commits the path (editor_committed) and Escape ends the edit
     // (editor_cancelled); neither goes further.
-    (*editor_).set_accepts_enter(true);
-    (*editor_).set_accepts_escape(true);
+    (*editor_).accepts_enter = true;
+    (*editor_).accepts_escape = true;
     (*editor_).visible = false;
-    (*editor_).set_font(font_);
+    (*editor_).font = font_;
     add_child(editor_);
     const std::weak_ptr<BreadcrumbTrail> weak =
         std::static_pointer_cast<BreadcrumbTrail>(shared_from_this());
@@ -78,7 +78,7 @@ void BreadcrumbTrail::set_font(FontSpec font) {
     set_font_from_code(true);
     if (font_ == font) return;
     font_ = font;
-    if (editor_) (*editor_).set_font(font);
+    if (editor_) (*editor_).font = font;
     rebuild_layout(committed_arranged_bounds().width, committed_arranged_bounds().height);
     normalize_active();
     invalidate(Dirty::measure | Dirty::layout | Dirty::paint | Dirty::hit_test |
@@ -196,11 +196,11 @@ void BreadcrumbTrail::begin_edit(std::string text, bool select_all) {
         throw std::logic_error(
             "BreadcrumbTrail must be created through make_control before editing");
     }
-    (*editor_).set_text(std::move(text));
+    (*editor_).text = std::move(text);
     set_editing(true);
     if (select_all) (*editor_).select_all();
     if (window()) static_cast<void>((*window()).request_focus(editor_));
-    publish_change(edit_started_, std::string((*editor_).text()));
+    publish_change(edit_started_, std::string((*editor_).text.read()));
 }
 
 double BreadcrumbTrail::natural_width(
@@ -551,7 +551,7 @@ void BreadcrumbTrail::activate_visible(std::size_t index) {
     active_id_ = std::string(visible_stable_id(item));
     invalidate(Dirty::paint | Dirty::semantics | Dirty::accessibility);
     if (item.kind == VisibleKind::edit) {
-        begin_edit(editor_ ? std::string((*editor_).text()) : std::string{});
+        begin_edit(editor_ ? std::string((*editor_).text.read()) : std::string{});
     } else if (item.kind == VisibleKind::overflow) {
         publish_change(overflow_activated_);
     } else if (segments_[item.segment_index].enabled) {
@@ -637,7 +637,7 @@ SemanticDescriptor BreadcrumbTrail::semantic_descriptor() const {
     SemanticDescriptor descriptor{};
     descriptor.role = SemanticRole::group;
     descriptor.name = accessible_name.read();
-    descriptor.value = editor_ ? std::string((*editor_).text()) : std::string{};
+    descriptor.value = editor_ ? std::string((*editor_).text.read()) : std::string{};
     descriptor.description = accessible_description.read();
     descriptor.actions = {SemanticAction::focus};
     descriptor.exposed = true;

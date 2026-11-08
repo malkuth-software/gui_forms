@@ -255,7 +255,7 @@ void MaskedTextBox::show_provider() {
     // Under an empty mask the editor's text is the text; there is nothing to show.
     if (editor_ && provider_.length() != 0U) {
         synchronizing_ = true;
-        (*editor_).set_text(provider_.display_text());
+        (*editor_).text = provider_.display_text();
         synchronizing_ = false;
         place_caret();
     }
@@ -316,7 +316,7 @@ void MaskedTextBox::replace_provider(MaskedTextProvider next) {
         provider_ = std::move(next);
         if (editor_) {
             synchronizing_ = true;
-            (*editor_).set_text(kept);
+            (*editor_).text = kept;
             synchronizing_ = false;
         }
         pending_.reset();
@@ -348,7 +348,7 @@ void MaskedTextBox::set_culture(MaskCulture culture) {
 std::string MaskedTextBox::text() const {
     // Under an empty mask the editor's text is the text.
     if (provider_.length() == 0U) {
-        const std::string plain = editor_ ? std::string((*editor_).text()) : std::string{};
+        const std::string plain = editor_ ? std::string((*editor_).text.read()) : std::string{};
         return plain;
     }
     return provider_.to_string(text_mask_format_);
@@ -364,7 +364,7 @@ MaskEditResult MaskedTextBox::set_text(std::string_view text) {
         }
         if (editor_) {
             synchronizing_ = true;
-            (*editor_).set_text(std::string(text));
+            (*editor_).text = std::string(text);
             synchronizing_ = false;
         }
         publish_text_if_changed();
@@ -444,7 +444,7 @@ void MaskedTextBox::set_read_only(bool read_only) {
     require_mutable();
     if (read_only_ == read_only) return;
     read_only_ = read_only;
-    if (editor_) (*editor_).set_read_only(read_only_);
+    if (editor_) (*editor_).read_only = read_only_;
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
@@ -494,7 +494,7 @@ SemanticDescriptor MaskedTextBox::semantic_descriptor() const {
     descriptor.value = provider_.length() == 0U ? text() : provider_.display_text();
     // The editor shows the value, so its selection and caret index it; they
     // are forwarded only while the two agree.
-    if (editor_ && (*editor_).text() == descriptor.value) {
+    if (editor_ && (*editor_).text.read() == descriptor.value) {
         const SemanticDescriptor editing = (*editor_).semantic_descriptor();
         descriptor.text_selection = editing.text_selection;
     }
@@ -527,7 +527,7 @@ bool MaskedTextBox::on_semantic_action(SemanticAction action, std::string_view v
 bool MaskedTextBox::editor_shows_published_value() const {
     if (!editor_) return false;
     const std::string published = provider_.length() == 0U ? text() : provider_.display_text();
-    const bool same = (*editor_).text() == published;
+    const bool same = (*editor_).text.read() == published;
     return same;
 }
 

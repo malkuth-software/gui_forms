@@ -48,7 +48,7 @@ public:
     // Selects an item and shows its text, or clears the selection and keeps
     // the text. Throws std::out_of_range for an index past the end.
     void set_selected_index(std::optional<std::size_t> index);
-    [[nodiscard]] std::string_view text() const noexcept;
+    [[nodiscard]] std::string text() const;
     // Sets the field's text and re-matches the selection to it. Allowed on a
     // read-only field: read-only stops typing, not the program.
     void set_text(std::string text);

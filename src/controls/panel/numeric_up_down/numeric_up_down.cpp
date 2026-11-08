@@ -145,22 +145,22 @@ std::string NumericUpDown::formatted_value() const {
 void NumericUpDown::synchronize_editor() {
     if (!editor_) return;
     synchronizing_ = true;
-    (*editor_).set_text(formatted_value());
+    (*editor_).text = formatted_value();
     synchronizing_ = false;
 }
 
 void NumericUpDown::commit_editor_text() {
-    if (!editor_ || (*editor_).text().empty()) return;
+    if (!editor_ || (*editor_).text.read().empty()) return;
     try {
         std::size_t consumed{};
         double parsed{};
         if (hexadecimal_) {
-            parsed = static_cast<double>(std::stoll(std::string((*editor_).text()),
+            parsed = static_cast<double>(std::stoll(std::string((*editor_).text.read()),
                                                     &consumed, 16));
         } else {
-            parsed = std::stod(std::string((*editor_).text()), &consumed);
+            parsed = std::stod(std::string((*editor_).text.read()), &consumed);
         }
-        if (consumed == (*editor_).text().size() && std::isfinite(parsed) &&
+        if (consumed == (*editor_).text.read().size() && std::isfinite(parsed) &&
             parsed >= minimum_ && parsed <= maximum_ && parsed != value_) {
             value_ = parsed;
             invalidate(Dirty::paint | Dirty::semantics);

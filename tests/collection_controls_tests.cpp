@@ -254,7 +254,7 @@ void test_breadcrumb_identity_overflow_edit_and_input() {
                 editor_bounds.width == trail_bounds.width - 2.0 &&
                 editor_bounds.height == trail_bounds.height - 2.0,
             "breadcrumb editing must preserve outer identity and row geometry");
-    (*(*trail).editor()).set_text("/Users/example/Projects");
+    (*(*trail).editor()).text = "/Users/example/Projects";
     (*trail).set_tab_completion_available(true);
     const bool operation_check_14 = window.dispatch_key({KeyAction::down, PhysicalKey::tab});
     require(operation_check_14, "Tab must enter the typed completion route without traversing focus when a suggestion is available");
@@ -307,13 +307,13 @@ void test_breadcrumb_readable_raised_geometry() {
     Window window(trail, {500, 32});
     window.perform_layout();
     const double original_width = (*trail).semantic_virtual_children().front().bounds.width;
-    (*(*trail).editor()).set_text("draft path");
+    (*(*trail).editor()).text = "draft path";
     (*trail).set_font({FontRole::content, 13, 400, false});
     (*trail).set_appearance(BreadcrumbAppearance::raised);
     window.perform_layout();
     const std::vector<SemanticNode> nodes = (*trail).semantic_virtual_children();
     require(nodes.front().bounds.width > original_width &&
-            (*(*trail).editor()).font().size == 13 && (*(*trail).editor()).text() == "draft path",
+            (*(*trail).editor()).font.read().size == 13 && (*(*trail).editor()).text.read() == "draft path",
             "larger breadcrumb type must expand hit geometry and preserve the inline editor draft");
     std::string activated{};
     SubscriptionToken token = (*trail).segment_activated().subscribe(test_support::RecordValue<std::string>(activated));

@@ -79,14 +79,14 @@ void standard_items_and_states() {
     std::shared_ptr<BindingSource> source = std::make_shared<BindingSource>(window);
     (*source).set_records(records(3U));
     (*navigator).set_binding_source(source);
-    require(count_text(*navigator) == "of 3" && (*(*navigator).text_box("position")).text() == "1",
+    require(count_text(*navigator) == "of 3" && (*(*navigator).text_box("position")).text.read() == "1",
             "the navigator shows the count and the one-based position");
     require(!enabled((*navigator).move_first_command()) && !enabled((*navigator).move_previous_command()) &&
                 enabled((*navigator).move_next_command()) && enabled((*navigator).move_last_command()) &&
                 enabled((*navigator).add_new_command()) && enabled((*navigator).delete_command()),
             "at the first record only the forward moves, add and delete are enabled");
     require((*(*navigator).move_next_command()).execute() && (*source).position() == 1 &&
-                enabled((*navigator).move_previous_command()) && (*(*navigator).text_box("position")).text() == "2",
+                enabled((*navigator).move_previous_command()) && (*(*navigator).text_box("position")).text.read() == "2",
             "the next command moves the source and the states follow");
 
     const std::vector<ToolStrip::Item> moved_items = (*navigator).realized_items();
@@ -99,7 +99,7 @@ void standard_items_and_states() {
             "clicking the last button moves to the last record");
 
     (*source).set_position(0);
-    require((*(*navigator).text_box("position")).text() == "1", "a move made elsewhere shows in the navigator");
+    require((*(*navigator).text_box("position")).text.read() == "1", "a move made elsewhere shows in the navigator");
 }
 
 void position_box() {
@@ -111,19 +111,19 @@ void position_box() {
     (*navigator).set_binding_source(source);
     const std::shared_ptr<TextBox> box = (*navigator).text_box("position");
     require(window.request_focus(box), "the position box takes focus");
-    (*box).set_text("4");
+    (*box).text = "4";
     KeyEvent enter{KeyAction::down, PhysicalKey::enter};
     require(window.dispatch_key(enter) && (*source).position() == 3, "Enter in the position box moves there");
-    (*box).set_text("9");
+    (*box).text = "9";
     static_cast<void>(window.dispatch_key(enter));
-    require((*source).position() == 3 && (*box).text() == "4", "a position past the count is refused and restored");
-    (*box).set_text("x");
+    require((*source).position() == 3 && (*box).text.read() == "4", "a position past the count is refused and restored");
+    (*box).text = "x";
     static_cast<void>(window.dispatch_key(enter));
-    require((*box).text() == "4", "text that is not a number is restored");
-    (*box).set_text("2");
+    require((*box).text.read() == "4", "text that is not a number is restored");
+    (*box).text = "2";
     KeyEvent escape{KeyAction::down, PhysicalKey::escape};
     static_cast<void>(window.dispatch_key(escape));
-    require((*source).position() == 3 && (*box).text() == "4", "Escape restores the shown position");
+    require((*source).position() == 3 && (*box).text.read() == "4", "Escape restores the shown position");
 }
 
 void add_and_delete() {
@@ -151,7 +151,7 @@ void add_and_delete() {
     (*source).set_allow_remove(true);
     (*source).clear();
     require(count_text(*navigator) == "of 0" && !enabled((*navigator).move_last_command()) &&
-                (*(*navigator).text_box("position")).text() == "0",
+                (*(*navigator).text_box("position")).text.read() == "0",
             "an empty source disables the moves");
     (*navigator).set_binding_source(nullptr);
     require(!enabled((*navigator).add_new_command()) && (*navigator).binding_source() == nullptr,

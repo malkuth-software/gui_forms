@@ -824,7 +824,7 @@ void label_editing() {
     const std::shared_ptr<TextBox> editor = (*view).label_editor();
     window.perform_layout();
     std::vector<ListView::Item> items = (*view).realized_items();
-    require(editor && window.focused_control() == as_control(editor) && (*editor).text() == "Charlie 2" &&
+    require(editor && window.focused_control() == as_control(editor) && (*editor).text.read() == "Charlie 2" &&
                 (*editor).selected_text() == "Charlie 2",
             "the editor takes focus with the item's text selected");
     require((*view).parts().label_editor.present &&
@@ -984,7 +984,7 @@ void virtual_label_editing() {
     bool cancel = false;
     SubscriptionToken token = (*view).after_label_edit().subscribe(RecordLabelEdits{&after, &cancel});
     (*view).label_edit = true;
-    require((*view).begin_label_edit(4U) && (*(*view).label_editor()).text() == "Row 4",
+    require((*view).begin_label_edit(4U) && (*(*view).label_editor()).text.read() == "Row 4",
             "a virtual item's label is edited from the source's text");
     require(window.dispatch_text({"Four"}) && key(window, PhysicalKey::enter) && after.size() == 1U &&
                 after[0].item_id == "row-4" && after[0].label == std::optional<std::string>("Four"),
@@ -1179,7 +1179,7 @@ void capabilities() {
     require((*view).begin_label_edit(1U), "an edit begins");
     const FontSpec larger{FontRole::content, 14.0, 400, false};
     (*view).font = larger;
-    require((*(*view).label_editor()).font() == larger, "the label editor takes the view's new font");
+    require((*(*view).label_editor()).font.read() == larger, "the label editor takes the view's new font");
     (*view).cancel_label_edit();
 
     // Refusals leave the cells as they were.

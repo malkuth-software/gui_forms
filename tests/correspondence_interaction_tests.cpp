@@ -229,7 +229,7 @@ int main()
            "reading pane shows the sender");
     expect((*date).text() == "2026-10-10 17:42 · Inbox · Flagged",
            "reading pane shows date, folder and flag");
-    expect((*body).text() == (*first_message).body, "reading pane shows the full body");
+    expect((*body).text.read() == (*first_message).body, "reading pane shows the full body");
     expect((*folders).items()[0].text == "Inbox  (5)", "folder count follows the read mark");
     expect((*status).text().rfind("Inbox · 16 messages · 5 unread", 0) == 0,
            "status follows the read mark");
@@ -292,7 +292,7 @@ int main()
            "the list shows only the matches");
     expect((*status).text().find("2 matches for \"photometry\"") != std::string::npos,
            "status reports the match count");
-    (*(*shell).search_box()).set_text("");
+    (*(*shell).search_box()).text = "";
     expect(model.search().empty() && (*messages).items().size() == 14U,
            "clearing the search restores the list");
 
@@ -314,7 +314,7 @@ int main()
            "reply keeps an existing Re: prefix");
     expect((*correspondent).text() == "To: Tomasz Wierzba <t.wierzba@harbourlane.example>",
            "reply addresses the original sender");
-    expect((*body).text().find("Tomasz Wierzba wrote:") != std::string::npos,
+    expect((*body).text.read().find("Tomasz Wierzba wrote:") != std::string::npos,
            "reply body quotes the original");
 
     // Keyboard accelerator reaches the shared command (Ctrl+E archives).
@@ -360,7 +360,7 @@ int main()
     CountingPainter final_painter;
     view.paint(final_painter, {0.0, 0.0, 1120.0, 720.0});
     expect(final_painter.saves == final_painter.restores, "final paint is balanced");
-    expect(first_line((*body).text()).size() < 2000U, "body text stays bounded");
+    expect(first_line((*body).text.read()).size() < 2000U, "body text stays bounded");
 
     std::cout << "correspondence_interaction_tests: ok\n";
     return 0;

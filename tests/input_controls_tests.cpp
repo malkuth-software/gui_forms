@@ -6,8 +6,11 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -103,13 +106,13 @@ void test_unicode_editing_selection_and_history() {
     (*field).select(Utf8Offset(0U), Utf8Offset(3U));
     require((*field).selected_text() == "a\xCC\x81",
             "TextBox selection must preserve a combining grapheme");
-    require((*field).replace_selection("Ω") && (*field).text() == "Ωbc" &&
+    require((*field).replace_selection("Ω") && (*field).text.read() == "Ωbc" &&
                 order == "selection\ntext\nselection\n" && (*field).can_undo(),
             "TextBox replacement must publish text then collapsed selection");
-    require((*field).undo() && (*field).text() == "a\xCC\x81" "bc" &&
+    require((*field).undo() && (*field).text.read() == "a\xCC\x81" "bc" &&
                 (*field).can_redo(),
             "TextBox undo must restore Unicode text and directional selection");
-    require((*field).redo() && (*field).text() == "Ωbc",
+    require((*field).redo() && (*field).text.read() == "Ωbc",
             "TextBox redo must restore the replacement");
 }
 
@@ -125,22 +128,22 @@ void test_keyboard_text_input_and_read_only() {
     KeyEvent right{KeyAction::down, PhysicalKey::right, Modifier::shift};
     require(window.dispatch_key(right) && (*field).selected_text() == "a",
             "Shift+Right must extend TextBox selection by one grapheme");
-    require(window.dispatch_text({"Ω"}) && (*field).text() == "Ωlpha",
+    require(window.dispatch_text({"Ω"}) && (*field).text.read() == "Ωlpha",
             "normalized text input must replace the selected range");
 
     KeyEvent select_all{KeyAction::down, PhysicalKey::a, Modifier::control};
     require(window.dispatch_key(select_all) &&
-                (*field).selected_text() == (*field).text(),
+                (*field).selected_text() == (*field).text.read(),
             "command+A must select all TextBox text");
     KeyEvent erase{KeyAction::down, PhysicalKey::backspace};
-    require(window.dispatch_key(erase) && (*field).text().empty(),
+    require(window.dispatch_key(erase) && (*field).text.read().empty(),
             "Backspace must delete the active TextBox selection");
     KeyEvent undo{KeyAction::down, PhysicalKey::z, Modifier::control};
-    require(window.dispatch_key(undo) && (*field).text() == "Ωlpha",
+    require(window.dispatch_key(undo) && (*field).text.read() == "Ωlpha",
             "command+Z must use public TextBox history");
 
-    (*field).set_read_only(true);
-    require(!window.dispatch_text({"blocked"}) && (*field).text() == "Ωlpha",
+    (*field).read_only = true;
+    require(!window.dispatch_text({"blocked"}) && (*field).text.read() == "Ωlpha",
             "read-only TextBox must reject normalized text mutation");
 }
 
@@ -178,7 +181,7 @@ void test_pointer_drag_paint_and_caret_deadline() {
 
 void test_placeholder_and_validation() {
     std::shared_ptr<gui_forms::TextBox> field = make_control<TextBox>(StableId("input.placeholder"));
-    (*field).set_placeholder_text("Type a local path");
+    (*field).placeholder_text = "Type a local path";
     (*field).set_requested_bounds({0.0, 0.0, 180.0, 30.0});
     Window window(field, {180.0, 30.0});
     RecordingPainter painter;
@@ -197,23 +200,23 @@ void test_placeholder_and_validation() {
 
 void test_text_box_maximum_length_bounds_user_edits() {
     std::shared_ptr<gui_forms::TextBox> field = make_control<TextBox>(StableId("input.maximum-length"));
-    (*field).set_maximum_length(3U);
+    (*field).maximum_length = 3U;
     (*field).set_requested_bounds({0.0, 0.0, 180.0, 30.0});
     Window window(field, {180.0, 30.0});
     require(window.request_focus(field) && window.dispatch_text({"ab"}) &&
-                window.dispatch_text({"🚀"}) && (*field).text() == "ab🚀" &&
-                !window.dispatch_text({"c"}) && (*field).text() == "ab🚀",
+                window.dispatch_text({"🚀"}) && (*field).text.read() == "ab🚀" &&
+                !window.dispatch_text({"c"}) && (*field).text.read() == "ab🚀",
             "TextBox maximum length must count Unicode scalars and reject only the overflowing user edit");
-    (*field).set_text("programmatic value");
-    require((*field).text() == "programmatic value",
+    (*field).text = "programmatic value";
+    require((*field).text.read() == "programmatic value",
             "TextBox maximum length must not truncate explicit programmatic assignment");
     bool invalid{};
     try {
-        (*field).set_maximum_length(16U * 1024U * 1024U + 1U);
+        (*field).maximum_length = 16U * 1024U * 1024U + 1U;
     } catch (const std::out_of_range&) {
         invalid = true;
     }
-    require(invalid && (*field).maximum_length() == 3U,
+    require(invalid && (*field).maximum_length.read() == 3U,
             "TextBox maximum-length validation must be bounded and transactional");
 }
 
@@ -244,9 +247,9 @@ void test_word_navigation_and_deletion() {
     require(window.dispatch_key({KeyAction::down, PhysicalKey::end}) &&
                 window.dispatch_key({KeyAction::down, PhysicalKey::backspace,
                                      Modifier::control}) &&
-                (*field).text() == "alpha  日本語, ",
+                (*field).text.read() == "alpha  日本語, ",
             "Ctrl+Backspace must remove a complete word as one undoable edit");
-    require((*field).undo() && (*field).text() == "alpha  日本語, bravo",
+    require((*field).undo() && (*field).text.read() == "alpha  日本語, bravo",
             "word deletion must participate in ordinary TextBox history");
     require(window.dispatch_key({KeyAction::down, PhysicalKey::left,
                                  Modifier::meta}) &&
@@ -263,7 +266,7 @@ void test_clipboard_commands_and_protected_text() {
                                           "sëcret🚀");
     (*password).set_requested_bounds({0.0, 40.0, 240.0, 30.0});
     (*password).accessible_name = "Protected credential";
-    (*password).set_use_system_password_character(true);
+    (*password).use_system_password_character = true;
     (*root).add_child(password);
     Window window(root, {260.0, 90.0});
     host::HeadlessHost host(window);
@@ -281,18 +284,18 @@ void test_clipboard_commands_and_protected_text() {
 
     (*field).select(Utf8Offset(6U), Utf8Offset(11U));
     require(window.dispatch_key({KeyAction::down, PhysicalKey::x,
-                                 Modifier::meta}) && (*field).text() == "alpha ",
+                                 Modifier::meta}) && (*field).text.read() == "alpha ",
             "Cmd/Ctrl+X must copy then remove the selected range");
     require(services.write_clipboard_text("Ω paste").accepted(),
             "clipboard fixture must install Unicode paste content");
     require(window.dispatch_key({KeyAction::down, PhysicalKey::v,
                                  Modifier::control}) &&
-                (*field).text() == "alpha Ω paste",
+                (*field).text.read() == "alpha Ω paste",
             "Ctrl+V must replace selection from portable UTF-8 clipboard data");
-    (*field).set_read_only(true);
+    (*field).read_only = true;
     require(window.dispatch_key({KeyAction::down, PhysicalKey::v,
                                  Modifier::control}) &&
-                (*field).text() == "alpha Ω paste",
+                (*field).text.read() == "alpha Ω paste",
             "read-only paste must be consumed without mutating text");
 
     require(services.write_clipboard_text("sentinel").accepted() &&
@@ -317,15 +320,15 @@ void test_clipboard_commands_and_protected_text() {
                                    SemanticState::protected_content) &&
                 semantic_json.find("sëcret🚀") == std::string::npos,
             "protected semantics must identify protection without leaking the value");
-    (*password).set_use_system_password_character(false);
-    (*password).set_password_character(U'*');
+    (*password).use_system_password_character = false;
+    (*password).password_character = U'*';
     RecordingPainter custom_mask;
     window.paint(custom_mask, {0.0, 0.0, 260.0, 90.0});
     require(custom_mask.painted_text.find("*******") != std::string::npos,
             "custom password character must preserve one mask per grapheme");
     bool invalid_mask = false;
     try {
-        (*password).set_password_character(static_cast<char32_t>(0xd800U));
+        (*password).password_character = static_cast<char32_t>(0xd800U);
     } catch (const std::invalid_argument&) {
         invalid_mask = true;
     }
@@ -526,7 +529,7 @@ void test_numeric_up_down_composite_edit_spinner_and_keys() {
     (*numeric).set_requested_bounds({0.0, 0.0, 180.0, 32.0});
     Window window(numeric, {180.0, 32.0});
     window.perform_layout();
-    require((*numeric).editor() && (*(*numeric).editor()).text() == "1.5" &&
+    require((*numeric).editor() && (*(*numeric).editor()).text.read() == "1.5" &&
                 (*window.find("input.numeric.spinner")).absolute_bounds().width == 30.0,
             "NumericUpDown must expose its public TextBox editor and formatted value");
     std::string values;
@@ -536,7 +539,7 @@ void test_numeric_up_down_composite_edit_spinner_and_keys() {
             "NumericUpDown editor must accept retained focus");
     KeyEvent up{KeyAction::down, PhysicalKey::up};
     require(window.dispatch_key(up) && (*numeric).value() == 2.0 &&
-                (*(*numeric).editor()).text() == "2.0",
+                (*(*numeric).editor()).text.read() == "2.0",
             "NumericUpDown parent preview must step before TextBox caret routing");
 
     (*(*numeric).editor()).select_all();
@@ -546,7 +549,7 @@ void test_numeric_up_down_composite_edit_spinner_and_keys() {
     require(window.dispatch_text({"99"}) && (*numeric).value() == 7.5,
             "NumericUpDown must preserve value during an out-of-range intermediate edit");
     KeyEvent enter{KeyAction::down, PhysicalKey::enter};
-    require(window.dispatch_key(enter) && (*(*numeric).editor()).text() == "7.5",
+    require(window.dispatch_key(enter) && (*(*numeric).editor()).text.read() == "7.5",
             "NumericUpDown Enter must reject and restore an invalid editor value");
 
     const Control::Ptr spinner = window.find("input.numeric.spinner");
@@ -558,7 +561,7 @@ void test_numeric_up_down_composite_edit_spinner_and_keys() {
             "NumericUpDown spinner lower button must decrement by the public increment");
     (*numeric).set_hexadecimal(true);
     (*numeric).set_value(10.0);
-    require((*(*numeric).editor()).text() == "A" && values.find("7.000000") != std::string::npos,
+    require((*(*numeric).editor()).text.read() == "A" && values.find("7.000000") != std::string::npos,
             "NumericUpDown hexadecimal formatting must retain ordered value events");
 }
 
@@ -593,6 +596,114 @@ void test_list_box_model_stable_item_ids() {
 
 } // namespace
 
+// TextBox's properties are capabilities: a write runs the old setter's
+// checks and effects, and the table reaches the same hooks.
+void test_text_box_property_capabilities() {
+    std::shared_ptr<TextBox> box = make_control<TextBox>(StableId("capabilities.text"), "start");
+    require((*box).text.read() == "start" && (*box).selection().caret.value() == 5U,
+            "the constructor's initial_text is the engine's text, with the caret at its end");
+    std::vector<std::string> order;
+    const SubscriptionToken text_token = (*box).text_changed().subscribe(
+        test_support::PushConstant<std::vector<std::string>, std::string, const std::string&>(order, "text"));
+    const SubscriptionToken selection_token = (*box).selection_changed().subscribe(
+        test_support::PushConstant<std::vector<std::string>, std::string, const TextSelection&>(order, "selection"));
+    (*box).text = "changed";
+    require((*box).text.read() == "changed" && order.size() == 2U && order[0] == "text" &&
+                order[1] == "selection",
+            "a text write raises text_changed, then selection_changed");
+    (*box).text = "changed";
+    require(order.size() == 2U, "writing the current text raises nothing");
+    (*box).set_property_value("text", BindingValue{std::string("table")});
+    require((*box).text.read() == "table" && order.size() == 4U, "a table write runs the same hooks");
+    const std::optional<PropertyDescriptor> text_descriptor = (*box).property_descriptor("text");
+    require(text_descriptor && (*text_descriptor).change_notifications,
+            "TextBox text reports change notifications (TextChanged)");
+    static_cast<void>(text_token);
+    static_cast<void>(selection_token);
+
+    (*box).read_only = true;
+    require((*box).read_only.read() && (*box).property_value("read_only") == std::optional<BindingValue>{true},
+            "read_only is a view onto the engine, read by the table");
+    (*box).read_only = false;
+
+    bool refused = false;
+    try {
+        (*box).maximum_length = 16U * 1024U * 1024U + 1U;
+    } catch (const std::out_of_range&) {
+        refused = true;
+    }
+    require(refused && (*box).maximum_length.read() == 0U, "a maximum length above 16 Mi is refused");
+    (*box).maximum_length = 4U;
+    require((*box).maximum_length.read() == 4U, "maximum_length is a view onto the engine");
+    (*box).maximum_length = 0U;
+
+    (*box).use_system_password_character = true;
+    refused = false;
+    try {
+        (*box).multiline = true;
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && !(*box).multiline.read(), "a masked box refuses multiline");
+    (*box).use_system_password_character = false;
+    (*box).multiline = true;
+    refused = false;
+    try {
+        (*box).password_character = U'*';
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*box).password_character.read() == U'\0', "a multiline box refuses a password character");
+    refused = false;
+    try {
+        (*box).use_system_password_character = true;
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && !(*box).password_protected(), "a multiline box refuses system masking");
+    (*box).multiline = false;
+
+    refused = false;
+    try {
+        (*box).newline_sequence = std::string("x");
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*box).newline_sequence.read() == "\n", "a newline sequence other than LF, CR or CRLF is refused");
+    refused = false;
+    try {
+        (*box).placeholder_text = std::string("\xFF");
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*box).placeholder_text.read().empty(), "an invalid UTF-8 placeholder is refused");
+    refused = false;
+    try {
+        (*box).font = FontSpec{FontRole::content, 0.0, 400, false};
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*box).font.read() == FontSpec{FontRole::content, 12.0, 400, false},
+            "an invalid font is refused");
+
+    refused = false;
+    try {
+        (*box).auto_complete_source = AutoCompleteSource::list_items;
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*box).auto_complete_source.read() == AutoCompleteSource::none,
+            "a TextBox refuses the list_items source");
+    refused = false;
+    try {
+        (*box).auto_complete_custom_source = std::shared_ptr<AutoCompleteStringCollection>{};
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*box).auto_complete_custom_source.read() != nullptr,
+            "a null custom source is refused and the box keeps its own");
+}
+
 int main() {
     try {
         test_unicode_editing_selection_and_history();
@@ -607,6 +718,7 @@ int main() {
         test_combo_box_scrollbar_reaches_last_item();
         test_numeric_up_down_composite_edit_spinner_and_keys();
         test_list_box_model_stable_item_ids();
+        test_text_box_property_capabilities();
         std::cout << "gui_forms_input_controls_tests: all tests passed\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {

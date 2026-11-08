@@ -174,7 +174,7 @@ std::optional<std::size_t> DomainUpDown::matching_index(std::string_view text) c
 void DomainUpDown::select(std::optional<std::size_t> index, bool show_text) {
     if (show_text && index && editor_) {
         synchronizing_ = true;
-        (*editor_).set_text(items_[*index]);
+        (*editor_).text = items_[*index];
         synchronizing_ = false;
     }
     if (selected_index_ == index) return;
@@ -235,16 +235,18 @@ void DomainUpDown::set_selected_index(std::optional<std::size_t> index) {
     select(index, true);
 }
 
-std::string_view DomainUpDown::text() const noexcept {
-    if (!editor_) return {};
-    return (*editor_).text();
+// A copy: the editor's text view reads the editing engine by value.
+std::string DomainUpDown::text() const {
+    if (!editor_) return std::string{};
+    std::string current = (*editor_).text.read();
+    return current;
 }
 
 void DomainUpDown::set_text(std::string text) {
     require_mutable();
     if (!editor_) return;
     synchronizing_ = true;
-    (*editor_).set_text(std::move(text));
+    (*editor_).text = std::move(text);
     synchronizing_ = false;
     match_text();
 }

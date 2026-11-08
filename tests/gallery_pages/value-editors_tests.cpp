@@ -36,9 +36,9 @@ void test_value_editors(gui_forms::Window& window) {
         (*rack).field_editor("gallery.value-editors.rack.lamp", "channel"));
     const std::shared_ptr<gui_forms::TextBox> rack_tint = std::dynamic_pointer_cast<TextBox>(
         (*rack).field_editor("gallery.value-editors.rack.lamp", "tint"));
-    require(rack_name && rack_channel && rack_tint && (*rack_name).text() == "Signal lamp" &&
+    require(rack_name && rack_channel && rack_tint && (*rack_name).text.read() == "Signal lamp" &&
                 (*rack_channel).selected_index() == std::optional<std::size_t>{1U} &&
-                (*rack_tint).text() == "#2774B8FF" &&
+                (*rack_tint).text.read() == "#2774B8FF" &&
                 (*properties).value("gallery.value-editors.properties.tint") == "#2774B8FF",
             "the rack module and the PropertyList must start from the same record");
 
@@ -50,7 +50,7 @@ void test_value_editors(gui_forms::Window& window) {
                 (*color).value() == Color::rgba(42, 111, 180, 255) &&
                 (*preview).background() == Color::rgba(42, 111, 180, 255) &&
                 (*properties).value("gallery.value-editors.properties.tint") == "#2A6FB4FF" &&
-                (*rack_tint).text() == "#2A6FB4FF",
+                (*rack_tint).text.read() == "#2A6FB4FF",
             "a typed color commit must reach the preview, the list row and the rack field");
 
     // FlagsValueEditor: the overlay is a real CheckedListBox; a check commits.
@@ -79,11 +79,11 @@ void test_value_editors(gui_forms::Window& window) {
     require(window.dispatch_text({"Lamp B"}) &&
                 window.dispatch_key({KeyAction::down, PhysicalKey::enter}) &&
                 (*properties).value("gallery.value-editors.properties.name") == "Lamp B" &&
-                (*rack_name).text() == "Lamp B" && (*reset).enabled.read(),
+                (*rack_name).text.read() == "Lamp B" && (*reset).enabled.read(),
             "a PropertyList name commit must reach the rack field and enable Reset");
     click(window, reset);
     require((*properties).value("gallery.value-editors.properties.name") == "Signal lamp" &&
-                (*rack_name).text() == "Signal lamp" && !(*reset).enabled.read(),
+                (*rack_name).text.read() == "Signal lamp" && !(*reset).enabled.read(),
             "Reset must restore the fixture name in both views");
 
     // Rack commits reach the list; an unparseable tint is reported, not applied.

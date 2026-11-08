@@ -205,13 +205,13 @@ void filter_replaces_auto_complete() {
     ComboBox& combo = *fixture.combo;
     combo.set_auto_complete_source(AutoCompleteSource::list_items);
     combo.set_auto_complete_mode(AutoCompleteMode::suggest_append);
-    require((*combo.editor()).auto_complete_mode() == AutoCompleteMode::none,
+    require((*combo.editor()).auto_complete_mode.read() == AutoCompleteMode::none,
             "while a filter is set the editor does not auto-complete");
     require(type(window, "c") && combo.text() == "c" && !(*combo.editor()).auto_complete_open() &&
                 combo.dropped_down(),
             "the filtered list shows the matches; nothing is appended");
     combo.set_drop_down_filter(ComboBoxFilter::none);
-    require(!combo.dropped_down() && (*combo.editor()).auto_complete_mode() == AutoCompleteMode::suggest_append,
+    require(!combo.dropped_down() && (*combo.editor()).auto_complete_mode.read() == AutoCompleteMode::suggest_append,
             "clearing the filter closes the list and restores auto-complete");
     require(type(window, "a") && combo.text() == "calgary", "auto-complete acts again");
 
@@ -229,9 +229,9 @@ void suggestions_highlight_the_typed_prefix() {
     std::shared_ptr<TextBox> box = make_control<TextBox>(StableId("suggest.box"));
     (*box).set_requested_bounds({10.0, 10.0, 200.0, 28.0});
     (*root).add_child(box);
-    (*(*box).auto_complete_custom_source()).add_range({"Calgary", "Cambridge"});
-    (*box).set_auto_complete_source(AutoCompleteSource::custom_source);
-    (*box).set_auto_complete_mode(AutoCompleteMode::suggest);
+    (*(*box).auto_complete_custom_source.read()).add_range({"Calgary", "Cambridge"});
+    (*box).auto_complete_source = AutoCompleteSource::custom_source;
+    (*box).auto_complete_mode = AutoCompleteMode::suggest;
     Window window(root, Size{320.0, 300.0});
     window.perform_layout();
     require(window.request_focus(box) && type(window, "cal") && (*box).auto_complete_open(), "suggesting");

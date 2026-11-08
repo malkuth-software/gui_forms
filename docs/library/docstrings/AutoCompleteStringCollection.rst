@@ -78,6 +78,6 @@ One collection shared by two fields:
        gf::make_control<gf::TextBox>(gf::StableId("trip.from"));
    std::shared_ptr<gf::TextBox> to =
        gf::make_control<gf::TextBox>(gf::StableId("trip.to"));
-   (*from).set_auto_complete_custom_source(towns);
-   (*to).set_auto_complete_custom_source(towns);
+   (*from).auto_complete_custom_source = towns;
+   (*to).auto_complete_custom_source = towns;
    (*towns).add("Derby");   // both fields offer it from now on

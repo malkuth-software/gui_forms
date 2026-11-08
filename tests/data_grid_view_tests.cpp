@@ -477,8 +477,8 @@ void text_editing() {
     window.perform_layout();
     require((*grid).parts().editor.present && window.focused_control() == as_control((*grid).editing_control()),
             "the editor covers the cell and takes focus");
-    require((*(*grid).editing_control()).text() == "Alpha", "the editor starts with the cell's text");
-    require(window.dispatch_text({"Delta"}) && (*(*grid).editing_control()).text() == "Delta",
+    require((*(*grid).editing_control()).text.read() == "Alpha", "the editor starts with the cell's text");
+    require(window.dispatch_text({"Delta"}) && (*(*grid).editing_control()).text.read() == "Delta",
             "typing replaces the selected text");
     require(key(window, PhysicalKey::enter), "Enter commits");
     require(!(*grid).is_current_cell_in_edit_mode() && (*grid).cell_text(row_at(0U), 0U) == "Delta",
@@ -491,7 +491,7 @@ void text_editing() {
             "Enter moves to the cell below and focus returns to the grid");
 
     require(window.dispatch_text({"X"}) && (*grid).is_current_cell_in_edit_mode() &&
-                (*(*grid).editing_control()).text() == "X",
+                (*(*grid).editing_control()).text.read() == "X",
             "typing on a text cell begins an edit with the typed text");
     require(key(window, PhysicalKey::escape) && !(*grid).is_current_cell_in_edit_mode() &&
                 (*grid).cell_text(row_at(1U), 0U) == "Bravo" && ended.size() == 2U && changed.size() == 1U,
@@ -512,7 +512,7 @@ void text_editing() {
     const std::vector<DataGridView::Cell> refused_cells = (*grid).realized_cells();
     const DataGridView::Cell* refused = find_cell(refused_cells, 1U, 0U);
     require(refused != nullptr && (*refused).states.invalid, "the refused cell publishes invalid");
-    (*(*grid).editing_control()).set_text("Echo");
+    (*(*grid).editing_control()).text = "Echo";
     require(key(window, PhysicalKey::tab) && !(*grid).is_current_cell_in_edit_mode() &&
                 (*grid).cell_text(row_at(1U), 0U) == "Echo" && (*grid).current_cell() == cell_at(1U, 1U),
             "Tab commits and moves to the next cell");
@@ -521,9 +521,9 @@ void text_editing() {
     (*grid).add_column({.name = "frequency", .header_text = "MHz", .width = 60.0,
                         .value_kind = BindingValueKind::number});
     require((*grid).set_current_cell(cell_at(0U, 4U)) && (*grid).begin_edit(), "edit a number");
-    (*(*grid).editing_control()).set_text("abc");
+    (*(*grid).editing_control()).text = "abc";
     require(!(*grid).end_edit() && (*grid).is_current_cell_in_edit_mode(), "text that is not a number is refused");
-    (*(*grid).editing_control()).set_text("7.25");
+    (*(*grid).editing_control()).text = "7.25";
     require((*grid).end_edit() && (*grid).cell_value(row_at(0U), 4U) == BindingValue{7.25} &&
                 (*grid).cell_text(row_at(0U), 4U) == "7.25",
             "a number commits as a number and shows its shortest text");
@@ -750,7 +750,7 @@ void virtual_row_identity() {
     require((*grid).set_current_cell(DataGridViewCellAddress{*(*grid).row_position(id("v3")), 0U}) &&
                 (*grid).begin_edit(),
             "an edit begins on v3");
-    (*(*grid).editing_control()).set_text("edited");
+    (*(*grid).editing_control()).text = "edited";
     std::vector<DataGridViewRowId> moved{};
     for (const DataGridViewRowId& row : removed) {
         if (!(row == id("v3"))) moved.push_back(row);
@@ -912,7 +912,7 @@ void bound_rows() {
     require((*grid).set_current_cell(cell_at(0U, 1U)) && (*source).position() == 0,
             "moving the current row moves the position");
     require((*grid).begin_edit(), "a bound cell edits");
-    (*(*grid).editing_control()).set_text("Paris");
+    (*(*grid).editing_control()).text = "Paris";
     require((*grid).end_edit() && (*source).current_field("City") == BindingValue{std::string("Paris")} &&
                 (*grid).cell_text(row_at(0U), 1U) == "Paris",
             "a committed edit sets the source's field");
@@ -1513,13 +1513,13 @@ void data_errors_and_dirty_state() {
 
     // commit_edit stores without leaving edit; refresh_edit restores the cell.
     require((*grid).begin_edit(), "edit again");
-    (*(*grid).editing_control()).set_text("7.5");
+    (*(*grid).editing_control()).text = "7.5";
     require((*grid).commit_edit() && (*grid).is_current_cell_in_edit_mode() && !(*grid).is_current_cell_dirty() &&
                 (*grid).cell_value(row_at(0U), 4U) == BindingValue{7.5},
             "commit_edit stores and stays in edit");
     require((*grid).is_current_row_dirty(), "a committed value makes the row dirty");
-    (*(*grid).editing_control()).set_text("9");
-    require((*grid).refresh_edit() && (*(*grid).editing_control()).text() == "7.5" &&
+    (*(*grid).editing_control()).text = "9";
+    require((*grid).refresh_edit() && (*(*grid).editing_control()).text.read() == "7.5" &&
                 !(*grid).is_current_cell_dirty(),
             "refresh_edit shows the stored value again");
     require((*grid).end_edit() && validated.size() == 1U && validated[0].column == 4U,
@@ -1536,7 +1536,7 @@ void data_errors_and_dirty_state() {
     std::vector<DataGridViewDataErrorEvent> commits;
     SubscriptionToken commit_token = (*virtual_grid).data_error().subscribe(RecordDataError{&commits, true});
     require((*virtual_grid).set_current_cell(cell_at(1U, 0U)) && (*virtual_grid).begin_edit(), "virtual edit");
-    (*(*virtual_grid).editing_control()).set_text("changed");
+    (*(*virtual_grid).editing_control()).text = "changed";
     require(!(*virtual_grid).end_edit() && commits.size() == 1U &&
                 commits[0].context == DataGridViewDataErrorContext::commit && commits[0].row_id == id("v1"),
             "a refused store is a commit data error");
@@ -1686,7 +1686,7 @@ void new_row_bound() {
     require((*grid).row_count() == 2U && (*grid).new_row_index() == row_at(1U), "a bound grid shows the new row");
     const DataGridViewRowId placeholder = (*grid).row_id(row_at(1U));
     require((*grid).set_current_cell(cell_at(1U, 1U)) && (*grid).begin_edit(), "edit the new row");
-    (*(*grid).editing_control()).set_text("Paris");
+    (*(*grid).editing_control()).text = "Paris";
     require((*grid).end_edit() && (*source).count() == 2U && (*source).records()[1].stable_id == placeholder.value &&
                 (*grid).cell_text(row_at(1U), 1U) == "Paris" && (*grid).row_count() == 3U,
             "the commit adds a record with the new row's ID and the value");
@@ -1924,14 +1924,14 @@ void formatting_and_parsing() {
     require((*grid).cell_text(row_at(0U), 0U) == "3.14" && (*grid).cell_text(row_at(1U), 0U) == "(none)",
             "the style's fixed format and null value give the cell's text");
     require(window.request_focus(grid) && (*grid).set_current_cell(cell_at(0U, 0U)) && (*grid).begin_edit() &&
-                (*(*grid).editing_control()).text() == "3.14",
+                (*(*grid).editing_control()).text.read() == "3.14",
             "an edit begins with the formatted text");
     require((*grid).end_edit() && (*grid).cell_value(row_at(0U), 0U) == BindingValue{3.14159},
             "an edit the user did not change stores nothing");
     require((*grid).set_current_cell(cell_at(1U, 0U)) && (*grid).set_current_cell(cell_at(0U, 0U)) &&
                 (*grid).begin_edit(),
             "edit the number again");
-    (*(*grid).editing_control()).set_text("(none)");
+    (*(*grid).editing_control()).text = "(none)";
     require((*grid).end_edit() && (*grid).cell_value(row_at(0U), 0U) == BindingValue{-1.0},
             "the null value's text stores the data source null value");
 
@@ -1941,7 +1941,7 @@ void formatting_and_parsing() {
     require((*grid).set_current_cell(cell_at(1U, 0U)) && (*grid).set_current_cell(cell_at(0U, 0U)) &&
                 (*grid).begin_edit(),
             "edit the number under N2");
-    (*(*grid).editing_control()).set_text("1,234.5");
+    (*(*grid).editing_control()).text = "1,234.5";
     require((*grid).end_edit() && (*grid).cell_value(row_at(0U), 0U) == BindingValue{1234.5} &&
                 (*grid).cell_text(row_at(0U), 0U) == "1,234.50",
             "grouped text stores the number it shows");
@@ -1952,7 +1952,7 @@ void formatting_and_parsing() {
     require((*grid).set_current_cell(cell_at(1U, 0U)) && (*grid).set_current_cell(cell_at(0U, 0U)) &&
                 (*grid).begin_edit(),
             "edit the number under P0");
-    (*(*grid).editing_control()).set_text("50 %");
+    (*(*grid).editing_control()).text = "50 %";
     require((*grid).end_edit() && (*grid).cell_value(row_at(0U), 0U) == BindingValue{0.5},
             "a percent text stores its hundredth");
     (*grid).set_column_default_cell_style(0U, {.format = std::string("E2")});
@@ -1963,7 +1963,7 @@ void formatting_and_parsing() {
     SubscriptionToken parse_token = (*grid).cell_parsing().subscribe(ParseStar{});
     require((*grid).cell_text(row_at(0U), 1U) == "x" && formatted > 0, "cell_formatting is raised for cell text");
     require((*grid).set_current_cell(cell_at(0U, 1U)) && (*grid).begin_edit(), "edit the note");
-    (*(*grid).editing_control()).set_text("*");
+    (*(*grid).editing_control()).text = "*";
     require((*grid).end_edit() && (*grid).cell_value(row_at(0U), 1U) == BindingValue{std::string("star")},
             "a cell_parsing handler gives the stored value");
 

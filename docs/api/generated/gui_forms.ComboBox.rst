@@ -89,7 +89,7 @@ gui_forms::ComboBox
          Either switch closes an open list. Windows Forms' third style, a list
          always shown under the field, is not offered.
 
-      **text** : ``std::string_view``
+      **text** : ``std::string``
          The field's text: the editor's in the drop_down style, otherwise the
          selected item's. :cpp:func:`set_text <gui_forms::ComboBox::set_text>` in the drop_down style sets the editor's
          text and selects the item it equals, ignoring ASCII case, or clears the
@@ -405,7 +405,7 @@ gui_forms::ComboBox
 
       Sets :cpp:func:`drop_down_style <gui_forms::ComboBox::drop_down_style>`; see the property's description above.
 
-   .. cpp:function:: std::string_view text() const noexcept
+   .. cpp:function:: std::string text() const
 
       The field's text: the editor's in the drop_down style, otherwise the
       selected item's. :cpp:func:`set_text <gui_forms::ComboBox::set_text>` in the drop_down style sets the editor's

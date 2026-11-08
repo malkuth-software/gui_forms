@@ -76,8 +76,8 @@ void example() {
         gf::make_control<gf::TextBox>(gf::StableId("trip.from"));
     std::shared_ptr<gf::TextBox> to =
         gf::make_control<gf::TextBox>(gf::StableId("trip.to"));
-    (*from).set_auto_complete_custom_source(towns);
-    (*to).set_auto_complete_custom_source(towns);
+    (*from).auto_complete_custom_source = towns;
+    (*to).auto_complete_custom_source = towns;
     (*towns).add("Derby");   // both fields offer it from now on
 }
 }  // namespace doc_example_AutoCompleteStringCollection_1
@@ -134,7 +134,7 @@ void example() {
     std::shared_ptr<gf::Binding> binding =
         (*name).data_bindings().add("text", people, "name", options);
     // the text box shows "Ada"
-    (*name).set_text("Ada Lovelace");
+    (*name).text = "Ada Lovelace";
     // the current record's "name" field is now "Ada Lovelace"
 }
 }  // namespace doc_example_Binding_1
@@ -166,7 +166,7 @@ void example() {
         (*price).data_bindings().add("text", items, "price", options);
     gf::on((*binding).parse(), field, &PriceField::on_parse);
     // the text box shows "12.50"
-    (*price).set_text("$13.25");
+    (*price).text = "$13.25";
     // the current record's "price" field is now 13.25
 }
 }  // namespace doc_example_Binding_2
@@ -3594,9 +3594,9 @@ struct Search final : gf::Component {
     std::string query;
 
     Search() {
-        (*field).set_placeholder_text("Search");
+        (*field).placeholder_text = "Search";
         (*field).accessible_name = "Search";
-        (*field).set_accepts_enter(true);
+        (*field).accepts_enter = true;
         gf::on((*field).committed(), *this, &Search::on_commit);
     }
     void on_commit(const std::string& text) { query = text; }
@@ -3616,8 +3616,8 @@ namespace doc_example_TextBox_2 {
 void example() {
     std::shared_ptr<gf::TextBox> note =
         gf::make_control<gf::TextBox>(gf::StableId("note"), "Draft");
-    (*note).set_multiline(true);
-    (*note).set_word_wrap(true);
+    (*note).multiline = true;
+    (*note).word_wrap = true;
     (*note).select_all();
     (*note).replace_selection("First line\nSecond line");
     (*note).undo();   // the text is "Draft" again, and can_redo() is true
@@ -3628,9 +3628,9 @@ namespace doc_example_TextBox_3 {
 void example() {
     std::shared_ptr<gf::TextBox> city =
         gf::make_control<gf::TextBox>(gf::StableId("address.city"));
-    (*(*city).auto_complete_custom_source()).add_range({"Calgary", "Cambridge", "Edmonton"});
-    (*city).set_auto_complete_source(gf::AutoCompleteSource::custom_source);
-    (*city).set_auto_complete_mode(gf::AutoCompleteMode::suggest_append);
+    (*(*city).auto_complete_custom_source.read()).add_range({"Calgary", "Cambridge", "Edmonton"});
+    (*city).auto_complete_source = gf::AutoCompleteSource::custom_source;
+    (*city).auto_complete_mode = gf::AutoCompleteMode::suggest_append;
     gf::Window window(city, gf::Size{240.0, 200.0});
     window.request_focus(city);
     window.dispatch_text(gf::TextInputEvent{"ca"});

@@ -87,22 +87,22 @@ void plain_box_passes_escape_on() {
     std::size_t cancels = 0U;
     SubscriptionToken token = (*box).cancelled().subscribe(CountCalls{&cancels});
     require(window.request_focus(box), "the box takes focus");
-    require(!(*box).accepts_escape(), "a box does not accept Escape by default");
+    require(!(*box).accepts_escape.read(), "a box does not accept Escape by default");
     require(press(window, PhysicalKey::escape) && (*fixture.watcher).seen.size() == 1U &&
                 (*fixture.watcher).seen[0] == Modifier::none,
             "with nothing to cancel, Escape bubbles to the container");
     require(press(window, PhysicalKey::escape, Modifier::shift) && (*fixture.watcher).seen.size() == 2U &&
                 (*fixture.watcher).seen[1] == Modifier::shift,
             "Shift+Escape bubbles to the container too");
-    require(cancels == 0U && (*box).text() == "draft" && window.focused_control() == box,
+    require(cancels == 0U && (*box).text.read() == "draft" && window.focused_control() == box,
             "a passed-on Escape raises no cancelled and leaves the text and focus alone");
 
-    (*box).set_multiline(true);
+    (*box).multiline = true;
     require(press(window, PhysicalKey::escape) && (*fixture.watcher).seen.size() == 3U,
             "a multi-line box passes Escape on as well");
-    (*box).set_multiline(false);
+    (*box).multiline = false;
 
-    (*box).set_read_only(true);
+    (*box).read_only = true;
     require(press(window, PhysicalKey::escape) && (*fixture.watcher).seen.size() == 4U,
             "a read-only box passes Escape on");
 }
@@ -113,7 +113,7 @@ void accepting_box_takes_plain_escape() {
     Window& window = *fixture.window;
     std::size_t cancels = 0U;
     SubscriptionToken token = (*box).cancelled().subscribe(CountCalls{&cancels});
-    (*box).set_accepts_escape(true);
+    (*box).accepts_escape = true;
     require(window.request_focus(box), "the box takes focus");
     require(press(window, PhysicalKey::escape) && cancels == 1U && (*fixture.watcher).seen.empty(),
             "a box that accepts Escape raises cancelled and stops the key");
@@ -123,23 +123,23 @@ void accepting_box_takes_plain_escape() {
     require(press(window, PhysicalKey::escape, Modifier::control) && cancels == 1U &&
                 (*fixture.watcher).seen.size() == 2U,
             "nor is Ctrl+Escape");
-    (*box).set_accepts_escape(false);
+    (*box).accepts_escape = false;
     require(press(window, PhysicalKey::escape) && cancels == 1U && (*fixture.watcher).seen.size() == 3U,
             "turning accepts_escape off passes plain Escape on again");
 }
 
 void suggestion_list_takes_escape() {
     std::shared_ptr<TextBox> box = make_control<TextBox>(StableId("esc.suggest"));
-    std::shared_ptr<AutoCompleteStringCollection> towns = (*box).auto_complete_custom_source();
+    std::shared_ptr<AutoCompleteStringCollection> towns = (*box).auto_complete_custom_source.read();
     (*towns).add_range({"Calgary", "California", "Cambridge"});
-    (*box).set_auto_complete_source(AutoCompleteSource::custom_source);
-    (*box).set_auto_complete_mode(AutoCompleteMode::suggest_append);
+    (*box).auto_complete_source = AutoCompleteSource::custom_source;
+    (*box).auto_complete_mode = AutoCompleteMode::suggest_append;
     Fixture fixture = make_fixture("esc.suggest", box);
     Window& window = *fixture.window;
     require(window.request_focus(box), "the box takes focus");
-    require(type(window, "c") && (*box).auto_complete_open() && (*box).text() == "calgary",
+    require(type(window, "c") && (*box).auto_complete_open() && (*box).text.read() == "calgary",
             "typing opens the list and appends a completion");
-    require(press(window, PhysicalKey::escape) && !(*box).auto_complete_open() && (*box).text() == "c" &&
+    require(press(window, PhysicalKey::escape) && !(*box).auto_complete_open() && (*box).text.read() == "c" &&
                 (*fixture.watcher).seen.empty(),
             "Escape closes the list, removes the completion and is consumed");
     require(press(window, PhysicalKey::escape) && (*fixture.watcher).seen.size() == 1U,
@@ -155,10 +155,10 @@ void composition_takes_escape() {
     Fixture fixture = make_fixture("esc.ime", box);
     Window& window = *fixture.window;
     require(window.request_focus(box), "the box takes focus");
-    require(type(window, "\xE3\x81\x8B", true) && (*box).text() == "\xE3\x81\x8B",
+    require(type(window, "\xE3\x81\x8B", true) && (*box).text.read() == "\xE3\x81\x8B",
             "composition text is shown in the box");
     require(press(window, PhysicalKey::escape) && (*fixture.watcher).seen.empty() &&
-                (*box).text() == "\xE3\x81\x8B",
+                (*box).text.read() == "\xE3\x81\x8B",
             "Escape during a composition is consumed and leaves the text to the input method");
     require(press(window, PhysicalKey::escape, Modifier::shift) && (*fixture.watcher).seen.empty(),
             "so is Shift+Escape");
@@ -166,7 +166,7 @@ void composition_takes_escape() {
     commit.text_utf8 = "\xE5\x8F\xAF";
     commit.replacement_start = 0;
     commit.replacement_length = 1;
-    require(window.dispatch_text(commit) && (*box).text() == "\xE5\x8F\xAF",
+    require(window.dispatch_text(commit) && (*box).text.read() == "\xE5\x8F\xAF",
             "the input method commits the composition");
     require(press(window, PhysicalKey::escape) && (*fixture.watcher).seen.size() == 1U,
             "after the commit, Escape bubbles again");
@@ -183,7 +183,7 @@ void composition_takes_escape() {
             "an empty composition ends it, and Escape bubbles");
 
     require(type(window, "b", true), "a composition starts again");
-    (*box).set_text("reset");
+    (*box).text = "reset";
     require(press(window, PhysicalKey::escape) && (*fixture.watcher).seen.size() == 3U,
             "set_text abandons the composition");
 }
@@ -279,7 +279,7 @@ void dialog_cancel_from_text_box() {
                 window.dialog_result() == DialogResult::cancel,
             "so does Shift+Escape");
     window.set_dialog_result(DialogResult::none);
-    (*field).set_accepts_escape(true);
+    (*field).accepts_escape = true;
     require(press(window, PhysicalKey::escape) && clicks == 2U && cancels == 1U &&
                 window.dialog_result() == DialogResult::none,
             "a field that accepts Escape cancels its own edit and the dialog stays");

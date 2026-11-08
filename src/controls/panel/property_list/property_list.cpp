@@ -95,7 +95,7 @@ struct PropertyList::Impl final {
             (*implementation).synchronizing = true;
             const std::shared_ptr<TextBox> editor =
                 std::dynamic_pointer_cast<TextBox>((*row).editor);
-            if (editor) (*editor).set_text((*row).committed_value);
+            if (editor) (*editor).text = (*row).committed_value;
             (*implementation).spec(*row).value = (*row).committed_value;
             (*implementation).synchronizing = false;
             (*implementation).owner.invalidate(
@@ -181,11 +181,11 @@ struct PropertyList::Impl final {
         if (!font_overridden || !editor) return;
         if (const std::shared_ptr<TextBox> text =
                 std::dynamic_pointer_cast<TextBox>(editor)) {
-            (*text).set_font(font);
+            (*text).font = font;
         } else if (const std::shared_ptr<NumericUpDown> numeric =
                        std::dynamic_pointer_cast<NumericUpDown>(editor)) {
             const std::shared_ptr<TextBox> text = (*numeric).editor();
-            if (text) (*text).set_font(font);
+            if (text) (*text).font = font;
         } else if (const std::shared_ptr<ComboBox> choice =
                        std::dynamic_pointer_cast<ComboBox>(editor)) {
             (*choice).set_font(font);
@@ -258,7 +258,7 @@ struct PropertyList::Impl final {
                 if (row.editor == PropertyEditorKind::text) {
                     std::shared_ptr<gui_forms::TextBox> editor = make_control<TextBox>(
                         StableId(row.stable_id + ".editor"), row.value);
-                    (*editor).set_font({FontRole::content, 10.0, 400, false});
+                    (*editor).font = FontSpec{FontRole::content, 10.0, 400, false};
                     (*editor).accessible_name = row.name;
                     (*editor).accessible_description = row.description;
                     (*editor).enabled = row.enabled;
@@ -318,8 +318,8 @@ struct PropertyList::Impl final {
         if (const std::shared_ptr<gui_forms::TextBox> text = std::dynamic_pointer_cast<TextBox>(state.editor)) {
             // Enter commits the row (TextCommitted) and Escape reverts it
             // (TextCancelled); neither goes further.
-            (*text).set_accepts_enter(true);
-            (*text).set_accepts_escape(true);
+            (*text).accepts_enter = true;
+            (*text).accepts_escape = true;
             state.value_subscription = (*text).text_changed().subscribe(
                 owner, TextValueChanged{this, row_id});
             state.commit_subscription = (*text).committed().subscribe(
@@ -638,7 +638,7 @@ bool PropertyList::set_value(std::string_view row_id, std::string value) {
     model.value = value;
     (*row).committed_value = value;
     if (const std::shared_ptr<gui_forms::TextBox> text = std::dynamic_pointer_cast<TextBox>((*row).editor)) {
-        (*text).set_text(value);
+        (*text).text = value;
     } else if (const std::shared_ptr<gui_forms::ComboBox> choice = std::dynamic_pointer_cast<ComboBox>((*row).editor)) {
         const std::vector<std::string>::iterator found =
             std::find(model.choices.begin(), model.choices.end(), value);

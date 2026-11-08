@@ -125,7 +125,7 @@ struct DialogState final {
       return;
     }
     directory = destination.lexically_normal();
-    (*location).set_text(directory.string());
+    (*location).text = directory.string();
     entries.clear();
     const std::filesystem::directory_iterator end;
     std::filesystem::directory_iterator iterator(
@@ -180,13 +180,13 @@ struct DialogState final {
     if (entries[index].directory)
       refresh(entries[index].path);
     else {
-      (*name).set_text(entries[index].path.filename().string());
+      (*name).text = entries[index].path.filename().string();
       accept();
     }
   }
   void accept() {
     if (std::holds_alternative<HostColorDialogRequest>(request.payload)) {
-      std::string value((*name).text());
+      std::string value((*name).text.read());
       if (!value.empty() && value.front() == '#')
         value.erase(0, 1);
       if (value.size() != 6 && !(allow_alpha && value.size() == 8)) {
@@ -217,8 +217,8 @@ struct DialogState final {
     std::error_code error;
     std::vector<std::string> paths;
     std::filesystem::path candidate =
-        (*name).text().empty() ? directory
-                               : std::filesystem::path((*name).text());
+        (*name).text.read().empty() ? directory
+                               : std::filesystem::path((*name).text.read());
     if (candidate.is_relative())
       candidate = directory / candidate;
     candidate = candidate.lexically_normal();
@@ -294,23 +294,22 @@ void ButtonAction::operator()(ButtonBase &) const {
   else if (action == 2)
     (*state).refresh((*state).directory.parent_path());
   else if (action == 3)
-    (*state).refresh((*(*state).location).text());
+    (*state).refresh((*(*state).location).text.read());
 }
 void ActivateFile::operator()(std::size_t index) const {
   (*state).activate(index);
 }
 void SelectFile::operator()(const ListSelectionChange &change) const {
   if (change.active_index && *change.active_index < (*state).entries.size())
-    (*(*state).name)
-        .set_text(
-            (*state).entries[*change.active_index].path.filename().string());
+    (*(*state).name).text =
+        (*state).entries[*change.active_index].path.filename().string();
 }
 void ChangeFilter::operator()(std::optional<std::size_t>) const {
   (*state).refresh((*state).directory);
 }
 void EnterName::operator()(const std::string &) const { (*state).accept(); }
 void EnterPath::operator()(const std::string &) const {
-  (*state).refresh((*(*state).location).text());
+  (*state).refresh((*(*state).location).text.read());
 }
 void DialogClose::operator()() const { (*state).done = true; }
 bool DialogHelpKey::operator()() const {
@@ -441,7 +440,7 @@ HostDialogResult retained_dialog(NativeWindow &owner,
         make_control<TextBox>(StableId("host.dialog.color"), value.str());
     (*state.name).set_bounds({20, 58, 520, 34});
     // Enter in the field accepts through EnterName.
-    (*state.name).set_accepts_enter(true);
+    (*state.name).accepts_enter = true;
     (*state.root).add_child(state.name);
     state.status = label(state, "host.dialog.status", "", {20, 102, 520, 58});
     state.accept_button =
@@ -478,7 +477,7 @@ HostDialogResult retained_dialog(NativeWindow &owner,
     state.location = make_control<TextBox>(StableId("host.dialog.location"));
     (*state.location).set_bounds({16, 16, 550, 32});
     // Enter in the location goes there (EnterPath).
-    (*state.location).set_accepts_enter(true);
+    (*state.location).accepts_enter = true;
     (*state.root).add_child(state.location);
     static_cast<void>(
         state.button("host.dialog.go", "Go", {578, 16, 56, 32}, 3));
@@ -494,7 +493,7 @@ HostDialogResult retained_dialog(NativeWindow &owner,
         make_control<TextBox>(StableId("host.dialog.filename"), suggested);
     (*state.name).set_bounds({16, 410, 688, 32});
     // Enter in the file name accepts through EnterName.
-    (*state.name).set_accepts_enter(true);
+    (*state.name).accepts_enter = true;
     (*state.root).add_child(state.name);
     state.filter = make_control<ComboBox>(StableId("host.dialog.filter"));
     (*state.filter).set_bounds({16, 452, 340, 30});

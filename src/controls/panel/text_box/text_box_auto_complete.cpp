@@ -88,47 +88,53 @@ std::vector<TextMatchRange> prefix_matches(std::size_t count, std::size_t typed_
 
 } // namespace
 
-void TextBox::set_auto_complete_mode(AutoCompleteMode mode) {
+// The auto-complete settings: a change ends any completion in progress.
+void TextBox::prepare_write(const decltype(auto_complete_mode)&, AutoCompleteMode&) {
     require_mutable();
-    if (auto_complete_mode_ == mode) return;
+}
+
+void TextBox::written(const decltype(auto_complete_mode)&) {
     end_auto_complete(false);
-    auto_complete_mode_ = mode;
     invalidate(Dirty::semantics);
 }
 
-void TextBox::set_auto_complete_source(AutoCompleteSource source) {
+void TextBox::prepare_write(const decltype(auto_complete_source)&, AutoCompleteSource& incoming) {
     require_mutable();
-    if (source == AutoCompleteSource::list_items) {
+    if (incoming == AutoCompleteSource::list_items) {
         throw std::invalid_argument(
             "TextBox auto-complete has no list items; use custom_source");
     }
-    if (auto_complete_source_ == source) return;
+}
+
+void TextBox::written(const decltype(auto_complete_source)&) {
     end_auto_complete(false);
-    auto_complete_source_ = source;
     invalidate(Dirty::semantics);
 }
 
-void TextBox::set_auto_complete_custom_source(std::shared_ptr<AutoCompleteStringCollection> source) {
+void TextBox::prepare_write(const decltype(auto_complete_custom_source)&,
+                            std::shared_ptr<AutoCompleteStringCollection>& incoming) {
     require_mutable();
-    if (!source) {
+    if (!incoming) {
         throw std::invalid_argument("TextBox auto-complete custom source may not be null");
     }
-    if (auto_complete_custom_source_ == source) return;
-    end_auto_complete(false);
-    auto_complete_custom_source_ = std::move(source);
 }
 
-void TextBox::set_auto_complete_case_sensitive(bool case_sensitive) {
-    require_mutable();
-    if (auto_complete_case_sensitive_ == case_sensitive) return;
+void TextBox::written(const decltype(auto_complete_custom_source)&) {
     end_auto_complete(false);
-    auto_complete_case_sensitive_ = case_sensitive;
+}
+
+void TextBox::prepare_write(const decltype(auto_complete_case_sensitive)&, bool&) {
+    require_mutable();
+}
+
+void TextBox::written(const decltype(auto_complete_case_sensitive)&) {
+    end_auto_complete(false);
 }
 
 HostServiceStatus TextBox::auto_complete_source_status() {
     HostServiceStatus status;
     const std::optional<HostAutoCompleteSource> host_source =
-        host_auto_complete_source(auto_complete_source_);
+        host_auto_complete_source(auto_complete_source.read());
     if (!host_source) return status;
     Window* const host = window();
     HostServices* const services = host != nullptr ? (*host).host_services() : nullptr;
@@ -170,8 +176,8 @@ void TextBox::close_auto_complete() {
 }
 
 bool TextBox::auto_complete_active() const noexcept {
-    const bool result = auto_complete_mode_ != AutoCompleteMode::none &&
-        auto_complete_source_ != AutoCompleteSource::none && !multiline_ &&
+    const bool result = auto_complete_mode.read() != AutoCompleteMode::none &&
+        auto_complete_source.read() != AutoCompleteSource::none && !multiline.read() &&
         !password_protected() && !(*editing_).read_only() && !(*editing_).has_edit_filter();
     return result;
 }
@@ -185,15 +191,15 @@ void TextBox::collect_auto_complete_candidates(std::string_view typed,
                                                std::vector<std::string>& matches) {
     matches.clear();
     if (typed.empty()) return;
-    if (auto_complete_source_ == AutoCompleteSource::custom_source) {
-        const std::span<const std::string> items = (*auto_complete_custom_source_).items();
+    if (auto_complete_source.read() == AutoCompleteSource::custom_source) {
+        const std::span<const std::string> items = (*auto_complete_custom_source.read()).items();
         for (const std::string& candidate : items) {
-            add_match(candidate, typed, auto_complete_case_sensitive_, matches);
+            add_match(candidate, typed, auto_complete_case_sensitive.read(), matches);
         }
         return;
     }
     const std::optional<HostAutoCompleteSource> host_source =
-        host_auto_complete_source(auto_complete_source_);
+        host_auto_complete_source(auto_complete_source.read());
     if (!host_source) return;
     Window* const host = window();
     HostServices* const services = host != nullptr ? (*host).host_services() : nullptr;
@@ -203,7 +209,7 @@ void TextBox::collect_auto_complete_candidates(std::string_view typed,
     const HostAutoCompleteResult result = (*services).query_auto_complete(request);
     if (!result.status.accepted()) return;
     for (const std::string& candidate : result.candidates_utf8) {
-        add_match(candidate, typed, auto_complete_case_sensitive_, matches);
+        add_match(candidate, typed, auto_complete_case_sensitive.read(), matches);
     }
 }
 
@@ -215,7 +221,7 @@ void TextBox::auto_complete_after_edit(TextEditKind kind, bool composing) {
         return;
     }
     detail::TextBoxAutoCompleteSession& session = auto_complete_session();
-    session.typed = std::string(text());
+    session.typed = std::string((*editing_).text());
     session.typed_selection = (*editing_).selection();
     session.highlighted.reset();
     session.shown = false;
@@ -224,7 +230,7 @@ void TextBox::auto_complete_after_edit(TextEditKind kind, bool composing) {
 
     const TextSelection typed_selection = (*editing_).selection();
     const bool caret_at_end = typed_selection.empty() && typed_selection.caret == (*editing_).store().utf8_size();
-    if (appends(auto_complete_mode_) && kind == TextEditKind::typing && caret_at_end) {
+    if (appends(auto_complete_mode.read()) && kind == TextEditKind::typing && caret_at_end) {
         const std::size_t typed_size = session.typed.size();
         for (const std::string& candidate : session.suggestions) {
             if (candidate.size() <= typed_size) continue;
@@ -235,8 +241,8 @@ void TextBox::auto_complete_after_edit(TextEditKind kind, bool composing) {
             const TextStore probe(completed);
             const Utf8Offset typed_end(typed_size);
             if (!probe.is_grapheme_boundary(typed_end)) continue;
-            const std::size_t maximum_length = (*editing_).maximum_length();
-            if (maximum_length != 0U && probe.scalar_count().value() > maximum_length) break;
+            const std::size_t length_limit = (*editing_).maximum_length();
+            if (length_limit != 0U && probe.scalar_count().value() > length_limit) break;
             const Utf8Offset completed_end(completed.size());
             show_completion_text(completed, TextSelection{.anchor = typed_end, .caret = completed_end});
             session.appended = true;
@@ -244,7 +250,7 @@ void TextBox::auto_complete_after_edit(TextEditKind kind, bool composing) {
             break;
         }
     }
-    if (suggests(auto_complete_mode_) && !session.suggestions.empty()) {
+    if (suggests(auto_complete_mode.read()) && !session.suggestions.empty()) {
         open_auto_complete_list();
     } else {
         close_auto_complete_list();
@@ -296,7 +302,7 @@ bool TextBox::auto_complete_key(const KeyEvent& event) {
             return true;
         }
         if (pending) {
-            std::string accepted(text());
+            std::string accepted((*editing_).text());
             accept_auto_complete(std::move(accepted));
             return true;
         }
@@ -403,7 +409,7 @@ void TextBox::open_auto_complete_list() {
     // The list never takes focus: typing stays in this box.
     (*list).set_focusable(false);
     (*list).set_paint_plane(PaintPlane::overlay);
-    (*list).set_font(font_);
+    (*list).set_font(font.read());
     (*list).set_items(session.suggestions);
     (*list).set_matches(prefix_matches(session.suggestions.size(), session.typed.size()));
     (*layer).set_content(list);
@@ -421,8 +427,8 @@ void TextBox::open_auto_complete_list() {
         session.revocation = (*closed).subscribe(*this,
             Delegate<>::bind<TextBox, &TextBox::auto_complete_overlay_revoked>(*this));
     }
-    if (auto_complete_source_ == AutoCompleteSource::custom_source) {
-        session.collection_change = (*auto_complete_custom_source_).changed().subscribe(*this,
+    if (auto_complete_source.read() == AutoCompleteSource::custom_source) {
+        session.collection_change = (*auto_complete_custom_source.read()).changed().subscribe(*this,
             Delegate<>::bind<TextBox, &TextBox::auto_complete_collection_changed>(*this));
     }
     session.open = true;

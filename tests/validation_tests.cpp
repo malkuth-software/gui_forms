@@ -269,7 +269,7 @@ void test_on_validation_binding_and_error_provider_share_focus_transaction() {
 
     require(fixture.window.request_focus(fixture.editor),
             "bound editor must focus");
-    (*fixture.editor).set_text("not-a-number");
+    (*fixture.editor).text = "not-a-number";
     require(!fixture.window.request_focus(fixture.destination) &&
                 fixture.window.focused_control() == fixture.editor &&
                 (*source).current_field("amount") ==
@@ -278,7 +278,7 @@ void test_on_validation_binding_and_error_provider_share_focus_transaction() {
                     std::string::npos,
             "failed OnValidation parsing must preserve source, retain focus, and surface the binding error");
 
-    (*fixture.editor).set_text("13.75");
+    (*fixture.editor).text = "13.75";
     require(fixture.window.request_focus(fixture.destination) &&
                 (*source).current_field("amount") ==
                     std::optional<BindingValue>{13.75} &&

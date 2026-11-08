@@ -215,7 +215,7 @@ void test_field_toggle_validation_move_and_focus_safe_remove() {
         (*rack).field_editor("criteria.content", "value"));
     require(window.request_focus(content_value),
             "text criterion must accept keyboard focus");
-    (*content_value).set_text("");
+    (*content_value).text = "";
     require(window.dispatch_key({KeyAction::down, PhysicalKey::enter}) &&
                 (*rack).modules()[2].state == InstrumentModuleState::invalid &&
                 (*rack).modules()[2].fields[2].validation_message ==

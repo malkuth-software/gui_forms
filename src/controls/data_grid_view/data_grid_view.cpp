@@ -234,7 +234,7 @@ void DataGridView::initialize_control_tree() {
     const std::string prefix(stable_id().value());
     editor_ = make_control<TextBox>(StableId(prefix + ".editor"));
     (*editor_).border_style = BorderStyle::none;
-    (*editor_).set_font(font.read());
+    (*editor_).font = font.read();
     vertical_bar_ = make_control<VScrollBar>(StableId(prefix + ".vertical-scroll"));
     horizontal_bar_ = make_control<HScrollBar>(StableId(prefix + ".horizontal-scroll"));
     // The bars scroll the grid; keyboard focus stays on the grid.
@@ -1810,7 +1810,7 @@ void DataGridView::prepare_write(const decltype(font)&, FontSpec& incoming) {
 }
 
 void DataGridView::written(const decltype(font)&) {
-    if (editor_) (*editor_).set_font(font.read());
+    if (editor_) (*editor_).font = font.read();
     structure_changed();
 }
 
@@ -2371,7 +2371,7 @@ bool DataGridView::begin_text_edit(std::string initial_text, bool select_all) {
     // Typed text that differs from the cell's makes the edit dirty at once.
     const bool dirty = initial_text != cell_text((*moved).row, (*moved).column);
     writing_editor_ = true;
-    editor.set_text(std::move(initial_text));
+    editor.text = std::move(initial_text);
     writing_editor_ = false;
     set_child_layout_collapsed(editor_, false);
     const Parts editor_parts = grid_parts(grid_layout());
@@ -2381,7 +2381,7 @@ bool DataGridView::begin_text_edit(std::string initial_text, bool select_all) {
     if (select_all) {
         editor.select_all();
     } else {
-        const Utf8Offset end(editor.text().size());
+        const Utf8Offset end(editor.text.read().size());
         editor.select(end, end);
     }
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
@@ -2527,7 +2527,7 @@ bool DataGridView::commit_edit() {
     const CellKey key = *current_;
     const std::optional<DataGridViewCellAddress> placed = address_of(key);
     if (!placed) return false;
-    const std::string text((*editor_).text());
+    const std::string text((*editor_).text.read());
     const CommitOutcome outcome = commit_text(key, *placed, text);
     if (outcome == CommitOutcome::kept_invalid) return false;
     if (outcome == CommitOutcome::discarded) {
@@ -2547,7 +2547,7 @@ bool DataGridView::refresh_edit() {
     const std::optional<DataGridViewCellAddress> placed = current_cell();
     if (!placed) return false;
     writing_editor_ = true;
-    (*editor_).set_text(cell_text((*placed).row, (*placed).column));
+    (*editor_).text = cell_text((*placed).row, (*placed).column);
     writing_editor_ = false;
     (*editor_).select_all();
     edit_invalid_ = false;
@@ -2571,7 +2571,7 @@ bool DataGridView::end_edit() {
         cancel_edit();
         return true;
     }
-    const std::string text((*editor_).text());
+    const std::string text((*editor_).text.read());
     DataGridViewCellValidatingEvent validating{DataGridViewRowId{key.row_id}, (*placed).row, key.column, text,
                                                false};
     cell_validating_.emit(validating);

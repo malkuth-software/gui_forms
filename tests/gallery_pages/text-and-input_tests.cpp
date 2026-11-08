@@ -17,30 +17,30 @@ void test_text_and_input(gui_forms::Window& window,
     require(window.semantic_snapshot().to_json().find("\"role\":\"toolbar\"") != std::string::npos,
             "gallery editing CommandBar must publish toolbar semantics");
     require(text && window.request_focus(text) && window.dispatch_text({"dogfood Ω"}) &&
-                (*text).text() == "dogfood Ω" && (*text).can_undo(),
+                (*text).text.read() == "dogfood Ω" && (*text).can_undo(),
             "gallery public TextBox must accept normalized Unicode input");
     require((*undo).effectively_enabled(),
             "typing must enable the Undo Command through the bound bar button");
     click(window, window.find("gallery.text.command.item.0"));
     click(window, window.find("gallery.text.command.item.1"));
-    require((*text).text() == "GUI.Forms",
+    require((*text).text.read() == "GUI.Forms",
             "gallery TextBox commands must operate on the public selection surface");
     click(window, undo);
-    require((*text).text() == "dogfood Ω" && (*redo).effectively_enabled(),
+    require((*text).text.read() == "dogfood Ω" && (*redo).effectively_enabled(),
             "gallery TextBox Undo command must restore its prior snapshot and enable Redo");
     (*text).select_all();
     click(window, window.find("gallery.text.command.item.4"));
-    (*text).set_text("replace me");
+    (*text).text = "replace me";
     (*text).select_all();
     click(window, window.find("gallery.text.command.item.6"));
-    require((*text).text() == "dogfood Ω",
+    require((*text).text.read() == "dogfood Ω",
             "gallery clipboard buttons must round-trip through HostServices");
     (*text).select_all();
     click(window, window.find("gallery.text.command.item.5"));
-    require((*text).text().empty(),
+    require((*text).text.read().empty(),
             "gallery Cut must mutate through the public TextBox command");
     click(window, window.find("gallery.text.command.item.6"));
-    require((*text).text() == "dogfood Ω",
+    require((*text).text.read() == "dogfood Ω",
             "gallery Paste must restore the cut Unicode text");
     require(password && (*password).password_protected() &&
                 (*password).semantic_descriptor().value.empty() &&
@@ -61,7 +61,7 @@ void test_text_and_input(gui_forms::Window& window,
         window.find("gallery.text.masked.phone"));
     const std::shared_ptr<gui_forms::Label> masked_status = std::dynamic_pointer_cast<Label>(
         window.find("gallery.text.masked.status"));
-    require(phone && masked_status && (*(*phone).editor()).text() == "(___) ___-____",
+    require(phone && masked_status && (*(*phone).editor()).text.read() == "(___) ___-____",
             "the masked specimen shows its prompts and literals");
     require(window.request_focus((*phone).editor()) && window.dispatch_text({"555"}) &&
                 (*phone).text() == "(555" &&
@@ -78,10 +78,10 @@ void test_text_and_input(gui_forms::Window& window,
     const std::shared_ptr<gui_forms::Label> complete_status = std::dynamic_pointer_cast<Label>(
         window.find("gallery.text.complete.status"));
     require(city && band && complete_status && (*band).editor(), "the auto-complete specimens are on the page");
-    require(window.request_focus(city) && window.dispatch_text({"ed"}) && (*city).text() == "edinburgh" &&
+    require(window.request_focus(city) && window.dispatch_text({"ed"}) && (*city).text.read() == "edinburgh" &&
                 (*city).auto_complete_open() && (*city).auto_complete_suggestions().size() == 2U,
             "the city field appends the first match and suggests both");
-    require(window.dispatch_key({KeyAction::down, PhysicalKey::tab}) && (*city).text() == "edinburgh" &&
+    require(window.dispatch_key({KeyAction::down, PhysicalKey::tab}) && (*city).text.read() == "edinburgh" &&
                 (*complete_status).text() == "Accepted \"edinburgh\"",
             "Tab accepts the appended city and the page reports it");
     require(window.request_focus((*band).editor()) && window.dispatch_text({"m"}) &&

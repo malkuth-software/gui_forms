@@ -779,7 +779,7 @@ void test_text_box_caret_and_selection() {
             "a selection publishes its highlight between the two boundaries");
     window.set_text_metrics_provider(nullptr);
 
-    (*box).set_read_only(true);
+    (*box).read_only = true;
     (*box).set_visual_status(ControlVisualStatus::invalid);
     const TextBox::States states = (*box).states();
     require(states.read_only && states.invalid && !states.pending,

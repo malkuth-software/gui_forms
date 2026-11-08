@@ -167,8 +167,8 @@ void GalleryContext::synchronize(std::string_view cause)
         (*document.gallery_checkbox_indeterminate).set_check_state(CheckState::indeterminate);
         (*document.gallery_link).set_visited(false);
     }
-    if ((*document.gallery_text_input).text() != state.text) {
-        (*document.gallery_text_input).set_text(state.text);
+    if ((*document.gallery_text_input).text.read() != state.text) {
+        (*document.gallery_text_input).text = state.text;
     }
     (*document.gallery_slider).set_value(state.slider_value);
     (*document.gallery_progress).set_value(state.progress_value);
@@ -314,7 +314,7 @@ GalleryTree build_gallery_tree()
     (*document.gallery_radio_quiet).set_group_name("gallery.style-mode");
     (*document.gallery_slider).set_small_change(1.0);
     (*document.gallery_slider).set_large_change(10.0);
-    (*document.gallery_text_input).set_placeholder_text("Type here");
+    (*document.gallery_text_input).placeholder_text = "Type here";
     (*document.gallery_diagnostics_about).set_text_wrapping(TextWrapping::word);
     (*document.gallery_diagnostics_about).set_vertical_alignment(VerticalAlignment::near);
     (*document.gallery_diagnostics_font).set_text_wrapping(TextWrapping::word);

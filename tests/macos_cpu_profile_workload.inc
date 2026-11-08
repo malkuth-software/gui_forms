@@ -314,7 +314,7 @@ int run_cpu_profile_workload(const std::string_view mode) {
         if (index != 0U) entry.owner_id = "cpu.profile.0";
         (*state).editors[index] = std::make_shared<gui_forms::TextBox>(
             gui_forms::StableId("cpu.profile.editor." + std::to_string(index)));
-        (*(*state).editors[index]).set_multiline(true);
+        (*(*state).editors[index]).multiline = true;
         entry.model = std::make_unique<gui_forms::Window>((*state).editors[index], gui_forms::Size{640.0, 480.0});
         (*state).models[index] = entry.model.get();
         profile_require((*entry.model).request_focus({}), "initial_focus_clear_failed");

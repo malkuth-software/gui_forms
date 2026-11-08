@@ -494,7 +494,7 @@ void test_grouped_editors_commit_cancel_validation_and_semantics() {
     (*name).select_all();
     require(window.dispatch_text({"discard me"}) &&
                 window.dispatch_key({KeyAction::down, PhysicalKey::escape}) &&
-                (*name).text() == "Facade Final.png" &&
+                (*name).text.read() == "Facade Final.png" &&
                 (*properties).value("inspection.name") == "Facade Final.png",
             "Escape must restore the last committed text property value");
 
@@ -668,7 +668,7 @@ void test_property_origins_and_metadata_driven_property_grid() {
 
     (*target).text = "Programmatic update";
     text = std::dynamic_pointer_cast<TextBox>((*grid).editor("Text"));
-    require(text && (*text).text() == "Programmatic update" &&
+    require(text && (*text).text.read() == "Programmatic update" &&
                 changes.back().property_name == "text",
             "truthful target change notifications must refresh the live editor without rebuilding the grid");
 
@@ -994,7 +994,7 @@ void test_default_flags_and_color_property_editors() {
     (*color).set_swatch_width(42.0);
     require((*color).editor() &&
                 (*color).swatch_width() == 42.0 &&
-                (*(*color).editor()).text() ==
+                (*(*color).editor()).text.read() ==
                     ColorValueEditor::format_value((*target).foreground()),
             "the default color service must provide canonical text and a retained swatch editor");
     std::vector<PropertyGridEditError> failures;
@@ -1019,7 +1019,7 @@ void test_default_flags_and_color_property_editors() {
                 (*color).visual_status() == ControlVisualStatus::invalid,
             "invalid color input must preserve retained state and publish exact inline failure feedback");
     require(window.dispatch_key({KeyAction::down, PhysicalKey::escape}) &&
-                (*(*color).editor()).text() == "#2A6FB4CC" &&
+                (*(*color).editor()).text.read() == "#2A6FB4CC" &&
                 (*color).visual_status() == ControlVisualStatus::normal,
             "cancelling a failed color edit must restore its last committed canonical value");
     static_cast<void>(failed);
@@ -1060,9 +1060,9 @@ void test_recursive_object_and_collection_projection_and_mutation() {
                 (*grid).try_set_property_value(
                     "Settings.Modes[1]", BindingValue{std::string("NFM")}) &&
                 (*std::dynamic_pointer_cast<TextBox>(
-                    (*grid).editor("Settings.Endpoint.Host"))).text() == "radio.lan" &&
+                    (*grid).editor("Settings.Endpoint.Host"))).text.read() == "radio.lan" &&
                 (*std::dynamic_pointer_cast<TextBox>(
-                    (*grid).editor("Settings.Endpoint.Port"))).text() == "6000" &&
+                    (*grid).editor("Settings.Endpoint.Port"))).text.read() == "6000" &&
                 changed_paths == std::vector<std::string>{
                     "settings.endpoint.host", "settings.endpoint.port",
                     "settings.modes[1]"},
@@ -1079,7 +1079,7 @@ void test_recursive_object_and_collection_projection_and_mutation() {
                 (*grid).property_expanded("Settings.Modes") == true &&
                 (*grid).move_collection_item("Settings.Modes", 3U, 0U) &&
                 (*std::dynamic_pointer_cast<TextBox>(
-                    (*grid).editor("Settings.Modes[0]"))).text() == "WFM" &&
+                    (*grid).editor("Settings.Modes[0]"))).text.read() == "WFM" &&
                 (*grid).remove_collection_item("Settings.Modes", 2U) &&
                 (*grid).editor("Settings.Modes[3]") == nullptr &&
                 !(*grid).remove_collection_item("Settings.Modes", 99U),
@@ -1088,9 +1088,9 @@ void test_recursive_object_and_collection_projection_and_mutation() {
     require((*grid).reset_property("Settings") &&
                 (*grid).property_expanded("Settings.Endpoint") == true &&
                 (*std::dynamic_pointer_cast<TextBox>(
-                    (*grid).editor("Settings.Endpoint.Host"))).text() == "localhost" &&
+                    (*grid).editor("Settings.Endpoint.Host"))).text.read() == "localhost" &&
                 (*std::dynamic_pointer_cast<TextBox>(
-                    (*grid).editor("Settings.Modes[1]"))).text() == "FM" &&
+                    (*grid).editor("Settings.Modes[1]"))).text.read() == "FM" &&
                 (*grid).selected_origin("Settings.Modes[1]") ==
                     PropertyValueOrigin::defaulted,
             "resetting a nested owner must restore its structurally equal default while retaining independent view expansion state");
@@ -1106,7 +1106,7 @@ void test_property_typography_preserves_editors_and_updates_geometry() {
             "property list must retain its existing font and row defaults");
     const std::shared_ptr<TextBox> name = std::dynamic_pointer_cast<TextBox>(
         (*properties).editor("inspection.name"));
-    require(name && (*name).font().size == 10.0,
+    require(name && (*name).font.read().size == 10.0,
             "default property editor typography must remain unchanged");
     require(window.request_focus(name), "property editor must accept focus");
     (*name).select_all();
@@ -1126,7 +1126,7 @@ void test_property_typography_preserves_editors_and_updates_geometry() {
     require((*properties).replace_editor("inspection.location", numeric),
             "numeric replacement editor must attach");
     const std::shared_ptr<TextBox> numeric_text = (*numeric).editor();
-    (*numeric_text).set_text("-");
+    (*numeric_text).text = "-";
     (*numeric_text).select_all();
     const TextSelection numeric_selection = (*numeric_text).selection();
     std::uint64_t changes{};
@@ -1135,14 +1135,14 @@ void test_property_typography_preserves_editors_and_updates_geometry() {
     const FontSpec chosen{FontRole::content, 17.0, 500, true, 0.5};
     (*properties).set_font(chosen);
     window.perform_layout();
-    require((*properties).font() == chosen && (*name).font() == chosen &&
-                (*numeric_text).font() == chosen &&
+    require((*properties).font() == chosen && (*name).font.read() == chosen &&
+                (*numeric_text).font.read() == chosen &&
                 (*properties).editor("inspection.name") == name &&
                 (*properties).editor("inspection.location") == numeric,
             "font updates must reach text and numeric editors without replacing them");
-    require((*name).text() == "Uncommitted name" && (*name).selection() == selection &&
+    require((*name).text.read() == "Uncommitted name" && (*name).selection() == selection &&
                 (*name).can_undo() && window.focused_control() == name &&
-                (*numeric_text).text() == "-" &&
+                (*numeric_text).text.read() == "-" &&
                 (*numeric_text).selection() == numeric_selection &&
                 (*numeric).value() == 42.0 && changes == 0U,
             "typography changes must preserve draft, selection, focus, undo and numeric value without publishing edits");
@@ -1157,19 +1157,19 @@ void test_property_typography_preserves_editors_and_updates_geometry() {
     require(kind && (*kind).bounds.height == 40.0,
             "property semantic row bounds must agree with row-height geometry");
     require(window.dispatch_key({KeyAction::down, PhysicalKey::escape}) &&
-                (*name).text() == "Facade Study.png",
+                (*name).text.read() == "Facade Study.png",
             "font changes must retain the original text commit/cancel subscription");
 
     const std::shared_ptr<NumericUpDown> later_numeric = make_control<NumericUpDown>(
         StableId("font.later.numeric"));
     require((*properties).replace_editor("inspection.location", later_numeric) &&
-                (*(*later_numeric).editor()).font() == chosen,
+                (*(*later_numeric).editor()).font.read() == chosen,
             "future replacement numeric editors must inherit the selected font");
     const std::vector<PropertyGroupSpec> groups = (*properties).groups();
     (*properties).set_groups(groups);
     const std::shared_ptr<TextBox> future = std::dynamic_pointer_cast<TextBox>(
         (*properties).editor("inspection.name"));
-    require(future && (*future).font() == chosen,
+    require(future && (*future).font.read() == chosen,
             "future stock text editors must inherit the selected font");
 
     const double invalid[] = {0.0, -1.0, std::numeric_limits<double>::infinity(),

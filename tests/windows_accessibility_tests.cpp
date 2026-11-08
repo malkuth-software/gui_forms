@@ -63,7 +63,7 @@ struct Ready {
         AccessibleOwner textbox; textbox.value = named(*root.value, L"Artwork text");
         require(textbox.value, "text control named in tree");
         value = SysAllocString(L"مرحبا ABC"); status = (*textbox.value).put_accValue(self(), value); SysFreeString(value);
-        require(status == S_OK && (*text).text() == "مرحبا ABC", "MSAA Unicode edit keeps original UTF-8 text");
+        require(status == S_OK && (*text).text.read() == "مرحبا ABC", "MSAA Unicode edit keeps original UTF-8 text");
         LONG x = 0, y = 0, width = 0, height = 0;
         require(SUCCEEDED((*coordinate.value).accLocation(&x, &y, &width, &height, self())) && width > 0 && height > 0,
             "native accessibility reports screen geometry");

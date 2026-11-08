@@ -35,11 +35,11 @@ void test_dialogs_and_host_services(gui_forms::Window& window,
     require((*status).text().find("#315F89FF") != std::string::npos,
             "color dialog must publish an exact typed RGBA result");
 
-    const std::string clipboard_probe((*editor).text());
+    const std::string clipboard_probe((*editor).text.read());
     click(window, window.find("gallery.host.service.0"));
-    (*editor).set_text("locally replaced");
+    (*editor).text = "locally replaced";
     click(window, window.find("gallery.host.service.1"));
-    require((*editor).text() == clipboard_probe &&
+    require((*editor).text.read() == clipboard_probe &&
                 (*status).text().find("text restored") != std::string::npos,
             "clipboard write/read must round-trip UTF-8 through HostServices");
     click(window, window.find("gallery.host.service.2"));

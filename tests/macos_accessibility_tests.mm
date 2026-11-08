@@ -602,13 +602,13 @@ void check_text_ranges(StockControlFixture& fixture, gui_forms::Window& window, 
     std::shared_ptr<gui_forms::TextBox> password =
         gui_forms::make_control<gui_forms::TextBox>(gui_forms::StableId("text.password"));
     (*single).set_requested_bounds({10.0, 10.0, 260.0, 26.0});
-    (*single).set_text(single_line_text);
+    (*single).text = single_line_text;
     (*multi).set_requested_bounds({10.0, 50.0, 260.0, 80.0});
-    (*multi).set_multiline(true);
-    (*multi).set_text(two_line_text);
+    (*multi).multiline = true;
+    (*multi).text = two_line_text;
     (*password).set_requested_bounds({10.0, 140.0, 260.0, 26.0});
-    (*password).set_use_system_password_character(true);
-    (*password).set_text("secret");
+    (*password).use_system_password_character = true;
+    (*password).text = "secret";
     (*fixture.root).add_child(single);
     (*fixture.root).add_child(multi);
     (*fixture.root).add_child(password);

@@ -147,7 +147,7 @@ void BindingNavigator::refresh() {
         // The box shows the one-based position, or 0 with no current record.
         std::string shown_position("0");
         if (current) shown_position = std::to_string(position + 1);
-        (*box).set_text(std::move(shown_position));
+        (*box).text = std::move(shown_position);
         (*box).enabled = count != 0U;
     }
 }
@@ -156,7 +156,7 @@ void BindingNavigator::commit_position() {
     if (!has_text_box(items(), position_item)) return;
     const std::shared_ptr<TextBox> box = text_box(position_item);
     if (source_ && (*source_).is_alive()) {
-        const std::optional<std::size_t> typed = typed_position((*box).text(), (*source_).count());
+        const std::optional<std::size_t> typed = typed_position((*box).text.read(), (*source_).count());
         if (typed) static_cast<void>((*source_).set_position(static_cast<std::ptrdiff_t>(*typed - 1U)));
     }
     // A rejected entry, or one equal to the current position, shows the

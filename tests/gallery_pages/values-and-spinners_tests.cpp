@@ -10,7 +10,7 @@ void test_values_and_spinners(gui_forms::Window& window) {
             "gallery NumericUpDown must expose a focusable public editor");
     KeyEvent up{KeyAction::down, PhysicalKey::up};
     require(window.dispatch_key(up) && (*numeric).value() == 4.0 &&
-                (*(*numeric).editor()).text() == "4.00",
+                (*(*numeric).editor()).text.read() == "4.00",
             "gallery NumericUpDown key step must synchronize value and editor");
 }
 
@@ -59,13 +59,13 @@ void test_values_and_spinners_binding(gui_forms::Window& window) {
     require(items_target && (*property_grid).selected_object() == items_target &&
                 (*property_grid).property_expanded("Items") == true &&
                 (*std::dynamic_pointer_cast<TextBox>(
-                    (*property_grid).editor("Items[1]"))).text() == "FM",
+                    (*property_grid).editor("Items[1]"))).text.read() == "FM",
             "gallery must expose the stock ComboBox.Items collection through the same recursive PropertyGrid");
     click(window, window.find("gallery.values.inspector-commands.item.4"));
     require((*items_target).items().size() == 4U &&
                 (*items_target).items().back() == "CW" &&
                 (*std::dynamic_pointer_cast<TextBox>(
-                    (*property_grid).editor("Items[3]"))).text() == "CW",
+                    (*property_grid).editor("Items[3]"))).text.read() == "CW",
             "gallery collection command must mutate the real stock Items property rather than a local display model");
     click(window, window.find("gallery.values.inspector-commands.item.1"));
     require((*property_grid).selected_object() == inspected_numeric,
@@ -81,36 +81,36 @@ void test_values_and_spinners_binding(gui_forms::Window& window) {
                 (*property_grid).selected_object() == inspection_status &&
                 color_editor && (*color_editor).editor() && flags_editor,
             "gallery Style inspection must dogfood the reusable color and flags editor services");
-    (*(*color_editor).editor()).set_text("#245A92FF");
+    (*(*color_editor).editor()).text = "#245A92FF";
     require(window.request_focus((*color_editor).editor()) &&
                 window.dispatch_key({KeyAction::down, PhysicalKey::enter}) &&
                 (*inspection_status).foreground() == Color::rgba(36, 90, 146),
             "gallery color dogfood must commit through the stock Label ForeColor descriptor");
     require(editor && enabled && gain && status &&
-                (*editor).text() == "Local index" && (*enabled).checked() &&
+                (*editor).text.read() == "Local index" && (*enabled).checked() &&
                 (*gain).value() == 28.0 &&
                 (*status).text().find("profile.local") != std::string::npos,
             "gallery binding specimen must project the initial retained record");
     require(window.request_focus(editor),
             "gallery bound editor must focus before its retained edit");
-    (*editor).set_text("Local index edited");
+    (*editor).text = "Local index edited";
     click(window, window.find("gallery.values.binding.next"));
-    require((*editor).text() == "Archive review" && !(*enabled).checked() &&
+    require((*editor).text.read() == "Archive review" && !(*enabled).checked() &&
                 (*gain).value() == 61.0 &&
                 (*status).text().find("profile.archive") != std::string::npos,
             "gallery binding currency command must update all three stock control families");
     click(window, window.find("gallery.values.binding.previous"));
-    require((*editor).text() == "Local index edited",
+    require((*editor).text.read() == "Local index edited",
             "gallery OnValidation binding must preserve the committed edit across currency movement");
     require(window.request_focus(editor),
             "gallery bound editor must accept focus for invalid-input dogfood");
-    (*editor).set_text({});
+    (*editor).text = std::string{};
     require(!window.request_focus(window.find("gallery.values.binding.next")) &&
                 window.focused_control() == editor &&
                 window.semantic_snapshot().to_json().find(
                     "Profile name may not be empty") != std::string::npos,
             "gallery validation must retain focus and project a binding-aware ErrorProvider error");
-    (*editor).set_text("Local index repaired");
+    (*editor).text = "Local index repaired";
     require(window.request_focus(window.find("gallery.values.binding.next")) &&
                 window.semantic_snapshot().to_json().find(
                     "Profile name may not be empty") == std::string::npos,

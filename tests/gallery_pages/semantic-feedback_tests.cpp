@@ -21,7 +21,7 @@ void test_semantic_feedback(gui_forms::Window& window) {
     const std::string semantics = window.semantic_snapshot().to_json();
     require(semantics.find("\"role\":\"toolbar\"") != std::string::npos,
             "the transition CommandBar must publish toolbar semantics");
-    require((*trace).text().empty() &&
+    require((*trace).text.read().empty() &&
                 (*accounting).text().find("Retained 0 of 6") != std::string::npos,
             "no record may exist before a transition is announced");
 
@@ -29,7 +29,7 @@ void test_semantic_feedback(gui_forms::Window& window) {
     click(window, window.find("gallery.semantic.commands.item.4"));
     require((*latest).text().find("feedback=operation_completed") != std::string::npos &&
                 (*latest).text().find("cue=operation_complete") != std::string::npos &&
-                (*trace).text().find("feedback=operation_completed sequence=1") !=
+                (*trace).text.read().find("feedback=operation_completed sequence=1") !=
                     std::string::npos,
             "announcing a transition must publish its record and host cue");
 
@@ -39,7 +39,7 @@ void test_semantic_feedback(gui_forms::Window& window) {
     require(complete && (*complete).command_connected(),
             "the completion button must share the bar item's Command");
     click(window, complete);
-    require((*trace).text().find("sequence=2") != std::string::npos &&
+    require((*trace).text.read().find("sequence=2") != std::string::npos &&
                 (*accounting).text().find("Retained 2 of 6") != std::string::npos,
             "the shared Command must emit the second record");
 
@@ -53,7 +53,7 @@ void test_semantic_feedback(gui_forms::Window& window) {
     click(window, window.find("gallery.semantic.commands.item.5"));
     require((*latest).text().find("feedback=operation_failed") != std::string::npos &&
                 (*latest).text().find("sound off") != std::string::npos &&
-                (*trace).text().find("sound=off") != std::string::npos,
+                (*trace).text.read().find("sound=off") != std::string::npos,
             "a transition announced with sound off must record sound=off");
     click(window, sound);
     require(window.presentation_settings().sound_enabled,
@@ -65,13 +65,13 @@ void test_semantic_feedback(gui_forms::Window& window) {
     }
     require((*accounting).text().find("Retained 6 of 6") != std::string::npos &&
                 (*accounting).text().find("dropped 2") != std::string::npos &&
-                (*trace).text().find("sequence=1 ") == std::string::npos &&
-                (*trace).text().find("feedback=location_changed sequence=8") !=
+                (*trace).text.read().find("sequence=1 ") == std::string::npos &&
+                (*trace).text.read().find("feedback=location_changed sequence=8") !=
                     std::string::npos,
             "the history bound must evict the oldest records and count them");
 
     click(window, window.find("gallery.semantic.clear"));
-    require((*trace).text().empty() &&
+    require((*trace).text.read().empty() &&
                 (*accounting).text().find("Retained 0 of 6") != std::string::npos &&
                 (*accounting).text().find("dropped 0") != std::string::npos &&
                 (*latest).text().find("cleared") != std::string::npos,

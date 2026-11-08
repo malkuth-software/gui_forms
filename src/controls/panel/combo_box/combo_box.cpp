@@ -242,7 +242,7 @@ void ComboBox::reset_text_property() {
 }
 
 bool ComboBox::should_serialize_text_property() const noexcept {
-    if (editor_) return !(*editor_).text().empty();
+    if (editor_) return !(*editor_).text.read().empty();
     return selected_index_.has_value();
 }
 
@@ -251,9 +251,14 @@ ComboBox::~ComboBox() {
     editor_focus_.disconnect();
 }
 
-std::string_view ComboBox::text() const noexcept {
-    if (editor_) return (*editor_).text();
-    return selected_text();
+// A copy: the editor's text view reads the editing engine by value.
+std::string ComboBox::text() const {
+    if (editor_) {
+        std::string typed = (*editor_).text.read();
+        return typed;
+    }
+    std::string selected(selected_text());
+    return selected;
 }
 
 void ComboBox::set_text(std::string text) {
@@ -265,7 +270,7 @@ void ComboBox::set_text(std::string text) {
         // The editor raises text_changed, through which the selection
         // follows the text; the list is not filtered by it.
         programmatic_text_ = true;
-        (*editor_).set_text(std::move(text));
+        (*editor_).text = std::move(text);
         programmatic_text_ = false;
         return;
     }
@@ -296,9 +301,9 @@ void ComboBox::create_editor() {
     const std::string prefix(stable_id().value());
     editor_ = make_control<TextBox>(StableId(prefix + ".editor"));
     (*editor_).border_style = BorderStyle::none;
-    (*editor_).set_font(font_);
-    (*editor_).set_text(std::string(selected_text()));
-    (*editor_).set_placeholder_text(placeholder_);
+    (*editor_).font = font_;
+    (*editor_).text = std::string(selected_text());
+    (*editor_).placeholder_text = placeholder_;
     editor_text_ = (*editor_).text_changed().subscribe(*this,
         Delegate<const std::string&>::bind<ComboBox, &ComboBox::editor_text_changed>(*this));
     editor_focus_ = (*editor_).focus_observed().subscribe(*this,
@@ -335,12 +340,12 @@ void ComboBox::configure_editor_auto_complete() {
     // The items reach the editor as a collection of their own, rebuilt with
     // them, so the editor's source is always custom_source or a host's.
     const bool list_items = auto_complete_source_ == AutoCompleteSource::list_items;
-    editor.set_auto_complete_custom_source(list_items ? list_items_source_ : auto_complete_custom_source_);
-    editor.set_auto_complete_source(list_items ? AutoCompleteSource::custom_source : auto_complete_source_);
+    editor.auto_complete_custom_source = list_items ? list_items_source_ : auto_complete_custom_source_;
+    editor.auto_complete_source = list_items ? AutoCompleteSource::custom_source : auto_complete_source_;
     // A filtered list shows the matches itself; two lists would compete
     // for the same keys.
     const bool filtering = drop_down_filter_ != ComboBoxFilter::none;
-    editor.set_auto_complete_mode(filtering ? AutoCompleteMode::none : auto_complete_mode_);
+    editor.auto_complete_mode = filtering ? AutoCompleteMode::none : auto_complete_mode_;
     editor.set_auto_complete_anchor(shared_from_this());
 }
 
@@ -499,7 +504,7 @@ void ComboBox::editor_focus_changed(bool focused) {
 
 void ComboBox::match_editor_text() {
     if (!editor_) return;
-    const std::string_view typed = (*editor_).text();
+    const std::string typed = (*editor_).text.read();
     std::optional<std::size_t> found{};
     for (std::size_t index = 0U; index < items_.size(); ++index) {
         // Equal ignoring ASCII case: as long as the text, and a prefix match.
@@ -615,7 +620,7 @@ void ComboBox::set_selected_index(std::optional<std::size_t> index) {
         // The editor shows the chosen item; the selection is set below
         // rather than matched from the text.
         synchronizing_text_ = true;
-        (*editor_).set_text(items_[*index]);
+        (*editor_).text = items_[*index];
         synchronizing_text_ = false;
         if (!is_alive()) return;
     }
@@ -648,7 +653,7 @@ void ComboBox::set_placeholder_text(std::string text) {
     placeholder_ = std::move(text);
     // The edit field shows the placeholder itself, so it wins over the
     // combo box's field hint there too.
-    if (editor_) (*editor_).set_placeholder_text(placeholder_);
+    if (editor_) (*editor_).placeholder_text = placeholder_;
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
@@ -686,7 +691,7 @@ void ComboBox::set_font(FontSpec font) {
     set_font_from_code(true);
     if (font_ == font) return;
     font_ = font;
-    if (editor_) (*editor_).set_font(font);
+    if (editor_) (*editor_).font = font;
     if (overlay_list_) (*overlay_list_).set_font(font);
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
 }

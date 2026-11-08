@@ -32,7 +32,7 @@ int main() {
         accessibility_dispatch(); accessibility.update();
         // The client's last request puts the caret after the combining
         // sequence of "e", U+0301 and "x" (byte 3), after the Text checks.
-        if (fixture.presses == 1 && (*number).value() == 37 && (*text).text() == "e\xCC\x81x" &&
+        if (fixture.presses == 1 && (*number).value() == 37 && (*text).text.read() == "e\xCC\x81x" &&
             (*text).selection().caret == Utf8Offset(3U)) {
             std::cout << "AT-SPI action, numeric value, UTF-8 text edit and Text interface passed\n";
             accessibility.detach(); XDestroyWindow(display, native); XCloseDisplay(display); return 0;
@@ -40,6 +40,6 @@ int main() {
         accessibility_wait(ConnectionNumber(display), -1, 100);
         while (XPending(display)) { XEvent event{}; XNextEvent(display, &event); }
     }
-    std::cerr << "AT-SPI fixture timed out: presses=" << fixture.presses << " value=" << (*number).value() << " text=" << (*text).text() << '\n';
+    std::cerr << "AT-SPI fixture timed out: presses=" << fixture.presses << " value=" << (*number).value() << " text=" << (*text).text.read() << '\n';
     accessibility.detach(); XDestroyWindow(display, native); XCloseDisplay(display); return 2;
 }

@@ -23,11 +23,11 @@ void ColorValueEditor::initialize_control_tree() {
     editor_ = make_control<TextBox>(
         StableId(std::string(stable_id().value()) + ".text"),
         format_value(value_));
-    (*editor_).set_font({FontRole::monospace, 9.5, 400, false});
+    (*editor_).font = FontSpec{FontRole::monospace, 9.5, 400, false};
     // Enter commits the text (commit_text) and Escape restores the value
     // (cancel); neither goes further.
-    (*editor_).set_accepts_enter(true);
-    (*editor_).set_accepts_escape(true);
+    (*editor_).accepts_enter = true;
+    (*editor_).accepts_escape = true;
     add_child(editor_);
     const std::weak_ptr<ColorValueEditor> weak =
         std::static_pointer_cast<ColorValueEditor>(shared_from_this());
@@ -95,9 +95,9 @@ void ColorValueEditor::commit_text(const std::string& text) {
 void ColorValueEditor::set_value(Color value) {
     require_mutable();
     if (value_ == value) {
-        if (editor_ && (*editor_).text() != format_value(value)) {
+        if (editor_ && (*editor_).text.read() != format_value(value)) {
             synchronizing_ = true;
-            (*editor_).set_text(format_value(value));
+            (*editor_).text = format_value(value);
             synchronizing_ = false;
         }
         if (editor_) (*editor_).set_visual_status(ControlVisualStatus::normal);
@@ -108,7 +108,7 @@ void ColorValueEditor::set_value(Color value) {
     value_ = value;
     if (editor_) {
         synchronizing_ = true;
-        (*editor_).set_text(format_value(value_));
+        (*editor_).text = format_value(value_);
         (*editor_).set_visual_status(ControlVisualStatus::normal);
         synchronizing_ = false;
     }
@@ -143,7 +143,7 @@ void ColorValueEditor::commit(std::string_view text) {
     set_visual_status(ControlVisualStatus::normal);
     if (editor_) {
         synchronizing_ = true;
-        (*editor_).set_text(format_value(value_));
+        (*editor_).text = format_value(value_);
         (*editor_).set_visual_status(ControlVisualStatus::normal);
         synchronizing_ = false;
     }
@@ -154,7 +154,7 @@ void ColorValueEditor::commit(std::string_view text) {
 void ColorValueEditor::cancel() {
     if (!editor_) return;
     synchronizing_ = true;
-    (*editor_).set_text(format_value(value_));
+    (*editor_).text = format_value(value_);
     (*editor_).set_visual_status(ControlVisualStatus::normal);
     synchronizing_ = false;
     set_visual_status(ControlVisualStatus::normal);

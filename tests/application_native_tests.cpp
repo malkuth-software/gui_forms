@@ -241,9 +241,9 @@ void check_character_normalization() {
     const ApplicationResult result = Application::run(std::move(window), std::move(options));
     if (result.callback_exception) std::rethrow_exception(result.callback_exception);
     require(result.accepted(), "native character normalization fixture failed");
-    if ((*editor).text() != "A\xF0\x9F\x98\x80Z") {
-        std::cerr << "character fixture byte count=" << (*editor).text().size() << " bytes:";
-        for (const unsigned char byte : (*editor).text()) std::cerr << ' ' << static_cast<unsigned>(byte);
+    if ((*editor).text.read() != "A\xF0\x9F\x98\x80Z") {
+        std::cerr << "character fixture byte count=" << (*editor).text.read().size() << " bytes:";
+        for (const unsigned char byte : (*editor).text.read()) std::cerr << ' ' << static_cast<unsigned>(byte);
         std::cerr << '\n';
         throw std::runtime_error("native text normalization changed text or inserted command bytes");
     }

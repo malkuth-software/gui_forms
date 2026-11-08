@@ -175,11 +175,11 @@ void test_semantic_actions_use_control_behavior() {
                                             "63.5") && (*slider).value() == 63.5,
             "semantic slider set-value must use bounded range behavior");
     require(window.perform_semantic_action("actions.field", SemanticAction::set_value,
-                                            "new value") && (*field).text() == "new value",
+                                            "new value") && (*field).text.read() == "new value",
             "semantic text set-value must use the TextBox mutation contract");
-    (*field).set_read_only(true);
+    (*field).read_only = true;
     require(!window.perform_semantic_action("actions.field", SemanticAction::set_value,
-                                             "blocked") && (*field).text() == "new value",
+                                             "blocked") && (*field).text.read() == "new value",
             "semantic actions must preserve TextBox read-only state");
     require(window.perform_semantic_action("actions.combo", SemanticAction::expand) &&
                 (*combo).dropped_down() && window.focus_scope_depth() == 1U,

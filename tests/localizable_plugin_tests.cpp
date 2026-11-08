@@ -103,7 +103,7 @@ void exercise(Controls& controls, Window& window, bool never, int mode) {
 
     ToolTip tips(window);
     tips.set_tool_tip(controls.button, std::string(search_hint));
-    (*controls.box).set_placeholder_text(std::string{search_hint});
+    (*controls.box).placeholder_text = std::string{search_hint};
     (*controls.button).accessible_name = "Close window";
     (*controls.button).text = "OK";
     (*controls.combo).set_items({"Small", "Medium"});
@@ -111,7 +111,7 @@ void exercise(Controls& controls, Window& window, bool never, int mode) {
     (*controls.list).add_item(std::string("Extra"));
 
     // Not localizable: a text box's text is the user's.
-    (*controls.box).set_text("User content");
+    (*controls.box).text = "User content";
     set_caption(label, "Helper caption");
     set_caption_unmarked(label, "Unmarked helper");
     label.set_text("Built at " + std::to_string(mode));

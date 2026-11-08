@@ -322,11 +322,11 @@ int main()
         (*window).find("gallery.text-input"));
     expect(text_input != nullptr && (*window).focused_control() == text_input,
            "a click focuses the Gallery text box");
-    const gui_forms::Utf8Offset text_end((*text_input).text().size());
+    const gui_forms::Utf8Offset text_end((*text_input).text.read().size());
     (*text_input).select(text_end, text_end);
     expect((*window).dispatch_text({" retained", false, -1, 0, false}),
            "focused text input accepts committed UTF-8 text");
-    expect((*text_input).text() == "Edit this text retained",
+    expect((*text_input).text.read() == "Edit this text retained",
            "text edit survives event dispatch in the retained text box");
 
     expect(gui_forms::gallery::select_gallery_page(*window, "values"),

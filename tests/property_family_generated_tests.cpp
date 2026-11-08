@@ -11,6 +11,7 @@
 #include "gui_forms/controls/panel/month_calendar/month_calendar.hpp"
 #include "gui_forms/controls/panel/panel.hpp"
 #include "gui_forms/controls/panel/scaled_panel/scaled_panel.hpp"
+#include "gui_forms/controls/panel/text_box/text_box.hpp"
 #include "gui_forms/controls/panel/token_box/token_box.hpp"
 #include "gui_forms/controls/panel/tree_list_view/tree_list_view.hpp"
 #include "gui_forms/controls/scrollable_control/scrollable_control.hpp"
@@ -504,6 +505,82 @@ void test_scrollable_control_properties() {
     }
 }
 
+void test_text_box_properties() {
+    std::shared_ptr<TextBox> control = make_control<TextBox>(StableId("generated.textbox"));
+    {
+        const std::string sample = std::string{"Search"};
+        (*control).placeholder_text = sample;
+        expect((*control).placeholder_text.read() == sample, "TextBox.placeholder_text: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("placeholder_text");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "TextBox.placeholder_text: the table reads the cell");
+    }
+    {
+        const bool sample = !(*control).multiline.read();
+        (*control).multiline = sample;
+        expect((*control).multiline.read() == sample, "TextBox.multiline: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("multiline");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "TextBox.multiline: the table reads the cell");
+    }
+    {
+        const bool sample = !(*control).word_wrap.read();
+        (*control).word_wrap = sample;
+        expect((*control).word_wrap.read() == sample, "TextBox.word_wrap: a write stores");
+    }
+    {
+        const std::string sample = std::string{"\r\n"};
+        (*control).newline_sequence = sample;
+        expect((*control).newline_sequence.read() == sample, "TextBox.newline_sequence: a write stores");
+    }
+    {
+        const bool sample = !(*control).accepts_tab.read();
+        (*control).accepts_tab = sample;
+        expect((*control).accepts_tab.read() == sample, "TextBox.accepts_tab: a write stores");
+    }
+    {
+        const bool sample = !(*control).accepts_enter.read();
+        (*control).accepts_enter = sample;
+        expect((*control).accepts_enter.read() == sample, "TextBox.accepts_enter: a write stores");
+    }
+    {
+        const bool sample = !(*control).accepts_escape.read();
+        (*control).accepts_escape = sample;
+        expect((*control).accepts_escape.read() == sample, "TextBox.accepts_escape: a write stores");
+    }
+    {
+        const char32_t sample = U'*';
+        (*control).password_character = sample;
+        expect((*control).password_character.read() == sample, "TextBox.password_character: a write stores");
+    }
+    {
+        const bool sample = !(*control).use_system_password_character.read();
+        (*control).use_system_password_character = sample;
+        expect((*control).use_system_password_character.read() == sample, "TextBox.use_system_password_character: a write stores");
+    }
+    {
+        const FontSpec sample = FontSpec{FontRole::content, 14.0, 400, false};
+        (*control).font = sample;
+        expect((*control).font.read() == sample, "TextBox.font: a write stores");
+    }
+    {
+        const AutoCompleteMode sample = AutoCompleteMode::suggest;
+        (*control).auto_complete_mode = sample;
+        expect((*control).auto_complete_mode.read() == sample, "TextBox.auto_complete_mode: a write stores");
+    }
+    {
+        const AutoCompleteSource sample = AutoCompleteSource::custom_source;
+        (*control).auto_complete_source = sample;
+        expect((*control).auto_complete_source.read() == sample, "TextBox.auto_complete_source: a write stores");
+    }
+    // auto_complete_custom_source: no sample for std::shared_ptr<AutoCompleteStringCollection>; give the property a "sample".
+    {
+        const bool sample = !(*control).auto_complete_case_sensitive.read();
+        (*control).auto_complete_case_sensitive = sample;
+        expect((*control).auto_complete_case_sensitive.read() == sample, "TextBox.auto_complete_case_sensitive: a write stores");
+    }
+}
+
 void test_token_box_properties() {
     std::shared_ptr<TokenBox> control = make_control<TokenBox>(StableId("generated.tokenbox"));
     {
@@ -545,6 +622,7 @@ int main() {
     test_scaled_group_box_properties();
     test_scaled_panel_properties();
     test_scrollable_control_properties();
+    test_text_box_properties();
     test_token_box_properties();
     test_tree_list_view_properties();
     std::cout << "generated property tests passed\n";

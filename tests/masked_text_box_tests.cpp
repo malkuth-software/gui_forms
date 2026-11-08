@@ -175,7 +175,7 @@ struct UpperCaseFilter final {
                 return;
             }
         }
-        std::string text((*box).text());
+        std::string text((*box).text.read());
         std::string replacement(edit.replacement);
         for (char& character : replacement) {
             if (character >= 'a' && character <= 'z') character = static_cast<char>(character - 'a' + 'A');
@@ -190,7 +190,7 @@ struct UpperCaseFilter final {
 // Changes the box from inside the filter, which the box must survive.
 struct MeddlingFilter final {
     TextBox* box{};
-    void filter(TextEdit&) { (*box).set_text("meddled"); }
+    void filter(TextEdit&) { (*box).text = "meddled"; }
 };
 
 void text_box_edit_filter() {
@@ -201,27 +201,27 @@ void text_box_edit_filter() {
     UpperCaseFilter upper{.kinds = {}, .box = box.get()};
     (*box).set_edit_filter(Delegate<TextEdit&>::bind<UpperCaseFilter, &UpperCaseFilter::filter>(upper));
     require(window.request_focus(box), "the box takes focus");
-    require(window.dispatch_text({"ab"}) && (*box).text() == "AB" &&
+    require(window.dispatch_text({"ab"}) && (*box).text.read() == "AB" &&
                 (*box).selection().caret == Utf8Offset(2U),
             "a rewrite replaces the text and places the caret");
-    require(!window.dispatch_text({"7"}) && (*box).text() == "AB", "a refusal applies nothing");
-    require(window.dispatch_key({KeyAction::down, PhysicalKey::backspace}) && (*box).text() == "A",
+    require(!window.dispatch_text({"7"}) && (*box).text.read() == "AB", "a refusal applies nothing");
+    require(window.dispatch_key({KeyAction::down, PhysicalKey::backspace}) && (*box).text.read() == "A",
             "deletions go through the filter");
-    require((*box).on_semantic_action(SemanticAction::set_value, "xyz") && (*box).text() == "XYZ",
+    require((*box).on_semantic_action(SemanticAction::set_value, "xyz") && (*box).text.read() == "XYZ",
             "set_value goes through the filter");
     require(upper.kinds.size() == 4U && upper.kinds[0] == TextEditKind::typing &&
                 upper.kinds[2] == TextEditKind::deletion && upper.kinds[3] == TextEditKind::value,
             "the filter learns each edit's kind");
-    require((*box).undo() && (*box).text() == "A", "a rewrite is one undo step");
-    (*box).set_text("program 1");
-    require((*box).text() == "program 1" && upper.kinds.size() == 4U, "set_text bypasses the filter");
+    require((*box).undo() && (*box).text.read() == "A", "a rewrite is one undo step");
+    (*box).text = "program 1";
+    require((*box).text.read() == "program 1" && upper.kinds.size() == 4U, "set_text bypasses the filter");
 
     MeddlingFilter meddling{box.get()};
     (*box).set_edit_filter(Delegate<TextEdit&>::bind<MeddlingFilter, &MeddlingFilter::filter>(meddling));
-    require(!(*box).replace_selection("x") && (*box).text() == "meddled",
+    require(!(*box).replace_selection("x") && (*box).text.read() == "meddled",
             "an edit whose filter changed the text is abandoned");
     (*box).set_edit_filter(Delegate<TextEdit&>{});
-    require((*box).replace_selection("!") && (*box).text() == "meddled!", "clearing the filter restores plain editing");
+    require((*box).replace_selection("!") && (*box).text.read() == "meddled!", "clearing the filter restores plain editing");
 }
 
 // -- MaskedTextBox ------------------------------------------------------------------
@@ -291,18 +291,18 @@ void masked_typing_and_refusal() {
     SubscriptionToken rejections = box.mask_input_rejected().subscribe(RecordRejection{&rejected});
     SubscriptionToken changes = box.text_changed().subscribe(RecordText{&texts});
     TextBox& editor = *box.editor();
-    require(editor.text() == "(___) ___-____" && editor.selection().caret == Utf8Offset(1U),
+    require(editor.text.read() == "(___) ___-____" && editor.selection().caret == Utf8Offset(1U),
             "the field shows the prompts and waits at the first edit position");
     require(window.request_focus(box.editor()), "the editor takes focus");
     require(window.dispatch_text({"5"}) && window.dispatch_text({"5"}) && window.dispatch_text({"5"}),
             "digits are taken");
-    require(editor.text() == "(555) ___-____" && editor.selection().caret == Utf8Offset(6U),
+    require(editor.text.read() == "(555) ___-____" && editor.selection().caret == Utf8Offset(6U),
             "after the third digit the caret passes over the literals");
     require(box.text() == "(555" && texts.size() == 3U && texts.back() == "(555",
             "text follows text_mask_format and text_changed reports each change");
     require(!window.dispatch_text({"x"}) && rejected.size() == 1U &&
                 rejected[0].position == MaskPosition(6U) && rejected[0].hint == MaskResultHint::digit_expected &&
-                rejected[0].text == "x" && editor.text() == "(555) ___-____",
+                rejected[0].text == "x" && editor.text.read() == "(555) ___-____",
             "a letter is refused with its position and reason and the field is unchanged");
     require(window.dispatch_text({"1234567"}) && box.mask_completed() && box.mask_full() &&
                 box.text() == "(555) 123-4567",
@@ -320,19 +320,19 @@ void masked_deletion_overwrite_and_undo() {
     Window& window = *fixture.window;
     MaskedTextBox& box = *fixture.box;
     TextBox& editor = *box.editor();
-    require(box.set_text("123456").succeeded() && editor.text() == "123-456", "program text placed");
+    require(box.set_text("123456").succeeded() && editor.text.read() == "123-456", "program text placed");
     require(window.request_focus(box.editor()), "the editor takes focus");
     editor.select(Utf8Offset(4U), Utf8Offset(4U));
     require(window.dispatch_key({KeyAction::down, PhysicalKey::backspace}) &&
-                editor.text() == "123-456" && editor.selection().caret == Utf8Offset(3U),
+                editor.text.read() == "123-456" && editor.selection().caret == Utf8Offset(3U),
             "Backspace over a literal moves the caret back over it");
     require(window.dispatch_key({KeyAction::down, PhysicalKey::backspace}) &&
-                editor.text() == "124-56_" && editor.selection().caret == Utf8Offset(2U),
+                editor.text.read() == "124-56_" && editor.selection().caret == Utf8Offset(2U),
             "Backspace removes the character and moves the rest back over the literal");
     require(window.dispatch_key({KeyAction::down, PhysicalKey::delete_forward}) &&
-                editor.text() == "125-6__",
+                editor.text.read() == "125-6__",
             "Delete removes the character after the caret");
-    require(editor.undo() && editor.text() == "124-56_" && box.text() == "124-56",
+    require(editor.undo() && editor.text.read() == "124-56_" && box.text() == "124-56",
             "undo restores the field and the provider follows it");
 
     std::vector<bool> modes;
@@ -341,11 +341,11 @@ void masked_deletion_overwrite_and_undo() {
                 modes.size() == 1U && modes[0],
             "the Insert key toggles overwrite mode");
     editor.select(Utf8Offset(0U), Utf8Offset(0U));
-    require(window.dispatch_text({"9"}) && editor.text() == "924-56_" &&
+    require(window.dispatch_text({"9"}) && editor.text.read() == "924-56_" &&
                 editor.selection().caret == Utf8Offset(1U),
             "overwrite mode replaces the character at the caret");
     box.set_overwrite_mode(false);
-    require(window.dispatch_text({"0"}) && editor.text() == "902-456",
+    require(window.dispatch_text({"0"}) && editor.text.read() == "902-456",
             "insert mode moves the following characters on");
 }
 
@@ -361,34 +361,34 @@ void masked_paste_and_program_text() {
     require(window.request_focus(box.editor()), "the editor takes focus");
     require(services.write_clipboard_text("1a2-3").accepted(), "the clipboard holds mixed text");
     require(window.dispatch_key({KeyAction::down, PhysicalKey::v, Modifier::control}) &&
-                editor.text() == "123-___" && rejected.size() == 2U && rejected[0].text == "a" &&
+                editor.text.read() == "123-___" && rejected.size() == 2U && rejected[0].text == "a" &&
                 rejected[0].hint == MaskResultHint::digit_expected,
             "a paste keeps the characters the mask takes and reports each one it drops");
     box.set_reject_input_on_first_failure(true);
     editor.select_all();
     require(services.write_clipboard_text("9x").accepted(), "the clipboard holds a bad character");
     static_cast<void>(window.dispatch_key({KeyAction::down, PhysicalKey::v, Modifier::control}));
-    require(editor.text() == "123-___" && rejected.size() == 3U && rejected[2].position == MaskPosition(1U),
+    require(editor.text.read() == "123-___" && rejected.size() == 3U && rejected[2].position == MaskPosition(1U),
             "with reject_input_on_first_failure one refused character refuses the paste");
 
     const MaskEditResult refused = box.set_text("12x");
-    require(!refused.succeeded() && editor.text() == "123-___" && rejected.size() == 4U,
+    require(!refused.succeeded() && editor.text.read() == "123-___" && rejected.size() == 4U,
             "refused program text leaves the box unchanged and is reported");
     require(box.set_text("123456").succeeded() && box.text() == "123-456", "program text placed");
     std::vector<std::string> masks;
     SubscriptionToken mask_token = box.mask_changed().subscribe(RecordText{&masks});
     box.set_mask("00/00/00");
-    require(editor.text() == "12/34/56" && box.mask() == "00/00/00" && masks.size() == 1U,
+    require(editor.text.read() == "12/34/56" && box.mask() == "00/00/00" && masks.size() == 1U,
             "a new mask keeps the characters it takes; / is the invariant date separator");
     box.set_mask("LL");
-    require(editor.text() == "__" && masks.size() == 2U, "a mask that refuses the old characters starts empty");
+    require(editor.text.read() == "__" && masks.size() == 2U, "a mask that refuses the old characters starts empty");
     box.set_mask("");
     require(window.request_focus(box.editor()) && window.dispatch_text({"any text"}) &&
                 box.text() == "any text",
             "an empty mask takes any text");
     box.set_prompt_character(U'#');
     box.set_mask("00");
-    require(editor.text() == "##", "the prompt character is shown in the field");
+    require(editor.text.read() == "##", "the prompt character is shown in the field");
 }
 
 void masked_validation_semantics_and_anatomy() {
@@ -423,7 +423,7 @@ void masked_validation_semantics_and_anatomy() {
             "MaskedTextBox publishes a valid anatomy");
     require(box.parts().field.present, "the field part is the editor");
     box.set_read_only(true);
-    require(box.states().read_only && (*box.editor()).read_only() &&
+    require(box.states().read_only && (*box.editor()).read_only.read() &&
                 !box.on_semantic_action(SemanticAction::set_value, "0101"),
             "a read-only box publishes read_only and refuses set_value");
     bool threw = false;

@@ -904,7 +904,7 @@ void ListView::prepare_write(const decltype(font)&, FontSpec& incoming) {
 }
 
 void ListView::written(const decltype(font)&) {
-    if (label_editor_) (*label_editor_).set_font(font.read());
+    if (label_editor_) (*label_editor_).font = font.read();
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
@@ -2551,7 +2551,7 @@ void ListView::create_label_editor() {
     label_editor_ = make_control<TextBox>(StableId(prefix + ".label-editor"));
     TextBox& editor = *label_editor_;
     editor.border_style = BorderStyle::none;
-    editor.set_font(font.read());
+    editor.font = font.read();
     add_child(label_editor_);
     set_child_layout_collapsed(label_editor_, true);
     label_editor_focus_ = editor.focus_observed().subscribe(
@@ -2600,7 +2600,7 @@ bool ListView::begin_label_edit(std::size_t index) {
     label_edit_index_ = index;
     label_edit_item_id_ = item_id;
     TextBox& editor = *label_editor_;
-    editor.set_text(std::move(text));
+    editor.text = std::move(text);
     set_child_layout_collapsed(label_editor_, false);
     place_label_editor(layout());
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
@@ -2615,7 +2615,7 @@ bool ListView::begin_label_edit(std::size_t index) {
 void ListView::end_label_edit() {
     if (!label_edit_index_ || closing_label_editor_) return;
     const Control::Ptr lifetime = shared_from_this();
-    const std::string label((*label_editor_).text());
+    const std::string label((*label_editor_).text.read());
     const std::string item_id = label_edit_item_id_;
     ListViewLabelEdit ended = label_edit_event(label);
     close_label_editor();

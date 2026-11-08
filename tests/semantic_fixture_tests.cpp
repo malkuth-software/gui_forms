@@ -235,7 +235,7 @@ void check_provider_value(Checks& checks, Window& window, ProviderFixture& fixtu
     expect(checks, (*text).role == SemanticRole::text_box, "the text box's role");
     expect(checks,
            perform_on_control(window, *fixture.text, SemanticAction::set_value, "Hello, UIA") &&
-               (*fixture.text).text() == "Hello, UIA",
+               (*fixture.text).text.read() == "Hello, UIA",
            "set_value sets the text box's text");
     const std::optional<SemanticNode> after = read_node(window, "uia.text");
     expect(checks, after && (*after).value == "Hello, UIA", "the node's value is the text");
@@ -356,15 +356,15 @@ std::unique_ptr<Window> make_text_fixture(TextFixture& fixture) {
     fixture.password = make_control<TextBox>(StableId("uiatext.password"));
     fixture.doomed = make_control<TextBox>(StableId("uiatext.doomed"));
     (*fixture.single).set_requested_bounds({10.0, 10.0, 260.0, 26.0});
-    (*fixture.single).set_text(std::string(single_text));
+    (*fixture.single).text = std::string(single_text);
     (*fixture.multi).set_requested_bounds({10.0, 50.0, 260.0, 80.0});
-    (*fixture.multi).set_multiline(true);
-    (*fixture.multi).set_text(std::string(multi_text));
+    (*fixture.multi).multiline = true;
+    (*fixture.multi).text = std::string(multi_text);
     (*fixture.password).set_requested_bounds({10.0, 140.0, 260.0, 26.0});
-    (*fixture.password).set_use_system_password_character(true);
-    (*fixture.password).set_text("secret");
+    (*fixture.password).use_system_password_character = true;
+    (*fixture.password).text = "secret";
     (*fixture.doomed).set_requested_bounds({10.0, 180.0, 260.0, 26.0});
-    (*fixture.doomed).set_text("Removed");
+    (*fixture.doomed).text = "Removed";
     (*fixture.root).add_child(fixture.single);
     (*fixture.root).add_child(fixture.multi);
     (*fixture.root).add_child(fixture.password);
@@ -424,7 +424,7 @@ void check_text_units(Checks& checks, Window& window, TextFixture& fixture) {
                        layout.graphemes[1].bounds.height > 0.0,
            "a character has a box with area");
 
-    const std::string multi_value((*fixture.multi).text());
+    const std::string multi_value((*fixture.multi).text.read());
     expect(checks, window.semantic_text_layout((*fixture.multi).runtime_id(), layout) == SemanticTextResult::done,
            "the multiline box answers a layout query");
     expect(checks, multi_value == multi_text, "the multiline box holds its text");
@@ -467,7 +467,7 @@ void check_text_changes(Checks& checks, Window& window, TextFixture& fixture) {
            node != nullptr && (*node).text_selection && (*(*node).text_selection).caret == Utf8Offset{2U} &&
                selected.generation != before,
            "a selection change shows in the next snapshot, with a new generation");
-    (*fixture.single).set_text("Changed");
+    (*fixture.single).text = "Changed";
     const SemanticSnapshot changed = window.semantic_snapshot();
     const SemanticNode* text = find_node(changed.roots, "uiatext.single");
     expect(checks,

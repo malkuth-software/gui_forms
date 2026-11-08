@@ -71,10 +71,10 @@ Fixture make_fixture(const char* id, AutoCompleteMode mode) {
     (*fixture.other).set_requested_bounds({10.0, 260.0, 200.0, 28.0});
     (*fixture.root).add_child(fixture.box);
     (*fixture.root).add_child(fixture.other);
-    std::shared_ptr<AutoCompleteStringCollection> cities = (*fixture.box).auto_complete_custom_source();
+    std::shared_ptr<AutoCompleteStringCollection> cities = (*fixture.box).auto_complete_custom_source.read();
     (*cities).add_range({"Calgary", "California", "Cambridge", "calgary", "Dover", "Calgary", "Caen"});
-    (*fixture.box).set_auto_complete_source(AutoCompleteSource::custom_source);
-    (*fixture.box).set_auto_complete_mode(mode);
+    (*fixture.box).auto_complete_source = AutoCompleteSource::custom_source;
+    (*fixture.box).auto_complete_mode = mode;
     fixture.window = std::make_unique<Window>(fixture.root, Size{320.0, 300.0});
     (*fixture.window).perform_layout();
     require((*fixture.window).request_focus(fixture.box), "the box takes focus");
@@ -169,7 +169,7 @@ void suggest_keyboard_trace() {
     require(shown.size() == 5U && shown[0] == "Calgary" && shown[1] == "California" &&
                 shown[2] == "Cambridge" && shown[3] == "calgary" && shown[4] == "Caen",
             "the list shows matches in source order, each text once");
-    require(box.text() == "c" && !box.auto_complete_highlighted(), "suggest mode does not change the text");
+    require(box.text.read() == "c" && !box.auto_complete_highlighted(), "suggest mode does not change the text");
     require(window.find("ac.suggest.auto-complete.list") != nullptr && window.focused_control() == fixture.box,
             "the list is an overlay and the box keeps the focus");
     window.perform_layout();
@@ -184,22 +184,22 @@ void suggest_keyboard_trace() {
     require(type(window, "m") && box.auto_complete_suggestions().size() == 1U &&
                 box.auto_complete_suggestions()[0] == "Cambridge",
             "the list narrows as the user types");
-    require(press(window, PhysicalKey::backspace) && box.text() == "ca" &&
+    require(press(window, PhysicalKey::backspace) && box.text.read() == "ca" &&
                 box.auto_complete_suggestions().size() == 5U,
             "deleting widens the list again");
 
     trace.clear();
     require(press(window, PhysicalKey::down) && box.auto_complete_highlighted() == 0U &&
-                box.text() == "Calgary" && box.selection().caret == Utf8Offset(7U),
+                box.text.read() == "Calgary" && box.selection().caret == Utf8Offset(7U),
             "Down highlights the first suggestion and shows it in the box");
-    require(press(window, PhysicalKey::down) && box.auto_complete_highlighted() == 1U && box.text() == "California",
+    require(press(window, PhysicalKey::down) && box.auto_complete_highlighted() == 1U && box.text.read() == "California",
             "Down moves to the next suggestion");
     require(press(window, PhysicalKey::up) && press(window, PhysicalKey::up) &&
-                !box.auto_complete_highlighted() && box.text() == "ca",
+                !box.auto_complete_highlighted() && box.text.read() == "ca",
             "Up from the first suggestion returns to the typed text");
-    require(press(window, PhysicalKey::up) && box.auto_complete_highlighted() == 4U && box.text() == "Caen",
+    require(press(window, PhysicalKey::up) && box.auto_complete_highlighted() == 4U && box.text.read() == "Caen",
             "Up from the typed text highlights the last suggestion");
-    require(press(window, PhysicalKey::down) && !box.auto_complete_highlighted() && box.text() == "ca",
+    require(press(window, PhysicalKey::down) && !box.auto_complete_highlighted() && box.text.read() == "ca",
             "Down from the last suggestion returns to the typed text");
     require(trace.size() == 6U && trace[0] == "text Calgary" && trace[5] == "text ca",
             "each highlight change shows its text once");
@@ -208,7 +208,7 @@ void suggest_keyboard_trace() {
     require(press(window, PhysicalKey::down) && press(window, PhysicalKey::down) &&
                 press(window, PhysicalKey::enter),
             "Enter is consumed while a suggestion is highlighted");
-    require(box.text() == "California" && !box.auto_complete_open() &&
+    require(box.text.read() == "California" && !box.auto_complete_open() &&
                 box.selection() == TextSelection{Utf8Offset(10U), Utf8Offset(10U)},
             "Enter accepts the highlighted suggestion and closes the list");
     require(trace.size() == 4U && trace[0] == "text Calgary" && trace[1] == "text California" &&
@@ -218,36 +218,36 @@ void suggest_keyboard_trace() {
                                                                                    SemanticState::expanded),
             "the closed list leaves the window and the box is no longer expanded");
 
-    box.set_text("");
+    box.text = "";
     trace.clear();
     require(type(window, "c") && type(window, "a") && press(window, PhysicalKey::down) &&
                 press(window, PhysicalKey::escape),
             "Escape is consumed while the list is open");
-    require(box.text() == "ca" && !box.auto_complete_open() && box.selection().caret == Utf8Offset(2U),
+    require(box.text.read() == "ca" && !box.auto_complete_open() && box.selection().caret == Utf8Offset(2U),
             "Escape closes the list and restores the typed text");
     require(trace.size() == 6U && trace[4] == "text ca" && trace[5] == "close",
             "Escape restores the text before the list closes, and raises no cancelled");
     trace.clear();
     require(!press(window, PhysicalKey::escape) && trace.empty(),
             "with nothing pending, Escape goes on to the window and raises no cancelled");
-    box.set_accepts_escape(true);
+    box.accepts_escape = true;
     require(press(window, PhysicalKey::escape) && trace.size() == 1U && trace[0] == "cancelled",
             "with nothing pending, a box that accepts Escape raises cancelled");
-    box.set_accepts_escape(false);
+    box.accepts_escape = false;
 
     require(type(window, "l") && box.auto_complete_open(), "the list opens again");
     trace.clear();
     require(!press(window, PhysicalKey::enter) && !box.auto_complete_open() &&
                 trace.size() == 1U && trace[0] == "close",
             "Enter with nothing highlighted closes the list and goes on to the window");
-    box.set_text("");
+    box.text = "";
     require(type(window, "c") && box.auto_complete_open(), "the list opens once more");
-    box.set_accepts_enter(true);
+    box.accepts_enter = true;
     trace.clear();
     require(press(window, PhysicalKey::enter) && !box.auto_complete_open() &&
                 trace.size() == 2U && trace[0] == "close" && trace[1] == "committed c",
             "in a box that accepts Enter, it closes the list and commits as usual");
-    box.set_accepts_enter(false);
+    box.accepts_enter = false;
 
     require(type(window, "x") && !box.auto_complete_open(), "text that matches nothing shows no list");
 }
@@ -260,24 +260,24 @@ void append_modes() {
     SubscriptionToken opens = box.auto_complete_open_changed().subscribe(TraceOpen{&trace});
     SubscriptionToken accepts = box.auto_complete_accepted().subscribe(TraceAccepted{&trace});
 
-    require(type(window, "C") && type(window, "A") && box.text() == "CAlgary",
+    require(type(window, "C") && type(window, "A") && box.text.read() == "CAlgary",
             "append keeps the typed case and appends the rest of the first match");
     require(box.selection() == TextSelection{Utf8Offset(2U), Utf8Offset(7U)},
             "the appended part is selected, so typing replaces it");
     require(!box.auto_complete_open() && trace.empty(), "append mode never opens a list");
-    require(type(window, "m") && box.text() == "CAmbridge", "the next character completes again");
-    require(press(window, PhysicalKey::backspace) && box.text() == "CAm",
+    require(type(window, "m") && box.text.read() == "CAmbridge", "the next character completes again");
+    require(press(window, PhysicalKey::backspace) && box.text.read() == "CAm",
             "Backspace removes the appended part");
-    require(press(window, PhysicalKey::backspace) && box.text() == "CA",
+    require(press(window, PhysicalKey::backspace) && box.text.read() == "CA",
             "deleting never appends");
-    require(type(window, "l") && box.text() == "CAlgary", "typing appends again");
-    require(press(window, PhysicalKey::escape) && box.text() == "CAl" &&
+    require(type(window, "l") && box.text.read() == "CAlgary", "typing appends again");
+    require(press(window, PhysicalKey::escape) && box.text.read() == "CAl" &&
                 box.selection().caret == Utf8Offset(3U),
             "Escape removes the appended part");
-    require(type(window, "i") && box.text() == "CAlifornia", "the completion follows the typed text");
+    require(type(window, "i") && box.text.read() == "CAlifornia", "the completion follows the typed text");
     require(window.focused_control() == fixture.box && press(window, PhysicalKey::tab),
             "Tab is consumed while a completion is appended");
-    require(box.text() == "CAlifornia" && box.selection() == TextSelection{Utf8Offset(10U), Utf8Offset(10U)} &&
+    require(box.text.read() == "CAlifornia" && box.selection() == TextSelection{Utf8Offset(10U), Utf8Offset(10U)} &&
                 window.focused_control() == fixture.box && trace.size() == 1U &&
                 trace[0] == "accepted CAlifornia",
             "Tab accepts the appended completion, keeps the focus and reports the text");
@@ -285,48 +285,48 @@ void append_modes() {
             "with nothing pending, Tab moves the focus as usual");
 
     require(window.request_focus(fixture.box), "the box takes the focus back");
-    box.set_text("");
-    require(type(window, "d") && box.text() == "dover", "the completion keeps the typed case");
-    require(box.undo() && box.text().empty(), "undo removes the typed character and its completion together");
+    box.text = "";
+    require(type(window, "d") && box.text.read() == "dover", "the completion keeps the typed case");
+    require(box.undo() && box.text.read().empty(), "undo removes the typed character and its completion together");
     require(type(window, "c") && type(window, "a") && press(window, PhysicalKey::right) &&
-                box.text() == "calgary" && box.selection().caret == Utf8Offset(7U),
+                box.text.read() == "calgary" && box.selection().caret == Utf8Offset(7U),
             "moving the caret keeps the completion as text");
-    require(!press(window, PhysicalKey::escape) || box.text() == "calgary",
+    require(!press(window, PhysicalKey::escape) || box.text.read() == "calgary",
             "after the caret moved, Escape leaves the text alone");
 
-    box.set_text("");
-    box.set_maximum_length(4U);
-    require(type(window, "c") && box.text() == "c", "a completion past the maximum length is not appended");
-    box.set_maximum_length(0U);
+    box.text = "";
+    box.maximum_length = 4U;
+    require(type(window, "c") && box.text.read() == "c", "a completion past the maximum length is not appended");
+    box.maximum_length = 0U;
 
-    box.set_text("");
-    box.set_auto_complete_case_sensitive(true);
-    require(type(window, "c") && box.text() == "calgary",
+    box.text = "";
+    box.auto_complete_case_sensitive = true;
+    require(type(window, "c") && box.text.read() == "calgary",
             "case-sensitive matching skips candidates that differ in case");
-    box.set_auto_complete_case_sensitive(false);
+    box.auto_complete_case_sensitive = false;
 
     // Typing in the middle of the text never appends.
-    box.set_text("ca");
+    box.text = "ca";
     box.select(Utf8Offset(1U), Utf8Offset(1U));
-    require(type(window, "a") && box.text() == "caa", "an insertion before the end appends nothing");
+    require(type(window, "a") && box.text.read() == "caa", "an insertion before the end appends nothing");
 }
 
 void suggest_append_mode() {
     Fixture fixture = make_fixture("ac.both", AutoCompleteMode::suggest_append);
     Window& window = *fixture.window;
     TextBox& box = *fixture.box;
-    require(type(window, "c") && box.text() == "calgary" && box.auto_complete_open() &&
+    require(type(window, "c") && box.text.read() == "calgary" && box.auto_complete_open() &&
                 !box.auto_complete_highlighted(),
             "suggest-append appends the first match and opens the list");
-    require(press(window, PhysicalKey::down) && box.text() == "Calgary" && box.selection().empty(),
+    require(press(window, PhysicalKey::down) && box.text.read() == "Calgary" && box.selection().empty(),
             "Down replaces the appended completion with the highlighted suggestion");
-    require(press(window, PhysicalKey::up) && box.text() == "c",
+    require(press(window, PhysicalKey::up) && box.text.read() == "c",
             "returning to the typed text drops the completion");
-    require(type(window, "a") && box.text() == "calgary" && press(window, PhysicalKey::escape) &&
-                box.text() == "ca" && !box.auto_complete_open(),
+    require(type(window, "a") && box.text.read() == "calgary" && press(window, PhysicalKey::escape) &&
+                box.text.read() == "ca" && !box.auto_complete_open(),
             "Escape removes the appended part and closes the list");
-    require(type(window, "m") && box.text() == "cambridge" && press(window, PhysicalKey::enter) &&
-                box.text() == "cambridge" && !box.auto_complete_open() && box.selection().empty(),
+    require(type(window, "m") && box.text.read() == "cambridge" && press(window, PhysicalKey::enter) &&
+                box.text.read() == "cambridge" && !box.auto_complete_open() && box.selection().empty(),
             "Enter accepts the appended completion");
 }
 
@@ -337,21 +337,21 @@ void composition_is_never_completed() {
     TextInputEvent composing{};
     composing.text_utf8 = "c";
     composing.composing = true;
-    require(window.dispatch_text(composing) && box.text() == "c" && !box.auto_complete_open(),
+    require(window.dispatch_text(composing) && box.text.read() == "c" && !box.auto_complete_open(),
             "composition text is neither completed nor suggested for");
     TextInputEvent replaced{};
     replaced.text_utf8 = "ca";
     replaced.composing = true;
     replaced.replacement_start = 0;
     replaced.replacement_length = 1;
-    require(window.dispatch_text(replaced) && box.text() == "ca" && !box.auto_complete_open(),
+    require(window.dispatch_text(replaced) && box.text.read() == "ca" && !box.auto_complete_open(),
             "an updated composition is left as the input method wrote it");
-    require(type(window, "l") && box.text() == "calgary" && box.auto_complete_open(),
+    require(type(window, "l") && box.text.read() == "calgary" && box.auto_complete_open(),
             "committed input completes as usual");
     TextInputEvent more{};
     more.text_utf8 = "i";
     more.composing = true;
-    require(window.dispatch_text(more) && box.text() == "cali" && !box.auto_complete_open(),
+    require(window.dispatch_text(more) && box.text.read() == "cali" && !box.auto_complete_open(),
             "composition closes an open list and replaces the appended part without completing");
 }
 
@@ -367,32 +367,32 @@ void pointer_and_dismissal() {
     const Rect list = (*window.find("ac.pointer.auto-complete.list")).absolute_bounds();
     const Point third{list.x + 20.0, list.y + 2.0 + 2.0 * 26.0 + 13.0};
     require(window.dispatch_pointer({PointerAction::down, PointerButton::primary, third}) &&
-                box.auto_complete_highlighted() == 2U && box.text() == "Cambridge" &&
+                box.auto_complete_highlighted() == 2U && box.text.read() == "Cambridge" &&
                 window.focused_control() == fixture.box,
             "pressing a row highlights it without taking the focus");
     require(window.dispatch_pointer({PointerAction::up, PointerButton::primary, third}) &&
-                !box.auto_complete_open() && box.text() == "Cambridge" &&
+                !box.auto_complete_open() && box.text.read() == "Cambridge" &&
                 trace.size() == 3U && trace[0] == "open" && trace[1] == "close" &&
                 trace[2] == "accepted Cambridge",
             "releasing on the row accepts it");
 
-    box.set_text("");
+    box.text = "";
     require(type(window, "c") && box.auto_complete_open(), "the list opens again");
     window.perform_layout();
     const Rect field = box.absolute_bounds();
     const Point inside{field.x + 50.0, field.y + 10.0};
     require(window.dispatch_pointer({PointerAction::down, PointerButton::primary, inside}) &&
-                !box.auto_complete_open() && box.text() == "c",
+                !box.auto_complete_open() && box.text.read() == "c",
             "a press in the box itself reaches it, places the caret and closes the list");
     static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, inside}));
     require(type(window, "a") && box.auto_complete_open(), "the list opens again");
     const Point away{300.0, 150.0};
     require(window.dispatch_pointer({PointerAction::down, PointerButton::primary, away}) &&
-                !box.auto_complete_open() && box.text() == "ca",
+                !box.auto_complete_open() && box.text.read() == "ca",
             "a press outside the list closes it and keeps the text");
 
     require(type(window, "l") && box.auto_complete_open(), "the list opens again");
-    require(window.request_focus(fixture.other) && !box.auto_complete_open() && box.text() == "cal",
+    require(window.request_focus(fixture.other) && !box.auto_complete_open() && box.text.read() == "cal",
             "losing the focus closes the list and keeps the text");
     require(window.request_focus(fixture.box) && type(window, "g") && box.auto_complete_open(),
             "the list opens again");
@@ -408,28 +408,28 @@ void sources_and_refusals() {
 
     bool threw = false;
     try {
-        box.set_auto_complete_source(AutoCompleteSource::list_items);
+        box.auto_complete_source = AutoCompleteSource::list_items;
     } catch (const std::invalid_argument&) {
         threw = true;
     }
-    require(threw && box.auto_complete_source() == AutoCompleteSource::custom_source,
+    require(threw && box.auto_complete_source.read() == AutoCompleteSource::custom_source,
             "a plain TextBox refuses the list_items source");
     threw = false;
     try {
-        box.set_auto_complete_custom_source(nullptr);
+        box.auto_complete_custom_source = nullptr;
     } catch (const std::invalid_argument&) {
         threw = true;
     }
-    require(threw && box.auto_complete_custom_source() != nullptr, "a null custom source is refused");
+    require(threw && box.auto_complete_custom_source.read() != nullptr, "a null custom source is refused");
 
     // Shared collections: one list, two boxes, changes seen by both.
     std::shared_ptr<AutoCompleteStringCollection> shared = std::make_shared<AutoCompleteStringCollection>();
     (*shared).add("Lisbon");
-    box.set_auto_complete_custom_source(shared);
-    (*fixture.other).set_auto_complete_custom_source(shared);
-    require((*fixture.other).auto_complete_custom_source() == box.auto_complete_custom_source(),
+    box.auto_complete_custom_source = shared;
+    (*fixture.other).auto_complete_custom_source = shared;
+    require((*fixture.other).auto_complete_custom_source.read() == box.auto_complete_custom_source.read(),
             "one collection may serve several boxes");
-    box.set_auto_complete_mode(AutoCompleteMode::suggest);
+    box.auto_complete_mode = AutoCompleteMode::suggest;
     require(type(window, "l") && box.auto_complete_suggestions().size() == 1U, "the shared list is matched");
     (*shared).add("Leeds");
     require(box.auto_complete_suggestions().size() == 2U && box.auto_complete_suggestions()[1] == "Leeds",
@@ -438,8 +438,8 @@ void sources_and_refusals() {
     require(!box.auto_complete_open(), "a list with nothing left to show closes");
 
     // Host sources report unsupported and offer nothing.
-    box.set_text("");
-    box.set_auto_complete_source(AutoCompleteSource::file_system);
+    box.text = "";
+    box.auto_complete_source = AutoCompleteSource::file_system;
     require(box.auto_complete_source_status().error == HostServiceError::unsupported,
             "without a host, a host source is unsupported");
     host::HeadlessHost host(window);
@@ -451,9 +451,9 @@ void sources_and_refusals() {
     const HostAutoCompleteResult answer = host.services().query_auto_complete(request);
     require(answer.status.error == HostServiceError::unsupported && answer.candidates_utf8.empty(),
             "the host service reports unsupported with no candidates");
-    require(type(window, "l") && !box.auto_complete_open() && box.text() == "l",
+    require(type(window, "l") && !box.auto_complete_open() && box.text.read() == "l",
             "a host source offers no completion");
-    box.set_auto_complete_source(AutoCompleteSource::none);
+    box.auto_complete_source = AutoCompleteSource::none;
     require(box.auto_complete_source_status().accepted(), "no source is not a failure");
 }
 
@@ -523,27 +523,27 @@ void inactive_boxes() {
     Window& window = *fixture.window;
     TextBox& box = *fixture.box;
     require(type(window, "c") && box.auto_complete_open(), "an ordinary box completes");
-    box.set_use_system_password_character(true);
+    box.use_system_password_character = true;
     require(!box.auto_complete_open(), "masking the box closes its list");
-    box.set_text("");
-    require(type(window, "c") && box.text() == "c" && !box.auto_complete_open() &&
+    box.text = "";
+    require(type(window, "c") && box.text.read() == "c" && !box.auto_complete_open() &&
                 !box.semantic_descriptor().has_popup,
             "a masked box never completes");
-    box.set_use_system_password_character(false);
-    box.set_text("");
-    box.set_multiline(true);
-    require(type(window, "c") && box.text() == "c" && !box.auto_complete_open(),
+    box.use_system_password_character = false;
+    box.text = "";
+    box.multiline = true;
+    require(type(window, "c") && box.text.read() == "c" && !box.auto_complete_open(),
             "a multi-line box never completes");
-    box.set_multiline(false);
-    box.set_text("");
+    box.multiline = false;
+    box.text = "";
     AcceptEveryEdit acceptor;
     box.set_edit_filter(Delegate<TextEdit&>::bind<AcceptEveryEdit, &AcceptEveryEdit::filter>(acceptor));
-    require(type(window, "c") && box.text() == "c" && !box.auto_complete_open(),
+    require(type(window, "c") && box.text.read() == "c" && !box.auto_complete_open(),
             "a box with an edit filter leaves completion to the composite that filters it");
     box.set_edit_filter(Delegate<TextEdit&>{});
-    box.set_text("");
-    box.set_auto_complete_mode(AutoCompleteMode::none);
-    require(type(window, "c") && box.text() == "c" && !box.auto_complete_open() &&
+    box.text = "";
+    box.auto_complete_mode = AutoCompleteMode::none;
+    require(type(window, "c") && box.text.read() == "c" && !box.auto_complete_open() &&
                 !box.semantic_descriptor().has_popup,
             "mode none completes nothing and publishes no overlay");
 }
@@ -554,7 +554,7 @@ void paste_suggests_without_appending() {
     TextBox& box = *fixture.box;
     host::HeadlessHost host(window);
     require(host.services().write_clipboard_text("Cam").accepted(), "the clipboard holds text");
-    require(press(window, PhysicalKey::v, Modifier::control) && box.text() == "Cam" &&
+    require(press(window, PhysicalKey::v, Modifier::control) && box.text.read() == "Cam" &&
                 box.auto_complete_open() && box.auto_complete_suggestions().size() == 1U,
             "a paste opens the list for the pasted text but appends nothing");
 }
@@ -602,7 +602,7 @@ void combo_drop_down_style() {
             "a new combo box is a drop-down list with no editor");
     combo.set_drop_down_style(ComboBoxStyle::drop_down);
     const std::shared_ptr<TextBox> editor = combo.editor();
-    require(editor && (*editor).text() == "California" && combo.selected_index() == 1U &&
+    require(editor && (*editor).text.read() == "California" && combo.selected_index() == 1U &&
                 !combo.focusable() && window.find("combo.edit.editor") == editor,
             "the drop_down style adds an editor showing the selected item");
     window.perform_layout();
@@ -699,7 +699,7 @@ void combo_auto_complete() {
             "the settings are kept in the drop_down_list style");
     combo.set_drop_down_style(ComboBoxStyle::drop_down);
     const std::shared_ptr<TextBox> editor = combo.editor();
-    require((*editor).auto_complete_mode() == AutoCompleteMode::suggest_append,
+    require((*editor).auto_complete_mode.read() == AutoCompleteMode::suggest_append,
             "the editor takes the combo box's auto-complete settings");
     require(window.request_focus(editor), "the editor takes the focus");
     std::vector<std::string> trace;
@@ -734,7 +734,7 @@ void combo_auto_complete() {
     (*towns).add("Dartmouth");
     combo.set_auto_complete_custom_source(towns);
     combo.set_auto_complete_source(AutoCompleteSource::custom_source);
-    require((*editor).auto_complete_custom_source() == towns, "custom_source hands the collection to the editor");
+    require((*editor).auto_complete_custom_source.read() == towns, "custom_source hands the collection to the editor");
     (*editor).select_all();
     require(type(window, "d") && combo.text() == "dartmouth" && !combo.selected_index(),
             "custom_source completes from the collection, not the items");

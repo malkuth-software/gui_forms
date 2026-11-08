@@ -315,7 +315,7 @@ void test_atomic_swap() {
     if (refused.succeeded()) window.set_theme(refused.theme());
     require(&window.theme() == running, "a refused theme leaves the running theme");
     require(window.focused_control() == edit && window.captured_control() == pad &&
-                (*edit).selected_text() == "world" && (*edit).text() == "hello world",
+                (*edit).selected_text() == "world" && (*edit).text.read() == "hello world",
             "and the focus, capture, selection and edit");
 
     const ThemeCompileResult good =
@@ -324,7 +324,7 @@ void test_atomic_swap() {
     if (good.succeeded()) window.set_theme(good.theme());
     require(window.theme().id() == "second", "a good theme replaces it");
     require(window.focused_control() == edit && window.captured_control() == pad &&
-                (*edit).selected_text() == "world" && (*edit).text() == "hello world",
+                (*edit).selected_text() == "world" && (*edit).text.read() == "hello world",
             "keeping the focus, capture, selection and edit");
     const ResolvedControlRecipe recipe = resolved(window.theme(), *pad);
     require(recipe.recipe().focus_width == 4.0, "and its rules apply");
