@@ -692,6 +692,12 @@ void SubSurfaceThread::configure(SubSurfaceConfiguration configuration) {
         if (channel.pending) {
             ++channel.statistics.configurations_coalesced;
             replaced.swap(channel.pending);
+            // A framebuffer comes with a new device size only, so a newer
+            // configuration of the same size has none: it takes the
+            // replaced one's, which is of that size. Without it a first
+            // configuration replaced before the loop applied it would leave
+            // the loop with no framebuffer, and nothing would be produced.
+            if (!configuration.framebuffer) configuration.framebuffer = std::move((*replaced).framebuffer);
             // An update is complete: the newer one wins, and a configuration
             // without one keeps the replaced one's.
             if ((*replaced).update) {

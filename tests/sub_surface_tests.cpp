@@ -321,6 +321,50 @@ void new_epochs_are_produced_without_pacing() {
     static_cast<void>((*root).remove_child((*host).runtime_id()));
 }
 
+// Holds the sub-surface's thread inside a posted call until released.
+class HoldThread final {
+public:
+    HoldThread(std::shared_ptr<std::atomic<bool>> entered, std::shared_ptr<std::atomic<bool>> released)
+        : entered_(std::move(entered)), released_(std::move(released)) {}
+    void operator()() const {
+        (*entered_).store(true, std::memory_order_release);
+        const std::chrono::steady_clock::time_point limit = std::chrono::steady_clock::now() + wait_limit;
+        while (!(*released_).load(std::memory_order_acquire) && std::chrono::steady_clock::now() < limit) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+    }
+
+private:
+    std::shared_ptr<std::atomic<bool>> entered_;
+    std::shared_ptr<std::atomic<bool>> released_;
+};
+
+// A configuration of the same device size carries no framebuffer (the host
+// makes one per size). When it replaces the first configuration before the
+// loop applied it, the first one's framebuffer is kept: the newer epoch is
+// produced. (A grid sending its cells from its first paint did this on a
+// slow machine, and its region never published.)
+void coalesced_first_configuration_keeps_its_framebuffer() {
+    std::shared_ptr<Probe> probe = std::make_shared<Probe>();
+    std::shared_ptr<LiveSurface> surface = LiveSurface::create({40U, 20U});
+    require(static_cast<bool>(surface), "surface");
+    SubSurfaceThread thread(std::make_unique<SolidContent>(probe, red), surface, default_theme(), nullptr);
+    require(wait_for_state(thread, SubSurfaceState::running), "thread reaches running");
+    std::shared_ptr<std::atomic<bool>> entered = std::make_shared<std::atomic<bool>>(false);
+    std::shared_ptr<std::atomic<bool>> released = std::make_shared<std::atomic<bool>>(false);
+    static_cast<void>(thread.dispatcher().begin_invoke(HoldThread(entered, released)));
+    require(wait_for_flag(*entered), "the thread is held");
+    thread.configure(configuration_of(1U, 40U, 20U));
+    SubSurfaceConfiguration same_size = configuration_of(2U, 40U, 20U);
+    same_size.framebuffer.reset();
+    thread.configure(std::move(same_size));
+    (*released).store(true, std::memory_order_release);
+    require(wait_for_content_tag(*surface, 2U), "the newer epoch is produced with the first one's framebuffer");
+    const SubSurfaceStatistics statistics = thread.statistics();
+    require(statistics.configurations_coalesced == 1U && statistics.configurations_applied == 1U,
+            "the two configurations were applied as one");
+}
+
 void content_failure_is_reported() {
     std::shared_ptr<LiveSurface> surface = LiveSurface::create({8U, 8U});
     SubSurfaceThread thread(std::make_unique<NullContent>(), surface, default_theme(), nullptr);
@@ -1948,6 +1992,7 @@ void tool_tips_without_a_parent_ask_nowhere() {
 int run_all() {
     thread_produces_tagged_frames();
     content_failure_is_reported();
+    coalesced_first_configuration_keeps_its_framebuffer();
     new_epochs_are_produced_without_pacing();
     start_stop_stress();
     host_in_window();
