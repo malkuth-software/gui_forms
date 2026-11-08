@@ -236,7 +236,7 @@ void test_generated_matches_loader() {
         form.sample_level != nullptr &&
         (*loaded_check).property_value("checked") == (*form.sample_general_auto_save).property_value("checked") &&
         (*loaded_level).property_value("value") == (*form.sample_level).property_value("value") &&
-        (*form.sample_level).value() == 25.0;
+        (*form.sample_level).value.read() == 25.0;
     require(bound_alike, "generated: the bound properties take their sources' values, as the loader's do");
 
     // The window's description.
@@ -277,8 +277,8 @@ void test_bindings() {
 
         gui_forms::NumericUpDown& level = *form.sample_level;
         owner.level_.set(40.0);
-        require(level.value() == 40.0, "bindings: one way, the Value's change reaches the control");
-        level.set_value(10.0);
+        require(level.value.read() == 40.0, "bindings: one way, the Value's change reaches the control");
+        level.value = 10.0;
         require(owner.level_.get() == 40.0, "bindings: one way, the control's change stays in the control");
 
         gui_forms::Window window(form.root_control(), gui_forms::Size{480.0, 320.0});

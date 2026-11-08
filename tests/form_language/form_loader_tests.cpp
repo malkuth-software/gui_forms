@@ -258,15 +258,15 @@ void test_bindings() {
                 "bindings: every bound control");
         if (check == nullptr || mirror == nullptr || number == nullptr || name == nullptr || button == nullptr) return;
 
-        require((*check).checked() && (*mirror).checked() && (*number).value() == 25.0 && (*name).text() == "Ada",
+        require((*check).checked() && (*mirror).checked() && (*number).value.read() == 25.0 && (*name).text.read() == "Ada",
                 "bindings: each property takes its source's value at creation");
         (*check).set_checked(false);
         require(!autosave.get() && !(*mirror).checked(), "bindings: two way, the change reaches the Value and on");
         (*mirror).set_checked(true);
         require(!autosave.get(), "bindings: one way, the control's change stays in the control");
-        (*number).set_value(30.0);
+        (*number).value = 30.0;
         require(level.get() == 30.0, "bindings: the numeric value, two way by its property's default");
-        (*name).set_text("Ada Lovelace");
+        (*name).text = std::string("Ada Lovelace");
         const gui_forms::BindingRecord* record = (*people).current();
         const gui_forms::BindingValue written{std::string("Ada Lovelace")};
         require(record != nullptr && (*record).fields.at("name") == written,
