@@ -3268,6 +3268,8 @@ void ListView::written(const decltype(full_row_select)&) {
     invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
+void ListView::on_font_changed() {}
+
 void ListView::prepare_write(const decltype(draw_mode)&, ItemDrawMode& incoming) {
     require_mutable();
     if (incoming != ItemDrawMode::normal && incoming != ItemDrawMode::owner_draw) {
@@ -3287,8 +3289,6 @@ void ListView::prepare_write(const decltype(default_group_header)&, std::string&
 void ListView::written(const decltype(default_group_header)&) {
     invalidate(Dirty::paint | Dirty::semantics);
 }
-
-void ListView::on_font_changed() {}
 
 // property_codemod end ListView
 

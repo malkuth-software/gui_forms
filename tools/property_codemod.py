@@ -591,8 +591,40 @@ def collapse_blank_lines(text):
     return re.sub(r"\n{3,}", "\n\n", text)
 
 
+def signature_keys(block):
+    """The function heads and friend declarations of a generated block, each
+    cut at its first `)` with its spacing collapsed, so `{}` against `{` and
+    `}` on two lines, or a parameter's name, does not tell them apart."""
+    keys = set()
+    # A source block's indented lines are statements of the bodies above them.
+    source = re.search(r"^[^\s/][^\n]*::\w+\(", block, re.M) is not None
+    for line in block.split("\n"):
+        stripped = line.strip()
+        if stripped.startswith("//"):
+            continue
+        if stripped.startswith("friend "):
+            keys.add(" ".join(stripped.split()))
+            continue
+        head = re.match(r"(?:[\w:<>,&*~\[\] ]+\s)?[\w:~]+\([^)]*\)?", stripped)
+        if head is None:
+            continue
+        # A definition starts at the line's first column; a declaration is a
+        # member line of the class (one indent) that ends its statement.
+        if line[:1].isspace() and (source or not (line.startswith("    ") and not line.startswith("     ")
+                                                  and stripped.endswith((";", ",")))):
+            continue
+        if not line[:1].isspace() and "::" not in stripped.split("(", 1)[0]:
+            continue
+        keys.add(" ".join(head.group(0).split(")", 1)[0].split()))
+    return keys
+
+
 def replace_block(text, family, block, anchor_index):
-    """Replaces the generated block for `family`, or inserts it at anchor_index."""
+    """Replaces the generated block for `family`, or inserts it at anchor_index.
+
+    Refuses (ValueError) to replace a block holding a function or friend the
+    new block would not have: a hand-written hook belongs outside the
+    generated block, where regeneration leaves it alone."""
     begin = text.find(BEGIN + family + "\n")
     if begin < 0:
         begin = text.find(BEGIN + family + " ")
@@ -600,6 +632,10 @@ def replace_block(text, family, block, anchor_index):
         begin = line_start(text, begin)
         end_marker = text.index(END + family, begin)
         end = line_end(text, end_marker)
+        lost = sorted(signature_keys(text[begin:end]) - signature_keys(block))
+        if lost:
+            raise ValueError(f"{family}: the generated block holds hand-written code the generator "
+                             f"would drop; move it outside the block: " + "; ".join(lost))
         return text[:begin] + block + text[end:]
     return text[:anchor_index] + block + text[anchor_index:]
 

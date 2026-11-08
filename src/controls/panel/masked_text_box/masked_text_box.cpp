@@ -686,16 +686,15 @@ void MaskedTextBox::append_interactions(std::vector<InteractionDeclaration>& int
 
 // property_codemod begin MaskedTextBox (tools/property_families/masked_text_box.json; generated, do not edit)
 
+void MaskedTextBox::on_mask_changed() {
+    publish_change(mask_changed_, mask.read());
+}
+
 void MaskedTextBox::prepare_write(const decltype(reject_input_on_first_failure)&, bool&) {
     require_mutable();
 }
 
-void MaskedTextBox::written(const decltype(reject_input_on_first_failure)&) {
-}
-
-void MaskedTextBox::on_mask_changed() {
-    publish_change(mask_changed_, mask.read());
-}
+void MaskedTextBox::written(const decltype(reject_input_on_first_failure)&) {}
 
 void MaskedTextBox::on_read_only_changed() {}
 

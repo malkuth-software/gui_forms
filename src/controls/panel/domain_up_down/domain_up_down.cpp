@@ -517,6 +517,8 @@ std::span<const PropertyEntry> DomainUpDown::property_table() const noexcept {
     return std::span<const PropertyEntry>(entries);
 }
 
+void DomainUpDown::on_text_changed() {}
+
 void DomainUpDown::prepare_write(const decltype(wrap)&, bool&) {
     require_mutable();
 }
@@ -533,8 +535,6 @@ void DomainUpDown::prepare_write(const decltype(button_width)&, double& incoming
 void DomainUpDown::written(const decltype(button_width)&) {
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
-
-void DomainUpDown::on_text_changed() {}
 
 // property_codemod end DomainUpDown
 

@@ -374,6 +374,10 @@ std::span<const PropertyEntry> RadioButton::property_table() const noexcept {
     return std::span<const PropertyEntry>(entries);
 }
 
+void RadioButton::on_checked_changed() {
+    publish_change(checked_changed_, checked.read());
+}
+
 void RadioButton::prepare_write(const decltype(auto_check)&, bool&) {
     require_mutable();
 }
@@ -389,10 +393,6 @@ void RadioButton::prepare_write(const decltype(indicator_style)&, ChoiceIndicato
 
 void RadioButton::written(const decltype(indicator_style)&) {
     invalidate(Dirty::paint | Dirty::semantics);
-}
-
-void RadioButton::on_checked_changed() {
-    publish_change(checked_changed_, checked.read());
 }
 
 // property_codemod end RadioButton

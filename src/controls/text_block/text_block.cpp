@@ -572,6 +572,12 @@ void TextBlock::written(const decltype(text)&) {
     on_text_changed();
 }
 
+void TextBlock::on_text_changed() {
+    publish_change(text_changed_, text.read());
+}
+
+void TextBlock::on_font_changed() {}
+
 void TextBlock::prepare_write(const decltype(text_align)&, TextAlignment& incoming) {
     require_mutable();
     if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(TextAlignment::center)) throw std::invalid_argument("TextBlock text alignment is invalid");
@@ -589,12 +595,6 @@ void TextBlock::prepare_write(const decltype(line_height)&, std::optional<double
 void TextBlock::written(const decltype(line_height)&) {
     invalidate(invalidation::text_content);
 }
-
-void TextBlock::on_text_changed() {
-    publish_change(text_changed_, text.read());
-}
-
-void TextBlock::on_font_changed() {}
 
 // property_codemod end TextBlock
 

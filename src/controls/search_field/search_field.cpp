@@ -593,6 +593,10 @@ std::span<const PropertyEntry> SearchField::property_table() const noexcept {
     return std::span<const PropertyEntry>(entries);
 }
 
+void SearchField::on_text_changed() {
+    publish_change(text_changed_, text.read());
+}
+
 void SearchField::prepare_write(const decltype(search_delay)&, std::chrono::milliseconds& incoming) {
     require_mutable();
     if (incoming.count() < 0 || incoming > std::chrono::milliseconds(10000)) {
@@ -601,10 +605,6 @@ void SearchField::prepare_write(const decltype(search_delay)&, std::chrono::mill
 }
 
 void SearchField::written(const decltype(search_delay)&) {}
-
-void SearchField::on_text_changed() {
-    publish_change(text_changed_, text.read());
-}
 
 // property_codemod end SearchField
 

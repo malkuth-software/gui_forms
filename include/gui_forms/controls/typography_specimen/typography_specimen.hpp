@@ -16,7 +16,6 @@ class TypographySpecimen final : public Control, public TypographySpecimenCapabi
 public:
     explicit TypographySpecimen(StableId stable_id, std::string initial_text = {});
 
-
     [[nodiscard]] ResolvedTextLayout resolved_layout() const;
 
     [[nodiscard]] Size measure(Size available) override;

@@ -726,6 +726,8 @@ void Label::on_text_changed() {
     publish_change(text_changed_, text.read());
 }
 
+void Label::on_font_changed() {}
+
 void Label::prepare_write(const decltype(alignment)&, HorizontalAlignment& incoming) {
     require_mutable();
     if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(HorizontalAlignment::far)) throw std::invalid_argument("Label horizontal alignment is invalid");
@@ -735,6 +737,8 @@ void Label::written(const decltype(alignment)&) {
     invalidate(Dirty::paint | Dirty::semantics);
     on_alignment_changed();
 }
+
+void Label::on_alignment_changed() {}
 
 void Label::prepare_write(const decltype(vertical_alignment)&, VerticalAlignment& incoming) {
     require_mutable();
@@ -788,10 +792,6 @@ void Label::prepare_write(const decltype(use_mnemonic)&, bool&) {
 void Label::written(const decltype(use_mnemonic)&) {
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
 }
-
-void Label::on_font_changed() {}
-
-void Label::on_alignment_changed() {}
 
 // property_codemod end Label
 

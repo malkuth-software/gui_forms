@@ -1222,8 +1222,7 @@ void MonthCalendar::prepare_write(const decltype(scroll_change)&, std::uint32_t&
     if (incoming > 20000U) throw std::out_of_range("MonthCalendar scroll change is at most 20000 months");
 }
 
-void MonthCalendar::written(const decltype(scroll_change)&) {
-}
+void MonthCalendar::written(const decltype(scroll_change)&) {}
 
 void MonthCalendar::prepare_write(const decltype(format_provider)&, DateTimeFormatProvider& incoming) {
     require_mutable();

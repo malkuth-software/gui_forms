@@ -311,6 +311,10 @@ std::span<const PropertyEntry> RangeControl::property_table() const noexcept {
     return std::span<const PropertyEntry>(entries);
 }
 
+void RangeControl::on_value_changed() {
+    publish_change(value_changed_, value.read());
+}
+
 void RangeControl::prepare_write(const decltype(small_change)&, double& incoming) {
     require_mutable();
     require_finite(incoming, "small change must be finite");
@@ -337,10 +341,6 @@ void RangeControl::prepare_write(const decltype(orientation)&, Orientation&) {
 
 void RangeControl::written(const decltype(orientation)&) {
     invalidate(Dirty::measure | Dirty::paint | Dirty::hit_test | Dirty::semantics);
-}
-
-void RangeControl::on_value_changed() {
-    publish_change(value_changed_, value.read());
 }
 
 // property_codemod end RangeControl

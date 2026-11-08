@@ -1582,6 +1582,26 @@ private:
     // Raised from const reads, as cell_formatting_ is.
     mutable Event<DataGridViewCellErrorTextNeededEvent&> cell_error_text_needed_{};
     mutable Event<DataGridViewRowErrorTextNeededEvent&> row_error_text_needed_{};
+    friend struct DataGridViewRowsCapability<DataGridView>;
+    // The rows' hooks (data_grid_view_rows.cpp): require_mutable, not
+    // sorting, unbound rows, the rows' checks and generated IDs, and the
+    // identity index readied first; then the index, the row state and
+    // the touch.
+    void prepare_edit(const decltype(rows)& cell, const CollectionEdit& edit, std::span<DataGridViewRow> incoming);
+    void written(const decltype(rows)& cell, const CollectionEdit& edit);
+    // Takes the rows' pending damage (in arrange) and repaints the shown
+    // rows it reaches; everything when `whole` (the window moved, the
+    // bounds changed, or cells size rows or columns).
+    void settle_rows_damage(bool whole, const GridLayout& layout);
+    // Whether a column or the rows are sized by the cells' contents.
+    [[nodiscard]] bool sized_by_cells() const;
+    // prepare_edit's parts, by edit kind, and the cell edit a row edit
+    // cancels first (std::logic_error when its handlers edited the rows).
+    void prepare_rows_assignment(std::span<DataGridViewRow> incoming);
+    void prepare_rows_insertion(const CollectionEdit& edit, std::span<DataGridViewRow> incoming);
+    void prepare_rows_erasure(const CollectionEdit& edit);
+    void prepare_rows_replacement(const CollectionEdit& edit, std::span<DataGridViewRow> incoming);
+    void cancel_edit_before_row_edit();
     // property_codemod begin DataGridView (tools/property_families/data_grid_view.json; generated, do not edit)
 protected:
     // on_<property>_changed runs after a changed write's store and touch and
@@ -1612,26 +1632,6 @@ protected:
     virtual void on_edit_mode_changed();
 
 private:
-    friend struct DataGridViewRowsCapability<DataGridView>;
-    // The rows' hooks (data_grid_view_rows.cpp): require_mutable, not
-    // sorting, unbound rows, the rows' checks and generated IDs, and the
-    // identity index readied first; then the index, the row state and
-    // the touch.
-    void prepare_edit(const decltype(rows)& cell, const CollectionEdit& edit, std::span<DataGridViewRow> incoming);
-    void written(const decltype(rows)& cell, const CollectionEdit& edit);
-    // Takes the rows' pending damage (in arrange) and repaints the shown
-    // rows it reaches; everything when `whole` (the window moved, the
-    // bounds changed, or cells size rows or columns).
-    void settle_rows_damage(bool whole, const GridLayout& layout);
-    // Whether a column or the rows are sized by the cells' contents.
-    [[nodiscard]] bool sized_by_cells() const;
-    // prepare_edit's parts, by edit kind, and the cell edit a row edit
-    // cancels first (std::logic_error when its handlers edited the rows).
-    void prepare_rows_assignment(std::span<DataGridViewRow> incoming);
-    void prepare_rows_insertion(const CollectionEdit& edit, std::span<DataGridViewRow> incoming);
-    void prepare_rows_erasure(const CollectionEdit& edit);
-    void prepare_rows_replacement(const CollectionEdit& edit, std::span<DataGridViewRow> incoming);
-    void cancel_edit_before_row_edit();
     friend struct DataGridViewAutoSizeColumnsModeCapability<DataGridView>;
     friend struct DataGridViewAutoSizeRowsModeCapability<DataGridView>;
     friend struct DataGridViewClipboardCopyModeCapability<DataGridView>;

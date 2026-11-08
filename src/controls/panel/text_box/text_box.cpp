@@ -1609,6 +1609,10 @@ std::span<const PropertyEntry> TextBox::property_table() const noexcept {
     return std::span<const PropertyEntry>(entries);
 }
 
+void TextBox::on_text_changed() {
+    publish_change(text_changed_, text.read());
+}
+
 void TextBox::prepare_write(const decltype(placeholder_text)&, std::string& incoming) {
     require_mutable();
     if (!validate_utf8(incoming).valid()) throw std::invalid_argument("TextBox placeholder must be valid UTF-8");
@@ -1617,6 +1621,10 @@ void TextBox::prepare_write(const decltype(placeholder_text)&, std::string& inco
 void TextBox::written(const decltype(placeholder_text)&) {
     invalidate(Dirty::paint | Dirty::semantics);
 }
+
+void TextBox::on_read_only_changed() {}
+
+void TextBox::on_multiline_changed() {}
 
 void TextBox::prepare_write(const decltype(newline_sequence)&, std::string& incoming) {
     require_mutable();
@@ -1635,6 +1643,8 @@ void TextBox::written(const decltype(accepts_tab)&) {
     on_accepts_tab_changed();
 }
 
+void TextBox::on_accepts_tab_changed() {}
+
 void TextBox::prepare_write(const decltype(accepts_enter)&, bool&) {
     require_mutable();
 }
@@ -1646,16 +1656,6 @@ void TextBox::prepare_write(const decltype(accepts_escape)&, bool&) {
 }
 
 void TextBox::written(const decltype(accepts_escape)&) {}
-
-void TextBox::on_text_changed() {
-    publish_change(text_changed_, text.read());
-}
-
-void TextBox::on_read_only_changed() {}
-
-void TextBox::on_multiline_changed() {}
-
-void TextBox::on_accepts_tab_changed() {}
 
 void TextBox::on_font_changed() {}
 

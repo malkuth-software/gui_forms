@@ -3,6 +3,7 @@
 #include "../file_dialog/file_dialog_support.hpp"
 #include "gui_forms/components/file_dialog_types/file_dialog_types.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <stdexcept>
 #include <utility>

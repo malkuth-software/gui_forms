@@ -1313,6 +1313,12 @@ std::span<const PropertyEntry> ComboBox::property_table() const noexcept {
     return std::span<const PropertyEntry>(entries);
 }
 
+void ComboBox::on_selected_index_changed() {}
+
+void ComboBox::on_text_changed() {
+    publish_change(text_changed_, text.read());
+}
+
 void ComboBox::prepare_write(const decltype(drop_down_width)&, double& incoming) {
     require_mutable();
     if (!std::isfinite(incoming) || incoming < 0.0 || incoming > 4096.0) {
@@ -1322,12 +1328,6 @@ void ComboBox::prepare_write(const decltype(drop_down_width)&, double& incoming)
 
 void ComboBox::written(const decltype(drop_down_width)&) {
     invalidate(Dirty::paint | Dirty::semantics);
-}
-
-void ComboBox::on_selected_index_changed() {}
-
-void ComboBox::on_text_changed() {
-    publish_change(text_changed_, text.read());
 }
 
 void ComboBox::on_font_changed() {}

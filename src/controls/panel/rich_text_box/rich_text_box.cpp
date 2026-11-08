@@ -950,6 +950,12 @@ std::span<const PropertyEntry> RichTextBox::property_table() const noexcept {
     return std::span<const PropertyEntry>(entries);
 }
 
+void RichTextBox::on_text_changed() {
+    publish_change(text_changed_, text.read());
+}
+
+void RichTextBox::on_read_only_changed() {}
+
 void RichTextBox::prepare_write(const decltype(accepts_tab)&, bool&) {
     require_mutable();
 }
@@ -957,12 +963,6 @@ void RichTextBox::prepare_write(const decltype(accepts_tab)&, bool&) {
 void RichTextBox::written(const decltype(accepts_tab)&) {
     on_accepts_tab_changed();
 }
-
-void RichTextBox::on_text_changed() {
-    publish_change(text_changed_, text.read());
-}
-
-void RichTextBox::on_read_only_changed() {}
 
 void RichTextBox::on_accepts_tab_changed() {}
 

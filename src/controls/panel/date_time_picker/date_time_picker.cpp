@@ -125,7 +125,6 @@ void DateTimePicker::write_view(const decltype(style)&, BasicControlStyle incomi
     invalidate(Dirty::paint);
 }
 
-
 namespace {
 
 // The pattern a picker of `format` shows its value in: one of `provider`'s,
@@ -148,7 +147,6 @@ std::string DateTimePicker::formatted_value() const {
     const std::string_view pattern = format_pattern(format.read(), format_provider.read(), custom_format.read());
     return format_date_time(value.read(), pattern, format_provider.read());
 }
-
 
 DateTimePicker::HitPart DateTimePicker::part_at(Point absolute) const noexcept {
     const Rect bounds = absolute_bounds();
@@ -684,6 +682,10 @@ void DateTimePicker::written(const decltype(value)&) {
     on_value_changed();
 }
 
+void DateTimePicker::on_value_changed() {
+    publish_change(value_changed_, value.read());
+}
+
 void DateTimePicker::prepare_write(const decltype(format)&, DateTimePickerFormat& incoming) {
     require_mutable();
     switch (incoming) {
@@ -701,6 +703,8 @@ void DateTimePicker::written(const decltype(format)&) {
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
     on_format_changed();
 }
+
+void DateTimePicker::on_format_changed() {}
 
 void DateTimePicker::prepare_write(const decltype(show_check_box)&, bool&) {
     require_mutable();
@@ -740,12 +744,6 @@ void DateTimePicker::written(const decltype(font)&) {
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
     on_font_changed();
 }
-
-void DateTimePicker::on_value_changed() {
-    publish_change(value_changed_, value.read());
-}
-
-void DateTimePicker::on_format_changed() {}
 
 void DateTimePicker::on_font_changed() {}
 

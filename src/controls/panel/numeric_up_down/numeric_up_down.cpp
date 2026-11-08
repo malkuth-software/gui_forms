@@ -423,6 +423,10 @@ std::span<const PropertyEntry> NumericUpDown::property_table() const noexcept {
     return std::span<const PropertyEntry>(entries);
 }
 
+void NumericUpDown::on_value_changed() {
+    publish_change(value_changed_, value.read());
+}
+
 void NumericUpDown::prepare_write(const decltype(increment)&, double& incoming) {
     require_mutable();
     if (!std::isfinite(incoming) || incoming <= 0.0) {
@@ -441,10 +445,6 @@ void NumericUpDown::prepare_write(const decltype(button_width)&, double& incomin
 
 void NumericUpDown::written(const decltype(button_width)&) {
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
-}
-
-void NumericUpDown::on_value_changed() {
-    publish_change(value_changed_, value.read());
 }
 
 // property_codemod end NumericUpDown

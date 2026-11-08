@@ -31,7 +31,6 @@ class TextBlock final : public Control, public TextBlockCapabilities<TextBlock> 
 public:
     explicit TextBlock(StableId stable_id, std::string initial_text = {});
 
-
     // The font the block lays out and paints with: its own `font` when set,
     // otherwise the theme's field typography. Layout and paint use it at the
     // effective text scale.

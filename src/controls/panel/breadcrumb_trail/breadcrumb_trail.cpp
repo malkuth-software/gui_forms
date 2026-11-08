@@ -825,7 +825,8 @@ void BreadcrumbTrail::append_interactions(std::vector<InteractionDeclaration>& i
     interactions.insert(interactions.end(), breadcrumb_trail_interactions.begin(), breadcrumb_trail_interactions.end());
 }
 
-// property_codemod begin BreadcrumbTrail (tools/property_families/breadcrumb_trail.json; generated, do not edit)
+// BreadcrumbTrail's hand-written property hooks (breadcrumb_trail.json:
+// hooks "hand"), outside the generated block below.
 
 void BreadcrumbTrail::prepare_write(const decltype(font)&, FontSpec& incoming) {
     require_mutable();
@@ -892,6 +893,8 @@ void BreadcrumbTrail::prepare_write(const decltype(tab_completion_available)&, b
 void BreadcrumbTrail::written(const decltype(tab_completion_available)&) {
     invalidate(Dirty::semantics | Dirty::accessibility);
 }
+
+// property_codemod begin BreadcrumbTrail (tools/property_families/breadcrumb_trail.json; generated, do not edit)
 
 void BreadcrumbTrail::on_font_changed() {}
 

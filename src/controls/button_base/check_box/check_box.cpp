@@ -536,6 +536,14 @@ std::span<const PropertyEntry> CheckBox::property_table() const noexcept {
     return std::span<const PropertyEntry>(entries);
 }
 
+void CheckBox::on_check_state_changed() {
+    publish_change(check_state_changed_, check_state.read());
+}
+
+void CheckBox::on_checked_changed() {
+    publish_change(checked_changed_, checked.read());
+}
+
 void CheckBox::prepare_write(const decltype(auto_check)&, bool&) {
     require_mutable();
 }
@@ -554,6 +562,8 @@ void CheckBox::written(const decltype(appearance)&) {
     on_appearance_changed();
 }
 
+void CheckBox::on_appearance_changed() {}
+
 void CheckBox::prepare_write(const decltype(indicator_style)&, ChoiceIndicatorStyle& incoming) {
     require_mutable();
     if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(ChoiceIndicatorStyle::toggle)) throw std::invalid_argument("CheckBox indicator style is invalid");
@@ -562,16 +572,6 @@ void CheckBox::prepare_write(const decltype(indicator_style)&, ChoiceIndicatorSt
 void CheckBox::written(const decltype(indicator_style)&) {
     invalidate(Dirty::paint | Dirty::semantics);
 }
-
-void CheckBox::on_check_state_changed() {
-    publish_change(check_state_changed_, check_state.read());
-}
-
-void CheckBox::on_checked_changed() {
-    publish_change(checked_changed_, checked.read());
-}
-
-void CheckBox::on_appearance_changed() {}
 
 // property_codemod end CheckBox
 

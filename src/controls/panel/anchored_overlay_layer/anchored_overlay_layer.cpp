@@ -172,15 +172,13 @@ void AnchoredOverlayLayer::prepare_write(const decltype(dismiss_on_click_away)&,
     require_mutable();
 }
 
-void AnchoredOverlayLayer::written(const decltype(dismiss_on_click_away)&) {
-}
+void AnchoredOverlayLayer::written(const decltype(dismiss_on_click_away)&) {}
 
 void AnchoredOverlayLayer::prepare_write(const decltype(dismiss_on_escape)&, bool&) {
     require_mutable();
 }
 
-void AnchoredOverlayLayer::written(const decltype(dismiss_on_escape)&) {
-}
+void AnchoredOverlayLayer::written(const decltype(dismiss_on_escape)&) {}
 
 // property_codemod end AnchoredOverlayLayer
 

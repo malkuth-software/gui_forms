@@ -780,8 +780,7 @@ void TokenBox::prepare_write(const decltype(delimiters)&, std::string& incoming)
     }
 }
 
-void TokenBox::written(const decltype(delimiters)&) {
-}
+void TokenBox::written(const decltype(delimiters)&) {}
 
 void TokenBox::on_font_changed() {}
 

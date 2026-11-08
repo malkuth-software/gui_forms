@@ -4059,13 +4059,16 @@ bool DataGridView::on_semantic_child_action(std::string_view id, SemanticAction 
 
 // property_codemod begin DataGridView (tools/property_families/data_grid_view.json; generated, do not edit)
 
+void DataGridView::on_auto_size_columns_mode_changed() {}
+
+void DataGridView::on_auto_size_rows_mode_changed() {}
+
 void DataGridView::prepare_write(const decltype(clipboard_copy_mode)&, DataGridViewClipboardCopyMode& incoming) {
     require_mutable();
     if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(DataGridViewClipboardCopyMode::enable_always_include_header_text)) throw std::invalid_argument("DataGridView clipboard copy mode is outside the enumeration");
 }
 
-void DataGridView::written(const decltype(clipboard_copy_mode)&) {
-}
+void DataGridView::written(const decltype(clipboard_copy_mode)&) {}
 
 void DataGridView::prepare_write(const decltype(allow_user_to_delete_rows)&, bool&) {
     require_mutable();
@@ -4074,6 +4077,8 @@ void DataGridView::prepare_write(const decltype(allow_user_to_delete_rows)&, boo
 void DataGridView::written(const decltype(allow_user_to_delete_rows)&) {
     on_allow_user_to_delete_rows_changed();
 }
+
+void DataGridView::on_allow_user_to_delete_rows_changed() {}
 
 void DataGridView::prepare_write(const decltype(show_cell_errors)&, bool&) {
     require_mutable();
@@ -4099,6 +4104,16 @@ void DataGridView::written(const decltype(show_editing_icon)&) {
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
+void DataGridView::on_default_cell_style_changed() {}
+
+void DataGridView::on_rows_default_cell_style_changed() {}
+
+void DataGridView::on_alternating_rows_default_cell_style_changed() {}
+
+void DataGridView::on_column_headers_default_cell_style_changed() {}
+
+void DataGridView::on_row_headers_default_cell_style_changed() {}
+
 void DataGridView::prepare_write(const decltype(enable_headers_visual_styles)&, bool&) {
     require_mutable();
 }
@@ -4116,6 +4131,8 @@ void DataGridView::written(const decltype(grid_color)&) {
     on_grid_color_changed();
 }
 
+void DataGridView::on_grid_color_changed() {}
+
 void DataGridView::prepare_write(const decltype(background_color)&, std::optional<Color>&) {
     require_mutable();
 }
@@ -4124,60 +4141,6 @@ void DataGridView::written(const decltype(background_color)&) {
     invalidate(Dirty::paint);
     on_background_color_changed();
 }
-
-void DataGridView::prepare_write(const decltype(draw_mode)&, ItemDrawMode& incoming) {
-    require_mutable();
-    if (incoming != ItemDrawMode::normal && incoming != ItemDrawMode::owner_draw) throw std::invalid_argument("DataGridView draw mode must be normal or owner_draw");
-}
-
-void DataGridView::written(const decltype(draw_mode)&) {
-    invalidate(Dirty::paint);
-}
-
-void DataGridView::prepare_write(const decltype(allow_user_to_resize_columns)&, bool&) {
-    require_mutable();
-}
-
-void DataGridView::written(const decltype(allow_user_to_resize_columns)&) {
-    invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
-    on_allow_user_to_resize_columns_changed();
-}
-
-void DataGridView::prepare_write(const decltype(allow_user_to_resize_rows)&, bool&) {
-    require_mutable();
-}
-
-void DataGridView::written(const decltype(allow_user_to_resize_rows)&) {
-    invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
-    on_allow_user_to_resize_rows_changed();
-}
-
-void DataGridView::prepare_write(const decltype(edit_mode)&, DataGridViewEditMode& incoming) {
-    require_mutable();
-    if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(DataGridViewEditMode::edit_programmatically)) throw std::invalid_argument("DataGridView edit mode is outside the enumeration");
-}
-
-void DataGridView::written(const decltype(edit_mode)&) {
-    on_edit_mode_changed();
-}
-
-void DataGridView::on_auto_size_columns_mode_changed() {}
-
-void DataGridView::on_auto_size_rows_mode_changed() {}
-
-void DataGridView::on_allow_user_to_delete_rows_changed() {}
-
-void DataGridView::on_default_cell_style_changed() {}
-
-void DataGridView::on_rows_default_cell_style_changed() {}
-
-void DataGridView::on_alternating_rows_default_cell_style_changed() {}
-
-void DataGridView::on_column_headers_default_cell_style_changed() {}
-
-void DataGridView::on_row_headers_default_cell_style_changed() {}
-
-void DataGridView::on_grid_color_changed() {}
 
 void DataGridView::on_background_color_changed() {}
 
@@ -4189,6 +4152,15 @@ void DataGridView::on_column_headers_border_style_changed() {}
 
 void DataGridView::on_row_headers_border_style_changed() {}
 
+void DataGridView::prepare_write(const decltype(draw_mode)&, ItemDrawMode& incoming) {
+    require_mutable();
+    if (incoming != ItemDrawMode::normal && incoming != ItemDrawMode::owner_draw) throw std::invalid_argument("DataGridView draw mode must be normal or owner_draw");
+}
+
+void DataGridView::written(const decltype(draw_mode)&) {
+    invalidate(Dirty::paint);
+}
+
 void DataGridView::on_column_headers_height_changed() {}
 
 void DataGridView::on_row_headers_width_changed() {}
@@ -4197,13 +4169,40 @@ void DataGridView::on_font_changed() {}
 
 void DataGridView::on_read_only_changed() {}
 
+void DataGridView::prepare_write(const decltype(allow_user_to_resize_columns)&, bool&) {
+    require_mutable();
+}
+
+void DataGridView::written(const decltype(allow_user_to_resize_columns)&) {
+    invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
+    on_allow_user_to_resize_columns_changed();
+}
+
 void DataGridView::on_allow_user_to_resize_columns_changed() {}
+
+void DataGridView::prepare_write(const decltype(allow_user_to_resize_rows)&, bool&) {
+    require_mutable();
+}
+
+void DataGridView::written(const decltype(allow_user_to_resize_rows)&) {
+    invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
+    on_allow_user_to_resize_rows_changed();
+}
 
 void DataGridView::on_allow_user_to_resize_rows_changed() {}
 
 void DataGridView::on_allow_user_to_order_columns_changed() {}
 
 void DataGridView::on_multi_select_changed() {}
+
+void DataGridView::prepare_write(const decltype(edit_mode)&, DataGridViewEditMode& incoming) {
+    require_mutable();
+    if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(DataGridViewEditMode::edit_programmatically)) throw std::invalid_argument("DataGridView edit mode is outside the enumeration");
+}
+
+void DataGridView::written(const decltype(edit_mode)&) {
+    on_edit_mode_changed();
+}
 
 void DataGridView::on_edit_mode_changed() {}
 

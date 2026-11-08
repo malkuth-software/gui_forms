@@ -386,6 +386,8 @@ void TypographySpecimen::written(const decltype(text)&) {
     on_text_changed();
 }
 
+void TypographySpecimen::on_text_changed() {}
+
 void TypographySpecimen::prepare_write(const decltype(font)&, FontSpec& incoming) {
     require_mutable();
     if (!valid_font_spec(incoming)) throw std::invalid_argument("TypographySpecimen font is invalid");
@@ -396,6 +398,8 @@ void TypographySpecimen::written(const decltype(font)&) {
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
     on_font_changed();
 }
+
+void TypographySpecimen::on_font_changed() {}
 
 void TypographySpecimen::prepare_write(const decltype(caption)&, std::string&) {
     require_mutable();
@@ -420,10 +424,6 @@ void TypographySpecimen::prepare_write(const decltype(wrap_text)&, bool&) {
 void TypographySpecimen::written(const decltype(wrap_text)&) {
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
 }
-
-void TypographySpecimen::on_text_changed() {}
-
-void TypographySpecimen::on_font_changed() {}
 
 // property_codemod end TypographySpecimen
 
