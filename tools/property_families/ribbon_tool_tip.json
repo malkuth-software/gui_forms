@@ -1,0 +1,91 @@
+{
+  "family": "RibbonToolTip",
+  "step": "M-S8",
+  "declaring": "RibbonToolTip",
+  "header": "include/gui_forms/components/ribbon_tool_tip/ribbon_tool_tip.hpp",
+  "source": "src/controls/ribbon_tool_tip/ribbon_tool_tip.cpp",
+  "capabilities_header": "include/gui_forms/components/ribbon_tool_tip/ribbon_tool_tip_capabilities/ribbon_tool_tip_capabilities.hpp",
+  "shared": [],
+  "includes": [
+    "<chrono>",
+    "<string>"
+  ],
+  "mutation_check": null,
+  "properties": [
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "initial_delay",
+      "capability": "RibbonToolTipInitialDelay",
+      "value": "std::chrono::milliseconds",
+      "initial": "500",
+      "hooks": "generated",
+      "hand": [],
+      "effects": null,
+      "prepare": [
+        "require_access(\"RibbonToolTip initial-delay mutation\");",
+        "if (incoming.count() < 0) throw std::invalid_argument(\"RibbonToolTip delay may not be negative\");"
+      ],
+      "comment": "How long the pointer rests before a tooltip shows. A negative delay throws std::invalid_argument.",
+      "getter": "initial_delay",
+      "setter": "set_initial_delay",
+      "field": "initial_delay_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "auto_pop_delay",
+      "capability": "RibbonToolTipAutoPopDelay",
+      "value": "std::chrono::milliseconds",
+      "initial": "10000",
+      "hooks": "generated",
+      "hand": [],
+      "effects": null,
+      "prepare": [
+        "require_access(\"RibbonToolTip auto-pop mutation\");",
+        "if (incoming.count() < 0) throw std::invalid_argument(\"RibbonToolTip delay may not be negative\");"
+      ],
+      "comment": "How long a tooltip stays without input; zero keeps it until the pointer leaves or focus moves. A negative delay throws std::invalid_argument.",
+      "getter": "auto_pop_delay",
+      "setter": "set_auto_pop_delay",
+      "field": "auto_pop_delay_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "help_line_text",
+      "capability": "RibbonToolTipHelpLineText",
+      "value": "std::string",
+      "initial": "\"Press F1 for more help.\"",
+      "hooks": "generated",
+      "hand": [],
+      "effects": null,
+      "prepare": [
+        "require_access(\"RibbonToolTip help line mutation\");",
+        "if (!validate_utf8(incoming).valid()) throw std::invalid_argument(\"RibbonToolTip help line must be valid UTF-8\");"
+      ],
+      "comment": "The line a tooltip with a help topic shows under a rule. Text that is not valid UTF-8 throws std::invalid_argument.",
+      "getter": "help_line_text",
+      "setter": "set_help_line_text",
+      "field": "help_line_text_"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "tool_tip, item_tool_tip",
+      "reason": "per-target operations (section 4)"
+    }
+  ]
+}

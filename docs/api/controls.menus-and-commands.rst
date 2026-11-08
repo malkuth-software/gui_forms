@@ -96,6 +96,10 @@ Related types
      - The source the navigator moves through, or null (Windows Forms' BindingSource).
    * - :cpp:class:`BindingNavigatorCapabilities <gui_forms::BindingNavigatorCapabilities>`
      - Every BindingNavigator capability, in the order the declaring class takes them.
+   * - :cpp:class:`ContextMenuCapabilities <gui_forms::ContextMenuCapabilities>`
+     - Every ContextMenu capability, in the order the declaring class takes them.
+   * - :cpp:class:`ContextMenuPreferredWidthCapability <gui_forms::ContextMenuPreferredWidthCapability>`
+     - The menu's width in logical units at text scale 1, 120 to 1024 (default 268).
    * - :cpp:class:`FontChoice <gui_forms::FontChoice>`
      - A font as a font control shows and chooses it: a family name and a size in points.
    * - :cpp:class:`GalleryPreview <gui_forms::GalleryPreview>`
@@ -486,6 +490,38 @@ Related types
    .. cpp:member:: std::shared_ptr<BindingSource> binding_source
 
       The source the navigator moves through, or null (Windows Forms' BindingSource). A write subscribes to the new source's list, position and disposal and shows its position and count at once; the source's disposal clears it.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ContextMenuCapabilities : public ContextMenuPreferredWidthCapability<Declaring>
+
+   ``#include <gui_forms/components/context_menu/context_menu_capabilities/context_menu_capabilities.hpp>``
+
+   Every ContextMenu capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: double preferred_width
+
+      The menu's width in logical units at text scale 1, 120 to 1024 (default 268). A change closes an open menu. A width outside that range, or not finite, throws std::invalid_argument; a disposed menu throws std::logic_error.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ContextMenuPreferredWidthCapability
+
+   ``#include <gui_forms/components/context_menu/context_menu_capabilities/context_menu_capabilities.hpp>``
+
+   The menu's width in logical units at text scale 1, 120 to 1024 (default 268). A change closes an open menu. A width outside that range, or not finite, throws std::invalid_argument; a disposed menu throws std::logic_error.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ContextMenuPreferredWidthCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, ContextMenuPreferredWidthCapability<Declaring>> preferred_width
+
+      Default: ``{268.0}``.
 
 .. cpp:namespace:: gui_forms
 

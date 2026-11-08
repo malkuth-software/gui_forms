@@ -142,7 +142,7 @@ Show help for the focused control when the user presses F1:
        gf::HelpProvider help(window);
        HelpDesk desk;
        gf::on(help.help_requested(), desk, &HelpDesk::on_help);
-       help.set_help_namespace("app-help://network");
+       help.help_namespace = "app-help://network";
        help.set_help_string(connect, "Connects to the server named above.");
        help.set_help_keyword(connect, "network.connect");
 

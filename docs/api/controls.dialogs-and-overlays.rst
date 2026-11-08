@@ -104,12 +104,20 @@ Related types
      - The arguments of Windows Forms' MessageBox.Show: the message, the caption in the title bar, the buttons, the icon, the default button and the options.
    * - :cpp:class:`MessageBoxResult <gui_forms::MessageBoxResult>`
      - What show_message_box returns: either the box closed, with the chosen button, or it was not shown, with the reason.
+   * - :cpp:class:`RibbonToolTipAutoPopDelayCapability <gui_forms::RibbonToolTipAutoPopDelayCapability>`
+     - How long a tooltip stays without input; zero keeps it until the pointer leaves or focus moves.
+   * - :cpp:class:`RibbonToolTipCapabilities <gui_forms::RibbonToolTipCapabilities>`
+     - Every RibbonToolTip capability, in the order the declaring class takes them.
    * - :cpp:class:`RibbonToolTipContent <gui_forms::RibbonToolTipContent>`
      - What an enhanced tooltip shows (owner decision RB-13, E3-2): a title, a description, the shortcut, an image, the reason a disabled command is unavailable, and a help topic F1 opens while the tooltip shows.
    * - :cpp:class:`RibbonToolTipEvent <gui_forms::RibbonToolTipEvent>`
      - The tooltip opened or closed.
+   * - :cpp:class:`RibbonToolTipHelpLineTextCapability <gui_forms::RibbonToolTipHelpLineTextCapability>`
+     - The line a tooltip with a help topic shows under a rule.
    * - :cpp:class:`RibbonToolTipHelpRequest <gui_forms::RibbonToolTipHelpRequest>`
      - F1 was pressed while a tooltip with a help topic showed.
+   * - :cpp:class:`RibbonToolTipInitialDelayCapability <gui_forms::RibbonToolTipInitialDelayCapability>`
+     - How long the pointer rests before a tooltip shows.
    * - :cpp:class:`SaveFileDialogAddExtensionCapability <gui_forms::SaveFileDialogAddExtensionCapability>`
      - Whether a chosen name without an extension is given one (Windows Forms' AddExtension; on by default): the chosen filter's first extension, unless that filter is any file, else default_ext.
    * - :cpp:class:`SaveFileDialogCapabilities <gui_forms::SaveFileDialogCapabilities>`
@@ -661,6 +669,46 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> RibbonToolTipAutoPopDelayCapability
+
+   ``#include <gui_forms/components/ribbon_tool_tip/ribbon_tool_tip_capabilities/ribbon_tool_tip_capabilities.hpp>``
+
+   How long a tooltip stays without input; zero keeps it until the pointer leaves or focus moves. A negative delay throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonToolTipAutoPopDelayCapability& capability, std::chrono::milliseconds incoming)
+
+   .. cpp:member:: PropertyCell<std::chrono::milliseconds, RibbonToolTipAutoPopDelayCapability<Declaring>> auto_pop_delay
+
+      Default: ``{10000}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RibbonToolTipCapabilities : public RibbonToolTipInitialDelayCapability<Declaring>, public RibbonToolTipAutoPopDelayCapability<Declaring>, public RibbonToolTipHelpLineTextCapability<Declaring>
+
+   ``#include <gui_forms/components/ribbon_tool_tip/ribbon_tool_tip_capabilities/ribbon_tool_tip_capabilities.hpp>``
+
+   Every RibbonToolTip capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::chrono::milliseconds initial_delay
+
+      How long the pointer rests before a tooltip shows. A negative delay throws std::invalid_argument.
+
+   .. cpp:member:: std::chrono::milliseconds auto_pop_delay
+
+      How long a tooltip stays without input; zero keeps it until the pointer leaves or focus moves. A negative delay throws std::invalid_argument.
+
+   .. cpp:member:: std::string help_line_text
+
+      The line a tooltip with a help topic shows under a rule. Text that is not valid UTF-8 throws std::invalid_argument.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: RibbonToolTipContent final
 
    ``#include <gui_forms/components/ribbon_tool_tip/ribbon_tool_tip.hpp>``
@@ -703,6 +751,23 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> RibbonToolTipHelpLineTextCapability
+
+   ``#include <gui_forms/components/ribbon_tool_tip/ribbon_tool_tip_capabilities/ribbon_tool_tip_capabilities.hpp>``
+
+   The line a tooltip with a help topic shows under a rule. Text that is not valid UTF-8 throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonToolTipHelpLineTextCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, RibbonToolTipHelpLineTextCapability<Declaring>> help_line_text
+
+      Default: ``{"Press F1 for more help."}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: RibbonToolTipHelpRequest final
 
    ``#include <gui_forms/components/ribbon_tool_tip/ribbon_tool_tip.hpp>``
@@ -714,6 +779,23 @@ Related types
    .. cpp:member:: std::string item_id
 
    .. cpp:member:: std::string help_topic
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RibbonToolTipInitialDelayCapability
+
+   ``#include <gui_forms/components/ribbon_tool_tip/ribbon_tool_tip_capabilities/ribbon_tool_tip_capabilities.hpp>``
+
+   How long the pointer rests before a tooltip shows. A negative delay throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonToolTipInitialDelayCapability& capability, std::chrono::milliseconds incoming)
+
+   .. cpp:member:: PropertyCell<std::chrono::milliseconds, RibbonToolTipInitialDelayCapability<Declaring>> initial_delay
+
+      Default: ``{500}``.
 
 .. cpp:namespace:: gui_forms
 

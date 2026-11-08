@@ -98,8 +98,8 @@ Point item_point(const ToolStrip& strip, std::string_view id) {
 void content_from_commands_and_hover() {
     Fixture fixture;
     RibbonToolTip tips(fixture.window);
-    tips.set_initial_delay(30ms);
-    tips.set_auto_pop_delay(0ms);
+    tips.initial_delay = 30ms;
+    tips.auto_pop_delay = 0ms;
     tips.set_item_tool_tip(fixture.strip, "bold", {.help_topic = "format.bold"});
     tips.set_item_tool_tip(fixture.strip, "paste", {.image = ImageId{7U}});
     std::vector<RibbonToolTipEvent> events;
@@ -145,8 +145,8 @@ void content_from_commands_and_hover() {
 void keyboard_and_help() {
     Fixture fixture;
     RibbonToolTip tips(fixture.window);
-    tips.set_initial_delay(1ms);
-    tips.set_auto_pop_delay(0ms);
+    tips.initial_delay = 1ms;
+    tips.auto_pop_delay = 0ms;
     tips.set_item_tool_tip(fixture.strip, "bold", {.help_topic = "format.bold"});
     tips.set_item_tool_tip(fixture.strip, "paste", {});
     tips.set_tool_tip(fixture.button, {.title = "Format Painter", .description = "Copy formatting.",
@@ -240,8 +240,8 @@ void plain_text_and_covering() {
     settings.auto_pop_delay = 0ms;
     fixture.window.set_tool_tip_settings(settings);
     RibbonToolTip tips(fixture.window);
-    tips.set_initial_delay(1ms);
-    tips.set_auto_pop_delay(0ms);
+    tips.initial_delay = 1ms;
+    tips.auto_pop_delay = 0ms;
     tips.set_tool_tip(fixture.button, {.description = "Apply the look of one selection to another."});
     require(tips.has_tool_tip(*fixture.button), "a plain tooltip stands in for a title");
 

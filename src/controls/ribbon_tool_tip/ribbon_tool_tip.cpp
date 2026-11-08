@@ -8,6 +8,7 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/timer.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
 #include <array>
@@ -282,24 +283,6 @@ void RibbonToolTip::clear() {
     entries_.clear();
 }
 
-void RibbonToolTip::set_initial_delay(std::chrono::milliseconds delay) {
-    require_access("RibbonToolTip initial-delay mutation");
-    if (delay.count() < 0) throw std::invalid_argument("RibbonToolTip delay may not be negative");
-    initial_delay_ = delay;
-}
-
-void RibbonToolTip::set_auto_pop_delay(std::chrono::milliseconds delay) {
-    require_access("RibbonToolTip auto-pop mutation");
-    if (delay.count() < 0) throw std::invalid_argument("RibbonToolTip delay may not be negative");
-    auto_pop_delay_ = delay;
-}
-
-void RibbonToolTip::set_help_line_text(std::string text) {
-    require_access("RibbonToolTip help line mutation");
-    if (!validate_utf8(text).valid()) throw std::invalid_argument("RibbonToolTip help line must be valid UTF-8");
-    help_line_text_ = std::move(text);
-}
-
 // -- content -------------------------------------------------------------------
 
 RibbonToolTipContent RibbonToolTip::resolve(const Control& target, std::string_view item_id,
@@ -408,7 +391,7 @@ void RibbonToolTip::schedule_show(const std::shared_ptr<Control>& target, std::s
     pending_target_ = target;
     pending_item_ = std::string(item_id);
     keyboard_initiated_ = keyboard_initiated;
-    arm(initial_delay_, PendingAction::show);
+    arm(initial_delay.read(), PendingAction::show);
 }
 
 void RibbonToolTip::arm(std::chrono::milliseconds delay, PendingAction action) {
@@ -473,7 +456,7 @@ void RibbonToolTip::show_now(const std::shared_ptr<Control>& target, const std::
     if (!resolved.shortcut.empty()) shown.shortcut = "(" + resolved.shortcut + ")";
     shown.description = resolved.description;
     shown.disabled_reason = resolved.disabled_reason;
-    if (!resolved.help_topic.empty()) shown.help_line = help_line_text_;
+    if (!resolved.help_topic.empty()) shown.help_line = help_line_text.read();
     shown.image = resolved.image;
     const RibbonToolTipLayout layout =
         layout_ribbon_tool_tip(*target, shown, maximum_bubble_width * (*target).effective_text_scale());
@@ -514,7 +497,7 @@ void RibbonToolTip::show_now(const std::shared_ptr<Control>& target, const std::
     const RibbonToolTipEvent change{std::string((*target).stable_id().value()), item_id, resolved, true,
                                     keyboard_initiated};
     visibility_changed_.emit(change);
-    if (auto_pop_delay_.count() > 0) arm(auto_pop_delay_, PendingAction::auto_hide);
+    if (auto_pop_delay.read().count() > 0) arm(auto_pop_delay.read(), PendingAction::auto_hide);
 }
 
 void RibbonToolTip::hide() {
@@ -626,5 +609,30 @@ void RibbonToolTip::append_interactions(std::vector<InteractionDeclaration>& int
     Component::append_interactions(interactions);
     interactions.insert(interactions.end(), ribbon_tool_tip_interactions.begin(), ribbon_tool_tip_interactions.end());
 }
+
+// property_codemod begin RibbonToolTip (tools/property_families/ribbon_tool_tip.json; generated, do not edit)
+
+void RibbonToolTip::prepare_write(const decltype(initial_delay)&, std::chrono::milliseconds& incoming) {
+    require_access("RibbonToolTip initial-delay mutation");
+    if (incoming.count() < 0) throw std::invalid_argument("RibbonToolTip delay may not be negative");
+}
+
+void RibbonToolTip::written(const decltype(initial_delay)&) {}
+
+void RibbonToolTip::prepare_write(const decltype(auto_pop_delay)&, std::chrono::milliseconds& incoming) {
+    require_access("RibbonToolTip auto-pop mutation");
+    if (incoming.count() < 0) throw std::invalid_argument("RibbonToolTip delay may not be negative");
+}
+
+void RibbonToolTip::written(const decltype(auto_pop_delay)&) {}
+
+void RibbonToolTip::prepare_write(const decltype(help_line_text)&, std::string& incoming) {
+    require_access("RibbonToolTip help line mutation");
+    if (!validate_utf8(incoming).valid()) throw std::invalid_argument("RibbonToolTip help line must be valid UTF-8");
+}
+
+void RibbonToolTip::written(const decltype(help_line_text)&) {}
+
+// property_codemod end RibbonToolTip
 
 } // namespace gui_forms

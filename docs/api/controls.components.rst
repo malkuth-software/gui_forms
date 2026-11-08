@@ -103,6 +103,10 @@ Related types
      - Whether icon alignments are mirrored.
    * - :cpp:class:`ErrorProviderSnapshot <gui_forms::ErrorProviderSnapshot>`
      - ErrorProviderSnapshot is a deterministic provider diagnostic aggregate containing every mapped icon record plus authoritative live-error and presented-overlay counts.
+   * - :cpp:class:`HelpProviderCapabilities <gui_forms::HelpProviderCapabilities>`
+     - Every HelpProvider capability, in the order the declaring class takes them.
+   * - :cpp:class:`HelpProviderHelpNamespaceCapability <gui_forms::HelpProviderHelpNamespaceCapability>`
+     - The help file or URL the provider's keyword and navigator requests name (Windows Forms' HelpNamespace).
    * - :cpp:class:`HelpProviderSnapshot <gui_forms::HelpProviderSnapshot>`
      - HelpProviderSnapshot is a deterministic diagnostic aggregate of authored mappings, effective mappings, total requests, and handled requests.
    * - :cpp:class:`HelpRequestEvent <gui_forms::HelpRequestEvent>`
@@ -526,6 +530,36 @@ Related types
    .. cpp:member:: std::size_t live_errors
 
    .. cpp:member:: std::size_t presented_icons
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> HelpProviderCapabilities : public HelpProviderHelpNamespaceCapability<Declaring>
+
+   ``#include <gui_forms/components/help_provider/help_provider_capabilities/help_provider_capabilities.hpp>``
+
+   Every HelpProvider capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string help_namespace
+
+      The help file or URL the provider's keyword and navigator requests name (Windows Forms' HelpNamespace). Text that is not valid UTF-8 throws std::invalid_argument.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> HelpProviderHelpNamespaceCapability
+
+   ``#include <gui_forms/components/help_provider/help_provider_capabilities/help_provider_capabilities.hpp>``
+
+   The help file or URL the provider's keyword and navigator requests name (Windows Forms' HelpNamespace). Text that is not valid UTF-8 throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(HelpProviderHelpNamespaceCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, HelpProviderHelpNamespaceCapability<Declaring>> help_namespace
 
 .. cpp:namespace:: gui_forms
 

@@ -119,8 +119,8 @@ void test_context_menu_command_snapshot_keyboard_nesting_and_restore() {
     std::shared_ptr<gui_forms::Command> icons = std::make_shared<Command>("view.icons", "Icons");
 
     ContextMenu menu("object.context");
-    menu.set_preferred_width(180.0);
-    require(menu.preferred_width() == 180.0,
+    menu.preferred_width = 180.0;
+    require(menu.preferred_width.read() == 180.0,
             "ContextMenu must retain an explicit preferred overlay width");
     menu.set_items({
         {"open", MenuItemKind::command, open},

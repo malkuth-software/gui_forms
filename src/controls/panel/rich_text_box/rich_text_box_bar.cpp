@@ -300,7 +300,7 @@ void RichTextBox::open_heading_menu() {
     const std::array<Rect, rich_text_bar_button_count> buttons = bar_buttons();
     const Rect button = buttons[static_cast<std::size_t>(RichTextBarButton::heading)];
     const Rect absolute = absolute_bounds();
-    (*heading_menu_).set_preferred_width(160.0);
+    (*heading_menu_).preferred_width = 160.0;
     (*heading_menu_).show(shared_from_this(), {absolute.x + button.x, absolute.y + button.y + button.height},
                           MenuOpenMode::pointer);
 }

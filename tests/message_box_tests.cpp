@@ -293,8 +293,8 @@ void help_requests() {
     HelpProvider first(window);
     HelpProvider second(window);
     HelpProvider third(window);
-    first.set_help_namespace("first.chm");
-    second.set_help_namespace("second.chm");
+    first.help_namespace = "first.chm";
+    second.help_namespace = "second.chm";
     second.set_help_string(root, "Root help");
     std::vector<HelpRequestEvent> first_seen;
     std::vector<HelpRequestEvent> second_seen;

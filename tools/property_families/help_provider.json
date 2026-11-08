@@ -1,0 +1,49 @@
+{
+  "family": "HelpProvider",
+  "step": "M-S8",
+  "declaring": "HelpProvider",
+  "header": "include/gui_forms/components/help_provider/help_provider.hpp",
+  "source": "src/controls/guidance/help_provider/help_provider.cpp",
+  "capabilities_header": "include/gui_forms/components/help_provider/help_provider_capabilities/help_provider_capabilities.hpp",
+  "shared": [],
+  "includes": [
+    "<string>"
+  ],
+  "mutation_check": null,
+  "properties": [
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "help_namespace",
+      "capability": "HelpProviderHelpNamespace",
+      "value": "std::string",
+      "hooks": "generated",
+      "hand": [],
+      "effects": null,
+      "prepare": [
+        "require_access(\"HelpProvider namespace mutation\");",
+        "if (!validate_utf8(incoming).valid()) {",
+        "    throw std::invalid_argument(\"GUI.Forms help namespace must be valid UTF-8\");",
+        "}"
+      ],
+      "comment": "The help file or URL the provider's keyword and navigator requests name (Windows Forms' HelpNamespace). Text that is not valid UTF-8 throws std::invalid_argument.",
+      "getter": "help_namespace",
+      "setter": "set_help_namespace",
+      "field": "help_namespace_"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "help_string, help_keyword, help_navigator, show_help",
+      "reason": "per-target operations (section 4)"
+    },
+    {
+      "name": "tag",
+      "reason": "under review with Control::set_tag (decision M-S/4)"
+    }
+  ]
+}

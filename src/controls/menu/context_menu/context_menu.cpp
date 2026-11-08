@@ -6,6 +6,7 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <array>
 #include <algorithm>
@@ -539,7 +540,7 @@ struct ContextMenu::Impl final {
         remove_panels_from(depth);
         const Size client = (*window).client_size();
         const double panel_width = std::max(
-            0.0, std::min(owner.preferred_width_ * text_scale(),
+            0.0, std::min(owner.preferred_width.read() * text_scale(),
                           client.width - 8.0));
         double content = menu_border * 2.0;
         for (const MenuSnapshot& item : items) content += row_height(item, text_scale());
@@ -675,7 +676,7 @@ struct ContextMenu::Impl final {
             const Rect row = (*panels[depth].rows[index]).absolute_bounds();
             const Size client = (*window).client_size();
             const double child_width = std::max(
-                0.0, std::min(owner.preferred_width_ * text_scale(),
+                0.0, std::min(owner.preferred_width.read() * text_scale(),
                               client.width - 8.0));
             double x = parent.x + parent.width - 3.0;
             if (x + child_width + 4.0 > client.width) {
@@ -869,19 +870,21 @@ void ContextMenu::set_items(std::vector<MenuItemSpec> items) {
     items_ = std::move(items);
 }
 
-void ContextMenu::set_preferred_width(double width) {
+// A changed width closes an open menu first.
+void ContextMenu::prepare_write(const decltype(preferred_width)&, double& incoming) {
     if (!is_alive()) {
         throw std::logic_error(
             "disposed ContextMenu cannot change preferred width");
     }
-    if (!std::isfinite(width) || width < 120.0 || width > 1024.0) {
+    if (!std::isfinite(incoming) || incoming < 120.0 || incoming > 1024.0) {
         throw std::invalid_argument(
             "ContextMenu preferred width must be finite and between 120 and 1024");
     }
-    if (preferred_width_ == width) return;
+    if (preferred_width.read() == incoming) return;
     close();
-    preferred_width_ = width;
 }
+
+void ContextMenu::written(const decltype(preferred_width)&) {}
 
 void ContextMenu::show(const Control::Ptr& owner, const Point window_position, const MenuOpenMode mode) {
     if (!is_alive()) throw std::logic_error("disposed ContextMenu cannot open");
@@ -929,5 +932,9 @@ void ContextMenu::append_interactions(std::vector<InteractionDeclaration>& inter
     Component::append_interactions(interactions);
     interactions.insert(interactions.end(), context_menu_interactions.begin(), context_menu_interactions.end());
 }
+
+// property_codemod begin ContextMenu (tools/property_families/context_menu.json; generated, do not edit)
+
+// property_codemod end ContextMenu
 
 } // namespace gui_forms

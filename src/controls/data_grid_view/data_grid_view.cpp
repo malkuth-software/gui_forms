@@ -2622,7 +2622,7 @@ bool DataGridView::open_choices() {
     edit_kind_ = EditKind::choice;
     edit_invalid_ = false;
     invalidate(Dirty::paint | Dirty::semantics);
-    (*choices_).set_preferred_width(std::max(bounds.width, 120.0));
+    (*choices_).preferred_width = std::max(bounds.width, 120.0);
     (*choices_).show(shared_from_this(), {absolute.x + bounds.x, absolute.y + bounds.y + bounds.height},
                      MenuOpenMode::keyboard);
     if (!(*choices_).is_open()) {

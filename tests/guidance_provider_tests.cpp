@@ -305,7 +305,7 @@ void test_help_routes_f1_locally_then_to_provider_without_external_policy() {
     help.set_tag(std::string("local-help"));
     require(std::any_cast<std::string>(help.tag()) == "local-help",
             "HelpProvider Tag must retain inert application metadata");
-    help.set_help_namespace("malkuth://local-help");
+    help.help_namespace = "malkuth://local-help";
     help.set_help_string(fixture.panel, "Choose a reachable local service endpoint.");
     help.set_help_keyword(fixture.panel, "network.endpoint");
     help.set_help_navigator(fixture.panel, HelpNavigator::keyword_index);

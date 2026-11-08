@@ -2016,10 +2016,10 @@ bool PageStrip::show_page_list(MenuOpenMode mode) {
     const double right = absolute.x + button.x + button.width;
     // Right-aligned below the list button (beside it on a side strip, on the
     // content's side); the overlay layer keeps it on screen.
-    Point anchor{std::max(absolute.x, right - (*list_).preferred_width()), absolute.y + button.y + button.height};
+    Point anchor{std::max(absolute.x, right - (*list_).preferred_width.read()), absolute.y + button.y + button.height};
     if (placement.read() == PageStripPlacement::left) anchor = {right, absolute.y + button.y};
     if (placement.read() == PageStripPlacement::right) {
-        anchor = {absolute.x + button.x - (*list_).preferred_width(), absolute.y + button.y};
+        anchor = {absolute.x + button.x - (*list_).preferred_width.read(), absolute.y + button.y};
     }
     (*list_).show(shared_from_this(), anchor, mode);
     list_open_ = true;

@@ -7,6 +7,7 @@
 #include "gui_forms/scheduler.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/components/ribbon_tool_tip/ribbon_tool_tip_capabilities/ribbon_tool_tip_capabilities.hpp"
 
 #include <chrono>
 #include <cstdint>
@@ -74,7 +75,7 @@ struct RibbonToolTipHelpRequest final {
 // While a mapping exists, its window's plain presenter shows no tooltip for
 // what it describes: the control (with every part, for a control mapping)
 // or the item.
-class RibbonToolTip final : public Component {
+class RibbonToolTip final : public Component, public RibbonToolTipCapabilities<RibbonToolTip> {
 public:
     explicit RibbonToolTip(Window& window);
     ~RibbonToolTip() override;
@@ -92,16 +93,6 @@ public:
     [[nodiscard]] bool has_tool_tip(const Control& target, std::string_view item_id = {}) const;
     bool remove_tool_tip(const Control& target, std::string_view item_id = {});
     void clear();
-
-    [[nodiscard]] std::chrono::milliseconds initial_delay() const noexcept { return initial_delay_; }
-    void set_initial_delay(std::chrono::milliseconds delay);
-    // How long a tooltip stays without input; zero keeps it until the
-    // pointer leaves or focus moves.
-    [[nodiscard]] std::chrono::milliseconds auto_pop_delay() const noexcept { return auto_pop_delay_; }
-    void set_auto_pop_delay(std::chrono::milliseconds delay);
-    // The line a tooltip with a help topic shows under a rule.
-    [[nodiscard]] const std::string& help_line_text() const noexcept { return help_line_text_; }
-    void set_help_line_text(std::string text);
 
     // Shows a mapping at once, anchored below its target, as keyboard focus
     // would. Throws std::invalid_argument for an unmapped target or item.
@@ -191,12 +182,22 @@ private:
     SubscriptionToken overlay_subscription_;
     Event<const RibbonToolTipEvent&> visibility_changed_;
     Event<const RibbonToolTipHelpRequest&> help_requested_;
-    std::chrono::milliseconds initial_delay_{500};
-    std::chrono::milliseconds auto_pop_delay_{10000};
-    std::string help_line_text_{"Press F1 for more help."};
     PendingAction pending_action_{PendingAction::none};
     bool keyboard_initiated_{};
     std::uint64_t provider_id_{};
+    // property_codemod begin RibbonToolTip (tools/property_families/ribbon_tool_tip.json; generated, do not edit)
+private:
+    friend struct RibbonToolTipInitialDelayCapability<RibbonToolTip>;
+    friend struct RibbonToolTipAutoPopDelayCapability<RibbonToolTip>;
+    friend struct RibbonToolTipHelpLineTextCapability<RibbonToolTip>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(initial_delay)& cell, std::chrono::milliseconds& incoming);
+    void written(const decltype(initial_delay)& cell);
+    void prepare_write(const decltype(auto_pop_delay)& cell, std::chrono::milliseconds& incoming);
+    void written(const decltype(auto_pop_delay)& cell);
+    void prepare_write(const decltype(help_line_text)& cell, std::string& incoming);
+    void written(const decltype(help_line_text)& cell);
+    // property_codemod end RibbonToolTip
 };
 
 } // namespace gui_forms

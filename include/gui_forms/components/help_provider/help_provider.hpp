@@ -3,6 +3,7 @@
 #include "gui_forms/component.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/types.hpp"
+#include "gui_forms/components/help_provider/help_provider_capabilities/help_provider_capabilities.hpp"
 
 #include <any>
 #include <chrono>
@@ -64,7 +65,7 @@ struct HelpProviderSnapshot final {
 // button or F1, Window::request_help) that no window handler took, after the
 // window's earlier-created providers, with its namespace and the root's
 // mapping where it has one.
-class HelpProvider final : public Component {
+class HelpProvider final : public Component, public HelpProviderCapabilities<HelpProvider> {
 public:
     explicit HelpProvider(Window& window);
     ~HelpProvider() override;
@@ -83,10 +84,6 @@ public:
     void reset_show_help(const Control& target);
     void clear();
 
-    [[nodiscard]] const std::string& help_namespace() const noexcept {
-        return help_namespace_;
-    }
-    void set_help_namespace(std::string value);
     [[nodiscard]] const std::any& tag() const noexcept { return tag_; }
     void set_tag(std::any tag);
 
@@ -132,10 +129,16 @@ private:
     std::unique_ptr<WindowFallback> window_fallback_;
     Event<HelpRequestEvent&> help_requested_;
     std::any tag_;
-    std::string help_namespace_;
     std::uint64_t provider_id_{};
     std::uint64_t request_count_{};
     std::uint64_t handled_request_count_{};
+    // property_codemod begin HelpProvider (tools/property_families/help_provider.json; generated, do not edit)
+private:
+    friend struct HelpProviderHelpNamespaceCapability<HelpProvider>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(help_namespace)& cell, std::string& incoming);
+    void written(const decltype(help_namespace)& cell);
+    // property_codemod end HelpProvider
 };
 
 } // namespace gui_forms

@@ -1007,7 +1007,7 @@ bool ToolStrip::show_overflow(MenuOpenMode mode) {
     (*overlay_).set_items(std::move(menu));
     const Rect absolute = absolute_bounds();
     const double right = absolute.x + placed.overflow_button.x + placed.overflow_button.width;
-    Point anchor{std::max(absolute.x, right - (*overlay_).preferred_width()),
+    Point anchor{std::max(absolute.x, right - (*overlay_).preferred_width.read()),
                  absolute.y + placed.overflow_button.y + placed.overflow_button.height};
     if (vertical()) anchor = {right, absolute.y + placed.overflow_button.y};
     (*overlay_).show(shared_from_this(), anchor, mode);

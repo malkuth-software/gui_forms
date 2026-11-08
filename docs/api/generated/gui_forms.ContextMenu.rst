@@ -7,7 +7,7 @@ gui_forms::ContextMenu
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: ContextMenu final : public Component
+.. cpp:class:: ContextMenu final : public Component, public ContextMenuCapabilities<ContextMenu>
 
    ``#include <gui_forms/components/context_menu/context_menu.hpp>``
 
@@ -35,6 +35,12 @@ gui_forms::ContextMenu
 
    :Properties:
 
+      **preferred_width** : ``double``, default ``268.0``
+         The width of each menu level, multiplied by the window's text scale and
+         never wider than the window's client area less 8 pixels. It must be
+         finite and between 120 and 1024, or ``std::invalid_argument`` is thrown.
+         Changing it closes an open menu.
+
       **stable_id** : ``std::string``, read-only
          The identity given to the constructor.
 
@@ -47,12 +53,6 @@ gui_forms::ContextMenu
          text and children but no command; every other item has exactly one
          command and no children; nesting is at most 8 levels deep; and there are
          at most 1024 items in all. Replacing the items closes an open menu.
-
-      **preferred_width** : ``double``, default ``268.0``
-         The width of each menu level, multiplied by the window's text scale and
-         never wider than the window's client area less 8 pixels. It must be
-         finite and between 120 and 1024, or ``std::invalid_argument`` is thrown.
-         Changing it closes an open menu.
 
       **is_open** : ``bool``, default ``false``, read-only
          Whether the menu is showing.
@@ -139,7 +139,7 @@ gui_forms::ContextMenu
    focus, expand and collapse; disabled items offer none.
 
    Destroying or disposing the menu closes it. A disposed menu throws
-   ``std::logic_error`` from :cpp:func:`set_items <gui_forms::ContextMenu::set_items>`, :cpp:func:`set_preferred_width <gui_forms::ContextMenu::set_preferred_width>` and :cpp:func:`show <gui_forms::ContextMenu::show>`.
+   ``std::logic_error`` from :cpp:func:`set_items <gui_forms::ContextMenu::set_items>`, ``set_preferred_width`` and :cpp:func:`show <gui_forms::ContextMenu::show>`.
 
    .. rubric:: Examples
 
@@ -194,6 +194,13 @@ gui_forms::ContextMenu
 
    .. rubric:: Properties
 
+   .. cpp:member:: double preferred_width
+
+      The width of each menu level, multiplied by the window's text scale and
+      never wider than the window's client area less 8 pixels. It must be
+      finite and between 120 and 1024, or ``std::invalid_argument`` is thrown.
+      Changing it closes an open menu.
+
    .. cpp:function:: const std::string& stable_id() const noexcept
 
       The identity given to the constructor.
@@ -212,17 +219,6 @@ gui_forms::ContextMenu
    .. cpp:function:: void set_items(std::vector<MenuItemSpec> items)
 
       Sets :cpp:func:`items <gui_forms::ContextMenu::items>`; see the property's description above.
-
-   .. cpp:function:: double preferred_width() const noexcept
-
-      The width of each menu level, multiplied by the window's text scale and
-      never wider than the window's client area less 8 pixels. It must be
-      finite and between 120 and 1024, or ``std::invalid_argument`` is thrown.
-      Changing it closes an open menu.
-
-   .. cpp:function:: void set_preferred_width(double width)
-
-      Sets :cpp:func:`preferred_width <gui_forms::ContextMenu::preferred_width>`; see the property's description above.
 
    .. cpp:function:: bool is_open() const noexcept
 
