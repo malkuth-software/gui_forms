@@ -307,8 +307,14 @@ void test_group_box_properties() {
     std::shared_ptr<GroupBox> control = make_control<GroupBox>(StableId("generated.groupbox"));
     {
         const std::string sample = std::string{"&Options"};
+        int raises = 0;
+        const SubscriptionToken token = (*control).text_changed().subscribe(RaiseCounter{&raises});
         (*control).text = sample;
         expect((*control).text.read() == sample, "GroupBox.text: a write stores");
+        expect(raises == 1, "GroupBox.text: a changed write raises once");
+        (*control).text = sample;
+        expect(raises == 1, "GroupBox.text: an equal write raises nothing");
+        static_cast<void>(token);
         const std::optional<BindingValue> by_name = (*control).property_value("text");
         expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
                "GroupBox.text: the table reads the cell");
