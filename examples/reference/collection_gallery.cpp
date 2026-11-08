@@ -31,7 +31,7 @@ public:
                                                    "Rebuild replaces toolbar items without replacing its group subscription.");
         (*first_body_).set_bounds({0.0, 0.0, 712.0, 64.0});
         (*second_body_).set_bounds({0.0, 0.0, 712.0, 64.0});
-        (*window_.sections).set_single_open(true);
+        (*window_.sections).single_open = true;
         (*window_.sections).set_items(
             {{.id = 1, .label = "Shared scalar state", .content = first_body_, .expanded = &model_.first_open},
              {.id = 2, .label = "Collection lifetime", .content = second_body_, .expanded = &model_.second_open}});

@@ -2022,7 +2022,7 @@ void test_picture_box_property_capabilities() {
 
 void test_button_text_changed_override() {
     std::vector<std::string> raised;
-    std::shared_ptr<MyButton> button = make_control<MyButton>(StableId("hooks.my_button"), "Run", raised);
+    std::shared_ptr<MyButton> button = make_control<MyButton>(StableId("hooks.my-button"), "Run", raised);
     const SubscriptionToken token = (*button).text_changed().subscribe(
         callbacks::PushBack<std::vector<std::string>, const std::string&>(raised));
     (*button).text = "Stop";
