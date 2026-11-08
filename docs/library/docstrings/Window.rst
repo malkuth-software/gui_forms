@@ -54,11 +54,14 @@ resources
     shares the application's resources, and a window that joined none makes
     its own.
 
-Methods
--------
+Properties
+----------
 application
     The application the window joined, or null: none was current when it
     was made, or the application was destroyed first.
+
+Methods
+-------
 resize
     Changes the client size and marks the whole tree for layout, which runs
     at the next flush or geometry read. A negative size throws

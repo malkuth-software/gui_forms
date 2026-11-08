@@ -46,12 +46,12 @@ void test_create_and_refusals() {
     created.application.reset();
     require(Application::current() == nullptr, "destroying the application ends its time as current");
 
-    ApplicationConfig two{};
-    two.theme.packages.resize(2U);
-    const ApplicationCreateResult several = Application::create(std::move(two));
-    require(!several && several.error == ApplicationCreateError::invalid_argument &&
+    ApplicationConfig too_many{};
+    too_many.theme.packages.resize(maximum_theme_packages + 1U);
+    const ApplicationCreateResult several = Application::create(std::move(too_many));
+    require(!several && several.error == ApplicationCreateError::theme_refused && !several.findings.empty() &&
                 Application::current() == nullptr,
-            "several packages are refused until the multi-package compile");
+            "more packages than the compile takes are refused, making nothing");
 
     ApplicationConfig broken{};
     broken.theme.packages.push_back(ThemePackage{.manifest = "not a manifest", .files = {}});
@@ -108,10 +108,14 @@ void test_windows_join_and_close() {
 
 void test_base_theme() {
     ApplicationConfig config{};
-    config.theme.base = ThemeCompileBase::gui_forms;
+    config.theme.base = ThemeBase::gui_forms;
     ApplicationCreateResult created = Application::create(std::move(config));
-    require(static_cast<bool>(created) && (*(*created.application).resources()).theme_ptr() == gui_forms_theme(),
-            "the gui-forms base alone is the built gui-forms theme, compiled once");
+    require(static_cast<bool>(created) && (*(*created.application).resources()).theme().id() == "gui-forms",
+            "the gui-forms base alone is the application's theme");
+    created.application.reset();
+    ApplicationCreateResult plain = Application::create(ApplicationConfig{});
+    require(static_cast<bool>(plain) && (*(*plain.application).resources()).theme_ptr() == default_compiled_theme(),
+            "the default base alone is the process default theme, not compiled again");
 }
 
 // Makes a window on another thread and records whether it joined.

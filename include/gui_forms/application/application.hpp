@@ -206,13 +206,12 @@ private:
 
 // The application's theme (APP_WINDOW_RULES_DESIGN A.2): the base sheet,
 // then the program's packages in order, compiled once by
-// Application::create.
+// Application::create (compile_theme_packages).
 struct ApplicationThemeConfig final {
-    // The process default's base until T4 makes gui_forms the default
-    // (default_theme()).
-    ThemeCompileBase base{ThemeCompileBase::windows_professional};
-    // The program's packages, in compile order. At most one until the
-    // multi-package compile (T4) lands: more is invalid_argument.
+    // The process default's base (default_theme_base) unless chosen.
+    ThemeBase base{default_theme_base};
+    // The program's packages, in compile order: a later one overrides an
+    // earlier one. At most maximum_theme_packages, with distinct names.
     std::vector<ThemePackage> packages{};
     // The installed packages a package's `@import` may name.
     ThemeLibrary library{};
@@ -237,8 +236,6 @@ enum class ApplicationCreateError : std::uint8_t {
     already_exists,
     // The theme was refused; ApplicationCreateResult::findings say why.
     theme_refused,
-    // A configuration this version cannot make (several theme packages).
-    invalid_argument,
 };
 
 class Application;
@@ -278,8 +275,8 @@ public:
     // Makes the application and registers it as current: compiles its
     // theme (the base, then the packages) into fresh resources. Refused,
     // making nothing, while another application is current
-    // (already_exists), for more than one package (invalid_argument) or
-    // when the compile refuses the theme (theme_refused).
+    // (already_exists) or when the compile refuses the theme
+    // (theme_refused: also for duplicate names or too many packages).
     [[nodiscard]] static ApplicationCreateResult create(ApplicationConfig config);
     // The current application, or null. Read on any thread; use it only on
     // the application's own thread.

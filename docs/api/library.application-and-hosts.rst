@@ -12,7 +12,7 @@ Running windows on a native host, host options per platform, and the portable ho
    :widths: 35 65
 
    * - :cpp:class:`Application <gui_forms::Application>`
-     - The entry point that presents windows on the platform's native host.
+     - The application: what every window shares, and the entry point that presents windows on the platform's native host.
    * - :cpp:class:`ApplicationWindowHandle <gui_forms::ApplicationWindowHandle>`
      - A weak handle for asking the host to show, hide, retitle, resize or close a running window.
    * - :cpp:class:`ApplicationWindowOptions <gui_forms::ApplicationWindowOptions>`
@@ -42,7 +42,7 @@ Related types
    * - :cpp:class:`ApplicationResult <gui_forms::ApplicationResult>`
      -  
    * - :cpp:class:`ApplicationThemeConfig <gui_forms::ApplicationThemeConfig>`
-     - The application's theme (APP_WINDOW_RULES_DESIGN A.2): the base sheet, then the program's packages in order, compiled once by Application::create.
+     - The application's theme (APP_WINDOW_RULES_DESIGN A.2): the base sheet, then the program's packages in order, compiled once by Application::create (compile_theme_packages).
    * - :cpp:class:`ApplicationWindow <gui_forms::ApplicationWindow>`
      -  
    * - :cpp:class:`ApplicationWindowAtResult <gui_forms::ApplicationWindowAtResult>`
@@ -313,15 +313,15 @@ Related types
 
    ``#include <gui_forms/application/application.hpp>``
 
-   The application's theme (APP_WINDOW_RULES_DESIGN A.2): the base sheet, then the program's packages in order, compiled once by Application::create.
+   The application's theme (APP_WINDOW_RULES_DESIGN A.2): the base sheet, then the program's packages in order, compiled once by Application::create (compile_theme_packages).
 
-   .. cpp:member:: ThemeCompileBase base
+   .. cpp:member:: ThemeBase base
 
-      The process default's base until T4 makes gui_forms the default (default_theme()). Default: ``{ThemeCompileBase::windows_professional}``.
+      The process default's base (default_theme_base) unless chosen. Default: ``{default_theme_base}``.
 
    .. cpp:member:: std::vector<ThemePackage> packages
 
-      The program's packages, in compile order. At most one until the multi-package compile (T4) lands: more is invalid_argument.
+      The program's packages, in compile order: a later one overrides an earlier one. At most maximum_theme_packages, with distinct names.
 
    .. cpp:member:: ThemeLibrary library
 
@@ -2972,8 +2972,6 @@ Enumerations
    .. cpp:enumerator:: already_exists
 
    .. cpp:enumerator:: theme_refused
-
-   .. cpp:enumerator:: invalid_argument
 
 .. cpp:namespace:: gui_forms
 

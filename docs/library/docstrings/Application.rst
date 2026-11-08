@@ -18,30 +18,8 @@ pumps native events until the primary window closes and then returns an
 host the SDK was built with, for `run` and `capabilities`; the rest is part of
 `GUIForms::Core`.
 
-Methods
--------
-create
-    `create(ApplicationConfig)` compiles the configured theme into fresh
-    resources and registers the application as current: first the base
-    (`ApplicationThemeConfig::base`), then the program's package, with
-    imports from `ApplicationThemeConfig::library` and the stock anatomies
-    plus `ApplicationThemeConfig::controls`. It returns an
-    `ApplicationCreateResult` holding the application and the compile's
-    warnings in `findings`. Refused, with nothing made: `already_exists`
-    while another application is current; `invalid_argument` for more than
-    one package, until the multi-package compile lands; `theme_refused` when
-    the compile refuses the theme, with its diagnostics in `findings`.
-current
-    The current application, or null. Any thread may ask, but use the
-    application only on its own thread.
-close
-    Ends the application's time as current, before it is destroyed. While a
-    window that joined it lives, `close` is refused with `windows_alive`
-    and changes nothing. After it, `create` may make another application,
-    and windows made from then on do not join this one. Calling it again
-    does nothing. Destroying an application that still has windows reports
-    them on stderr; they keep the resources they share and read nothing
-    more from it.
+Properties
+----------
 closed
     Whether `close` has run.
 window_count
@@ -56,12 +34,40 @@ key_bindings
     The application's one set of keyboard-command keys (owner decision
     DK-44). `run` gives it to every window it runs, so a rebinding in any
     window holds in all.
-set_tool_tips_shown
-    The program's tooltip switch: whether tooltips show in every joined
-    window whose own switch is unset (`Window::set_tool_tips_shown`). On by
-    default. A tooltip that already shows stays until it closes. Any thread.
-tool_tips_shown
-    The program's tooltip switch.
+tool_tips_shown : default ``true``
+    The program's tooltip switch (`set_tool_tips_shown`): whether tooltips
+    show in every joined window whose own switch is unset
+    (`Window::set_tool_tips_shown`). A tooltip that already shows stays
+    until it closes. Any thread.
+
+Methods
+-------
+create
+    `create(ApplicationConfig)` compiles the configured theme into fresh
+    resources and registers the application as current: first the base
+    (`ApplicationThemeConfig::base`), then the program's packages in order
+    (`compile_theme_packages`), with imports from
+    `ApplicationThemeConfig::library` and the stock anatomies plus
+    `ApplicationThemeConfig::controls`. With no packages and the default
+    base, the application takes the process default theme
+    (`default_compiled_theme`) without compiling it again. It returns an
+    `ApplicationCreateResult` holding the application and the compile's
+    warnings in `findings`. Refused, with nothing made: `already_exists`
+    while another application is current; `theme_refused` when the compile
+    refuses the theme (duplicate package names and more than
+    `maximum_theme_packages` included), with its diagnostics in
+    `findings`.
+current
+    The current application, or null. Any thread may ask, but use the
+    application only on its own thread.
+close
+    Ends the application's time as current, before it is destroyed. While a
+    window that joined it lives, `close` is refused with `windows_alive`
+    and changes nothing. After it, `create` may make another application,
+    and windows made from then on do not join this one. Calling it again
+    does nothing. Destroying an application that still has windows reports
+    them on stderr; they keep the resources they share and read nothing
+    more from it.
 run
     `run(std::unique_ptr<Window>, ApplicationWindowOptions)` presents one
     window, with the stable ID `"main"`. `run(std::vector<ApplicationWindow>)`

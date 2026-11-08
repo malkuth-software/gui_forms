@@ -2,7 +2,6 @@
 #include "gui_forms/text/types/text_types.hpp"
 
 #include "gui_forms/resources/application_resources/application_resources.hpp"
-#include "gui_forms/theme/gui_forms_theme/gui_forms_theme.hpp"
 #include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
 
 #include <atomic>
@@ -268,22 +267,19 @@ ApplicationCreateResult Application::create(ApplicationConfig config) {
         result.error = ApplicationCreateError::already_exists;
         return result;
     }
-    if (config.theme.packages.size() > 1U) {
-        result.error = ApplicationCreateError::invalid_argument;
-        return result;
-    }
     std::shared_ptr<ApplicationResources> resources = std::make_shared<ApplicationResources>(config.image_limits);
-    // The theme compiles here, once (APP_WINDOW_RULES_DESIGN K.1): the base
-    // alone, or the program's package onto it.
-    if (config.theme.packages.empty()) {
-        if (config.theme.base == ThemeCompileBase::gui_forms) (*resources).set_theme(gui_forms_theme());
+    // The theme compiles here, once (APP_WINDOW_RULES_DESIGN K.1): the base,
+    // then the program's packages. The process default's base alone is
+    // already built (default_compiled_theme).
+    if (config.theme.packages.empty() && config.theme.base == default_theme_base) {
+        (*resources).set_theme(default_compiled_theme());
     } else {
         std::vector<ControlAnatomy> storage;
         ThemeCompileOptions options{};
         options.base = config.theme.base;
         options.controls = theme_anatomies(config.theme.controls, storage);
         const ThemeCompileResult compiled =
-            (*resources).compile_theme_package(config.theme.packages.front(), config.theme.library, options);
+            (*resources).compile_theme_packages(config.theme.packages, config.theme.library, options);
         result.findings.assign(compiled.diagnostics().begin(), compiled.diagnostics().end());
         if (!compiled.succeeded()) {
             result.error = ApplicationCreateError::theme_refused;

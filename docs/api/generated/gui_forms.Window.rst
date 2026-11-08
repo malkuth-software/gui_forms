@@ -23,6 +23,13 @@ gui_forms::Window
    and ``dispatch_key``, run posted work with ``drain_posted_work``, and read the
    results.
 
+   A window made on the thread of the current application (see :cpp:class:`Application <gui_forms::Application>`)
+   joins it. It shares the application's resources unless it was given its own,
+   starts from the application's presentation defaults, follows its tooltip
+   switch, and leaves the application when destroyed. With no current
+   application, as in tests, the window makes its own resources with the
+   built-in theme.
+
    Everything but the native-host connection is declared on its base,
    :cpp:class:`SurfaceRoot <gui_forms::SurfaceRoot>`: the control tree, layout, focus, input, painting, the
    posted-work queue, overlays, accelerators, tooltips and the counters. :cpp:class:`Window <gui_forms::Window>`
@@ -56,7 +63,8 @@ gui_forms::Window
          Reports whether durable live-layer registrations keep a native display clock relevant.
 
       **application** : ``Application*``, read-only
-         The application this window joined, or null (none was current, or it was destroyed first).
+         The application the window joined, or null: none was current when it
+         was made, or the application was destroyed first.
 
    :Inherited:
 
@@ -254,7 +262,8 @@ gui_forms::Window
 
    .. cpp:function:: Application* application() const noexcept
 
-      The application this window joined, or null (none was current, or it was destroyed first).
+      The application the window joined, or null: none was current when it
+      was made, or the application was destroyed first.
 
 
    .. rubric:: Methods

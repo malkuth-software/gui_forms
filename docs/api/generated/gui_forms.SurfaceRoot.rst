@@ -210,11 +210,12 @@ gui_forms::SurfaceRoot
       **tool_tips_shown_setting** : ``std::optional<bool>``, read-only
          Tooltips (owner, 2026-10-28). The window has one presenter, which shows the plain tooltip text of its controls and of their authored parts (see ToolTipSettings) in a retained, input-transparent overlay. The window's switch, when set, decides whether its tooltips show; unset, the default, the switch of the application the window joined decides (Application::tool_tips_shown), and with none they show. Turning tooltips off closes one that shows. UI thread.
 
-      **tool_tips_shown** : ``bool``, default follows ``Application::tool_tips_shown()``
+      **tool_tips_shown** : ``bool``, default follows the application's ``tool_tips_shown()``
          Whether the window's tooltip presenter shows tooltips when the pointer
          rests or keyboard focus arrives. :cpp:func:`set_tool_tips_shown <gui_forms::SurfaceRoot::set_tool_tips_shown>` takes an
-         optional: unset, the window follows the program switch,
-         ``Application::set_tool_tips_shown``. Turning it off closes a tooltip that
+         optional: unset, the window follows the switch of the application it
+         joined (``Application::set_tool_tips_shown``), and shows tooltips when it
+         joined none. Turning it off closes a tooltip that
          shows. :cpp:func:`show_tool_tip <gui_forms::SurfaceRoot::show_tool_tip>` shows one regardless.
 
       **tool_tip_settings** : ``ToolTipSettings``
@@ -768,8 +769,9 @@ gui_forms::SurfaceRoot
 
       Whether the window's tooltip presenter shows tooltips when the pointer
       rests or keyboard focus arrives. :cpp:func:`set_tool_tips_shown <gui_forms::SurfaceRoot::set_tool_tips_shown>` takes an
-      optional: unset, the window follows the program switch,
-      ``Application::set_tool_tips_shown``. Turning it off closes a tooltip that
+      optional: unset, the window follows the switch of the application it
+      joined (``Application::set_tool_tips_shown``), and shows tooltips when it
+      joined none. Turning it off closes a tooltip that
       shows. :cpp:func:`show_tool_tip <gui_forms::SurfaceRoot::show_tool_tip>` shows one regardless.
 
    .. cpp:function:: void set_tool_tips_shown(std::optional<bool> shown)
