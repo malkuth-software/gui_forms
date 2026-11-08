@@ -85,6 +85,17 @@
       "doc": "api/generated/gui_forms.TokenBox.rst"
     },
     {
+      "id": "search_field",
+      "type": "SearchField",
+      "header": "gui_forms/controls/search_field/search_field.hpp",
+      "category": "Text editing",
+      "purpose": "Query field: a search mark, an inner TextBox, a clear mark and a busy strip; raises search_requested after typing pauses or on Enter; a search box to assistive technology.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": "text-and-input",
+      "doc": "api/generated/gui_forms.SearchField.rst"
+    },
+    {
       "id": "masked_text_box",
       "type": "MaskedTextBox",
       "header": "gui_forms/controls/panel/masked_text_box/masked_text_box.hpp",
@@ -358,6 +369,17 @@
       "status": "stable",
       "gallery_page": "control-spectrum",
       "doc": "api/generated/gui_forms.RadioButton.rst"
+    },
+    {
+      "id": "toggle_switch",
+      "type": "ToggleSwitch",
+      "header": "gui_forms/controls/button_base/toggle_switch/toggle_switch.hpp",
+      "category": "Value setting",
+      "purpose": "On/off switch for a setting that takes effect at once: a rounded track and thumb, a label and optional state text; a switch to assistive technology.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": "choices-and-sections",
+      "doc": "api/generated/gui_forms.ToggleSwitch.rst"
     },
     {
       "id": "range_control",

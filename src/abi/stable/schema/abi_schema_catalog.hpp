@@ -35,6 +35,7 @@
 #include "gui_forms/controls/button_base/check_box/check_box.hpp"
 #include "gui_forms/controls/button_base/link_label/link_label.hpp"
 #include "gui_forms/controls/button_base/radio_button/radio_button.hpp"
+#include "gui_forms/controls/button_base/toggle_switch/toggle_switch.hpp"
 #include "gui_forms/controls/collections/choice_group.hpp"
 #include "gui_forms/controls/collections/command_bar.hpp"
 #include "gui_forms/controls/collections/expandable_sections.hpp"
@@ -112,6 +113,7 @@
 #include "gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/user_control/user_control.hpp"
 #include "gui_forms/controls/scrollable_control/scrollable_control.hpp"
+#include "gui_forms/controls/search_field/search_field.hpp"
 #include "gui_forms/controls/splitter/splitter.hpp"
 #include "gui_forms/controls/status_strip/status_strip.hpp"
 #include "gui_forms/controls/task_dialog/task_dialog.hpp"
@@ -132,7 +134,7 @@
 
 namespace gui_forms::abi1 {
 
-inline constexpr std::array<SchemaCatalogEntry, 121> schema_catalog{{
+inline constexpr std::array<SchemaCatalogEntry, 123> schema_catalog{{
     {"button_base", "ButtonBase", &describe_type<ButtonBase>, &create_type<ButtonBase>, &is_exact_type<ButtonBase>},
     {"button", "Button", &describe_type<Button>, &create_type<Button>, &is_exact_type<Button>},
     {"drop_down_button", "DropDownButton", &describe_type<DropDownButton>, &create_type<DropDownButton>, &is_exact_type<DropDownButton>},
@@ -140,6 +142,7 @@ inline constexpr std::array<SchemaCatalogEntry, 121> schema_catalog{{
     {"command_bar", "CommandBar", &describe_type<CommandBar>, &create_type<CommandBar>, &is_exact_type<CommandBar>},
     {"text_box", "TextBox", &describe_type<TextBox>, &create_type<TextBox>, &is_exact_type<TextBox>},
     {"token_box", "TokenBox", &describe_type<TokenBox>, &create_type<TokenBox>, &is_exact_type<TokenBox>},
+    {"search_field", "SearchField", &describe_type<SearchField>, &create_type<SearchField>, &is_exact_type<SearchField>},
     {"masked_text_box", "MaskedTextBox", &describe_type<MaskedTextBox>, &create_type<MaskedTextBox>, &is_exact_type<MaskedTextBox>},
     {"rich_text_box", "RichTextBox", &describe_type<RichTextBox>, &create_type<RichTextBox>, &is_exact_type<RichTextBox>},
     {"label", "Label", &describe_type<Label>, &create_type<Label>, &is_exact_type<Label>},
@@ -165,6 +168,7 @@ inline constexpr std::array<SchemaCatalogEntry, 121> schema_catalog{{
     {"breadcrumb_trail", "BreadcrumbTrail", &describe_type<BreadcrumbTrail>, &create_type<BreadcrumbTrail>, &is_exact_type<BreadcrumbTrail>},
     {"check_box", "CheckBox", &describe_type<CheckBox>, &create_type<CheckBox>, &is_exact_type<CheckBox>},
     {"radio_button", "RadioButton", &describe_type<RadioButton>, &create_type<RadioButton>, &is_exact_type<RadioButton>},
+    {"toggle_switch", "ToggleSwitch", &describe_type<ToggleSwitch>, &create_type<ToggleSwitch>, &is_exact_type<ToggleSwitch>},
     {"range_control", "RangeControl", &describe_type<RangeControl>, &create_type<RangeControl>, &is_exact_type<RangeControl>},
     {"track_bar", "TrackBar", &describe_type<TrackBar>, &create_type<TrackBar>, &is_exact_type<TrackBar>},
     {"numeric_up_down", "NumericUpDown", &describe_type<NumericUpDown>, &create_type<NumericUpDown>, &is_exact_type<NumericUpDown>},

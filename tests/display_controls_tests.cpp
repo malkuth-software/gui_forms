@@ -1,5 +1,6 @@
 // W-4 controls: Badge, InfoBanner, EmptyState, the segmented ChoiceGroup
-// presentation, and Toast with its window presenter. Each test covers the control's behaviour, its refusals, its
+// presentation, Toast with its window presenter, ToggleSwitch and
+// SearchField. Each test covers the control's behaviour, its refusals, its
 // semantics, its published parts and states, and the capability cases: a
 // write stores, an equal write does nothing, and a write from another
 // thread is refused before anything is compared or stored.
@@ -629,6 +630,222 @@ void test_window_toast_refusals() {
             "dismissing content that does not show changes nothing");
 }
 
+// Records the order of a switch's checked_changed and clicked events.
+struct SwitchRecorder final {
+    std::vector<std::string> seen{};
+    void on_checked(bool value) { seen.push_back(value ? "checked:on" : "checked:off"); }
+    void on_clicked(ButtonBase&) { seen.push_back("clicked"); }
+};
+
+struct OtherThreadChecked final {
+    ToggleSwitch* toggle{};
+    bool* refused{};
+    void operator()() const {
+        try {
+            (*toggle).checked = true;
+        } catch (const std::logic_error&) {
+            *refused = true;
+        }
+    }
+};
+
+void test_toggle_switch() {
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("display.switch.root"));
+    const std::shared_ptr<ToggleSwitch> toggle = make_control<ToggleSwitch>(StableId("display.switch"), "Wi-Fi");
+    (*toggle).set_requested_bounds(Rect{10.0, 10.0, 240.0, 28.0});
+    (*root).add_child(toggle);
+    Window window(root, Size{400.0, 200.0});
+    window.perform_layout();
+    SwitchRecorder recorder;
+    on((*toggle).checked_changed(), recorder, &SwitchRecorder::on_checked);
+    on((*toggle).clicked(), recorder, &SwitchRecorder::on_clicked);
+
+    require(!(*toggle).checked.read() && (*toggle).state_text().empty(), "a new switch is off with no state text");
+    const ToggleSwitch::Parts off_parts = (*toggle).parts();
+    require(off_parts.track.present && off_parts.thumb.present && off_parts.label.present && !off_parts.state.present,
+            "the track, thumb and label are published; empty state text is not");
+
+    (*toggle).checked = true;
+    require(recorder.seen.size() == 1U && recorder.seen[0] == "checked:on", "a write raises checked_changed once");
+    (*toggle).checked = true;
+    require(recorder.seen.size() == 1U, "an equal write raises nothing");
+    require((*toggle).anatomy_states().contains(AnatomyState::checked), "an on switch is in the checked state");
+    window.perform_layout();
+    const ToggleSwitch::Parts on_parts = (*toggle).parts();
+    require(on_parts.thumb.bounds.x > off_parts.thumb.bounds.x, "the thumb moves to the track's end when on");
+
+    (*toggle).on_text = std::string{"On"};
+    (*toggle).off_text = std::string{"Off"};
+    require((*toggle).state_text() == "On", "an on switch shows on_text");
+    bool invalid_refused = false;
+    try {
+        (*toggle).on_text = std::string{"\xff"};
+    } catch (const std::invalid_argument&) {
+        invalid_refused = true;
+    }
+    require(invalid_refused && (*toggle).on_text.read() == "On", "state text that is not UTF-8 is refused");
+    const Size on_size = (*toggle).measure(Size{1000.0, 100.0});
+
+    recorder.seen.clear();
+    require((*toggle).perform_click(), "the switch clicks");
+    require(!(*toggle).checked.read() && recorder.seen.size() == 2U && recorder.seen[0] == "checked:off" &&
+                recorder.seen[1] == "clicked",
+            "activation turns the switch over, then raises clicked");
+    require((*toggle).state_text() == "Off", "an off switch shows off_text");
+    require((*toggle).measure(Size{1000.0, 100.0}) == on_size, "turning the switch does not change its size");
+    window.perform_layout();
+    require((*toggle).parts().state.present, "state text is published once set");
+
+    const SemanticDescriptor off_semantics = (*toggle).semantic_descriptor();
+    require(off_semantics.role == SemanticRole::toggle_switch &&
+                semantic_role_fallback(SemanticRole::toggle_switch) == SemanticRole::check_box &&
+                has_semantic_state(off_semantics.states, SemanticState::checkable) &&
+                !has_semantic_state(off_semantics.states, SemanticState::checked) &&
+                off_semantics.value == "unchecked" && off_semantics.name == "Wi-Fi",
+            "the switch is a toggle_switch named by its label, unchecked while off");
+    require(window.perform_semantic_action("display.switch", SemanticAction::press) && (*toggle).checked.read() &&
+                (*toggle).semantic_descriptor().value == "checked",
+            "the press action turns the switch on");
+
+    bool other_thread = false;
+    (*toggle).checked = false;
+    std::thread worker(OtherThreadChecked{toggle.get(), &other_thread});
+    worker.join();
+    require(other_thread && !(*toggle).checked.read(), "a write from another thread is refused");
+}
+
+// Records a search field's events in order.
+struct SearchRecorder final {
+    std::vector<std::string> seen{};
+    void on_text(const std::string& value) { seen.push_back("text:" + value); }
+    void on_search(const std::string& query) { seen.push_back("search:" + query); }
+    void on_cleared() { seen.push_back("cleared"); }
+};
+
+void watch(SearchField& field, SearchRecorder& recorder) {
+    on(field.text_changed(), recorder, &SearchRecorder::on_text);
+    on(field.search_requested(), recorder, &SearchRecorder::on_search);
+    on(field.cleared(), recorder, &SearchRecorder::on_cleared);
+}
+
+void test_search_field_alone() {
+    const std::shared_ptr<SearchField> field = make_control<SearchField>(StableId("display.search.alone"));
+    const std::shared_ptr<TextBox> editor = (*field).editor();
+    require(editor && (*editor).parent() == field && (*editor).stable_id().value() == "display.search.alone.editor" &&
+                !(*field).focusable(),
+            "the field owns its editor, which takes the focus instead of the field");
+    SearchRecorder recorder;
+    watch(*field, recorder);
+
+    (*field).text = std::string{"maps"};
+    require((*editor).text.read() == "maps" && recorder.seen.size() == 2U && recorder.seen[0] == "text:maps" &&
+                recorder.seen[1] == "search:maps",
+            "outside a window a change raises text_changed, then searches at once");
+    require((*editor).accepts_escape.read(), "the editor takes Escape while the field has text");
+    (*field).placeholder_text = std::string{"Search"};
+    require((*editor).placeholder_text.read() == "Search" && (*field).semantic_descriptor().description == "Search",
+            "the placeholder is the editor's and describes the field");
+
+    recorder.seen.clear();
+    require((*field).clear() && (*field).text.read().empty() && !(*editor).accepts_escape.read(),
+            "clear empties the field and lets Escape go on");
+    require(recorder.seen.size() == 4U && recorder.seen[0] == "text:" && recorder.seen[2] == "cleared" &&
+                recorder.seen[3] == "search:",
+            "clearing raises text_changed, cleared, then the empty query");
+    recorder.seen.clear();
+    require(!(*field).clear() && recorder.seen.empty(), "clearing an empty field raises nothing");
+
+    int refused = 0;
+    try {
+        (*field).search_delay = std::chrono::milliseconds{-1};
+    } catch (const std::invalid_argument&) {
+        ++refused;
+    }
+    try {
+        (*field).search_delay = std::chrono::milliseconds{10001};
+    } catch (const std::invalid_argument&) {
+        ++refused;
+    }
+    require(refused == 2 && (*field).search_delay.read() == std::chrono::milliseconds{300},
+            "a negative or over-long delay is refused and the default kept");
+
+    (*field).busy = true;
+    const SemanticDescriptor busy_semantics = (*field).semantic_descriptor();
+    require((*field).anatomy_states().contains(AnatomyState::pending) &&
+                has_semantic_state(busy_semantics.states, SemanticState::busy) &&
+                busy_semantics.role == SemanticRole::search_box &&
+                semantic_role_fallback(SemanticRole::search_box) == SemanticRole::text_box,
+            "a busy field is pending, and busy to assistive technology as a search_box");
+    require((*field).on_semantic_action(SemanticAction::set_value, "trains") && (*field).text.read() == "trains" &&
+                (*field).semantic_descriptor().value == "trains",
+            "the set-value action writes the query");
+    require(!(*field).on_semantic_action(SemanticAction::set_value, "\xff") && (*field).text.read() == "trains",
+            "a set value that is not UTF-8 is refused");
+}
+
+void test_search_field_in_window() {
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("display.search.root"));
+    const std::shared_ptr<SearchField> field = make_control<SearchField>(StableId("display.search"));
+    (*field).set_requested_bounds(Rect{10.0, 10.0, 300.0, 32.0});
+    (*root).add_child(field);
+    Window window(root, Size{400.0, 200.0});
+    window.perform_layout();
+    SearchRecorder recorder;
+    watch(*field, recorder);
+    (*field).search_delay = std::chrono::milliseconds{200};
+
+    const SearchField::Parts empty_parts = (*field).parts();
+    require(empty_parts.well.present && empty_parts.icon.present && empty_parts.content.present &&
+                !empty_parts.actuator.present && !empty_parts.activity.present,
+            "an empty, idle field publishes no clear mark and no activity strip");
+    const Rect slot = (*(*field).editor()).committed_arranged_bounds();
+    require(slot.width > 0.0 && slot.x > empty_parts.icon.bounds.x, "the editor sits after the search mark");
+
+    (*field).text = std::string{"r"};
+    (*field).text = std::string{"ri"};
+    require(recorder.seen.size() == 2U && recorder.seen[1] == "text:ri", "typing does not search before the pause");
+    const std::optional<FrameTime> wake = window.next_wake();
+    require(wake.has_value(), "a change arms the search delay");
+    static_cast<void>(window.poll_frame_schedule(*wake));
+    require(recorder.seen.size() == 3U && recorder.seen[2] == "search:ri" && !window.next_wake().has_value(),
+            "once the pause is over the field searches once, for the latest text");
+
+    (*field).busy = true;
+    window.perform_layout();
+    const SearchField::Parts busy_parts = (*field).parts();
+    require(busy_parts.actuator.present && busy_parts.activity.present,
+            "a field with text shows its clear mark, and a busy one its activity strip");
+
+    require(window.request_focus((*field).editor()) && (*field).anatomy_states().contains(AnatomyState::focused),
+            "the editor's focus is the field's focused state");
+    recorder.seen.clear();
+    require(window.dispatch_key({KeyAction::down, PhysicalKey::enter}) && recorder.seen.size() == 1U &&
+                recorder.seen[0] == "search:ri",
+            "Enter searches now");
+    recorder.seen.clear();
+    require(window.dispatch_key({KeyAction::down, PhysicalKey::escape}) && (*field).text.read().empty() &&
+                recorder.seen.size() == 3U && recorder.seen[1] == "cleared" && recorder.seen[2] == "search:" &&
+                !window.next_wake().has_value(),
+            "Escape clears the field and searches for everything, with no delay left armed");
+
+    (*field).text = std::string{"x"};
+    window.perform_layout();
+    const SearchField::Parts parts = (*field).parts();
+    const Point mark{parts.actuator.bounds.x + parts.actuator.bounds.width * 0.5,
+                     parts.actuator.bounds.y + parts.actuator.bounds.height * 0.5};
+    PointerEvent press{};
+    press.action = PointerAction::down;
+    press.button = PointerButton::primary;
+    press.position = mark;
+    (*field).on_pointer(press);
+    require(press.handled && (*field).text.read() == "x", "pressing the clear mark does not clear yet");
+    PointerEvent release = press;
+    release.action = PointerAction::up;
+    release.handled = false;
+    (*field).on_pointer(release);
+    require(release.handled && (*field).text.read().empty(), "releasing over the clear mark clears the field");
+}
+
 } // namespace
 
 int main() {
@@ -642,6 +859,9 @@ int main() {
     test_toast_content_and_semantics();
     test_window_toasts();
     test_window_toast_refusals();
+    test_toggle_switch();
+    test_search_field_alone();
+    test_search_field_in_window();
     std::cout << "display control tests passed\n";
     return EXIT_SUCCESS;
 }

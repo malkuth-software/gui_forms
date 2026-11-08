@@ -110,6 +110,26 @@ void test_choices_and_sections(gui_forms::Window& window) {
                 (*std::dynamic_pointer_cast<Label>(window.find("gallery.choices.card.footer")))
                         .text().find("Selected") != std::string::npos,
             "activating the Card must set its retained selection and report it");
+
+    // The switches (W-4) turn over on a click and report through the status line.
+    const std::shared_ptr<ToggleSwitch> deploy =
+        std::dynamic_pointer_cast<ToggleSwitch>(window.find("gallery.choices.switches.auto-deploy"));
+    const std::shared_ptr<ToggleSwitch> notify =
+        std::dynamic_pointer_cast<ToggleSwitch>(window.find("gallery.choices.switches.notify"));
+    const std::shared_ptr<Label> switch_status =
+        std::dynamic_pointer_cast<Label>(window.find("gallery.choices.switches.status"));
+    require(deploy && notify && switch_status && (*deploy).checked.read() && !(*notify).checked.read() &&
+                (*deploy).state_text() == "On",
+            "the switches start as the form sets them");
+    window.perform_layout();
+    click(window, notify);
+    require((*notify).checked.read() &&
+                (*switch_status).text() == "Automatic deployment is on · reviewers are notified",
+            "clicking a switch turns it on and the page reports it");
+    require(window.perform_semantic_action("gallery.choices.switches.auto-deploy", SemanticAction::press) &&
+                !(*deploy).checked.read() && (*deploy).state_text() == "Off" &&
+                (*switch_status).text().starts_with("Automatic deployment is off"),
+            "the press action turns the other switch off");
 }
 
 }  // namespace gallery_pages_tests

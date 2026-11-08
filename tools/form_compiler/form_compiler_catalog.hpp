@@ -35,6 +35,7 @@
 #include "gui_forms/controls/button_base/check_box/check_box.hpp"
 #include "gui_forms/controls/button_base/link_label/link_label.hpp"
 #include "gui_forms/controls/button_base/radio_button/radio_button.hpp"
+#include "gui_forms/controls/button_base/toggle_switch/toggle_switch.hpp"
 #include "gui_forms/controls/collections/choice_group.hpp"
 #include "gui_forms/controls/collections/command_bar.hpp"
 #include "gui_forms/controls/collections/expandable_sections.hpp"
@@ -112,6 +113,7 @@
 #include "gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/user_control/user_control.hpp"
 #include "gui_forms/controls/scrollable_control/scrollable_control.hpp"
+#include "gui_forms/controls/search_field/search_field.hpp"
 #include "gui_forms/controls/splitter/splitter.hpp"
 #include "gui_forms/controls/status_strip/status_strip.hpp"
 #include "gui_forms/controls/task_dialog/task_dialog.hpp"
@@ -132,7 +134,7 @@
 
 namespace gui_forms::form_compiler {
 
-inline constexpr std::array<FormCatalogEntry, 121> form_catalog{{
+inline constexpr std::array<FormCatalogEntry, 123> form_catalog{{
     {"button_base", "ButtonBase", "gui_forms/controls/button_base/button_base.hpp", &add_catalog_type<ButtonBase>},
     {"button", "Button", "gui_forms/controls/button_base/button/button.hpp", &add_catalog_type<Button>},
     {"drop_down_button", "DropDownButton", "gui_forms/controls/button_base/button/drop_down_button/drop_down_button.hpp", &add_catalog_type<DropDownButton>},
@@ -140,6 +142,7 @@ inline constexpr std::array<FormCatalogEntry, 121> form_catalog{{
     {"command_bar", "CommandBar", "gui_forms/controls/collections/command_bar.hpp", &add_catalog_type<CommandBar>},
     {"text_box", "TextBox", "gui_forms/controls/panel/text_box/text_box.hpp", &add_catalog_type<TextBox>},
     {"token_box", "TokenBox", "gui_forms/controls/panel/token_box/token_box.hpp", &add_catalog_type<TokenBox>},
+    {"search_field", "SearchField", "gui_forms/controls/search_field/search_field.hpp", &add_catalog_type<SearchField>},
     {"masked_text_box", "MaskedTextBox", "gui_forms/controls/panel/masked_text_box/masked_text_box.hpp", &add_catalog_type<MaskedTextBox>},
     {"rich_text_box", "RichTextBox", "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp", &add_catalog_type<RichTextBox>},
     {"label", "Label", "gui_forms/controls/label/label.hpp", &add_catalog_type<Label>},
@@ -165,6 +168,7 @@ inline constexpr std::array<FormCatalogEntry, 121> form_catalog{{
     {"breadcrumb_trail", "BreadcrumbTrail", "gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail.hpp", &add_catalog_type<BreadcrumbTrail>},
     {"check_box", "CheckBox", "gui_forms/controls/button_base/check_box/check_box.hpp", &add_catalog_type<CheckBox>},
     {"radio_button", "RadioButton", "gui_forms/controls/button_base/radio_button/radio_button.hpp", &add_catalog_type<RadioButton>},
+    {"toggle_switch", "ToggleSwitch", "gui_forms/controls/button_base/toggle_switch/toggle_switch.hpp", &add_catalog_type<ToggleSwitch>},
     {"range_control", "RangeControl", "gui_forms/controls/range_control/range_control.hpp", &add_catalog_type<RangeControl>},
     {"track_bar", "TrackBar", "gui_forms/controls/range_control/track_bar/track_bar.hpp", &add_catalog_type<TrackBar>},
     {"numeric_up_down", "NumericUpDown", "gui_forms/controls/panel/numeric_up_down/numeric_up_down.hpp", &add_catalog_type<NumericUpDown>},

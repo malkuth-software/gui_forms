@@ -11,3 +11,4 @@
 #include "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp"
 #include "gui_forms/controls/panel/numeric_up_down/numeric_up_down.hpp"
 #include "gui_forms/controls/panel/token_box/token_box.hpp"
+#include "gui_forms/controls/search_field/search_field.hpp"

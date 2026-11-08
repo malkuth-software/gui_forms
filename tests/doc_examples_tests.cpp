@@ -3270,6 +3270,16 @@ void example() {
 }
 }  // namespace doc_example_ScrollableControl_2
 
+namespace doc_example_SearchField_1 {
+void example() {
+    std::shared_ptr<gf::SearchField> search = gf::make_control<gf::SearchField>(gf::StableId("mail.search"));
+    (*search).placeholder_text = std::string{"Search mail"};
+    (*search).search_delay = std::chrono::milliseconds(0);
+    (*search).text = std::string{"invoice"};
+    // outside a window, search_requested has been raised with "invoice"
+}
+}  // namespace doc_example_SearchField_1
+
 namespace doc_example_SemanticFeedback_1 {
 void example() {
     std::shared_ptr<gf::Control> root = gf::make_control<gf::Control>(gf::StableId("app"));
@@ -3754,6 +3764,16 @@ void example() {
     // id is 1; the toast closes after five seconds unless dismissed sooner
 }
 }  // namespace doc_example_Toast_1
+
+namespace doc_example_ToggleSwitch_1 {
+void example() {
+    std::shared_ptr<gf::ToggleSwitch> wifi = gf::make_control<gf::ToggleSwitch>(gf::StableId("settings.wifi"), "Wi-Fi");
+    (*wifi).on_text = std::string{"On"};
+    (*wifi).off_text = std::string{"Off"};
+    (*wifi).checked = true;
+    // (*wifi).state_text() is "On"
+}
+}  // namespace doc_example_ToggleSwitch_1
 
 namespace doc_example_TokenBox_1 {
 void example() {
@@ -4477,6 +4497,7 @@ int main() {
     failures += run("ScrollBar example 2", &doc_example_ScrollBar_2::example);
     failures += run("ScrollableControl example 1", &doc_example_ScrollableControl_1::example);
     failures += run("ScrollableControl example 2", &doc_example_ScrollableControl_2::example);
+    failures += run("SearchField example 1", &doc_example_SearchField_1::example);
     failures += run("SemanticFeedback example 1", &doc_example_SemanticFeedback_1::example);
     failures += run("SemanticFeedback example 2", &doc_example_SemanticFeedback_2::example);
     failures += run("SplitContainer example 1", &doc_example_SplitContainer_1::example);
@@ -4501,6 +4522,7 @@ int main() {
     failures += run("Timer example 1", &doc_example_Timer_1::example);
     failures += run("Timer example 2", &doc_example_Timer_2::example);
     failures += run("Toast example 1", &doc_example_Toast_1::example);
+    failures += run("ToggleSwitch example 1", &doc_example_ToggleSwitch_1::example);
     failures += run("TokenBox example 1", &doc_example_TokenBox_1::example);
     failures += run("ToolStrip example 1", &doc_example_ToolStrip_1::example);
     failures += run("ToolStripContainer example 1", &doc_example_ToolStripContainer_1::example);

@@ -766,6 +766,7 @@ add_library(gui_forms_controls STATIC
     src/controls/button_base/button/button.cpp
     src/controls/button_base/button/drop_down_button/drop_down_button.cpp
     src/controls/button_base/check_box/check_box.cpp
+    src/controls/button_base/toggle_switch/toggle_switch.cpp
     src/controls/button_base/radio_button/radio_button.cpp
     src/controls/button_base/link_label/link_label.cpp
     src/controls/raster_canvas/raster_canvas.cpp
@@ -884,6 +885,7 @@ add_library(gui_forms_controls STATIC
     src/controls/panel/up_down/spin_buttons.cpp
     src/controls/panel/domain_up_down/domain_up_down.cpp
     src/controls/panel/token_box/token_box.cpp
+    src/controls/search_field/search_field.cpp
     src/controls/panel/masked_text_box/masked_text_provider/masked_text_provider.cpp
     src/controls/panel/masked_text_box/masked_text_box.cpp
     src/controls/panel/numeric_up_down/numeric_up_down.cpp

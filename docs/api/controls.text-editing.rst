@@ -15,6 +15,8 @@ Text entry.
      - An editable text field: one line by default, or a plain-text document with ``multiline``.
    * - :cpp:class:`TokenBox <gui_forms::TokenBox>`
      - A text field that turns each accepted entry into a removable token.
+   * - :cpp:class:`SearchField <gui_forms::SearchField>`
+     - A text field for a query, such as the search box above a list of messages.
    * - :cpp:class:`MaskedTextBox <gui_forms::MaskedTextBox>`
      - A text box that takes input through a mask.
    * - :cpp:class:`RichTextBox <gui_forms::RichTextBox>`
@@ -29,6 +31,7 @@ Text entry.
 
    generated/gui_forms.TextBox
    generated/gui_forms.TokenBox
+   generated/gui_forms.SearchField
    generated/gui_forms.MaskedTextBox
    generated/gui_forms.RichTextBox
    generated/gui_forms.AutoCompleteStringCollection
@@ -105,6 +108,18 @@ Related types
      - Lines wrap at the box's width (WordWrap, the default); without wrapping a line is one row and the box scrolls horizontally.
    * - :cpp:class:`RichTextFormat <gui_forms::RichTextFormat>`
      - The markdown formatting at a RichTextBox's selection, as its control bar shows it.
+   * - :cpp:class:`SearchField::Parts <gui_forms::SearchField::Parts>`
+     - Stage T1 anatomy, as dot members (see Control::Parts).
+   * - :cpp:class:`SearchFieldBusyCapability <gui_forms::SearchFieldBusyCapability>`
+     - Whether a search is running; the field shows an activity strip along its bottom and is busy to assistive technology.
+   * - :cpp:class:`SearchFieldCapabilities <gui_forms::SearchFieldCapabilities>`
+     - Every SearchField capability, in the order the declaring class takes them.
+   * - :cpp:class:`SearchFieldPlaceholderTextCapability <gui_forms::SearchFieldPlaceholderTextCapability>`
+     - The hint the empty field shows, such as "Search": a view onto the inner editor's placeholder (see TextBox).
+   * - :cpp:class:`SearchFieldSearchDelayCapability <gui_forms::SearchFieldSearchDelayCapability>`
+     - How long typing must pause before search_requested is raised, 300 ms by default; zero raises it at each change.
+   * - :cpp:class:`SearchFieldTextCapability <gui_forms::SearchFieldTextCapability>`
+     - The query: a view onto the inner editor's text (see TextBox).
    * - :cpp:class:`TextBox::Parts <gui_forms::TextBox::Parts>`
      - Stage T1 anatomy, as dot members.
    * - :cpp:class:`TextBox::States <gui_forms::TextBox::States>`
@@ -833,6 +848,121 @@ Related types
       Default: ``{RichTextFormatState::off}``.
 
    .. cpp:member:: std::size_t heading_level
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: SearchField::Parts final
+
+   ``#include <gui_forms/controls/search_field/search_field.hpp>``
+
+   Stage T1 anatomy, as dot members (see Control::Parts). ``well`` is the field's ground, ``icon`` the search mark, ``content`` the inner editor's slot, ``actuator`` the clear mark (absent while the field is empty; hot and pressed as the pointer is), ``activity`` the busy strip (absent unless busy) and ``focus`` the cue shown while the editor has the keyboard focus.
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry well
+
+   .. cpp:member:: PartGeometry icon
+
+   .. cpp:member:: PartGeometry content
+
+   .. cpp:member:: PartGeometry actuator
+
+   .. cpp:member:: PartGeometry activity
+
+   .. cpp:member:: PartGeometry focus
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SearchFieldBusyCapability
+
+   ``#include <gui_forms/controls/search_field/search_field_capabilities/search_field_capabilities.hpp>``
+
+   Whether a search is running; the field shows an activity strip along its bottom and is busy to assistive technology. The application sets and clears it.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SearchFieldBusyCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, SearchFieldBusyCapability<Declaring>> busy
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SearchFieldCapabilities : public SearchFieldTextCapability<Declaring>, public SearchFieldPlaceholderTextCapability<Declaring>, public SearchFieldSearchDelayCapability<Declaring>, public SearchFieldBusyCapability<Declaring>
+
+   ``#include <gui_forms/controls/search_field/search_field_capabilities/search_field_capabilities.hpp>``
+
+   Every SearchField capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string text
+
+      The query: a view onto the inner editor's text (see TextBox). A change raises text_changed and, after search_delay, search_requested.
+
+   .. cpp:member:: std::string placeholder_text
+
+      The hint the empty field shows, such as "Search": a view onto the inner editor's placeholder (see TextBox).
+
+   .. cpp:member:: std::chrono::milliseconds search_delay
+
+      How long typing must pause before search_requested is raised, 300 ms by default; zero raises it at each change. Negative or over 10 s throws std::invalid_argument. A change applies to the next edit.
+
+   .. cpp:member:: bool busy
+
+      Whether a search is running; the field shows an activity strip along its bottom and is busy to assistive technology. The application sets and clears it.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SearchFieldPlaceholderTextCapability
+
+   ``#include <gui_forms/controls/search_field/search_field_capabilities/search_field_capabilities.hpp>``
+
+   The hint the empty field shows, such as "Search": a view onto the inner editor's placeholder (see TextBox).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SearchFieldPlaceholderTextCapability& capability, std::string incoming)
+
+   .. cpp:function:: static std::string read(const SearchFieldPlaceholderTextCapability& capability)
+
+   .. cpp:member:: PropertyView<std::string, SearchFieldPlaceholderTextCapability<Declaring>> placeholder_text
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SearchFieldSearchDelayCapability
+
+   ``#include <gui_forms/controls/search_field/search_field_capabilities/search_field_capabilities.hpp>``
+
+   How long typing must pause before search_requested is raised, 300 ms by default; zero raises it at each change. Negative or over 10 s throws std::invalid_argument. A change applies to the next edit.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SearchFieldSearchDelayCapability& capability, std::chrono::milliseconds incoming)
+
+   .. cpp:member:: PropertyCell<std::chrono::milliseconds, SearchFieldSearchDelayCapability<Declaring>> search_delay
+
+      Default: ``{std::chrono::milliseconds(300)}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SearchFieldTextCapability
+
+   ``#include <gui_forms/controls/search_field/search_field_capabilities/search_field_capabilities.hpp>``
+
+   The query: a view onto the inner editor's text (see TextBox). A change raises text_changed and, after search_delay, search_requested.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SearchFieldTextCapability& capability, std::string incoming)
+
+   .. cpp:function:: static std::string read(const SearchFieldTextCapability& capability)
+
+   .. cpp:member:: PropertyView<std::string, SearchFieldTextCapability<Declaring>> text
 
 .. cpp:namespace:: gui_forms
 

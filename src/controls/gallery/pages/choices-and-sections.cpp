@@ -24,6 +24,7 @@ public:
         build_sections();
         build_state();
         build_cards();
+        build_switches();
         on(ring_.changed(), *this, &ChoicesPage::ring_changed);
         on((*ring_row_).activated(), *this, &ChoicesPage::ring_activated);
         on((*sections_).toggled(), *this, &ChoicesPage::section_toggled);
@@ -110,6 +111,23 @@ private:
     static void bind_toggle(CheckBox& toggle, Value<bool>& model) {
         toggle.set_style(page_style());
         toggle.bind(model);
+    }
+
+    // The switches report through the group's status line.
+    void build_switches() {
+        (*document_.gallery_choices_switches).set_style(page_style());
+        on((*document_.gallery_choices_switches_auto_deploy).checked_changed(), *this,
+           &ChoicesPage::switch_changed);
+        on((*document_.gallery_choices_switches_notify).checked_changed(), *this, &ChoicesPage::switch_changed);
+    }
+
+    // Serves both switches: the handler reads them, so it ignores the value.
+    void switch_changed(bool) {
+        const bool deploy = (*document_.gallery_choices_switches_auto_deploy).checked.read();
+        const bool notify = (*document_.gallery_choices_switches_notify).checked.read();
+        std::string report = deploy ? "Automatic deployment is on" : "Automatic deployment is off";
+        if (notify) report += " · reviewers are notified";
+        (*document_.gallery_choices_switches_status).set_text(report);
     }
 
     void build_cards() {

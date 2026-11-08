@@ -5,6 +5,7 @@
 #include "gui_forms/gui_forms.hpp"
 #include "gui_forms/controls/badge/badge.hpp"
 #include "gui_forms/controls/button_base/button/button.hpp"
+#include "gui_forms/controls/button_base/toggle_switch/toggle_switch.hpp"
 #include "gui_forms/controls/collections/choice_group.hpp"
 #include "gui_forms/controls/data_grid_view/data_grid_view.hpp"
 #include "gui_forms/controls/empty_state/empty_state.hpp"
@@ -42,6 +43,7 @@
 #include "gui_forms/controls/panel/tree_list_view/tree_list_view.hpp"
 #include "gui_forms/controls/panel/tree_view/tree_view.hpp"
 #include "gui_forms/controls/scrollable_control/scrollable_control.hpp"
+#include "gui_forms/controls/search_field/search_field.hpp"
 
 #include <cstdlib>
 #include <iostream>
@@ -1127,6 +1129,23 @@ void test_scrollable_control_properties() {
     }
 }
 
+void test_search_field_properties() {
+    std::shared_ptr<SearchField> control = make_control<SearchField>(StableId("generated.searchfield"));
+    {
+        const std::chrono::milliseconds sample = std::chrono::milliseconds(150);
+        (*control).search_delay = sample;
+        expect((*control).search_delay.read() == sample, "SearchField.search_delay: a write stores");
+    }
+    {
+        const bool sample = true;
+        (*control).busy = sample;
+        expect((*control).busy.read() == sample, "SearchField.busy: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("busy");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "SearchField.busy: the table reads the cell");
+    }
+}
+
 void test_text_box_properties() {
     std::shared_ptr<TextBox> control = make_control<TextBox>(StableId("generated.textbox"));
     {
@@ -1200,6 +1219,40 @@ void test_text_box_properties() {
         const bool sample = !(*control).auto_complete_case_sensitive.read();
         (*control).auto_complete_case_sensitive = sample;
         expect((*control).auto_complete_case_sensitive.read() == sample, "TextBox.auto_complete_case_sensitive: a write stores");
+    }
+}
+
+void test_toggle_switch_properties() {
+    std::shared_ptr<ToggleSwitch> control = make_control<ToggleSwitch>(StableId("generated.toggleswitch"));
+    {
+        const bool sample = true;
+        int raises = 0;
+        const SubscriptionToken token = (*control).checked_changed().subscribe(RaiseCounter{&raises});
+        (*control).checked = sample;
+        expect((*control).checked.read() == sample, "ToggleSwitch.checked: a write stores");
+        expect(raises == 1, "ToggleSwitch.checked: a changed write raises once");
+        (*control).checked = sample;
+        expect(raises == 1, "ToggleSwitch.checked: an equal write raises nothing");
+        static_cast<void>(token);
+        const std::optional<BindingValue> by_name = (*control).property_value("checked");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "ToggleSwitch.checked: the table reads the cell");
+    }
+    {
+        const std::string sample = std::string{"On"};
+        (*control).on_text = sample;
+        expect((*control).on_text.read() == sample, "ToggleSwitch.on_text: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("on_text");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "ToggleSwitch.on_text: the table reads the cell");
+    }
+    {
+        const std::string sample = std::string{"Off"};
+        (*control).off_text = sample;
+        expect((*control).off_text.read() == sample, "ToggleSwitch.off_text: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("off_text");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "ToggleSwitch.off_text: the table reads the cell");
     }
 }
 
@@ -1295,7 +1348,9 @@ int main() {
     test_scaled_group_box_properties();
     test_scaled_panel_properties();
     test_scrollable_control_properties();
+    test_search_field_properties();
     test_text_box_properties();
+    test_toggle_switch_properties();
     test_token_box_properties();
     test_tree_list_view_properties();
     test_tree_view_properties();

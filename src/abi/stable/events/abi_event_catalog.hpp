@@ -37,6 +37,7 @@
 #include "gui_forms/controls/button_base/button_base.hpp"
 #include "gui_forms/controls/button_base/check_box/check_box.hpp"
 #include "gui_forms/controls/button_base/radio_button/radio_button.hpp"
+#include "gui_forms/controls/button_base/toggle_switch/toggle_switch.hpp"
 #include "gui_forms/controls/collections/choice_group.hpp"
 #include "gui_forms/controls/collections/command_bar.hpp"
 #include "gui_forms/controls/collections/expandable_sections.hpp"
@@ -99,6 +100,7 @@
 #include "gui_forms/controls/scrollable_control/container_control/user_control/user_control.hpp"
 #include "gui_forms/controls/scrollable_control/scroll_properties/scroll_properties.hpp"
 #include "gui_forms/controls/scrollable_control/scrollable_control.hpp"
+#include "gui_forms/controls/search_field/search_field.hpp"
 #include "gui_forms/controls/splitter/splitter.hpp"
 #include "gui_forms/controls/task_dialog/task_dialog.hpp"
 #include "gui_forms/controls/text_block/text_block.hpp"
@@ -2975,12 +2977,30 @@ inline SubscriptionToken connect_radio_button_checked_changed(Component& source,
     return token;
 }
 
+inline SubscriptionToken connect_toggle_switch_checked_changed(Component& source, const EventSink& sink) {
+    ToggleSwitch* typed = dynamic_cast<ToggleSwitch*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).checked_changed(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_dock_navigator_chosen(Component& source, const EventSink& sink) {
     DockNavigator* typed = dynamic_cast<DockNavigator*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).chosen(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_search_field_cleared(Component& source, const EventSink& sink) {
+    SearchField* typed = dynamic_cast<SearchField*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).cleared(), sink);
     return token;
 }
 
@@ -4440,6 +4460,15 @@ inline SubscriptionToken connect_scrollable_control_scroll(Component& source, co
     return token;
 }
 
+inline SubscriptionToken connect_search_field_search_requested(Component& source, const EventSink& sink) {
+    SearchField* typed = dynamic_cast<SearchField*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).search_requested(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_breadcrumb_trail_segment_activated(Component& source, const EventSink& sink) {
     BreadcrumbTrail* typed = dynamic_cast<BreadcrumbTrail*>(&source);
     if (typed == nullptr) {
@@ -4782,6 +4811,15 @@ inline SubscriptionToken connect_label_text_changed(Component& source, const Eve
     return token;
 }
 
+inline SubscriptionToken connect_search_field_text_changed(Component& source, const EventSink& sink) {
+    SearchField* typed = dynamic_cast<SearchField*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).text_changed(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_text_block_text_changed(Component& source, const EventSink& sink) {
     TextBlock* typed = dynamic_cast<TextBlock*>(&source);
     if (typed == nullptr) {
@@ -5057,7 +5095,7 @@ inline SubscriptionToken connect_control_visible_changed(Component& source, cons
 }
 
 // By interaction name, then the most derived declaring type first.
-inline constexpr std::array<EventConnector, 272> event_connectors{{
+inline constexpr std::array<EventConnector, 276> event_connectors{{
     {"action_invoked", "Toast", &connect_toast_action_invoked},
     {"activated", "Card", &connect_card_activated},
     {"activated", "ChoiceGroup", &connect_choice_group_activated},
@@ -5101,7 +5139,9 @@ inline constexpr std::array<EventConnector, 272> event_connectors{{
     {"checked_changed", "DateTimePicker", &connect_date_time_picker_checked_changed},
     {"checked_changed", "CheckBox", &connect_check_box_checked_changed},
     {"checked_changed", "RadioButton", &connect_radio_button_checked_changed},
+    {"checked_changed", "ToggleSwitch", &connect_toggle_switch_checked_changed},
     {"chosen", "DockNavigator", &connect_dock_navigator_chosen},
+    {"cleared", "SearchField", &connect_search_field_cleared},
     {"click", "NotifyIcon", &connect_notify_icon_click},
     {"clicked", "ButtonBase", &connect_button_base_clicked},
     {"close_requested", "BackstageView", &connect_backstage_view_close_requested},
@@ -5262,6 +5302,7 @@ inline constexpr std::array<EventConnector, 272> event_connectors{{
     {"run_worker_completed", "BackgroundWorker", &connect_background_worker_run_worker_completed},
     {"scroll", "RangeControl", &connect_range_control_scroll},
     {"scroll", "ScrollableControl", &connect_scrollable_control_scroll},
+    {"search_requested", "SearchField", &connect_search_field_search_requested},
     {"segment_activated", "BreadcrumbTrail", &connect_breadcrumb_trail_segment_activated},
     {"selected", "TabControl", &connect_tab_control_selected},
     {"selected_changed", "Card", &connect_card_selected_changed},
@@ -5300,6 +5341,7 @@ inline constexpr std::array<EventConnector, 272> event_connectors{{
     {"text_changed", "TextBox", &connect_text_box_text_changed},
     {"text_changed", "ButtonBase", &connect_button_base_text_changed},
     {"text_changed", "Label", &connect_label_text_changed},
+    {"text_changed", "SearchField", &connect_search_field_text_changed},
     {"text_changed", "TextBlock", &connect_text_block_text_changed},
     {"theme_changed", "Window", &connect_window_theme_changed},
     {"tick", "Timer", &connect_timer_tick},

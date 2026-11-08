@@ -249,6 +249,28 @@ Properties beyond every control's: none.
 | `token_removed` | `Token` |
 | `selected_token_changed` | `std::optional<TokenId>` |
 
+## `search_field` (SearchField, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `well` | well |  |  |
+| `icon` | glyph |  |  |
+| `content` | content | `text_box` |  |
+| `actuator` | glyph |  | hot, pressed |
+| `activity` | activity |  |  |
+| `focus` | focus |  |  |
+
+States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`, `pending`.
+
+Properties beyond every control's: `busy` (boolean), `placeholder_text` (text), `text` (text).
+
+| Interaction | Payload |
+|---|---|
+| `text_changed` | `std::string` |
+| `search_requested` | `std::string` |
+| `cleared` | none |
+
 ## `masked_text_box` (MaskedTextBox, control)
 
 | Part | Role | Reuses | Own states |
@@ -1150,6 +1172,28 @@ Properties beyond every control's: `check_state` (enumeration), `checked` (boole
 States: `normal`, `hot`, `pressed`, `checked`, `enabled`, `disabled`, `focused`, `focus_visible`, `open`, `closed`.
 
 Properties beyond every control's: `checked` (boolean), `content_padding` (insets), `font` (font), `group_name` (text), `image` (image), `indicator_style` (enumeration), `text` (text), `text_alignment` (enumeration).
+
+| Interaction | Payload |
+|---|---|
+| `expanded_changed` | `std::optional<bool>` |
+| `clicked` | `ButtonBase`, by reference |
+| `text_changed` | `std::string` |
+| `checked_changed` | `bool` |
+
+## `toggle_switch` (ToggleSwitch, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `track` | track |  |  |
+| `thumb` | indicator |  |  |
+| `label` | label |  |  |
+| `state` | label |  |  |
+| `focus` | focus |  |  |
+
+States: `normal`, `hot`, `pressed`, `checked`, `enabled`, `disabled`, `focused`, `focus_visible`, `open`, `closed`.
+
+Properties beyond every control's: `checked` (boolean), `content_padding` (insets), `font` (font), `image` (image), `off_text` (text), `on_text` (text), `text` (text), `text_alignment` (enumeration).
 
 | Interaction | Payload |
 |---|---|

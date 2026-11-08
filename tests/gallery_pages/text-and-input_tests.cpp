@@ -116,6 +116,25 @@ void test_text_and_input(gui_forms::Window& window,
             "the rich text specimen shows its heading, paragraph, list and code block");
     require((*note).text.read().starts_with("Release notes\nText may be bold, italic or code."),
             "the rich text specimen's plain text has no markup");
+
+    // The search field (W-4): typing waits for the pause, Enter searches
+    // now, and Escape clears, which shows everything again.
+    const std::shared_ptr<SearchField> search =
+        std::dynamic_pointer_cast<SearchField>(window.find("gallery.text.search.field"));
+    const std::shared_ptr<gui_forms::Label> search_status =
+        std::dynamic_pointer_cast<Label>(window.find("gallery.text.search.status"));
+    require(search && search_status && (*search).placeholder_text.read() == "Search the gallery",
+            "the search field specimen shows its placeholder");
+    require(window.request_focus((*search).editor()) && window.dispatch_text({"dock"}) &&
+                (*search).text.read() == "dock" &&
+                (*search_status).text() == "Type to search; Enter searches now and Escape clears",
+            "typing waits for the pause before searching");
+    require(window.dispatch_key({KeyAction::down, PhysicalKey::enter}) &&
+                (*search_status).text() == "Searching for \"dock\"",
+            "Enter searches now");
+    require(window.dispatch_key({KeyAction::down, PhysicalKey::escape}) && (*search).text.read().empty() &&
+                (*search_status).text() == "Showing everything",
+            "Escape clears the field, then searches for everything");
 }
 
 } // namespace gallery_pages_tests

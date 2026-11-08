@@ -15,6 +15,8 @@ Check boxes, radio buttons, ranges, numeric and colour editors, property grids a
      - A box with a caption that the user checks and unchecks.
    * - :cpp:class:`RadioButton <gui_forms::RadioButton>`
      - A round button with a caption that the user selects from a group of exclusive options.
+   * - :cpp:class:`ToggleSwitch <gui_forms::ToggleSwitch>`
+     - A switch for a setting that takes effect as soon as it is turned, such as "Wi-Fi" on or off.
    * - :cpp:class:`RangeControl <gui_forms::RangeControl>`
      - The shared base of controls that show a number within a bounded range.
    * - :cpp:class:`TrackBar <gui_forms::TrackBar>`
@@ -39,6 +41,7 @@ Check boxes, radio buttons, ranges, numeric and colour editors, property grids a
 
    generated/gui_forms.CheckBox
    generated/gui_forms.RadioButton
+   generated/gui_forms.ToggleSwitch
    generated/gui_forms.RangeControl
    generated/gui_forms.TrackBar
    generated/gui_forms.NumericUpDown
@@ -212,6 +215,16 @@ Related types
      -  
    * - :cpp:class:`RangeScrollEvent <gui_forms::RangeScrollEvent>`
      - RangeScrollEvent is the typed transition payload shared by interactive range controls.
+   * - :cpp:class:`ToggleSwitch::Parts <gui_forms::ToggleSwitch::Parts>`
+     - Stage T1 anatomy, as dot members (see Control::Parts).
+   * - :cpp:class:`ToggleSwitchCapabilities <gui_forms::ToggleSwitchCapabilities>`
+     - Every ToggleSwitch capability, in the order the declaring class takes them.
+   * - :cpp:class:`ToggleSwitchCheckedCapability <gui_forms::ToggleSwitchCheckedCapability>`
+     - Whether the switch is on; a change raises checked_changed.
+   * - :cpp:class:`ToggleSwitchOffTextCapability <gui_forms::ToggleSwitchOffTextCapability>`
+     - The state text shown after the label while the switch is off, such as "Off"; empty for none.
+   * - :cpp:class:`ToggleSwitchOnTextCapability <gui_forms::ToggleSwitchOnTextCapability>`
+     - The state text shown after the label while the switch is on, such as "On"; empty for none.
    * - :cpp:class:`TrackBar::Parts <gui_forms::TrackBar::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`TrackBar::States <gui_forms::TrackBar::States>`
@@ -1786,6 +1799,94 @@ Related types
    .. cpp:member:: RangeAction action
 
       Default: ``{RangeAction::thumb_position}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ToggleSwitch::Parts final
+
+   ``#include <gui_forms/controls/button_base/toggle_switch/toggle_switch.hpp>``
+
+   Stage T1 anatomy, as dot members (see Control::Parts). ``track`` is the rounded ground, ``thumb`` the knob at its start (off) or end (on), ``label`` the text, ``state`` the state text (absent when empty) and ``focus`` the cue around the whole control.
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry track
+
+   .. cpp:member:: PartGeometry thumb
+
+   .. cpp:member:: PartGeometry label
+
+   .. cpp:member:: PartGeometry state
+
+   .. cpp:member:: PartGeometry focus
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ToggleSwitchCapabilities : public ToggleSwitchCheckedCapability<Declaring>, public ToggleSwitchOnTextCapability<Declaring>, public ToggleSwitchOffTextCapability<Declaring>
+
+   ``#include <gui_forms/controls/button_base/toggle_switch/toggle_switch_capabilities/toggle_switch_capabilities.hpp>``
+
+   Every ToggleSwitch capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: bool checked
+
+      Whether the switch is on; a change raises checked_changed. Activation (a click, Space, the press action) turns it over before clicked is raised.
+
+   .. cpp:member:: std::string on_text
+
+      The state text shown after the label while the switch is on, such as "On"; empty for none. Must be valid UTF-8 (std::invalid_argument).
+
+   .. cpp:member:: std::string off_text
+
+      The state text shown after the label while the switch is off, such as "Off"; empty for none. Must be valid UTF-8 (std::invalid_argument).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ToggleSwitchCheckedCapability
+
+   ``#include <gui_forms/controls/button_base/toggle_switch/toggle_switch_capabilities/toggle_switch_capabilities.hpp>``
+
+   Whether the switch is on; a change raises checked_changed. Activation (a click, Space, the press action) turns it over before clicked is raised.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ToggleSwitchCheckedCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ToggleSwitchCheckedCapability<Declaring>> checked
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ToggleSwitchOffTextCapability
+
+   ``#include <gui_forms/controls/button_base/toggle_switch/toggle_switch_capabilities/toggle_switch_capabilities.hpp>``
+
+   The state text shown after the label while the switch is off, such as "Off"; empty for none. Must be valid UTF-8 (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ToggleSwitchOffTextCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, ToggleSwitchOffTextCapability<Declaring>> off_text
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ToggleSwitchOnTextCapability
+
+   ``#include <gui_forms/controls/button_base/toggle_switch/toggle_switch_capabilities/toggle_switch_capabilities.hpp>``
+
+   The state text shown after the label while the switch is on, such as "On"; empty for none. Must be valid UTF-8 (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ToggleSwitchOnTextCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, ToggleSwitchOnTextCapability<Declaring>> on_text
 
 .. cpp:namespace:: gui_forms
 

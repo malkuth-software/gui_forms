@@ -33,6 +33,7 @@ public:
         build_auto_complete();
         build_tokens();
         build_rich_text();
+        build_search();
         refresh_state();
     }
 
@@ -150,6 +151,25 @@ private:
                               "- Ctrl+K makes a link\n\n"
                               "```\nsave_rtf(document);\n```\n");
         on((*note_).link_clicked(), *this, &TextAndInputPage::rich_link_clicked);
+    }
+
+    // The search field reports each query and each clearing.
+    void build_search() {
+        (*document_.gallery_text_search).set_style(page_style());
+        on((*document_.gallery_text_search_field).search_requested(), *this, &TextAndInputPage::search_requested);
+        on((*document_.gallery_text_search_field).cleared(), *this, &TextAndInputPage::search_cleared);
+    }
+
+    void search_requested(const std::string& query) {
+        if (query.empty()) {
+            (*document_.gallery_text_search_status).set_text("Showing everything");
+            return;
+        }
+        (*document_.gallery_text_search_status).set_text("Searching for \"" + query + "\"");
+    }
+
+    void search_cleared() {
+        (*document_.gallery_text_search_status).set_text("Cleared");
     }
 
     void rich_link_clicked(const std::string& target) {

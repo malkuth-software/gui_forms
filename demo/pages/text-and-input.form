@@ -12,7 +12,7 @@
    initial token, the markdown, every event handler, the status lines'
    reports and the page style. */
 scaled-panel gallery.text.document {
-  design-size: 1000 1400;
+  design-size: 1000 1560;
 
   label gallery.text.heading {
     text: "TEXT AND INPUT";
@@ -204,6 +204,28 @@ scaled-panel gallery.text.document {
       text: "Ctrl+click a link to open it";
       classes: "positive" "emphasis";
       bounds: 154 228 700 26;
+    }
+  }
+
+  scaled-group-box gallery.text.search {
+    text: "SearchField · a query searched as typing pauses";
+    design-size: 930 132;
+    bounds: 24 1404 930 132;
+    classes: "paper" "group-caption";
+    label gallery.text.search.caption {
+      text: "Search";
+      classes: "muted" "emphasis";
+      bounds: 24 42 130 24;
+    }
+    search-field gallery.text.search.field {
+      accessible-name: "Search the gallery";
+      placeholder-text: "Search the gallery";
+      bounds: 154 36 700 36;
+    }
+    label gallery.text.search.status {
+      text: "Type to search; Enter searches now and Escape clears";
+      classes: "positive" "emphasis";
+      bounds: 154 86 700 26;
     }
   }
 }

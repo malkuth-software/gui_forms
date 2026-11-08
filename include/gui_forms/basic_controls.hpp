@@ -5,6 +5,7 @@
 #include "gui_forms/controls/button_base/button/button.hpp"
 #include "gui_forms/controls/button_base/button/drop_down_button/drop_down_button.hpp"
 #include "gui_forms/controls/button_base/check_box/check_box.hpp"
+#include "gui_forms/controls/button_base/toggle_switch/toggle_switch.hpp"
 #include "gui_forms/controls/button_base/link_label/link_label.hpp"
 #include "gui_forms/controls/button_base/radio_button/radio_button.hpp"
 #include "gui_forms/controls/label/label.hpp"
