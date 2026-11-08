@@ -47,6 +47,7 @@
 #include "gui_forms/controls/docking/dock_navigator/dock_navigator.hpp"
 #include "gui_forms/controls/docking/dock_site/dock_site.hpp"
 #include "gui_forms/controls/docking/dock_workspace/dock_workspace.hpp"
+#include "gui_forms/controls/info_banner/info_banner.hpp"
 #include "gui_forms/controls/label/label.hpp"
 #include "gui_forms/controls/menu_strip/menu_strip.hpp"
 #include "gui_forms/controls/pages/navigation_pane/navigation_pane.hpp"
@@ -3009,6 +3010,15 @@ inline SubscriptionToken connect_font_dialog_closed(Component& source, const Eve
     return token;
 }
 
+inline SubscriptionToken connect_info_banner_closed(Component& source, const EventSink& sink) {
+    InfoBanner* typed = dynamic_cast<InfoBanner*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).closed(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_task_dialog_closed(Component& source, const EventSink& sink) {
     TaskDialog* typed = dynamic_cast<TaskDialog*>(&source);
     if (typed == nullptr) {
@@ -5037,7 +5047,7 @@ inline SubscriptionToken connect_control_visible_changed(Component& source, cons
 }
 
 // By interaction name, then the most derived declaring type first.
-inline constexpr std::array<EventConnector, 270> event_connectors{{
+inline constexpr std::array<EventConnector, 271> event_connectors{{
     {"activated", "Card", &connect_card_activated},
     {"activated", "ChoiceGroup", &connect_choice_group_activated},
     {"activation_changed", "DockWorkspace", &connect_dock_workspace_activation_changed},
@@ -5085,6 +5095,7 @@ inline constexpr std::array<EventConnector, 270> event_connectors{{
     {"clicked", "ButtonBase", &connect_button_base_clicked},
     {"close_requested", "BackstageView", &connect_backstage_view_close_requested},
     {"closed", "FontDialog", &connect_font_dialog_closed},
+    {"closed", "InfoBanner", &connect_info_banner_closed},
     {"closed", "TaskDialog", &connect_task_dialog_closed},
     {"closed", "ThreadExceptionDialog", &connect_thread_exception_dialog_closed},
     {"collection_changed", "BindingContext", &connect_binding_context_collection_changed},

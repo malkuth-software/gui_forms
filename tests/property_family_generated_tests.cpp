@@ -6,6 +6,7 @@
 #include "gui_forms/controls/badge/badge.hpp"
 #include "gui_forms/controls/button_base/button/button.hpp"
 #include "gui_forms/controls/data_grid_view/data_grid_view.hpp"
+#include "gui_forms/controls/info_banner/info_banner.hpp"
 #include "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp"
 #include "gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail.hpp"
 #include "gui_forms/controls/panel/card/card.hpp"
@@ -674,6 +675,42 @@ void test_group_box_properties() {
     }
 }
 
+void test_info_banner_properties() {
+    std::shared_ptr<InfoBanner> control = make_control<InfoBanner>(StableId("generated.infobanner"));
+    {
+        const InfoBannerSeverity sample = InfoBannerSeverity::warning;
+        (*control).severity = sample;
+        expect((*control).severity.read() == sample, "InfoBanner.severity: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("severity");
+        expect(by_name && *by_name == PropertyValueTraits<InfoBannerSeverity>::to_binding(sample),
+               "InfoBanner.severity: the table reads the cell");
+    }
+    {
+        const std::string sample = std::string{"Sample"};
+        (*control).title = sample;
+        expect((*control).title.read() == sample, "InfoBanner.title: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("title");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "InfoBanner.title: the table reads the cell");
+    }
+    {
+        const std::string sample = std::string{"Sample"};
+        (*control).message = sample;
+        expect((*control).message.read() == sample, "InfoBanner.message: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("message");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "InfoBanner.message: the table reads the cell");
+    }
+    {
+        const bool sample = !(*control).closable.read();
+        (*control).closable = sample;
+        expect((*control).closable.read() == sample, "InfoBanner.closable: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("closable");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "InfoBanner.closable: the table reads the cell");
+    }
+}
+
 void test_instrument_rack_properties() {
     std::shared_ptr<InstrumentRack> control = make_control<InstrumentRack>(StableId("generated.instrumentrack"));
 }
@@ -1196,6 +1233,7 @@ int main() {
     test_flags_value_editor_properties();
     test_font_dialog_properties();
     test_group_box_properties();
+    test_info_banner_properties();
     test_instrument_rack_properties();
     test_list_box_properties();
     test_list_view_properties();

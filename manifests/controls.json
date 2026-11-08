@@ -140,6 +140,17 @@
       "doc": "api/generated/gui_forms.Badge.rst"
     },
     {
+      "id": "info_banner",
+      "type": "InfoBanner",
+      "header": "gui_forms/controls/info_banner/info_banner.hpp",
+      "category": "Information display",
+      "purpose": "Message strip across a form or page: a severity icon and keyline, a title and a message, an optional action and a close actuator; a live region to assistive technology.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": null,
+      "doc": "api/generated/gui_forms.InfoBanner.rst"
+    },
+    {
       "id": "picture_box",
       "type": "PictureBox",
       "header": "gui_forms/controls/panel/picture_box/picture_box.hpp",

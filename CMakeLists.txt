@@ -755,6 +755,7 @@ add_library(gui_forms_controls STATIC
     src/controls/label/label.cpp
     src/controls/text_block/text_block.cpp
     src/controls/badge/badge.cpp
+    src/controls/info_banner/info_banner.cpp
     src/controls/button_base/button_base.cpp
     src/controls/button_base/button/button.cpp
     src/controls/button_base/button/drop_down_button/drop_down_button.cpp

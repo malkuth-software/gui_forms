@@ -1,4 +1,4 @@
-// W-4 display controls: Badge (and, as they land, InfoBanner and
+// W-4 display controls: Badge and InfoBanner (and, as it lands,
 // EmptyState). Each test covers the control's behaviour, its refusals, its
 // semantics, its published parts and states, and the capability cases: a
 // write stores, an equal write does nothing, and a write from another
@@ -13,6 +13,7 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <thread>
 
 namespace {
@@ -103,11 +104,169 @@ void test_badge_semantics_parts_and_threads() {
     require(refused && (*badge).count.read() == 3U, "a count write from another thread is refused");
 }
 
+// Counts an InfoBanner's closed events.
+class ClosedRecorder final : public Component {
+public:
+    void on_closed() { ++closed; }
+    int closed{};
+};
+
+// Writes a banner's title from another thread and records whether it was
+// refused.
+struct OtherThreadTitle final {
+    InfoBanner* banner{};
+    bool* refused{};
+    void operator()() const {
+        try {
+            (*banner).title = std::string{"Elsewhere"};
+        } catch (const std::logic_error&) {
+            *refused = true;
+        }
+    }
+};
+
+void test_info_banner_properties_and_states() {
+    std::shared_ptr<InfoBanner> banner = make_control<InfoBanner>(StableId("display.banner"));
+    require((*banner).severity.read() == InfoBannerSeverity::information && (*banner).closable.read(),
+            "a banner starts as closable information");
+    require((*banner).focusable(), "a closable banner takes focus");
+    const ControlAnatomy& anatomy = (*banner).anatomy();
+    const std::optional<CustomStateIndex> information = find_custom_state(anatomy, "information");
+    const std::optional<CustomStateIndex> warning = find_custom_state(anatomy, "warning");
+    const std::optional<CustomStateIndex> success = find_custom_state(anatomy, "success");
+    const std::optional<CustomStateIndex> error = find_custom_state(anatomy, "error");
+    require(information && warning && success && error, "the banner declares a custom state per severity");
+    AnatomyStateSet states = (*banner).anatomy_states();
+    require(states.contains(*information) && !states.contains(*warning) && !states.contains(*success) &&
+                !states.contains(*error),
+            "information is the one severity state at first");
+    (*banner).severity = InfoBannerSeverity::error;
+    states = (*banner).anatomy_states();
+    require(states.contains(*error) && !states.contains(*information), "a new severity replaces the old state");
+
+    bool refused = false;
+    const std::string broken{"\xff\xfe"};
+    try {
+        (*banner).message = broken;
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*banner).message.read().empty(), "an invalid UTF-8 message is refused");
+
+    (*banner).title = std::string{"Saved"};
+    (*banner).message = std::string{"Your changes are saved."};
+    const SemanticDescriptor described = (*banner).semantic_descriptor();
+    require(described.role == SemanticRole::live_region && described.exposed, "a banner is an exposed live region");
+    require(described.name == "Saved" && described.description == "Your changes are saved.",
+            "the title names the banner and the message describes it");
+    require(described.actions.size() == 1U && described.actions[0] == SemanticAction::close,
+            "a closable banner offers the close action");
+
+    (*banner).closable = false;
+    require(!(*banner).focusable() && (*banner).semantic_descriptor().actions.empty(),
+            "a banner that is not closable takes no focus and offers no close action");
+    require(!(*banner).on_semantic_action(SemanticAction::close, std::string_view{}) && (*banner).visible.read(),
+            "the close action is refused while the banner is not closable");
+
+    const std::optional<BindingValue> by_name = (*banner).property_value("severity");
+    require(by_name && *by_name == BindingValue{PropertyEnumValue{"info_banner_severity", "error", 3}},
+            "the table reads the severity cell");
+    (*banner).set_property_value("severity", BindingValue{PropertyEnumValue{"info_banner_severity", "success", 2}});
+    require((*banner).severity.read() == InfoBannerSeverity::success, "the table writes the severity cell");
+}
+
+void test_info_banner_closing() {
+    ClosedRecorder recorder;
+    std::shared_ptr<InfoBanner> banner = make_control<InfoBanner>(StableId("display.banner.closing"));
+    on((*banner).closed(), recorder, &ClosedRecorder::on_closed);
+
+    require((*banner).on_semantic_action(SemanticAction::close, std::string_view{}), "the close action is taken");
+    require(!(*banner).visible.read() && recorder.closed == 1, "closing hides the banner and raises closed once");
+    (*banner).close();
+    require(recorder.closed == 1, "closing a hidden banner does nothing");
+
+    (*banner).visible = true;
+    KeyEvent other{};
+    other.action = KeyAction::down;
+    other.physical_key = PhysicalKey::enter;
+    (*banner).on_key(other);
+    require((*banner).visible.read() && !other.handled, "keys other than Escape pass the banner by");
+    KeyEvent escape{};
+    escape.action = KeyAction::down;
+    escape.physical_key = PhysicalKey::escape;
+    (*banner).on_key(escape);
+    require(escape.handled && !(*banner).visible.read() && recorder.closed == 2, "Escape closes a shown banner");
+
+    (*banner).visible = true;
+    (*banner).closable = false;
+    (*banner).close();
+    require(!(*banner).visible.read() && recorder.closed == 3, "close() works whether or not the banner is closable");
+}
+
+void test_info_banner_actuator_action_and_threads() {
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("display.banner.root"));
+    std::shared_ptr<InfoBanner> banner = make_control<InfoBanner>(StableId("display.banner.attached"));
+    (*banner).set_requested_bounds(Rect{0.0, 0.0, 400.0, 60.0});
+    (*banner).title = std::string{"Offline"};
+    std::shared_ptr<Button> retry = make_control<Button>(StableId("display.banner.retry"), "Retry");
+    const Control::Ptr none = (*banner).set_action(retry);
+    require(!none && (*retry).parent() == banner, "the banner owns its action control");
+    (*root).add_child(banner);
+    Window window(root, Size{500.0, 200.0});
+    window.perform_layout();
+
+    const InfoBanner::Parts laid = (*banner).parts();
+    require(laid.face.present && laid.keyline.present && laid.icon.present, "the face, keyline and icon are published");
+    require(laid.caption.present && !laid.label.present, "an empty message publishes no label");
+    require(laid.actuator.present && laid.content.present, "the close mark and the action slot are published");
+    const Rect slot = (*retry).committed_arranged_bounds();
+    require(slot.width > 0.0 && slot.x + slot.width <= 400.0, "the action is placed inside the banner");
+
+    const std::shared_ptr<Panel> elsewhere = make_control<Panel>(StableId("display.banner.elsewhere"));
+    std::shared_ptr<Button> adopted = make_control<Button>(StableId("display.banner.adopted"), "Other");
+    (*elsewhere).add_child(adopted);
+    bool refused = false;
+    try {
+        static_cast<void>((*banner).set_action(adopted));
+    } catch (const std::logic_error&) {
+        refused = true;
+    }
+    require(refused && (*banner).action() == retry, "an action with a parent is refused and the old one kept");
+
+    ClosedRecorder recorder;
+    on((*banner).closed(), recorder, &ClosedRecorder::on_closed);
+    const Point mark{laid.actuator.bounds.x + laid.actuator.bounds.width * 0.5,
+                     laid.actuator.bounds.y + laid.actuator.bounds.height * 0.5};
+    PointerEvent press{};
+    press.action = PointerAction::down;
+    press.button = PointerButton::primary;
+    press.position = mark;
+    (*banner).on_pointer(press);
+    require(press.handled && (*banner).visible.read(), "pressing the close mark does not close yet");
+    PointerEvent release = press;
+    release.action = PointerAction::up;
+    release.handled = false;
+    (*banner).on_pointer(release);
+    require(release.handled && !(*banner).visible.read() && recorder.closed == 1,
+            "releasing over the close mark closes the banner");
+
+    const Control::Ptr detached = (*banner).set_action(nullptr);
+    require(detached == retry && !(*retry).parent() && !(*banner).action(), "clearing the action returns it detached");
+
+    bool other_thread = false;
+    std::thread worker(OtherThreadTitle{banner.get(), &other_thread});
+    worker.join();
+    require(other_thread && (*banner).title.read() == "Offline", "a title write from another thread is refused");
+}
+
 } // namespace
 
 int main() {
     test_badge_text_and_visibility();
     test_badge_semantics_parts_and_threads();
+    test_info_banner_properties_and_states();
+    test_info_banner_closing();
+    test_info_banner_actuator_action_and_threads();
     std::cout << "display control tests passed\n";
     return EXIT_SUCCESS;
 }

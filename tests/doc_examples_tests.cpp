@@ -1958,6 +1958,17 @@ void example() {
 }
 }  // namespace doc_example_ImageList_2
 
+namespace doc_example_InfoBanner_1 {
+void example() {
+    std::shared_ptr<gf::InfoBanner> offline = gf::make_control<gf::InfoBanner>(gf::StableId("sync.offline"));
+    (*offline).severity = gf::InfoBannerSeverity::warning;
+    (*offline).title = "Offline";
+    (*offline).message = "Changes will sync when the connection returns.";
+    gf::Control::Ptr previous = (*offline).set_action(gf::make_control<gf::Button>(gf::StableId("sync.retry"), "Retry"));
+    // previous is null: the banner had no action before
+}
+}  // namespace doc_example_InfoBanner_1
+
 namespace doc_example_InstrumentRack_1 {
 void example() {
     gf::InstrumentFieldSpec kind{.stable_id = "value", .name = "Kind",
@@ -4374,6 +4385,7 @@ int main() {
     failures += run("HelpProvider example 1", &doc_example_HelpProvider_1::example);
     failures += run("ImageList example 1", &doc_example_ImageList_1::example);
     failures += run("ImageList example 2", &doc_example_ImageList_2::example);
+    failures += run("InfoBanner example 1", &doc_example_InfoBanner_1::example);
     failures += run("InstrumentRack example 1", &doc_example_InstrumentRack_1::example);
     failures += run("InstrumentRack example 2", &doc_example_InstrumentRack_2::example);
     failures += run("Label example 1", &doc_example_Label_1::example);

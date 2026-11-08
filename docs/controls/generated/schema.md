@@ -372,6 +372,27 @@ Properties beyond every control's: `count` (unsigned_integer), `maximum` (unsign
 
 Interactions beyond every control's: none.
 
+## `info_banner` (InfoBanner, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `face` | face |  |  |
+| `keyline` | keyline |  |  |
+| `icon` | glyph |  |  |
+| `caption` | caption |  |  |
+| `label` | label |  |  |
+| `actuator` | glyph |  | hot, pressed |
+| `content` | content |  |  |
+
+States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`. Application-defined: `information`, `warning`, `success`, `error`.
+
+Properties beyond every control's: `closable` (boolean), `message` (text), `severity` (enumeration), `title` (text).
+
+| Interaction | Payload |
+|---|---|
+| `closed` | none |
+
 ## `picture_box` (PictureBox, control)
 
 | Part | Role | Reuses | Own states |

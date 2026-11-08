@@ -17,6 +17,8 @@ Labels, images, progress and review cards.
      - Read-only text laid out as CSS lays out the text of a block, for use inside the layout panels.
    * - :cpp:class:`Badge <gui_forms::Badge>`
      - A small count or dot, such as the number of unread messages beside a mailbox.
+   * - :cpp:class:`InfoBanner <gui_forms::InfoBanner>`
+     - A message strip across a form or a page, such as "Changes saved" or "Connection lost; retrying".
    * - :cpp:class:`PictureBox <gui_forms::PictureBox>`
      - A box that displays one image from its window's image registry.
    * - :cpp:class:`ProgressBar <gui_forms::ProgressBar>`
@@ -32,6 +34,7 @@ Labels, images, progress and review cards.
    generated/gui_forms.Label
    generated/gui_forms.TextBlock
    generated/gui_forms.Badge
+   generated/gui_forms.InfoBanner
    generated/gui_forms.PictureBox
    generated/gui_forms.ProgressBar
    generated/gui_forms.SweepScope
@@ -56,6 +59,18 @@ Related types
      - Whether the badge shows a count chip or a dot without text.
    * - :cpp:class:`BadgeShowZeroCapability <gui_forms::BadgeShowZeroCapability>`
      - Whether a zero count still shows its chip; off by default.
+   * - :cpp:class:`InfoBanner::Parts <gui_forms::InfoBanner::Parts>`
+     - Stage T1 anatomy, as dot members (see Control::Parts).
+   * - :cpp:class:`InfoBannerCapabilities <gui_forms::InfoBannerCapabilities>`
+     - Every InfoBanner capability, in the order the declaring class takes them.
+   * - :cpp:class:`InfoBannerClosableCapability <gui_forms::InfoBannerClosableCapability>`
+     - Whether the banner shows a close actuator, takes focus and closes on Escape; on by default.
+   * - :cpp:class:`InfoBannerMessageCapability <gui_forms::InfoBannerMessageCapability>`
+     - The banner's message, on the line below the title; it describes the banner to assistive technology.
+   * - :cpp:class:`InfoBannerSeverityCapability <gui_forms::InfoBannerSeverityCapability>`
+     - How much the message matters: information, warning, success or error.
+   * - :cpp:class:`InfoBannerTitleCapability <gui_forms::InfoBannerTitleCapability>`
+     - The banner's title, drawn in a heavier weight before the message; it names the banner to assistive technology.
    * - :cpp:class:`Label::Parts <gui_forms::Label::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts); its states are Control's.
    * - :cpp:class:`PictureBox::Parts <gui_forms::PictureBox::Parts>`
@@ -209,6 +224,121 @@ Related types
    .. cpp:function:: static void assign(BadgeShowZeroCapability& capability, bool incoming)
 
    .. cpp:member:: PropertyCell<bool, BadgeShowZeroCapability<Declaring>> show_zero
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: InfoBanner::Parts final
+
+   ``#include <gui_forms/controls/info_banner/info_banner.hpp>``
+
+   Stage T1 anatomy, as dot members (see Control::Parts). ``face`` is the notice surface, ``keyline`` the severity's rule along the start edge, ``icon`` the severity mark, ``caption`` the title, ``label`` the message, ``actuator`` the close mark (absent unless closable; hot and pressed as the pointer is) and ``content`` the action's slot (absent without an action). An empty title or message publishes no caption or label. The icon and the actuator take the glyph role, the role that draws a mark.
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry face
+
+   .. cpp:member:: PartGeometry keyline
+
+   .. cpp:member:: PartGeometry icon
+
+   .. cpp:member:: PartGeometry caption
+
+   .. cpp:member:: PartGeometry label
+
+   .. cpp:member:: PartGeometry actuator
+
+   .. cpp:member:: PartGeometry content
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> InfoBannerCapabilities : public InfoBannerSeverityCapability<Declaring>, public InfoBannerTitleCapability<Declaring>, public InfoBannerMessageCapability<Declaring>, public InfoBannerClosableCapability<Declaring>
+
+   ``#include <gui_forms/controls/info_banner/info_banner_capabilities/info_banner_capabilities.hpp>``
+
+   Every InfoBanner capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: InfoBannerSeverity severity
+
+      How much the message matters: information, warning, success or error. It chooses the icon, the keyline's colour and the banner's one custom state.
+
+   .. cpp:member:: std::string title
+
+      The banner's title, drawn in a heavier weight before the message; it names the banner to assistive technology. Must be valid UTF-8 (std::invalid_argument).
+
+   .. cpp:member:: std::string message
+
+      The banner's message, on the line below the title; it describes the banner to assistive technology. Must be valid UTF-8 (std::invalid_argument).
+
+   .. cpp:member:: bool closable
+
+      Whether the banner shows a close actuator, takes focus and closes on Escape; on by default.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> InfoBannerClosableCapability
+
+   ``#include <gui_forms/controls/info_banner/info_banner_capabilities/info_banner_capabilities.hpp>``
+
+   Whether the banner shows a close actuator, takes focus and closes on Escape; on by default.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(InfoBannerClosableCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, InfoBannerClosableCapability<Declaring>> closable
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> InfoBannerMessageCapability
+
+   ``#include <gui_forms/controls/info_banner/info_banner_capabilities/info_banner_capabilities.hpp>``
+
+   The banner's message, on the line below the title; it describes the banner to assistive technology. Must be valid UTF-8 (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(InfoBannerMessageCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, InfoBannerMessageCapability<Declaring>> message
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> InfoBannerSeverityCapability
+
+   ``#include <gui_forms/controls/info_banner/info_banner_capabilities/info_banner_capabilities.hpp>``
+
+   How much the message matters: information, warning, success or error. It chooses the icon, the keyline's colour and the banner's one custom state.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(InfoBannerSeverityCapability& capability, InfoBannerSeverity incoming)
+
+   .. cpp:member:: PropertyCell<InfoBannerSeverity, InfoBannerSeverityCapability<Declaring>> severity
+
+      Default: ``{InfoBannerSeverity::information}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> InfoBannerTitleCapability
+
+   ``#include <gui_forms/controls/info_banner/info_banner_capabilities/info_banner_capabilities.hpp>``
+
+   The banner's title, drawn in a heavier weight before the message; it names the banner to assistive technology. Must be valid UTF-8 (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(InfoBannerTitleCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, InfoBannerTitleCapability<Declaring>> title
 
 .. cpp:namespace:: gui_forms
 
@@ -670,6 +800,20 @@ Enumerations
    .. cpp:enumerator:: center
 
    .. cpp:enumerator:: far
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: InfoBannerSeverity
+
+   ``#include <gui_forms/controls/info_banner/info_banner_values/info_banner_values.hpp>``
+
+   .. cpp:enumerator:: information
+
+   .. cpp:enumerator:: warning
+
+   .. cpp:enumerator:: success
+
+   .. cpp:enumerator:: error
 
 .. cpp:namespace:: gui_forms
 
