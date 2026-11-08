@@ -13,6 +13,7 @@
 
 #include <algorithm>
 #include <iterator>
+#include <optional>
 #include <stdexcept>
 #include <utility>
 
@@ -73,6 +74,8 @@ void release_overlay(detail::TextBoxAutoCompleteSession& session, OverlayRelease
     session.dismissal.disconnect();
     if (release == OverlayRelease::close) session.revocation.disconnect();
     session.collection_change.disconnect();
+    session.lift_closed.disconnect();
+    session.lift.release();
     if (release == OverlayRelease::close) session.token.disconnect();
     session.list.reset();
     session.layer.reset();
@@ -80,6 +83,16 @@ void release_overlay(detail::TextBoxAutoCompleteSession& session, OverlayRelease
 
 // Each suggestion's typed prefix, highlighted in the list: a prefix match
 // is the typed text's bytes from the start.
+// The list's size under `anchor_width`: the visible rows of `row_height`
+// (already scaled) and the border, at least 80 wide.
+Size auto_complete_list_size(const detail::TextBoxAutoCompleteSession& session, const double anchor_width,
+                             const double row_height) {
+    const std::size_t rows = std::min(auto_complete_visible_rows, session.suggestions.size());
+    const double height = static_cast<double>(rows) * row_height + 4.0;
+    const Size size{std::max(anchor_width, 80.0), height};
+    return size;
+}
+
 std::vector<TextMatchRange> prefix_matches(std::size_t count, std::size_t typed_bytes) {
     const TextMatchRange match{.offset = 0U, .length = typed_bytes};
     std::vector<TextMatchRange> matches(count, match);
@@ -412,8 +425,20 @@ void TextBox::open_auto_complete_list() {
     (*list).font = font.read();
     (*list).items = session.suggestions;
     (*list).set_matches(prefix_matches(session.suggestions.size(), session.typed.size()));
-    (*layer).set_content(list);
     OverlayToken token = (*window()).open_overlay(shared_from_this(), layer);
+    // In the picker Popup the list may reach past the owner onto the
+    // desktop; the box keeps the keys either way.
+    const Rect anchor_bounds = (*anchor).absolute_bounds();
+    const double row_height = (*list).item_height.read() * effective_text_scale();
+    const Size list_size = auto_complete_list_size(session, anchor_bounds.width, row_height);
+    const std::optional<Rect> face = drop_down_popup_face(*window(), anchor_bounds, list_size, anchor_bounds.x);
+    const bool lifted = face.has_value() && session.lift.lift(*window(), list, *face, PopupLiftInput::kept_by_owner);
+    if (lifted) {
+        session.lift_closed = (*window()).popup_window_closed().subscribe(*this,
+            Delegate<std::size_t>::bind<TextBox, &TextBox::auto_complete_popup_closed>(*this));
+    } else {
+        (*layer).set_content(list);
+    }
     session.layer = layer;
     session.list = list;
     session.token = std::move(token);
@@ -441,13 +466,17 @@ void TextBox::place_auto_complete_list() {
     detail::TextBoxAutoCompleteSession& session = auto_complete_session();
     if (!session.layer || !session.list) return;
     const Control::Ptr anchor = (*session.layer).anchor();
-    const double width = anchor ? (*anchor).absolute_bounds().width : absolute_bounds().width;
-    const std::size_t rows = std::min(auto_complete_visible_rows, session.suggestions.size());
+    const Rect anchor_bounds = anchor ? (*anchor).absolute_bounds() : absolute_bounds();
     const double row_height = (*session.list).item_height.read() * effective_text_scale();
-    const double height = static_cast<double>(rows) * row_height + 4.0;
+    const Size list_size = auto_complete_list_size(session, anchor_bounds.width, row_height);
     AnchoredOverlayPlacement placement{};
-    placement.preferred_size = Size{std::max(width, 80.0), height};
+    placement.preferred_size = list_size;
     (*session.layer).placement = placement;
+    if (session.lift.lifted() && window() != nullptr) {
+        const std::optional<Rect> face =
+            drop_down_popup_face(*window(), anchor_bounds, list_size, anchor_bounds.x);
+        if (face.has_value()) static_cast<void>(session.lift.move(*face));
+    }
 }
 
 void TextBox::close_auto_complete_list() {
@@ -507,6 +536,12 @@ void TextBox::auto_complete_overlay_revoked() {
     if (!changed) return;
     invalidate(Dirty::semantics);
     publish_change(auto_complete_open_changed_, false);
+}
+
+void TextBox::auto_complete_popup_closed(const std::size_t slot) {
+    detail::TextBoxAutoCompleteSession& session = auto_complete_session();
+    if (slot != Window::picker_popup_window_slot || !session.lift.lifted()) return;
+    end_auto_complete(false);
 }
 
 void TextBox::auto_complete_collection_changed() {

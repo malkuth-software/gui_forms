@@ -312,6 +312,7 @@ private:
     void auto_complete_list_activated(std::size_t index);
     void auto_complete_list_dismissed(OverlayDismissReason reason);
     void auto_complete_overlay_revoked();
+    void auto_complete_popup_closed(std::size_t slot);
     void auto_complete_collection_changed();
 
     // How the editing engine reaches this box (text_box.cpp).

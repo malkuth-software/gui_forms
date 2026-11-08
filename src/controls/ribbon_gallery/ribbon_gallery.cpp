@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <optional>
 #include <stdexcept>
 #include <unordered_map>
 #include <utility>
@@ -73,6 +74,7 @@ void RibbonGallery::on_dispose() noexcept {
     }
     overlay_revoked_.disconnect();
     overlay_.disconnect();
+    release_lift();
     overlay_open_ = false;
     command_value_.disconnect();
     command_state_.disconnect();
@@ -574,22 +576,35 @@ bool RibbonGallery::open_overlay(const Control::Ptr& anchor) {
         (*layer_).set_anchor(anchor);
         (*layer_).placement = placement;
     }
-    // The gallery owns its layer, and is the layer's content only while
-    // open (release_layer_content).
-    (*layer_).set_content(shared_from_this());
+    // In the picker Popup the gallery may reach past the owner onto the
+    // desktop. Otherwise the gallery owns its layer, and is the layer's
+    // content only while open (release_layer_content).
+    const Rect anchor_bounds = (*anchor).absolute_bounds();
+    const Rect hung{anchor_bounds.x, anchor_bounds.y, anchor_bounds.width, anchor_bounds.height + placement.gap};
+    const std::optional<Rect> face =
+        drop_down_popup_face(window, hung, placement.preferred_size, anchor_bounds.x);
+    const bool lifted = face.has_value() && lift_.lift(window, shared_from_this(), *face);
+    if (!lifted) (*layer_).set_content(shared_from_this());
+    (*layer_).set_focusable(lifted);
     const Size client = window.client_size();
     (*layer_).set_requested_bounds({0.0, 0.0, client.width, client.height});
     try {
         overlay_ = window.open_overlay(anchor, layer_);
     } catch (...) {
+        release_lift();
         release_layer_content();
         throw;
+    }
+    if (lifted) {
+        lift_closed_ = window.popup_window_closed().subscribe(
+            Delegate<std::size_t>::bind<RibbonGallery, &RibbonGallery::on_popup_window_closed>(*this));
     }
     overlay_open_ = true;
     if (Event<>* closed = overlay_.closed_event()) {
         overlay_revoked_ = (*closed).subscribe(Delegate<>::bind<RibbonGallery, &RibbonGallery::on_overlay_revoked>(*this));
     }
-    scope_ = window.begin_focus_scope(layer_, shared_from_this());
+    const Control::Ptr preferred_focus = lifted ? Control::Ptr(layer_) : shared_from_this();
+    scope_ = window.begin_focus_scope(layer_, preferred_focus);
     invalidate(Dirty::paint | Dirty::semantics);
     overlay_open_changed_.emit(true);
     return true;
@@ -600,11 +615,14 @@ void RibbonGallery::close_overlay() {
     // The preview is withdrawn before the overlay goes.
     cancel_preview();
     overlay_open_ = false;
-    Window* const window = attached_window();
+    // The scope is the owner's, where the layer is (the gallery itself may
+    // be in the picker Popup).
+    Window* const window = layer_ ? (*layer_).attached_window() : attached_window();
     if (window != nullptr && scope_) static_cast<void>((*window).end_focus_scope(scope_));
     scope_ = {};
     overlay_revoked_.disconnect();
     overlay_.disconnect();
+    release_lift();
     release_layer_content();
     hot_.reset();
     pressed_.reset();
@@ -622,6 +640,7 @@ void RibbonGallery::on_overlay_revoked() {
     overlay_open_ = false;
     scope_ = {};
     overlay_revoked_.disconnect();
+    release_lift();
     release_layer_content();
     invalidate(Dirty::paint | Dirty::semantics);
     overlay_open_changed_.emit(false);
@@ -638,6 +657,16 @@ void RibbonGallery::release_layer_content() noexcept {
         (*layer_).clear_content();
     } catch (...) {
     }
+}
+
+void RibbonGallery::release_lift() noexcept {
+    lift_closed_.disconnect();
+    lift_.release();
+}
+
+void RibbonGallery::on_popup_window_closed(const std::size_t slot) {
+    if (slot != Window::picker_popup_window_slot || !lift_.lifted()) return;
+    close_overlay();
 }
 
 bool RibbonGallery::show_more() {

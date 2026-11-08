@@ -5,6 +5,7 @@
 #include "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/window/native_popup/popup_lift.hpp"
 #include "gui_forms/controls/ribbon_gallery/ribbon_gallery_capabilities/ribbon_gallery_capabilities.hpp"
 
 #include <chrono>
@@ -270,6 +271,9 @@ private:
     void on_command_state(const CommandState& state);
     void on_layer_dismissed(OverlayDismissReason reason);
     void on_overlay_revoked();
+    // The host closed a Popup window: the picker's closes the overlay.
+    void on_popup_window_closed(std::size_t slot);
+    void release_lift() noexcept;
     void release_layer_content() noexcept;
     void on_more_open_changed(bool open);
     [[nodiscard]] bool navigate(std::uint32_t key);
@@ -310,6 +314,13 @@ private:
     FocusScopeId scope_{};
     SubscriptionToken layer_dismissed_{};
     SubscriptionToken overlay_revoked_{};
+    // A drop-down gallery's picker Popup while it shows outside the owner's
+    // layer (owner, 2026-11-08: drop-downs are Popups before 0.5). The
+    // Popup's frame holds the gallery then, so release_lift on every close
+    // and on disposal breaks that hold; the emptied layer stays in the owner
+    // and keeps the focus scope.
+    PopupLift lift_;
+    SubscriptionToken lift_closed_{};
     bool overlay_open_{};
     // The full gallery an in-ribbon gallery's more button opens.
     std::shared_ptr<RibbonGallery> more_gallery_{};

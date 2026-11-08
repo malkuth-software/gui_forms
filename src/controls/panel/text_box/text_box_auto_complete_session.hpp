@@ -8,6 +8,7 @@
 #include "../combo_box/drop_down_layer.hpp"
 #include "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/window/native_popup/popup_lift.hpp"
 
 #include <cstdint>
 #include <memory>
@@ -51,6 +52,11 @@ struct TextBoxAutoCompleteSession final {
     SubscriptionToken dismissal{};
     SubscriptionToken revocation{};
     SubscriptionToken collection_change{};
+    // The list's picker Popup while it shows outside the owner's layer
+    // (owner, 2026-11-08: drop-downs are Popups before 0.5); the box keeps
+    // the keys. The host closing that Popup ends the completion.
+    PopupLift lift{};
+    SubscriptionToken lift_closed{};
 };
 
 } // namespace gui_forms::detail

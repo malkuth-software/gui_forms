@@ -10,16 +10,19 @@
 // Also here: menus on warm Popup windows (each panel in the owner's Popup
 // of its depth, keys through the owner, closed by an outside click),
 // placed against the monitor's work area past the owner's edges, a
-// ComboBox's list lifted into the picker Popup (owner, 2026-11-08: Part S
-// scope for 0.5), and the
+// ComboBox's list and a TextBox's suggestions lifted into the picker Popup
+// (owner, 2026-11-08: Part S scope for 0.5), ErrorProvider's message in the
+// Splash window, and the
 // splashscreen shown before Application::create on a headless surface,
 // handing over to the run's first window.
 
 #include "gui_forms/application.hpp"
 #include "gui_forms/commands.hpp"
 #include "gui_forms/components/context_menu/context_menu.hpp"
+#include "gui_forms/components/error_provider/error_provider.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/controls/panel/combo_box/combo_box.hpp"
+#include "gui_forms/controls/panel/text_box/text_box.hpp"
 #include "gui_forms/host.hpp"
 #include "gui_forms/window.hpp"
 #include "application/headless_application.hpp"
@@ -383,6 +386,52 @@ void combo_box_list_shows_in_a_popup() {
     (*combo).dropped_down = false;
 }
 
+// A TextBox's suggestion list near the owner's bottom edge shows in the
+// picker Popup below the edge while the box keeps the keys: typing goes on
+// in the box, and Escape ends the completion.
+void auto_complete_list_shows_in_a_popup() {
+    Desk desk;
+    const std::shared_ptr<TextBox> box = make_control<TextBox>(StableId("desk.box"));
+    (*box).set_requested_bounds(Rect{10.0, 560.0, 200.0, 28.0});
+    std::shared_ptr<AutoCompleteStringCollection> cities = (*box).auto_complete_custom_source.read();
+    (*cities).add_range({"Calgary", "California", "Cambridge", "Caen"});
+    (*box).auto_complete_source = AutoCompleteSource::custom_source;
+    (*box).auto_complete_mode = AutoCompleteMode::suggest;
+    (*(*desk.model).root()).add_child(box);
+    (*desk.model).perform_layout();
+    require((*desk.model).request_focus(box), "the box takes focus");
+    TextInputEvent typed{};
+    typed.text_utf8 = "Ca";
+    require((*desk.model).dispatch_text(typed), "the box takes the typing");
+    require((*box).auto_complete_open() && visible_popups(desk) == 1U, "the suggestions show in a Popup window");
+    const Rect content = visible_popup_content(desk);
+    require(content.y + content.height > 700.0, "the list hangs past the owner's bottom edge");
+    require((*desk.model).focused_control() == box, "the box keeps the focus");
+    TextInputEvent more{};
+    more.text_utf8 = "l";
+    require((*desk.model).dispatch_text(more) && (*box).text.read() == "Cal", "typing goes on in the box");
+    require((*desk.model).dispatch_key(key_down(PhysicalKey::escape)), "Escape reaches the box");
+    require(!(*box).auto_complete_open() && visible_popups(desk) == 0U, "Escape ends the completion and hides its Popup");
+}
+
+// ErrorProvider's message is the glyph's tooltip text, which the tooltip
+// presenter shows in the window's Splash window (no input).
+void error_message_shows_in_the_splash_window() {
+    Desk desk;
+    ErrorProvider errors(*desk.model);
+    errors.set_error(desk.anchor, "Server address is not reachable");
+    (*desk.model).perform_layout();
+    const Rect glyph = errors.snapshot().icons.front().bounds;
+    const Control::Ptr hit = (*desk.model).hit_test(Point{glyph.x + glyph.width * 0.5, glyph.y + glyph.height * 0.5});
+    require(hit != nullptr && (*hit).tool_tip_text.read() == "Server address is not reachable",
+            "the glyph carries the message as its tooltip text");
+    (*desk.model).show_tool_tip(hit, std::chrono::milliseconds(0));
+    const std::optional<HostWindowId> splash = desk.splash();
+    require(splash.has_value() && desk.windowing().native_visible(*splash) &&
+                desk.windowing().kind(*splash) == HostWindowKind::popup,
+            "the message shows in the Splash window");
+}
+
 void menu_falls_back_to_the_overlay() {
     Desk desk;
     desk.windowing().set_popup_windows(false);
@@ -498,6 +547,8 @@ int main() {
         menu_falls_back_to_the_overlay();
         menus_reach_past_the_owner();
         combo_box_list_shows_in_a_popup();
+        auto_complete_list_shows_in_a_popup();
+        error_message_shows_in_the_splash_window();
         opaque_transient_windows_hold_the_face_alone();
         splashscreen_shows_and_hands_over();
     } catch (const std::exception& error) {
