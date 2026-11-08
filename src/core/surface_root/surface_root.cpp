@@ -6,6 +6,7 @@
 // The constructor destroys its built members if a later one throws, so every
 // member held through a forward-declared type must be complete here.
 #include "../window/tool_tips/tool_tip_presenter.hpp"
+#include "../window/interaction/interaction_state.hpp"
 
 #include <stdexcept>
 #include <string>

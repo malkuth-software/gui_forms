@@ -20,6 +20,7 @@
 #include "gui_forms/types.hpp"
 #include "gui_forms/theme.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
+#include "gui_forms/window/interaction/interaction_types.hpp"
 
 #include <atomic>
 #include <any>
@@ -927,6 +928,16 @@ public:
     // focus. Controls with bounded focus-cue presentation may retarget here.
     virtual void on_focus_cue_changed(bool visible);
     virtual void on_activate();
+    // The window's gesture recognizer raised an interaction on this control
+    // (InteractionKind lists them and their order). It runs after the raw
+    // pointer event's route, on the UI thread; the base does nothing. A
+    // primary click is followed by on_activate.
+    virtual void on_interaction(const InteractionEvent& event);
+    // Whether a primary press moving past the drag threshold starts a drag
+    // gesture on this control (drag_start cancels its pending click). The
+    // base answers false, so a press that wanders still clicks when it is
+    // released over the control.
+    [[nodiscard]] virtual bool accepts_drag_gestures() const noexcept;
 
     // Anatomy (stage T1). A control type opts in by overriding anatomy(),
     // publish_part_geometry() and anatomy_states() together; the defaults

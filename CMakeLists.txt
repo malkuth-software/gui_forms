@@ -424,6 +424,8 @@ add_library(gui_forms_core STATIC
     src/core/window/toasts/window_toasts.cpp
     src/core/window/tool_tips/tool_tip_subjects.cpp
     src/core/window/tool_tips/window_tool_tips.cpp
+    src/core/window/interaction/interaction_state.cpp
+    src/core/window/interaction/window_interaction.cpp
     src/core/window/accelerator/accelerator_token.cpp
     src/core/control/dispatcher/control_dispatcher.cpp
     src/core/component/component/component.cpp
@@ -3537,6 +3539,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_application_instance_tests tests/application_instance_tests.cpp)
     target_link_libraries(gui_forms_application_instance_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_application_instance_tests COMMAND gui_forms_application_instance_tests)
+    add_executable(gui_forms_interaction_state_tests tests/interaction_state_tests.cpp)
+    target_link_libraries(gui_forms_interaction_state_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_interaction_state_tests COMMAND gui_forms_interaction_state_tests)
     add_executable(gui_forms_key_commands_tests tests/key_commands_tests.cpp)
     target_link_libraries(gui_forms_key_commands_tests PRIVATE gui_forms_controls gui_forms_host_headless)
     add_test(NAME gui_forms_key_commands_tests COMMAND gui_forms_key_commands_tests)

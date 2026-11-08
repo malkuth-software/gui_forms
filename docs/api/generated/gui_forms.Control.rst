@@ -1683,6 +1683,14 @@ gui_forms::Control
       Called by the window when the primary button is pressed and released
       over the control. Buttons raise ``clicked`` from here.
 
+   .. cpp:function:: virtual void on_interaction(const InteractionEvent& event)
+
+      The window's gesture recognizer raised an interaction on this control (InteractionKind lists them and their order). It runs after the raw pointer event's route, on the UI thread; the base does nothing. A primary click is followed by on_activate.
+
+   .. cpp:function:: virtual bool accepts_drag_gestures() const noexcept
+
+      Whether a primary press moving past the drag threshold starts a drag gesture on this control (drag_start cancels its pending click). The base answers false, so a press that wanders still clicks when it is released over the control.
+
    .. cpp:function:: virtual const ControlAnatomy& anatomy() const noexcept
 
       Anatomy (stage T1). A control type opts in by overriding anatomy(), publish_part_geometry() and anatomy_states() together; the defaults publish base_control_anatomy(). The anatomy describes the type, never the instance: it is the same record for every object of the type.

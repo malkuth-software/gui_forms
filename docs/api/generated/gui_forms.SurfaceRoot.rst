@@ -82,8 +82,8 @@ gui_forms::SurfaceRoot
          :cpp:func:`set_presentation_overrides <gui_forms::SurfaceRoot::set_presentation_overrides>` stores the first override, and an empty
          record releases them, so a window without overrides stores nothing. A
          result outside the valid settings throws ``std::invalid_argument`` and
-         changes nothing. The double-click interval is the host's and has no
-         override.
+         changes nothing. The double-click interval and the gesture settings are
+         the host's and have no override.
 
       **text_metrics_provider** : ``TextMetricsProvider*``
 
@@ -258,6 +258,21 @@ gui_forms::SurfaceRoot
       **pressed_control** : ``Control::Ptr``, read-only
          The control on which the primary button went down and has not yet been
          released, or null.
+
+      **interaction_snapshot** : ``InteractionSnapshot``, read-only
+         A copy of the window's interaction state (:cpp:class:`InteractionSnapshot <gui_forms::InteractionSnapshot>`): the
+         held keys in press order with their press times, the modifiers, the
+         pointer and its buttons, the focused, captured, pressed and hovered
+         controls, and the gesture in progress. The window updates the state as
+         each pointer or key event arrives, before any control sees it, and makes
+         it on the first such event. Its gesture recognizer raises press,
+         release, click, double_click, hold, drag_start, drag, drag_end and
+         context_request (:cpp:enum:`InteractionKind <gui_forms::InteractionKind>`) on the pressed control through
+         ``Control::on_interaction``, after the event's route; a primary click is
+         followed by ``on_activate``. The thresholds are the presentation settings'
+         ``gestures`` (the host's where it reports them, otherwise the library
+         defaults). Losing the capture or the activation ends the gesture in
+         progress and raises nothing more for it.
 
       **deferred_input_snapshot** : ``DeferredInputSnapshot``, read-only
          Returns fixed-capacity queue, delivery, compaction, rejection, abandonment, fault, and drain telemetry.
@@ -511,6 +526,8 @@ gui_forms::SurfaceRoot
         - Host adapters also install a paint wake seam.
       * - :cpp:func:`set_command_target <gui_forms::SurfaceRoot::set_command_target>`
         - Names the :cpp:class:`CommandTarget <gui_forms::CommandTarget>` of one stage of the command routing chain: the active panel, the active document or the main window, or clears it with null.
+      * - :cpp:func:`set_input_time_source <gui_forms::SurfaceRoot::set_input_time_source>`
+        - Installs the clock the interaction state reads (:cpp:class:`InputTimeSource <gui_forms::InputTimeSource>`), borrowed, or null for the steady clock.
       * - :cpp:func:`set_semantic_text_selection <gui_forms::SurfaceRoot::set_semantic_text_selection>`
         - Moves the text selection of the control with runtime identity ``control`` (A-T1); focus does not move.
 
@@ -598,8 +615,8 @@ gui_forms::SurfaceRoot
       :cpp:func:`set_presentation_overrides <gui_forms::SurfaceRoot::set_presentation_overrides>` stores the first override, and an empty
       record releases them, so a window without overrides stores nothing. A
       result outside the valid settings throws ``std::invalid_argument`` and
-      changes nothing. The double-click interval is the host's and has no
-      override.
+      changes nothing. The double-click interval and the gesture settings are
+      the host's and have no override.
 
    .. cpp:function:: void set_presentation_overrides(const PresentationOverrides& overrides)
 
@@ -850,6 +867,22 @@ gui_forms::SurfaceRoot
 
       The control on which the primary button went down and has not yet been
       released, or null.
+
+   .. cpp:function:: InteractionSnapshot interaction_snapshot() const
+
+      A copy of the window's interaction state (:cpp:class:`InteractionSnapshot <gui_forms::InteractionSnapshot>`): the
+      held keys in press order with their press times, the modifiers, the
+      pointer and its buttons, the focused, captured, pressed and hovered
+      controls, and the gesture in progress. The window updates the state as
+      each pointer or key event arrives, before any control sees it, and makes
+      it on the first such event. Its gesture recognizer raises press,
+      release, click, double_click, hold, drag_start, drag, drag_end and
+      context_request (:cpp:enum:`InteractionKind <gui_forms::InteractionKind>`) on the pressed control through
+      ``Control::on_interaction``, after the event's route; a primary click is
+      followed by ``on_activate``. The thresholds are the presentation settings'
+      ``gestures`` (the host's where it reports them, otherwise the library
+      defaults). Losing the capture or the activation ends the gesture in
+      progress and raises nothing more for it.
 
    .. cpp:function:: DeferredInputSnapshot deferred_input_snapshot() const noexcept
 
@@ -1400,6 +1433,13 @@ gui_forms::SurfaceRoot
       (``Control::set_command_target``), and naming it throws
       ``std::invalid_argument``. ``command_target(stage)`` returns the named
       target while it lives.
+
+   .. cpp:function:: void set_input_time_source(const InputTimeSource* source) noexcept
+
+      Installs the clock the interaction state reads (:cpp:class:`InputTimeSource <gui_forms::InputTimeSource>`),
+      borrowed, or null for the steady clock. Tests install one to place presses in time;
+      its times must be in the domain the window is polled with, which wakes
+      a pending hold.
 
    .. cpp:function:: SemanticTextResult set_semantic_text_selection(RuntimeId control, SemanticTextSelection selection)
 

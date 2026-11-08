@@ -20,6 +20,7 @@
 #include "gui_forms/resources.hpp"
 #include "gui_forms/scheduler.hpp"
 #include "gui_forms/window/presentation/presentation_types.hpp"
+#include "gui_forms/window/interaction/interaction_snapshot.hpp"
 #include "gui_forms/window/tool_tips/tool_tips.hpp"
 #include "gui_forms/surface_root/requests/surface_requests.hpp"
 #include "gui_forms/visual_inspection/types/visual_inspection_types.hpp"
@@ -72,6 +73,9 @@ class AlertRoute;
 class WindowAlerts;
 class SubSurfaceAlertRequester;
 class MessageBoxHelpRoute;
+class InteractionState;
+struct InteractionBatch;
+struct InteractionHoldWake;
 
 } // namespace detail
 
@@ -882,6 +886,16 @@ public:
     // result.
     bool dispatch_pointer(PointerEvent event);
     bool dispatch_key(KeyEvent event);
+    // The window's interaction state (APP_WINDOW_RULES_DESIGN C.2), copied:
+    // held keys, modifiers, pointer and buttons, the focused, captured,
+    // pressed and hovered controls, and the gesture in progress. The state
+    // is updated as each pointer or key event arrives, before any control
+    // sees it; its gesture recognizer raises the window's interactions
+    // (InteractionKind) to controls through Control::on_interaction.
+    [[nodiscard]] InteractionSnapshot interaction_snapshot() const;
+    // Borrows `source` (it must outlive its installation) as the clock the
+    // interaction state reads; null restores the steady clock.
+    void set_input_time_source(const InputTimeSource* source) noexcept { input_time_source_ = source; }
     bool dispatch_text(TextInputEvent event);
     [[nodiscard]] DeferredInputSnapshot deferred_input_snapshot() const noexcept;
     [[nodiscard]] DragDispatchResult dispatch_drag(DragEvent event);
@@ -1120,6 +1134,25 @@ private:
     // `deadline` on the UI thread, revoked by the token.
     [[nodiscard]] FrameRequestToken request_tool_tip_wake(
         FrameTime deadline, std::function<void(FrameTime)> callback);
+    // A one-shot wake at `deadline` on the UI thread, revoked by the token
+    // (the tooltip presenter's and the hold wake's common path).
+    [[nodiscard]] FrameRequestToken request_one_shot_wake(
+        FrameTime deadline, std::function<void(FrameTime)> callback);
+    // The interaction state, made on first use (a window that sees no input
+    // allocates none).
+    detail::InteractionState& interaction_state();
+    [[nodiscard]] FrameTime input_now() const noexcept;
+    // Raises `batch`'s interactions on its control in order, each while the
+    // control stays eligible, a primary click followed by on_activate.
+    void deliver_interactions(const detail::InteractionBatch& batch);
+    // Arms or disconnects the hold wake to match the state.
+    void sync_hold_wake();
+    void interaction_hold_due(FrameTime now);
+    // dispatch_pointer's route of one event to its target: preview, target
+    // and bubble. Sets `accepted_press` to the control that accepted a
+    // press, where one did.
+    bool route_pointer(PointerEvent& event, Control::Ptr& accepted_press);
+    friend struct detail::InteractionHoldWake;
     friend class BackgroundWorker;
     friend class ToolTip;
     friend class RibbonToolTip;
@@ -1764,6 +1797,12 @@ private:
     std::array<std::weak_ptr<CommandTarget>, 3> command_targets_{};
     Control::WeakPtr pressed_;
     Control::WeakPtr hovered_;
+    // The interaction state (detail::InteractionState), made by the first
+    // pointer or key event; the clock it reads, borrowed (null for the
+    // steady clock); and the wake for a pending hold.
+    std::unique_ptr<detail::InteractionState> interaction_{};
+    const InputTimeSource* input_time_source_{};
+    FrameRequestToken hold_wake_{};
     Control::WeakPtr drag_target_;
     std::uint64_t drag_session_id_{};
     DragEffect drag_last_accepted_effect_{DragEffect::none};

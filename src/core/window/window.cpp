@@ -13,6 +13,7 @@
 #include "../scheduler/request/scheduled_frame_request.hpp"
 #include "accelerator/accelerator_attachment.hpp"
 #include "overlay/overlay_attachment.hpp"
+#include "interaction/interaction_state.hpp"
 #include "../theme/theme_compiler/control_inline_style.hpp"
 
 #include <algorithm>
@@ -1565,6 +1566,13 @@ void SurfaceRoot::change_pointer_capture(const Control::Ptr& control,
         captured_pointer_id_ = 0;
     }
     if (previous && host_services_ != nullptr) { (*host_services_).revoke_cursor_interaction(); }
+    // A capture taken away from the gesture's control ends its gesture
+    // silently, unless dispatch_pointer is releasing it for the button
+    // coming up.
+    if (previous && interaction_) {
+        (*interaction_).capture_changed(previous);
+        sync_hold_wake();
+    }
     if (revoked && previous) {
         metrics_.record_capture_revocation();
     }
@@ -1590,6 +1598,10 @@ bool SurfaceRoot::dispatch_pointer(PointerEvent event) {
         return defer_input(DeferredInput{std::move(event)});
     }
     metrics_.record_input();
+    // The interaction state sees the event before any control does.
+    detail::InteractionState& interaction = interaction_state();
+    interaction.note_pointer(event);
+    const FrameTime input_time = input_now();
     note_engine_pointer(event);
     if (event.action == PointerAction::down &&
         event.button == PointerButton::primary) {
@@ -1639,6 +1651,28 @@ bool SurfaceRoot::dispatch_pointer(PointerEvent event) {
         hovered_.reset();
         if (tool_tips_) (*tool_tips_).pointer_left();
     }
+    Control::Ptr accepted_press;
+    const bool handled = route_pointer(event, accepted_press);
+
+    // The recognizer's step for this event, raised after the route: press,
+    // a move's drag, or release and what concludes the gesture (click,
+    // double_click, drag_end, context_request). A primary click activates
+    // its control (deliver_interactions).
+    detail::InteractionBatch batch{};
+    if (event.action == PointerAction::down && accepted_press) {
+        batch = interaction.pressed(accepted_press, event, input_time, presentation_settings_);
+    } else if (event.action == PointerAction::move) {
+        batch = interaction.moved(event, input_time);
+    } else if (event.action == PointerAction::up) {
+        const Control::Ptr released_over = hit_test(event.position);
+        batch = interaction.released(event, released_over, input_time);
+    }
+    sync_hold_wake();
+    deliver_interactions(batch);
+    return handled;
+}
+
+bool SurfaceRoot::route_pointer(PointerEvent& event, Control::Ptr& accepted_press) {
     Control::Ptr target = captured_.lock();
     if (!target) {
         target = hit_test(event.position);
@@ -1649,14 +1683,13 @@ bool SurfaceRoot::dispatch_pointer(PointerEvent event) {
 
     // A release callback may synchronously open a modal window. Relinquish both
     // retained and platform capture before user code runs so that the modal can
-    // receive its first pointer message. Keep strong local references for this
-    // route and for the later click qualification.
-    Control::Ptr pressed_for_release;
+    // receive its first pointer message. The interaction state is told first,
+    // so that this release is not taken for a capture loss.
     const bool primary_release = event.action == PointerAction::up &&
         event.button == PointerButton::primary;
     if (primary_release) {
-        pressed_for_release = pressed_.lock();
         pressed_.reset();
+        if (interaction_) (*interaction_).begin_release();
         release_pointer();
     }
 
@@ -1692,7 +1725,11 @@ bool SurfaceRoot::dispatch_pointer(PointerEvent event) {
         if (eligible(target)) {
             pressed_ = target;
             capture_pointer(target, event.pointer_id == 0 ? 1 : event.pointer_id);
+            accepted_press = target;
         }
+    } else if (event.action == PointerAction::down && eligible(target)) {
+        // The secondary and middle buttons neither focus nor capture.
+        accepted_press = target;
     }
 
     if (eligible(target)) {
@@ -1715,16 +1752,6 @@ bool SurfaceRoot::dispatch_pointer(PointerEvent event) {
             }
         }
     }
-
-    if (primary_release) {
-        Control::Ptr released_over = hit_test(event.position);
-        if (pressed_for_release && pressed_for_release == released_over &&
-            eligible(pressed_for_release)) {
-            metrics_.record_callback_emitted();
-            (*pressed_for_release).on_activate();
-            metrics_.record_activation();
-        }
-    }
     return event.handled;
 }
 
@@ -1735,6 +1762,8 @@ bool SurfaceRoot::dispatch_key(KeyEvent event) {
         return defer_input(DeferredInput{std::move(event)});
     }
     const bool key_down = event.action == KeyAction::down;
+    // The interaction state sees the key before any control does.
+    interaction_state().note_key(event, input_now());
     const bool handled = route_key(std::move(event));
     // A key may have moved the keyboard within the focused control, or
     // shown the focus cue: the presenter looks at what focus is on again.

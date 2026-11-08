@@ -3816,6 +3816,14 @@ std::optional<Rect> Control::text_input_caret() const { return std::nullopt; }
 void Control::on_focus_cue_changed(bool) {}
 void Control::on_activate() {}
 
+void Control::on_interaction(const InteractionEvent& event) {
+    static_cast<void>(event);
+}
+
+bool Control::accepts_drag_gestures() const noexcept {
+    return false;
+}
+
 namespace {
 
 constexpr std::array<PartField<Control::Parts>, 2> control_part_fields{{

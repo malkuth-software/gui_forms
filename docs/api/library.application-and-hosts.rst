@@ -959,7 +959,7 @@ Related types
 
    ``#include <gui_forms/host/types/host_types.hpp>``
 
-   The platform's input settings that controls read (stage W, ListView label editing): reported after attach and again whenever the system setting changes. The session copies them into the window's PresentationSettings (double_click_milliseconds and double_click_origin), leaving every other field as it is. An interval of 0 or above maximum_double_click_milliseconds is refused as invalid_payload.
+   The platform's input settings that controls read (stage W, ListView label editing): reported after attach and again whenever the system setting changes. The session copies them into the window's PresentationSettings (double_click_milliseconds, double_click_origin and gestures), leaving every other field as it is. An interval of 0 or above maximum_double_click_milliseconds, or gesture settings that are not valid_gesture_settings, are refused as invalid_payload. A host reports the gesture values its platform has with origin host and leaves the others at their defaults (origin default_value).
 
    .. cpp:member:: std::uint32_t double_click_milliseconds
 
@@ -968,6 +968,8 @@ Related types
    .. cpp:member:: SettingOrigin double_click_origin
 
       Default: ``{SettingOrigin::host}``.
+
+   .. cpp:member:: GestureSettings gestures
 
 .. cpp:namespace:: gui_forms
 

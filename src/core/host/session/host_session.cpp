@@ -160,7 +160,7 @@ bool valid_input_settings(const HostInputSettingsEvent& input) noexcept {
                           input.double_click_milliseconds <= maximum_double_click_milliseconds;
     const bool origin = input.double_click_origin == SettingOrigin::default_value ||
                         input.double_click_origin == SettingOrigin::host;
-    return interval && origin;
+    return interval && origin && valid_gesture_settings(input.gestures);
 }
 
 HostDispatchError lifecycle_refusal(HostLifecyclePhase phase, bool attach, bool shutdown,
@@ -336,6 +336,7 @@ void HostSession::DispatchVisitor::operator()(
         PresentationSettings settings = (*(*session).window_).presentation_base();
         settings.double_click_milliseconds = payload.double_click_milliseconds;
         settings.double_click_origin = payload.double_click_origin;
+        settings.gestures = payload.gestures;
         (*(*session).window_).set_host_presentation(settings);
     }
 }

@@ -8,6 +8,7 @@
 #include "../accelerator/accelerator_attachment.hpp"
 #include "../overlay/overlay_attachment.hpp"
 #include "../alerts/window_alerts.hpp"
+#include "../interaction/interaction_state.hpp"
 #include "../tool_tips/tool_tip_presenter.hpp"
 #include "../toasts/toast_presenter.hpp"
 
@@ -26,6 +27,10 @@
 
 namespace gui_forms {
 namespace {
+
+bool known_setting_origin(SettingOrigin origin) noexcept {
+    return origin == SettingOrigin::default_value || origin == SettingOrigin::host;
+}
 
 // The current application, when a window made on this thread may join it.
 Application* joinable_application() noexcept {
@@ -305,6 +310,22 @@ bool SurfaceRoot::set_surface_scale(double scale) {
     return true;
 }
 
+bool valid_gesture_settings(const GestureSettings& settings) noexcept {
+    const bool slop = std::isfinite(settings.slop) && settings.slop >= 0.0 &&
+                      settings.slop <= maximum_gesture_distance;
+    const bool drag = std::isfinite(settings.drag_threshold) && settings.drag_threshold >= 0.0 &&
+                      settings.drag_threshold <= maximum_gesture_distance;
+    const bool hold = settings.hold_milliseconds != 0U &&
+                      settings.hold_milliseconds <= maximum_hold_milliseconds;
+    const bool edge = settings.context_request == ContextRequestEdge::release ||
+                      settings.context_request == ContextRequestEdge::press;
+    const bool origins = known_setting_origin(settings.slop_origin) &&
+                         known_setting_origin(settings.drag_threshold_origin) &&
+                         known_setting_origin(settings.hold_origin) &&
+                         known_setting_origin(settings.context_request_origin);
+    return slop && drag && hold && edge && origins;
+}
+
 void validate_presentation_settings(const PresentationSettings& settings) {
     if (!std::isfinite(settings.text_scale) ||
         settings.text_scale < 0.5 || settings.text_scale > 4.0) {
@@ -319,6 +340,10 @@ void validate_presentation_settings(const PresentationSettings& settings) {
     if (settings.double_click_origin != SettingOrigin::default_value &&
         settings.double_click_origin != SettingOrigin::host) {
         throw std::invalid_argument("GUI.Forms double-click origin is not a SettingOrigin");
+    }
+    if (!valid_gesture_settings(settings.gestures)) {
+        throw std::invalid_argument(
+            "GUI.Forms gesture settings are outside their ranges or enums");
     }
     if (settings.colour_scheme != ColourScheme::light && settings.colour_scheme != ColourScheme::dark) {
         throw std::invalid_argument("GUI.Forms colour scheme is not a ColourScheme");
@@ -504,6 +529,12 @@ void SurfaceRoot::set_active(bool active) {
     require_root_thread("activation mutation");
     if (active_ == active) return;
     if (!active && host_services_ != nullptr) { (*host_services_).revoke_cursor_interaction(); }
+    // Keys and buttons released while the window was inactive never reach
+    // it: forget them, and end the gesture in progress silently.
+    if (!active && interaction_) {
+        (*interaction_).deactivated();
+        sync_hold_wake();
+    }
     active_ = active;
     // The window's backplane material follows activation (E9-B).
     damage_backplane_readers(nullptr);

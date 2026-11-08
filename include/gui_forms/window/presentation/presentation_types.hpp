@@ -60,6 +60,10 @@ struct PresentationSettings final {
     // default. Between 1 and maximum_double_click_milliseconds.
     std::uint32_t double_click_milliseconds{default_double_click_milliseconds};
     SettingOrigin double_click_origin{SettingOrigin::default_value};
+    // The gesture recognizer's thresholds (GestureSettings), from the host
+    // where it reports them (HostInputSettingsEvent), otherwise the library
+    // defaults. Like the double-click interval they are the host's alone.
+    GestureSettings gestures{};
     // The preferred colour scheme (EC3). A change re-resolves every part:
     // a theme's rules may hold for one scheme only.
     ColourScheme colour_scheme{ColourScheme::light};
@@ -73,19 +77,22 @@ struct PresentationSettings final {
                left.reduced_transparency == right.reduced_transparency &&
                left.double_click_milliseconds == right.double_click_milliseconds &&
                left.double_click_origin == right.double_click_origin &&
+               left.gestures == right.gestures &&
                left.colour_scheme == right.colour_scheme;
     }
 };
 
 // Throws std::invalid_argument for settings no window takes: a text scale
 // outside 0.5 to 4.0 or not finite, a double-click interval outside 1 to
-// maximum_double_click_milliseconds, or an origin or scheme outside its enum.
+// maximum_double_click_milliseconds, gesture settings that are not
+// valid_gesture_settings, or an origin or scheme outside its enum.
 void validate_presentation_settings(const PresentationSettings& settings);
 
 // The presentation fields one window overrides (APP_WINDOW_RULES_DESIGN
 // A.2): each set field wins over the window's own settings, which come from
 // its application or its host; an unset field follows them. The
-// double-click interval is the host's alone and has no override.
+// double-click interval and the gesture settings are the host's alone and
+// have no override.
 struct PresentationOverrides final {
     std::optional<double> text_scale{};
     std::optional<bool> high_contrast{};
