@@ -37,21 +37,25 @@ scaled-panel gallery.overlays.document {
       text: "Prefer above";
       indicator-style: modern;
       bounds: 340 38 150 26;
+      checked: bind(above_);
     }
     check-box gallery.overlays.flip {
       text: "Allow vertical flip";
       indicator-style: modern;
       bounds: 500 38 180 26;
+      checked: bind(flip_);
     }
     check-box gallery.overlays.click-away {
       text: "Dismiss on click-away";
       indicator-style: modern;
       bounds: 690 38 210 26;
+      checked: bind(click_away_);
     }
     check-box gallery.overlays.escape {
       text: "Dismiss on Escape";
       indicator-style: modern;
       bounds: 22 76 200 26;
+      checked: bind(escape_);
     }
     label gallery.overlays.options.note {
       text: "Changes apply to an open overlay immediately; the layer also re-resolves on host resize.";

@@ -65,20 +65,24 @@ scaled-panel gallery.live-surfaces.document {
       text: "Start producer";
       visual-style: accent;
       bounds: 22 42 150 36;
+      command: bind(start_);
     }
     button gallery.live-surfaces.stop {
       text: "Stop producer";
       bounds: 184 42 150 36;
+      command: bind(stop_);
     }
     button gallery.live-surfaces.publish {
       text: "Publish one frame";
       visual-style: command;
       bounds: 346 42 160 36;
+      command: bind(publish_once_);
     }
     button gallery.live-surfaces.reconfigure {
       text: "Reconfigure 240×150";
       visual-style: command;
       bounds: 518 42 180 36;
+      command: bind(reconfigure_);
     }
     label gallery.live-surfaces.interval.label {
       text: "Tick interval · 60–500 ms";
@@ -91,6 +95,7 @@ scaled-panel gallery.live-surfaces.document {
       minimum: 60;
       tick-frequency: 4;
       bounds: 22 112 320 44;
+      value: bind(interval_);
     }
     label gallery.live-surfaces.policy {
       text: "The write lease preserves the previous publication, so a tick repaints one band and publishes only that rectangle. Hidden pages suspend the producer: the next tick on an invisible presenter stops the Timer.";

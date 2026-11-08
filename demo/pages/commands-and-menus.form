@@ -66,6 +66,7 @@ scaled-panel gallery.commands.document {
       text: "Document modified (enables Save)";
       indicator-style: modern;
       bounds: 22 36 400 26;
+      checked: bind(dirty_);
     }
     button gallery.commands.save.button {
       text: "Save";
@@ -80,6 +81,7 @@ scaled-panel gallery.commands.document {
       text: "Word wrap";
       indicator-style: toggle;
       bounds: 22 120 300 26;
+      checked: bind(wrap_);
     }
     label gallery.commands.saves {
       text: "Saves: 0";

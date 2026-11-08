@@ -21,8 +21,8 @@ public:
         document_.initialize_component(*this);
         mount_form_children(*document_.gallery_containers_document, *body);
         (*document_.gallery_containers_docking_group).set_style(page_style());
-        (*document_.gallery_containers_base_face).background = Color::rgba(232, 239, 245);
-        (*document_.gallery_containers_user_face).background = Color::rgba(238, 244, 236);
+        (*document_.gallery_containers_base_face).set_background(Color::rgba(232, 239, 245));
+        (*document_.gallery_containers_user_face).set_background(Color::rgba(238, 244, 236));
         build_split();
         build_docking(*document_.gallery_containers_docking_group);
         on((*collapse_).clicked(), *this, &ContainersPage::on_collapse);
@@ -174,7 +174,7 @@ private:
         text += " · document: ";
         const std::optional<DockPanelId>& document = (*workspace_).active_document();
         text += document ? (*workspace_).panel_title(*document) : std::string("none");
-        (*document_.gallery_containers_docking_status).text = text;
+        (*document_.gallery_containers_docking_status).set_text(text);
     }
 
     // Input-only: the user clicked. The collapse state itself lives in the
@@ -195,7 +195,8 @@ private:
     }
 
     void on_user_loaded() {
-        (*document_.gallery_containers_user_status).text = "UserControl · Loaded fired once · attachment committed";
+        (*document_.gallery_containers_user_status).set_text(
+            "UserControl · Loaded fired once · attachment committed");
     }
 
     std::shared_ptr<Button> collapse_;

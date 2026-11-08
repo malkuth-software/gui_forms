@@ -123,7 +123,7 @@ private:
         text += " · document: ";
         const std::optional<DockPanelId>& document = (*workspace_).active_document();
         text += document ? (*workspace_).panel_title(*document) : std::string("none");
-        (*document_.gallery_docking_status).text = text;
+        (*document_.gallery_docking_status).set_text(text);
     }
 
     // The program's answer to a closing prompt: the page keeps the
@@ -136,7 +136,7 @@ private:
         }
         closing.cancel = (*document_.gallery_docking_keep).checked();
         text += closing.cancel ? ": kept" : ": closing";
-        (*document_.gallery_docking_closing).text = text;
+        (*document_.gallery_docking_closing).set_text(text);
     }
 
     void on_combined(bool combined) {
@@ -156,7 +156,7 @@ private:
         if (!written) return;
         saved_ = written.text;
         (*document_.gallery_docking_restore).enabled = true;
-        (*document_.gallery_docking_closing).text = "Layout saved";
+        (*document_.gallery_docking_closing).set_text("Layout saved");
     }
 
     void on_restore() {
@@ -189,7 +189,7 @@ private:
         const bool restored = result.status == DockRestoreStatus::restored;
         std::string text = restored ? "Layout restored" : "Layout kept";
         text += " · " + std::to_string(result.diagnostics.size()) + " diagnostics";
-        (*document_.gallery_docking_closing).text = text;
+        (*document_.gallery_docking_closing).set_text(text);
     }
 
     static constexpr std::array<std::string_view, 3> document_ids{"form.cs", "program.cs", "readme.md"};

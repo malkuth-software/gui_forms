@@ -53,6 +53,9 @@ public:
     explicit LiveSurfacesPage(const std::shared_ptr<Surface>& body);
 
 private:
+    // The document binds the Commands and the interval Value (FD-6).
+    template <typename> friend class LiveSurfacesDocument;
+
     static constexpr std::uint32_t band_count = 8U;
 
     void build_presenter();
@@ -93,13 +96,15 @@ LiveSurfacesPage::LiveSurfacesPage(const std::shared_ptr<Surface>& body) {
     // description() reads large_, so the surface is created after every member
     // has its initializer, not in the initializer list ahead of them.
     surface_ = LiveSurface::create(description());
+    // The Commands carry their text before the document binds them.
+    build_producer();
     document_.initialize_component(*this);
     mount_form_children(*document_.gallery_live_surfaces_document, *body);
     (*document_.gallery_live_surfaces_presenter).set_style(page_style());
     (*document_.gallery_live_surfaces_producer).set_style(page_style());
     (*document_.gallery_live_surfaces_sub_surface).set_style(page_style());
     build_presenter();
-    build_producer();
+    reconfigure_button_ = document_.gallery_live_surfaces_reconfigure;
     (*document_.gallery_live_surfaces_sub_surface_host).set_content(std::make_unique<SubSurfaceSample>(), true);
     on(start_.invoked(), *this, &LiveSurfacesPage::on_start);
     on(stop_.invoked(), *this, &LiveSurfacesPage::on_stop);
@@ -127,7 +132,8 @@ void LiveSurfacesPage::build_presenter() {
     telemetry_ = document_.gallery_live_surfaces_telemetry;
 }
 
-// The producer buttons bind the page's Commands, the track bar its interval.
+// The page's Commands, which the document's producer buttons bind (the
+// track bar binds the interval Value there too).
 void LiveSurfacesPage::build_producer() {
     start_.set_text("Start producer");
     start_.set_description("Start the page Timer; each tick publishes one band");
@@ -137,12 +143,6 @@ void LiveSurfacesPage::build_producer() {
     publish_once_.set_description("Write and publish a single frame now");
     reconfigure_.set_text("Reconfigure 240×150");
     reconfigure_.set_description("Replace the buffer pool at another size");
-    (*document_.gallery_live_surfaces_start).bind(start_);
-    (*document_.gallery_live_surfaces_stop).bind(stop_);
-    (*document_.gallery_live_surfaces_publish).bind(publish_once_);
-    reconfigure_button_ = document_.gallery_live_surfaces_reconfigure;
-    (*reconfigure_button_).bind(reconfigure_);
-    (*document_.gallery_live_surfaces_interval).bind(interval_);
 }
 
 bool LiveSurfacesPage::ensure_timer() {
