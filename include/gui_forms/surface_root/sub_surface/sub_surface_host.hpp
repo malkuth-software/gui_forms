@@ -106,6 +106,15 @@ public:
     explicit SubSurfaceHost(StableId stable_id);
     ~SubSurfaceHost() override;
 
+    // Whether the host publishes the sub-surface in the window's semantic
+    // tree: its own pane and the sub-surface's nodes as its virtual
+    // children (the class comment). On by default. A control that publishes
+    // what the sub-surface draws itself (a DataGridView's cell region: the
+    // grid publishes its cells) turns it off; the host then publishes no
+    // node, takes no snapshot and performs no semantic action, and the
+    // sub-surface's own controls are reached only through its owner.
+    void set_publishes_semantics(bool publishes);
+    [[nodiscard]] bool publishes_semantics() const noexcept { return publishes_semantics_; }
     // The content to show and whether it covers its whole region with
     // opaque pixels (the window then copies its frames instead of blending,
     // resize rule 2). A running sub-surface is stopped and joined first.
@@ -317,6 +326,8 @@ private:
     // The newest snapshot taken from the running sub-surface; null before
     // the first and after the thread stopped.
     std::shared_ptr<const SemanticSnapshot> semantics_{};
+    // set_publishes_semantics.
+    bool publishes_semantics_{true};
     // The sub-surface was last told it has keyboard focus.
     bool keyboard_inside_{};
     // The non-primary pointer buttons forwarded down and not yet up, one bit

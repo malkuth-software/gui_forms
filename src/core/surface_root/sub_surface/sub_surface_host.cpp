@@ -355,8 +355,34 @@ constexpr ControlAnatomy sub_surface_host_anatomy{
 
 } // namespace
 
+void SubSurfaceHost::set_publishes_semantics(bool publishes) {
+    require_mutable();
+    if (publishes == publishes_semantics_) return;
+    publishes_semantics_ = publishes;
+    Window* const window = attached_window();
+    if (!publishes && semantics_notice_) {
+        // Notices already posted find the listener revoked; the thread posts
+        // no more.
+        (*semantics_notice_).revoke();
+        semantics_notice_.reset();
+        if (thread_) (*thread_).set_semantics_listener(WindowDispatcher{}, std::weak_ptr<SubSurfaceSemanticsListener>{});
+    } else if (publishes && thread_ && window != nullptr) {
+        semantics_notice_ = std::make_shared<SemanticsNotice>(*this);
+        (*thread_).set_semantics_listener((*window).dispatcher(), semantics_notice_);
+    }
+    semantics_.reset();
+    // The newest snapshot the running sub-surface published, if any.
+    if (publishes) take_sub_surface_semantics();
+    invalidate(Dirty::semantics);
+}
+
 SemanticDescriptor SubSurfaceHost::semantic_descriptor() const {
     SemanticDescriptor descriptor{};
+    if (!publishes_semantics_) {
+        // Neither a node nor descendants: the virtual children are empty too.
+        descriptor.exposed = false;
+        return descriptor;
+    }
     descriptor.role = SemanticRole::pane;
     descriptor.name = accessible_name.read().empty() ? "Sub-surface" : accessible_name.read();
     descriptor.description = accessible_description.read();
@@ -366,7 +392,7 @@ SemanticDescriptor SubSurfaceHost::semantic_descriptor() const {
 }
 
 std::vector<SemanticNode> SubSurfaceHost::semantic_virtual_children() const {
-    if (!semantics_) return {};
+    if (!publishes_semantics_ || !semantics_) return {};
     std::vector<SemanticNode> nodes = (*semantics_).roots;
     std::string prefix(stable_id().value());
     prefix += '.';
@@ -377,7 +403,7 @@ std::vector<SemanticNode> SubSurfaceHost::semantic_virtual_children() const {
 
 bool SubSurfaceHost::on_semantic_child_action(std::string_view stable_id_text, SemanticAction action,
                                               std::string_view value) {
-    if (!semantics_ || !thread_) return false;
+    if (!publishes_semantics_ || !semantics_ || !thread_) return false;
     const std::string_view own = stable_id().value();
     const bool prefixed = stable_id_text.size() > own.size() + 1U && stable_id_text.substr(0U, own.size()) == own &&
                           stable_id_text[own.size()] == '.';
@@ -818,8 +844,10 @@ void SubSurfaceHost::configure_region() {
         (*thread_).set_request_target((*window).dispatcher(), request_target_);
         pointer_left_sequence_ = 0U;
         focus_left_sequence_ = 0U;
-        semantics_notice_ = std::make_shared<SemanticsNotice>(*this);
-        (*thread_).set_semantics_listener((*window).dispatcher(), semantics_notice_);
+        if (publishes_semantics_) {
+            semantics_notice_ = std::make_shared<SemanticsNotice>(*this);
+            (*thread_).set_semantics_listener((*window).dispatcher(), semantics_notice_);
+        }
         notice_dispatcher_ = (*window).dispatcher();
         end_noticed_ = false;
         (*thread_).set_end_listener(notice_dispatcher_, notices_);
@@ -887,7 +915,7 @@ void SubSurfaceHost::stop_thread() noexcept {
     alerts_.clear();
     // Snapshot notices already posted find the target revoked; the nodes go
     // with the thread.
-    (*semantics_notice_).revoke();
+    if (semantics_notice_) (*semantics_notice_).revoke();
     semantics_notice_.reset();
     semantics_.reset();
     keyboard_inside_ = false;

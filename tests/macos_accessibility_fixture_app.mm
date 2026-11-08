@@ -109,7 +109,12 @@ void freeze_page_on_main(void* context);
 bool sub_surfaces_published(const Control::Ptr& control) {
     const std::shared_ptr<gui_forms::SubSurfaceHost> host =
         std::dynamic_pointer_cast<gui_forms::SubSurfaceHost>(control);
-    if (host != nullptr && (*host).started() && (*host).semantic_virtual_children().empty()) return false;
+    // A host that publishes no semantics (a grid's cell region) is not
+    // waited for.
+    if (host != nullptr && (*host).publishes_semantics() && (*host).started() &&
+        (*host).semantic_virtual_children().empty()) {
+        return false;
+    }
     const std::span<const Control::Ptr> children = (*control).children();
     for (const Control::Ptr& child : children) {
         if (!sub_surfaces_published(child)) return false;

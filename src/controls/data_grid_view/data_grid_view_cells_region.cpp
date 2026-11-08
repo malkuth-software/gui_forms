@@ -34,7 +34,7 @@ void DataGridView::prepare_write(const decltype(cells_on_sub_surface)&, bool&) {
 }
 
 // On: the region is made under the editor and the bars, transparent to hit
-// testing and no tab stop, and its content starts once it is arranged in a
+// testing, no tab stop and absent from the semantic tree, and its content starts once it is arranged in a
 // window. Off: the region leaves the grid, which stops and joins its thread.
 void DataGridView::written(const decltype(cells_on_sub_surface)&) {
     const bool wanted = cells_on_sub_surface.read();
@@ -43,6 +43,9 @@ void DataGridView::written(const decltype(cells_on_sub_surface)&) {
         cells_host_ = make_control<SubSurfaceHost>(StableId(prefix + ".cells-region"));
         (*cells_host_).set_focusable(false);
         (*cells_host_).hit_test_transparent = true;
+        // The grid publishes its cells as its own virtual children; the
+        // region publishes no "Sub-surface" pane and no nodes of its own.
+        (*cells_host_).set_publishes_semantics(false);
         add_child(cells_host_);
         // The bottom of the paint order (set_child_index counts from the top).
         static_cast<void>(set_child_index((*cells_host_).runtime_id(), children().size()));

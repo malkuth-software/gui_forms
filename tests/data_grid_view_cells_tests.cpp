@@ -333,9 +333,19 @@ struct AskDefaultContent final {
     }
 };
 
+// Whether a node of `nodes` or below has a stable identity starting with
+// `prefix`.
+bool has_node_under(const std::vector<SemanticNode>& nodes, std::string_view prefix) {
+    for (const SemanticNode& node : nodes) {
+        if (std::string_view(node.stable_id).substr(0U, prefix.size()) == prefix) return true;
+        if (has_node_under(node.children, prefix)) return true;
+    }
+    return false;
+}
+
 // Part 2: a DataGridView with cells_on_sub_surface paints its headers on the
 // UI thread and sends its visible cells to its region, which shows each
-// paint's cells at that paint's epoch; scrolling sends the new rows; owner
+// paint's cells at that paint's epoch and publishes no semantics of its own; scrolling sends the new rows; owner
 // drawing and turning the property off bring the cells back to the UI
 // thread.
 void grid_sends_its_cells_to_its_region() {
@@ -366,6 +376,13 @@ void grid_sends_its_cells_to_its_region() {
     require((*host).hit_test_transparent.read() && !(*host).focusable(),
             "the region leaves hit testing and focus to the grid");
     require((*host).started(), "the region starts once the grid is arranged in a window");
+    // The grid publishes its cells; the region adds no "Sub-surface" pane
+    // and none of its sub-surface's nodes to the grid's semantic tree.
+    require(!(*host).publishes_semantics(), "the region publishes no semantics");
+    const SemanticSnapshot semantics = window.semantic_snapshot();
+    require(has_node_under(semantics.roots, "grid.s7"), "the grid publishes its node");
+    require(!has_node_under(semantics.roots, "grid.s7.cells-region"), "the region publishes no node");
+    require((*host).semantic_virtual_children().empty(), "the region publishes no virtual children");
 
     TextPainter first({});
     static_cast<void>(window.paint(first));
