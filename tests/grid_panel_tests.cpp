@@ -604,9 +604,79 @@ void test_spans_and_placement() {
 
 } // namespace
 
+
+// The `style` property and the `item_style` child property (study 10,
+// section 6): CSS inline styles read by the layout style reader, read back
+// in the reader's spelling, and refused whole for any declaration the grid
+// does not carry (spans are span blocks, placement is area and cell, and
+// margin lengths are the child's own margin).
+void test_style_properties() {
+    std::shared_ptr<GridPanel> grid = make_control<GridPanel>(StableId("grid.style"));
+    std::shared_ptr<Button> item = make_control<Button>(StableId("grid.style.item"), "Item");
+    (*grid).add_child(item);
+    (*grid).set_property_value("style", BindingValue{std::string{
+        "grid-template-columns: 90px 1fr; column-gap: 6px; justify-items: center"}});
+    require((*grid).template_columns().tracks.size() == 2U &&
+                (*grid).column_gap() == LengthPercentage{LogicalLength{6.0}, 0.0} &&
+                (*grid).justify_items() == LayoutAlignment::center,
+            "grid style: tracks, gap and alignment applied");
+    const std::optional<BindingValue> text = (*grid).property_value("style");
+    require(text.has_value() && !std::get<std::string>(*text).empty(), "grid style: reads back as text");
+    std::shared_ptr<GridPanel> copy = make_control<GridPanel>(StableId("grid.style.copy"));
+    (*copy).set_property_value("style", *text);
+    require((*copy).template_columns() == (*grid).template_columns() && (*copy).column_gap() == (*grid).column_gap() &&
+                (*copy).justify_items() == (*grid).justify_items(),
+            "grid style: the text read back gives the same settings");
+    bool areas_refused = false;
+    try {
+        (*grid).set_property_value("style", BindingValue{std::string{"grid-template-areas: \"a b\""}});
+    } catch (const std::invalid_argument&) {
+        areas_refused = true;
+    }
+    bool warning_refused = false;
+    try {
+        (*grid).set_property_value("style", BindingValue{std::string{"float: left"}});
+    } catch (const std::invalid_argument&) {
+        warning_refused = true;
+    }
+    bool item_field_refused = false;
+    try {
+        (*grid).set_property_value("style", BindingValue{std::string{"width: 10px"}});
+    } catch (const std::invalid_argument&) {
+        item_field_refused = true;
+    }
+    require(areas_refused && warning_refused && item_field_refused && (*grid).template_columns().tracks.size() == 2U &&
+                (*grid).spans().empty(),
+            "grid style: areas, a dropped declaration and an item field are refused and change nothing");
+    (*grid).set_child_property_value(*item, "item_style", BindingValue{std::string{
+        "justify-self: end; width: 40px; margin-left: auto"}});
+    const GridItemLayout layout = (*grid).item_layout(*item);
+    require(layout.justify_self == LayoutAlignment::end && layout.width.kind == SizeKind::length_percentage &&
+                layout.auto_margin.left,
+            "grid item style: alignment, width and an auto margin applied");
+    const std::optional<BindingValue> item_text = (*grid).child_property_value(*item, "item_style");
+    require(item_text.has_value() && std::get<std::string>(*item_text).find("justify-self: end") != std::string::npos,
+            "grid item style: reads back as text");
+    bool placement_refused = false;
+    try {
+        (*grid).set_child_property_value(*item, "item_style", BindingValue{std::string{"grid-column: 2"}});
+    } catch (const std::invalid_argument&) {
+        placement_refused = true;
+    }
+    bool margin_refused = false;
+    try {
+        (*grid).set_child_property_value(*item, "item_style", BindingValue{std::string{"margin-left: 4px"}});
+    } catch (const std::invalid_argument&) {
+        margin_refused = true;
+    }
+    require(placement_refused && margin_refused && (*grid).item_layout(*item) == layout,
+            "grid item style: placement lines and margin lengths are refused and change nothing");
+}
+
 int main() {
     try {
         test_tracks_gaps_and_stretch();
+        test_style_properties();
         test_records_validate_and_reconcile();
         test_named_areas();
         test_spans_and_placement();

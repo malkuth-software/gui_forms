@@ -11,7 +11,10 @@
 #include "gui_forms/controls/scrollable_control/container_control/grid_panel/grid_panel.hpp"
 
 #include "../../scrollable_anatomy.hpp"
+#include "../layout_style_property.hpp"
 #include "../out_of_flow.hpp"
+
+#include "gui_forms/detail/bound_member_function.hpp"
 
 #include "gui_forms/binding/property_table/property_table.hpp"
 
@@ -385,6 +388,74 @@ bool cell_serialized(const Component& container, const Control& child) {
     return serialized;
 }
 
+// The item_style child property: a child's item settings as one CSS inline
+// style. Placement stays the area and cell properties (and spans the span
+// blocks), and margin lengths the child's own margin, so those are refused.
+constexpr std::string_view item_style_name = "GridPanel.item_style";
+constexpr std::string_view item_style_guidance =
+    "place the child with its area or cell property and define spans with span blocks; its margin lengths "
+    "are its own margin";
+
+const PropertyDescriptor& describe_item_style() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        PropertyDescriptor{"item_style", BindingValueKind::text, "Layout",
+                           "The child's grid item settings as a CSS inline style: justify-self, align-self, "
+                           "width, height, their minimums and maximums, auto margins, position and insets.",
+                           BindingValue{std::string{}}, invalidation::bounds},
+        PropertyOperations{true, true, true, false});
+    return descriptor;
+}
+
+GridItemLayout item_layout_from(const LayoutStyle& read, const GridItemLayout& current) {
+    const LayoutStyle base{};
+    LayoutStyle kept = base;
+    GridItemLayout layout{};
+    layout.placement = current.placement;
+    layout.justify_self = read.alignment.justify_self;
+    layout.align_self = read.alignment.align_self;
+    kept.alignment.justify_self = read.alignment.justify_self;
+    kept.alignment.align_self = read.alignment.align_self;
+    layout_style_property::keep_item_box(read, kept, layout);
+    layout_style_property::require_admitted(read, kept, item_style_name, item_style_guidance);
+    return layout;
+}
+
+std::string item_style_text(const GridItemLayout& layout) {
+    const LayoutStyle base{};
+    LayoutStyle style = base;
+    style.alignment.justify_self = layout.justify_self;
+    style.alignment.align_self = layout.align_self;
+    layout_style_property::describe_item_box(layout, style);
+    std::string text = layout_style_property::describe(style, base);
+    return text;
+}
+
+BindingValue read_item_style(const Component& container, const Control& child) {
+    const GridPanel& grid = static_cast<const GridPanel&>(container);
+    std::string text = item_style_text(grid.item_layout(child));
+    return BindingValue{std::move(text)};
+}
+
+void write_item_style(Component& container, const Control& child, const BindingValue& value) {
+    GridPanel& grid = static_cast<GridPanel&>(container);
+    const LayoutStyle read = layout_style_property::read(std::get<std::string>(value), LayoutStyle{}, item_style_name);
+    const GridItemLayout layout = item_layout_from(read, grid.item_layout(child));
+    grid.set_item_layout(child, layout);
+}
+
+void reset_item_style(Component& container, const Control& child) {
+    GridPanel& grid = static_cast<GridPanel&>(container);
+    GridItemLayout layout{};
+    layout.placement = grid.item_layout(child).placement;
+    grid.set_item_layout(child, layout);
+}
+
+bool item_style_serialized(const Component& container, const Control& child) {
+    const GridPanel& grid = static_cast<const GridPanel&>(container);
+    const bool serialized = !item_style_text(grid.item_layout(child)).empty();
+    return serialized;
+}
+
 constexpr ControlAnatomy grid_panel_anatomy{
     .control_id = "grid_panel",
     .parts = scrollable_detail::parts,
@@ -394,13 +465,96 @@ constexpr ControlAnatomy grid_panel_anatomy{
 
 } // namespace
 
-GridPanel::GridPanel(StableId stable_id) : ContainerControl(std::move(stable_id)) {}
+GridPanel::GridPanel(StableId stable_id) : ContainerControl(std::move(stable_id)) {
+    register_panel_properties();
+}
+
+void GridPanel::register_panel_properties() {
+    PropertyDescriptor style_descriptor{"style", BindingValueKind::text, "Layout",
+                                        "The grid's container settings as a CSS inline style: grid-template-columns "
+                                        "and -rows, grid-auto-flow, grid-auto-columns and -rows, the content and "
+                                        "item alignments and the gaps. Spans are span blocks.",
+                                        BindingValue{std::string{}}, invalidation::bounds};
+    style_descriptor.bindable = false;
+    define_bindable_property({std::move(style_descriptor),
+                              detail::BoundMemberFunction<BindingValue (GridPanel::*)() const>(
+                                  *this, &GridPanel::style_property),
+                              detail::BoundMemberFunction<void (GridPanel::*)(const BindingValue&)>(
+                                  *this, &GridPanel::set_style_property),
+                              {}, {}, {}});
+}
+
+BindingValue GridPanel::style_property() const {
+    const LayoutStyle base{};
+    LayoutStyle style = base;
+    style.grid.template_columns = style_.template_columns;
+    style.grid.template_rows = style_.template_rows;
+    style.grid.auto_flow = style_.auto_flow;
+    style.grid.auto_columns = style_.auto_columns;
+    style.grid.auto_rows = style_.auto_rows;
+    style.alignment.justify_content = justify_content_;
+    style.alignment.align_content = align_content_;
+    style.alignment.justify_items = justify_items_;
+    style.alignment.align_items = align_items_;
+    style.row_gap = row_gap_;
+    style.column_gap = column_gap_;
+    std::string text = layout_style_property::describe(style, base);
+    return BindingValue{std::move(text)};
+}
+
+// Every value is checked before the first setter runs, so a refused style
+// leaves the grid as it was.
+void GridPanel::set_style_property(const BindingValue& value) {
+    require_mutable();
+    constexpr std::string_view name = "GridPanel.style";
+    const LayoutStyle base{};
+    const LayoutStyle read = layout_style_property::read(std::get<std::string>(value), base, name);
+    LayoutStyle kept = base;
+    kept.grid.template_columns = read.grid.template_columns;
+    kept.grid.template_rows = read.grid.template_rows;
+    kept.grid.auto_flow = read.grid.auto_flow;
+    kept.grid.auto_columns = read.grid.auto_columns;
+    kept.grid.auto_rows = read.grid.auto_rows;
+    kept.alignment.justify_content = read.alignment.justify_content;
+    kept.alignment.align_content = read.alignment.align_content;
+    kept.alignment.justify_items = read.alignment.justify_items;
+    kept.alignment.align_items = read.alignment.align_items;
+    kept.row_gap = read.row_gap;
+    kept.column_gap = read.column_gap;
+    layout_style_property::require_admitted(
+        read, kept, name, "define spans with span blocks and place children with their area and cell properties");
+    const GridContainerStyle& grid = read.grid;
+    const bool admitted = admitted_track_list(grid.template_columns) && admitted_track_list(grid.template_rows) &&
+                          grid.auto_flow <= GridAutoFlow::column_dense && !grid.auto_columns.empty() &&
+                          grid.auto_columns.size() <= maximum_grid_tracks && admitted_track_sizes(grid.auto_columns) &&
+                          !grid.auto_rows.empty() && grid.auto_rows.size() <= maximum_grid_tracks &&
+                          admitted_track_sizes(grid.auto_rows) &&
+                          admitted_content_alignment(read.alignment.justify_content) &&
+                          admitted_content_alignment(read.alignment.align_content) &&
+                          admitted_items_alignment(read.alignment.justify_items) &&
+                          admitted_items_alignment(read.alignment.align_items) && admitted_length(read.row_gap) &&
+                          admitted_length(read.column_gap);
+    if (!admitted) throw std::invalid_argument("GridPanel.style holds a value grids do not admit");
+    set_template_columns(grid.template_columns);
+    set_template_rows(grid.template_rows);
+    set_auto_flow(grid.auto_flow);
+    set_auto_columns(grid.auto_columns);
+    set_auto_rows(grid.auto_rows);
+    set_justify_content(read.alignment.justify_content);
+    set_align_content(read.alignment.align_content);
+    set_justify_items(read.alignment.justify_items);
+    set_align_items(read.alignment.align_items);
+    set_row_gap(read.row_gap);
+    set_column_gap(read.column_gap);
+}
 
 const std::array<ChildPropertyEntry, GridPanel::grid_child_property_count>&
 GridPanel::grid_child_property_entries() noexcept {
     static constexpr std::array<ChildPropertyEntry, grid_child_property_count> entries{{
         {"area", &describe_area, &read_area, &write_area, &reset_area, &area_serialized},
         {"cell", &describe_cell, &read_cell, &write_cell, &reset_cell, &cell_serialized},
+        {"item_style", &describe_item_style, &read_item_style, &write_item_style, &reset_item_style,
+         &item_style_serialized},
     }};
     static_assert(property_names_distinct(entries), "GridPanel's child table names a property twice");
     return entries;

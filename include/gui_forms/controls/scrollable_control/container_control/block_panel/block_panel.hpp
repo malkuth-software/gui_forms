@@ -81,6 +81,10 @@ class BlockPanel final : public ContainerControl {
 public:
     explicit BlockPanel(StableId stable_id);
 
+    // The child property it provides: item_style, the item layout as one
+    // CSS inline style (margin lengths stay the child's own margin).
+    [[nodiscard]] std::span<const ChildPropertyEntry> child_property_table() const noexcept override;
+
     // The line boxes' inline alignment; `start` by default. `justify` is not
     // admitted.
     [[nodiscard]] TextAlignment text_align() const noexcept { return text_align_; }
@@ -142,6 +146,12 @@ protected:
     [[nodiscard]] Size measure_intrinsic(const LayoutConstraint& constraint) override;
 
 private:
+    // The `style` property (study 10, section 6): the container settings
+    // as one CSS inline style, read by the layout style reader (text-align;
+    // the line strut and font are not CSS layout and stay properties).
+    void register_panel_properties();
+    [[nodiscard]] BindingValue style_property() const;
+    void set_style_property(const BindingValue& value);
     struct ItemRecord final {
         BlockFlowItemLayout layout{};
         std::uint64_t seen_pass{};

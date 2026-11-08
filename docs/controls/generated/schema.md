@@ -1978,7 +1978,9 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point).
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `style` (text).
+
+Properties it provides to its children: `item_style` (text).
 
 | Interaction | Payload |
 |---|---|
@@ -2004,9 +2006,9 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point).
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `style` (text).
 
-Properties it provides to its children: `area` (text), `cell` (point).
+Properties it provides to its children: `area` (text), `cell` (point), `item_style` (text).
 
 | Interaction | Payload |
 |---|---|
@@ -2032,7 +2034,9 @@ Properties it provides to its children: `area` (text), `cell` (point).
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point).
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `style` (text).
+
+Properties it provides to its children: `item_style` (text).
 
 | Interaction | Payload |
 |---|---|

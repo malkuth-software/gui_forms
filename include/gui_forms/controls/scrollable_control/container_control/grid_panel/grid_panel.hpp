@@ -130,8 +130,8 @@ class GridPanel final : public ContainerControl,
 public:
     explicit GridPanel(StableId stable_id);
 
-    // The child properties it provides: area and cell.
-    static constexpr std::size_t grid_child_property_count = 2U;
+    // The child properties it provides: area, cell and item_style.
+    static constexpr std::size_t grid_child_property_count = 3U;
     [[nodiscard]] static const std::array<ChildPropertyEntry, grid_child_property_count>&
     grid_child_property_entries() noexcept;
     [[nodiscard]] std::span<const ChildPropertyEntry> child_property_table() const noexcept override;
@@ -247,6 +247,13 @@ protected:
 private:
     friend struct GridAreaCapability<GridPanel>;
     friend struct GridCellCapability<GridPanel>;
+
+    // The `style` property (study 10, section 6): the container settings
+    // as one CSS inline style, read by the layout style reader; spans are
+    // span blocks, so grid-template-areas is refused.
+    void register_panel_properties();
+    [[nodiscard]] BindingValue style_property() const;
+    void set_style_property(const BindingValue& value);
 
     // The placement views' hooks: the panel's thread, a live direct child
     // and the value's check (an area names a span, a cell lies in no span's

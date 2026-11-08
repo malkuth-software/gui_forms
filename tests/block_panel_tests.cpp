@@ -15,6 +15,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <new>
 #include <stdexcept>
 #include <string>
@@ -436,9 +437,50 @@ void test_ten_thousand_children_counts() {
 
 } // namespace
 
+
+// The `style` property and the `item_style` child property (study 10,
+// section 6): CSS inline styles read by the layout style reader, read back
+// in the reader's spelling, and refused whole for any declaration the panel
+// does not carry.
+void test_style_properties() {
+    std::shared_ptr<BlockPanel> block = make_control<BlockPanel>(StableId("block.style"));
+    std::shared_ptr<Button> item = make_control<Button>(StableId("block.style.item"), "Item");
+    (*block).add_child(item);
+    (*block).set_property_value("style", BindingValue{std::string{"text-align: center"}});
+    require((*block).text_align() == TextAlignment::center, "block style: text-align applied");
+    const std::optional<BindingValue> text = (*block).property_value("style");
+    require(text.has_value() && std::get<std::string>(*text) == "text-align: center", "block style: reads back");
+    bool display_refused = false;
+    try {
+        (*block).set_property_value("style", BindingValue{std::string{"display: flex"}});
+    } catch (const std::invalid_argument&) {
+        display_refused = true;
+    }
+    require(display_refused && (*block).text_align() == TextAlignment::center,
+            "block style: a declaration it does not carry is refused");
+    (*block).set_child_property_value(*item, "item_style", BindingValue{std::string{
+        "display: inline-block; width: 90px; vertical-align: middle"}});
+    const BlockFlowItemLayout layout = (*block).item_layout(*item);
+    require(layout.level == BlockFlowLevel::inline_level && layout.width.kind == SizeKind::length_percentage &&
+                layout.vertical_align == InlineVerticalAlignment::middle,
+            "block item style: level, width and vertical alignment");
+    const std::optional<BindingValue> item_text = (*block).child_property_value(*item, "item_style");
+    require(item_text.has_value() && std::get<std::string>(*item_text).find("inline-block") != std::string::npos,
+            "block item style: reads back as text");
+    bool level_refused = false;
+    try {
+        (*block).set_child_property_value(*item, "item_style", BindingValue{std::string{"display: grid"}});
+    } catch (const std::invalid_argument&) {
+        level_refused = true;
+    }
+    require(level_refused && (*block).item_layout(*item) == layout,
+            "block item style: a display other than block or inline-block is refused");
+}
+
 int main() {
     try {
         test_stacking_and_margin_collapsing();
+        test_style_properties();
         test_widths_and_auto_margins();
         test_lines_and_shrink_to_fit();
         test_records_validate_and_reconcile();

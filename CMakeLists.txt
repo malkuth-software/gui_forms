@@ -834,6 +834,7 @@ add_library(gui_forms_controls STATIC
     src/controls/scrollable_control/container_control/flex_panel/flex_panel.cpp
     src/controls/scrollable_control/container_control/grid_panel/grid_panel.cpp
     src/controls/scrollable_control/container_control/block_panel/block_panel.cpp
+    src/controls/scrollable_control/container_control/layout_style_property.cpp
     src/controls/scrollable_control/container_control/out_of_flow.cpp
     src/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat.cpp
     src/controls/scrollable_control/container_control/responsive_track_panel/responsive_track_panel.cpp
@@ -1629,6 +1630,10 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         CLASS ControlSpectrumDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/retained-layout-panels.form
         CLASS RetainedLayoutDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/responsive-layouts.form
+        CLASS ResponsiveLayoutsDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/css-layout-panels.form
+        CLASS CssLayoutDocument NAMESPACE gui_forms::gallery::pages)
     # The Gallery's project theme (owner rulings of 2026-11-04): the forms
     # name roles by class; the theme gives the roles their look.
     gui_forms_add_theme(gui_forms_gallery_model demo/themes/gallery
@@ -1637,7 +1642,8 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
             demo/pages/animation-laboratory.form demo/pages/collections-and-overlays.form
             demo/pages/images-and-drawing.form demo/pages/ranges-and-progress.form
             demo/pages/semantic-feedback.form demo/pages/control-spectrum.form
-            demo/pages/retained-layout-panels.form)
+            demo/pages/retained-layout-panels.form demo/pages/responsive-layouts.form
+            demo/pages/css-layout-panels.form)
     target_include_directories(gui_forms_gallery_model PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/gui_forms_forms>)
     # The Gallery is compiled with the localizable-literal plugin: its own

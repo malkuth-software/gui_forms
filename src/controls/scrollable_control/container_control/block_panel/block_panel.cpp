@@ -9,13 +9,19 @@
 #include "gui_forms/controls/scrollable_control/container_control/block_panel/block_panel.hpp"
 
 #include "../../scrollable_anatomy.hpp"
+#include "../layout_style_property.hpp"
 #include "../out_of_flow.hpp"
+#include "gui_forms/binding/property_table/property_table.hpp"
+#include "gui_forms/detail/bound_member_function.hpp"
 #include "gui_forms/window.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <limits>
 #include <stdexcept>
+#include <string>
+#include <string_view>
 #include <utility>
 
 namespace gui_forms {
@@ -116,9 +122,119 @@ constexpr ControlAnatomy block_panel_anatomy{
     .custom_states = {},
 };
 
+// The item_style child property: a child's block flow settings as one CSS
+// inline style. `display` is block (the default) or inline-block; margin
+// lengths stay the child's own margin, so only `auto` margins are admitted.
+constexpr std::string_view item_style_name = "BlockPanel.item_style";
+
+LayoutStyle item_base() {
+    LayoutStyle base{};
+    base.display = DisplayKind::block;
+    return base;
+}
+
+const PropertyDescriptor& describe_item_style() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        PropertyDescriptor{"item_style", BindingValueKind::text, "Layout",
+                           "The child's block flow settings as a CSS inline style: display (block or "
+                           "inline-block), vertical-align, width, height, their minimums and maximums, auto "
+                           "margins, position and insets.",
+                           BindingValue{std::string{}}, invalidation::bounds},
+        PropertyOperations{true, true, true, false});
+    return descriptor;
+}
+
+std::string item_style_text(const BlockFlowItemLayout& layout) {
+    const LayoutStyle base = item_base();
+    LayoutStyle style = base;
+    if (layout.level == BlockFlowLevel::inline_level) style.display = DisplayKind::inline_block;
+    style.vertical_align = layout.vertical_align;
+    layout_style_property::describe_item_box(layout, style);
+    std::string text = layout_style_property::describe(style, base);
+    return text;
+}
+
+BindingValue read_item_style(const Component& container, const Control& child) {
+    const BlockPanel& block = static_cast<const BlockPanel&>(container);
+    std::string text = item_style_text(block.item_layout(child));
+    return BindingValue{std::move(text)};
+}
+
+void write_item_style(Component& container, const Control& child, const BindingValue& value) {
+    BlockPanel& block = static_cast<BlockPanel&>(container);
+    const LayoutStyle base = item_base();
+    const LayoutStyle read = layout_style_property::read(std::get<std::string>(value), base, item_style_name);
+    LayoutStyle kept = base;
+    BlockFlowItemLayout layout{};
+    if (read.display == DisplayKind::inline_block) {
+        layout.level = BlockFlowLevel::inline_level;
+        kept.display = DisplayKind::inline_block;
+    }
+    layout.vertical_align = read.vertical_align;
+    kept.vertical_align = read.vertical_align;
+    layout_style_property::keep_item_box(read, kept, layout);
+    layout_style_property::require_admitted(read, kept, item_style_name,
+                                            "display is block or inline-block, and the child's margin lengths "
+                                            "are its own margin");
+    block.set_item_layout(child, layout);
+}
+
+void reset_item_style(Component& container, const Control& child) {
+    BlockPanel& block = static_cast<BlockPanel&>(container);
+    block.set_item_layout(child, BlockFlowItemLayout{});
+}
+
+bool item_style_serialized(const Component& container, const Control& child) {
+    const BlockPanel& block = static_cast<const BlockPanel&>(container);
+    const bool serialized = !(block.item_layout(child) == BlockFlowItemLayout{});
+    return serialized;
+}
+
 } // namespace
 
-BlockPanel::BlockPanel(StableId stable_id) : ContainerControl(std::move(stable_id)) {}
+BlockPanel::BlockPanel(StableId stable_id) : ContainerControl(std::move(stable_id)) {
+    register_panel_properties();
+}
+
+std::span<const ChildPropertyEntry> BlockPanel::child_property_table() const noexcept {
+    static constexpr std::array<ChildPropertyEntry, 1U> entries{{
+        {"item_style", &describe_item_style, &read_item_style, &write_item_style, &reset_item_style,
+         &item_style_serialized},
+    }};
+    return std::span<const ChildPropertyEntry>(entries);
+}
+
+void BlockPanel::register_panel_properties() {
+    PropertyDescriptor style_descriptor{"style", BindingValueKind::text, "Layout",
+                                        "The block container's settings as a CSS inline style: text-align.",
+                                        BindingValue{std::string{}}, invalidation::bounds};
+    style_descriptor.bindable = false;
+    define_bindable_property({std::move(style_descriptor),
+                              detail::BoundMemberFunction<BindingValue (BlockPanel::*)() const>(
+                                  *this, &BlockPanel::style_property),
+                              detail::BoundMemberFunction<void (BlockPanel::*)(const BindingValue&)>(
+                                  *this, &BlockPanel::set_style_property),
+                              {}, {}, {}});
+}
+
+BindingValue BlockPanel::style_property() const {
+    const LayoutStyle base{};
+    LayoutStyle style = base;
+    style.text_align = text_align_;
+    std::string text = layout_style_property::describe(style, base);
+    return BindingValue{std::move(text)};
+}
+
+void BlockPanel::set_style_property(const BindingValue& value) {
+    require_mutable();
+    constexpr std::string_view name = "BlockPanel.style";
+    const LayoutStyle base{};
+    const LayoutStyle read = layout_style_property::read(std::get<std::string>(value), base, name);
+    LayoutStyle kept = base;
+    kept.text_align = read.text_align;
+    layout_style_property::require_admitted(read, kept, name, "the line strut and font are their own properties");
+    set_text_align(read.text_align);
+}
 
 void BlockPanel::set_text_align(TextAlignment alignment) {
     require_mutable();

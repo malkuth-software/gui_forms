@@ -323,6 +323,10 @@ gui_forms::BlockPanel
 
    .. rubric:: Extension points
 
+   .. cpp:function:: std::span<const ChildPropertyEntry> child_property_table() const noexcept override
+
+      The child property it provides: item_style, the item layout as one CSS inline style (margin lengths stay the child's own margin).
+
    .. cpp:function:: Size measure(Size available) override
 
    .. cpp:function:: void arrange(Rect final_bounds) override

@@ -1,0 +1,277 @@
+/* The Gallery's css-layout-panels page (stage FD, phase FD6.3; study 10):
+   the containers of stage L that lay their children out by CSS rules. Each
+   panel's container settings are its `style` and each child's item
+   settings its `item-style`, CSS inline styles read by the layout style
+   reader. A grid's spans are span blocks and its children's placement their
+   `area` or `cell`; a child's margin lengths are its own `margin`.
+   gui_forms_add_form() compiles this document into
+   css-layout-panels_form.hpp at build time.
+
+   gallery.css-layout.document is a declared boundary only: the page moves
+   its children into the shell's page body (a 1000 x 660 design surface).
+   The page keeps the page style in code. The Gallery theme styles the
+   classes. */
+scaled-panel gallery.css-layout.document {
+  design-size: 1000 660;
+
+  label gallery.css-layout.heading {
+    text: "CSS LAYOUT PANELS";
+    classes: "heading" "page-title";
+    bounds: 24 18 620 34;
+  }
+  label gallery.css-layout.lead {
+    text: "Containers that lay retained children out by CSS rules, checked against Chromium's boxes by the layout corpus.";
+    classes: "muted" "body";
+    bounds: 26 52 920 24;
+  }
+
+
+  scaled-group-box gallery.css-layout.flex.group {
+    text: "FlexPanel · grow shares · wrap · gaps · auto margin · centred column";
+    design-size: 930 170;
+    bounds: 24 84 930 170;
+    classes: "paper" "group-caption";
+    flex-panel gallery.css-layout.flex.row {
+      accessible-name: "Growing flex row";
+      style: "flex-wrap: wrap; align-items: center; row-gap: 6px; column-gap: 8px";
+      padding: 6;
+      bounds: 18 38 560 114;
+      button gallery.css-layout.flex.row.item.0 {
+        text: "Grow 1";
+        visual-style: command;
+        bounds: 0 0 140 28;
+        margin: 0;
+        item-style: "flex-grow: 1";
+      }
+      button gallery.css-layout.flex.row.item.1 {
+        text: "Grow 1";
+        visual-style: command;
+        bounds: 0 0 140 28;
+        margin: 0;
+        item-style: "flex-grow: 1";
+      }
+      button gallery.css-layout.flex.row.item.2 {
+        text: "Grow 2";
+        visual-style: command;
+        bounds: 0 0 140 28;
+        margin: 0;
+        item-style: "flex-grow: 2";
+      }
+      button gallery.css-layout.flex.row.pushed {
+        text: "Auto margin";
+        visual-style: accent;
+        bounds: 0 0 120 28;
+        margin: 0;
+        item-style: "margin-left: auto";
+      }
+    }
+    flex-panel gallery.css-layout.flex.column {
+      accessible-name: "Centred flex column";
+      style: "flex-direction: column; justify-content: center; align-items: center; row-gap: 6px";
+      bounds: 596 38 316 114;
+      button gallery.css-layout.flex.column.item.0 {
+        text: "W";
+        visual-style: standard;
+        bounds: 0 0 60 26;
+        margin: 0;
+      }
+      button gallery.css-layout.flex.column.item.1 {
+        text: "WW";
+        visual-style: standard;
+        bounds: 0 0 100 26;
+        margin: 0;
+      }
+      button gallery.css-layout.flex.column.item.2 {
+        text: "WWW";
+        visual-style: standard;
+        bounds: 0 0 140 26;
+        margin: 0;
+      }
+    }
+  }
+
+  scaled-group-box gallery.css-layout.grid.group {
+    text: "GridPanel · named areas · fr tracks · auto-fill minmax cards · span";
+    design-size: 930 170;
+    bounds: 24 262 930 170;
+    classes: "paper" "group-caption";
+    grid-panel gallery.css-layout.grid.areas {
+      accessible-name: "Named grid areas";
+      style: "grid-template-columns: 90px 1fr; grid-template-rows: 28px 1fr 24px; row-gap: 6px; column-gap: 6px";
+      bounds: 18 38 400 114;
+      span head { anchor: 0 0; columns: 2; }
+      span nav { anchor: 1 0; }
+      span main { anchor: 1 1; }
+      span foot { anchor: 2 0; columns: 2; }
+      button gallery.css-layout.grid.areas.head {
+        text: "head";
+        visual-style: command;
+        margin: 0;
+        area: "head";
+      }
+      button gallery.css-layout.grid.areas.nav {
+        text: "nav";
+        visual-style: command;
+        margin: 0;
+        area: "nav";
+      }
+      button gallery.css-layout.grid.areas.main {
+        text: "main";
+        visual-style: command;
+        margin: 0;
+        area: "main";
+      }
+      button gallery.css-layout.grid.areas.foot {
+        text: "foot";
+        visual-style: command;
+        margin: 0;
+        area: "foot";
+      }
+    }
+    grid-panel gallery.css-layout.grid.cards {
+      accessible-name: "Auto-fill grid cards";
+      style: "grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); grid-auto-rows: 28px; align-content: start; row-gap: 6px; column-gap: 6px";
+      bounds: 436 38 476 114;
+      span { anchor: 0 1; columns: 2; }
+      button gallery.css-layout.grid.cards.item.0 {
+        text: "Card 1";
+        visual-style: standard;
+        margin: 0;
+      }
+      button gallery.css-layout.grid.cards.item.1 {
+        text: "Span 2";
+        visual-style: accent;
+        margin: 0;
+        cell: 0 1;
+      }
+      button gallery.css-layout.grid.cards.item.2 {
+        text: "Card 3";
+        visual-style: standard;
+        margin: 0;
+      }
+      button gallery.css-layout.grid.cards.item.3 {
+        text: "Card 4";
+        visual-style: standard;
+        margin: 0;
+      }
+      button gallery.css-layout.grid.cards.item.4 {
+        text: "Card 5";
+        visual-style: standard;
+        margin: 0;
+      }
+      button gallery.css-layout.grid.cards.item.5 {
+        text: "Card 6";
+        visual-style: standard;
+        margin: 0;
+      }
+      button gallery.css-layout.grid.cards.item.6 {
+        text: "Card 7";
+        visual-style: standard;
+        margin: 0;
+      }
+      button gallery.css-layout.grid.cards.item.7 {
+        text: "Card 8";
+        visual-style: standard;
+        margin: 0;
+      }
+    }
+  }
+
+  scaled-group-box gallery.css-layout.block.group {
+    text: "BlockPanel · collapsing margins · auto margins · centred inline lines";
+    design-size: 930 124;
+    bounds: 24 440 930 124;
+    classes: "paper" "group-caption";
+    block-panel gallery.css-layout.block.stack {
+      accessible-name: "Stacked blocks";
+      bounds: 18 36 400 76;
+      button gallery.css-layout.block.stack.item.0 {
+        text: "Block";
+        visual-style: command;
+        bounds: 0 0 0 20;
+        margin: 4 0;
+      }
+      button gallery.css-layout.block.stack.item.1 {
+        text: "Auto margins";
+        visual-style: accent;
+        bounds: 0 0 0 20;
+        margin: 4 0;
+        item-style: "max-width: 200px; margin-right: auto; margin-left: auto";
+      }
+      button gallery.css-layout.block.stack.item.2 {
+        text: "Block";
+        visual-style: command;
+        bounds: 0 0 0 20;
+        margin: 4 0;
+      }
+    }
+    block-panel gallery.css-layout.block.line {
+      accessible-name: "Centred inline line";
+      style: "text-align: center";
+      bounds: 436 36 476 76;
+      button gallery.css-layout.block.line.item.0 {
+        text: "Inline 1";
+        visual-style: standard;
+        margin: 0 6 0 0;
+        item-style: "display: inline-block; width: 90px; height: 22px";
+      }
+      button gallery.css-layout.block.line.item.1 {
+        text: "Inline 2";
+        visual-style: standard;
+        margin: 0 6 0 0;
+        item-style: "display: inline-block; width: 90px; height: 22px";
+      }
+      button gallery.css-layout.block.line.item.2 {
+        text: "Middle";
+        visual-style: accent;
+        margin: 0 6 0 0;
+        item-style: "display: inline-block; width: 90px; height: 30px; vertical-align: middle";
+      }
+      button gallery.css-layout.block.line.item.3 {
+        text: "Inline 4";
+        visual-style: standard;
+        margin: 0 6 0 0;
+        item-style: "display: inline-block; width: 90px; height: 22px";
+      }
+      button gallery.css-layout.block.line.item.4 {
+        text: "Inline 5";
+        visual-style: standard;
+        margin: 0 6 0 0;
+        item-style: "display: inline-block; width: 90px; height: 22px";
+      }
+      button gallery.css-layout.block.line.item.5 {
+        text: "Inline 6";
+        visual-style: standard;
+        margin: 0 6 0 0;
+        item-style: "display: inline-block; width: 90px; height: 22px";
+      }
+    }
+  }
+
+  scaled-group-box gallery.css-layout.text.group {
+    text: "TextBlock · baseline alignment · wrapping · line-height: normal";
+    design-size: 930 84;
+    bounds: 24 572 930 84;
+    classes: "paper" "group-caption";
+    flex-panel gallery.css-layout.text.rate {
+      accessible-name: "Baseline-aligned text";
+      style: "align-items: baseline; column-gap: 8px";
+      bounds: 18 36 400 40;
+      text-block gallery.css-layout.text.rate.caption {
+        text: "Transfer rate";
+        classes: "muted";
+        margin: 0;
+      }
+      text-block gallery.css-layout.text.rate.value {
+        text: "42 MB/s";
+        classes: "heading" "metric-value";
+        margin: 0;
+      }
+    }
+    text-block gallery.css-layout.text.paragraph {
+      text: "TextBlock lays text out as CSS does: white space collapses, lines break where Unicode allows, and lines are line-height: normal.";
+      accessible-name: "Wrapped paragraph";
+      bounds: 436 36 476 40;
+    }
+  }
+}

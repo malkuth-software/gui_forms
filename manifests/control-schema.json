@@ -4848,10 +4848,14 @@
         {"name": "minimum_size", "kind": "size", "category": "Layout", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "name", "kind": "text", "category": "Design", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
         {"name": "padding", "kind": "insets", "category": "Layout", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
+        {"name": "style", "kind": "text", "category": "Layout", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "tab_index", "kind": "unsigned_integer", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "tab_stop", "kind": "boolean", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "tool_tip_text", "kind": "text", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
         {"name": "visible", "kind": "boolean", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"}
+      ],
+      "child_properties": [
+        {"name": "item_style", "kind": "text", "category": "Layout", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"}
       ],
       "interactions": [
         {"name": "name_changed", "payload": "std::string", "mutable_payload": false},
@@ -4922,6 +4926,7 @@
         {"name": "minimum_size", "kind": "size", "category": "Layout", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "name", "kind": "text", "category": "Design", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
         {"name": "padding", "kind": "insets", "category": "Layout", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
+        {"name": "style", "kind": "text", "category": "Layout", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "tab_index", "kind": "unsigned_integer", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "tab_stop", "kind": "boolean", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "tool_tip_text", "kind": "text", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
@@ -4929,7 +4934,8 @@
       ],
       "child_properties": [
         {"name": "area", "kind": "text", "category": "Layout", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
-        {"name": "cell", "kind": "point", "category": "Layout", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"}
+        {"name": "cell", "kind": "point", "category": "Layout", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
+        {"name": "item_style", "kind": "text", "category": "Layout", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"}
       ],
       "interactions": [
         {"name": "name_changed", "payload": "std::string", "mutable_payload": false},
@@ -5000,10 +5006,14 @@
         {"name": "minimum_size", "kind": "size", "category": "Layout", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "name", "kind": "text", "category": "Design", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
         {"name": "padding", "kind": "insets", "category": "Layout", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
+        {"name": "style", "kind": "text", "category": "Layout", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "tab_index", "kind": "unsigned_integer", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "tab_stop", "kind": "boolean", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "tool_tip_text", "kind": "text", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
         {"name": "visible", "kind": "boolean", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"}
+      ],
+      "child_properties": [
+        {"name": "item_style", "kind": "text", "category": "Layout", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"}
       ],
       "interactions": [
         {"name": "name_changed", "payload": "std::string", "mutable_payload": false},

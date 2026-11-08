@@ -565,4 +565,4 @@ gui_forms::GridPanel
 
    .. cpp:member:: constexpr std::size_t grid_child_property_count
 
-      The child properties it provides: area and cell. Default: ``2U``.
+      The child properties it provides: area, cell and item_style. Default: ``3U``.
