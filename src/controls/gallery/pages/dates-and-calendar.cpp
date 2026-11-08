@@ -129,8 +129,8 @@ private:
     void build_month_calendar() {
         (*month_).set_today_date(specimen);
         (*month_).set_range({2026, 8U, 1U}, {2026, 12U, 31U});
-        (*month_).set_calendar_dimensions({2U, 1U});
-        (*month_).set_show_week_numbers(true);
+        (*month_).calendar_dimensions = {2U, 1U};
+        (*month_).show_week_numbers = true;
         (*month_).set_bolded_dates({{2026, 8U, 21U}, {2026, 9U, 7U}});
         (*month_).add_monthly_bolded_date({2026, 1U, 1U});
         (*month_).set_date({2026, 8U, 12U});

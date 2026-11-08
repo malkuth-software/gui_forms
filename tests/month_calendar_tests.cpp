@@ -122,7 +122,7 @@ void pointer_selection() {
     require(selected.size() == 1U && selected[0] == CalendarDateRange{august(3U), august(5U)},
             "date_selected reports the dragged range");
 
-    (*calendar).set_max_selection_count(3U);
+    (*calendar).max_selection_count = 3U;
     const Point tenth = centre(day_bounds(*calendar, august(10U)));
     static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::primary, third}));
     static_cast<void>(window.dispatch_pointer({PointerAction::move, PointerButton::none, tenth}));
@@ -137,7 +137,7 @@ void pointer_selection() {
     static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, previous}));
     bool threw = false;
     try {
-        (*calendar).set_max_selection_count(0U);
+        (*calendar).max_selection_count = 0U;
     } catch (const std::out_of_range&) {
         threw = true;
     }
@@ -209,22 +209,22 @@ void range_and_months() {
             "keyboard movement stops at max_date");
 
     (*calendar).set_date(august(12U));
-    (*calendar).set_calendar_dimensions({2U, 1U});
+    (*calendar).calendar_dimensions = {2U, 1U};
     require((*calendar).realized_days().size() == 31U + 30U, "two months show both months' days");
     const MonthCalendar::Parts parts = (*calendar).parts();
     require(parts.next_arrow.bounds.x > 300.0, "the next arrow sits on the last month of the top row");
     bool too_many = false;
     try {
-        (*calendar).set_calendar_dimensions({5U, 3U});
+        (*calendar).calendar_dimensions = {5U, 3U};
     } catch (const std::out_of_range&) {
         too_many = true;
     }
-    require(too_many && (*calendar).calendar_dimensions() == CalendarDimensions{2U, 1U},
+    require(too_many && (*calendar).calendar_dimensions.read() == CalendarDimensions{2U, 1U},
             "more than twelve months are refused");
 
-    (*calendar).set_calendar_dimensions({1U, 1U});
-    (*calendar).set_first_day_of_week(CalendarWeekday::monday);
-    (*calendar).set_show_week_numbers(true);
+    (*calendar).calendar_dimensions = {1U, 1U};
+    (*calendar).first_day_of_week = CalendarWeekday::monday;
+    (*calendar).show_week_numbers = true;
     require((*calendar).realized_item_count() == 1U + 7U + 6U + 31U,
             "week numbers add one item per row that holds days");
     const Rect first = day_bounds(*calendar, august(1U));

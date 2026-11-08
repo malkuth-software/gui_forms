@@ -5,6 +5,7 @@
 #include "gui_forms/gui_forms.hpp"
 #include "gui_forms/controls/button_base/button/button.hpp"
 #include "gui_forms/controls/data_grid_view/data_grid_view.hpp"
+#include "gui_forms/controls/panel/month_calendar/month_calendar.hpp"
 #include "gui_forms/controls/panel/panel.hpp"
 #include "gui_forms/controls/panel/tree_list_view/tree_list_view.hpp"
 #include "gui_forms/controls/scrollable_control/scrollable_control.hpp"
@@ -297,6 +298,51 @@ void test_data_grid_view_properties() {
     }
 }
 
+void test_month_calendar_properties() {
+    std::shared_ptr<MonthCalendar> control = make_control<MonthCalendar>(StableId("generated.monthcalendar"));
+    {
+        const bool sample = false;
+        (*control).show_today = sample;
+        expect((*control).show_today.read() == sample, "MonthCalendar.show_today: a write stores");
+    }
+    {
+        const bool sample = false;
+        (*control).show_today_circle = sample;
+        expect((*control).show_today_circle.read() == sample, "MonthCalendar.show_today_circle: a write stores");
+    }
+    {
+        const bool sample = true;
+        (*control).show_week_numbers = sample;
+        expect((*control).show_week_numbers.read() == sample, "MonthCalendar.show_week_numbers: a write stores");
+    }
+    {
+        const CalendarWeekday sample = CalendarWeekday::monday;
+        (*control).first_day_of_week = sample;
+        expect((*control).first_day_of_week.read() == sample, "MonthCalendar.first_day_of_week: a write stores");
+    }
+    {
+        const CalendarDimensions sample = CalendarDimensions{2U, 1U};
+        (*control).calendar_dimensions = sample;
+        expect((*control).calendar_dimensions.read() == sample, "MonthCalendar.calendar_dimensions: a write stores");
+    }
+    {
+        const std::uint32_t sample = 3U;
+        (*control).max_selection_count = sample;
+        expect((*control).max_selection_count.read() == sample, "MonthCalendar.max_selection_count: a write stores");
+    }
+    {
+        const std::uint32_t sample = 3U;
+        (*control).scroll_change = sample;
+        expect((*control).scroll_change.read() == sample, "MonthCalendar.scroll_change: a write stores");
+    }
+    // format_provider: no sample for DateTimeFormatProvider; give the property a "sample".
+    {
+        const FontSpec sample = FontSpec{FontRole::control, 12.0, 700, false, 0.12};
+        (*control).font = sample;
+        expect((*control).font.read() == sample, "MonthCalendar.font: a write stores");
+    }
+}
+
 void test_panel_properties() {
     std::shared_ptr<Panel> control = make_control<Panel>(StableId("generated.panel"));
     {
@@ -362,6 +408,7 @@ void test_tree_list_view_properties() {
 int main() {
     test_button_base_properties();
     test_data_grid_view_properties();
+    test_month_calendar_properties();
     test_panel_properties();
     test_scrollable_control_properties();
     test_tree_list_view_properties();
