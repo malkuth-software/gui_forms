@@ -230,9 +230,10 @@ bool gates_focus(ControlVisualRole family, ControlSurfaceState state) noexcept {
 }
 
 double text_minimum_for(ControlSurfaceState state, bool high_contrast) noexcept {
-    if (high_contrast) return high_contrast_text_minimum;
-    // A disabled control's text is exempt (ContrastVerdict::exempt).
+    // A disabled control's text is exempt (ContrastVerdict::exempt), in
+    // every presentation.
     if (state == ControlSurfaceState::disabled) return 0.0;
+    if (high_contrast) return high_contrast_text_minimum;
     return text_minimum;
 }
 

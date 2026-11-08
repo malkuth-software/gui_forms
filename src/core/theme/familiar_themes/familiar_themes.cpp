@@ -405,9 +405,9 @@ constexpr std::string_view xp_style_sheet = R"css(/* xp-style: a Luna-like look 
    its inner lights as four offset inset shadows; our keylines draw them
    as one inner ring of four colours.
    Contrast fixes on enabled elements: the field frame is #4f6f99 (XP.css's
-   #7f9db9 is 2.3:1 on the stock; the boundary gate is 3:1) and a card's
-   frame #86867b (the fieldset's #d0d0bf is 1.3:1); a notice, ungated,
-   keeps #d0d0bf. A toolbar button's hover frame is the navy one.
+   #7f9db9 is 2.3:1 on the stock; the boundary gate is 3:1), and a card's
+   and a notice's frame is #86867b (the fieldset's #d0d0bf is 1.3:1). A
+   toolbar button's hover frame is the navy one.
    Disabled text keeps Luna's #aca899: disabled controls are exempt. */
 
 * {
@@ -430,7 +430,7 @@ constexpr std::string_view xp_style_sheet = R"css(/* xp-style: a Luna-like look 
 }
 :family(notice) {
   background: #ffffff;
-  border: 1px solid #d0d0bf;
+  border: 1px solid #86867b;
   border-radius: 4px;
 }
 :family(tool-tip) {
@@ -620,7 +620,7 @@ constexpr std::string_view windows7_style_sheet = R"css(/* windows7-style: an Ae
 }
 :family(notice) {
   background: #ffffff;
-  border: 1px solid #cdd7db;
+  border: 1px solid #858c8e;
   border-radius: 3px;
   keylines: #ffffff;
 }
@@ -825,7 +825,7 @@ constexpr std::string_view macos_style_sheet = R"css(/* macos-style, light: a ma
 }
 :family(notice) {
   background: #00000004;
-  border: 1px solid #ffffff00;
+  border: 1px solid #949494;
   border-radius: 12px;
 }
 :family(tool-tip) {
@@ -1032,7 +1032,8 @@ constexpr std::string_view macos_style_dark_sheet = R"css(/* macos-style, dark: 
    are below 1.5:1 on #1c1c1e); muted text is #ffffff8f (#ffffff8c is
    4.4:1 on a pressed plate); the accent push button and badge are
    #0a6cf0 (white on the accent #0091ff is 3.2:1; Puppertino's dark list
-   selection passes), pressing to #0a5fd6; a pressed check box is
+   selection passes), pressing to #0a64e0 (#0a5fd6's edge is 2.9:1 on
+   #1c1c1e); a pressed check box is
    #ffffff29 (the accent mark on #ffffff30 is 2.9:1). Disabled text keeps
    Puppertino's #ffffff40: disabled controls are exempt. */
 
@@ -1056,7 +1057,7 @@ constexpr std::string_view macos_style_dark_sheet = R"css(/* macos-style, dark: 
 }
 :family(notice) {
   background: #ffffff04;
-  border: 1px solid #ffffff00;
+  border: 1px solid #676767;
   border-radius: 12px;
 }
 :family(tool-tip) {
@@ -1121,8 +1122,8 @@ constexpr std::string_view macos_style_dark_sheet = R"css(/* macos-style, dark: 
   outline-color: #ffffff;
 }
 :family(accent-button):active {
-  background: #0a5fd6;
-  border-color: #0a5fd6;
+  background: #0a64e0;
+  border-color: #0a64e0;
 }
 :family(accent-button):state(pending) {
   border-color: #e0a000;

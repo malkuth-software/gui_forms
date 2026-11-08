@@ -2748,7 +2748,8 @@ bool CompilePass::lower_material(const SyntaxNode& node) {
         if (position == ColourPosition::text || position == ColourPosition::edge) unremappable = true;
         add_recipe_field(declaration);
     }
-    if (unremappable && origin.source == ColourSource::literal) {
+    const bool authority = input_.colour_authority || in_base_origin(source_position_);
+    if (unremappable && origin.source == ColourSource::literal && !authority) {
         report(DiagnosticCode::literal_colour_unremappable, literal, clipped_theme_detail(token_text(literal)));
     }
     return true;

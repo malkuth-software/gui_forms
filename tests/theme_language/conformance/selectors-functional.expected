@@ -1,0 +1,31 @@
+compiled
+rule 0 theme_sheet type=button class=primary
+  label button:where(.primary, #save)
+  specificity 0,0,1
+  transition opacity curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=0.9
+rule 1 theme_sheet type=button id=save
+  label button:where(.primary, #save)
+  specificity 0,0,1
+  transition opacity curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=0.9
+rule 2 theme_sheet type=button not(class=primary) not(states=:hot)
+  label button:not(.primary, :hover)
+  transition opacity curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=0.8
+rule 3 theme_sheet states=:hot family=accent_button
+  label :family(accent-button):hover
+  transition opacity curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=0.7
+rule 4 theme_sheet type=button not(family=command_button)
+  label button:not(:family(command-button))
+  transition opacity curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=0.6
+rule 5 theme_sheet type=button ancestor(class=panel)
+  label .panel button
+  transition opacity curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=0.5
+rule 6 theme_sheet type=button parent(class=row) parent(id=form)
+  label #form > .row > button
+  transition opacity curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=0.4

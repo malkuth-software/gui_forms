@@ -93,7 +93,7 @@ std::size_t print_failures(std::string_view id, const std::vector<ContrastRow>& 
         ++failed;
         char line[200]{};
         std::snprintf(line, sizeof(line), "%s fails: %s %s %s %s %s #%02X%02X%02X on #%02X%02X%02X %.2f < %.1f\n",
-                      std::string(id).c_str(), row.high_contrast ? "high-contrast" : "light",
+                      std::string(id).c_str(), row.high_contrast ? "high-contrast" : row.dark ? "dark" : "light",
                       std::string(control_visual_role_name(row.family)).c_str(),
                       std::string(detail::control_surface_state_name(row.state)).c_str(),
                       row.selected ? "selected" : "-", std::string(detail::contrast_pair_name(row.pair)).c_str(),

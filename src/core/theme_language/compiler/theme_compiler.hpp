@@ -90,6 +90,12 @@ struct ThemeCompileInput final {
     // The host's colour hints, which env() reads when the sheet is
     // compiled (T4 theme variants); empty, every env() reads its fallback.
     SystemColourHints system_colours{};
+    // A built-in sheet (a theme's floor sheet or GUI.Forms' own light
+    // sheet): the colour authority, whose literal colours are the colours
+    // forced high contrast derives from, so they are not reported as
+    // unremappable (W201; owner, 2026-11-08, option 2). Rules before
+    // base_origin_end are the authority too. App and user sheets are not.
+    bool colour_authority{};
 };
 
 // One stretch of an inline style's text copied into a sheet by
