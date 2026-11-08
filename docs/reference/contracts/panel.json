@@ -20,14 +20,6 @@
       "reviewed": false,
       "summary": "Constructs a backplane ScrollableControl whose ordinary appearance resolves through the panel theme role."
     },
-    "gui_forms::Panel::border_style|BorderStyle () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the retained none, line, sunken, or raised border policy."
-    },
-    "gui_forms::Panel::set_border_style|void (BorderStyle)": {
-      "reviewed": false,
-      "summary": "Validates the closed border vocabulary, commits a real change, and invalidates paint and semantics atomically."
-    },
     "gui_forms::Panel::background|Color () const": {
       "reviewed": false,
       "summary": "Resolves the explicit background override or the leading color of the active theme material."
@@ -59,14 +51,6 @@
     "gui_forms::Panel::clear_style|void ()": {
       "reviewed": false,
       "summary": "Removes the explicit compatibility style and resumes theme recipes."
-    },
-    "gui_forms::Panel::visual_role|ControlVisualRole () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the theme role used when no explicit style/background is authoritative."
-    },
-    "gui_forms::Panel::set_visual_role|void (ControlVisualRole)": {
-      "reviewed": false,
-      "summary": "Accepts only panel-compatible roles, then invalidates style, paint, and semantics."
     },
     "gui_forms::Panel::on_paint|void (Painter &, Rect)": {
       "reviewed": false,

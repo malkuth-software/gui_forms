@@ -71,6 +71,7 @@
 #include "gui_forms/controls/panel/masked_text_box/masked_text_box.hpp"
 #include "gui_forms/controls/panel/masked_text_box/masked_text_provider/masked_text_provider.hpp"
 #include "gui_forms/controls/panel/material_panel/material_panel.hpp"
+#include "gui_forms/controls/panel/month_calendar/calendar_values/calendar_values.hpp"
 #include "gui_forms/controls/panel/month_calendar/month_calendar.hpp"
 #include "gui_forms/controls/panel/numeric_up_down/numeric_up_down.hpp"
 #include "gui_forms/controls/panel/object_view/object_view.hpp"
