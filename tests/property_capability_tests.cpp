@@ -406,8 +406,9 @@ void test_control_family() {
 
     expect((*probe).name.read() == "family.probe", "name starts as the stable id");
     const std::optional<PropertyDescriptor> name = (*probe).property_descriptor("name");
-    expect(name && (*name).default_value && std::get<std::string>(*(*name).default_value) == "family.probe",
-           "name stays an instance registration whose default is the stable id");
+    // The default is the stable ID, which differs per control, so the shared
+    // descriptor states none (C-8; the entry compares with the stable ID).
+    expect(name && !(*name).default_value, "name's descriptor states no default; the stable id is its default");
 
     expect(Control::control_property_entries().size() == Control::control_property_count,
            "Control's table holds every migrated property");

@@ -20,38 +20,6 @@
       "reviewed": false,
       "summary": "Constructs a one-by-one table that may add rows during automatic placement."
     },
-    "gui_forms::TableLayoutPanelCompat::column_count|std::size_t () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the authored base column count."
-    },
-    "gui_forms::TableLayoutPanelCompat::set_column_count|void (std::size_t)": {
-      "reviewed": false,
-      "summary": "Validates the bounded nonzero count, resizes style storage, reconciles placement, and invalidates layout."
-    },
-    "gui_forms::TableLayoutPanelCompat::row_count|std::size_t () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the authored base row count."
-    },
-    "gui_forms::TableLayoutPanelCompat::set_row_count|void (std::size_t)": {
-      "reviewed": false,
-      "summary": "Validates the bounded nonzero count, resizes style storage, reconciles placement, and invalidates layout."
-    },
-    "gui_forms::TableLayoutPanelCompat::grow_style|TableLayoutGrowStyle () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns fixed-size, add-rows, or add-columns automatic placement policy."
-    },
-    "gui_forms::TableLayoutPanelCompat::set_grow_style|void (TableLayoutGrowStyle)": {
-      "reviewed": false,
-      "summary": "Validates growth vocabulary and invalidates the table solution."
-    },
-    "gui_forms::TableLayoutPanelCompat::cell_border_style|TableCellBorderStyle () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns none, single, inset, or outset cell-frame policy."
-    },
-    "gui_forms::TableLayoutPanelCompat::set_cell_border_style|void (TableCellBorderStyle)": {
-      "reviewed": false,
-      "summary": "Validates the closed border vocabulary and invalidates painting and semantics."
-    },
     "gui_forms::TableLayoutPanelCompat::column_styles|std::span<const TableLayoutStyle> () const noexcept": {
       "reviewed": false,
       "summary": "Returns a read-only span over current authored column track policies."

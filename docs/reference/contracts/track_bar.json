@@ -21,30 +21,6 @@
       "reviewed": false,
       "summary": "Constructs a RangeControl with slider cursor and control-specific visual defaults."
     },
-    "gui_forms::TrackBar::tick_frequency|double () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the positive value interval between recorded tick marks."
-    },
-    "gui_forms::TrackBar::set_tick_frequency|void (double)": {
-      "reviewed": false,
-      "summary": "Accepts a finite positive interval and invalidates painting."
-    },
-    "gui_forms::TrackBar::show_ticks|bool () const noexcept": {
-      "reviewed": false,
-      "summary": "Reports whether tick marks are painted beside the track."
-    },
-    "gui_forms::TrackBar::set_show_ticks|void (bool)": {
-      "reviewed": false,
-      "summary": "Toggles tick projection and invalidates measure and paint."
-    },
-    "gui_forms::TrackBar::visual_style|TrackBarVisualStyle () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns standard, compact, or accent slider appearance."
-    },
-    "gui_forms::TrackBar::set_visual_style|void (TrackBarVisualStyle)": {
-      "reviewed": false,
-      "summary": "Validates the style vocabulary and invalidates size and appearance."
-    },
     "gui_forms::TrackBar::measure|Size (Size)": {
       "reviewed": false,
       "summary": "Provides orientation- and tick-aware desired cross-axis thickness."
