@@ -119,7 +119,7 @@ private:
         close_overlay();
         (*document_.gallery_overlays_status).text = std::string(reason == OverlayDismissReason::click_away
                                 ? "Dismissed by click-away · the press did not fall through to the page"
-                                : "Dismissed by Escape · intercepted before the focused field";
+                                : "Dismissed by Escape · intercepted before the focused field");
     }
 
     void on_close_clicked() {

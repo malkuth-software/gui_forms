@@ -354,7 +354,7 @@ private:
     void on_activity_visible_changed(const bool visible) {
         (*document_.gallery_tabs_status).text = std::string(visible
             ? "Activity · keep visible on · bound Value<bool> changed"
-            : "Activity · keep visible off · bound Value<bool> changed";
+            : "Activity · keep visible off · bound Value<bool> changed");
     }
 
     static constexpr std::array<std::string_view, 10> document_titles{
