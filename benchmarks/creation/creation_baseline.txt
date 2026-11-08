@@ -6,3 +6,7 @@
 case bare_window median_ns 1666 threshold_ns 83 allocations 66 bytes 8891
 case popup median_ns 1208 threshold_ns 42 allocations 40 bytes 6497
 case form_window median_ns 45437 threshold_ns 834 allocations 1302 bytes 249481
+# Note: Part A step 2 (joined windows, --joined); plain cases unchanged
+case bare_window_joined median_ns 1667 threshold_ns 208 allocations 64 bytes 8555
+case popup_joined median_ns 1250 threshold_ns 125 allocations 40 bytes 6497
+case form_window_joined median_ns 46542 threshold_ns 3750 allocations 1302 bytes 249481

@@ -301,8 +301,23 @@ public:
     [[nodiscard]] std::size_t window_count() const noexcept { return window_count_; }
     // The resources every joined window shares unless made with its own.
     [[nodiscard]] const std::shared_ptr<ApplicationResources>& resources() const noexcept { return resources_; }
-    // The presentation defaults a joined window starts from.
+    // The presentation every joined window takes as its own: the
+    // configured defaults, then the host's reports.
     [[nodiscard]] const PresentationSettings& presentation_settings() const noexcept { return presentation_; }
+    // Changes it and gives it to every joined window, in the order they
+    // joined; each keeps its overrides (Window::set_presentation_overrides)
+    // and raises presentation_changed when its settings in force change. A
+    // window a handler destroys meanwhile is skipped. std::invalid_argument
+    // as validate_presentation_settings, changing nothing. UI thread.
+    void set_presentation_settings(PresentationSettings settings);
+    // Replaces the program's theme of every joined window: the shared
+    // resources' (ApplicationResources::set_theme, which each window sharing
+    // them follows), then each joined window's own resources, in joining
+    // order. Null and the refusals of ApplicationResources::set_theme are
+    // std::invalid_argument: a refusal by the shared resources changes
+    // nothing; one by a window's own resources leaves those before it
+    // changed. UI thread.
+    void set_theme(std::shared_ptr<const Theme> theme);
 
     [[nodiscard]] static ApplicationResult validate(
         const std::vector<ApplicationWindow>& windows);

@@ -13,6 +13,7 @@
 #include <stdexcept>
 #include <string>
 #include <thread>
+#include <vector>
 
 namespace {
 
@@ -152,6 +153,75 @@ void test_application_destroyed_first() {
     window.perform_layout();
 }
 
+// Records which window raised presentation_changed, in order.
+class PresentationOrder final {
+public:
+    PresentationOrder(std::vector<int>& order, int window) noexcept : order_(order), window_(window) {}
+    void operator()(const PresentationSettings&) const { order_.push_back(window_); }
+
+private:
+    std::vector<int>& order_;
+    int window_;
+};
+
+void test_presentation_and_overrides() {
+    ApplicationCreateResult created = Application::create(ApplicationConfig{});
+    require(static_cast<bool>(created), "the application is made");
+    Application& application = *created.application;
+    Window first(make_root("instance.first"), Size{200.0, 100.0});
+    Window second(make_root("instance.second"), Size{200.0, 100.0}, ImageRegistryLimits{});
+    std::vector<int> order;
+    SubscriptionToken first_changed = first.presentation_changed().subscribe(PresentationOrder(order, 1));
+    SubscriptionToken second_changed = second.presentation_changed().subscribe(PresentationOrder(order, 2));
+    require(first.presentation_overrides() == nullptr, "a window without overrides stores none");
+
+    PresentationSettings settings{};
+    settings.text_scale = 2.0;
+    settings.high_contrast = true;
+    application.set_presentation_settings(settings);
+    require(first.presentation_settings() == settings && second.presentation_settings() == settings &&
+                order == std::vector<int>{1, 2},
+            "the application's presentation reaches every joined window in joining order");
+
+    first.set_presentation_overrides(PresentationOverrides{.text_scale = 1.25});
+    require(first.presentation_overrides() != nullptr && first.presentation_settings().text_scale == 1.25 &&
+                first.presentation_settings().high_contrast && first.presentation_base() == settings,
+            "an override wins over its field only");
+    settings.text_scale = 3.0;
+    settings.high_contrast = false;
+    application.set_presentation_settings(settings);
+    require(first.presentation_settings().text_scale == 1.25 && !first.presentation_settings().high_contrast &&
+                second.presentation_settings().text_scale == 3.0,
+            "an application change keeps a window's overrides and reaches its other fields");
+
+    bool refused = false;
+    try {
+        first.set_presentation_overrides(PresentationOverrides{.text_scale = 9.0});
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && first.presentation_settings().text_scale == 1.25, "an invalid override changes nothing");
+    first.set_presentation_overrides(PresentationOverrides{});
+    require(first.presentation_overrides() == nullptr && first.presentation_settings().text_scale == 3.0,
+            "an empty record releases the overrides");
+
+    bool refused_application = false;
+    PresentationSettings invalid = settings;
+    invalid.text_scale = 0.0;
+    try {
+        application.set_presentation_settings(invalid);
+    } catch (const std::invalid_argument&) {
+        refused_application = true;
+    }
+    require(refused_application && application.presentation_settings() == settings,
+            "an invalid application presentation changes nothing");
+
+    const std::shared_ptr<const Theme> theme = gui_forms_theme();
+    application.set_theme(theme);
+    require(first.theme_ptr() == theme && second.theme_ptr() == theme,
+            "the application's theme reaches shared and own resources");
+}
+
 } // namespace
 
 int main() {
@@ -162,6 +232,7 @@ int main() {
         test_base_theme();
         test_other_thread_does_not_join();
         test_application_destroyed_first();
+        test_presentation_and_overrides();
     } catch (const std::exception& error) {
         std::cerr << "FAIL: " << error.what() << '\n';
         return EXIT_FAILURE;

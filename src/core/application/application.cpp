@@ -4,10 +4,12 @@
 #include "gui_forms/resources/application_resources/application_resources.hpp"
 #include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
 
+#include <algorithm>
 #include <atomic>
 #include <cmath>
 #include <cstdio>
 #include <span>
+#include <stdexcept>
 #include <utility>
 #include <vector>
 
@@ -374,6 +376,37 @@ void Application::leave(Window& window) noexcept {
     window.previous_in_application_ = nullptr;
     window.next_in_application_ = nullptr;
     --window_count_;
+}
+
+void Application::set_presentation_settings(PresentationSettings settings) {
+    validate_presentation_settings(settings);
+    if (presentation_ == settings) return;
+    presentation_ = settings;
+    // A window's handlers may destroy windows: each is reached through its
+    // lifetime record, taken before the first is told.
+    std::vector<std::shared_ptr<detail::WindowLifetime>> windows;
+    windows.reserve(window_count_);
+    for (Window* window = first_window_; window != nullptr; window = (*window).next_in_application_) {
+        windows.push_back((*window).lifetime_);
+    }
+    for (const std::shared_ptr<detail::WindowLifetime>& lifetime : windows) {
+        Window* const window = (*lifetime).window;
+        if (window == nullptr || (*window).application_ != this) continue;
+        (*window).set_presentation_settings(presentation_);
+    }
+}
+
+void Application::set_theme(std::shared_ptr<const Theme> theme) {
+    if (!theme) throw std::invalid_argument("GUI.Forms application theme may not be null");
+    // The shared resources first: their refusal changes nothing.
+    (*resources_).set_theme(theme);
+    std::vector<std::shared_ptr<ApplicationResources>> own;
+    for (Window* window = first_window_; window != nullptr; window = (*window).next_in_application_) {
+        const std::shared_ptr<ApplicationResources> resources = (*window).resources();
+        const bool listed = std::find(own.begin(), own.end(), resources) != own.end();
+        if (resources != resources_ && !listed) own.push_back(resources);
+    }
+    for (const std::shared_ptr<ApplicationResources>& resources : own) (*resources).set_theme(theme);
 }
 
 void Application::set_tool_tips_shown(bool shown) noexcept {

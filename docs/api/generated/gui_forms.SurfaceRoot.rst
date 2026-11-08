@@ -61,11 +61,29 @@ gui_forms::SurfaceRoot
          value that is not finite and positive throws ``std::invalid_argument``.
 
       **presentation_settings** : ``PresentationSettings``
-         Text scale, high contrast, reduced motion and sound preferences. The
-         text scale must lie between 0.5 and 4.0, and changing it closes open
-         overlays. Any change remeasures the tree and raises
-         :cpp:func:`presentation_changed <gui_forms::SurfaceRoot::presentation_changed>`. Turning reduced motion on puts every motion
-         value of the window at its end in the same call.
+         Text scale, high contrast, reduced motion and sound preferences in
+         force: the window's own settings (:cpp:func:`presentation_base <gui_forms::SurfaceRoot::presentation_base>`) with its
+         overrides (:cpp:func:`presentation_overrides <gui_forms::SurfaceRoot::presentation_overrides>`) applied. :cpp:func:`set_presentation_settings <gui_forms::SurfaceRoot::set_presentation_settings>`
+         sets the window's own settings, and the overrides still win. A window
+         joined to an application takes the application's settings as its own,
+         and the host's reports change the application's
+         (``Application::set_presentation_settings``). The text scale must lie
+         between 0.5 and 4.0, and changing it closes open overlays. Any change
+         remeasures the tree and raises :cpp:func:`presentation_changed <gui_forms::SurfaceRoot::presentation_changed>`. Turning reduced
+         motion on puts every motion value of the window at its end in the same
+         call.
+
+      **presentation_base** : ``PresentationSettings``, read-only
+         The window's own presentation settings, before its overrides.
+
+      **presentation_overrides** : ``PresentationOverrides*``
+         The fields this window overrides (:cpp:class:`PresentationOverrides <gui_forms::PresentationOverrides>`), or null when
+         it has none: each set field wins over the window's own settings.
+         :cpp:func:`set_presentation_overrides <gui_forms::SurfaceRoot::set_presentation_overrides>` stores the first override, and an empty
+         record releases them, so a window without overrides stores nothing. A
+         result outside the valid settings throws ``std::invalid_argument`` and
+         changes nothing. The double-click interval is the host's and has no
+         override.
 
       **text_metrics_provider** : ``TextMetricsProvider*``
 
@@ -553,15 +571,39 @@ gui_forms::SurfaceRoot
 
    .. cpp:function:: const PresentationSettings& presentation_settings() const noexcept
 
-      Text scale, high contrast, reduced motion and sound preferences. The
-      text scale must lie between 0.5 and 4.0, and changing it closes open
-      overlays. Any change remeasures the tree and raises
-      :cpp:func:`presentation_changed <gui_forms::SurfaceRoot::presentation_changed>`. Turning reduced motion on puts every motion
-      value of the window at its end in the same call.
+      Text scale, high contrast, reduced motion and sound preferences in
+      force: the window's own settings (:cpp:func:`presentation_base <gui_forms::SurfaceRoot::presentation_base>`) with its
+      overrides (:cpp:func:`presentation_overrides <gui_forms::SurfaceRoot::presentation_overrides>`) applied. :cpp:func:`set_presentation_settings <gui_forms::SurfaceRoot::set_presentation_settings>`
+      sets the window's own settings, and the overrides still win. A window
+      joined to an application takes the application's settings as its own,
+      and the host's reports change the application's
+      (``Application::set_presentation_settings``). The text scale must lie
+      between 0.5 and 4.0, and changing it closes open overlays. Any change
+      remeasures the tree and raises :cpp:func:`presentation_changed <gui_forms::SurfaceRoot::presentation_changed>`. Turning reduced
+      motion on puts every motion value of the window at its end in the same
+      call.
 
    .. cpp:function:: void set_presentation_settings(PresentationSettings settings)
 
       Sets :cpp:func:`presentation_settings <gui_forms::SurfaceRoot::presentation_settings>`; see the property's description above.
+
+   .. cpp:function:: const PresentationSettings& presentation_base() const noexcept
+
+      The window's own presentation settings, before its overrides.
+
+   .. cpp:function:: const PresentationOverrides* presentation_overrides() const noexcept
+
+      The fields this window overrides (:cpp:class:`PresentationOverrides <gui_forms::PresentationOverrides>`), or null when
+      it has none: each set field wins over the window's own settings.
+      :cpp:func:`set_presentation_overrides <gui_forms::SurfaceRoot::set_presentation_overrides>` stores the first override, and an empty
+      record releases them, so a window without overrides stores nothing. A
+      result outside the valid settings throws ``std::invalid_argument`` and
+      changes nothing. The double-click interval is the host's and has no
+      override.
+
+   .. cpp:function:: void set_presentation_overrides(const PresentationOverrides& overrides)
+
+      Sets :cpp:func:`presentation_overrides <gui_forms::SurfaceRoot::presentation_overrides>`; see the property's description above.
 
    .. cpp:function:: TextMetricsProvider* text_metrics_provider() const noexcept
 

@@ -77,6 +77,44 @@ struct PresentationSettings final {
     }
 };
 
+// Throws std::invalid_argument for settings no window takes: a text scale
+// outside 0.5 to 4.0 or not finite, a double-click interval outside 1 to
+// maximum_double_click_milliseconds, or an origin or scheme outside its enum.
+void validate_presentation_settings(const PresentationSettings& settings);
+
+// The presentation fields one window overrides (APP_WINDOW_RULES_DESIGN
+// A.2): each set field wins over the window's own settings, which come from
+// its application or its host; an unset field follows them. The
+// double-click interval is the host's alone and has no override.
+struct PresentationOverrides final {
+    std::optional<double> text_scale{};
+    std::optional<bool> high_contrast{};
+    std::optional<bool> reduced_motion{};
+    std::optional<bool> sound_enabled{};
+    std::optional<bool> ambient_motion{};
+    std::optional<bool> reduced_transparency{};
+    std::optional<ColourScheme> colour_scheme{};
+
+    // Whether no field is set.
+    [[nodiscard]] bool empty() const noexcept {
+        const bool none = !text_scale && !high_contrast && !reduced_motion && !sound_enabled && !ambient_motion &&
+                          !reduced_transparency && !colour_scheme;
+        return none;
+    }
+
+    friend bool operator==(const PresentationOverrides& left, const PresentationOverrides& right) noexcept {
+        return left.text_scale == right.text_scale && left.high_contrast == right.high_contrast &&
+               left.reduced_motion == right.reduced_motion && left.sound_enabled == right.sound_enabled &&
+               left.ambient_motion == right.ambient_motion &&
+               left.reduced_transparency == right.reduced_transparency &&
+               left.colour_scheme == right.colour_scheme;
+    }
+};
+
+// `settings` with each field `overrides` sets replaced.
+[[nodiscard]] PresentationSettings overridden_presentation(PresentationSettings settings,
+                                                           const PresentationOverrides& overrides) noexcept;
+
 // The screen area one presentation copied (stage DP): device pixels, the
 // rectangles they were copied in, and the time spent only copying them
 // (pixel conversion and the native copy, not painting).

@@ -333,10 +333,10 @@ void HostSession::DispatchVisitor::operator()(
     } else if constexpr (std::is_same_v<Payload, HostInputSettingsEvent>) {
         // Only the reported fields change; the application's own settings
         // stay as they are.
-        PresentationSettings settings = (*(*session).window_).presentation_settings();
+        PresentationSettings settings = (*(*session).window_).presentation_base();
         settings.double_click_milliseconds = payload.double_click_milliseconds;
         settings.double_click_origin = payload.double_click_origin;
-        (*(*session).window_).set_presentation_settings(settings);
+        (*(*session).window_).set_host_presentation(settings);
     }
 }
 

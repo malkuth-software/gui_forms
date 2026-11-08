@@ -47,11 +47,27 @@ scale : default ``1.0``
     Device pixels per logical unit. The host sets it from the display; a
     value that is not finite and positive throws `std::invalid_argument`.
 presentation_settings
-    Text scale, high contrast, reduced motion and sound preferences. The
-    text scale must lie between 0.5 and 4.0, and changing it closes open
-    overlays. Any change remeasures the tree and raises
-    `presentation_changed`. Turning reduced motion on puts every motion
-    value of the window at its end in the same call.
+    Text scale, high contrast, reduced motion and sound preferences in
+    force: the window's own settings (`presentation_base`) with its
+    overrides (`presentation_overrides`) applied. `set_presentation_settings`
+    sets the window's own settings, and the overrides still win. A window
+    joined to an application takes the application's settings as its own,
+    and the host's reports change the application's
+    (`Application::set_presentation_settings`). The text scale must lie
+    between 0.5 and 4.0, and changing it closes open overlays. Any change
+    remeasures the tree and raises `presentation_changed`. Turning reduced
+    motion on puts every motion value of the window at its end in the same
+    call.
+presentation_base
+    The window's own presentation settings, before its overrides.
+presentation_overrides
+    The fields this window overrides (`PresentationOverrides`), or null when
+    it has none: each set field wins over the window's own settings.
+    `set_presentation_overrides` stores the first override, and an empty
+    record releases them, so a window without overrides stores nothing. A
+    result outside the valid settings throws `std::invalid_argument` and
+    changes nothing. The double-click interval is the host's and has no
+    override.
 theme
     The theme every control inherits unless it has its own override.
     Setting it sets the theme of every window sharing this window's

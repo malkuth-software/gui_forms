@@ -42,9 +42,14 @@ gui_forms::Application
          The resources every joined window shares, unless it was made with its
          own.
 
-      **presentation_settings** : ``PresentationSettings``, read-only
-         The presentation defaults (``ApplicationConfig::presentation``) that a
-         joined window starts from, until the host reports its own.
+      **presentation_settings** : ``PresentationSettings``
+         The presentation every joined window takes as its own: the configured
+         defaults (``ApplicationConfig::presentation``), then the host's reports.
+         :cpp:func:`set_presentation_settings <gui_forms::Application::set_presentation_settings>` changes it and gives it to every joined
+         window in the order they joined; each keeps its overrides
+         (``Window::set_presentation_overrides``) and raises
+         ``presentation_changed`` when its settings in force change. Invalid
+         settings throw ``std::invalid_argument`` and change nothing.
 
       **key_bindings** : ``std::shared_ptr<KeyBindings>``, read-only
          The application's one set of keyboard-command keys (owner decision
@@ -77,6 +82,8 @@ gui_forms::Application
         - ``run(std::unique_ptr<Window>, ApplicationWindowOptions)`` presents one window, with the stable ID ``"main"``.
       * - :cpp:func:`shutdown <gui_forms::Application::shutdown>`
         - Ends the rendering library once per process: it frees stx_skia's caches and singletons.
+      * - :cpp:func:`set_theme <gui_forms::Application::set_theme>`
+        - Replaces the program's theme of every joined window: the shared resources' first, which every window sharing them follows, then each joined window's own resources.
 
    .. seealso::
 
@@ -197,8 +204,17 @@ gui_forms::Application
 
    .. cpp:function:: const PresentationSettings& presentation_settings() const noexcept
 
-      The presentation defaults (``ApplicationConfig::presentation``) that a
-      joined window starts from, until the host reports its own.
+      The presentation every joined window takes as its own: the configured
+      defaults (``ApplicationConfig::presentation``), then the host's reports.
+      :cpp:func:`set_presentation_settings <gui_forms::Application::set_presentation_settings>` changes it and gives it to every joined
+      window in the order they joined; each keeps its overrides
+      (``Window::set_presentation_overrides``) and raises
+      ``presentation_changed`` when its settings in force change. Invalid
+      settings throw ``std::invalid_argument`` and change nothing.
+
+   .. cpp:function:: void set_presentation_settings(PresentationSettings settings)
+
+      Sets :cpp:func:`presentation_settings <gui_forms::Application::presentation_settings>`; see the property's description above.
 
    .. cpp:function:: const std::shared_ptr<KeyBindings>& key_bindings() const noexcept
 
@@ -294,6 +310,14 @@ gui_forms::Application
       :cpp:func:`run <gui_forms::Application::run>` and :cpp:func:`shutdown <gui_forms::Application::shutdown>` return ``after_shutdown``. A process may end without
       it, a crash included, and lose nothing: the library holds only process
       memory, which the operating system reclaims.
+
+   .. cpp:function:: void set_theme(std::shared_ptr<const Theme> theme)
+
+      Replaces the program's theme of every joined window: the shared
+      resources' first, which every window sharing them follows, then each
+      joined window's own resources. Null and the refusals of
+      ``ApplicationResources::set_theme`` throw ``std::invalid_argument``; a
+      refusal by the shared resources changes nothing.
 
    .. cpp:member:: constexpr std::size_t maximum_windows
 

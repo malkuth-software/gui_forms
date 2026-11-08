@@ -28,8 +28,13 @@ resources
     The resources every joined window shares, unless it was made with its
     own.
 presentation_settings
-    The presentation defaults (`ApplicationConfig::presentation`) that a
-    joined window starts from, until the host reports its own.
+    The presentation every joined window takes as its own: the configured
+    defaults (`ApplicationConfig::presentation`), then the host's reports.
+    `set_presentation_settings` changes it and gives it to every joined
+    window in the order they joined; each keeps its overrides
+    (`Window::set_presentation_overrides`) and raises
+    `presentation_changed` when its settings in force change. Invalid
+    settings throw `std::invalid_argument` and change nothing.
 key_bindings
     The application's one set of keyboard-command keys (owner decision
     DK-44). `run` gives it to every window it runs, so a rebinding in any
@@ -68,6 +73,12 @@ close
     does nothing. Destroying an application that still has windows reports
     them on stderr; they keep the resources they share and read nothing
     more from it.
+set_theme
+    Replaces the program's theme of every joined window: the shared
+    resources' first, which every window sharing them follows, then each
+    joined window's own resources. Null and the refusals of
+    `ApplicationResources::set_theme` throw `std::invalid_argument`; a
+    refusal by the shared resources changes nothing.
 run
     `run(std::unique_ptr<Window>, ApplicationWindowOptions)` presents one
     window, with the stable ID `"main"`. `run(std::vector<ApplicationWindow>)`

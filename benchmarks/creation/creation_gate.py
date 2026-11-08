@@ -8,11 +8,14 @@ BENCHMARK is gui_forms_creation_benchmark, built in Release; run on the M4
 with nothing else running. Both modes run it as separate processes, since the
 time varies more between processes (placement, caches) than within one.
 
-record: ten processes. Per case, median_ns is the median of their medians and
+record: ten runs. Per case, median_ns is the median of their medians and
 threshold_ns their spread (largest minus smallest); allocations and bytes
 must be equal in every run.
 
-check: five processes; per case the median of their medians. Fails when the
+Each run is two processes: windows without an application, and windows
+joined to one (--joined, the *_joined cases).
+
+check: five runs; per case the median of their medians. Fails when the
 allocations exceed the baseline's, or the median exceeds median_ns plus
 threshold_ns. Prints one line per case and the verdict.
 
@@ -35,8 +38,10 @@ def measure(benchmark, runs):
     """Per case, in output order: (medians, allocation set, byte set)."""
     cases = {}
     for _ in range(runs):
-        output = subprocess.run([benchmark, '--rounds', str(ROUNDS)], check=True, capture_output=True,
-                                text=True).stdout
+        output = ''
+        for mode in ([], ['--joined']):
+            output += subprocess.run([benchmark, '--rounds', str(ROUNDS)] + mode, check=True,
+                                     capture_output=True, text=True).stdout
         for line in output.splitlines():
             match = LINE.match(line.strip())
             if not match:

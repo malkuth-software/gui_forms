@@ -81,12 +81,7 @@ Window::Window(Control::Ptr root, Size client_size, std::shared_ptr<ApplicationR
                Application* application)
     : SurfaceRoot(std::move(root), client_size, std::move(resources)) {
     presenting_window_ = this;
-    // A joined window starts from the application's presentation, before
-    // its tree attaches.
-    if (application != nullptr) {
-        presentation_settings_ = (*application).presentation_settings();
-        application_tool_tips_shown_ = (*application).tool_tips_shown_;
-    }
+    if (application != nullptr) application_tool_tips_shown_ = (*application).tool_tips_shown_;
     tool_tips_ = std::make_unique<detail::ToolTipPresenter>(*this);
     alerts_ = std::make_unique<detail::WindowAlerts>(*this);
     initialize_cursor_identity();
@@ -117,6 +112,13 @@ Window::Window(Control::Ptr root, Size client_size, std::shared_ptr<ApplicationR
     const Rect initial_damage{0.0, 0.0, client_size_.width, client_size_.height};
     add_damage_all_planes(initial_damage);
     metrics_.record_dirty_mark(initial_damage.area());
+    // A joined window takes the application's presentation as its own, with
+    // its consequences (the scheme's theme among them) once the tree is
+    // attached.
+    if (application != nullptr && (*application).presentation_settings() != presentation_settings_) {
+        presentation_base_ = (*application).presentation_settings();
+        apply_presentation(presentation_base_);
+    }
     // Last: a constructor that throws never leaves itself registered.
     (*resources_).attach(*this);
     if (application != nullptr) (*application).join(*this);
@@ -298,8 +300,7 @@ bool SurfaceRoot::set_surface_scale(double scale) {
     return true;
 }
 
-void SurfaceRoot::set_presentation_settings(PresentationSettings settings) {
-    require_root_thread("presentation settings mutation");
+void validate_presentation_settings(const PresentationSettings& settings) {
     if (!std::isfinite(settings.text_scale) ||
         settings.text_scale < 0.5 || settings.text_scale > 4.0) {
         throw std::invalid_argument(
@@ -317,6 +318,54 @@ void SurfaceRoot::set_presentation_settings(PresentationSettings settings) {
     if (settings.colour_scheme != ColourScheme::light && settings.colour_scheme != ColourScheme::dark) {
         throw std::invalid_argument("GUI.Forms colour scheme is not a ColourScheme");
     }
+}
+
+PresentationSettings overridden_presentation(PresentationSettings settings,
+                                             const PresentationOverrides& overrides) noexcept {
+    if (overrides.text_scale) settings.text_scale = *overrides.text_scale;
+    if (overrides.high_contrast) settings.high_contrast = *overrides.high_contrast;
+    if (overrides.reduced_motion) settings.reduced_motion = *overrides.reduced_motion;
+    if (overrides.sound_enabled) settings.sound_enabled = *overrides.sound_enabled;
+    if (overrides.ambient_motion) settings.ambient_motion = *overrides.ambient_motion;
+    if (overrides.reduced_transparency) settings.reduced_transparency = *overrides.reduced_transparency;
+    if (overrides.colour_scheme) settings.colour_scheme = *overrides.colour_scheme;
+    return settings;
+}
+
+void SurfaceRoot::set_presentation_settings(PresentationSettings settings) {
+    require_root_thread("presentation settings mutation");
+    validate_presentation_settings(settings);
+    PresentationSettings effective = settings;
+    if (presentation_overrides_) effective = overridden_presentation(settings, *presentation_overrides_);
+    validate_presentation_settings(effective);
+    presentation_base_ = settings;
+    apply_presentation(effective);
+}
+
+void SurfaceRoot::set_presentation_overrides(const PresentationOverrides& overrides) {
+    require_root_thread("presentation overrides");
+    const PresentationSettings effective = overridden_presentation(presentation_base_, overrides);
+    validate_presentation_settings(effective);
+    if (overrides.empty()) {
+        presentation_overrides_.reset();
+    } else if (presentation_overrides_) {
+        *presentation_overrides_ = overrides;
+    } else {
+        presentation_overrides_ = std::make_unique<PresentationOverrides>(overrides);
+    }
+    apply_presentation(effective);
+}
+
+void SurfaceRoot::set_host_presentation(PresentationSettings settings) {
+    Application* const application = presenting_window_ == this ? (*presenting_window_).application_ : nullptr;
+    if (application != nullptr) {
+        (*application).set_presentation_settings(settings);
+        return;
+    }
+    set_presentation_settings(settings);
+}
+
+void SurfaceRoot::apply_presentation(PresentationSettings settings) {
     if (presentation_settings_ == settings) {
         return;
     }
@@ -389,10 +438,10 @@ std::shared_ptr<const Theme> SurfaceRoot::scheme_theme(const std::shared_ptr<con
 }
 
 void SurfaceRoot::follow_host_colour_scheme(bool automatic) {
-    if (!automatic || presentation_settings_.colour_scheme == host_colour_scheme_) return;
-    PresentationSettings settings = presentation_settings_;
+    if (!automatic || presentation_base_.colour_scheme == host_colour_scheme_) return;
+    PresentationSettings settings = presentation_base_;
     settings.colour_scheme = host_colour_scheme_;
-    set_presentation_settings(settings);
+    set_host_presentation(settings);
 }
 
 const CompiledThemeRules* SurfaceRoot::user_theme_rules() const noexcept {
@@ -487,7 +536,7 @@ void Window::install_host_key_map(const KeyMap& defaults) {
 }
 
 void SurfaceRoot::set_text_scale(double text_scale) {
-    PresentationSettings settings = presentation_settings_;
+    PresentationSettings settings = presentation_base_;
     settings.text_scale = text_scale;
     set_presentation_settings(settings);
 }

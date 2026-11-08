@@ -100,6 +100,8 @@ Related types
      - What a host declares when it attaches a window.
    * - :cpp:class:`PresentationExtensions <gui_forms::PresentationExtensions>`
      -  
+   * - :cpp:class:`PresentationOverrides <gui_forms::PresentationOverrides>`
+     - The presentation fields one window overrides (APP_WINDOW_RULES_DESIGN A.2): each set field wins over the window's own settings, which come from its application or its host; an unset field follows them.
    * - :cpp:class:`PresentationSettings <gui_forms::PresentationSettings>`
      - PresentationSettings keeps logical text scaling, contrast, motion, and sound preferences independent from device scale and native host mechanics.
    * - :cpp:class:`PresentedArea <gui_forms::PresentedArea>`
@@ -943,6 +945,35 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: PresentationOverrides final
+
+   ``#include <gui_forms/window/presentation/presentation_types.hpp>``
+
+   The presentation fields one window overrides (APP_WINDOW_RULES_DESIGN A.2): each set field wins over the window's own settings, which come from its application or its host; an unset field follows them. The double-click interval is the host's alone and has no override.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool empty() const noexcept
+
+      Whether no field is set.
+
+   .. cpp:member:: std::optional<double> text_scale
+
+   .. cpp:member:: std::optional<bool> high_contrast
+
+   .. cpp:member:: std::optional<bool> reduced_motion
+
+   .. cpp:member:: std::optional<bool> sound_enabled
+
+   .. cpp:member:: std::optional<bool> ambient_motion
+
+   .. cpp:member:: std::optional<bool> reduced_transparency
+
+   .. cpp:member:: std::optional<ColourScheme> colour_scheme
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: PresentationSettings final
 
    ``#include <gui_forms/window/presentation/presentation_types.hpp>``
@@ -1677,6 +1708,14 @@ Functions, constants and aliases
 .. cpp:namespace:: gui_forms
 
 ``#include <gui_forms/window/presentation/presentation_types.hpp>``
+
+.. cpp:function:: void validate_presentation_settings(const PresentationSettings& settings)
+
+   Throws std::invalid_argument for settings no window takes: a text scale outside 0.5 to 4.0 or not finite, a double-click interval outside 1 to maximum_double_click_milliseconds, or an origin or scheme outside its enum.
+
+.. cpp:function:: PresentationSettings overridden_presentation(PresentationSettings settings, const PresentationOverrides& overrides) noexcept
+
+   ``settings`` with each field ``overrides`` sets replaced.
 
 .. cpp:var:: constexpr std::uint32_t paint_contract_version
 

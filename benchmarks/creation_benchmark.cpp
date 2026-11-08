@@ -2,7 +2,7 @@
 // allocations of making a bare window, a popup from its owner and a form
 // window of 22 controls with handlers, measured in interleaved rounds.
 //
-//   gui_forms_creation_benchmark [--rounds N]                       prints the costs
+//   gui_forms_creation_benchmark [--rounds N] [--joined]            prints the costs
 //   benchmarks/creation/creation_gate.py record BENCHMARK MANIFEST  writes the baseline
 //   benchmarks/creation/creation_gate.py check BENCHMARK MANIFEST   fails on a regression
 //
@@ -12,9 +12,13 @@
 // is never admitted. Only the measuring thread counts, so worker threads do
 // not make the count vary. Bytes are the bytes requested.
 //
+// --joined makes an application current first (Application::create), so the
+// windows join it and share its resources: the cases are named *_joined.
+//
 // creation_gate.py runs this program as separate processes and compares
 // with the committed baseline (benchmarks/creation/creation_baseline.txt).
 
+#include "gui_forms/application.hpp"
 #include "gui_forms/gui_forms.hpp"
 #include "creation_form_form.hpp"
 
@@ -269,9 +273,10 @@ std::array<CaseCost, 3> run(std::size_t rounds, const std::shared_ptr<Applicatio
     return costs;
 }
 
-void print_costs(const std::array<CaseCost, 3>& costs) {
+void print_costs(const std::array<CaseCost, 3>& costs, bool joined) {
     for (std::size_t index = 0U; index < creation_cases.size(); ++index) {
-        const std::string name(case_name(creation_cases[index]));
+        std::string name(case_name(creation_cases[index]));
+        if (joined) name += "_joined";
         std::printf("%-12s median %10.0f ns  p10-p90 %9.0f ns  allocations %6llu  bytes %9llu\n", name.c_str(),
                     costs[index].median_nanoseconds, costs[index].spread_nanoseconds,
                     static_cast<unsigned long long>(costs[index].allocations),
@@ -283,13 +288,28 @@ void print_costs(const std::array<CaseCost, 3>& costs) {
 
 int main(int argc, char** argv) {
     std::size_t rounds = 200U;
+    bool joined = false;
+    for (int index = 1; index < argc; ++index) {
+        if (std::string_view(argv[index]) == "--joined") joined = true;
+    }
     for (int index = 1; index + 1 < argc; index += 2) {
         const std::string_view option = argv[index];
         if (option == "--rounds") rounds = static_cast<std::size_t>(std::strtoull(argv[index + 1], nullptr, 10));
     }
     if (rounds == 0U) rounds = 1U;
-    const std::shared_ptr<ApplicationResources> resources = std::make_shared<ApplicationResources>();
+    // The application, when joined, is made before anything measured and
+    // outlives every window; its resources are the form window's too.
+    ApplicationCreateResult created{};
+    if (joined) {
+        created = Application::create(ApplicationConfig{});
+        if (!created) {
+            std::fprintf(stderr, "the application was refused\n");
+            return 2;
+        }
+    }
+    const std::shared_ptr<ApplicationResources> resources =
+        joined ? (*created.application).resources() : std::make_shared<ApplicationResources>();
     const std::array<CaseCost, 3> costs = run(rounds, resources);
-    print_costs(costs);
+    print_costs(costs, joined);
     return 0;
 }

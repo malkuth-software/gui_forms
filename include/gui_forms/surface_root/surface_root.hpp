@@ -363,11 +363,29 @@ public:
     [[nodiscard]] Control::Ptr root() const noexcept { return root_; }
     [[nodiscard]] Size client_size() const noexcept { return client_size_; }
     [[nodiscard]] double scale() const noexcept { return scale_; }
+    // The settings in force: the window's own (presentation_base) with its
+    // overrides applied.
     [[nodiscard]] const PresentationSettings& presentation_settings() const noexcept {
         return presentation_settings_;
     }
+    // Sets the window's own settings; its overrides still win. A joined
+    // window's own settings are its application's, and the application's
+    // changes (Application::set_presentation_settings) and the host's
+    // reports replace them. std::invalid_argument as
+    // validate_presentation_settings, changing nothing.
     void set_presentation_settings(PresentationSettings settings);
     void set_text_scale(double text_scale);
+    // The window's own settings, before its overrides.
+    [[nodiscard]] const PresentationSettings& presentation_base() const noexcept { return presentation_base_; }
+    // Overrides fields of the window's settings, copy on write: a window
+    // without overrides stores none, and an empty record releases them.
+    // std::invalid_argument when the result is not valid
+    // (validate_presentation_settings), changing nothing.
+    void set_presentation_overrides(const PresentationOverrides& overrides);
+    // The window's overrides, or null when it has none.
+    [[nodiscard]] const PresentationOverrides* presentation_overrides() const noexcept {
+        return presentation_overrides_.get();
+    }
     // The host installs its terminal text engine through this non-owning,
     // renderer-neutral seam. Replacing it invalidates measurement so controls
     // never retain geometry produced by a previous font/raster profile.
@@ -1022,6 +1040,8 @@ private:
     std::shared_ptr<detail::DispatcherState> dispatcher_state_;
     Metrics metrics_;
     friend class HostSession;
+    // Reaches joined windows through their lifetime records.
+    friend class Application;
     friend class MotionClock;
     // Called by the motion clock: its single frame request, first due at
     // `first_deadline` and then every motion_frame_interval. Each frame
@@ -1117,6 +1137,14 @@ private:
     // `application` where it has the variant, else GUI.Forms' own theme,
     // noting theme_fallback_ (and the resources' warning) either way.
     [[nodiscard]] std::shared_ptr<const Theme> scheme_theme(const std::shared_ptr<const Theme>& application);
+    // Puts `settings`, valid, in force (presentation_settings_), with every
+    // consequence: remeasure, motion, backdrop, the scheme's theme and
+    // presentation_changed.
+    void apply_presentation(PresentationSettings settings);
+    // A host's report of the system's settings, as the window's own: for a
+    // window joined to an application, the application's, reaching every
+    // window joined to it (Application::set_presentation_settings).
+    void set_host_presentation(PresentationSettings settings);
     // Makes `shown` the window's theme: no cached raster stands, the
     // backdrop follows it, every control is remeasured, and theme_changed
     // is raised. Nothing where it is already shown.
@@ -1612,6 +1640,10 @@ private:
     Size client_size_{};
     double scale_{1.0};
     PresentationSettings presentation_settings_{};
+    // The window's own settings (from its application, its host or the
+    // program) and its overrides, null until the first (copy on write).
+    PresentationSettings presentation_base_{};
+    std::unique_ptr<PresentationOverrides> presentation_overrides_{};
     TextMetricsProvider* text_metrics_provider_{};
     Painter* framebuffer_painter_{};
     // The backplane replay's framebuffer (C6), made from the framebuffer
