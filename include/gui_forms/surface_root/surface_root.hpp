@@ -380,6 +380,19 @@ public:
 
     [[nodiscard]] Control::Ptr root() const noexcept { return root_; }
     [[nodiscard]] Size client_size() const noexcept { return client_size_; }
+    // The root slot (stage B, B.2a): the client rectangle less the chrome
+    // insets, in client coordinates. The layout pass measures the root at
+    // its size and arranges it there, and a resize marks what it reaches
+    // through it; damage and clipping stay in the whole client area. The
+    // inset band is the window's own (chrome hit-testing, frame drag): no
+    // control is there. Empty on an axis the insets cover.
+    [[nodiscard]] Rect root_slot() const noexcept;
+    [[nodiscard]] Insets chrome_insets() const noexcept { return chrome_insets_; }
+    // Sets the chrome insets: std::invalid_argument, changing nothing,
+    // unless each is finite and not negative; otherwise damages the client
+    // area and marks the root to be arranged again, and measured again on
+    // an axis whose slot extent changed. Root thread.
+    void set_chrome_insets(Insets insets);
     [[nodiscard]] double scale() const noexcept { return scale_; }
     // The settings in force: the window's own (presentation_base) with its
     // overrides applied.
@@ -1723,6 +1736,9 @@ private:
 
     Control::Ptr root_;
     Size client_size_{};
+    // Zero unless the window's chrome takes a band of the client area
+    // (root_slot).
+    Insets chrome_insets_{};
     double scale_{1.0};
     PresentationSettings presentation_settings_{};
     // The window's own settings (from its application, its host or the

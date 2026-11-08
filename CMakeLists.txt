@@ -3831,6 +3831,13 @@ if(GUI_FORMS_BUILD_TESTS)
     add_test(NAME gui_forms_window_resize_measure_tests
              COMMAND gui_forms_window_resize_measure_tests)
 
+    add_executable(gui_forms_window_root_slot_tests
+        tests/window_root_slot_tests.cpp
+    )
+    target_link_libraries(gui_forms_window_root_slot_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_window_root_slot_tests
+             COMMAND gui_forms_window_root_slot_tests)
+
     add_executable(gui_forms_layout_direction_tests
         tests/layout_direction_tests.cpp
     )

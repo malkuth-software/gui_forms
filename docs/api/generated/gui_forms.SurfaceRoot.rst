@@ -56,6 +56,11 @@ gui_forms::SurfaceRoot
       **client_size** : ``Size``, read-only
          The logical client size. ``resize`` changes it.
 
+      **root_slot** : ``Rect``, read-only
+         The root slot (stage B, B.2a): the client rectangle less the chrome insets, in client coordinates. The layout pass measures the root at its size and arranges it there, and a resize marks what it reaches through it; damage and clipping stay in the whole client area. The inset band is the window's own (chrome hit-testing, frame drag): no control is there. Empty on an axis the insets cover.
+
+      **chrome_insets** : ``Insets``
+
       **scale** : ``double``, default ``1.0``, read-only
          Device pixels per logical unit. The host sets it from the display; a
          value that is not finite and positive throws ``std::invalid_argument``.
@@ -585,6 +590,16 @@ gui_forms::SurfaceRoot
    .. cpp:function:: Size client_size() const noexcept
 
       The logical client size. ``resize`` changes it.
+
+   .. cpp:function:: Rect root_slot() const noexcept
+
+      The root slot (stage B, B.2a): the client rectangle less the chrome insets, in client coordinates. The layout pass measures the root at its size and arranges it there, and a resize marks what it reaches through it; damage and clipping stay in the whole client area. The inset band is the window's own (chrome hit-testing, frame drag): no control is there. Empty on an axis the insets cover.
+
+   .. cpp:function:: Insets chrome_insets() const noexcept
+
+   .. cpp:function:: void set_chrome_insets(Insets insets)
+
+      Sets the chrome insets: std::invalid_argument, changing nothing, unless each is finite and not negative; otherwise damages the client area and marks the root to be arranged again, and measured again on an axis whose slot extent changed. Root thread.
 
    .. cpp:function:: double scale() const noexcept
 

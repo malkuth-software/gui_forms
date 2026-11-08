@@ -3335,7 +3335,10 @@ void SurfaceRoot::ensure_layout(bool read_barrier) {
             second_layout_pass_requested_ = false;
             std::uint64_t measure_visited = 0;
             std::uint64_t measured = 0;
-            measure_dirty_recursive(root_, client_size_, measure_visited, measured);
+            // The root in its slot (B.2a); overlays keep the whole client.
+            const Rect slot = root_slot();
+            const Size slot_size{slot.width, slot.height};
+            measure_dirty_recursive(root_, slot_size, measure_visited, measured);
             for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
                 if (const Control::Ptr overlay_root = (*overlay).overlay()) {
                     measure_dirty_recursive(overlay_root, client_size_, measure_visited,
@@ -3346,9 +3349,7 @@ void SurfaceRoot::ensure_layout(bool read_barrier) {
 
             std::uint64_t arrange_visited = 0;
             std::uint64_t arranged = 0;
-            arrange_dirty_recursive(
-                root_, {0.0, 0.0, client_size_.width, client_size_.height},
-                arrange_visited, arranged);
+            arrange_dirty_recursive(root_, slot, arrange_visited, arranged);
             // A tooltip below a control follows it before the overlays are
             // arranged.
             if (tool_tips_) (*tool_tips_).root_arranged();

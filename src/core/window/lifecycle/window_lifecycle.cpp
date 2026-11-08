@@ -219,9 +219,13 @@ bool SurfaceRoot::resize_surface(Size client_size) {
     settle_dirty();
     const Rect old_bounds{0.0, 0.0, client_size_.width, client_size_.height};
     const Rect new_bounds{0.0, 0.0, client_size.width, client_size.height};
-    const bool width_changed = client_size_.width != client_size.width;
-    const bool height_changed = client_size_.height != client_size.height;
+    // What the root is handed changes with its slot, which the insets keep
+    // apart from the client area's edges.
+    const Rect old_slot = root_slot();
     client_size_ = client_size;
+    const Rect new_slot = root_slot();
+    const bool width_changed = old_slot.width != new_slot.width;
+    const bool height_changed = old_slot.height != new_slot.height;
     ++surface_epoch_;
     if (surface_epoch_ == 0U) ++surface_epoch_;
     apply_client_resize(old_bounds, new_bounds, width_changed, height_changed);
@@ -234,8 +238,9 @@ bool SurfaceRoot::resize_surface(Size client_size) {
 }
 
 // The surface side of a client resize (Window::resize is its host entry):
-// damage and layout marks for a root that went from `old_bounds` to
-// `new_bounds`, both at the window origin.
+// damage for a client area that went from `old_bounds` to `new_bounds`,
+// both at the window origin, and layout marks for a root slot whose width
+// or height changed.
 void SurfaceRoot::apply_client_resize(Rect old_bounds, Rect new_bounds, bool width_changed,
                                       bool height_changed) {
     // What the resize touched, and whether it needs repainting (the owner,
@@ -265,9 +270,36 @@ void SurfaceRoot::apply_client_resize(Rect old_bounds, Rect new_bounds, bool wid
     mark_resized_measure(*root_, width_changed, height_changed);
 }
 
-// The window's measure pass hands the root the client size, and hands each
+Rect SurfaceRoot::root_slot() const noexcept {
+    const Insets& insets = chrome_insets_;
+    const double width = client_size_.width - insets.left - insets.right;
+    const double height = client_size_.height - insets.top - insets.bottom;
+    const Rect slot{insets.left, insets.top, width > 0.0 ? width : 0.0, height > 0.0 ? height : 0.0};
+    return slot;
+}
+
+void SurfaceRoot::set_chrome_insets(Insets insets) {
+    require_root_thread("chrome insets mutation");
+    const bool finite = std::isfinite(insets.left) && std::isfinite(insets.top) && std::isfinite(insets.right) &&
+                        std::isfinite(insets.bottom);
+    const bool not_negative = insets.left >= 0.0 && insets.top >= 0.0 && insets.right >= 0.0 && insets.bottom >= 0.0;
+    if (!finite || !not_negative) {
+        throw std::invalid_argument("GUI.Forms chrome insets must be finite and not negative");
+    }
+    if (chrome_insets_ == insets) return;
+    // Pending touches place their damage where the controls were.
+    settle_dirty();
+    const Rect old_slot = root_slot();
+    chrome_insets_ = insets;
+    const Rect new_slot = root_slot();
+    add_damage_all_planes({0.0, 0.0, client_size_.width, client_size_.height});
+    mark_child_layout_slot(*root_);
+    mark_resized_measure(*root_, old_slot.width != new_slot.width, old_slot.height != new_slot.height);
+}
+
+// The window's measure pass hands the root its slot's size, and hands each
 // child its parent's requested extent on each axis, or, where that is zero,
-// what the parent was handed (measure_dirty_recursive). A client-size change
+// what the parent was handed (measure_dirty_recursive). A slot-size change
 // therefore changes what a control is handed exactly when it reaches the
 // control: on a changed axis, through ancestors that request no extent on
 // that axis. Those controls, and only those, are marked for measure. The
