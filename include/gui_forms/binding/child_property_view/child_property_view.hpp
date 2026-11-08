@@ -24,8 +24,8 @@ class Control;
 //       static bool read(const FlowBreakCapability& capability, const Control& child);
 //   };
 //
-//   (*flow).flow_break[*button] = true;                 // the write
-//   bool breaks = (*flow).flow_break[*button].read();   // the read
+// For example, `(*flow).flow_break[*button] = true` is the write and
+// `(*flow).flow_break[*button].read()` the read.
 //
 // The write calls `Capability::assign`, which checks the container's thread
 // and that `child` is a live direct child, compares with the child's value

@@ -677,7 +677,7 @@ Related types
 
    ``#include <gui_forms/controls/scrollable_control/container_control/grid_panel/grid_panel.hpp>``
 
-   The two views of a grid child's placement (child properties, study 10.9): writing either replaces the other. (*grid).area[*ok] = "footer"; // into the span named footer (*grid).cell[*title] = GridCell{.row = 0U, .column = 0U}; Writing "" to ``area`` makes the placement automatic.
+   The two views of a grid child's placement (child properties, study 10.9): writing either replaces the other. For example, ``(*grid).area[*ok] = "footer"`` places into the span named footer, and ``(*grid).cell[*title] = GridCell{.row = 0U, .column = 0U}`` places at a cell. Writing "" to ``area`` makes the placement automatic.
 
 
    .. rubric:: Methods
