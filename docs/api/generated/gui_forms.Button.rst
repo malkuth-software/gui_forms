@@ -7,7 +7,7 @@ gui_forms::Button
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: Button : public ButtonBase
+.. cpp:class:: Button : public ButtonBase, public ButtonCapabilities<Button>
 
    ``#include <gui_forms/controls/button_base/button/button.hpp>``
 
@@ -35,6 +35,16 @@ gui_forms::Button
 
    :Properties:
 
+      **visual_style** : ``ButtonVisualStyle``, default ``ButtonVisualStyle::standard``
+         With theme painting, ``accent`` draws the theme's emphasised button and
+         ``command`` a command button with left-aligned content; ``standard`` and
+         ``flat`` look the same. After ``set_style``, each style has its own classic
+         look, and ``flat`` draws a plain face with a border of :cpp:member:`flat_border_width <gui_forms::Button::flat_border_width>`.
+
+      **flat_border_width** : ``double``, default ``1.0``
+         Border width for the ``flat`` style after ``set_style``; zero draws no
+         border. A negative or non-finite width throws ``std::invalid_argument``.
+
       **default_button** : ``bool``, default ``false``
          Whether the button draws the default-button cue. ``Window::set_accept_button``
          turns it on for the new accept button and off for the previous one.
@@ -48,22 +58,12 @@ gui_forms::Button
          ``std::invalid_argument``. Setting a different value raises
          :cpp:func:`dialog_result_changed <gui_forms::Button::dialog_result_changed>`.
 
-      **visual_style** : ``ButtonVisualStyle``, default ``ButtonVisualStyle::standard``
-         With theme painting, ``accent`` draws the theme's emphasised button and
-         ``command`` a command button with left-aligned content; ``standard`` and
-         ``flat`` look the same. After ``set_style``, each style has its own classic
-         look, and ``flat`` draws a plain face with a border of :cpp:func:`flat_border_width <gui_forms::Button::flat_border_width>`.
-
       **selected** : ``bool``, default ``false``
          A persistent "on" look for a button that represents the current choice,
          such as the active tab of a custom tab strip. It is reported to
          accessibility as selected. While a :cpp:class:`Command <gui_forms::Command>` is bound, it follows the
          command's checked state, and stays false for a command that is not
          checkable. Setting a different value raises :cpp:func:`selected_changed <gui_forms::Button::selected_changed>`.
-
-      **flat_border_width** : ``double``, default ``1.0``
-         Border width for the ``flat`` style after ``set_style``; zero draws no
-         border. A negative or non-finite width throws ``std::invalid_argument``.
 
       **parts** : ``Parts``, read-only
 
@@ -82,9 +82,18 @@ gui_forms::Button
 
    :Inherited:
 
-      From :cpp:class:`ButtonBase <gui_forms::ButtonBase>`: properties :cpp:member:`text <gui_forms::ButtonBase::text>`, :cpp:member:`text_alignment <gui_forms::ButtonBase::text_alignment>`, :cpp:member:`font <gui_forms::ButtonBase::font>`, :cpp:member:`content_padding <gui_forms::ButtonBase::content_padding>`, :cpp:member:`text_line_spacing <gui_forms::ButtonBase::text_line_spacing>`, :cpp:member:`image_alignment <gui_forms::ButtonBase::image_alignment>`, :cpp:member:`text_image_relation <gui_forms::ButtonBase::text_image_relation>`, :cpp:member:`image_gap <gui_forms::ButtonBase::image_gap>`, :cpp:member:`use_mnemonic <gui_forms::ButtonBase::use_mnemonic>`, :cpp:member:`expanded_state <gui_forms::ButtonBase::expanded_state>`, :cpp:func:`command_connected <gui_forms::ButtonBase::command_connected>`, :cpp:func:`style <gui_forms::ButtonBase::style>`, :cpp:func:`has_style_override <gui_forms::ButtonBase::has_style_override>`, :cpp:func:`visual_recipes_override <gui_forms::ButtonBase::visual_recipes_override>`, :cpp:func:`connection_topology <gui_forms::ButtonBase::connection_topology>`, :cpp:func:`image <gui_forms::ButtonBase::image>`, :cpp:func:`image_list <gui_forms::ButtonBase::image_list>`, :cpp:func:`image_index <gui_forms::ButtonBase::image_index>`, :cpp:func:`image_key <gui_forms::ButtonBase::image_key>`, :cpp:func:`pressed_visual <gui_forms::ButtonBase::pressed_visual>`, :cpp:func:`focused_visual <gui_forms::ButtonBase::focused_visual>`, :cpp:func:`focus_cue_visible <gui_forms::ButtonBase::focus_cue_visible>`, :cpp:func:`hovered_visual <gui_forms::ButtonBase::hovered_visual>`; events :cpp:func:`expanded_changed <gui_forms::ButtonBase::expanded_changed>`, :cpp:func:`clicked <gui_forms::ButtonBase::clicked>`, :cpp:func:`text_changed <gui_forms::ButtonBase::text_changed>`; methods :cpp:func:`button_base_property_entries <gui_forms::ButtonBase::button_base_property_entries>`, :cpp:func:`clear_image <gui_forms::ButtonBase::clear_image>`, :cpp:func:`clear_style <gui_forms::ButtonBase::clear_style>`, :cpp:func:`clear_visual_recipes <gui_forms::ButtonBase::clear_visual_recipes>`, :cpp:func:`perform_click <gui_forms::ButtonBase::perform_click>`, :cpp:func:`set_visual_recipes <gui_forms::ButtonBase::set_visual_recipes>`, :cpp:func:`unbind_command <gui_forms::ButtonBase::unbind_command>`.
+      From :cpp:class:`ButtonBase <gui_forms::ButtonBase>`: properties :cpp:member:`text <gui_forms::ButtonBase::text>`, :cpp:member:`text_alignment <gui_forms::ButtonBase::text_alignment>`, :cpp:member:`font <gui_forms::ButtonBase::font>`, :cpp:member:`content_padding <gui_forms::ButtonBase::content_padding>`, :cpp:member:`text_line_spacing <gui_forms::ButtonBase::text_line_spacing>`, :cpp:member:`image_alignment <gui_forms::ButtonBase::image_alignment>`, :cpp:member:`text_image_relation <gui_forms::ButtonBase::text_image_relation>`, :cpp:member:`image_gap <gui_forms::ButtonBase::image_gap>`, :cpp:member:`use_mnemonic <gui_forms::ButtonBase::use_mnemonic>`, :cpp:member:`expanded_state <gui_forms::ButtonBase::expanded_state>`, :cpp:member:`image <gui_forms::ButtonBase::image>`, :cpp:func:`command_connected <gui_forms::ButtonBase::command_connected>`, :cpp:func:`style <gui_forms::ButtonBase::style>`, :cpp:func:`has_style_override <gui_forms::ButtonBase::has_style_override>`, :cpp:func:`visual_recipes_override <gui_forms::ButtonBase::visual_recipes_override>`, :cpp:func:`connection_topology <gui_forms::ButtonBase::connection_topology>`, :cpp:func:`image_list <gui_forms::ButtonBase::image_list>`, :cpp:func:`image_index <gui_forms::ButtonBase::image_index>`, :cpp:func:`image_key <gui_forms::ButtonBase::image_key>`, :cpp:func:`pressed_visual <gui_forms::ButtonBase::pressed_visual>`, :cpp:func:`focused_visual <gui_forms::ButtonBase::focused_visual>`, :cpp:func:`focus_cue_visible <gui_forms::ButtonBase::focus_cue_visible>`, :cpp:func:`hovered_visual <gui_forms::ButtonBase::hovered_visual>`; events :cpp:func:`expanded_changed <gui_forms::ButtonBase::expanded_changed>`, :cpp:func:`clicked <gui_forms::ButtonBase::clicked>`, :cpp:func:`text_changed <gui_forms::ButtonBase::text_changed>`; methods :cpp:func:`button_base_property_entries <gui_forms::ButtonBase::button_base_property_entries>`, :cpp:func:`clear_image <gui_forms::ButtonBase::clear_image>`, :cpp:func:`clear_style <gui_forms::ButtonBase::clear_style>`, :cpp:func:`clear_visual_recipes <gui_forms::ButtonBase::clear_visual_recipes>`, :cpp:func:`perform_click <gui_forms::ButtonBase::perform_click>`, :cpp:func:`set_visual_recipes <gui_forms::ButtonBase::set_visual_recipes>`, :cpp:func:`unbind_command <gui_forms::ButtonBase::unbind_command>`.
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
+
+   .. rubric:: Methods
+
+   .. list-table::
+      :class: autosummary longtable
+      :widths: 35 65
+
+      * - :cpp:func:`button_property_entries <gui_forms::Button::button_property_entries>`
+        -  
 
    .. seealso::
 
@@ -176,6 +185,18 @@ gui_forms::Button
 
    .. rubric:: Properties
 
+   .. cpp:member:: ButtonVisualStyle visual_style
+
+      With theme painting, ``accent`` draws the theme's emphasised button and
+      ``command`` a command button with left-aligned content; ``standard`` and
+      ``flat`` look the same. After ``set_style``, each style has its own classic
+      look, and ``flat`` draws a plain face with a border of :cpp:member:`flat_border_width <gui_forms::Button::flat_border_width>`.
+
+   .. cpp:member:: double flat_border_width
+
+      Border width for the ``flat`` style after ``set_style``; zero draws no
+      border. A negative or non-finite width throws ``std::invalid_argument``.
+
    .. cpp:function:: bool default_button() const noexcept
 
       Whether the button draws the default-button cue. ``Window::set_accept_button``
@@ -199,17 +220,6 @@ gui_forms::Button
 
       Sets :cpp:func:`dialog_result <gui_forms::Button::dialog_result>`; see the property's description above.
 
-   .. cpp:function:: ButtonVisualStyle visual_style() const noexcept
-
-      With theme painting, ``accent`` draws the theme's emphasised button and
-      ``command`` a command button with left-aligned content; ``standard`` and
-      ``flat`` look the same. After ``set_style``, each style has its own classic
-      look, and ``flat`` draws a plain face with a border of :cpp:func:`flat_border_width <gui_forms::Button::flat_border_width>`.
-
-   .. cpp:function:: void set_visual_style(ButtonVisualStyle style)
-
-      Sets :cpp:func:`visual_style <gui_forms::Button::visual_style>`; see the property's description above.
-
    .. cpp:function:: bool selected() const noexcept
 
       A persistent "on" look for a button that represents the current choice,
@@ -221,15 +231,6 @@ gui_forms::Button
    .. cpp:function:: void set_selected(bool selected)
 
       Sets :cpp:func:`selected <gui_forms::Button::selected>`; see the property's description above.
-
-   .. cpp:function:: double flat_border_width() const noexcept
-
-      Border width for the ``flat`` style after ``set_style``; zero draws no
-      border. A negative or non-finite width throws ``std::invalid_argument``.
-
-   .. cpp:function:: void set_flat_border_width(double width)
-
-      Sets :cpp:func:`flat_border_width <gui_forms::Button::flat_border_width>`; see the property's description above.
 
    .. cpp:function:: Parts parts() const
 
@@ -248,6 +249,11 @@ gui_forms::Button
       Raised after :cpp:func:`selected <gui_forms::Button::selected>` changes, whether by a setter or by a bound
       command. It carries the new state. A click alone does not change
       :cpp:func:`selected <gui_forms::Button::selected>`.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static const std::array<PropertyEntry, button_property_count>& button_property_entries() noexcept
 
 
    .. rubric:: Extension points
@@ -275,3 +281,9 @@ gui_forms::Button
       *Protected.*
 
       The button's parts computed for its current style.
+
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
+   .. cpp:member:: constexpr std::size_t button_property_count
+
+      Button's property table: ButtonBase's entries, then its own. Default: ``ButtonBase::button_base_property_count + 2U``.

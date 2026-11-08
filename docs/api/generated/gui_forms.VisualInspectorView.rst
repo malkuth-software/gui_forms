@@ -7,7 +7,7 @@ gui_forms::VisualInspectorView
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: VisualInspectorView final : public Control
+.. cpp:class:: VisualInspectorView final : public Control, public VisualInspectorViewCapabilities<VisualInspectorView>
 
    ``#include <gui_forms/controls/visual_inspector_view/visual_inspector_view.hpp>``
 
@@ -32,7 +32,7 @@ gui_forms::VisualInspectorView
       **stable_id** : ``StableId``
          Identity of the control, unique within its window.
 
-      **target_stable_id** : ``std::string``, default ``{}``
+      **initial_target** : ``std::string``, default ``{}``
          The stable ID of the control to inspect, empty by default.
 
    :Properties:
@@ -63,6 +63,8 @@ gui_forms::VisualInspectorView
         - ``start_polling(FrameInterval interval)`` polls the inspected target every ``interval`` on a paint-gated :cpp:class:`AnimationTimer <gui_forms::AnimationTimer>` while the view is shown, and repaints only when what it shows has changed, so a settled view costs one inspection snapshot a poll and no paint.
       * - :cpp:func:`stop_polling <gui_forms::VisualInspectorView::stop_polling>`
         - Stops polling.
+      * - :cpp:func:`visual_inspector_view_property_entries <gui_forms::VisualInspectorView::visual_inspector_view_property_entries>`
+        -  
 
    .. seealso::
 
@@ -120,19 +122,15 @@ gui_forms::VisualInspectorView
 
    .. rubric:: Construction
 
-   .. cpp:function:: explicit VisualInspectorView(StableId stable_id, std::string target_stable_id = {})
+   .. cpp:function:: explicit VisualInspectorView(StableId stable_id, std::string initial_target = {})
 
 
    .. rubric:: Properties
 
-   .. cpp:function:: const std::string& target_stable_id() const noexcept
+   .. cpp:member:: std::string target_stable_id
 
       The stable ID of the inspected control. When no control in the window has
       it, the view shows ``Target not found:`` and the ID.
-
-   .. cpp:function:: void set_target_stable_id(std::string stable_id)
-
-      Sets :cpp:func:`target_stable_id <gui_forms::VisualInspectorView::target_stable_id>`; see the property's description above.
 
    .. cpp:function:: Parts parts() const
 
@@ -163,6 +161,8 @@ gui_forms::VisualInspectorView
 
       Stops polling.
 
+   .. cpp:function:: static const std::array<PropertyEntry, visual_inspector_view_property_count>& visual_inspector_view_property_entries() noexcept
+
 
    .. rubric:: Extension points
 
@@ -175,3 +175,9 @@ gui_forms::VisualInspectorView
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 
       *Protected.*
+
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
+   .. cpp:member:: constexpr std::size_t visual_inspector_view_property_count
+
+      VisualInspectorView's property table: Control's entries, then its own. Default: ``Control::control_property_count + 1U``.

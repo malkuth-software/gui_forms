@@ -14,9 +14,9 @@ Parameters
 ----------
 stable_id
     Identity of the scroll bar, unique within its window.
-orientation
+initial_orientation
     Whether the bar runs horizontally or vertically. It can be changed later
-    with the inherited `set_orientation`.
+    through the inherited `orientation` property.
 
 Properties
 ----------

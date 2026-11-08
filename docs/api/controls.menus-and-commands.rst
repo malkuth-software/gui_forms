@@ -1700,7 +1700,7 @@ Related types
 
    .. cpp:member:: PropertyCell<Size, RibbonGalleryItemSizeCapability<Declaring>> item_size
 
-      Default: ``{48.0, 48.0}``.
+      Default: ``{Size{48.0, 48.0}}``.
 
 .. cpp:namespace:: gui_forms
 

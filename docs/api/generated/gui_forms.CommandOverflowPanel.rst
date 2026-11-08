@@ -7,7 +7,7 @@ gui_forms::CommandOverflowPanel
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: CommandOverflowPanel final : public ContainerControl, public GroupSpecCapability<CommandOverflowPanel>
+.. cpp:class:: CommandOverflowPanel final : public ContainerControl, public GroupSpecCapability<CommandOverflowPanel>, public CommandOverflowPanelCapabilities<CommandOverflowPanel>
 
    ``#include <gui_forms/controls/scrollable_control/container_control/command_overflow_panel/command_overflow_panel.hpp>``
 
@@ -86,6 +86,8 @@ gui_forms::CommandOverflowPanel
         -  
       * - :cpp:func:`clear_overflow_actuator <gui_forms::CommandOverflowPanel::clear_overflow_actuator>`
         - Turns the actuator back into an ordinary child.
+      * - :cpp:func:`command_overflow_panel_property_entries <gui_forms::CommandOverflowPanel::command_overflow_panel_property_entries>`
+        -  
 
    .. seealso::
 
@@ -199,14 +201,10 @@ gui_forms::CommandOverflowPanel
       another group already has the same priority, or if 32 groups already
       have specs. The value is dropped when the child leaves.
 
-   .. cpp:function:: double group_gap() const noexcept
+   .. cpp:member:: double group_gap
 
       Space between neighbouring groups that are shown, and between the last
       group and the actuator. It must be finite and between 0 and 256.
-
-   .. cpp:function:: void set_group_gap(double gap)
-
-      Sets :cpp:func:`group_gap <gui_forms::CommandOverflowPanel::group_gap>`; see the property's description above.
 
    .. cpp:function:: Control::Ptr overflow_actuator() const noexcept
 
@@ -238,6 +236,8 @@ gui_forms::CommandOverflowPanel
 
       Turns the actuator back into an ordinary child.
 
+   .. cpp:function:: static const std::array<PropertyEntry, command_overflow_panel_property_count>& command_overflow_panel_property_entries() noexcept
+
 
    .. rubric:: Extension points
 
@@ -255,6 +255,12 @@ gui_forms::CommandOverflowPanel
 
       *Protected.*
 
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
    .. cpp:member:: constexpr std::size_t overflow_child_property_count
 
       The child properties it provides: group_spec. Default: ``1U``.
+
+   .. cpp:member:: constexpr std::size_t command_overflow_panel_property_count
+
+      CommandOverflowPanel's property table: Control's entries, then its own. Default: ``Control::control_property_count + 1U``.

@@ -55,8 +55,7 @@ Events
 changed
     Raised after `selected_index` changes, by input, by the setter, by the
     bound `Value`, or by `set_items` clearing an index that no longer
-    exists. It carries the new index. It is the `changed` event of
-    `selection`.
+    exists. It carries the new index.
 activated
     Raised when the user chooses an item: by a click, Space or Enter on it,
     its mnemonic, an arrow key, or `perform_click` on its button. It
@@ -77,8 +76,6 @@ bind
     and unbind before replacing them with fewer.
 unbind
     Ends the binding. The group keeps its current selection.
-selection
-    The group's own `Value<int>`, which holds `selected_index`.
 item
     The `Button` of the item at an index, for visual recipes, typography
     and content layout. An index outside the items throws

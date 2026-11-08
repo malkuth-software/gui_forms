@@ -48,14 +48,24 @@ Related types
      -  
    * - :cpp:class:`ButtonBaseCapabilities <gui_forms::ButtonBaseCapabilities>`
      - Every ButtonBase capability, in the order the declaring class takes them.
+   * - :cpp:class:`ButtonBaseImageCapability <gui_forms::ButtonBaseImageCapability>`
+     - A direct generational image resource for the button's content (Image); a view onto the image slot: a write clears image_index and image_key.
+   * - :cpp:class:`ButtonCapabilities <gui_forms::ButtonCapabilities>`
+     - Every Button capability, in the order the declaring class takes them.
+   * - :cpp:class:`ButtonFlatBorderWidthCapability <gui_forms::ButtonFlatBorderWidthCapability>`
+     - Border width in logical pixels of a flat button; finite and nonnegative (std::invalid_argument).
    * - :cpp:class:`ButtonUseMnemonicCapability <gui_forms::ButtonUseMnemonicCapability>`
      - Whether an ampersand in the text marks the access key (UseMnemonic).
+   * - :cpp:class:`ButtonVisualStyleChoiceCapability <gui_forms::ButtonVisualStyleChoiceCapability>`
+     - Standard, flat, accent or command button.
    * - :cpp:class:`ChoiceGroup::Parts <gui_forms::ChoiceGroup::Parts>`
      - Stage T1 anatomy, as dot members: Panel's parts, then the segmented presentation's track (the whole strip) and selection (the indicator behind the selected segment).
    * - :cpp:class:`ChoiceGroupCapabilities <gui_forms::ChoiceGroupCapabilities>`
      - Every ChoiceGroup capability, in the order the declaring class takes them.
    * - :cpp:class:`ChoiceGroupPresentationCapability <gui_forms::ChoiceGroupPresentationCapability>`
      - How the choices are drawn: a row of buttons (the default) or a segmented control with a selection indicator behind the selected segment.
+   * - :cpp:class:`ChoiceGroupSelectedIndexCapability <gui_forms::ChoiceGroupSelectedIndexCapability>`
+     - The selected item's index, or -1 for none (G14: an ordinary cell).
    * - :cpp:class:`ChoiceItem <gui_forms::ChoiceItem>`
      -  
    * - :cpp:class:`CommandItem <gui_forms::CommandItem>`
@@ -193,7 +203,7 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> ButtonBaseCapabilities : public TextCapability<Declaring>, public TextAlignmentCapability<Declaring>, public FontCapability<Declaring>, public ContentPaddingCapability<Declaring>, public TextLineSpacingCapability<Declaring>, public ImageAlignmentCapability<Declaring>, public TextImageRelationCapability<Declaring>, public ImageGapCapability<Declaring>, public ButtonUseMnemonicCapability<Declaring>, public ExpandedStateCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> ButtonBaseCapabilities : public TextCapability<Declaring>, public TextAlignmentCapability<Declaring>, public FontCapability<Declaring>, public ContentPaddingCapability<Declaring>, public TextLineSpacingCapability<Declaring>, public ImageAlignmentCapability<Declaring>, public TextImageRelationCapability<Declaring>, public ImageGapCapability<Declaring>, public ButtonUseMnemonicCapability<Declaring>, public ExpandedStateCapability<Declaring>, public ButtonBaseImageCapability<Declaring>
 
    ``#include <gui_forms/controls/button_base/button_base_capabilities/button_base_capabilities.hpp>``
 
@@ -247,6 +257,63 @@ Related types
 
       Optional disclosure state for a button that owns a popup or a retained disclosure region: empty is an ordinary push button; false and true expose collapsed and expanded semantics without conflating the pressed visual.
 
+   .. cpp:member:: ImageId image
+
+      A direct generational image resource for the button's content (Image); a view onto the image slot: a write clears image_index and image_key. An ID not live in the button's Window throws std::invalid_argument.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ButtonBaseImageCapability
+
+   ``#include <gui_forms/controls/button_base/button_base_capabilities/button_base_capabilities.hpp>``
+
+   A direct generational image resource for the button's content (Image); a view onto the image slot: a write clears image_index and image_key. An ID not live in the button's Window throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ButtonBaseImageCapability& capability, ImageId incoming)
+
+   .. cpp:function:: static ImageId read(const ButtonBaseImageCapability& capability)
+
+   .. cpp:member:: PropertyView<ImageId, ButtonBaseImageCapability<Declaring>> image
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ButtonCapabilities : public ButtonVisualStyleChoiceCapability<Declaring>, public ButtonFlatBorderWidthCapability<Declaring>
+
+   ``#include <gui_forms/controls/button_base/button/button_capabilities/button_capabilities.hpp>``
+
+   Every Button capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: ButtonVisualStyle visual_style
+
+      Standard, flat, accent or command button.
+
+   .. cpp:member:: double flat_border_width
+
+      Border width in logical pixels of a flat button; finite and nonnegative (std::invalid_argument).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ButtonFlatBorderWidthCapability
+
+   ``#include <gui_forms/controls/button_base/button/button_capabilities/button_capabilities.hpp>``
+
+   Border width in logical pixels of a flat button; finite and nonnegative (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ButtonFlatBorderWidthCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, ButtonFlatBorderWidthCapability<Declaring>> flat_border_width
+
+      Default: ``{1.0}``.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: template <typename Declaring> ButtonUseMnemonicCapability
@@ -266,6 +333,23 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> ButtonVisualStyleChoiceCapability
+
+   ``#include <gui_forms/controls/button_base/button/button_capabilities/button_capabilities.hpp>``
+
+   Standard, flat, accent or command button.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ButtonVisualStyleChoiceCapability& capability, ButtonVisualStyle incoming)
+
+   .. cpp:member:: PropertyCell<ButtonVisualStyle, ButtonVisualStyleChoiceCapability<Declaring>> visual_style
+
+      Default: ``{ButtonVisualStyle::standard}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ChoiceGroup::Parts final
 
    ``#include <gui_forms/controls/collections/choice_group.hpp>``
@@ -280,7 +364,7 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> ChoiceGroupCapabilities : public ChoiceGroupPresentationCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> ChoiceGroupCapabilities : public ChoiceGroupPresentationCapability<Declaring>, public ChoiceGroupSelectedIndexCapability<Declaring>
 
    ``#include <gui_forms/controls/collections/choice_group_capabilities/choice_group_capabilities.hpp>``
 
@@ -292,6 +376,10 @@ Related types
    .. cpp:member:: ChoiceGroupPresentation presentation
 
       How the choices are drawn: a row of buttons (the default) or a segmented control with a selection indicator behind the selected segment. Selection, keyboard and semantics are the same in both.
+
+   .. cpp:member:: int selected_index
+
+      The selected item's index, or -1 for none (G14: an ordinary cell). Outside the items throws std::out_of_range; a bound Value may refuse it. A change checks the selected item's button and raises changed.
 
 .. cpp:namespace:: gui_forms
 
@@ -309,6 +397,23 @@ Related types
    .. cpp:member:: PropertyCell<ChoiceGroupPresentation, ChoiceGroupPresentationCapability<Declaring>> presentation
 
       Default: ``{ChoiceGroupPresentation::buttons}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ChoiceGroupSelectedIndexCapability
+
+   ``#include <gui_forms/controls/collections/choice_group_capabilities/choice_group_capabilities.hpp>``
+
+   The selected item's index, or -1 for none (G14: an ordinary cell). Outside the items throws std::out_of_range; a bound Value may refuse it. A change checks the selected item's button and raises changed.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ChoiceGroupSelectedIndexCapability& capability, int incoming)
+
+   .. cpp:member:: PropertyCell<int, ChoiceGroupSelectedIndexCapability<Declaring>> selected_index
+
+      Default: ``{-1}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -714,7 +819,7 @@ Enumerations
 
 .. cpp:enum-class:: ButtonVisualStyle
 
-   ``#include <gui_forms/controls/button_base/button/button.hpp>``
+   ``#include <gui_forms/controls/button_base/button/button_values/button_values.hpp>``
 
    .. cpp:enumerator:: standard
 

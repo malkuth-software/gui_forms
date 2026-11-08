@@ -566,7 +566,7 @@ constexpr std::array<PageDigest, 32> expected_digests{{
     {"ranges-and-progress", 0x92c145f9c09bee4fULL},
     {"containers-and-focus", 0x3f5402c6a521b5daULL},
     {"animation-laboratory", 0xc30a1f803ec517afULL},
-    {"states-and-diagnostics", 0xef1a439a09a4db60ULL},
+    {"states-and-diagnostics", 0x9c817e346edb9e99ULL},
     {"text-and-input", 0xfab9143c9729484fULL},
     {"collections-and-overlays", 0xfcf22e062057fe87ULL},
     {"values-and-spinners", 0x3077a41f4b244622ULL},

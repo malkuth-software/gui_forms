@@ -111,6 +111,8 @@ gui_forms::BlockPanel
         - The child's ``position`` and insets, without copying its whole record; static for a control that is not a live direct child.
       * - :cpp:func:`shared_margins <gui_forms::BlockPanel::shared_margins>`
         - ``shared_margins(width)`` reports the margins this panel's content collapses through its top and bottom edges when it is laid out at that border-box width as a block item of another block flow panel, which reads them; for any other panel it reports none.
+      * - :cpp:func:`block_panel_property_entries <gui_forms::BlockPanel::block_panel_property_entries>`
+        -  
       * - :cpp:func:`set_item_layout <gui_forms::BlockPanel::set_item_layout>`
         - ``set_item_layout(child, layout)`` sets a direct child's :cpp:class:`BlockFlowItemLayout <gui_forms::BlockFlowItemLayout>`: its ``level`` (:cpp:enumerator:`BlockFlowLevel::block <gui_forms::BlockFlowLevel::block>` or ``inline_level``); its ``width``, ``height``, minimums and maximums; which margins are ``auto``; and its ``vertical_align`` (``baseline``, ``middle``, ``top`` or ``bottom``).
 
@@ -310,6 +312,8 @@ gui_forms::BlockPanel
       border-box width as a block item of another block flow panel, which
       reads them; for any other panel it reports none.
 
+   .. cpp:function:: static const std::array<PropertyEntry, block_panel_property_count>& block_panel_property_entries() noexcept
+
    .. cpp:function:: void set_item_layout(const Control& child, const BlockFlowItemLayout& layout)
 
       ``set_item_layout(child, layout)`` sets a direct child's
@@ -340,3 +344,9 @@ gui_forms::BlockPanel
    .. cpp:function:: Size measure_intrinsic(const LayoutConstraint& constraint) override
 
       *Protected.*
+
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
+   .. cpp:member:: constexpr std::size_t block_panel_property_count
+
+      BlockPanel's property table: Control's entries, then its own. Default: ``Control::control_property_count + 1U``.

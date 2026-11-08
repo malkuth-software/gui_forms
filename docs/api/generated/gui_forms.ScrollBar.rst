@@ -7,7 +7,7 @@ gui_forms::ScrollBar
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: ScrollBar : public RangeControl
+.. cpp:class:: ScrollBar : public RangeControl, public ScrollBarCapabilities<ScrollBar>
 
    ``#include <gui_forms/controls/range_control/scroll_bar/scroll_bar.hpp>``
 
@@ -30,9 +30,9 @@ gui_forms::ScrollBar
       **stable_id** : ``StableId``
          Identity of the scroll bar, unique within its window.
 
-      **orientation** : ``Orientation``, default ``Orientation::vertical``
+      **initial_orientation** : ``Orientation``, default ``Orientation::vertical``
          Whether the bar runs horizontally or vertically. It can be changed later
-         with the inherited ``set_orientation``.
+         through the inherited ``orientation`` property.
 
    :Properties:
 
@@ -65,7 +65,7 @@ gui_forms::ScrollBar
 
       **thumb_bounds** : ``Rect``, read-only
          The thumb. Its length is the track length times the large change over
-         the range plus the large change, at least :cpp:func:`minimum_thumb_extent <gui_forms::ScrollBar::minimum_thumb_extent>`, and
+         the range plus the large change, at least :cpp:member:`minimum_thumb_extent <gui_forms::ScrollBar::minimum_thumb_extent>`, and
          its position along the track follows the value.
 
       **parts** : ``Parts``, read-only
@@ -74,7 +74,7 @@ gui_forms::ScrollBar
 
    :Inherited:
 
-      From :cpp:class:`RangeControl <gui_forms::RangeControl>`: properties :cpp:func:`minimum <gui_forms::RangeControl::minimum>`, :cpp:func:`maximum <gui_forms::RangeControl::maximum>`, :cpp:func:`value <gui_forms::RangeControl::value>`, :cpp:func:`small_change <gui_forms::RangeControl::small_change>`, :cpp:func:`large_change <gui_forms::RangeControl::large_change>`, :cpp:func:`orientation <gui_forms::RangeControl::orientation>`, :cpp:func:`normalized_value <gui_forms::RangeControl::normalized_value>`, :cpp:func:`style <gui_forms::RangeControl::style>`; events :cpp:func:`range_changed <gui_forms::RangeControl::range_changed>`, :cpp:func:`value_changed <gui_forms::RangeControl::value_changed>`, :cpp:func:`scroll <gui_forms::RangeControl::scroll>`; methods :cpp:func:`bind <gui_forms::RangeControl::bind>`, :cpp:func:`increment <gui_forms::RangeControl::increment>`, :cpp:func:`set_range <gui_forms::RangeControl::set_range>`, :cpp:func:`unbind <gui_forms::RangeControl::unbind>`.
+      From :cpp:class:`RangeControl <gui_forms::RangeControl>`: properties :cpp:member:`value <gui_forms::RangeControl::value>`, :cpp:member:`minimum <gui_forms::RangeControl::minimum>`, :cpp:member:`maximum <gui_forms::RangeControl::maximum>`, :cpp:member:`small_change <gui_forms::RangeControl::small_change>`, :cpp:member:`large_change <gui_forms::RangeControl::large_change>`, :cpp:member:`orientation <gui_forms::RangeControl::orientation>`, :cpp:func:`normalized_value <gui_forms::RangeControl::normalized_value>`, :cpp:func:`style <gui_forms::RangeControl::style>`; events :cpp:func:`range_changed <gui_forms::RangeControl::range_changed>`, :cpp:func:`value_changed <gui_forms::RangeControl::value_changed>`, :cpp:func:`scroll <gui_forms::RangeControl::scroll>`; methods :cpp:func:`bind <gui_forms::RangeControl::bind>`, :cpp:func:`increment <gui_forms::RangeControl::increment>`, :cpp:func:`range_control_property_entries <gui_forms::RangeControl::range_control_property_entries>`, :cpp:func:`set_range <gui_forms::RangeControl::set_range>`, :cpp:func:`unbind <gui_forms::RangeControl::unbind>`.
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
 
@@ -86,6 +86,8 @@ gui_forms::ScrollBar
 
       * - :cpp:func:`part_at <gui_forms::ScrollBar::part_at>`
         - Which part is under a point in the bar's coordinates: one of the buttons, the track before or after the thumb, the thumb, or :cpp:enumerator:`ScrollBarPart::none <gui_forms::ScrollBarPart::none>` outside the bar.
+      * - :cpp:func:`scroll_bar_property_entries <gui_forms::ScrollBar::scroll_bar_property_entries>`
+        -  
 
    .. seealso::
 
@@ -114,7 +116,7 @@ gui_forms::ScrollBar
    A primary press focuses the bar and captures the pointer. On an arrow it
    steps the value by the small change, on the track by the large change
    towards the press, and while the press is held the step repeats after
-   :cpp:func:`initial_repeat_delay <gui_forms::ScrollBar::initial_repeat_delay>`, every :cpp:func:`repeat_interval <gui_forms::ScrollBar::repeat_interval>`, until the value reaches its
+   :cpp:member:`initial_repeat_delay <gui_forms::ScrollBar::initial_repeat_delay>`, every :cpp:member:`repeat_interval <gui_forms::ScrollBar::repeat_interval>`, until the value reaches its
    limit; a held track press also stops once the thumb reaches the pointer.
    Dragging the thumb moves the value continuously. Releasing the button, or the bar losing focus, ends the
    interaction. Each wheel event over the bar steps by the small change,
@@ -178,48 +180,32 @@ gui_forms::ScrollBar
 
    .. rubric:: Construction
 
-   .. cpp:function:: explicit ScrollBar(StableId stable_id, Orientation orientation = Orientation::vertical)
+   .. cpp:function:: explicit ScrollBar(StableId stable_id, Orientation initial_orientation = Orientation::vertical)
 
 
    .. rubric:: Properties
 
-   .. cpp:function:: double button_extent() const noexcept
+   .. cpp:member:: double button_extent
 
       The length of each arrow button along the bar, in logical pixels; on a
       short bar each button takes at most half its length. A value outside 8
       to 64, or not finite, throws ``std::invalid_argument``.
 
-   .. cpp:function:: void set_button_extent(double extent)
-
-      Sets :cpp:func:`button_extent <gui_forms::ScrollBar::button_extent>`; see the property's description above.
-
-   .. cpp:function:: double minimum_thumb_extent() const noexcept
+   .. cpp:member:: double minimum_thumb_extent
 
       The shortest the thumb may be, in logical pixels, unless the track is
       shorter. A value outside 8 to 128 throws ``std::invalid_argument``.
 
-   .. cpp:function:: void set_minimum_thumb_extent(double extent)
-
-      Sets :cpp:func:`minimum_thumb_extent <gui_forms::ScrollBar::minimum_thumb_extent>`; see the property's description above.
-
-   .. cpp:function:: FrameInterval initial_repeat_delay() const noexcept
+   .. cpp:member:: FrameInterval initial_repeat_delay
 
       How long an arrow or the track must be held before the step repeats. A
       value outside 100 milliseconds to 2 seconds throws
       ``std::invalid_argument``.
 
-   .. cpp:function:: void set_initial_repeat_delay(FrameInterval delay)
-
-      Sets :cpp:func:`initial_repeat_delay <gui_forms::ScrollBar::initial_repeat_delay>`; see the property's description above.
-
-   .. cpp:function:: FrameInterval repeat_interval() const noexcept
+   .. cpp:member:: FrameInterval repeat_interval
 
       The time between repeated steps while an arrow or the track is held. A
       value outside 16 to 500 milliseconds throws ``std::invalid_argument``.
-
-   .. cpp:function:: void set_repeat_interval(FrameInterval interval)
-
-      Sets :cpp:func:`repeat_interval <gui_forms::ScrollBar::repeat_interval>`; see the property's description above.
 
    .. cpp:function:: Rect decrement_button_bounds() const noexcept
 
@@ -236,7 +222,7 @@ gui_forms::ScrollBar
    .. cpp:function:: Rect thumb_bounds() const noexcept
 
       The thumb. Its length is the track length times the large change over
-      the range plus the large change, at least :cpp:func:`minimum_thumb_extent <gui_forms::ScrollBar::minimum_thumb_extent>`, and
+      the range plus the large change, at least :cpp:member:`minimum_thumb_extent <gui_forms::ScrollBar::minimum_thumb_extent>`, and
       its position along the track follows the value.
 
    .. cpp:function:: Parts parts() const
@@ -251,6 +237,8 @@ gui_forms::ScrollBar
       Which part is under a point in the bar's coordinates: one of the
       buttons, the track before or after the thumb, the thumb, or
       :cpp:enumerator:`ScrollBarPart::none <gui_forms::ScrollBarPart::none>` outside the bar.
+
+   .. cpp:function:: static const std::array<PropertyEntry, scroll_bar_property_count>& scroll_bar_property_entries() noexcept
 
 
    .. rubric:: Extension points
@@ -284,3 +272,9 @@ gui_forms::ScrollBar
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 
       *Protected.*
+
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
+   .. cpp:member:: constexpr std::size_t scroll_bar_property_count
+
+      ScrollBar's property table: RangeControl's entries, then its own. Default: ``RangeControl::range_control_property_count + 1U``.

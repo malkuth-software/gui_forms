@@ -20,38 +20,6 @@
       "reviewed": false,
       "summary": "Constructs an unchecked auto-checking radio command with classic indicator policy."
     },
-    "gui_forms::RadioButton::checked|bool () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns retained group selection state."
-    },
-    "gui_forms::RadioButton::set_checked|void (bool)": {
-      "reviewed": false,
-      "summary": "Commits selection and synchronously clears matching live peers within the exclusion scope."
-    },
-    "gui_forms::RadioButton::group_name|const std::string &() const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the optional named exclusion key; an empty key uses the ordinary container scope."
-    },
-    "gui_forms::RadioButton::set_group_name|void (std::string)": {
-      "reviewed": false,
-      "summary": "Validates bounded UTF-8, updates group identity, and reconciles exclusion when already checked."
-    },
-    "gui_forms::RadioButton::auto_check|bool () const noexcept": {
-      "reviewed": false,
-      "summary": "Reports whether activation selects the radio automatically."
-    },
-    "gui_forms::RadioButton::set_auto_check|void (bool)": {
-      "reviewed": false,
-      "summary": "Enables or disables automatic selection during activation."
-    },
-    "gui_forms::RadioButton::indicator_style|ChoiceIndicatorStyle () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns classic disc, modern disc, or toggle-switch presentation."
-    },
-    "gui_forms::RadioButton::set_indicator_style|void (ChoiceIndicatorStyle)": {
-      "reviewed": false,
-      "summary": "Validates indicator vocabulary and invalidates size, paint, and semantics."
-    },
     "gui_forms::RadioButton::checked_changed|Event<bool> &() noexcept": {
       "reviewed": false,
       "summary": "Returns the event published after retained selection commits."

@@ -20,38 +20,6 @@
       "reviewed": false,
       "summary": "Constructs an orientation-specific range control with scrollbar cursor and repeat state."
     },
-    "gui_forms::ScrollBar::button_extent|double () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the logical decrement/increment button axis extent."
-    },
-    "gui_forms::ScrollBar::set_button_extent|void (double)": {
-      "reviewed": false,
-      "summary": "Accepts a finite bounded extent and invalidates geometry and paint."
-    },
-    "gui_forms::ScrollBar::minimum_thumb_extent|double () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the minimum logical draggable thumb extent."
-    },
-    "gui_forms::ScrollBar::set_minimum_thumb_extent|void (double)": {
-      "reviewed": false,
-      "summary": "Accepts a finite bounded positive extent and invalidates geometry."
-    },
-    "gui_forms::ScrollBar::initial_repeat_delay|FrameInterval () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the delay before a held part first repeats."
-    },
-    "gui_forms::ScrollBar::set_initial_repeat_delay|void (FrameInterval)": {
-      "reviewed": false,
-      "summary": "Accepts a positive duration for repeat qualification."
-    },
-    "gui_forms::ScrollBar::repeat_interval|FrameInterval () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the positive interval between qualified repeats."
-    },
-    "gui_forms::ScrollBar::set_repeat_interval|void (FrameInterval)": {
-      "reviewed": false,
-      "summary": "Accepts a positive repeat cadence."
-    },
     "gui_forms::ScrollBar::decrement_button_bounds|Rect () const noexcept": {
       "reviewed": false,
       "summary": "Returns the current local geometry of the leading decrement part."

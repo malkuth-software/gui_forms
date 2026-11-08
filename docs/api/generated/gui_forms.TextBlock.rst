@@ -92,10 +92,6 @@ gui_forms::TextBlock
 
       * - :cpp:func:`text_block_property_entries <gui_forms::TextBlock::text_block_property_entries>`
         -  
-      * - :cpp:func:`set_text <gui_forms::TextBlock::set_text>`
-        - M-S transient forwarders: the integrator's rewrite replaces every call with an assignment of the cell and deletes them in the same batch.
-      * - :cpp:func:`set_font <gui_forms::TextBlock::set_font>`
-        - M-S transient forwarder
 
    .. seealso::
 
@@ -226,14 +222,6 @@ gui_forms::TextBlock
    .. rubric:: Methods
 
    .. cpp:function:: static const std::array<PropertyEntry, text_block_property_count>& text_block_property_entries() noexcept
-
-   .. cpp:function:: void set_text(std::string value)
-
-      M-S transient forwarders: the integrator's rewrite replaces every call with an assignment of the cell and deletes them in the same batch.
-
-   .. cpp:function:: void set_font(FontSpec value)
-
-      M-S transient forwarder
 
 
    .. rubric:: Extension points

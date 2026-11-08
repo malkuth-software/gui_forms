@@ -13,7 +13,7 @@ Parameters
 ----------
 stable_id
     Identity of the control, unique within its window.
-target_stable_id
+initial_target
     The stable ID of the control to outline, empty by default.
 
 Properties

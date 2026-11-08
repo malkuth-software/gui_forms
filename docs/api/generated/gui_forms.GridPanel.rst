@@ -7,7 +7,7 @@ gui_forms::GridPanel
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: GridPanel final : public ContainerControl, public GridAreaCapability<GridPanel>, public GridCellCapability<GridPanel>
+.. cpp:class:: GridPanel final : public ContainerControl, public GridAreaCapability<GridPanel>, public GridCellCapability<GridPanel>, public GridPanelCapabilities<GridPanel>
 
    ``#include <gui_forms/controls/scrollable_control/container_control/grid_panel/grid_panel.hpp>``
 
@@ -62,14 +62,6 @@ gui_forms::GridPanel
          child writes ``cell: 0 2;``. Writing :cpp:member:`area <gui_forms::GridPanel::area>` or :cpp:member:`cell <gui_forms::GridPanel::cell>` replaces the other
          and the item layout's placement lines.
 
-      **spans** : ``std::span<const GridSpan>``, default none
-         The spans, :cpp:class:`GridSpan <gui_forms::GridSpan>` values in declaration order: each a region of
-         ``rows`` x ``columns`` cells from its ``anchor`` (:cpp:class:`GridCell <gui_forms::GridCell>`, row then
-         column, zero-based), named or anonymous. The getter borrows the panel
-         until the next span edit. ``set_spans(spans)`` replaces every span, with
-         the rules of :cpp:func:`define_span <gui_forms::GridPanel::define_span>` and :cpp:func:`remove_span <gui_forms::GridPanel::remove_span>` over the whole list, and
-         returns a :cpp:enum:`GridSpanOutcome <gui_forms::GridSpanOutcome>`.
-
       **template_columns** : ``GridTrackList``, default no tracks
          grid-template-columns, a :cpp:class:`GridTrackList <gui_forms::GridTrackList>`: the explicit columns'
          :cpp:class:`GridTrackSize <gui_forms::GridTrackSize>` values, at most 10,000, and at most one automatic
@@ -80,8 +72,53 @@ gui_forms::GridPanel
          nothing, and their gaps with them.
 
       **template_rows** : ``GridTrackList``, default no tracks
-         grid-template-rows, with the rules of :cpp:func:`template_columns <gui_forms::GridPanel::template_columns>` against the
+         grid-template-rows, with the rules of :cpp:member:`template_columns <gui_forms::GridPanel::template_columns>` against the
          content height.
+
+      **auto_flow** : ``GridAutoFlow``, default ``GridAutoFlow::row``
+         grid-auto-flow: automatic placement fills rows (``row``) or columns
+         (``column``), and with ``row_dense`` or ``column_dense`` goes back to fill
+         earlier holes.
+
+      **justify_content** : ``LayoutAlignment``, default ``LayoutAlignment::normal``
+         How the columns share the content width left over: ``start``, ``end``,
+         ``flex_start``, ``flex_end``, ``center``, ``space_between``, ``space_around``
+         or ``space_evenly``. ``normal`` and ``stretch`` grow the ``auto`` columns to
+         fill it. When the tracks overflow, the three distributions start at
+         the start.
+
+      **align_content** : ``LayoutAlignment``, default ``LayoutAlignment::normal``
+         How the rows share the content height left over, with the values of
+         :cpp:member:`justify_content <gui_forms::GridPanel::justify_content>`.
+
+      **justify_items** : ``LayoutAlignment``, default ``LayoutAlignment::normal``
+         How each item sits across its area's width, unless its item layout
+         sets ``justify_self``: ``start``, ``end``, ``flex_start``, ``flex_end`` or
+         ``center``; ``baseline`` behaves as ``start``; ``normal`` and ``stretch``
+         stretch an item whose width is ``auto`` to its area minus its margins.
+
+      **align_items** : ``LayoutAlignment``, default ``LayoutAlignment::normal``
+         How each item sits across its area's height, unless its item layout
+         sets ``align_self``, with the values of :cpp:member:`justify_items <gui_forms::GridPanel::justify_items>`; ``baseline``
+         aligns the bottoms of the baseline-aligned items that start in the
+         same row.
+
+      **row_gap** : ``LengthPercentage``, default ``0``
+         Space between rows. A percentage is of the panel's content height, and
+         zero when that height is indefinite. It must be finite and
+         nonnegative.
+
+      **column_gap** : ``LengthPercentage``, default ``0``
+         Space between columns, with the same rules as :cpp:member:`row_gap <gui_forms::GridPanel::row_gap>` against the
+         content width.
+
+      **spans** : ``std::span<const GridSpan>``, default none
+         The spans, :cpp:class:`GridSpan <gui_forms::GridSpan>` values in declaration order: each a region of
+         ``rows`` x ``columns`` cells from its ``anchor`` (:cpp:class:`GridCell <gui_forms::GridCell>`, row then
+         column, zero-based), named or anonymous. The getter borrows the panel
+         until the next span edit. ``set_spans(spans)`` replaces every span, with
+         the rules of :cpp:func:`define_span <gui_forms::GridPanel::define_span>` and :cpp:func:`remove_span <gui_forms::GridPanel::remove_span>` over the whole list, and
+         returns a :cpp:enum:`GridSpanOutcome <gui_forms::GridSpanOutcome>`.
 
       **template_areas** : ``GridTemplateAreas``, default none
          grid-template-areas: the template's rows and columns in cells and its
@@ -93,11 +130,6 @@ gui_forms::GridPanel
          apply (see :cpp:func:`define_span <gui_forms::GridPanel::define_span>`). Its rows and columns add explicit tracks
          where the template lists are shorter.
 
-      **auto_flow** : ``GridAutoFlow``, default ``GridAutoFlow::row``
-         grid-auto-flow: automatic placement fills rows (``row``) or columns
-         (``column``), and with ``row_dense`` or ``column_dense`` goes back to fill
-         earlier holes.
-
       **auto_columns** : ``std::span<const GridTrackSize>``, default one ``auto``
          grid-auto-columns: the sizes of implicit columns, one to 10,000 of
          them, repeated in order (and backwards for implicit columns before
@@ -105,38 +137,6 @@ gui_forms::GridPanel
 
       **auto_rows** : ``std::span<const GridTrackSize>``, default one ``auto``
          grid-auto-rows, with the rules of :cpp:func:`auto_columns <gui_forms::GridPanel::auto_columns>`.
-
-      **justify_content** : ``LayoutAlignment``, default ``LayoutAlignment::normal``
-         How the columns share the content width left over: ``start``, ``end``,
-         ``flex_start``, ``flex_end``, ``center``, ``space_between``, ``space_around``
-         or ``space_evenly``. ``normal`` and ``stretch`` grow the ``auto`` columns to
-         fill it. When the tracks overflow, the three distributions start at
-         the start.
-
-      **align_content** : ``LayoutAlignment``, default ``LayoutAlignment::normal``
-         How the rows share the content height left over, with the values of
-         :cpp:func:`justify_content <gui_forms::GridPanel::justify_content>`.
-
-      **justify_items** : ``LayoutAlignment``, default ``LayoutAlignment::normal``
-         How each item sits across its area's width, unless its item layout
-         sets ``justify_self``: ``start``, ``end``, ``flex_start``, ``flex_end`` or
-         ``center``; ``baseline`` behaves as ``start``; ``normal`` and ``stretch``
-         stretch an item whose width is ``auto`` to its area minus its margins.
-
-      **align_items** : ``LayoutAlignment``, default ``LayoutAlignment::normal``
-         How each item sits across its area's height, unless its item layout
-         sets ``align_self``, with the values of :cpp:func:`justify_items <gui_forms::GridPanel::justify_items>`; ``baseline``
-         aligns the bottoms of the baseline-aligned items that start in the
-         same row.
-
-      **row_gap** : ``LengthPercentage``, default ``0``
-         Space between rows. A percentage is of the panel's content height, and
-         zero when that height is indefinite. It must be finite and
-         nonnegative.
-
-      **column_gap** : ``LengthPercentage``, default ``0``
-         Space between columns, with the same rules as :cpp:func:`row_gap <gui_forms::GridPanel::row_gap>` against the
-         content width.
 
       **layout_snapshot** : ``GridLayoutWorkspace``, read-only, read-only
          The last arrange's resolution: the columns and rows with their sizing
@@ -181,6 +181,8 @@ gui_forms::GridPanel
         - The child's item layout, or the default one for a child without its own record or a control that is not a direct child.
       * - :cpp:func:`item_positioning <gui_forms::GridPanel::item_positioning>`
         - The child's ``position`` and insets, without copying its whole record; static for a control that is not a live direct child.
+      * - :cpp:func:`grid_panel_property_entries <gui_forms::GridPanel::grid_panel_property_entries>`
+        -  
       * - :cpp:func:`set_item_layout <gui_forms::GridPanel::set_item_layout>`
         - ``set_item_layout(child, layout)`` sets a direct child's :cpp:class:`GridItemLayout <gui_forms::GridItemLayout>`: its :cpp:func:`placement <gui_forms::GridPanel::placement>` (:cpp:class:`GridItemStyle <gui_forms::GridItemStyle>`'s four :cpp:class:`GridLine <gui_forms::GridLine>` values: ``automatic``, a line number other than zero, negative from the end, ``span`` of at least one, or a named area's edge); ``justify_self`` and ``align_self``; its ``width``, ``height``, minimums and maximums; and which margins are ``auto``.
 
@@ -323,6 +325,65 @@ gui_forms::GridPanel
       child writes ``cell: 0 2;``. Writing :cpp:member:`area <gui_forms::GridPanel::area>` or :cpp:member:`cell <gui_forms::GridPanel::cell>` replaces the other
       and the item layout's placement lines.
 
+   .. cpp:member:: GridTrackList template_columns
+
+      grid-template-columns, a :cpp:class:`GridTrackList <gui_forms::GridTrackList>`: the explicit columns'
+      :cpp:class:`GridTrackSize <gui_forms::GridTrackSize>` values, at most 10,000, and at most one automatic
+      repeat inserted before ``auto_repeat_index``. A list with an automatic
+      repeat holds only fixed tracks (a length at one end at least), and
+      the repeat is counted against a definite content width (once
+      otherwise). With ``auto_fit``, repetitions no item occupies collapse to
+      nothing, and their gaps with them.
+
+   .. cpp:member:: GridTrackList template_rows
+
+      grid-template-rows, with the rules of :cpp:member:`template_columns <gui_forms::GridPanel::template_columns>` against the
+      content height.
+
+   .. cpp:member:: GridAutoFlow auto_flow
+
+      grid-auto-flow: automatic placement fills rows (``row``) or columns
+      (``column``), and with ``row_dense`` or ``column_dense`` goes back to fill
+      earlier holes.
+
+   .. cpp:member:: LayoutAlignment justify_content
+
+      How the columns share the content width left over: ``start``, ``end``,
+      ``flex_start``, ``flex_end``, ``center``, ``space_between``, ``space_around``
+      or ``space_evenly``. ``normal`` and ``stretch`` grow the ``auto`` columns to
+      fill it. When the tracks overflow, the three distributions start at
+      the start.
+
+   .. cpp:member:: LayoutAlignment align_content
+
+      How the rows share the content height left over, with the values of
+      :cpp:member:`justify_content <gui_forms::GridPanel::justify_content>`.
+
+   .. cpp:member:: LayoutAlignment justify_items
+
+      How each item sits across its area's width, unless its item layout
+      sets ``justify_self``: ``start``, ``end``, ``flex_start``, ``flex_end`` or
+      ``center``; ``baseline`` behaves as ``start``; ``normal`` and ``stretch``
+      stretch an item whose width is ``auto`` to its area minus its margins.
+
+   .. cpp:member:: LayoutAlignment align_items
+
+      How each item sits across its area's height, unless its item layout
+      sets ``align_self``, with the values of :cpp:member:`justify_items <gui_forms::GridPanel::justify_items>`; ``baseline``
+      aligns the bottoms of the baseline-aligned items that start in the
+      same row.
+
+   .. cpp:member:: LengthPercentage row_gap
+
+      Space between rows. A percentage is of the panel's content height, and
+      zero when that height is indefinite. It must be finite and
+      nonnegative.
+
+   .. cpp:member:: LengthPercentage column_gap
+
+      Space between columns, with the same rules as :cpp:member:`row_gap <gui_forms::GridPanel::row_gap>` against the
+      content width.
+
    .. cpp:function:: std::span<const GridSpan> spans() const& noexcept
 
       The spans, :cpp:class:`GridSpan <gui_forms::GridSpan>` values in declaration order: each a region of
@@ -335,29 +396,6 @@ gui_forms::GridPanel
    .. cpp:function:: GridSpanOutcome set_spans(std::span<const GridSpan> spans)
 
       Sets :cpp:func:`spans <gui_forms::GridPanel::spans>`; see the property's description above.
-
-   .. cpp:function:: const GridTrackList& template_columns() const& noexcept
-
-      grid-template-columns, a :cpp:class:`GridTrackList <gui_forms::GridTrackList>`: the explicit columns'
-      :cpp:class:`GridTrackSize <gui_forms::GridTrackSize>` values, at most 10,000, and at most one automatic
-      repeat inserted before ``auto_repeat_index``. A list with an automatic
-      repeat holds only fixed tracks (a length at one end at least), and
-      the repeat is counted against a definite content width (once
-      otherwise). With ``auto_fit``, repetitions no item occupies collapse to
-      nothing, and their gaps with them.
-
-   .. cpp:function:: void set_template_columns(const GridTrackList& tracks)
-
-      Sets :cpp:func:`template_columns <gui_forms::GridPanel::template_columns>`; see the property's description above.
-
-   .. cpp:function:: const GridTrackList& template_rows() const& noexcept
-
-      grid-template-rows, with the rules of :cpp:func:`template_columns <gui_forms::GridPanel::template_columns>` against the
-      content height.
-
-   .. cpp:function:: void set_template_rows(const GridTrackList& tracks)
-
-      Sets :cpp:func:`template_rows <gui_forms::GridPanel::template_rows>`; see the property's description above.
 
    .. cpp:function:: const GridTemplateAreas& template_areas() const& noexcept
 
@@ -373,16 +411,6 @@ gui_forms::GridPanel
    .. cpp:function:: void set_template_areas(const GridTemplateAreas& areas)
 
       Sets :cpp:func:`template_areas <gui_forms::GridPanel::template_areas>`; see the property's description above.
-
-   .. cpp:function:: GridAutoFlow auto_flow() const noexcept
-
-      grid-auto-flow: automatic placement fills rows (``row``) or columns
-      (``column``), and with ``row_dense`` or ``column_dense`` goes back to fill
-      earlier holes.
-
-   .. cpp:function:: void set_auto_flow(GridAutoFlow flow)
-
-      Sets :cpp:func:`auto_flow <gui_forms::GridPanel::auto_flow>`; see the property's description above.
 
    .. cpp:function:: std::span<const GridTrackSize> auto_columns() const& noexcept
 
@@ -401,68 +429,6 @@ gui_forms::GridPanel
    .. cpp:function:: void set_auto_rows(std::span<const GridTrackSize> sizes)
 
       Sets :cpp:func:`auto_rows <gui_forms::GridPanel::auto_rows>`; see the property's description above.
-
-   .. cpp:function:: LayoutAlignment justify_content() const noexcept
-
-      How the columns share the content width left over: ``start``, ``end``,
-      ``flex_start``, ``flex_end``, ``center``, ``space_between``, ``space_around``
-      or ``space_evenly``. ``normal`` and ``stretch`` grow the ``auto`` columns to
-      fill it. When the tracks overflow, the three distributions start at
-      the start.
-
-   .. cpp:function:: void set_justify_content(LayoutAlignment alignment)
-
-      Sets :cpp:func:`justify_content <gui_forms::GridPanel::justify_content>`; see the property's description above.
-
-   .. cpp:function:: LayoutAlignment align_content() const noexcept
-
-      How the rows share the content height left over, with the values of
-      :cpp:func:`justify_content <gui_forms::GridPanel::justify_content>`.
-
-   .. cpp:function:: void set_align_content(LayoutAlignment alignment)
-
-      Sets :cpp:func:`align_content <gui_forms::GridPanel::align_content>`; see the property's description above.
-
-   .. cpp:function:: LayoutAlignment justify_items() const noexcept
-
-      How each item sits across its area's width, unless its item layout
-      sets ``justify_self``: ``start``, ``end``, ``flex_start``, ``flex_end`` or
-      ``center``; ``baseline`` behaves as ``start``; ``normal`` and ``stretch``
-      stretch an item whose width is ``auto`` to its area minus its margins.
-
-   .. cpp:function:: void set_justify_items(LayoutAlignment alignment)
-
-      Sets :cpp:func:`justify_items <gui_forms::GridPanel::justify_items>`; see the property's description above.
-
-   .. cpp:function:: LayoutAlignment align_items() const noexcept
-
-      How each item sits across its area's height, unless its item layout
-      sets ``align_self``, with the values of :cpp:func:`justify_items <gui_forms::GridPanel::justify_items>`; ``baseline``
-      aligns the bottoms of the baseline-aligned items that start in the
-      same row.
-
-   .. cpp:function:: void set_align_items(LayoutAlignment alignment)
-
-      Sets :cpp:func:`align_items <gui_forms::GridPanel::align_items>`; see the property's description above.
-
-   .. cpp:function:: LengthPercentage row_gap() const noexcept
-
-      Space between rows. A percentage is of the panel's content height, and
-      zero when that height is indefinite. It must be finite and
-      nonnegative.
-
-   .. cpp:function:: void set_row_gap(LengthPercentage gap)
-
-      Sets :cpp:func:`row_gap <gui_forms::GridPanel::row_gap>`; see the property's description above.
-
-   .. cpp:function:: LengthPercentage column_gap() const noexcept
-
-      Space between columns, with the same rules as :cpp:func:`row_gap <gui_forms::GridPanel::row_gap>` against the
-      content width.
-
-   .. cpp:function:: void set_column_gap(LengthPercentage gap)
-
-      Sets :cpp:func:`column_gap <gui_forms::GridPanel::column_gap>`; see the property's description above.
 
    .. cpp:function:: const GridLayoutWorkspace& layout_snapshot() const& noexcept
 
@@ -525,6 +491,8 @@ gui_forms::GridPanel
 
       The child's ``position`` and insets, without copying its whole record; static for a control that is not a live direct child.
 
+   .. cpp:function:: static const std::array<PropertyEntry, grid_panel_property_count>& grid_panel_property_entries() noexcept
+
    .. cpp:function:: void set_item_layout(const Control& child, const GridItemLayout& layout)
 
       ``set_item_layout(child, layout)`` sets a direct child's
@@ -563,6 +531,12 @@ gui_forms::GridPanel
 
       *Protected.*
 
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
    .. cpp:member:: constexpr std::size_t grid_child_property_count
 
       The child properties it provides: area, cell and item_style. Default: ``3U``.
+
+   .. cpp:member:: constexpr std::size_t grid_panel_property_count
+
+      GridPanel's property table: Control's entries, then its own. Default: ``Control::control_property_count + 1U``.

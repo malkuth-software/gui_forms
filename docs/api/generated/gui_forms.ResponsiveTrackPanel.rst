@@ -7,7 +7,7 @@ gui_forms::ResponsiveTrackPanel
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: ResponsiveTrackPanel final : public ContainerControl, public ChildTrackCapability<ResponsiveTrackPanel>
+.. cpp:class:: ResponsiveTrackPanel final : public ContainerControl, public ChildTrackCapability<ResponsiveTrackPanel>, public ResponsiveTrackPanelCapabilities<ResponsiveTrackPanel>
 
    ``#include <gui_forms/controls/scrollable_control/container_control/responsive_track_panel/responsive_track_panel.hpp>``
 
@@ -92,6 +92,8 @@ gui_forms::ResponsiveTrackPanel
         - Whether a track is protected by :cpp:func:`set_track_revealed <gui_forms::ResponsiveTrackPanel::set_track_revealed>`.
       * - :cpp:func:`clear_track_focus_fallback <gui_forms::ResponsiveTrackPanel::clear_track_focus_fallback>`
         - Removes a track's focus fallback.
+      * - :cpp:func:`responsive_track_panel_property_entries <gui_forms::ResponsiveTrackPanel::responsive_track_panel_property_entries>`
+        -  
       * - :cpp:func:`set_track_spec <gui_forms::ResponsiveTrackPanel::set_track_spec>`
         - Replaces one track's spec.
       * - :cpp:func:`set_track_revealed <gui_forms::ResponsiveTrackPanel::set_track_revealed>`
@@ -224,23 +226,15 @@ gui_forms::ResponsiveTrackPanel
       ``std::out_of_range``; the value is dropped when the child leaves or when
       the specs shrink below it.
 
-   .. cpp:function:: ResponsiveTrackOrientation orientation() const noexcept
+   .. cpp:member:: ResponsiveTrackOrientation orientation
 
       The axis the tracks run along. Horizontal tracks are columns that fill
       the panel's height; vertical tracks are rows that fill its width.
 
-   .. cpp:function:: void set_orientation(ResponsiveTrackOrientation orientation)
-
-      Sets :cpp:func:`orientation <gui_forms::ResponsiveTrackPanel::orientation>`; see the property's description above.
-
-   .. cpp:function:: double track_gap() const noexcept
+   .. cpp:member:: double track_gap
 
       Space between neighbouring tracks that are not collapsed. It must be
       finite and between 0 and 256.
-
-   .. cpp:function:: void set_track_gap(double gap)
-
-      Sets :cpp:func:`track_gap <gui_forms::ResponsiveTrackPanel::track_gap>`; see the property's description above.
 
    .. cpp:function:: std::span<const ResponsiveTrackSpec> track_specs() const noexcept
 
@@ -281,6 +275,8 @@ gui_forms::ResponsiveTrackPanel
 
       Removes a track's focus fallback.
 
+   .. cpp:function:: static const std::array<PropertyEntry, responsive_track_panel_property_count>& responsive_track_panel_property_entries() noexcept
+
    .. cpp:function:: void set_track_spec(std::size_t track, ResponsiveTrackSpec spec)
 
       Replaces one track's spec. The track index must be below the track
@@ -317,6 +313,12 @@ gui_forms::ResponsiveTrackPanel
 
       *Protected.*
 
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
    .. cpp:member:: constexpr std::size_t track_child_property_count
 
       The child properties it provides: child_track. Default: ``1U``.
+
+   .. cpp:member:: constexpr std::size_t responsive_track_panel_property_count
+
+      ResponsiveTrackPanel's property table: Control's entries, then its own. Default: ``Control::control_property_count + 3U``.

@@ -682,7 +682,7 @@ Related types
 
    .. cpp:member:: PropertyCell<std::chrono::milliseconds, RibbonToolTipAutoPopDelayCapability<Declaring>> auto_pop_delay
 
-      Default: ``{10000}``.
+      Default: ``{std::chrono::milliseconds(10000)}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -795,7 +795,7 @@ Related types
 
    .. cpp:member:: PropertyCell<std::chrono::milliseconds, RibbonToolTipInitialDelayCapability<Declaring>> initial_delay
 
-      Default: ``{500}``.
+      Default: ``{std::chrono::milliseconds(500)}``.
 
 .. cpp:namespace:: gui_forms
 

@@ -83,6 +83,15 @@ gui_forms::FlagsValueEditor
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
 
+   .. rubric:: Methods
+
+   .. list-table::
+      :class: autosummary longtable
+      :widths: 35 65
+
+      * - :cpp:func:`flags_value_editor_property_entries <gui_forms::FlagsValueEditor::flags_value_editor_property_entries>`
+        -  
+
    .. seealso::
 
       :cpp:class:`ComboBox <gui_forms::ComboBox>`
@@ -238,6 +247,11 @@ gui_forms::FlagsValueEditor
       ``false``, however that happened.
 
 
+   .. rubric:: Methods
+
+   .. cpp:function:: static const std::array<PropertyEntry, flags_value_editor_property_count>& flags_value_editor_property_entries() noexcept
+
+
    .. rubric:: Extension points
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
@@ -267,3 +281,9 @@ gui_forms::FlagsValueEditor
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 
       *Protected.*
+
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
+   .. cpp:member:: constexpr std::size_t flags_value_editor_property_count
+
+      FlagsValueEditor's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 4U``.

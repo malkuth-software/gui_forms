@@ -76,10 +76,6 @@ gui_forms::TypographySpecimen
 
       * - :cpp:func:`typography_specimen_property_entries <gui_forms::TypographySpecimen::typography_specimen_property_entries>`
         -  
-      * - :cpp:func:`set_text <gui_forms::TypographySpecimen::set_text>`
-        - M-S transient forwarders: the integrator's rewrite replaces every call with an assignment of the cell and deletes them in the same batch.
-      * - :cpp:func:`set_font <gui_forms::TypographySpecimen::set_font>`
-        - M-S transient forwarder
 
    .. seealso::
 
@@ -172,14 +168,6 @@ gui_forms::TypographySpecimen
    .. rubric:: Methods
 
    .. cpp:function:: static const std::array<PropertyEntry, typography_specimen_property_count>& typography_specimen_property_entries() noexcept
-
-   .. cpp:function:: void set_text(std::string value)
-
-      M-S transient forwarders: the integrator's rewrite replaces every call with an assignment of the cell and deletes them in the same batch.
-
-   .. cpp:function:: void set_font(FontSpec value)
-
-      M-S transient forwarder
 
 
    .. rubric:: Extension points

@@ -7,7 +7,7 @@ gui_forms::FlowLayoutPanelCompat
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: FlowLayoutPanelCompat final : public ContainerControl, public FlowBreakCapability<FlowLayoutPanelCompat>
+.. cpp:class:: FlowLayoutPanelCompat final : public ContainerControl, public FlowBreakCapability<FlowLayoutPanelCompat>, public FlowLayoutPanelCompatCapabilities<FlowLayoutPanelCompat>
 
    ``#include <gui_forms/controls/scrollable_control/container_control/flow_layout_panel_compat/flow_layout_panel_compat.hpp>``
 
@@ -21,7 +21,7 @@ gui_forms::FlowLayoutPanelCompat
 
    The panel places its visible children in child order along a main axis:
    left to right, right to left, top down or bottom up. When a child does not
-   fit in the rest of the line, it starts a new line, unless :cpp:func:`wrap_contents <gui_forms::FlowLayoutPanelCompat::wrap_contents>` is
+   fit in the rest of the line, it starts a new line, unless :cpp:member:`wrap_contents <gui_forms::FlowLayoutPanelCompat::wrap_contents>` is
    off.
 
    In a right-to-left ``layout_direction`` the flow is laid out left to right and
@@ -93,6 +93,8 @@ gui_forms::FlowLayoutPanelCompat
         -  
       * - :cpp:func:`flex_grow <gui_forms::FlowLayoutPanelCompat::flex_grow>`
         - The grow value of ``child``, or 0 for a control that is not a direct child.
+      * - :cpp:func:`flow_layout_panel_compat_property_entries <gui_forms::FlowLayoutPanelCompat::flow_layout_panel_compat_property_entries>`
+        -  
       * - :cpp:func:`set_flex_grow <gui_forms::FlowLayoutPanelCompat::set_flex_grow>`
         - Gives ``child`` a share of the free space on its line, in proportion to its grow value among the line's children.
 
@@ -207,58 +209,38 @@ gui_forms::FlowLayoutPanelCompat
       is refused with ``std::invalid_argument``; the value is dropped when the
       child leaves.
 
-   .. cpp:function:: FlowDirection flow_direction() const noexcept
+   .. cpp:member:: FlowDirection flow_direction
 
       The main axis and the end it starts from. :cpp:enumerator:`FlowDirection::right_to_left <gui_forms::FlowDirection::right_to_left>`
       and :cpp:enumerator:`FlowDirection::bottom_up <gui_forms::FlowDirection::bottom_up>` mirror the placement of each line without
       reordering the children.
 
-   .. cpp:function:: void set_flow_direction(FlowDirection direction)
-
-      Sets :cpp:func:`flow_direction <gui_forms::FlowLayoutPanelCompat::flow_direction>`; see the property's description above.
-
-   .. cpp:function:: bool wrap_contents() const noexcept
+   .. cpp:member:: bool wrap_contents
 
       Whether a child that would cross the end of the line starts a new line.
       When false, only flow breaks start new lines, and a line may extend past
       the panel.
 
-   .. cpp:function:: void set_wrap_contents(bool wrap)
-
-      Sets :cpp:func:`wrap_contents <gui_forms::FlowLayoutPanelCompat::wrap_contents>`; see the property's description above.
-
-   .. cpp:function:: Size item_spacing() const noexcept
+   .. cpp:member:: Size item_spacing
 
       Extra space added between neighbouring items and between lines, on top of
       the children's own margins. For a horizontal flow, ``width`` separates
       items and ``height`` separates lines; for a vertical flow the roles swap.
       Each value must be finite and between 0 and 256.
 
-   .. cpp:function:: void set_item_spacing(Size spacing)
-
-      Sets :cpp:func:`item_spacing <gui_forms::FlowLayoutPanelCompat::item_spacing>`; see the property's description above.
-
-   .. cpp:function:: FlowMainAlignment main_alignment() const noexcept
+   .. cpp:member:: FlowMainAlignment main_alignment
 
       How each line distributes its free space along the main axis: at the
       start, centered, at the end, or spread between, around or evenly among
       the items. A line that holds a child with a nonzero :cpp:func:`flex_grow <gui_forms::FlowLayoutPanelCompat::flex_grow>` has no
       free space left to distribute, so alignment does not move it.
 
-   .. cpp:function:: void set_main_alignment(FlowMainAlignment alignment)
-
-      Sets :cpp:func:`main_alignment <gui_forms::FlowLayoutPanelCompat::main_alignment>`; see the property's description above.
-
-   .. cpp:function:: FlowCrossAlignment cross_alignment() const noexcept
+   .. cpp:member:: FlowCrossAlignment cross_alignment
 
       How each child sits across the line: at the start, centered, at the end,
       or stretched to the line's thickness minus its margins. A line is as
       thick as its thickest child; when the panel holds a single line, the line
       fills the panel's client area inside its padding.
-
-   .. cpp:function:: void set_cross_alignment(FlowCrossAlignment alignment)
-
-      Sets :cpp:func:`cross_alignment <gui_forms::FlowLayoutPanelCompat::cross_alignment>`; see the property's description above.
 
 
    .. rubric:: Methods
@@ -268,6 +250,8 @@ gui_forms::FlowLayoutPanelCompat
    .. cpp:function:: double flex_grow(const Control& child) const
 
       The grow value of ``child``, or 0 for a control that is not a direct child.
+
+   .. cpp:function:: static const std::array<PropertyEntry, flow_layout_panel_compat_property_count>& flow_layout_panel_compat_property_entries() noexcept
 
    .. cpp:function:: void set_flex_grow(const Control& child, double grow)
 
@@ -293,6 +277,12 @@ gui_forms::FlowLayoutPanelCompat
 
       *Protected.*
 
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
    .. cpp:member:: constexpr std::size_t flow_child_property_count
 
       The child properties it provides: flow_break. Default: ``1U``.
+
+   .. cpp:member:: constexpr std::size_t flow_layout_panel_compat_property_count
+
+      FlowLayoutPanelCompat's property table: Control's entries, then its own. Default: ``Control::control_property_count + 5U``.

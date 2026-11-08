@@ -537,4 +537,4 @@ gui_forms::ComboBox
 
    .. cpp:member:: constexpr std::size_t combo_box_property_count
 
-      ComboBox's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 4U``.
+      ComboBox's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 6U``.

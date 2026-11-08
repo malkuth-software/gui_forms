@@ -63,6 +63,20 @@ Related types
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`CheckBox::States <gui_forms::CheckBox::States>`
      -  
+   * - :cpp:class:`CheckBoxAppearanceStyleCapability <gui_forms::CheckBoxAppearanceStyleCapability>`
+     - Normal or button (Appearance): only the visual projection changes.
+   * - :cpp:class:`CheckBoxAutoCheckCapability <gui_forms::CheckBoxAutoCheckCapability>`
+     - Whether activation advances the check state (AutoCheck).
+   * - :cpp:class:`CheckBoxCapabilities <gui_forms::CheckBoxCapabilities>`
+     - Every CheckBox capability, in the order the declaring class takes them.
+   * - :cpp:class:`CheckBoxCheckedCapability <gui_forms::CheckBoxCheckedCapability>`
+     - Whether the box is checked (Checked); a view onto check_state: a write sets checked or unchecked.
+   * - :cpp:class:`CheckBoxCheckStateCapability <gui_forms::CheckBoxCheckStateCapability>`
+     - Unchecked, checked or indeterminate (CheckState); a view onto the check state.
+   * - :cpp:class:`CheckBoxIndicatorStyleCapability <gui_forms::CheckBoxIndicatorStyleCapability>`
+     - How the check mark draws: classic, modern or toggle (std::invalid_argument outside them).
+   * - :cpp:class:`CheckBoxThreeStateCapability <gui_forms::CheckBoxThreeStateCapability>`
+     - Whether the box also takes the indeterminate state (ThreeState); clearing it turns an indeterminate box checked.
    * - :cpp:class:`ColorValueEditor::Parts <gui_forms::ColorValueEditor::Parts>`
      - Stage T1 anatomy, as dot members.
    * - :cpp:class:`ColorValueEditor::States <gui_forms::ColorValueEditor::States>`
@@ -209,10 +223,34 @@ Related types
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`RadioButton::States <gui_forms::RadioButton::States>`
      -  
+   * - :cpp:class:`RadioButtonAutoCheckCapability <gui_forms::RadioButtonAutoCheckCapability>`
+     - Whether activation checks the button (AutoCheck).
+   * - :cpp:class:`RadioButtonCapabilities <gui_forms::RadioButtonCapabilities>`
+     - Every RadioButton capability, in the order the declaring class takes them.
+   * - :cpp:class:`RadioButtonCheckedCapability <gui_forms::RadioButtonCheckedCapability>`
+     - Whether the button is selected within its group (Checked); a view onto the check.
+   * - :cpp:class:`RadioButtonGroupNameCapability <gui_forms::RadioButtonGroupNameCapability>`
+     - The exclusion group among the parent's radio buttons (GroupName); empty is the parent's own group.
+   * - :cpp:class:`RadioButtonIndicatorStyleCapability <gui_forms::RadioButtonIndicatorStyleCapability>`
+     - How the choice mark draws: classic, modern or toggle (std::invalid_argument outside them).
    * - :cpp:class:`RangeControl::Parts <gui_forms::RangeControl::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`RangeControl::States <gui_forms::RangeControl::States>`
      -  
+   * - :cpp:class:`RangeControlCapabilities <gui_forms::RangeControlCapabilities>`
+     - Every RangeControl capability, in the order the declaring class takes them.
+   * - :cpp:class:`RangeControlLargeChangeCapability <gui_forms::RangeControlLargeChangeCapability>`
+     - How far a track click or Page Up/Down moves the value (LargeChange); positive and finite, else std::invalid_argument.
+   * - :cpp:class:`RangeControlMaximumCapability <gui_forms::RangeControlMaximumCapability>`
+     - The upper bound (Maximum); a view onto the range: a write is set_range(minimum, incoming), so it must stay above the minimum.
+   * - :cpp:class:`RangeControlMinimumCapability <gui_forms::RangeControlMinimumCapability>`
+     - The lower bound (Minimum); a view onto the range: a write is set_range(incoming, maximum), so it must stay below the maximum.
+   * - :cpp:class:`RangeControlOrientationCapability <gui_forms::RangeControlOrientationCapability>`
+     - Horizontal or vertical (Orientation).
+   * - :cpp:class:`RangeControlSmallChangeCapability <gui_forms::RangeControlSmallChangeCapability>`
+     - How far an arrow key or button moves the value (SmallChange); positive and finite, else std::invalid_argument.
+   * - :cpp:class:`RangeControlValueCapability <gui_forms::RangeControlValueCapability>`
+     - The current value (Value), within minimum and maximum; a view onto the range's value.
    * - :cpp:class:`RangeScrollEvent <gui_forms::RangeScrollEvent>`
      - RangeScrollEvent is the typed transition payload shared by interactive range controls.
    * - :cpp:class:`ToggleSwitch::Parts <gui_forms::ToggleSwitch::Parts>`
@@ -229,6 +267,14 @@ Related types
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`TrackBar::States <gui_forms::TrackBar::States>`
      -  
+   * - :cpp:class:`TrackBarCapabilities <gui_forms::TrackBarCapabilities>`
+     - Every TrackBar capability, in the order the declaring class takes them.
+   * - :cpp:class:`TrackBarShowTicksCapability <gui_forms::TrackBarShowTicksCapability>`
+     - Whether the tick marks draw.
+   * - :cpp:class:`TrackBarTickFrequencyCapability <gui_forms::TrackBarTickFrequencyCapability>`
+     - Distance in value units between tick marks; positive and finite, else std::invalid_argument.
+   * - :cpp:class:`TrackBarVisualStyleChoiceCapability <gui_forms::TrackBarVisualStyleChoiceCapability>`
+     - How the rail and thumb draw: classic ticks, a filled rail or a compact rail.
 
 .. cpp:namespace:: gui_forms
 
@@ -279,6 +325,143 @@ Related types
    .. cpp:member:: bool open
 
    .. cpp:member:: bool closed
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CheckBoxAppearanceStyleCapability
+
+   ``#include <gui_forms/controls/button_base/check_box/check_box_capabilities/check_box_capabilities.hpp>``
+
+   Normal or button (Appearance): only the visual projection changes. Outside the enumeration throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CheckBoxAppearanceStyleCapability& capability, CheckBoxAppearance incoming)
+
+   .. cpp:member:: PropertyCell<CheckBoxAppearance, CheckBoxAppearanceStyleCapability<Declaring>> appearance
+
+      Default: ``{CheckBoxAppearance::normal}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CheckBoxAutoCheckCapability
+
+   ``#include <gui_forms/controls/button_base/check_box/check_box_capabilities/check_box_capabilities.hpp>``
+
+   Whether activation advances the check state (AutoCheck).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CheckBoxAutoCheckCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, CheckBoxAutoCheckCapability<Declaring>> auto_check
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CheckBoxCapabilities : public CheckBoxCheckStateCapability<Declaring>, public CheckBoxCheckedCapability<Declaring>, public CheckBoxThreeStateCapability<Declaring>, public CheckBoxAutoCheckCapability<Declaring>, public CheckBoxAppearanceStyleCapability<Declaring>, public CheckBoxIndicatorStyleCapability<Declaring>
+
+   ``#include <gui_forms/controls/button_base/check_box/check_box_capabilities/check_box_capabilities.hpp>``
+
+   Every CheckBox capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: CheckState check_state
+
+      Unchecked, checked or indeterminate (CheckState); a view onto the check state. Indeterminate becomes checked unless three_state. A change raises check_state_changed, then checked_changed when checked changes. Outside the enumeration throws std::invalid_argument.
+
+   .. cpp:member:: bool checked
+
+      Whether the box is checked (Checked); a view onto check_state: a write sets checked or unchecked.
+
+   .. cpp:member:: bool three_state
+
+      Whether the box also takes the indeterminate state (ThreeState); clearing it turns an indeterminate box checked.
+
+   .. cpp:member:: bool auto_check
+
+      Whether activation advances the check state (AutoCheck).
+
+   .. cpp:member:: CheckBoxAppearance appearance
+
+      Normal or button (Appearance): only the visual projection changes. Outside the enumeration throws std::invalid_argument.
+
+   .. cpp:member:: ChoiceIndicatorStyle indicator_style
+
+      How the check mark draws: classic, modern or toggle (std::invalid_argument outside them).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CheckBoxCheckedCapability
+
+   ``#include <gui_forms/controls/button_base/check_box/check_box_capabilities/check_box_capabilities.hpp>``
+
+   Whether the box is checked (Checked); a view onto check_state: a write sets checked or unchecked.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CheckBoxCheckedCapability& capability, bool incoming)
+
+   .. cpp:function:: static bool read(const CheckBoxCheckedCapability& capability)
+
+   .. cpp:member:: PropertyView<bool, CheckBoxCheckedCapability<Declaring>> checked
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CheckBoxCheckStateCapability
+
+   ``#include <gui_forms/controls/button_base/check_box/check_box_capabilities/check_box_capabilities.hpp>``
+
+   Unchecked, checked or indeterminate (CheckState); a view onto the check state. Indeterminate becomes checked unless three_state. A change raises check_state_changed, then checked_changed when checked changes. Outside the enumeration throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CheckBoxCheckStateCapability& capability, CheckState incoming)
+
+   .. cpp:function:: static CheckState read(const CheckBoxCheckStateCapability& capability)
+
+   .. cpp:member:: PropertyView<CheckState, CheckBoxCheckStateCapability<Declaring>> check_state
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CheckBoxIndicatorStyleCapability
+
+   ``#include <gui_forms/controls/button_base/check_box/check_box_capabilities/check_box_capabilities.hpp>``
+
+   How the check mark draws: classic, modern or toggle (std::invalid_argument outside them).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CheckBoxIndicatorStyleCapability& capability, ChoiceIndicatorStyle incoming)
+
+   .. cpp:member:: PropertyCell<ChoiceIndicatorStyle, CheckBoxIndicatorStyleCapability<Declaring>> indicator_style
+
+      Default: ``{ChoiceIndicatorStyle::classic}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CheckBoxThreeStateCapability
+
+   ``#include <gui_forms/controls/button_base/check_box/check_box_capabilities/check_box_capabilities.hpp>``
+
+   Whether the box also takes the indeterminate state (ThreeState); clearing it turns an indeterminate box checked.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CheckBoxThreeStateCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, CheckBoxThreeStateCapability<Declaring>> three_state
+
+      Default: ``{false}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -1758,6 +1941,99 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> RadioButtonAutoCheckCapability
+
+   ``#include <gui_forms/controls/button_base/radio_button/radio_button_capabilities/radio_button_capabilities.hpp>``
+
+   Whether activation checks the button (AutoCheck).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RadioButtonAutoCheckCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, RadioButtonAutoCheckCapability<Declaring>> auto_check
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RadioButtonCapabilities : public RadioButtonCheckedCapability<Declaring>, public RadioButtonGroupNameCapability<Declaring>, public RadioButtonAutoCheckCapability<Declaring>, public RadioButtonIndicatorStyleCapability<Declaring>
+
+   ``#include <gui_forms/controls/button_base/radio_button/radio_button_capabilities/radio_button_capabilities.hpp>``
+
+   Every RadioButton capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: bool checked
+
+      Whether the button is selected within its group (Checked); a view onto the check. Checking it clears the checked sibling of the same group_name first; a change raises checked_changed.
+
+   .. cpp:member:: std::string group_name
+
+      The exclusion group among the parent's radio buttons (GroupName); empty is the parent's own group. A checked button that joins a group clears that group's checked sibling.
+
+   .. cpp:member:: bool auto_check
+
+      Whether activation checks the button (AutoCheck).
+
+   .. cpp:member:: ChoiceIndicatorStyle indicator_style
+
+      How the choice mark draws: classic, modern or toggle (std::invalid_argument outside them).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RadioButtonCheckedCapability
+
+   ``#include <gui_forms/controls/button_base/radio_button/radio_button_capabilities/radio_button_capabilities.hpp>``
+
+   Whether the button is selected within its group (Checked); a view onto the check. Checking it clears the checked sibling of the same group_name first; a change raises checked_changed.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RadioButtonCheckedCapability& capability, bool incoming)
+
+   .. cpp:function:: static bool read(const RadioButtonCheckedCapability& capability)
+
+   .. cpp:member:: PropertyView<bool, RadioButtonCheckedCapability<Declaring>> checked
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RadioButtonGroupNameCapability
+
+   ``#include <gui_forms/controls/button_base/radio_button/radio_button_capabilities/radio_button_capabilities.hpp>``
+
+   The exclusion group among the parent's radio buttons (GroupName); empty is the parent's own group. A checked button that joins a group clears that group's checked sibling.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RadioButtonGroupNameCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, RadioButtonGroupNameCapability<Declaring>> group_name
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RadioButtonIndicatorStyleCapability
+
+   ``#include <gui_forms/controls/button_base/radio_button/radio_button_capabilities/radio_button_capabilities.hpp>``
+
+   How the choice mark draws: classic, modern or toggle (std::invalid_argument outside them).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RadioButtonIndicatorStyleCapability& capability, ChoiceIndicatorStyle incoming)
+
+   .. cpp:member:: PropertyCell<ChoiceIndicatorStyle, RadioButtonIndicatorStyleCapability<Declaring>> indicator_style
+
+      Default: ``{ChoiceIndicatorStyle::classic}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: RangeControl::Parts final
 
    ``#include <gui_forms/controls/range_control/range_control.hpp>``
@@ -1786,9 +2062,146 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> RangeControlCapabilities : public RangeControlValueCapability<Declaring>, public RangeControlMinimumCapability<Declaring>, public RangeControlMaximumCapability<Declaring>, public RangeControlSmallChangeCapability<Declaring>, public RangeControlLargeChangeCapability<Declaring>, public RangeControlOrientationCapability<Declaring>
+
+   ``#include <gui_forms/controls/range_control/range_control_capabilities/range_control_capabilities.hpp>``
+
+   Every RangeControl capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: double value
+
+      The current value (Value), within minimum and maximum; a view onto the range's value. Outside them throws std::out_of_range, a non-finite value std::invalid_argument; a bound Value may refuse it. A change raises value_changed.
+
+   .. cpp:member:: double minimum
+
+      The lower bound (Minimum); a view onto the range: a write is set_range(incoming, maximum), so it must stay below the maximum.
+
+   .. cpp:member:: double maximum
+
+      The upper bound (Maximum); a view onto the range: a write is set_range(minimum, incoming), so it must stay above the minimum.
+
+   .. cpp:member:: double small_change
+
+      How far an arrow key or button moves the value (SmallChange); positive and finite, else std::invalid_argument.
+
+   .. cpp:member:: double large_change
+
+      How far a track click or Page Up/Down moves the value (LargeChange); positive and finite, else std::invalid_argument.
+
+   .. cpp:member:: Orientation orientation
+
+      Horizontal or vertical (Orientation).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RangeControlLargeChangeCapability
+
+   ``#include <gui_forms/controls/range_control/range_control_capabilities/range_control_capabilities.hpp>``
+
+   How far a track click or Page Up/Down moves the value (LargeChange); positive and finite, else std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RangeControlLargeChangeCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, RangeControlLargeChangeCapability<Declaring>> large_change
+
+      Default: ``{10.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RangeControlMaximumCapability
+
+   ``#include <gui_forms/controls/range_control/range_control_capabilities/range_control_capabilities.hpp>``
+
+   The upper bound (Maximum); a view onto the range: a write is set_range(minimum, incoming), so it must stay above the minimum.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RangeControlMaximumCapability& capability, double incoming)
+
+   .. cpp:function:: static double read(const RangeControlMaximumCapability& capability)
+
+   .. cpp:member:: PropertyView<double, RangeControlMaximumCapability<Declaring>> maximum
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RangeControlMinimumCapability
+
+   ``#include <gui_forms/controls/range_control/range_control_capabilities/range_control_capabilities.hpp>``
+
+   The lower bound (Minimum); a view onto the range: a write is set_range(incoming, maximum), so it must stay below the maximum.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RangeControlMinimumCapability& capability, double incoming)
+
+   .. cpp:function:: static double read(const RangeControlMinimumCapability& capability)
+
+   .. cpp:member:: PropertyView<double, RangeControlMinimumCapability<Declaring>> minimum
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RangeControlOrientationCapability
+
+   ``#include <gui_forms/controls/range_control/range_control_capabilities/range_control_capabilities.hpp>``
+
+   Horizontal or vertical (Orientation).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RangeControlOrientationCapability& capability, Orientation incoming)
+
+   .. cpp:member:: PropertyCell<Orientation, RangeControlOrientationCapability<Declaring>> orientation
+
+      Default: ``{Orientation::horizontal}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RangeControlSmallChangeCapability
+
+   ``#include <gui_forms/controls/range_control/range_control_capabilities/range_control_capabilities.hpp>``
+
+   How far an arrow key or button moves the value (SmallChange); positive and finite, else std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RangeControlSmallChangeCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, RangeControlSmallChangeCapability<Declaring>> small_change
+
+      Default: ``{1.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RangeControlValueCapability
+
+   ``#include <gui_forms/controls/range_control/range_control_capabilities/range_control_capabilities.hpp>``
+
+   The current value (Value), within minimum and maximum; a view onto the range's value. Outside them throws std::out_of_range, a non-finite value std::invalid_argument; a bound Value may refuse it. A change raises value_changed.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RangeControlValueCapability& capability, double incoming)
+
+   .. cpp:function:: static double read(const RangeControlValueCapability& capability)
+
+   .. cpp:member:: PropertyView<double, RangeControlValueCapability<Declaring>> value
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: RangeScrollEvent final
 
-   ``#include <gui_forms/controls/range_control/range_control.hpp>``
+   ``#include <gui_forms/controls/range_control/range_control_values/range_control_values.hpp>``
 
    RangeScrollEvent is the typed transition payload shared by interactive range controls. It records the old value, committed new value, and the exact pointer, keyboard, command, or programmatic reason.
 
@@ -1928,6 +2341,80 @@ Related types
 
    .. cpp:member:: bool focus_visible
 
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TrackBarCapabilities : public TrackBarTickFrequencyCapability<Declaring>, public TrackBarShowTicksCapability<Declaring>, public TrackBarVisualStyleChoiceCapability<Declaring>
+
+   ``#include <gui_forms/controls/range_control/track_bar/track_bar_capabilities/track_bar_capabilities.hpp>``
+
+   Every TrackBar capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: double tick_frequency
+
+      Distance in value units between tick marks; positive and finite, else std::invalid_argument.
+
+   .. cpp:member:: bool show_ticks
+
+      Whether the tick marks draw.
+
+   .. cpp:member:: TrackBarVisualStyle visual_style
+
+      How the rail and thumb draw: classic ticks, a filled rail or a compact rail.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TrackBarShowTicksCapability
+
+   ``#include <gui_forms/controls/range_control/track_bar/track_bar_capabilities/track_bar_capabilities.hpp>``
+
+   Whether the tick marks draw.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TrackBarShowTicksCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, TrackBarShowTicksCapability<Declaring>> show_ticks
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TrackBarTickFrequencyCapability
+
+   ``#include <gui_forms/controls/range_control/track_bar/track_bar_capabilities/track_bar_capabilities.hpp>``
+
+   Distance in value units between tick marks; positive and finite, else std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TrackBarTickFrequencyCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, TrackBarTickFrequencyCapability<Declaring>> tick_frequency
+
+      Default: ``{10.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TrackBarVisualStyleChoiceCapability
+
+   ``#include <gui_forms/controls/range_control/track_bar/track_bar_capabilities/track_bar_capabilities.hpp>``
+
+   How the rail and thumb draw: classic ticks, a filled rail or a compact rail.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TrackBarVisualStyleChoiceCapability& capability, TrackBarVisualStyle incoming)
+
+   .. cpp:member:: PropertyCell<TrackBarVisualStyle, TrackBarVisualStyleChoiceCapability<Declaring>> visual_style
+
+      Default: ``{TrackBarVisualStyle::classic}``.
+
 Enumerations
 ------------
 
@@ -1935,7 +2422,7 @@ Enumerations
 
 .. cpp:enum-class:: CheckBoxAppearance
 
-   ``#include <gui_forms/controls/button_base/check_box/check_box.hpp>``
+   ``#include <gui_forms/controls/button_base/check_box/check_box_values/check_box_values.hpp>``
 
    .. cpp:enumerator:: normal
 
@@ -1945,7 +2432,7 @@ Enumerations
 
 .. cpp:enum-class:: CheckState
 
-   ``#include <gui_forms/controls/button_base/check_box/check_box.hpp>``
+   ``#include <gui_forms/controls/button_base/check_box/check_box_values/check_box_values.hpp>``
 
    .. cpp:enumerator:: unchecked
 
@@ -1981,7 +2468,7 @@ Enumerations
 
 .. cpp:enum-class:: Orientation
 
-   ``#include <gui_forms/controls/range_control/range_control.hpp>``
+   ``#include <gui_forms/controls/range_control/range_control_values/range_control_values.hpp>``
 
    .. cpp:enumerator:: horizontal
 
@@ -2017,7 +2504,7 @@ Enumerations
 
 .. cpp:enum-class:: RangeAction
 
-   ``#include <gui_forms/controls/range_control/range_control.hpp>``
+   ``#include <gui_forms/controls/range_control/range_control_values/range_control_values.hpp>``
 
    .. cpp:enumerator:: small_decrement
 
@@ -2039,7 +2526,7 @@ Enumerations
 
 .. cpp:enum-class:: TrackBarVisualStyle
 
-   ``#include <gui_forms/controls/range_control/track_bar/track_bar.hpp>``
+   ``#include <gui_forms/controls/range_control/track_bar/track_bar_values/track_bar_values.hpp>``
 
    .. cpp:enumerator:: classic
 

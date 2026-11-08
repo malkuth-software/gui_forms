@@ -7,14 +7,14 @@ gui_forms::RangeControl
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: RangeControl : public Control
+.. cpp:class:: RangeControl : public Control, public RangeControlCapabilities<RangeControl>
 
    ``#include <gui_forms/controls/range_control/range_control.hpp>``
 
    The shared base of controls that show a number within a bounded range.
 
-   :cpp:class:`RangeControl <gui_forms::RangeControl>` holds a :cpp:func:`value <gui_forms::RangeControl::value>` between :cpp:func:`minimum <gui_forms::RangeControl::minimum>` and :cpp:func:`maximum <gui_forms::RangeControl::maximum>`, with the step
-   sizes :cpp:func:`small_change <gui_forms::RangeControl::small_change>` and :cpp:func:`large_change <gui_forms::RangeControl::large_change>` and an :cpp:func:`orientation <gui_forms::RangeControl::orientation>`. It is the base
+   :cpp:class:`RangeControl <gui_forms::RangeControl>` holds a :cpp:member:`value <gui_forms::RangeControl::value>` between :cpp:member:`minimum <gui_forms::RangeControl::minimum>` and :cpp:member:`maximum <gui_forms::RangeControl::maximum>`, with the step
+   sizes :cpp:member:`small_change <gui_forms::RangeControl::small_change>` and :cpp:member:`large_change <gui_forms::RangeControl::large_change>` and an :cpp:member:`orientation <gui_forms::RangeControl::orientation>`. It is the base
    of :cpp:class:`TrackBar <gui_forms::TrackBar>`, :cpp:class:`ProgressBar <gui_forms::ProgressBar>` and :cpp:class:`ScrollBar <gui_forms::ScrollBar>` (and so of :cpp:class:`HScrollBar <gui_forms::HScrollBar>` and
    :cpp:class:`VScrollBar <gui_forms::VScrollBar>`), which add the drawing and the input. A :cpp:class:`RangeControl <gui_forms::RangeControl>` on its
    own draws nothing and handles no input, so create one of those controls
@@ -32,19 +32,19 @@ gui_forms::RangeControl
 
    :Properties:
 
-      **minimum** : ``double``, default ``0``
-         The lowest value. Setting it is the same as calling :cpp:func:`set_range <gui_forms::RangeControl::set_range>` with the
-         current :cpp:func:`maximum <gui_forms::RangeControl::maximum>`.
-
-      **maximum** : ``double``, default ``100``
-         The highest value. Setting it is the same as calling :cpp:func:`set_range <gui_forms::RangeControl::set_range>` with the
-         current :cpp:func:`minimum <gui_forms::RangeControl::minimum>`.
-
       **value** : ``double``, default ``0``
-         The current value, always within :cpp:func:`minimum <gui_forms::RangeControl::minimum>` and :cpp:func:`maximum <gui_forms::RangeControl::maximum>`. :cpp:func:`set_value <gui_forms::RangeControl::set_value>`
+         The current value, always within :cpp:member:`minimum <gui_forms::RangeControl::minimum>` and :cpp:member:`maximum <gui_forms::RangeControl::maximum>`. ``set_value``
          does not clamp: a value outside the range throws ``std::out_of_range``, and
          a value that is not finite throws ``std::invalid_argument``. Setting the
          current value again does nothing.
+
+      **minimum** : ``double``, default ``0``
+         The lowest value. Setting it is the same as calling :cpp:func:`set_range <gui_forms::RangeControl::set_range>` with the
+         current :cpp:member:`maximum <gui_forms::RangeControl::maximum>`.
+
+      **maximum** : ``double``, default ``100``
+         The highest value. Setting it is the same as calling :cpp:func:`set_range <gui_forms::RangeControl::set_range>` with the
+         current :cpp:member:`minimum <gui_forms::RangeControl::minimum>`.
 
       **small_change** : ``double``, default ``1``
          The step used by the arrow keys, the mouse wheel and the scroll bar
@@ -62,8 +62,8 @@ gui_forms::RangeControl
          argument, which defaults to :cpp:enumerator:`Orientation::vertical <gui_forms::Orientation::vertical>`.
 
       **normalized_value** : ``double``, read-only
-         The position of :cpp:func:`value <gui_forms::RangeControl::value>` within the range, from 0 at :cpp:func:`minimum <gui_forms::RangeControl::minimum>` to 1 at
-         :cpp:func:`maximum <gui_forms::RangeControl::maximum>`.
+         The position of :cpp:member:`value <gui_forms::RangeControl::value>` within the range, from 0 at :cpp:member:`minimum <gui_forms::RangeControl::minimum>` to 1 at
+         :cpp:member:`maximum <gui_forms::RangeControl::maximum>`.
 
       **style** : ``BasicControlStyle``
          The colours the derived control draws with.
@@ -75,13 +75,13 @@ gui_forms::RangeControl
    :Events:
 
       **range_changed** : ``Event<double, double>``
-         Raised after :cpp:func:`set_range <gui_forms::RangeControl::set_range>`, :cpp:func:`set_minimum <gui_forms::RangeControl::set_minimum>` or :cpp:func:`set_maximum <gui_forms::RangeControl::set_maximum>` changes the
+         Raised after :cpp:func:`set_range <gui_forms::RangeControl::set_range>`, ``set_minimum`` or ``set_maximum`` changes the
          range. It carries the new minimum and maximum. When the new range
          excludes the current value, the value is clamped into it and
          :cpp:func:`value_changed <gui_forms::RangeControl::value_changed>` is raised immediately afterwards.
 
       **value_changed** : ``Event<double>``
-         Raised after :cpp:func:`value <gui_forms::RangeControl::value>` changes, whatever the cause: a setter, :cpp:func:`increment <gui_forms::RangeControl::increment>`,
+         Raised after :cpp:member:`value <gui_forms::RangeControl::value>` changes, whatever the cause: a setter, :cpp:func:`increment <gui_forms::RangeControl::increment>`,
          a range change, a bound :cpp:class:`Value <gui_forms::Value>`, or user input. It carries the new value.
 
       **scroll** : ``Event<const RangeScrollEvent&>``
@@ -102,13 +102,15 @@ gui_forms::RangeControl
       :widths: 35 65
 
       * - :cpp:func:`bind <gui_forms::RangeControl::bind>`
-        - ``bind(Value<double>&)`` keeps :cpp:func:`value <gui_forms::RangeControl::value>` and an application value in step.
+        - ``bind(Value<double>&)`` keeps :cpp:member:`value <gui_forms::RangeControl::value>` and an application value in step.
       * - :cpp:func:`unbind <gui_forms::RangeControl::unbind>`
         - Ends the value binding.
       * - :cpp:func:`increment <gui_forms::RangeControl::increment>`
-        - Adds a positive or negative amount to :cpp:func:`value <gui_forms::RangeControl::value>`, clamped to the range.
+        - Adds a positive or negative amount to :cpp:member:`value <gui_forms::RangeControl::value>`, clamped to the range.
+      * - :cpp:func:`range_control_property_entries <gui_forms::RangeControl::range_control_property_entries>`
+        -  
       * - :cpp:func:`set_range <gui_forms::RangeControl::set_range>`
-        - Sets :cpp:func:`minimum <gui_forms::RangeControl::minimum>` and :cpp:func:`maximum <gui_forms::RangeControl::maximum>` together.
+        - Sets :cpp:member:`minimum <gui_forms::RangeControl::minimum>` and :cpp:member:`maximum <gui_forms::RangeControl::maximum>` together.
 
    .. seealso::
 
@@ -182,69 +184,45 @@ gui_forms::RangeControl
 
    .. rubric:: Properties
 
-   .. cpp:function:: double minimum() const noexcept
+   .. cpp:member:: double value
 
-      The lowest value. Setting it is the same as calling :cpp:func:`set_range <gui_forms::RangeControl::set_range>` with the
-      current :cpp:func:`maximum <gui_forms::RangeControl::maximum>`.
-
-   .. cpp:function:: void set_minimum(double minimum)
-
-      Sets :cpp:func:`minimum <gui_forms::RangeControl::minimum>`; see the property's description above.
-
-   .. cpp:function:: double maximum() const noexcept
-
-      The highest value. Setting it is the same as calling :cpp:func:`set_range <gui_forms::RangeControl::set_range>` with the
-      current :cpp:func:`minimum <gui_forms::RangeControl::minimum>`.
-
-   .. cpp:function:: void set_maximum(double maximum)
-
-      Sets :cpp:func:`maximum <gui_forms::RangeControl::maximum>`; see the property's description above.
-
-   .. cpp:function:: double value() const noexcept
-
-      The current value, always within :cpp:func:`minimum <gui_forms::RangeControl::minimum>` and :cpp:func:`maximum <gui_forms::RangeControl::maximum>`. :cpp:func:`set_value <gui_forms::RangeControl::set_value>`
+      The current value, always within :cpp:member:`minimum <gui_forms::RangeControl::minimum>` and :cpp:member:`maximum <gui_forms::RangeControl::maximum>`. ``set_value``
       does not clamp: a value outside the range throws ``std::out_of_range``, and
       a value that is not finite throws ``std::invalid_argument``. Setting the
       current value again does nothing.
 
-   .. cpp:function:: virtual void set_value(double value)
+   .. cpp:member:: double minimum
 
-      Sets :cpp:func:`value <gui_forms::RangeControl::value>`; see the property's description above.
+      The lowest value. Setting it is the same as calling :cpp:func:`set_range <gui_forms::RangeControl::set_range>` with the
+      current :cpp:member:`maximum <gui_forms::RangeControl::maximum>`.
 
-   .. cpp:function:: double small_change() const noexcept
+   .. cpp:member:: double maximum
+
+      The highest value. Setting it is the same as calling :cpp:func:`set_range <gui_forms::RangeControl::set_range>` with the
+      current :cpp:member:`minimum <gui_forms::RangeControl::minimum>`.
+
+   .. cpp:member:: double small_change
 
       The step used by the arrow keys, the mouse wheel and the scroll bar
       arrows. It must be finite and greater than zero, or the setter throws
       ``std::invalid_argument``.
 
-   .. cpp:function:: void set_small_change(double change)
-
-      Sets :cpp:func:`small_change <gui_forms::RangeControl::small_change>`; see the property's description above.
-
-   .. cpp:function:: double large_change() const noexcept
+   .. cpp:member:: double large_change
 
       The step used by Page Up and Page Down and by clicks on a scroll bar
       track; a :cpp:class:`ScrollBar <gui_forms::ScrollBar>` also sizes its thumb from it. It must be finite and
       greater than zero, or the setter throws ``std::invalid_argument``.
 
-   .. cpp:function:: void set_large_change(double change)
-
-      Sets :cpp:func:`large_change <gui_forms::RangeControl::large_change>`; see the property's description above.
-
-   .. cpp:function:: Orientation orientation() const noexcept
+   .. cpp:member:: Orientation orientation
 
       Whether the control runs left to right or bottom to top. Changing it
       remeasures the control. :cpp:class:`ScrollBar <gui_forms::ScrollBar>` sets it from its constructor
       argument, which defaults to :cpp:enumerator:`Orientation::vertical <gui_forms::Orientation::vertical>`.
 
-   .. cpp:function:: void set_orientation(Orientation orientation)
-
-      Sets :cpp:func:`orientation <gui_forms::RangeControl::orientation>`; see the property's description above.
-
    .. cpp:function:: double normalized_value() const noexcept
 
-      The position of :cpp:func:`value <gui_forms::RangeControl::value>` within the range, from 0 at :cpp:func:`minimum <gui_forms::RangeControl::minimum>` to 1 at
-      :cpp:func:`maximum <gui_forms::RangeControl::maximum>`.
+      The position of :cpp:member:`value <gui_forms::RangeControl::value>` within the range, from 0 at :cpp:member:`minimum <gui_forms::RangeControl::minimum>` to 1 at
+      :cpp:member:`maximum <gui_forms::RangeControl::maximum>`.
 
    .. cpp:function:: const BasicControlStyle& style() const noexcept
 
@@ -263,14 +241,14 @@ gui_forms::RangeControl
 
    .. cpp:function:: Event<double, double>& range_changed() noexcept
 
-      Raised after :cpp:func:`set_range <gui_forms::RangeControl::set_range>`, :cpp:func:`set_minimum <gui_forms::RangeControl::set_minimum>` or :cpp:func:`set_maximum <gui_forms::RangeControl::set_maximum>` changes the
+      Raised after :cpp:func:`set_range <gui_forms::RangeControl::set_range>`, ``set_minimum`` or ``set_maximum`` changes the
       range. It carries the new minimum and maximum. When the new range
       excludes the current value, the value is clamped into it and
       :cpp:func:`value_changed <gui_forms::RangeControl::value_changed>` is raised immediately afterwards.
 
    .. cpp:function:: Event<double>& value_changed() noexcept
 
-      Raised after :cpp:func:`value <gui_forms::RangeControl::value>` changes, whatever the cause: a setter, :cpp:func:`increment <gui_forms::RangeControl::increment>`,
+      Raised after :cpp:member:`value <gui_forms::RangeControl::value>` changes, whatever the cause: a setter, :cpp:func:`increment <gui_forms::RangeControl::increment>`,
       a range change, a bound :cpp:class:`Value <gui_forms::Value>`, or user input. It carries the new value.
 
    .. cpp:function:: Event<const RangeScrollEvent&>& scroll() noexcept
@@ -286,7 +264,7 @@ gui_forms::RangeControl
 
    .. cpp:function:: void bind(Value<double>& model)
 
-      ``bind(Value<double>&)`` keeps :cpp:func:`value <gui_forms::RangeControl::value>` and an application value in step.
+      ``bind(Value<double>&)`` keeps :cpp:member:`value <gui_forms::RangeControl::value>` and an application value in step.
       The value wins when the binding starts, so the control first takes the
       value's number; after that a change on either side updates the other.
       The value must already lie within the control's range, or :cpp:func:`bind <gui_forms::RangeControl::bind>` throws
@@ -301,14 +279,16 @@ gui_forms::RangeControl
 
    .. cpp:function:: void increment(double delta)
 
-      Adds a positive or negative amount to :cpp:func:`value <gui_forms::RangeControl::value>`, clamped to the range. It
-      behaves like :cpp:func:`set_value <gui_forms::RangeControl::set_value>`, so it raises :cpp:func:`value_changed <gui_forms::RangeControl::value_changed>` but not :cpp:func:`scroll <gui_forms::RangeControl::scroll>`.
+      Adds a positive or negative amount to :cpp:member:`value <gui_forms::RangeControl::value>`, clamped to the range. It
+      behaves like ``set_value``, so it raises :cpp:func:`value_changed <gui_forms::RangeControl::value_changed>` but not :cpp:func:`scroll <gui_forms::RangeControl::scroll>`.
       A delta that is not finite throws ``std::invalid_argument``.
 
-   .. cpp:function:: void set_range(double minimum, double maximum)
+   .. cpp:function:: static const std::array<PropertyEntry, range_control_property_count>& range_control_property_entries() noexcept
 
-      Sets :cpp:func:`minimum <gui_forms::RangeControl::minimum>` and :cpp:func:`maximum <gui_forms::RangeControl::maximum>` together. Both must be finite and :cpp:func:`minimum <gui_forms::RangeControl::minimum>`
-      must be less than :cpp:func:`maximum <gui_forms::RangeControl::maximum>`, or it throws ``std::invalid_argument``; an
+   .. cpp:function:: void set_range(double minimum_value, double maximum_value)
+
+      Sets :cpp:member:`minimum <gui_forms::RangeControl::minimum>` and :cpp:member:`maximum <gui_forms::RangeControl::maximum>` together. Both must be finite and :cpp:member:`minimum <gui_forms::RangeControl::minimum>`
+      must be less than :cpp:member:`maximum <gui_forms::RangeControl::maximum>`, or it throws ``std::invalid_argument``; an
       empty range is not allowed. The current value is clamped into the new
       range.
 
@@ -325,10 +305,16 @@ gui_forms::RangeControl
 
       *Protected.*
 
-   .. cpp:function:: bool set_value_from_input(double value, RangeAction action)
+   .. cpp:function:: bool set_value_from_input(double requested, RangeAction action)
 
       *Protected.*
 
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 
       *Protected.*
+
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
+   .. cpp:member:: constexpr std::size_t range_control_property_count
+
+      RangeControl's property table: Control's entries, then its own. Default: ``Control::control_property_count + 3U``.

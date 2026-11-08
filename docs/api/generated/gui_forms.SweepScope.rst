@@ -7,7 +7,7 @@ gui_forms::SweepScope
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: SweepScope : public RangeControl
+.. cpp:class:: SweepScope : public RangeControl, public SweepScopeCapabilities<SweepScope>
 
    ``#include <gui_forms/controls/instruments/sweep_scope/sweep_scope.hpp>``
 
@@ -17,7 +17,7 @@ gui_forms::SweepScope
    inherits from :cpp:class:`RangeControl <gui_forms::RangeControl>` (0 to 100 by default): a trace rises from the
    lower left of the plot to a peak above the level's place and falls to the
    middle of the right edge, while a sweep line crosses the plot once each
-   :cpp:func:`sweep_period <gui_forms::SweepScope::sweep_period>`. A caption above the plot reads the caption and the level's
+   :cpp:member:`sweep_period <gui_forms::SweepScope::sweep_period>`. A caption above the plot reads the caption and the level's
    percentage, such as "LEVEL 42%". Update the level with ``set_value``, or bind
    it to a ``Value<double>`` with ``bind``. The scope is display only: it takes no
    focus, keyboard or pointer input. It belongs to the instruments package.
@@ -54,9 +54,18 @@ gui_forms::SweepScope
 
    :Inherited:
 
-      From :cpp:class:`RangeControl <gui_forms::RangeControl>`: properties :cpp:func:`minimum <gui_forms::RangeControl::minimum>`, :cpp:func:`maximum <gui_forms::RangeControl::maximum>`, :cpp:func:`value <gui_forms::RangeControl::value>`, :cpp:func:`small_change <gui_forms::RangeControl::small_change>`, :cpp:func:`large_change <gui_forms::RangeControl::large_change>`, :cpp:func:`orientation <gui_forms::RangeControl::orientation>`, :cpp:func:`normalized_value <gui_forms::RangeControl::normalized_value>`, :cpp:func:`style <gui_forms::RangeControl::style>`; events :cpp:func:`range_changed <gui_forms::RangeControl::range_changed>`, :cpp:func:`value_changed <gui_forms::RangeControl::value_changed>`, :cpp:func:`scroll <gui_forms::RangeControl::scroll>`; methods :cpp:func:`bind <gui_forms::RangeControl::bind>`, :cpp:func:`increment <gui_forms::RangeControl::increment>`, :cpp:func:`set_range <gui_forms::RangeControl::set_range>`, :cpp:func:`unbind <gui_forms::RangeControl::unbind>`.
+      From :cpp:class:`RangeControl <gui_forms::RangeControl>`: properties :cpp:member:`value <gui_forms::RangeControl::value>`, :cpp:member:`minimum <gui_forms::RangeControl::minimum>`, :cpp:member:`maximum <gui_forms::RangeControl::maximum>`, :cpp:member:`small_change <gui_forms::RangeControl::small_change>`, :cpp:member:`large_change <gui_forms::RangeControl::large_change>`, :cpp:member:`orientation <gui_forms::RangeControl::orientation>`, :cpp:func:`normalized_value <gui_forms::RangeControl::normalized_value>`, :cpp:func:`style <gui_forms::RangeControl::style>`; events :cpp:func:`range_changed <gui_forms::RangeControl::range_changed>`, :cpp:func:`value_changed <gui_forms::RangeControl::value_changed>`, :cpp:func:`scroll <gui_forms::RangeControl::scroll>`; methods :cpp:func:`bind <gui_forms::RangeControl::bind>`, :cpp:func:`increment <gui_forms::RangeControl::increment>`, :cpp:func:`range_control_property_entries <gui_forms::RangeControl::range_control_property_entries>`, :cpp:func:`set_range <gui_forms::RangeControl::set_range>`, :cpp:func:`unbind <gui_forms::RangeControl::unbind>`.
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
+
+   .. rubric:: Methods
+
+   .. list-table::
+      :class: autosummary longtable
+      :widths: 35 65
+
+      * - :cpp:func:`sweep_scope_property_entries <gui_forms::SweepScope::sweep_scope_property_entries>`
+        -  
 
    .. seealso::
 
@@ -97,24 +106,16 @@ gui_forms::SweepScope
 
    .. rubric:: Properties
 
-   .. cpp:function:: const std::string& caption() const noexcept
+   .. cpp:member:: std::string caption
 
       The words drawn before the level's percentage. An unnamed scope is
       announced by its caption.
 
-   .. cpp:function:: void set_caption(std::string caption)
-
-      Sets :cpp:func:`caption <gui_forms::SweepScope::caption>`; see the property's description above.
-
-   .. cpp:function:: FrameInterval sweep_period() const noexcept
+   .. cpp:member:: FrameInterval sweep_period
 
       The time the sweep takes to cross the plot once, from 0.1 to 60 seconds;
       other periods throw ``std::out_of_range``. As a property it is a number of
       seconds.
-
-   .. cpp:function:: void set_sweep_period(FrameInterval period)
-
-      Sets :cpp:func:`sweep_period <gui_forms::SweepScope::sweep_period>`; see the property's description above.
 
    .. cpp:function:: const EffectInstance& effect_instance() const noexcept
 
@@ -128,6 +129,11 @@ gui_forms::SweepScope
    .. cpp:function:: Rect plot_bounds() const noexcept
 
       The plot's bounds in the scope's local coordinates; the trace and the sweep are drawn inside it, and a sweep frame damages it.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static const std::array<PropertyEntry, sweep_scope_property_count>& sweep_scope_property_entries() noexcept
 
 
    .. rubric:: Extension points
@@ -160,6 +166,12 @@ gui_forms::SweepScope
 
       *Protected.*
 
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
    .. cpp:member:: constexpr int graticule_lines
 
       The number of graticule lines across the plot. Default: ``4``.
+
+   .. cpp:member:: constexpr std::size_t sweep_scope_property_count
+
+      SweepScope's property table: RangeControl's entries, then its own. Default: ``RangeControl::range_control_property_count + 2U``.

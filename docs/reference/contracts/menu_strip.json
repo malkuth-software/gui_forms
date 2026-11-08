@@ -33,22 +33,6 @@
       "reviewed": false,
       "summary": "Validates and replaces menu topology, closes stale transient state, and refreshes geometry and semantics."
     },
-    "gui_forms::MenuStrip::use_mnemonic|bool () const noexcept": {
-      "reviewed": false,
-      "summary": "Reports whether ampersand-style access keys participate in activation and painting."
-    },
-    "gui_forms::MenuStrip::set_use_mnemonic|void (bool)": {
-      "reviewed": false,
-      "summary": "Toggles mnemonic parsing, remeasures labels, and refreshes keyboard routing."
-    },
-    "gui_forms::MenuStrip::item_padding|double () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the logical horizontal inset applied around each top-level label."
-    },
-    "gui_forms::MenuStrip::set_item_padding|void (double)": {
-      "reviewed": false,
-      "summary": "Validates bounded padding and invalidates menu measurement, paint, and hit testing."
-    },
     "gui_forms::MenuStrip::active_index|std::optional<std::size_t> () const noexcept": {
       "reviewed": false,
       "summary": "Returns the currently open top-level item index, if any."

@@ -1635,7 +1635,7 @@ Related types
 
    .. cpp:member:: PropertyCell<Size, TabControlItemSizeCapability<Declaring>> item_size
 
-      Default: ``{120.0, 30.0}``.
+      Default: ``{Size{120.0, 30.0}}``.
 
 .. cpp:namespace:: gui_forms
 

@@ -366,7 +366,7 @@ Related types
 
    .. cpp:member:: PropertyCell<std::chrono::milliseconds, ErrorProviderBlinkRateCapability<Declaring>> blink_rate
 
-      Default: ``{250}``.
+      Default: ``{std::chrono::milliseconds(250)}``.
 
 .. cpp:namespace:: gui_forms
 

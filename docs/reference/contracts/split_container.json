@@ -36,30 +36,6 @@
       "reviewed": false,
       "summary": "Returns the focusable source-private seam Control for inspection or focus routing."
     },
-    "gui_forms::SplitContainer::orientation|Orientation () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns vertical side-by-side or horizontal top/bottom allocation policy."
-    },
-    "gui_forms::SplitContainer::set_orientation|void (Orientation)": {
-      "reviewed": false,
-      "summary": "Validates orientation, preserves coherent distance state, updates seam cursor/painting, and invalidates all geometry."
-    },
-    "gui_forms::SplitContainer::splitter_distance|double () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the effective constrained leading-pane extent from the most recent arrangement."
-    },
-    "gui_forms::SplitContainer::set_splitter_distance|void (double)": {
-      "reviewed": false,
-      "summary": "Validates a finite nonnegative request and commits it through the common constrained change/event law."
-    },
-    "gui_forms::SplitContainer::splitter_width|double () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the visible seam thickness."
-    },
-    "gui_forms::SplitContainer::set_splitter_width|void (double)": {
-      "reviewed": false,
-      "summary": "Accepts a finite bounded positive width, preserves hit-width authority, and invalidates geometry/paint."
-    },
     "gui_forms::SplitContainer::splitter_hit_width|double () const noexcept": {
       "reviewed": false,
       "summary": "Returns the independent pointer hit-target thickness centered on the visible seam."

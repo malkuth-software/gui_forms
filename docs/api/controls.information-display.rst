@@ -125,6 +125,26 @@ Related types
      -  
    * - :cpp:class:`ProgressBarAnimationAppearance <gui_forms::ProgressBarAnimationAppearance>`
      - ProgressBarAnimationAppearance is the validated value object for stripe width, gap, angle, and opacity used by painter-neutral progress animation.
+   * - :cpp:class:`ProgressBarAnimationEnabledCapability <gui_forms::ProgressBarAnimationEnabledCapability>`
+     - Whether the bar animates; turning it off resets the phase.
+   * - :cpp:class:`ProgressBarAnimationPeriodCapability <gui_forms::ProgressBarAnimationPeriodCapability>`
+     - The period of the indeterminate motion, at least 100 milliseconds (else std::invalid_argument).
+   * - :cpp:class:`ProgressBarAppearanceCapability <gui_forms::ProgressBarAppearanceCapability>`
+     - The animation's colours and extents; each extent finite and within its range, else std::invalid_argument.
+   * - :cpp:class:`ProgressBarCapabilities <gui_forms::ProgressBarCapabilities>`
+     - Every ProgressBar capability, in the order the declaring class takes them.
+   * - :cpp:class:`ProgressBarEffectCapability <gui_forms::ProgressBarEffectCapability>`
+     - The registered effect program drawn over the bar, by name (effect programs, design note section 7); empty takes the visual style's own, or the theme's.
+   * - :cpp:class:`ProgressBarEffectInputCapability <gui_forms::ProgressBarEffectInputCapability>`
+     - The input the bar grants its effect: none, the pointer, or the pointer and keys.
+   * - :cpp:class:`ProgressBarEffectSeedCapability <gui_forms::ProgressBarEffectSeedCapability>`
+     - The seed of the bar's effects; none derives it from the stable ID and the effect's name, so runs and checksums reproduce.
+   * - :cpp:class:`ProgressBarOverlayStyleChoiceCapability <gui_forms::ProgressBarOverlayStyleChoiceCapability>`
+     - The overlay drawn over the bar: none or moving stripes.
+   * - :cpp:class:`ProgressBarStripeWidthCapability <gui_forms::ProgressBarStripeWidthCapability>`
+     - The stripes' width, 2 to 32 pixels (else std::invalid_argument).
+   * - :cpp:class:`ProgressBarVisualStyleChoiceCapability <gui_forms::ProgressBarVisualStyleChoiceCapability>`
+     - How the bar draws: blocks, continuous, marquee, pulse, marching stripes or laser etch.
    * - :cpp:class:`ProgressBubbles <gui_forms::ProgressBubbles>`
      - Bubbles rising in the filled length; each that reaches the top breaks into a puff of steam rising into the top outset and fading.
    * - :cpp:class:`ProgressLaser <gui_forms::ProgressLaser>`
@@ -149,6 +169,12 @@ Related types
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`SweepScope::States <gui_forms::SweepScope::States>`
      -  
+   * - :cpp:class:`SweepScopeCapabilities <gui_forms::SweepScopeCapabilities>`
+     - Every SweepScope capability, in the order the declaring class takes them.
+   * - :cpp:class:`SweepScopeCaptionCapability <gui_forms::SweepScopeCaptionCapability>`
+     - The words drawn before the level's percentage.
+   * - :cpp:class:`SweepScopePeriodCapability <gui_forms::SweepScopePeriodCapability>`
+     - How long the sweep takes to cross the trace once, from 0.1 to 60 seconds (std::out_of_range outside them); the table value is in seconds.
    * - :cpp:class:`TextBlock::Parts <gui_forms::TextBlock::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts); its states are Control's.
    * - :cpp:class:`TextBlockCapabilities <gui_forms::TextBlockCapabilities>`
@@ -812,7 +838,7 @@ Related types
 
 .. cpp:struct:: ProgressBarAnimationAppearance final
 
-   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar.hpp>``
+   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_values/progress_bar_values.hpp>``
 
    ProgressBarAnimationAppearance is the validated value object for stripe width, gap, angle, and opacity used by painter-neutral progress animation.
 
@@ -847,6 +873,206 @@ Related types
    .. cpp:member:: double laser_phase_pitch
 
       Default: ``{10.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ProgressBarAnimationEnabledCapability
+
+   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_capabilities/progress_bar_capabilities.hpp>``
+
+   Whether the bar animates; turning it off resets the phase.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ProgressBarAnimationEnabledCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ProgressBarAnimationEnabledCapability<Declaring>> animation_enabled
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ProgressBarAnimationPeriodCapability
+
+   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_capabilities/progress_bar_capabilities.hpp>``
+
+   The period of the indeterminate motion, at least 100 milliseconds (else std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ProgressBarAnimationPeriodCapability& capability, FrameInterval incoming)
+
+   .. cpp:member:: PropertyCell<FrameInterval, ProgressBarAnimationPeriodCapability<Declaring>> animation_period
+
+      Default: ``{std::chrono::milliseconds(1400)}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ProgressBarAppearanceCapability
+
+   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_capabilities/progress_bar_capabilities.hpp>``
+
+   The animation's colours and extents; each extent finite and within its range, else std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ProgressBarAppearanceCapability& capability, ProgressBarAnimationAppearance incoming)
+
+   .. cpp:member:: PropertyCell<ProgressBarAnimationAppearance, ProgressBarAppearanceCapability<Declaring>> animation_appearance
+
+      Default: ``{ProgressBarAnimationAppearance{}}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ProgressBarCapabilities : public ProgressBarVisualStyleChoiceCapability<Declaring>, public ProgressBarOverlayStyleChoiceCapability<Declaring>, public ProgressBarStripeWidthCapability<Declaring>, public ProgressBarAppearanceCapability<Declaring>, public ProgressBarAnimationEnabledCapability<Declaring>, public ProgressBarAnimationPeriodCapability<Declaring>, public ProgressBarEffectCapability<Declaring>, public ProgressBarEffectSeedCapability<Declaring>, public ProgressBarEffectInputCapability<Declaring>
+
+   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_capabilities/progress_bar_capabilities.hpp>``
+
+   Every ProgressBar capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: ProgressBarVisualStyle visual_style
+
+      How the bar draws: blocks, continuous, marquee, pulse, marching stripes or laser etch. A change restarts the animation phase and reselects the effects.
+
+   .. cpp:member:: ProgressBarOverlayStyle overlay_style
+
+      The overlay drawn over the bar: none or moving stripes. A change restarts the animation phase and reselects the effects.
+
+   .. cpp:member:: double stripe_width
+
+      The stripes' width, 2 to 32 pixels (else std::invalid_argument).
+
+   .. cpp:member:: ProgressBarAnimationAppearance animation_appearance
+
+      The animation's colours and extents; each extent finite and within its range, else std::invalid_argument.
+
+   .. cpp:member:: bool animation_enabled
+
+      Whether the bar animates; turning it off resets the phase.
+
+   .. cpp:member:: FrameInterval animation_period
+
+      The period of the indeterminate motion, at least 100 milliseconds (else std::invalid_argument).
+
+   .. cpp:member:: std::string effect
+
+      The registered effect program drawn over the bar, by name (effect programs, design note section 7); empty takes the visual style's own, or the theme's.
+
+   .. cpp:member:: std::optional<std::uint64_t> effect_seed
+
+      The seed of the bar's effects; none derives it from the stable ID and the effect's name, so runs and checksums reproduce. A change restarts the effects.
+
+   .. cpp:member:: EffectInputKind effect_input
+
+      The input the bar grants its effect: none, the pointer, or the pointer and keys. The bar never takes focus, so a key grant delivers nothing.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ProgressBarEffectCapability
+
+   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_capabilities/progress_bar_capabilities.hpp>``
+
+   The registered effect program drawn over the bar, by name (effect programs, design note section 7); empty takes the visual style's own, or the theme's.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ProgressBarEffectCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, ProgressBarEffectCapability<Declaring>> effect
+
+      Default: ``{std::string{}}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ProgressBarEffectInputCapability
+
+   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_capabilities/progress_bar_capabilities.hpp>``
+
+   The input the bar grants its effect: none, the pointer, or the pointer and keys. The bar never takes focus, so a key grant delivers nothing.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ProgressBarEffectInputCapability& capability, EffectInputKind incoming)
+
+   .. cpp:member:: PropertyCell<EffectInputKind, ProgressBarEffectInputCapability<Declaring>> effect_input
+
+      Default: ``{EffectInputKind::none}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ProgressBarEffectSeedCapability
+
+   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_capabilities/progress_bar_capabilities.hpp>``
+
+   The seed of the bar's effects; none derives it from the stable ID and the effect's name, so runs and checksums reproduce. A change restarts the effects.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ProgressBarEffectSeedCapability& capability, std::optional<std::uint64_t> incoming)
+
+   .. cpp:member:: PropertyCell<std::optional<std::uint64_t>, ProgressBarEffectSeedCapability<Declaring>> effect_seed
+
+      Default: ``{std::nullopt}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ProgressBarOverlayStyleChoiceCapability
+
+   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_capabilities/progress_bar_capabilities.hpp>``
+
+   The overlay drawn over the bar: none or moving stripes. A change restarts the animation phase and reselects the effects.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ProgressBarOverlayStyleChoiceCapability& capability, ProgressBarOverlayStyle incoming)
+
+   .. cpp:member:: PropertyCell<ProgressBarOverlayStyle, ProgressBarOverlayStyleChoiceCapability<Declaring>> overlay_style
+
+      Default: ``{ProgressBarOverlayStyle::none}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ProgressBarStripeWidthCapability
+
+   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_capabilities/progress_bar_capabilities.hpp>``
+
+   The stripes' width, 2 to 32 pixels (else std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ProgressBarStripeWidthCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, ProgressBarStripeWidthCapability<Declaring>> stripe_width
+
+      Default: ``{7.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ProgressBarVisualStyleChoiceCapability
+
+   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_capabilities/progress_bar_capabilities.hpp>``
+
+   How the bar draws: blocks, continuous, marquee, pulse, marching stripes or laser etch. A change restarts the animation phase and reselects the effects.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ProgressBarVisualStyleChoiceCapability& capability, ProgressBarVisualStyle incoming)
+
+   .. cpp:member:: PropertyCell<ProgressBarVisualStyle, ProgressBarVisualStyleChoiceCapability<Declaring>> visual_style
+
+      Default: ``{ProgressBarVisualStyle::continuous}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -1084,6 +1310,59 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> SweepScopeCapabilities : public SweepScopeCaptionCapability<Declaring>, public SweepScopePeriodCapability<Declaring>
+
+   ``#include <gui_forms/controls/instruments/sweep_scope/sweep_scope_capabilities/sweep_scope_capabilities.hpp>``
+
+   Every SweepScope capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string caption
+
+      The words drawn before the level's percentage.
+
+   .. cpp:member:: FrameInterval sweep_period
+
+      How long the sweep takes to cross the trace once, from 0.1 to 60 seconds (std::out_of_range outside them); the table value is in seconds.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SweepScopeCaptionCapability
+
+   ``#include <gui_forms/controls/instruments/sweep_scope/sweep_scope_capabilities/sweep_scope_capabilities.hpp>``
+
+   The words drawn before the level's percentage.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SweepScopeCaptionCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, SweepScopeCaptionCapability<Declaring>> caption
+
+      Default: ``{std::string("LEVEL")}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SweepScopePeriodCapability
+
+   ``#include <gui_forms/controls/instruments/sweep_scope/sweep_scope_capabilities/sweep_scope_capabilities.hpp>``
+
+   How long the sweep takes to cross the trace once, from 0.1 to 60 seconds (std::out_of_range outside them); the table value is in seconds.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SweepScopePeriodCapability& capability, FrameInterval incoming)
+
+   .. cpp:member:: PropertyCell<FrameInterval, SweepScopePeriodCapability<Declaring>> sweep_period
+
+      Default: ``{std::chrono::microseconds(1'234'568)}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: TextBlock::Parts final
 
    ``#include <gui_forms/controls/text_block/text_block.hpp>``
@@ -1285,7 +1564,7 @@ Enumerations
 
 .. cpp:enum-class:: ProgressBarOverlayStyle
 
-   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar.hpp>``
+   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_values/progress_bar_values.hpp>``
 
    .. cpp:enumerator:: none
 
@@ -1297,7 +1576,7 @@ Enumerations
 
 .. cpp:enum-class:: ProgressBarVisualStyle
 
-   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar.hpp>``
+   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_values/progress_bar_values.hpp>``
 
    .. cpp:enumerator:: blocks
 

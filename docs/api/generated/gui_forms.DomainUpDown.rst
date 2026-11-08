@@ -104,6 +104,8 @@ gui_forms::DomainUpDown
         - Selects the previous item, or the last when nothing is selected.
       * - :cpp:func:`down_button <gui_forms::DomainUpDown::down_button>`
         - Selects the next item, or the first when nothing is selected.
+      * - :cpp:func:`domain_up_down_property_entries <gui_forms::DomainUpDown::domain_up_down_property_entries>`
+        -  
 
    .. seealso::
 
@@ -242,6 +244,8 @@ gui_forms::DomainUpDown
 
       Selects the next item, or the first when nothing is selected.
 
+   .. cpp:function:: static const std::array<PropertyEntry, domain_up_down_property_count>& domain_up_down_property_entries() noexcept
+
 
    .. rubric:: Extension points
 
@@ -267,6 +271,12 @@ gui_forms::DomainUpDown
 
       *Protected.*
 
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
    .. cpp:member:: constexpr bool initialize_tree_after_construction
 
       Default: ``true``.
+
+   .. cpp:member:: constexpr std::size_t domain_up_down_property_count
+
+      DomainUpDown's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 1U``.

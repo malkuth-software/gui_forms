@@ -45,6 +45,12 @@ gui_forms::ChoiceGroup
          is a keyed part, so the theme's engine may move it between segments,
          and does not when motion is reduced.
 
+      **selected_index** : ``int``, default ``-1``
+         The index of the selected item, or -1 when nothing is selected. A value
+         below -1 or past the last item throws ``std::out_of_range``. While the
+         group is bound, the bound value's own validators are consulted too, and
+         an exception from them leaves both unchanged.
+
       **items** : ``std::span<const ChoiceItem>``
          The choices, in display order. Empty by default. Item IDs must be
          unique and every text valid UTF-8, or :cpp:func:`set_items <gui_forms::ChoiceGroup::set_items>` throws
@@ -57,12 +63,6 @@ gui_forms::ChoiceGroup
          otherwise becomes -1. Calling :cpp:func:`set_items <gui_forms::ChoiceGroup::set_items>` while a :cpp:func:`set_items <gui_forms::ChoiceGroup::set_items>` call is
          notifying throws ``std::logic_error``.
 
-      **selected_index** : ``int``, default ``-1``
-         The index of the selected item, or -1 when nothing is selected. A value
-         below -1 or past the last item throws ``std::out_of_range``. While the
-         group is bound, the bound value's own validators are consulted too, and
-         an exception from them leaves both unchanged.
-
       **parts** : ``Parts``, read-only
          The published part geometry: Panel's parts, then ``track`` and
          ``selection``, which are absent in the buttons presentation (and the
@@ -71,10 +71,9 @@ gui_forms::ChoiceGroup
    :Events:
 
       **changed** : ``Event<int>``
-         Raised after :cpp:func:`selected_index <gui_forms::ChoiceGroup::selected_index>` changes, by input, by the setter, by the
+         Raised after :cpp:member:`selected_index <gui_forms::ChoiceGroup::selected_index>` changes, by input, by the setter, by the
          bound :cpp:class:`Value <gui_forms::Value>`, or by :cpp:func:`set_items <gui_forms::ChoiceGroup::set_items>` clearing an index that no longer
-         exists. It carries the new index. It is the :cpp:func:`changed <gui_forms::ChoiceGroup::changed>` event of
-         :cpp:func:`selection <gui_forms::ChoiceGroup::selection>`.
+         exists. It carries the new index.
 
       **activated** : ``Event<int>``
          Raised when the user chooses an item: by a click, Space or Enter on it,
@@ -98,11 +97,9 @@ gui_forms::ChoiceGroup
       :widths: 35 65
 
       * - :cpp:func:`bind <gui_forms::ChoiceGroup::bind>`
-        - Keeps :cpp:func:`selected_index <gui_forms::ChoiceGroup::selected_index>` and an application ``Value<int>`` in step.
+        - Keeps :cpp:member:`selected_index <gui_forms::ChoiceGroup::selected_index>` and an application ``Value<int>`` in step.
       * - :cpp:func:`unbind <gui_forms::ChoiceGroup::unbind>`
         - Ends the binding.
-      * - :cpp:func:`selection <gui_forms::ChoiceGroup::selection>`
-        - The group's own ``Value<int>``, which holds :cpp:func:`selected_index <gui_forms::ChoiceGroup::selected_index>`.
       * - :cpp:func:`item <gui_forms::ChoiceGroup::item>`
         - The :cpp:class:`Button <gui_forms::Button>` of the item at an index, for visual recipes, typography and content layout.
       * - :cpp:func:`part <gui_forms::ChoiceGroup::part>`
@@ -205,6 +202,13 @@ gui_forms::ChoiceGroup
       is a keyed part, so the theme's engine may move it between segments,
       and does not when motion is reduced.
 
+   .. cpp:member:: int selected_index
+
+      The index of the selected item, or -1 when nothing is selected. A value
+      below -1 or past the last item throws ``std::out_of_range``. While the
+      group is bound, the bound value's own validators are consulted too, and
+      an exception from them leaves both unchanged.
+
    .. cpp:function:: std::span<const ChoiceItem> items() const noexcept
 
       The choices, in display order. Empty by default. Item IDs must be
@@ -222,17 +226,6 @@ gui_forms::ChoiceGroup
 
       Sets :cpp:func:`items <gui_forms::ChoiceGroup::items>`; see the property's description above.
 
-   .. cpp:function:: int selected_index() const noexcept
-
-      The index of the selected item, or -1 when nothing is selected. A value
-      below -1 or past the last item throws ``std::out_of_range``. While the
-      group is bound, the bound value's own validators are consulted too, and
-      an exception from them leaves both unchanged.
-
-   .. cpp:function:: void set_selected_index(int index)
-
-      Sets :cpp:func:`selected_index <gui_forms::ChoiceGroup::selected_index>`; see the property's description above.
-
    .. cpp:function:: Parts parts() const
 
       The published part geometry: Panel's parts, then ``track`` and
@@ -244,10 +237,9 @@ gui_forms::ChoiceGroup
 
    .. cpp:function:: Event<int>& changed() noexcept
 
-      Raised after :cpp:func:`selected_index <gui_forms::ChoiceGroup::selected_index>` changes, by input, by the setter, by the
+      Raised after :cpp:member:`selected_index <gui_forms::ChoiceGroup::selected_index>` changes, by input, by the setter, by the
       bound :cpp:class:`Value <gui_forms::Value>`, or by :cpp:func:`set_items <gui_forms::ChoiceGroup::set_items>` clearing an index that no longer
-      exists. It carries the new index. It is the :cpp:func:`changed <gui_forms::ChoiceGroup::changed>` event of
-      :cpp:func:`selection <gui_forms::ChoiceGroup::selection>`.
+      exists. It carries the new index.
 
    .. cpp:function:: Event<int>& activated() noexcept
 
@@ -262,7 +254,7 @@ gui_forms::ChoiceGroup
 
    .. cpp:function:: void bind(Value<int>& selection)
 
-      Keeps :cpp:func:`selected_index <gui_forms::ChoiceGroup::selected_index>` and an application ``Value<int>`` in step. The
+      Keeps :cpp:member:`selected_index <gui_forms::ChoiceGroup::selected_index>` and an application ``Value<int>`` in step. The
       value wins when the binding starts, so it must already be -1 or a valid
       index for the current items, or ``std::out_of_range`` is thrown. After
       that the user's choice updates the value, a change to the value updates
@@ -274,10 +266,6 @@ gui_forms::ChoiceGroup
    .. cpp:function:: void unbind() noexcept
 
       Ends the binding. The group keeps its current selection.
-
-   .. cpp:function:: Value<int>& selection() noexcept
-
-      The group's own ``Value<int>``, which holds :cpp:func:`selected_index <gui_forms::ChoiceGroup::selected_index>`.
 
    .. cpp:function:: Button& item(int index) const
 

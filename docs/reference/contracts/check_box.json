@@ -20,46 +20,6 @@
       "reviewed": false,
       "summary": "Constructs an auto-checking unchecked command with classic indicator policy."
     },
-    "gui_forms::CheckBox::check_state|CheckState () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns unchecked, checked, or indeterminate retained state."
-    },
-    "gui_forms::CheckBox::set_check_state|void (CheckState)": {
-      "reviewed": false,
-      "summary": "Validates state and three-state policy, commits it, then publishes state and boolean changes in order."
-    },
-    "gui_forms::CheckBox::checked|bool () const noexcept": {
-      "reviewed": false,
-      "summary": "Maps retained state to true only for the checked value."
-    },
-    "gui_forms::CheckBox::set_checked|void (bool)": {
-      "reviewed": false,
-      "summary": "Selects checked or unchecked through the authoritative check-state setter."
-    },
-    "gui_forms::CheckBox::three_state|bool () const noexcept": {
-      "reviewed": false,
-      "summary": "Reports whether indeterminate is admitted and activation cycles three values."
-    },
-    "gui_forms::CheckBox::set_three_state|void (bool)": {
-      "reviewed": false,
-      "summary": "Toggles three-state policy and normalizes an existing indeterminate value when disabling it."
-    },
-    "gui_forms::CheckBox::auto_check|bool () const noexcept": {
-      "reviewed": false,
-      "summary": "Reports whether activation mutates check state before command publication."
-    },
-    "gui_forms::CheckBox::set_auto_check|void (bool)": {
-      "reviewed": false,
-      "summary": "Enables or disables automatic state cycling."
-    },
-    "gui_forms::CheckBox::indicator_style|ChoiceIndicatorStyle () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns classic box, modern box, or toggle-switch presentation."
-    },
-    "gui_forms::CheckBox::set_indicator_style|void (ChoiceIndicatorStyle)": {
-      "reviewed": false,
-      "summary": "Validates indicator vocabulary and invalidates size, paint, and semantics."
-    },
     "gui_forms::CheckBox::check_state_changed|Event<CheckState> &() noexcept": {
       "reviewed": false,
       "summary": "Returns the event published after the complete CheckState commits."

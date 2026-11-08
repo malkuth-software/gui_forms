@@ -7,7 +7,7 @@ gui_forms::TrackBar
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: TrackBar : public RangeControl
+.. cpp:class:: TrackBar : public RangeControl, public TrackBarCapabilities<TrackBar>
 
    ``#include <gui_forms/controls/range_control/track_bar/track_bar.hpp>``
 
@@ -67,9 +67,18 @@ gui_forms::TrackBar
 
    :Inherited:
 
-      From :cpp:class:`RangeControl <gui_forms::RangeControl>`: properties :cpp:func:`minimum <gui_forms::RangeControl::minimum>`, :cpp:func:`maximum <gui_forms::RangeControl::maximum>`, :cpp:func:`value <gui_forms::RangeControl::value>`, :cpp:func:`small_change <gui_forms::RangeControl::small_change>`, :cpp:func:`large_change <gui_forms::RangeControl::large_change>`, :cpp:func:`orientation <gui_forms::RangeControl::orientation>`, :cpp:func:`normalized_value <gui_forms::RangeControl::normalized_value>`, :cpp:func:`style <gui_forms::RangeControl::style>`; events :cpp:func:`range_changed <gui_forms::RangeControl::range_changed>`, :cpp:func:`value_changed <gui_forms::RangeControl::value_changed>`, :cpp:func:`scroll <gui_forms::RangeControl::scroll>`; methods :cpp:func:`bind <gui_forms::RangeControl::bind>`, :cpp:func:`increment <gui_forms::RangeControl::increment>`, :cpp:func:`set_range <gui_forms::RangeControl::set_range>`, :cpp:func:`unbind <gui_forms::RangeControl::unbind>`.
+      From :cpp:class:`RangeControl <gui_forms::RangeControl>`: properties :cpp:member:`value <gui_forms::RangeControl::value>`, :cpp:member:`minimum <gui_forms::RangeControl::minimum>`, :cpp:member:`maximum <gui_forms::RangeControl::maximum>`, :cpp:member:`small_change <gui_forms::RangeControl::small_change>`, :cpp:member:`large_change <gui_forms::RangeControl::large_change>`, :cpp:member:`orientation <gui_forms::RangeControl::orientation>`, :cpp:func:`normalized_value <gui_forms::RangeControl::normalized_value>`, :cpp:func:`style <gui_forms::RangeControl::style>`; events :cpp:func:`range_changed <gui_forms::RangeControl::range_changed>`, :cpp:func:`value_changed <gui_forms::RangeControl::value_changed>`, :cpp:func:`scroll <gui_forms::RangeControl::scroll>`; methods :cpp:func:`bind <gui_forms::RangeControl::bind>`, :cpp:func:`increment <gui_forms::RangeControl::increment>`, :cpp:func:`range_control_property_entries <gui_forms::RangeControl::range_control_property_entries>`, :cpp:func:`set_range <gui_forms::RangeControl::set_range>`, :cpp:func:`unbind <gui_forms::RangeControl::unbind>`.
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
+
+   .. rubric:: Methods
+
+   .. list-table::
+      :class: autosummary longtable
+      :widths: 35 65
+
+      * - :cpp:func:`track_bar_property_entries <gui_forms::TrackBar::track_bar_property_entries>`
+        -  
 
    .. seealso::
 
@@ -176,7 +185,7 @@ gui_forms::TrackBar
 
    .. rubric:: Properties
 
-   .. cpp:function:: double tick_frequency() const noexcept
+   .. cpp:member:: double tick_frequency
 
       The spacing of the tick marks in value units. The track shows the whole
       number of intervals that fit in the range, plus one mark, spread evenly
@@ -184,29 +193,17 @@ gui_forms::TrackBar
       greater than zero, or the setter throws ``std::invalid_argument``. It only
       affects drawing: the value is not snapped to the ticks.
 
-   .. cpp:function:: void set_tick_frequency(double frequency)
-
-      Sets :cpp:func:`tick_frequency <gui_forms::TrackBar::tick_frequency>`; see the property's description above.
-
-   .. cpp:function:: bool show_ticks() const noexcept
+   .. cpp:member:: bool show_ticks
 
       Whether tick marks are drawn below a horizontal track or to the right of
       a vertical one. :cpp:enumerator:`TrackBarVisualStyle::compact <gui_forms::TrackBarVisualStyle::compact>` never draws them.
 
-   .. cpp:function:: void set_show_ticks(bool show)
-
-      Sets :cpp:func:`show_ticks <gui_forms::TrackBar::show_ticks>`; see the property's description above.
-
-   .. cpp:function:: TrackBarVisualStyle visual_style() const noexcept
+   .. cpp:member:: TrackBarVisualStyle visual_style
 
       :cpp:enumerator:`TrackBarVisualStyle::classic <gui_forms::TrackBarVisualStyle::classic>` draws a sunken track and a raised thumb.
       :cpp:enumerator:`TrackBarVisualStyle::filled <gui_forms::TrackBarVisualStyle::filled>` draws a thin track filled with the accent
       colour up to the thumb. :cpp:enumerator:`TrackBarVisualStyle::compact <gui_forms::TrackBarVisualStyle::compact>` draws the filled
       track with a smaller thumb and no tick marks.
-
-   .. cpp:function:: void set_visual_style(TrackBarVisualStyle style)
-
-      Sets :cpp:func:`visual_style <gui_forms::TrackBar::visual_style>`; see the property's description above.
 
    .. cpp:function:: Rect value_span_bounds() const noexcept
 
@@ -227,6 +224,11 @@ gui_forms::TrackBar
    .. cpp:function:: Parts parts() const
 
    .. cpp:function:: States states() const
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static const std::array<PropertyEntry, track_bar_property_count>& track_bar_property_entries() noexcept
 
 
    .. rubric:: Extension points
@@ -252,3 +254,9 @@ gui_forms::TrackBar
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 
       *Protected.*
+
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
+   .. cpp:member:: constexpr std::size_t track_bar_property_count
+
+      TrackBar's property table: RangeControl's entries, then its own. Default: ``RangeControl::range_control_property_count + 2U``.

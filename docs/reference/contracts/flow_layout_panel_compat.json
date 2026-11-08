@@ -20,30 +20,6 @@
       "reviewed": false,
       "summary": "Constructs a left-to-right wrapping ContainerControl with zero explicit inter-item spacing."
     },
-    "gui_forms::FlowLayoutPanelCompat::flow_direction|FlowDirection () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns left-to-right, right-to-left, top-down, or bottom-up packing order."
-    },
-    "gui_forms::FlowLayoutPanelCompat::set_flow_direction|void (FlowDirection)": {
-      "reviewed": false,
-      "summary": "Validates the closed direction vocabulary and invalidates measurement, arrangement, and semantics."
-    },
-    "gui_forms::FlowLayoutPanelCompat::wrap_contents|bool () const noexcept": {
-      "reviewed": false,
-      "summary": "Reports whether overflowing items start a new line or column."
-    },
-    "gui_forms::FlowLayoutPanelCompat::set_wrap_contents|void (bool)": {
-      "reviewed": false,
-      "summary": "Toggles wrapping and invalidates the retained layout result."
-    },
-    "gui_forms::FlowLayoutPanelCompat::item_spacing|Size () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns explicit main-axis item and cross-axis line separation as logical dimensions."
-    },
-    "gui_forms::FlowLayoutPanelCompat::set_item_spacing|void (Size)": {
-      "reviewed": false,
-      "summary": "Accepts finite zero-to-256 spacing, applies it between items and lines without trailing gaps, and invalidates layout."
-    },
     "gui_forms::FlowLayoutPanelCompat::measure|Size (Size)": {
       "reviewed": false,
       "summary": "Packs stable child snapshots without assignment and returns the bounded flow extent when auto-sized."

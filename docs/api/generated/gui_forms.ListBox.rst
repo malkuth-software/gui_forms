@@ -446,4 +446,4 @@ gui_forms::ListBox
 
    .. cpp:member:: constexpr std::size_t list_box_property_count
 
-      ListBox's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 1U``.
+      ListBox's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 2U``.
