@@ -2265,6 +2265,17 @@ endif()
 add_executable(gui_forms_shadow_frames_benchmark EXCLUDE_FROM_ALL benchmarks/shadow_frames_benchmark.cpp)
 target_link_libraries(gui_forms_shadow_frames_benchmark PRIVATE gui_forms_core)
 
+# APP_WINDOW_RULES_DESIGN K.2: the creation-cost gate (a bare window, a popup
+# and a generated form window; time and allocations against the committed
+# baseline benchmarks/creation/creation_baseline.txt). Built only when asked
+# for; run in Release on the M4.
+if(GUI_FORMS_BUILD_FORM_COMPILER)
+    add_executable(gui_forms_creation_benchmark EXCLUDE_FROM_ALL benchmarks/creation_benchmark.cpp)
+    target_link_libraries(gui_forms_creation_benchmark PRIVATE gui_forms_controls)
+    gui_forms_add_form(gui_forms_creation_benchmark benchmarks/creation/creation_form.form
+        CLASS CreationSettingsForm NAMESPACE form_generated)
+endif()
+
 # SK2: the time each host spends presenting a frame, which the native jobs
 # measure (.github/workflows/native-platform.yml). Built only when asked for.
 if(TARGET gui_forms_application)

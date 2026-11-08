@@ -1,0 +1,8 @@
+# gui_forms_creation_benchmark baseline (APP_WINDOW_RULES_DESIGN K.2), written by
+# creation_gate.py record: 10 processes of 1000 interleaved rounds.
+# median_ns: median of the runs' medians; threshold_ns: their spread.
+# Re-record only for a deliberate change, with a note.
+# Note: cp20 (71337875), before Part A
+case bare_window median_ns 1666 threshold_ns 83 allocations 66 bytes 8891
+case popup median_ns 1208 threshold_ns 42 allocations 40 bytes 6497
+case form_window median_ns 45437 threshold_ns 834 allocations 1302 bytes 249481
