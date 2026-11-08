@@ -10,7 +10,7 @@
 
 namespace gui_forms {
 
-class TrackBarVisualStyle : std::uint8_t {
+enum class TrackBarVisualStyle : std::uint8_t {
     classic,
     filled,
     compact,

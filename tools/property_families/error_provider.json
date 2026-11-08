@@ -47,7 +47,7 @@
       "name": "blink_rate",
       "capability": "ErrorProviderBlinkRate",
       "value": "std::chrono::milliseconds",
-      "initial": "250",
+      "initial": "std::chrono::milliseconds(250)",
       "hooks": "hand",
       "hand": [
         "written refreshes every icon"

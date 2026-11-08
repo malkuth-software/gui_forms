@@ -2,6 +2,7 @@
 
 #include "gui_forms/binding/property_cell/property_cell.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_values/tab_control_values.hpp"
+#include "gui_forms/image_list/image_list/image_list.hpp"
 #include "gui_forms/theme/owner_draw/owner_draw.hpp"
 #include "gui_forms/types.hpp"
 

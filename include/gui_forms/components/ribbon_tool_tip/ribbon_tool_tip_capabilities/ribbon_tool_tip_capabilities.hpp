@@ -27,7 +27,7 @@ namespace gui_forms {
 // How long the pointer rests before a tooltip shows. A negative delay throws std::invalid_argument.
 template <typename Declaring>
 struct RibbonToolTipInitialDelayCapability {
-    PropertyCell<std::chrono::milliseconds, RibbonToolTipInitialDelayCapability<Declaring>> initial_delay{500};
+    PropertyCell<std::chrono::milliseconds, RibbonToolTipInitialDelayCapability<Declaring>> initial_delay{std::chrono::milliseconds(500)};
 
     static void assign(RibbonToolTipInitialDelayCapability& capability, std::chrono::milliseconds incoming) {
         Declaring& control = static_cast<Declaring&>(capability);
@@ -40,7 +40,7 @@ struct RibbonToolTipInitialDelayCapability {
 // How long a tooltip stays without input; zero keeps it until the pointer leaves or focus moves. A negative delay throws std::invalid_argument.
 template <typename Declaring>
 struct RibbonToolTipAutoPopDelayCapability {
-    PropertyCell<std::chrono::milliseconds, RibbonToolTipAutoPopDelayCapability<Declaring>> auto_pop_delay{10000};
+    PropertyCell<std::chrono::milliseconds, RibbonToolTipAutoPopDelayCapability<Declaring>> auto_pop_delay{std::chrono::milliseconds(10000)};
 
     static void assign(RibbonToolTipAutoPopDelayCapability& capability, std::chrono::milliseconds incoming) {
         Declaring& control = static_cast<Declaring&>(capability);

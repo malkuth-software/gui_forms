@@ -9,6 +9,7 @@
   "shared": [],
   "includes": [
     "gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_values/tab_control_values.hpp",
+    "gui_forms/image_list/image_list/image_list.hpp",
     "gui_forms/theme/owner_draw/owner_draw.hpp",
     "gui_forms/types.hpp"
   ],

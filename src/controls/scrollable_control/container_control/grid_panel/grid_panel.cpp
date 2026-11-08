@@ -825,14 +825,14 @@ void GridPanel::write_view(const decltype(template_rows)&, GridTrackList incomin
     if (!admitted_track_list(incoming)) {
         throw std::invalid_argument("GridPanel template rows hold a track list grids do not admit");
     }
+    if (style_.template_rows == incoming) return;
+    style_.template_rows = std::move(incoming);
+    invalidate(invalidation::bounds);
+}
 
 GridTrackList GridPanel::read_view(const decltype(template_rows)&) const {
     GridTrackList tracks = style_.template_rows;
     return tracks;
-}
-    if (style_.template_rows == tracks) return;
-    style_.template_rows = tracks;
-    invalidate(invalidation::bounds);
 }
 
 void GridPanel::set_template_areas(const GridTemplateAreas& areas) {

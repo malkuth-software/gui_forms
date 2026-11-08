@@ -41,7 +41,7 @@ struct RibbonGalleryCommandCapability {
 // Every item's image area, in logical units at text scale 1. A size outside 16 to 256 on either side throws std::out_of_range.
 template <typename Declaring>
 struct RibbonGalleryItemSizeCapability {
-    PropertyCell<Size, RibbonGalleryItemSizeCapability<Declaring>> item_size{48.0, 48.0};
+    PropertyCell<Size, RibbonGalleryItemSizeCapability<Declaring>> item_size{Size{48.0, 48.0}};
 
     static void assign(RibbonGalleryItemSizeCapability& capability, Size incoming) {
         Declaring& control = static_cast<Declaring&>(capability);

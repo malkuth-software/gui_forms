@@ -7,8 +7,8 @@
 #include "gui_forms/controls/badge/badge.hpp"
 #include "gui_forms/controls/button_base/button/button.hpp"
 #include "gui_forms/controls/button_base/button/drop_down_button/drop_down_button.hpp"
-#include "gui_forms/controls/button_base/link_label/link_label.hpp"
 #include "gui_forms/controls/button_base/check_box/check_box.hpp"
+#include "gui_forms/controls/button_base/link_label/link_label.hpp"
 #include "gui_forms/controls/button_base/radio_button/radio_button.hpp"
 #include "gui_forms/controls/button_base/toggle_switch/toggle_switch.hpp"
 #include "gui_forms/controls/collections/choice_group.hpp"
@@ -61,25 +61,25 @@
 #include "gui_forms/controls/panel/tree_list_view/tree_list_view.hpp"
 #include "gui_forms/controls/panel/tree_view/tree_view.hpp"
 #include "gui_forms/controls/quick_access_toolbar/quick_access_toolbar.hpp"
+#include "gui_forms/controls/range_control/progress_bar/progress_bar.hpp"
+#include "gui_forms/controls/range_control/scroll_bar/scroll_bar.hpp"
+#include "gui_forms/controls/range_control/track_bar/track_bar.hpp"
 #include "gui_forms/controls/raster_canvas/raster_canvas.hpp"
 #include "gui_forms/controls/ribbon/ribbon.hpp"
 #include "gui_forms/controls/ribbon_color_picker/ribbon_color_picker.hpp"
 #include "gui_forms/controls/ribbon_font_control/ribbon_font_control.hpp"
 #include "gui_forms/controls/ribbon_gallery/ribbon_gallery.hpp"
-#include "gui_forms/controls/scrollable_control/container_control/container_control.hpp"
-#include "gui_forms/controls/scrollable_control/container_control/split_container/split_container.hpp"
-#include "gui_forms/controls/scrollable_control/container_control/split_container/splitter_panel/splitter_panel.hpp"
-#include "gui_forms/controls/scrollable_control/container_control/tab_control/tab_control.hpp"
-#include "gui_forms/controls/scrollable_control/container_control/tab_control/tab_page/tab_page.hpp"
-#include "gui_forms/controls/range_control/progress_bar/progress_bar.hpp"
-#include "gui_forms/controls/range_control/scroll_bar/scroll_bar.hpp"
-#include "gui_forms/controls/range_control/track_bar/track_bar.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/block_panel/block_panel.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/command_overflow_panel/command_overflow_panel.hpp"
+#include "gui_forms/controls/scrollable_control/container_control/container_control.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/flex_panel/flex_panel.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/flow_layout_panel_compat/flow_layout_panel_compat.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/grid_panel/grid_panel.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/responsive_track_panel/responsive_track_panel.hpp"
+#include "gui_forms/controls/scrollable_control/container_control/split_container/split_container.hpp"
+#include "gui_forms/controls/scrollable_control/container_control/split_container/splitter_panel/splitter_panel.hpp"
+#include "gui_forms/controls/scrollable_control/container_control/tab_control/tab_control.hpp"
+#include "gui_forms/controls/scrollable_control/container_control/tab_control/tab_page/tab_page.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat.hpp"
 #include "gui_forms/controls/scrollable_control/scrollable_control.hpp"
 #include "gui_forms/controls/search_field/search_field.hpp"
@@ -798,23 +798,6 @@ void test_domain_up_down_properties() {
     expect((*control).property_descriptor("items").has_value(), "DomainUpDown.items: the table holds the hand entry");
 }
 
-void test_easing_preview_properties() {
-    std::shared_ptr<EasingPreview> control = make_control<EasingPreview>(StableId("generated.easingpreview"));
-    {
-        const std::string sample = std::string("Easing");
-        (*control).title = sample;
-        expect((*control).title.read() == sample, "EasingPreview.title: a write stores");
-        const std::optional<BindingValue> by_name = (*control).property_value("title");
-        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
-               "EasingPreview.title: the table reads the cell");
-    }
-    {
-        const double sample = 20.0;
-        (*control).marker_size = sample;
-        expect((*control).marker_size.read() == sample, "EasingPreview.marker_size: a write stores");
-    }
-}
-
 void test_drawing_surface_properties() {
     std::shared_ptr<DrawingSurface> control = make_control<DrawingSurface>(StableId("generated.drawingsurface"));
     {
@@ -840,6 +823,23 @@ void test_drop_down_button_properties() {
         const DropDownButtonMode sample = DropDownButtonMode::split;
         (*control).drop_down_mode = sample;
         expect((*control).drop_down_mode.read() == sample, "DropDownButton.drop_down_mode: a write stores");
+    }
+}
+
+void test_easing_preview_properties() {
+    std::shared_ptr<EasingPreview> control = make_control<EasingPreview>(StableId("generated.easingpreview"));
+    {
+        const std::string sample = std::string("Easing");
+        (*control).title = sample;
+        expect((*control).title.read() == sample, "EasingPreview.title: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("title");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "EasingPreview.title: the table reads the cell");
+    }
+    {
+        const double sample = 20.0;
+        (*control).marker_size = sample;
+        expect((*control).marker_size.read() == sample, "EasingPreview.marker_size: a write stores");
     }
 }
 
@@ -1682,28 +1682,6 @@ void test_quick_access_toolbar_properties() {
     }
 }
 
-void test_raster_canvas_properties() {
-    std::shared_ptr<RasterCanvas> control = make_control<RasterCanvas>(StableId("generated.rastercanvas"));
-    {
-        const ImageSampling sample = ImageSampling::linear;
-        (*control).sampling = sample;
-        expect((*control).sampling.read() == sample, "RasterCanvas.sampling: a write stores");
-    }
-    {
-        const bool sample = !(*control).transparency_grid.read();
-        (*control).transparency_grid = sample;
-        expect((*control).transparency_grid.read() == sample, "RasterCanvas.transparency_grid: a write stores");
-    }
-    {
-        const Color sample = Color::rgba(40, 44, 52);
-        (*control).canvas_background = sample;
-        expect((*control).canvas_background.read() == sample, "RasterCanvas.canvas_background: a write stores");
-    }
-    {
-        const double sample = 8.0;
-        (*control).transparency_cell_size = sample;
-        expect((*control).transparency_cell_size.read() == sample, "RasterCanvas.transparency_cell_size: a write stores");
-    }
 void test_radio_button_properties() {
     std::shared_ptr<RadioButton> control = make_control<RadioButton>(StableId("generated.radiobutton"));
     {
@@ -1745,6 +1723,30 @@ void test_range_control_properties() {
         const Orientation sample = Orientation::vertical;
         (*control).orientation = sample;
         expect((*control).orientation.read() == sample, "RangeControl.orientation: a write stores");
+    }
+}
+
+void test_raster_canvas_properties() {
+    std::shared_ptr<RasterCanvas> control = make_control<RasterCanvas>(StableId("generated.rastercanvas"));
+    {
+        const ImageSampling sample = ImageSampling::linear;
+        (*control).sampling = sample;
+        expect((*control).sampling.read() == sample, "RasterCanvas.sampling: a write stores");
+    }
+    {
+        const bool sample = !(*control).transparency_grid.read();
+        (*control).transparency_grid = sample;
+        expect((*control).transparency_grid.read() == sample, "RasterCanvas.transparency_grid: a write stores");
+    }
+    {
+        const Color sample = Color::rgba(40, 44, 52);
+        (*control).canvas_background = sample;
+        expect((*control).canvas_background.read() == sample, "RasterCanvas.canvas_background: a write stores");
+    }
+    {
+        const double sample = 8.0;
+        (*control).transparency_cell_size = sample;
+        expect((*control).transparency_cell_size.read() == sample, "RasterCanvas.transparency_cell_size: a write stores");
     }
 }
 
@@ -2054,6 +2056,24 @@ void test_splitter_panel_properties() {
     }
 }
 
+void test_sweep_scope_properties() {
+    std::shared_ptr<SweepScope> control = make_control<SweepScope>(StableId("generated.sweepscope"));
+    {
+        const std::string sample = std::string("GAIN");
+        (*control).caption = sample;
+        expect((*control).caption.read() == sample, "SweepScope.caption: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("caption");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "SweepScope.caption: the table reads the cell");
+    }
+    {
+        const FrameInterval sample = std::chrono::seconds(2);
+        (*control).sweep_period = sample;
+        expect((*control).sweep_period.read() == sample, "SweepScope.sweep_period: a write stores");
+        expect((*control).property_value("sweep_period").has_value(), "SweepScope.sweep_period: the table reads it");
+    }
+}
+
 void test_tab_control_properties() {
     std::shared_ptr<TabControl> control = make_control<TabControl>(StableId("generated.tabcontrol"));
     {
@@ -2085,22 +2105,6 @@ void test_tab_page_properties() {
         const std::string sample = std::string{"Options"};
         (*control).text = sample;
         expect((*control).text.read() == sample, "TabPage.text: a write stores");
-    }
-void test_sweep_scope_properties() {
-    std::shared_ptr<SweepScope> control = make_control<SweepScope>(StableId("generated.sweepscope"));
-    {
-        const std::string sample = std::string("GAIN");
-        (*control).caption = sample;
-        expect((*control).caption.read() == sample, "SweepScope.caption: a write stores");
-        const std::optional<BindingValue> by_name = (*control).property_value("caption");
-        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
-               "SweepScope.caption: the table reads the cell");
-    }
-    {
-        const FrameInterval sample = std::chrono::seconds(2);
-        (*control).sweep_period = sample;
-        expect((*control).sweep_period.read() == sample, "SweepScope.sweep_period: a write stores");
-        expect((*control).property_value("sweep_period").has_value(), "SweepScope.sweep_period: the table reads it");
     }
 }
 
@@ -2367,6 +2371,9 @@ void test_tool_strip_panel_properties() {
         const ToolStripPanelEdge sample = ToolStripPanelEdge::left;
         (*control).edge = sample;
         expect((*control).edge.read() == sample, "ToolStripPanel.edge: a write stores");
+    }
+}
+
 void test_track_bar_properties() {
     std::shared_ptr<TrackBar> control = make_control<TrackBar>(StableId("generated.trackbar"));
     {
@@ -2513,8 +2520,8 @@ int main() {
     test_choice_group_properties();
     test_color_value_editor_properties();
     test_combo_box_properties();
-    test_container_control_properties();
     test_command_overflow_panel_properties();
+    test_container_control_properties();
     test_correspondence_view_properties();
     test_data_grid_view_properties();
     test_date_time_picker_properties();
@@ -2555,9 +2562,9 @@ int main() {
     test_property_grid_properties();
     test_property_list_properties();
     test_quick_access_toolbar_properties();
-    test_raster_canvas_properties();
     test_radio_button_properties();
     test_range_control_properties();
+    test_raster_canvas_properties();
     test_responsive_track_panel_properties();
     test_review_card_properties();
     test_ribbon_properties();
@@ -2573,9 +2580,9 @@ int main() {
     test_split_container_properties();
     test_splitter_properties();
     test_splitter_panel_properties();
+    test_sweep_scope_properties();
     test_tab_control_properties();
     test_tab_page_properties();
-    test_sweep_scope_properties();
     test_table_layout_panel_compat_properties();
     test_text_block_properties();
     test_text_box_properties();

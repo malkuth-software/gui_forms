@@ -47,7 +47,7 @@
       "name": "item_size",
       "capability": "RibbonGalleryItemSize",
       "value": "Size",
-      "initial": "48.0, 48.0",
+      "initial": "Size{48.0, 48.0}",
       "hooks": "hand",
       "hand": [
         "written rebuilds the model and hands the size to the more gallery"

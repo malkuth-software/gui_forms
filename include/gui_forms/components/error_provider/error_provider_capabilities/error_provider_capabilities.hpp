@@ -44,7 +44,7 @@ struct ErrorProviderIconSizeCapability {
 // The blink interval, 50 ms to 1 minute (std::invalid_argument otherwise).
 template <typename Declaring>
 struct ErrorProviderBlinkRateCapability {
-    PropertyCell<std::chrono::milliseconds, ErrorProviderBlinkRateCapability<Declaring>> blink_rate{250};
+    PropertyCell<std::chrono::milliseconds, ErrorProviderBlinkRateCapability<Declaring>> blink_rate{std::chrono::milliseconds(250)};
 
     static void assign(ErrorProviderBlinkRateCapability& capability, std::chrono::milliseconds incoming) {
         Declaring& control = static_cast<Declaring&>(capability);

@@ -116,7 +116,6 @@ void TabControl::initialize_control_tree() {
     add_child(strip_);
 }
 
-
 // draw_mode is the strip's; before the strip exists it reads as normal.
 void TabControl::write_view(const decltype(draw_mode)&, ItemDrawMode incoming) {
     require_mutable();
@@ -128,7 +127,6 @@ ItemDrawMode TabControl::read_view(const decltype(draw_mode)&) const {
     const ItemDrawMode mode = strip_ ? (*strip_).draw_mode.read() : ItemDrawMode::normal;
     return mode;
 }
-
 
 void TabControl::on_strip_draw_item_content(ItemContentPaint& item) {
     draw_item_content_.emit(item);
@@ -366,10 +364,6 @@ void TabControl::set_selected_tab(const std::shared_ptr<TabPage>& page) {
     set_selected_index(*index);
 }
 
-
-
-
-
 void TabControl::set_style(BasicControlStyle style) {
     require_mutable();
     if (style_ == style) return;
@@ -448,7 +442,6 @@ void TabControl::written(const decltype(image_list)&) {
     }
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test);
 }
-
 
 void TabControl::on_image_list_changed(const ImageListChange&) {
     // Arranging again maps each image_index to the key now at that index.
