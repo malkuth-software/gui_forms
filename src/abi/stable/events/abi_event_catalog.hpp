@@ -64,6 +64,7 @@
 #include "gui_forms/controls/panel/domain_up_down/domain_up_down.hpp"
 #include "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp"
 #include "gui_forms/controls/panel/font_dialog/font_dialog.hpp"
+#include "gui_forms/controls/panel/group_box/group_box.hpp"
 #include "gui_forms/controls/panel/instrument_rack/instrument_rack.hpp"
 #include "gui_forms/controls/panel/list_box/checked_list_box/checked_list_box.hpp"
 #include "gui_forms/controls/panel/list_box/list_box.hpp"
@@ -4705,6 +4706,15 @@ inline SubscriptionToken connect_combo_box_text_changed(Component& source, const
     return token;
 }
 
+inline SubscriptionToken connect_group_box_text_changed(Component& source, const EventSink& sink) {
+    GroupBox* typed = dynamic_cast<GroupBox*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).text_changed(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_masked_text_box_text_changed(Component& source, const EventSink& sink) {
     MaskedTextBox* typed = dynamic_cast<MaskedTextBox*>(&source);
     if (typed == nullptr) {
@@ -5025,7 +5035,7 @@ inline SubscriptionToken connect_control_visible_changed(Component& source, cons
 }
 
 // By interaction name, then the most derived declaring type first.
-inline constexpr std::array<EventConnector, 269> event_connectors{{
+inline constexpr std::array<EventConnector, 270> event_connectors{{
     {"activated", "Card", &connect_card_activated},
     {"activated", "ChoiceGroup", &connect_choice_group_activated},
     {"activation_changed", "DockWorkspace", &connect_dock_workspace_activation_changed},
@@ -5260,6 +5270,7 @@ inline constexpr std::array<EventConnector, 269> event_connectors{{
     {"state_changed", "NavigationPane", &connect_navigation_pane_state_changed},
     {"strip_moved", "ToolStripContainer", &connect_tool_strip_container_strip_moved},
     {"text_changed", "ComboBox", &connect_combo_box_text_changed},
+    {"text_changed", "GroupBox", &connect_group_box_text_changed},
     {"text_changed", "MaskedTextBox", &connect_masked_text_box_text_changed},
     {"text_changed", "RichTextBox", &connect_rich_text_box_text_changed},
     {"text_changed", "TextBox", &connect_text_box_text_changed},

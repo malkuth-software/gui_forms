@@ -17,6 +17,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <span>
@@ -1905,13 +1906,23 @@ void test_group_box_capability_hooks() {
     std::shared_ptr<UpperCaseGroupBox> group = make_control<UpperCaseGroupBox>(StableId("hooks.group"), "Mode");
     require((*group).text.read() == "Mode" && (*group).text_changes == 0,
             "construction stores the caption through GroupBox's own hooks");
+    std::vector<std::string> captions;
+    const SubscriptionToken caption_token = (*group).text_changed().subscribe(
+        callbacks::PushBack<std::vector<std::string>, const std::string&>(captions));
     (*group).text = "options";
-    require((*group).text.read() == "OPTIONS" && (*group).text_changes == 1,
-            "coerce_text rewrites the caption and on_text_changed runs once");
+    require((*group).text.read() == "OPTIONS" && (*group).text_changes == 1 && captions.size() == 1U &&
+                captions[0] == "OPTIONS",
+            "coerce_text rewrites the caption; on_text_changed runs once and raises text_changed");
     (*group).text = "Options";
-    require((*group).text_changes == 1, "a write coerced to the stored caption changes nothing");
+    require((*group).text_changes == 1 && captions.size() == 1U,
+            "a write coerced to the stored caption changes nothing and raises nothing");
     (*group).set_property_value("text", BindingValue{std::string("table")});
-    require((*group).text.read() == "TABLE" && (*group).text_changes == 2, "a table write runs the same hooks");
+    require((*group).text.read() == "TABLE" && (*group).text_changes == 2 && captions.size() == 2U,
+            "a table write runs the same hooks");
+    const std::optional<PropertyDescriptor> text_descriptor = (*group).property_descriptor("text");
+    require(text_descriptor && (*text_descriptor).change_notifications,
+            "GroupBox text reports change notifications (TextChanged)");
+    static_cast<void>(caption_token);
 
     (*group).use_mnemonic = false;
     require(!(*group).use_mnemonic.read() && (*group).semantic_descriptor().access_key.empty(),

@@ -1510,6 +1510,7 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 | Interaction | Payload |
 |---|---|
 | `scroll` | `ScrollEvent`, by reference |
+| `text_changed` | `std::string` |
 
 ## `scaled_group_box` (ScaledGroupBox, control)
 
@@ -1538,6 +1539,7 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 | Interaction | Payload |
 |---|---|
 | `scroll` | `ScrollEvent`, by reference |
+| `text_changed` | `std::string` |
 
 ## `material_panel` (MaterialPanel, control)
 

@@ -46,7 +46,7 @@ gui_forms::ScaledGroupBox
 
    :Inherited:
 
-      From :cpp:class:`GroupBox <gui_forms::GroupBox>`: properties :cpp:member:`text <gui_forms::GroupBox::text>`, :cpp:member:`font <gui_forms::GroupBox::font>`, :cpp:member:`use_mnemonic <gui_forms::GroupBox::use_mnemonic>`, :cpp:func:`parts <gui_forms::GroupBox::parts>`; methods :cpp:func:`group_box_property_entries <gui_forms::GroupBox::group_box_property_entries>`.
+      From :cpp:class:`GroupBox <gui_forms::GroupBox>`: properties :cpp:member:`text <gui_forms::GroupBox::text>`, :cpp:member:`font <gui_forms::GroupBox::font>`, :cpp:member:`use_mnemonic <gui_forms::GroupBox::use_mnemonic>`, :cpp:func:`parts <gui_forms::GroupBox::parts>`; events :cpp:func:`text_changed <gui_forms::GroupBox::text_changed>`; methods :cpp:func:`group_box_property_entries <gui_forms::GroupBox::group_box_property_entries>`.
 
       From :cpp:class:`Panel <gui_forms::Panel>`: properties :cpp:member:`border_style <gui_forms::Panel::border_style>`, :cpp:member:`visual_role <gui_forms::Panel::visual_role>`, :cpp:func:`background <gui_forms::Panel::background>`, :cpp:func:`has_background_override <gui_forms::Panel::has_background_override>`, :cpp:func:`style <gui_forms::Panel::style>`, :cpp:func:`has_style_override <gui_forms::Panel::has_style_override>`; methods :cpp:func:`clear_background <gui_forms::Panel::clear_background>`, :cpp:func:`clear_style <gui_forms::Panel::clear_style>`, :cpp:func:`panel_property_entries <gui_forms::Panel::panel_property_entries>`.
 

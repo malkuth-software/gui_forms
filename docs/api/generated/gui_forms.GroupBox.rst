@@ -34,7 +34,8 @@ gui_forms::GroupBox
 
       **text** : ``std::string``
          The caption drawn over the top edge of the frame, and the accessible
-         name unless you set one. Setting it repaints the caption.
+         name unless you set one. Setting a different value repaints the caption
+         and raises :cpp:func:`text_changed <gui_forms::GroupBox::text_changed>`.
 
       **font** : ``FontSpec``, default ``{FontRole::control, 12.0, 600, false, 0.24}``
          The caption font: the control face at 12 logical pixels, semibold, with
@@ -46,6 +47,11 @@ gui_forms::GroupBox
          exactly as written and Alt+key does nothing.
 
       **parts** : ``Parts``, read-only
+
+   :Events:
+
+      **text_changed** : ``Event<const std::string&>``
+         Raised after :cpp:member:`text <gui_forms::GroupBox::text>` changes. It carries the new caption.
 
    :Inherited:
 
@@ -147,7 +153,8 @@ gui_forms::GroupBox
    .. cpp:member:: std::string text
 
       The caption drawn over the top edge of the frame, and the accessible
-      name unless you set one. Setting it repaints the caption.
+      name unless you set one. Setting a different value repaints the caption
+      and raises :cpp:func:`text_changed <gui_forms::GroupBox::text_changed>`.
 
    .. cpp:member:: FontSpec font
 
@@ -161,6 +168,13 @@ gui_forms::GroupBox
       exactly as written and Alt+key does nothing.
 
    .. cpp:function:: Parts parts() const
+
+
+   .. rubric:: Events
+
+   .. cpp:function:: Event<const std::string&>& text_changed() noexcept
+
+      Raised after :cpp:member:`text <gui_forms::GroupBox::text>` changes. It carries the new caption.
 
 
    .. rubric:: Methods
@@ -182,6 +196,10 @@ gui_forms::GroupBox
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
 
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
+
+      *Protected.*
+
+   .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 
       *Protected.*
 

@@ -3734,7 +3734,8 @@
         {"name": "focus_observed", "payload": "bool", "mutable_payload": false},
         {"name": "arranged_bounds_changed", "payload": "Rect", "mutable_payload": false},
         {"name": "help_requested", "payload": "HelpRequestEvent", "mutable_payload": true},
-        {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true}
+        {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
+        {"name": "text_changed", "payload": "std::string", "mutable_payload": false}
       ]
     },
     {
@@ -3814,7 +3815,8 @@
         {"name": "focus_observed", "payload": "bool", "mutable_payload": false},
         {"name": "arranged_bounds_changed", "payload": "Rect", "mutable_payload": false},
         {"name": "help_requested", "payload": "HelpRequestEvent", "mutable_payload": true},
-        {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true}
+        {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
+        {"name": "text_changed", "payload": "std::string", "mutable_payload": false}
       ]
     },
     {

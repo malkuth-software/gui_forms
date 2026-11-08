@@ -156,6 +156,21 @@ GroupBox::Parts GroupBox::parts() const {
     return record;
 }
 
+namespace {
+
+// The events GroupBox adds to those of ScrollableControl, in declaration
+// order.
+constexpr std::array<InteractionDeclaration, 1> group_box_interactions{{
+    {.name = "text_changed", .payload = "std::string", .mutable_payload = false},
+}};
+
+} // namespace
+
+void GroupBox::append_interactions(std::vector<InteractionDeclaration>& interactions) const {
+    Panel::append_interactions(interactions);
+    interactions.insert(interactions.end(), group_box_interactions.begin(), group_box_interactions.end());
+}
+
 // property_codemod begin GroupBox (tools/property_families/group_box.json; generated, do not edit)
 
 namespace {
@@ -173,7 +188,7 @@ PropertyDescriptor group_box_text_descriptor() {
 
 const PropertyDescriptor& describe_group_box_text() {
     static const PropertyDescriptor descriptor = property_table_descriptor(
-        group_box_text_descriptor(), PropertyOperations{true, true, false, false});
+        group_box_text_descriptor(), PropertyOperations{true, true, false, true});
     return descriptor;
 }
 
@@ -203,7 +218,7 @@ const std::array<PropertyEntry, GroupBox::group_box_property_count>& GroupBox::g
          &read_cell_entry<GroupBox, decltype(&GroupBox::text), &GroupBox::text>,
          &write_cell_entry<GroupBox, decltype(&GroupBox::text), &GroupBox::text>,
          nullptr, nullptr, nullptr,
-         nullptr},
+         &connect_event_entry<GroupBox, decltype(&GroupBox::text_changed_), &GroupBox::text_changed_>},
         {"font", &describe_group_box_font,
          &read_cell_entry<GroupBox, decltype(&GroupBox::font), &GroupBox::font>,
          &write_cell_entry<GroupBox, decltype(&GroupBox::font), &GroupBox::font>,
@@ -231,7 +246,9 @@ void GroupBox::written(const decltype(text)&) {
     on_text_changed();
 }
 
-void GroupBox::on_text_changed() {}
+void GroupBox::on_text_changed() {
+    publish_change(text_changed_, text.read());
+}
 
 void GroupBox::coerce_text(std::string&) {}
 
