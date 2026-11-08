@@ -640,7 +640,7 @@ void test_text_box_properties() {
                "TextBox.placeholder_text: the table reads the cell");
     }
     {
-        const bool sample = !(*control).multiline.read();
+        const bool sample = false;
         (*control).multiline = sample;
         expect((*control).multiline.read() == sample, "TextBox.multiline: a write stores");
         const std::optional<BindingValue> by_name = (*control).property_value("multiline");

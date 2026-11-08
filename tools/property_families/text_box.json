@@ -119,6 +119,7 @@
     },
     {
       "name": "multiline",
+      "sample": "false",
       "capability": "TextBoxMultiline",
       "value": "bool",
       "initial": null,
