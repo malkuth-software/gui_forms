@@ -35,6 +35,10 @@
 #include <string_view>
 #include <vector>
 
+namespace gui_forms {
+class EffectRegistry;
+} // namespace gui_forms
+
 namespace gui_forms::theme_language {
 
 // What one compilation reads besides the sheet, all borrowed for the call:
@@ -96,6 +100,10 @@ struct ThemeCompileInput final {
     // unremappable (W201; owner, 2026-11-08, option 2). Rules before
     // base_origin_end are the authority too. App and user sheets are not.
     bool colour_authority{};
+    // The effects an `effect` may name (EP-3), borrowed for the call: a
+    // name it does not hold is refused (E417). Null, only the name's form
+    // is checked, and the control checks the effect when it attaches it.
+    const EffectRegistry* effects{};
 };
 
 // One stretch of an inline style's text copied into a sheet by

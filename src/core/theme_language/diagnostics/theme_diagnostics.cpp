@@ -59,6 +59,7 @@ DiagnosticSeverity diagnostic_severity(DiagnosticCode code) noexcept {
     case DiagnosticCode::keyframes_undefined:
     case DiagnosticCode::colour_role_undefined:
     case DiagnosticCode::variable_cannot_vary:
+    case DiagnosticCode::effect_unknown:
     case DiagnosticCode::resource_unknown:
     case DiagnosticCode::sheet_too_large:
     case DiagnosticCode::too_many_rules:
@@ -165,6 +166,7 @@ std::string_view diagnostic_code_name(DiagnosticCode code) noexcept {
     case DiagnosticCode::keyframes_undefined: return "keyframes_undefined";
     case DiagnosticCode::colour_role_undefined: return "colour_role_undefined";
     case DiagnosticCode::variable_cannot_vary: return "variable_cannot_vary";
+    case DiagnosticCode::effect_unknown: return "effect_unknown";
     case DiagnosticCode::resource_unknown: return "resource_unknown";
     case DiagnosticCode::sheet_too_large: return "sheet_too_large";
     case DiagnosticCode::too_many_rules: return "too_many_rules";

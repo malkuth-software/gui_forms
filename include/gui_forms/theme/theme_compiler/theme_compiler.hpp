@@ -24,6 +24,8 @@
 
 namespace gui_forms {
 
+class EffectRegistry;
+
 // One file of a theme package: its path inside the package, as the
 // manifest lists it, and its bytes.
 struct ThemePackageFile final {
@@ -131,6 +133,11 @@ struct ThemeCompileOptions final {
     // control types too: the light sheet's rules for a type outside it are
     // warnings that drop them, named for `gui-forms/light.css`.
     ThemeBase base{ThemeBase::windows_professional};
+    // The effects a sheet's `effect` may name (EP-3), borrowed for the call;
+    // usually built_in_effect_registry(). A name it does not hold refuses
+    // the package (E417, at the name). Null, only the name's form is
+    // checked, and a control checks its effect when it attaches it.
+    const EffectRegistry* effects{};
 };
 
 // What setting a control's inline style gave (Control::set_inline_style):

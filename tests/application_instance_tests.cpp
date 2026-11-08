@@ -4,7 +4,9 @@
 // another thread), the theme compiled at create, the presentation defaults,
 // and an application destroyed before its windows.
 
+#include "../src/core/theme_language/package/theme_manifest.hpp"
 #include "gui_forms/application.hpp"
+#include "gui_forms/engine/effect_registry/effect_registry.hpp"
 #include "gui_forms/gui_forms.hpp"
 #include "support/theme_definition_heap.hpp"
 
@@ -61,6 +63,27 @@ void test_create_and_refusals() {
     require(!refused && refused.error == ApplicationCreateError::theme_refused && !refused.findings.empty() &&
                 Application::current() == nullptr,
             "a refused theme makes nothing and says why");
+
+    // EP-3: given the effect registry, a package naming an effect it does
+    // not hold refuses the theme, with E417 among the findings.
+    const std::string sheet = "button { effect: wobble-band }";
+    ThemePackage effect_package{};
+    effect_package.manifest =
+        "{\"format\": \"gui-forms-theme/1\", \"name\": \"fx\", \"version\": \"1.0.0\", \"engine\": "
+        "\">=0.3\", \"sheet\": {\"path\": \"theme.theme.css\", \"sha256\": \"" +
+        theme_language::package_sha256_hex(theme_language::package_sha256(sheet)) + "\"}}";
+    effect_package.files.push_back(ThemePackageFile{"theme.theme.css", sheet});
+    ApplicationConfig unknown_effect{};
+    unknown_effect.theme.packages.push_back(effect_package);
+    unknown_effect.theme.effects = &built_in_effect_registry();
+    const ApplicationCreateResult no_effect = Application::create(std::move(unknown_effect));
+    bool named = false;
+    for (const ThemeCompileDiagnostic& finding : no_effect.findings) {
+        if (finding.code == "E417" && finding.detail == "wobble-band") named = true;
+    }
+    require(!no_effect && no_effect.error == ApplicationCreateError::theme_refused && named &&
+                Application::current() == nullptr,
+            "an effect the registry does not hold refuses the theme with E417");
 }
 
 void test_windows_join_and_close() {

@@ -5,6 +5,8 @@
 #include "gallery_pages.hpp"
 #include "gallery_theme_package.hpp"
 
+#include "gui_forms/engine/effect_registry/effect_registry.hpp"
+
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -296,6 +298,7 @@ void select_gallery_theme(Window& window) {
     // The stock anatomies name the parts the sheet selects (::part(face)).
     ThemeCompileOptions options{};
     options.controls = stock_control_anatomies();
+    options.effects = &built_in_effect_registry();
     const ThemeCompileResult result =
         (*resources).compile_theme_package(gallery_theme_package(), library, options);
     require_clean_gallery_theme(result.succeeded(), result.diagnostics());
@@ -308,6 +311,7 @@ std::unique_ptr<Application> create_gallery_application()
 {
     ApplicationConfig config{};
     config.theme.packages.push_back(gallery_theme_package());
+    config.theme.effects = &built_in_effect_registry();
     ApplicationCreateResult created = Application::create(std::move(config));
     if (created.error == ApplicationCreateError::already_exists) {
         throw std::logic_error("the Gallery application: another application is current");

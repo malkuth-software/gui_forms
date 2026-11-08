@@ -218,6 +218,11 @@ struct ApplicationThemeConfig final {
     // The application's own control types, beside the stock ones, that a
     // selector may name. Borrowed for the call to create only.
     std::span<const ControlAnatomy> controls{};
+    // The effects the packages' `effect` may name (EP-3), usually
+    // built_in_effect_registry(); a name it does not hold refuses the theme
+    // (E417). Borrowed for the call to create only. Null, only the names'
+    // form is checked.
+    const EffectRegistry* effects{};
 };
 
 // Everything an application is made with. Move-only (it holds a library).

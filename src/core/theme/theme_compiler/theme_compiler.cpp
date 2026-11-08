@@ -459,7 +459,8 @@ ThemeCompileResult compile_closure(std::span<const VerifiedThemePack* const> roo
                                                   .user_theme = set == ThemeRuleSet::user,
                                                   .base_origin_end = base_origin_end,
                                                   .system_colours = options.system_colours,
-                                                  .colour_authority = onto_gui_forms && roots.empty()};
+                                                  .colour_authority = onto_gui_forms && roots.empty(),
+                                                  .effects = options.effects};
     // The base's recipes, some 100 KB held out of line.
     std::unique_ptr<ThemeDefinition> definition(new ThemeDefinition(
         onto_gui_forms ? gui_forms_theme_definition() : windows_professional_theme_definition()));

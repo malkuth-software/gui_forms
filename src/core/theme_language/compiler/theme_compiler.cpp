@@ -2437,15 +2437,20 @@ bool CompilePass::lower_effect(const SyntaxNode& node) {
         if (!keyword_of(first, "an effect's name")) return false;
         fold_ascii(first.text, folded_);
         if (folded_ != effect_none_name) {
-            // The registry is the control's: the rules check the name's
-            // form only, and the control checks the effect when it
-            // attaches it.
+            // The name's form first; then, given a registry, the effect
+            // itself (EP-3). Without one, the control checks the effect
+            // when it attaches it.
             name = registered_name_from_kebab(folded_);
             if (!effect_name_valid(name)) {
                 const DiagnosticCode code =
                     newer_engine_ ? DiagnosticCode::keyword_from_newer_engine : DiagnosticCode::keyword_unknown;
                 report(code, first.token, clipped_theme_detail(first.text));
                 return newer_engine_;
+            }
+            const EffectRegistry* const effects = input_.effects;
+            if (effects != nullptr && (*effects).find(name) == nullptr) {
+                report(DiagnosticCode::effect_unknown, first.token, clipped_theme_detail(first.text));
+                return false;
             }
         }
     }

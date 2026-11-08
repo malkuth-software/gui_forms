@@ -7,6 +7,7 @@
 // a good swap preserves them too.
 
 #include "../../src/core/theme_language/package/theme_manifest.hpp"
+#include "gui_forms/engine/effect_registry/effect_registry.hpp"
 #include "gui_forms/gui_forms.hpp"
 
 #include <array>
@@ -440,6 +441,46 @@ void test_application_theme() {
             "the process default is built once, from the default base");
 }
 
+// Effect names against the registry (EP-3): given ThemeCompileOptions::
+// effects, a package naming an effect the registry does not hold is refused
+// with E417 at the name, in its own sheet, on either seam; a held name
+// compiles; without a registry, only the name's form is checked.
+void test_effect_names() {
+    ImageRegistry images{};
+    const ThemeLibrary library{};
+    ThemeCompileOptions checked = options();
+    checked.effects = &built_in_effect_registry();
+    const ThemeCompileResult unknown =
+        compile_theme_package(package("fx", "#pad {}\n#pad { effect: wobble-band }"), library, images, checked);
+    require(!unknown.succeeded() && unknown.theme() == nullptr &&
+                has(unknown, "E417", "fx/theme.theme.css", 2U, "wobble-band"),
+            "an effect the registry does not hold refuses the package with E417 at its line");
+    bool at_name = false;
+    for (const ThemeCompileDiagnostic& diagnostic : unknown.diagnostics()) {
+        if (diagnostic.code == "E417") at_name = diagnostic.column == 16U && diagnostic.name == "effect_unknown";
+    }
+    require(at_name, "E417 is at the effect's name, named effect_unknown");
+
+    const ThemeCompileResult known =
+        compile_theme_package(package("fx", "#pad { effect: progress-pulse }"), library, images, checked);
+    require(known.succeeded() && known.diagnostics().empty(), "an effect the registry holds compiles");
+
+    const ThemeCompileResult unchecked =
+        compile_theme_package(package("fx", "#pad { effect: wobble-band }"), library, images, options());
+    require(unchecked.succeeded(), "without a registry, a well-formed effect name compiles");
+
+    std::vector<ControlAnatomy> stock(stock_control_anatomies().begin(), stock_control_anatomies().end());
+    stock.push_back(controls[0]);
+    ThemeCompileOptions onto = checked;
+    onto.controls = stock;
+    onto.base = ThemeBase::gui_forms;
+    const std::array<ThemePackage, 2> layered{
+        {package("first", "#pad { effect: progress-pulse }"), package("second", "#pad { effect: wobble-band }")}};
+    const ThemeCompileResult layers = compile_theme_packages(layered, library, images, onto);
+    require(!layers.succeeded() && has(layers, "E417", "second/theme.theme.css", 1U, "wobble-band"),
+            "the application seam refuses the package naming the unknown effect");
+}
+
 // Provenance per field (T4 cascade spec, item 5): each rule of a closure
 // compiled onto gui-forms is placed in its own sheet with its layer, its
 // pack and the pack's manifest hash; a control's recipe fields name the
@@ -517,6 +558,7 @@ int main() {
     test_provenance();
     test_base_theme();
     test_application_theme();
+    test_effect_names();
     test_one_package();
     test_published_values();
     test_resources();

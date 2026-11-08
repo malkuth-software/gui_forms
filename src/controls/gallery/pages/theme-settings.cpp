@@ -3,6 +3,8 @@
 #include "gallery_theme_package.hpp"
 #include "theme-settings_form.hpp"
 
+#include "gui_forms/engine/effect_registry/effect_registry.hpp"
+
 #include <stdexcept>
 
 namespace gui_forms::gallery::pages {
@@ -195,6 +197,7 @@ std::shared_ptr<const Theme> ThemeSettingsPage::build_theme(Window& window, cons
     }
     ThemeCompileOptions options{};
     options.controls = stock_control_anatomies();
+    options.effects = &built_in_effect_registry();
     options.base = choice == ThemeChoice::gui_forms ? ThemeBase::gui_forms : ThemeBase::windows_professional;
     const ThemeLibrary library{};
     const std::shared_ptr<ApplicationResources> resources = window.resources();

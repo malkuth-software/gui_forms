@@ -314,6 +314,7 @@ ApplicationCreateResult Application::create(ApplicationConfig config) {
         ThemeCompileOptions options{};
         options.base = config.theme.base;
         options.controls = theme_anatomies(config.theme.controls, storage);
+        options.effects = config.theme.effects;
         const ThemeCompileResult compiled =
             (*resources).compile_theme_packages(config.theme.packages, config.theme.library, options);
         result.findings.assign(compiled.diagnostics().begin(), compiled.diagnostics().end());

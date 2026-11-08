@@ -25,6 +25,7 @@
 #include "../../src/core/theme_language/source_text/theme_source_text.hpp"
 #include "../../src/core/theme_language/syntax_tree/theme_syntax_tree.hpp"
 #include "../../src/core/theme_language/tokenizer/theme_tokenizer.hpp"
+#include "gui_forms/engine/effect_registry/effect_registry.hpp"
 #include "gui_forms/gui_forms.hpp"
 
 #include <algorithm>
@@ -500,7 +501,8 @@ std::string compile_text(Fixture& fixture) {
         .images = inline_form ? std::span<const theme_language::ThemeImageResource>{}
                               : std::span<const theme_language::ThemeImageResource>(images),
         .requires_engine = fixture.newer_engine ? newer : current_engine_version,
-        .form = fixture.form};
+        .form = fixture.form,
+        .effects = &built_in_effect_registry()};
     ThemeRuleSheet sheet{};
     theme_language::ThemeCompiler compiler{};
     theme_language::ThemeDiagnosticList diagnostics{};

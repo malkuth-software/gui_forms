@@ -102,6 +102,10 @@ enum class DiagnosticCode : std::uint16_t {
     // A var() of a custom property defined in more than one place, read
     // where it cannot vary (P12): in `@keyframes` or in the palette.
     variable_cannot_vary = 416,
+    // An `effect` naming an effect the effect registry the compilation was
+    // given does not hold (EP-3); without a registry, only the name's form
+    // is checked.
+    effect_unknown = 417,
     // E5xx limits (T3 decision E2).
     sheet_too_large = 501,
     too_many_rules = 502,
