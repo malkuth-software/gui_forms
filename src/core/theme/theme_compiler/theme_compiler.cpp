@@ -458,7 +458,8 @@ ThemeCompileResult compile_closure(std::span<const VerifiedThemePack* const> roo
                                                   .requires_engine = requires_engine,
                                                   .user_theme = set == ThemeRuleSet::user,
                                                   .base_origin_end = base_origin_end,
-                                                  .system_colours = options.system_colours};
+                                                  .system_colours = options.system_colours,
+                                                  .colour_authority = onto_gui_forms && roots.empty()};
     // The base's recipes, some 100 KB held out of line.
     std::unique_ptr<ThemeDefinition> definition(new ThemeDefinition(
         onto_gui_forms ? gui_forms_theme_definition() : windows_professional_theme_definition()));
@@ -1371,7 +1372,8 @@ detail::BuiltInThemeCompilation detail::compile_built_in_theme(const ThemeDefini
     const PrimitiveRegistry& registry = builtin_primitive_registry();
     const theme_language::ThemeCompileInput input{.source = source,
                                                   .registry = registry,
-                                                  .vocabulary = theme_language::SelectorVocabulary{controls}};
+                                                  .vocabulary = theme_language::SelectorVocabulary{controls},
+                                                  .colour_authority = true};
     // The definition is some 100 KB of recipes held out of line; it is
     // copied once, onto the heap, as compile_closure's is.
     std::unique_ptr<ThemeDefinition> definition(new ThemeDefinition(floor));
