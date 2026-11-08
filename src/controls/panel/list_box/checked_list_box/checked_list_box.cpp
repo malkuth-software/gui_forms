@@ -4,6 +4,7 @@
 
 #include "gui_forms/detail/algorithm/binary_search.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
 #include <array>
@@ -124,24 +125,6 @@ std::vector<std::size_t> CheckedListBox::checked_indices() const {
     return result;
 }
 
-void CheckedListBox::set_check_on_click(bool enabled) {
-    require_mutable();
-    if (check_on_click_ == enabled) return;
-    check_on_click_ = enabled;
-    invalidate(Dirty::semantics);
-}
-
-void CheckedListBox::set_indicator_size(double size) {
-    require_mutable();
-    if (!std::isfinite(size) || size < 8.0 || size > 32.0) {
-        throw std::out_of_range(
-            "CheckedListBox indicator size must be finite and between 8 and 32");
-    }
-    if (indicator_size_ == size) return;
-    indicator_size_ = size;
-    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
-}
-
 void CheckedListBox::on_pointer(PointerEvent& event) {
     if (!eligible_for_input()) {
         ListBox::on_pointer(event);
@@ -154,7 +137,7 @@ void CheckedListBox::on_pointer(PointerEvent& event) {
         selected_indices(), *index);
     ListBox::on_pointer(event);
     if (!is_alive() || !index || *index >= items.read().size()) return;
-    if (check_on_click_ || was_selected) {
+    if (check_on_click.read() || was_selected) {
         toggle_item(*index);
         event.handled = true;
     }
@@ -174,14 +157,14 @@ void CheckedListBox::on_key(KeyEvent& event) {
 }
 
 double CheckedListBox::row_text_left() const noexcept {
-    return indicator_size_ + 14.0;
+    return indicator_size.read() + 14.0;
 }
 
 void CheckedListBox::paint_row_adornment(Painter& painter, std::size_t index,
                                           Rect row, bool selected,
                                           bool focused) const {
     if (index >= check_states_.size()) return;
-    const double size = std::min(indicator_size_,
+    const double size = std::min(indicator_size.read(),
                                  std::max(8.0, row.height - 8.0));
     const double x = row.x + 5.0;
     const double y = row.y + (row.height - size) * 0.5;
@@ -259,7 +242,6 @@ bool CheckedListBox::on_semantic_child_action(std::string_view stable_id,
     return true;
 }
 
-
 namespace {
 
 constexpr std::array<PartField<CheckedListBox::ItemParts>, 5> checked_item_part_fields{{
@@ -318,7 +300,7 @@ void CheckedListBox::publish_realized_item_geometry(std::size_t item,
     if (base.row.present && index < check_states_.size()) {
         // The check box paint_row_adornment draws, centred in the row.
         const Rect row = base.row.bounds;
-        const double size = std::min(indicator_size_, std::max(8.0, row.height - 8.0));
+        const double size = std::min(indicator_size.read(), std::max(8.0, row.height - 8.0));
         const double x = row.x + 5.0;
         const double y = row.y + (row.height - size) * 0.5;
         record.check_well = PartGeometry::from_bounds({x, y, size, size});
@@ -378,5 +360,28 @@ void CheckedListBox::append_interactions(std::vector<InteractionDeclaration>& in
     ListBox::append_interactions(interactions);
     interactions.insert(interactions.end(), checked_list_box_interactions.begin(), checked_list_box_interactions.end());
 }
+
+// property_codemod begin CheckedListBox (tools/property_families/checked_list_box.json; generated, do not edit)
+
+void CheckedListBox::prepare_write(const decltype(check_on_click)&, bool&) {
+    require_mutable();
+}
+
+void CheckedListBox::written(const decltype(check_on_click)&) {
+    invalidate(Dirty::semantics);
+}
+
+void CheckedListBox::prepare_write(const decltype(indicator_size)&, double& incoming) {
+    require_mutable();
+    if (!std::isfinite(incoming) || incoming < 8.0 || incoming > 32.0) {
+        throw std::out_of_range("CheckedListBox indicator size must be finite and between 8 and 32");
+    }
+}
+
+void CheckedListBox::written(const decltype(indicator_size)&) {
+    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
+}
+
+// property_codemod end CheckedListBox
 
 } // namespace gui_forms

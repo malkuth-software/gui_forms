@@ -67,7 +67,7 @@ private:
     }
 
     void build_immediate() {
-        (*immediate_).set_check_on_click(true);
+        (*immediate_).check_on_click = true;
         constexpr std::array<CheckState, 6> states{CheckState::checked,   CheckState::checked,
                                                    CheckState::unchecked, CheckState::indeterminate,
                                                    CheckState::checked,   CheckState::unchecked};

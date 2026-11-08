@@ -353,7 +353,7 @@ void FlagsValueEditor::open_drop_down() {
         StableId(prefix + ".overlay.list"));
     (*list).set_paint_plane(PaintPlane::overlay);
     (*list).items = std::move(items);
-    (*list).set_check_on_click(true);
+    (*list).check_on_click = true;
     const double overlay_width = std::min(overlay_width_, client.width);
     const double overlay_x = std::clamp(
         editor.x, 0.0, std::max(0.0, client.width - overlay_width));

@@ -6,7 +6,7 @@ void test_checked_collections(gui_forms::Window& window) {
     select_page(window, "checked-collections");
     std::shared_ptr<gui_forms::CheckedListBox> checked = std::dynamic_pointer_cast<CheckedListBox>(
         window.find("gallery.checked.immediate.list"));
-    require(checked && (*checked).check_on_click() &&
+    require(checked && (*checked).check_on_click.read() &&
                 (*checked).item_check_state(3U) == CheckState::indeterminate,
             "gallery checked page must retain a public check-state collection");
     const Rect checked_bounds = (*checked).absolute_bounds();

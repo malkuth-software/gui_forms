@@ -8,6 +8,7 @@
 #include "gui_forms/controls/panel/domain_up_down/domain_up_down.hpp"
 #include "gui_forms/controls/panel/group_box/group_box.hpp"
 #include "gui_forms/controls/panel/group_box/scaled_group_box/scaled_group_box.hpp"
+#include "gui_forms/controls/panel/list_box/checked_list_box/checked_list_box.hpp"
 #include "gui_forms/controls/panel/list_box/list_box.hpp"
 #include "gui_forms/controls/panel/list_view/list_view.hpp"
 #include "gui_forms/controls/panel/masked_text_box/masked_text_box.hpp"
@@ -123,6 +124,20 @@ void test_button_base_properties() {
         (*control).expanded_state = sample;
         expect(raises == 1, "ButtonBase.expanded_state: an equal write raises nothing");
         static_cast<void>(token);
+    }
+}
+
+void test_checked_list_box_properties() {
+    std::shared_ptr<CheckedListBox> control = make_control<CheckedListBox>(StableId("generated.checkedlistbox"));
+    {
+        const bool sample = !(*control).check_on_click.read();
+        (*control).check_on_click = sample;
+        expect((*control).check_on_click.read() == sample, "CheckedListBox.check_on_click: a write stores");
+    }
+    {
+        const double sample = 18.0;
+        (*control).indicator_size = sample;
+        expect((*control).indicator_size.read() == sample, "CheckedListBox.indicator_size: a write stores");
     }
 }
 
@@ -796,6 +811,7 @@ void test_tree_list_view_properties() {
 
 int main() {
     test_button_base_properties();
+    test_checked_list_box_properties();
     test_data_grid_view_properties();
     test_domain_up_down_properties();
     test_group_box_properties();

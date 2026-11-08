@@ -137,7 +137,7 @@ void test_pointer_keyboard_and_disabled_policy() {
     click_row(window, *list, 0U);
     require((*list).item_checked(0U),
             "default second click on the selected item must toggle its check");
-    (*list).set_check_on_click(true);
+    (*list).check_on_click = true;
     click_row(window, *list, 1U);
     require((*list).selected_index() == 1U && (*list).item_checked(1U),
             "CheckOnClick must select and toggle on the first click");
@@ -159,7 +159,7 @@ void test_paint_and_semantic_actions() {
     (*list).add_item("Checked", CheckState::checked);
     (*list).add_item("Mixed", CheckState::indeterminate);
     (*list).add_item("Empty", CheckState::unchecked);
-    (*list).set_indicator_size(20.0);
+    (*list).indicator_size = 20.0;
     (*list).set_requested_bounds({0.0, 0.0, 240.0, 120.0});
     Window window(list, {240.0, 120.0});
     window.perform_layout();
@@ -170,11 +170,11 @@ void test_paint_and_semantic_actions() {
             "CheckedListBox must paint check adornments and shifted row text");
     bool invalid_size{};
     try {
-        (*list).set_indicator_size(40.0);
+        (*list).indicator_size = 40.0;
     } catch (const std::out_of_range&) {
         invalid_size = true;
     }
-    require(invalid_size && (*list).indicator_size() == 20.0,
+    require(invalid_size && (*list).indicator_size.read() == 20.0,
             "CheckedListBox indicator size must reject invalid customization atomically");
 
     const std::string json = window.semantic_snapshot().to_json();
@@ -190,11 +190,34 @@ void test_paint_and_semantic_actions() {
 
 } // namespace
 
+void test_property_capabilities() {
+    std::shared_ptr<gui_forms::CheckedListBox> list = make_control<CheckedListBox>(StableId("checks.caps"));
+    require(!(*list).check_on_click.read() && (*list).indicator_size.read() == 14.0,
+            "check_on_click starts off and the indicator at 14");
+    (*list).check_on_click = true;
+    (*list).indicator_size = 8.0;
+    require((*list).check_on_click.read() && (*list).indicator_size.read() == 8.0,
+            "both cells take a write within their bounds");
+    bool refused{};
+    try {
+        (*list).indicator_size = 7.5;
+    } catch (const std::out_of_range&) {
+        refused = true;
+    }
+    require(refused && (*list).indicator_size.read() == 8.0, "an indicator under 8 is refused");
+    (*list).item_height = 30.0;
+    (*list).selection_mode = ListSelectionMode::multiple_extended;
+    require((*list).item_height.read() == 30.0 &&
+                (*list).selection_mode.read() == ListSelectionMode::multiple_extended,
+            "ListBox's cells keep working through the derived list");
+}
+
 int main() {
     try {
         test_check_model_events_and_mutation();
         test_pointer_keyboard_and_disabled_policy();
         test_paint_and_semantic_actions();
+        test_property_capabilities();
         std::cout << "gui_forms_checked_list_box_tests: all tests passed\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {

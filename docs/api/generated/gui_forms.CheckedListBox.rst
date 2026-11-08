@@ -7,7 +7,7 @@ gui_forms::CheckedListBox
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: CheckedListBox final : public ListBox
+.. cpp:class:: CheckedListBox final : public ListBox, public CheckedListBoxCapabilities<CheckedListBox>
 
    ``#include <gui_forms/controls/panel/list_box/checked_list_box/checked_list_box.hpp>``
 
@@ -18,7 +18,7 @@ gui_forms::CheckedListBox
    selection, scrolling and keyboard behaviour of a :cpp:class:`ListBox <gui_forms::ListBox>`. A row can be
    unchecked, checked or indeterminate. By default the first click on a row
    selects it and a further click on the selected row toggles its check;
-   with :cpp:func:`check_on_click <gui_forms::CheckedListBox::check_on_click>` the first click toggles too. Space toggles the
+   with :cpp:member:`check_on_click <gui_forms::CheckedListBox::check_on_click>` the first click toggles too. Space toggles the
    active row. The check state is separate from the selection. Use a
    :cpp:class:`ListBox <gui_forms::ListBox>` when rows have no on/off state, and :cpp:class:`CheckBox <gui_forms::CheckBox>` controls for a
    few fixed options.
@@ -34,10 +34,6 @@ gui_forms::CheckedListBox
 
    :Properties:
 
-      **checked_indices** : ``std::vector<std::size_t>``, read-only
-         The indices of the rows whose state is :cpp:enumerator:`CheckState::checked <gui_forms::CheckState::checked>`, in
-         ascending order. Indeterminate rows are not included.
-
       **check_on_click** : ``bool``, default ``false``
          Whether a click on a row that is not yet selected also toggles its
          check. When false, the first click only selects the row.
@@ -46,6 +42,10 @@ gui_forms::CheckedListBox
          Side of the square check indicator in logical pixels; the row text
          starts after it. Values outside 8 to 32, or not finite, throw
          ``std::out_of_range``.
+
+      **checked_indices** : ``std::vector<std::size_t>``, read-only
+         The indices of the rows whose state is :cpp:enumerator:`CheckState::checked <gui_forms::CheckState::checked>`, in
+         ascending order. Indeterminate rows are not included.
 
       **realized_items** : ``std::vector<Item>``, read-only
 
@@ -108,7 +108,7 @@ gui_forms::CheckedListBox
    .. rubric:: Notes
 
    A primary press on a row first selects it, as in :cpp:class:`ListBox <gui_forms::ListBox>`, and then
-   toggles its check when :cpp:func:`check_on_click <gui_forms::CheckedListBox::check_on_click>` is true or the row was already
+   toggles its check when :cpp:member:`check_on_click <gui_forms::CheckedListBox::check_on_click>` is true or the row was already
    selected before the press. The toggle happens on the press, anywhere on the
    row; releasing the button on the same row then raises the inherited
    ``item_activated``. So a click that toggles raises ``selection_changed`` (if
@@ -178,29 +178,21 @@ gui_forms::CheckedListBox
 
    .. rubric:: Properties
 
-   .. cpp:function:: std::vector<std::size_t> checked_indices() const
-
-      The indices of the rows whose state is :cpp:enumerator:`CheckState::checked <gui_forms::CheckState::checked>`, in
-      ascending order. Indeterminate rows are not included.
-
-   .. cpp:function:: bool check_on_click() const noexcept
+   .. cpp:member:: bool check_on_click
 
       Whether a click on a row that is not yet selected also toggles its
       check. When false, the first click only selects the row.
 
-   .. cpp:function:: void set_check_on_click(bool enabled)
-
-      Sets :cpp:func:`check_on_click <gui_forms::CheckedListBox::check_on_click>`; see the property's description above.
-
-   .. cpp:function:: double indicator_size() const noexcept
+   .. cpp:member:: double indicator_size
 
       Side of the square check indicator in logical pixels; the row text
       starts after it. Values outside 8 to 32, or not finite, throw
       ``std::out_of_range``.
 
-   .. cpp:function:: void set_indicator_size(double size)
+   .. cpp:function:: std::vector<std::size_t> checked_indices() const
 
-      Sets :cpp:func:`indicator_size <gui_forms::CheckedListBox::indicator_size>`; see the property's description above.
+      The indices of the rows whose state is :cpp:enumerator:`CheckState::checked <gui_forms::CheckState::checked>`, in
+      ascending order. Indeterminate rows are not included.
 
    .. cpp:function:: std::vector<Item> realized_items() const
 

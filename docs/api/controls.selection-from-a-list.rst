@@ -72,6 +72,12 @@ Related types
      - Stage T1 item records: ListBox's row parts and states plus the check.
    * - :cpp:class:`CheckedListBox::ItemStates <gui_forms::CheckedListBox::ItemStates>`
      -  
+   * - :cpp:class:`CheckedListBoxCapabilities <gui_forms::CheckedListBoxCapabilities>`
+     - Every CheckedListBox capability, in the order the declaring class takes them.
+   * - :cpp:class:`CheckedListBoxCheckOnClickCapability <gui_forms::CheckedListBoxCheckOnClickCapability>`
+     - Whether the first click on an unselected row also toggles its check (CheckOnClick); off by default, so the first click only selects.
+   * - :cpp:class:`CheckedListBoxIndicatorSizeCapability <gui_forms::CheckedListBoxIndicatorSizeCapability>`
+     - The check box's side in logical pixels, 8 to 32 (std::out_of_range otherwise); the row text starts after it.
    * - :cpp:class:`ComboBox::Parts <gui_forms::ComboBox::Parts>`
      - Stage T1 anatomy, as dot members.
    * - :cpp:class:`ComboBox::States <gui_forms::ComboBox::States>`
@@ -558,6 +564,57 @@ Related types
    .. cpp:member:: bool checked
 
    .. cpp:member:: bool indeterminate
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CheckedListBoxCapabilities : public CheckedListBoxCheckOnClickCapability<Declaring>, public CheckedListBoxIndicatorSizeCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/list_box/checked_list_box/checked_list_box_capabilities/checked_list_box_capabilities.hpp>``
+
+   Every CheckedListBox capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: bool check_on_click
+
+      Whether the first click on an unselected row also toggles its check (CheckOnClick); off by default, so the first click only selects.
+
+   .. cpp:member:: double indicator_size
+
+      The check box's side in logical pixels, 8 to 32 (std::out_of_range otherwise); the row text starts after it.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CheckedListBoxCheckOnClickCapability
+
+   ``#include <gui_forms/controls/panel/list_box/checked_list_box/checked_list_box_capabilities/checked_list_box_capabilities.hpp>``
+
+   Whether the first click on an unselected row also toggles its check (CheckOnClick); off by default, so the first click only selects.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CheckedListBoxCheckOnClickCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, CheckedListBoxCheckOnClickCapability<Declaring>> check_on_click
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CheckedListBoxIndicatorSizeCapability
+
+   ``#include <gui_forms/controls/panel/list_box/checked_list_box/checked_list_box_capabilities/checked_list_box_capabilities.hpp>``
+
+   The check box's side in logical pixels, 8 to 32 (std::out_of_range otherwise); the row text starts after it.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CheckedListBoxIndicatorSizeCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, CheckedListBoxIndicatorSizeCapability<Declaring>> indicator_size
+
+      Default: ``{14.0}``.
 
 .. cpp:namespace:: gui_forms
 
