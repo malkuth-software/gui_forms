@@ -52,6 +52,7 @@
       "coerce": false,
       "localizable": null,
       "table": {
+        "binding_direction": "two_way",
         "kind": "text",
         "category": "Appearance",
         "description": "Text of the field: the editor's in the drop_down style, otherwise the selected item's.",

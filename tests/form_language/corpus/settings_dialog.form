@@ -1,4 +1,4 @@
-/* A settings dialog: properties, handler references, tab order and the
+/* A settings dialog: properties, bindings, tab order and the
    classes its project theme styles (a form holds no style blocks). */
 form settings.dialog {
   text: "Settings";
@@ -11,14 +11,12 @@ form settings.dialog {
     tab-index: 0;
     check-box settings.general.autosave {
       text: "Save automatically";
-      checked: true;
+      checked: bind(autosave_);
       tab-index: 0;
-      on-checked-changed: autosave_changed;
     }
     text-box settings.general.name {
-      text: "Untitled";
+      text: bind(settings_, "name", update on-change);
       tab-index: 1;
-      on-text-changed: name_changed;
       classes: "field wide";
     }
   }
@@ -26,8 +24,8 @@ form settings.dialog {
   button settings.ok {
     text: "OK";
     tab-index: 1;
-    on-click: accept;
+    command: bind(accept_);
     classes: "default-action";
   }
-  button settings.cancel { text: "Cancel"; tab-index: 2; on-click: dismiss; }
+  button settings.cancel { text: "Cancel"; tab-index: 2; command: bind(dismiss_); }
 }

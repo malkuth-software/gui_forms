@@ -1,6 +1,6 @@
 // Form documents' model (stage FD, phase FD2): a parsed document checked
 // against a schema the run-time registry describes. Gate: a valid document
-// becomes objects, properties of their kinds and handler references; every
+// becomes objects, properties of their kinds and bindings (FD-6); every
 // defect is reported at its place, all of them in one pass, and a refused
 // document leaves the previous model as it was.
 
@@ -77,7 +77,6 @@ FormSchema sample_schema() {
         gui_forms::make_control<gui_forms::GroupBox>(StableId("prototype"));
     const std::shared_ptr<gui_forms::CheckBox> check_box =
         gui_forms::make_control<gui_forms::CheckBox>(StableId("prototype"));
-    const std::shared_ptr<gui_forms::Button> button = gui_forms::make_control<gui_forms::Button>(StableId("prototype"));
     const std::shared_ptr<gui_forms::Command> command = std::make_shared<gui_forms::Command>();
     // A document refuses a presentation colour (E813); the user control's
     // back colour is marked as content here, so that the colour's value
@@ -95,7 +94,8 @@ FormSchema sample_schema() {
         BindingValue{std::uint64_t{1U}}, Dirty::measure});
     schema.types.push_back(std::move(group_box_type));
     schema.types.push_back(describe_form_type("check_box", *check_box));
-    schema.types.push_back(describe_form_type("button", *button));
+    // Described with its creator, so that it has its Command slot.
+    schema.types.push_back(gui_forms::form_language::form_control_type<gui_forms::Button>("button"));
     schema.types.push_back(describe_form_type("command", *command));
     // A type with a property no document may set.
     FormSchemaType sealed = describe_form_type("sealed_box", *check_box);
@@ -105,6 +105,8 @@ FormSchema sample_schema() {
     schema.types.push_back(std::move(sealed));
     // A type that holds spans (study 10.9).
     schema.types.push_back(gui_forms::form_language::form_control_type<gui_forms::GridPanel>("grid_panel"));
+    // A text a user edits: two way by its property's default.
+    schema.types.push_back(gui_forms::form_language::form_control_type<gui_forms::TextBox>("text_box"));
     return schema;
 }
 
@@ -167,11 +169,10 @@ void test_valid_document() {
                                       "      check-state: indeterminate;\n"
                                       "      anchor: top left;\n"
                                       "      tab-index: 1;\n"
-                                      "      on-checked-changed: autosave_changed;\n"
                                       "    }\n"
                                       "  }\n"
-                                      "  button settings.ok { text: \"OK\"; bounds: 10 20 80 24; on-clicked: accept; }\n"
-                                      "  command settings.save { on-invoked: save; }\n"
+                                      "  button settings.ok { text: \"OK\"; bounds: 10 20 80 24; command: bind(accept_); }\n"
+                                      "  command settings.save { }\n"
                                       "}\n";
     Workspace workspace{};
     FormModel model{};
@@ -217,16 +218,10 @@ void test_valid_document() {
                 std::get<gui_forms::Rect>((*bounds).value) == gui_forms::Rect{10.0, 20.0, 80.0, 24.0},
             "valid: a rectangle");
 
-    require(model.handlers.size() == 3U, "valid: three handlers");
-    if (model.handlers.size() == 3U) {
-        require(model.handlers[0].object.value == 2U && model.handlers[0].interaction == "checked_changed" &&
-                    model.handlers[0].handler == "autosave_changed",
-                "valid: a handler reference");
-        require(model.handlers[1].interaction == "clicked" && model.handlers[1].handler == "accept",
-                "valid: the button's handler");
-        require(model.handlers[2].object.value == 4U && model.handlers[2].handler == "save",
-                "valid: a component's handler");
-    }
+    const FormProperty* command = find_property(model, schema, 3U, "command");
+    require(command != nullptr && (*command).binding && (*(*command).binding).source == "accept_" &&
+                (*(*command).binding).field.empty(),
+            "valid: the button's Command slot, bound");
 }
 
 struct ExpectedDiagnostic final {
@@ -267,9 +262,9 @@ void test_defects_reported_together() {
                                       "  slider app.speed { }\n"                        // 3 E802
                                       "  check-box app.a { checked: maybe; }\n"         // 4 E807
                                       "  check-box app.a { text: \"x\"; text: \"y\"; }\n" // 5 E803 E806
-                                      "  check-box app.b { on-explode: boom; }\n"       // 6 E804
-                                      "  check-box app.c { on-clicked: two words; }\n"  // 7 E808
-                                      "  check-box app.d { on-clicked: has-dash; }\n"   // 8 E808
+                                      "  check-box app.b { on-explode: boom; }\n"       // 6 E816
+                                      "  check-box app.c { checked: bind(two words); }\n" // 7 E817
+                                      "  check-box app.d { checked: bind(on, sometimes); }\n" // 8 E818
                                       "  command app.e { button app.f { } }\n"          // 9 E809
                                       "  sealed-box app.g { text: \"no\"; }\n"          // 10 E805
                                       "  check-box app.h { style { } }\n"               // 11 E810
@@ -285,9 +280,9 @@ void test_defects_reported_together() {
         {DiagnosticCode::form_value_invalid, 4U, 30U},
         {DiagnosticCode::form_identity_repeated, 5U, 13U},
         {DiagnosticCode::form_member_repeated, 5U, 32U},
-        {DiagnosticCode::form_property_unknown, 6U, 21U},
-        {DiagnosticCode::form_handler_invalid, 7U, 33U},
-        {DiagnosticCode::form_handler_invalid, 8U, 33U},
+        {DiagnosticCode::form_handler_removed, 6U, 21U},
+        {DiagnosticCode::form_binding_invalid, 7U, 39U},
+        {DiagnosticCode::form_binding_option_invalid, 8U, 39U},
         {DiagnosticCode::form_children_not_admitted, 9U, 19U},
         {DiagnosticCode::form_property_read_only, 10U, 22U},
         {DiagnosticCode::form_style_block, 11U, 21U},
@@ -301,6 +296,79 @@ void test_defects_reported_together() {
     check_diagnostics(workspace, expected, "defects: every defect at its place, in order");
     require(model.objects.size() == 1U && model.objects[0].stable_id == "kept.root",
             "defects: the previous model is kept");
+}
+
+// Bindings (owner rulings FD-6 R1 and R6): the direction is the property's
+// default unless the document narrows it to one way; a two-way text bound
+// to a field takes an update trigger; a Command slot takes its source alone.
+void test_bindings() {
+    const FormSchema schema = sample_schema();
+    const std::string_view document = "user-control app.root {\n"
+                                      "  check-box app.a { checked: bind(flag_); }\n"
+                                      "  check-box app.b { checked: bind(flag_, one_way); }\n"
+                                      "  button app.c { command: bind(save_); }\n"
+                                      "  text-box app.d { text: bind(names_, \"name\", update on-change); }\n"
+                                      "  check-box app.e { text: bind(names_, \"title\"); }\n"
+                                      "}\n";
+    Workspace workspace{};
+    FormModel model{};
+    const FormModelOutcome outcome = build(workspace, document, schema, model);
+    const std::array<ExpectedDiagnostic, 0> none{};
+    check_diagnostics(workspace, none, "bindings: no diagnostics");
+    require(outcome == FormModelOutcome::model_built && model.objects.size() == 6U, "bindings: built");
+    if (outcome != FormModelOutcome::model_built || model.objects.size() != 6U) return;
+    const FormProperty* two_way = find_property(model, schema, 1U, "checked");
+    const FormProperty* narrowed = find_property(model, schema, 2U, "checked");
+    const FormProperty* command = find_property(model, schema, 3U, "command");
+    const FormProperty* edited = find_property(model, schema, 4U, "text");
+    const FormProperty* shown = find_property(model, schema, 5U, "text");
+    require(two_way != nullptr && narrowed != nullptr && command != nullptr && edited != nullptr && shown != nullptr &&
+                (*two_way).binding && (*narrowed).binding && (*command).binding && (*edited).binding &&
+                (*shown).binding,
+            "bindings: each bound property recorded with its binding");
+    if (two_way == nullptr || narrowed == nullptr || command == nullptr || edited == nullptr || shown == nullptr ||
+        !(*two_way).binding || !(*narrowed).binding || !(*command).binding || !(*edited).binding ||
+        !(*shown).binding) {
+        return;
+    }
+    using gui_forms::FormUpdateTrigger;
+    using gui_forms::PropertyBindingDirection;
+    require((*(*two_way).binding).source == "flag_" && (*(*two_way).binding).field.empty() &&
+                (*(*two_way).binding).direction == PropertyBindingDirection::two_way,
+            "bindings: a Value, two way by the check box's default");
+    require((*(*narrowed).binding).direction == PropertyBindingDirection::one_way, "bindings: narrowed to one way");
+    require((*(*command).binding).source == "save_", "bindings: the Command slot");
+    require((*(*edited).binding).field == "name" &&
+                (*(*edited).binding).direction == PropertyBindingDirection::two_way &&
+                (*(*edited).binding).trigger == FormUpdateTrigger::on_change,
+            "bindings: a field, two way by the text box's default, written back on every change");
+    require((*(*shown).binding).field == "title" &&
+                (*(*shown).binding).direction == PropertyBindingDirection::one_way &&
+                (*(*shown).binding).trigger == FormUpdateTrigger::on_validate,
+            "bindings: a field, one way by the check box text's default");
+
+    const std::string_view defects = "user-control app.root {\n"                                      // 1
+                                     "  check-box app.a { on-checked-changed: changed; }\n"           // 2 E816
+                                     "  check-box app.b { text: bind(names_); }\n"                    // 3 E817
+                                     "  check-box app.c { checked: bind(flag_, one_way, one_way); }\n" // 4 E818
+                                     "  check-box app.d { text: bind(names_, \"n\", update on-change); }\n" // 5 E818
+                                     "  button app.e { command: bind(save_, \"field\"); }\n"          // 6 E817
+                                     "  check-box app.f { checked: bind(flag_, convert x); }\n"       // 7 E999
+                                     "  check-box app.g { checked: bind(flag_, update sometimes); }\n" // 8 E818
+                                     "  check-box app.h { tab-index: bind(n_); }\n"                   // 9 E817, not bindable
+                                     "}\n";
+    const std::array<ExpectedDiagnostic, 8> expected{{
+        {DiagnosticCode::form_handler_removed, 2U, 21U},
+        {DiagnosticCode::form_binding_invalid, 3U, 32U},
+        {DiagnosticCode::form_binding_option_invalid, 4U, 51U},
+        {DiagnosticCode::form_binding_option_invalid, 5U, 45U},
+        {DiagnosticCode::form_binding_invalid, 6U, 32U},
+        {DiagnosticCode::not_yet_built, 7U, 42U},
+        {DiagnosticCode::form_binding_option_invalid, 8U, 49U},
+        {DiagnosticCode::form_binding_invalid, 9U, 32U},
+    }};
+    require(build(workspace, defects, schema, model) == FormModelOutcome::refused, "bindings: defects refused");
+    check_diagnostics(workspace, expected, "bindings: every defect at its token, in order");
 }
 
 void test_roots() {
@@ -464,6 +532,7 @@ void test_string_escapes() {
 int main() {
     test_valid_document();
     test_defects_reported_together();
+    test_bindings();
     test_roots();
     test_attached_properties();
     test_spans();
@@ -472,7 +541,7 @@ int main() {
         std::cerr << failures << " form model checks failed\n";
         return 1;
     }
-    std::cout << "form model: objects, values of every expressible kind, handlers, located defects, refusal, "
+    std::cout << "form model: objects, values of every expressible kind, bindings, located defects, refusal, "
                  "roots and string escapes passed\n";
     return 0;
 }

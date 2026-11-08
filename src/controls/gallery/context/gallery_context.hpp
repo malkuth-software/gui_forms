@@ -13,10 +13,11 @@ namespace gui_forms::gallery {
 struct GalleryTree;
 
 // The Gallery's own controls and their state: the controls demo/gallery.form
-// describes (owned here through `document`, which also holds the handlers'
-// connections), the model they show and the window they live in. Each
-// handler is the document's, one per object (owner decision FD6-2); it
-// applies its interaction to the model and calls synchronize().
+// describes (owned here through `document`), the model they show and the
+// window they live in. Each handler serves one object of the document (owner
+// decision FD6-2), connected by build_gallery_tree, since a form names no
+// program code (FD-6 R6); it applies its interaction to the model and calls
+// synchronize().
 class GalleryContext final {
 public:
     GalleryModel model;
@@ -48,12 +49,20 @@ public:
     [[nodiscard]] std::vector<Control::Ptr> mount_controls() const;
 
 private:
-    // Connects collection_drop_.
+    // Connect the handlers.
     friend GalleryTree build_gallery_tree();
+    friend void connect_handlers(GalleryContext& context);
 
     void activate(std::string_view stable_id);
 
+    // The handlers' connections, made after the document's controls; they
+    // end before `document` releases those controls (declared after it).
+    std::vector<SubscriptionToken> connections_;
     SubscriptionToken collection_drop_;
 };
+
+// Connects the context's handlers to the document's controls, once, after
+// initialize_component (gallery_controls.cpp).
+void connect_handlers(GalleryContext& context);
 
 } // namespace gui_forms::gallery

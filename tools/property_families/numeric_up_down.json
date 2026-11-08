@@ -24,6 +24,7 @@
       "coerce": false,
       "localizable": null,
       "table": {
+        "binding_direction": "two_way",
         "kind": "number",
         "category": "Behavior",
         "description": "Current numeric value.",

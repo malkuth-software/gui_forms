@@ -290,6 +290,55 @@ void GalleryContext::collection_dropped(const std::string& summary)
 
 // ---- Construction -------------------------------------------------------------
 
+// The document's handlers, one per object (owner decision FD6-2), in the
+// order demo/gallery.form declared them before FD-6 R6 moved them here.
+// Each delegate's parameters are its event's, so a mismatch does not
+// compile.
+void connect_handlers(GalleryContext& context)
+{
+    using Clicked = Delegate<ButtonBase&>;
+    using TextChanged = Delegate<const std::string&>;
+    using ValueChanged = Delegate<double>;
+    using SelectionChanged = Delegate<const ListSelectionChange&>;
+    GalleryDocument<GalleryContext>& document = context.document;
+    std::vector<SubscriptionToken>& tokens = context.connections_;
+    tokens.push_back((*document.gallery_command_reset)
+                         .clicked()
+                         .subscribe(Clicked::bind<GalleryContext, &GalleryContext::reset_clicked>(context)));
+    tokens.push_back((*document.gallery_command_diagnostics)
+                         .clicked()
+                         .subscribe(Clicked::bind<GalleryContext, &GalleryContext::diagnostics_clicked>(context)));
+    tokens.push_back((*document.gallery_text_input)
+                         .text_changed()
+                         .subscribe(TextChanged::bind<GalleryContext, &GalleryContext::text_changed>(context)));
+    tokens.push_back((*document.gallery_default_button)
+                         .clicked()
+                         .subscribe(Clicked::bind<GalleryContext, &GalleryContext::apply_clicked>(context)));
+    tokens.push_back((*document.gallery_checkbox)
+                         .clicked()
+                         .subscribe(Clicked::bind<GalleryContext, &GalleryContext::precise_updates_clicked>(context)));
+    tokens.push_back((*document.gallery_radio_classic)
+                         .clicked()
+                         .subscribe(Clicked::bind<GalleryContext, &GalleryContext::classic_relief_clicked>(context)));
+    tokens.push_back((*document.gallery_radio_quiet)
+                         .clicked()
+                         .subscribe(Clicked::bind<GalleryContext, &GalleryContext::quiet_relief_clicked>(context)));
+    tokens.push_back((*document.gallery_checkbox_indeterminate)
+                         .clicked()
+                         .subscribe(Clicked::bind<GalleryContext, &GalleryContext::three_state_clicked>(context)));
+    tokens.push_back((*document.gallery_link)
+                         .clicked()
+                         .subscribe(Clicked::bind<GalleryContext, &GalleryContext::contract_link_clicked>(context)));
+    tokens.push_back((*document.gallery_slider)
+                         .value_changed()
+                         .subscribe(ValueChanged::bind<GalleryContext, &GalleryContext::slider_changed>(context)));
+    tokens.push_back(
+        (*document.gallery_collection)
+            .selection_changed()
+            .subscribe(
+                SelectionChanged::bind<GalleryContext, &GalleryContext::collection_selection_changed>(context)));
+}
+
 Control::Ptr GalleryTree::mount(std::string_view id) const
 {
     for (const GalleryMount& candidate : mounts) {
@@ -305,6 +354,7 @@ GalleryTree build_gallery_tree()
     std::shared_ptr<GalleryContext> context = std::make_shared<GalleryContext>();
     GalleryDocument<GalleryContext>& document = (*context).document;
     document.initialize_component(*context);
+    connect_handlers(*context);
 
     // What the form language does not state yet.
     (*document.gallery_default_button).set_default_button(true);

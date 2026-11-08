@@ -173,6 +173,17 @@ inline constexpr std::size_t maximum_property_standard_values = 256U;
 [[nodiscard]] bool valid_property_enum_descriptor(
     const PropertyEnumDescriptor& descriptor) noexcept;
 
+// Which way a form binding of a property flows unless the document narrows
+// it (owner ruling FD-6 R1, 2026-11-07): `one_way`, from the source to the
+// property only; `two_way`, also from the property back to the source, for
+// a property the user changes through the control (a check box's checked
+// state, a range's value, a text box's text). A document narrows a two-way
+// default with the `one_way` option and cannot widen a one-way one.
+enum class PropertyBindingDirection : std::uint8_t {
+    one_way,
+    two_way,
+};
+
 // Renderer- and language-neutral metadata for one retained property. This is
 // deliberately a value snapshot: inspection/DML/designer consumers never gain
 // access to a control's executable callbacks.
@@ -215,6 +226,8 @@ struct PropertyDescriptor final {
     // other colour and font properties (form_presentation_property) and
     // leaves them to the project theme (owner ruling of 2026-11-04).
     bool content_value{};
+    // A form binding's default direction (PropertyBindingDirection).
+    PropertyBindingDirection binding_direction{PropertyBindingDirection::one_way};
     std::shared_ptr<const PropertyEnumDescriptor> enumeration;
     // Static standard values are inert typed snapshots. Dynamic/contextual
     // providers remain named services rather than executable descriptor data.

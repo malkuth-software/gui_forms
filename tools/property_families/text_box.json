@@ -29,6 +29,7 @@
       "coerce": false,
       "localizable": null,
       "table": {
+        "binding_direction": "two_way",
         "kind": "text",
         "category": "Appearance",
         "description": "Editable UTF-8 text content.",

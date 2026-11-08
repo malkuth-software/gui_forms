@@ -1504,6 +1504,7 @@ PropertyDescriptor text_box_text_descriptor() {
     descriptor.description = "Editable UTF-8 text content.";
     descriptor.default_value = BindingValue{std::string{}};
     descriptor.invalidation_effects = invalidation::text_content;
+    descriptor.binding_direction = PropertyBindingDirection::two_way;
     return descriptor;
 }
 
@@ -1619,29 +1620,25 @@ void TextBox::prepare_write(const decltype(newline_sequence)&, std::string& inco
     }
 }
 
-void TextBox::written(const decltype(newline_sequence)&) {
-}
+void TextBox::written(const decltype(newline_sequence)&) {}
 
 void TextBox::prepare_write(const decltype(accepts_tab)&, bool&) {
     require_mutable();
 }
 
-void TextBox::written(const decltype(accepts_tab)&) {
-}
+void TextBox::written(const decltype(accepts_tab)&) {}
 
 void TextBox::prepare_write(const decltype(accepts_enter)&, bool&) {
     require_mutable();
 }
 
-void TextBox::written(const decltype(accepts_enter)&) {
-}
+void TextBox::written(const decltype(accepts_enter)&) {}
 
 void TextBox::prepare_write(const decltype(accepts_escape)&, bool&) {
     require_mutable();
 }
 
-void TextBox::written(const decltype(accepts_escape)&) {
-}
+void TextBox::written(const decltype(accepts_escape)&) {}
 
 // property_codemod end TextBox
 

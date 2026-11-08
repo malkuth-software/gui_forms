@@ -90,7 +90,6 @@ DiagnosticSeverity diagnostic_severity(DiagnosticCode code) noexcept {
     case DiagnosticCode::form_property_read_only:
     case DiagnosticCode::form_member_repeated:
     case DiagnosticCode::form_value_invalid:
-    case DiagnosticCode::form_handler_invalid:
     case DiagnosticCode::form_children_not_admitted:
     case DiagnosticCode::form_style_block:
     case DiagnosticCode::form_load_refused:
@@ -98,6 +97,10 @@ DiagnosticSeverity diagnostic_severity(DiagnosticCode code) noexcept {
     case DiagnosticCode::form_presentation_property:
     case DiagnosticCode::form_span_conflict:
     case DiagnosticCode::form_escape_invalid:
+    case DiagnosticCode::form_handler_removed:
+    case DiagnosticCode::form_binding_invalid:
+    case DiagnosticCode::form_binding_option_invalid:
+    case DiagnosticCode::form_binding_source_refused:
     case DiagnosticCode::not_yet_built:
         return DiagnosticSeverity::error;
     case DiagnosticCode::unknown_property:
@@ -193,7 +196,6 @@ std::string_view diagnostic_code_name(DiagnosticCode code) noexcept {
     case DiagnosticCode::form_property_read_only: return "form_property_read_only";
     case DiagnosticCode::form_member_repeated: return "form_member_repeated";
     case DiagnosticCode::form_value_invalid: return "form_value_invalid";
-    case DiagnosticCode::form_handler_invalid: return "form_handler_invalid";
     case DiagnosticCode::form_children_not_admitted: return "form_children_not_admitted";
     case DiagnosticCode::form_style_block: return "form_style_block";
     case DiagnosticCode::form_load_refused: return "form_load_refused";
@@ -201,6 +203,10 @@ std::string_view diagnostic_code_name(DiagnosticCode code) noexcept {
     case DiagnosticCode::form_presentation_property: return "form_presentation_property";
     case DiagnosticCode::form_span_conflict: return "form_span_conflict";
     case DiagnosticCode::form_escape_invalid: return "form_escape_invalid";
+    case DiagnosticCode::form_handler_removed: return "form_handler_removed";
+    case DiagnosticCode::form_binding_invalid: return "form_binding_invalid";
+    case DiagnosticCode::form_binding_option_invalid: return "form_binding_option_invalid";
+    case DiagnosticCode::form_binding_source_refused: return "form_binding_source_refused";
     case DiagnosticCode::not_yet_built: return "not_yet_built";
     case DiagnosticCode::unknown_property: return "unknown_property";
     case DiagnosticCode::unknown_primitive: return "unknown_primitive";

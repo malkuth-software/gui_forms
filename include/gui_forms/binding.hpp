@@ -13,3 +13,5 @@
 #include "gui_forms/binding/binding/binding.hpp"
 #include "gui_forms/binding/control_bindings_collection/control_bindings_collection.hpp"
 #include "gui_forms/binding/binding_context/binding_context.hpp"
+#include "gui_forms/binding/property_link/property_link.hpp"
+#include "gui_forms/binding/form_binding/form_binding.hpp"

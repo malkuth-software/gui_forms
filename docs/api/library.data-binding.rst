@@ -68,6 +68,8 @@ Types
      - PropertyEnumDescriptor supplies bounded named choices and explicit flags semantics for descriptor-aware conversion.
    * - :cpp:class:`PropertyEnumValue <gui_forms::PropertyEnumValue>`
      - PropertyEnumValue preserves declared enum type, canonical symbolic name, and signed numeric representation.
+   * - :cpp:class:`PropertyLink <gui_forms::PropertyLink>`
+     -  
    * - :cpp:class:`PropertyObjectData <gui_forms::PropertyObjectData>`
      - PropertyObjectData is shared immutable type identity plus bounded ordered members.
    * - :cpp:class:`PropertyObjectMember <gui_forms::PropertyObjectMember>`
@@ -913,6 +915,10 @@ Types
 
       Whether the value is the control's content although its kind is a presentation kind (colour, font): a typography specimen's font is what it shows. A form document may set such a property; it refuses other colour and font properties (form_presentation_property) and leaves them to the project theme (owner ruling of 2026-11-04).
 
+   .. cpp:member:: PropertyBindingDirection binding_direction
+
+      A form binding's default direction (PropertyBindingDirection). Default: ``{PropertyBindingDirection::one_way}``.
+
    .. cpp:member:: std::shared_ptr<const PropertyEnumDescriptor> enumeration
 
    .. cpp:member:: std::vector<BindingValue> standard_values
@@ -1008,6 +1014,17 @@ Types
    .. cpp:member:: std::string name
 
    .. cpp:member:: std::int64_t value
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: PropertyLink
+
+   ``#include <gui_forms/binding/property_link/property_link.hpp>``
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: PropertyLink() = default
 
 .. cpp:namespace:: gui_forms
 
@@ -1318,6 +1335,16 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: FormUpdateTrigger
+
+   ``#include <gui_forms/binding/form_binding/form_binding.hpp>``
+
+   .. cpp:enumerator:: on_validate
+
+   .. cpp:enumerator:: on_change
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: NumberFormatKind
 
    ``#include <gui_forms/binding/number_format/number_format.hpp>``
@@ -1333,6 +1360,16 @@ Enumerations
    .. cpp:enumerator:: exponential
 
    .. cpp:enumerator:: general
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: PropertyBindingDirection
+
+   ``#include <gui_forms/binding/value/binding_value.hpp>``
+
+   .. cpp:enumerator:: one_way
+
+   .. cpp:enumerator:: two_way
 
 .. cpp:namespace:: gui_forms
 
@@ -1364,6 +1401,26 @@ Enumerations
 
 Functions, constants and aliases
 --------------------------------
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/binding/form_binding/form_binding.hpp>``
+
+.. cpp:function:: void bind_form_value(Control& target, std::string_view property, Value<bool>& source, PropertyBindingDirection direction)
+
+   Binds ``property`` of ``target`` to ``source``. See the header comment.
+
+.. cpp:function:: void bind_form_value(Control& target, std::string_view property, Value<int>& source, PropertyBindingDirection direction)
+
+.. cpp:function:: void bind_form_value(Control& target, std::string_view property, Value<double>& source, PropertyBindingDirection direction)
+
+.. cpp:function:: template <BindingValueKind Kind, typename T> void bind_form_value(Control& target, std::string_view property, Value<T>& source, PropertyBindingDirection direction)
+
+   The generated code's spelling: :cpp:enum:`Kind <gui_forms::PagePlacement::Kind>` is the bound property's kind as the form schema recorded it, so a Value whose type does not carry that kind does not compile.
+
+.. cpp:function:: void bind_form_field(Control& target, std::string_view property, const std::shared_ptr<BindingSource>& source, std::string field, PropertyBindingDirection direction, FormUpdateTrigger trigger)
+
+   Binds ``property`` of ``target`` to the field ``field`` of ``source``'s current record. ``trigger`` matters only for a two-way binding.
 
 .. cpp:namespace:: gui_forms
 

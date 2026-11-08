@@ -246,6 +246,8 @@ add_library(gui_forms_core STATIC
     src/core/binding/binding_source/binding_source.cpp
     src/core/binding/binding/binding.cpp
     src/core/binding/control_bindings_collection/control_bindings_collection.cpp
+    src/core/binding/property_link/property_link.cpp
+    src/core/binding/form_binding/form_binding.cpp
     src/core/binding/binding_context/binding_context.cpp
     src/core/types/damage_region/damage_region.cpp
     src/core/types/painter/painter.cpp

@@ -34,10 +34,13 @@ void RangeControl::unbind() noexcept { value_binding_.reset(); }
 
 RangeControl::RangeControl(StableId stable_id)
     : Control(std::move(stable_id)) {
+    // The user changes it, so a form binding writes it back by default.
+    PropertyDescriptor value_descriptor{"value", BindingValueKind::number, "Behavior",
+                             "Current value within the retained range.", BindingValue{0.0},
+                             Dirty::paint | Dirty::semantics};
+    value_descriptor.binding_direction = PropertyBindingDirection::two_way;
     define_bindable_property({
-        {"value", BindingValueKind::number, "Behavior",
-         "Current value within the retained range.", BindingValue{0.0},
-         Dirty::paint | Dirty::semantics},
+        std::move(value_descriptor),
         detail::BindingMemberGetter<RangeControl, double>(
             *this, &RangeControl::value_),
         detail::ConvertedPropertySetter<RangeControl, double>(

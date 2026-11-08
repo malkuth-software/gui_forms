@@ -3,6 +3,6 @@
 user-control notes.root {
   note-card notes.card {
     padding: 3;
-    button notes.card.close { text: "Close"; on-clicked: close; }
+    button notes.card.close { text: "Close"; command: bind(close_); }
   }
 }

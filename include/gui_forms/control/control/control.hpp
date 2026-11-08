@@ -54,6 +54,7 @@ class ErrorProvider;
 class HelpProvider;
 class Binding;
 class ControlBindingsCollection;
+class PropertyLink;
 struct HelpRequestEvent;
 
 namespace detail {
@@ -716,6 +717,11 @@ public:
     }
     [[nodiscard]] ControlBindingsCollection& data_bindings();
     [[nodiscard]] const ControlBindingsCollection& data_bindings() const;
+    // Keeps `link`, a form binding's link of one of this control's
+    // properties to its source (form_binding.hpp), for the control's life:
+    // destroying the control ends it (owner ruling FD-6 R4). A null link is
+    // std::invalid_argument. UI thread.
+    void adopt_property_link(std::unique_ptr<PropertyLink> link);
     // Control's own table (its capabilities' entries); a derived type joins
     // it first (join_property_tables) and returns the joined table.
     static constexpr std::size_t control_property_count = 25U;
@@ -1471,6 +1477,9 @@ private:
     Event<HelpRequestEvent&> help_requested_;
     BindablePropertyMap bindable_properties_;
     mutable std::unique_ptr<ControlBindingsCollection> data_bindings_;
+    // The form bindings' links, in the order they were made. Declared after
+    // the events they subscribe to, so they end first.
+    std::vector<std::unique_ptr<PropertyLink>> property_links_;
     Dirty pending_initialization_dirty_{Dirty::none};
     std::uint64_t initialization_depth_{};
     bool pending_initialization_subtree_{};

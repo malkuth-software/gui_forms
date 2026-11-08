@@ -1,7 +1,8 @@
 // Form documents' run-time loader (stage FD, phase FD3): a checked model
 // made into controls and components. Gate: the tree, child order and
-// property values are the document's; a refusal by a run-time type is
-// located and leaves the previous load as it was.
+// property values are the document's; bound properties are bound at
+// creation to the caller's sources (FD-6); a refusal by a run-time type or
+// of a source is located and leaves the previous load as it was.
 
 #include "../../src/core/form_language/form_loader/form_loader.hpp"
 #include "../../src/core/form_language/form_model/form_model.hpp"
@@ -28,6 +29,7 @@ using gui_forms::form_language::FormModel;
 using gui_forms::form_language::FormModelOutcome;
 using gui_forms::form_language::FormSchema;
 using gui_forms::form_language::FormSchemaType;
+using gui_forms::form_language::FormSources;
 using gui_forms::form_language::LoadedForm;
 using gui_forms::form_language::build_form_model;
 using gui_forms::form_language::describe_form_type;
@@ -69,6 +71,8 @@ FormSchema sample_schema() {
     schema.types.push_back(form_control_type<gui_forms::GroupBox>("group_box"));
     schema.types.push_back(form_control_type<gui_forms::CheckBox>("check_box"));
     schema.types.push_back(form_control_type<gui_forms::Button>("button"));
+    schema.types.push_back(form_control_type<gui_forms::NumericUpDown>("numeric_up_down"));
+    schema.types.push_back(form_control_type<gui_forms::TextBox>("text_box"));
     schema.types.push_back(form_component_type<gui_forms::Command>("command"));
     // A type a document may describe but the loader cannot make.
     const std::shared_ptr<gui_forms::Panel> panel = gui_forms::make_control<gui_forms::Panel>(gui_forms::StableId("prototype"));
@@ -92,7 +96,8 @@ struct Workspace final {
     ThemeDiagnosticList diagnostics{};
 };
 
-FormLoadOutcome load(Workspace& workspace, std::string_view text, const FormSchema& schema, LoadedForm& loaded) {
+FormLoadOutcome load(Workspace& workspace, std::string_view text, const FormSchema& schema,
+                     const FormSources& sources, LoadedForm& loaded) {
     workspace.text = std::string(text);
     workspace.diagnostics.clear();
     workspace.source.file = "test.form";
@@ -107,7 +112,14 @@ FormLoadOutcome load(Workspace& workspace, std::string_view text, const FormSche
                                                     workspace.tree, schema, workspace.model, workspace.diagnostics);
     require(built == FormModelOutcome::model_built, "the document's model builds");
     const FormLoadOutcome outcome = load_form(workspace.source, workspace.tokens, workspace.lines, workspace.tree,
-                                              schema, workspace.model, loaded, workspace.diagnostics);
+                                              schema, workspace.model, sources, loaded, workspace.diagnostics);
+    return outcome;
+}
+
+// A load of a document that binds nothing.
+FormLoadOutcome load(Workspace& workspace, std::string_view text, const FormSchema& schema, LoadedForm& loaded) {
+    const FormSources no_sources{};
+    const FormLoadOutcome outcome = load(workspace, text, schema, no_sources, loaded);
     return outcome;
 }
 
@@ -128,12 +140,11 @@ void test_load() {
                                       "      text: \"Save automatically\";\n"
                                       "      checked: true;\n"
                                       "      tab-index: 2;\n"
-                                      "      on-checked-changed: autosave_changed;\n"
                                       "    }\n"
                                       "    button settings.apply { text: \"Apply\"; }\n"
                                       "  }\n"
-                                      "  command settings.save { on-invoked: save; }\n"
-                                      "  button settings.ok { text: \"OK\"; on-clicked: accept; }\n"
+                                      "  command settings.save { }\n"
+                                      "  button settings.ok { text: \"OK\"; }\n"
                                       "}\n";
     Workspace workspace{};
     LoadedForm loaded{};
@@ -160,9 +171,141 @@ void test_load() {
                 (*check).tab_index.read() == 2U,
             "load: the check box's properties");
     require(std::dynamic_pointer_cast<gui_forms::Command>(loaded.objects[4]) != nullptr, "load: the command");
-    require(loaded.handlers.size() == 3U && loaded.handlers[0].handler == "autosave_changed" &&
-                loaded.handlers[1].handler == "save" && loaded.handlers[2].handler == "accept",
-            "load: the handler references, for the caller");
+}
+
+// Counts a command's invocations.
+struct InvocationCount final {
+    void count(const gui_forms::CommandInvocation& invocation) {
+        static_cast<void>(invocation);
+        ++calls;
+    }
+
+    int calls{};
+};
+
+// The document's bindings, made at creation from the caller's sources
+// (owner rulings FD-6 R1 and R2): a Value two way by its property's default
+// and one way where the document narrows it, a field of a BindingSource's
+// current record written back on every change, and a Command. The controls
+// keep their bindings and end them when they go.
+void test_bindings() {
+    const FormSchema schema = sample_schema();
+    const std::shared_ptr<gui_forms::Panel> host =
+        gui_forms::make_control<gui_forms::Panel>(gui_forms::StableId("host"));
+    gui_forms::Window window(host, gui_forms::Size{320.0, 200.0});
+    gui_forms::BindingRecord::FieldMap fields{};
+    fields["name"] = std::string("Ada");
+    const std::shared_ptr<gui_forms::BindingSource> people = std::make_shared<gui_forms::BindingSource>(window);
+    (*people).set_records({gui_forms::BindingRecord("person.1", fields)});
+    gui_forms::Value<bool> autosave{true};
+    gui_forms::Value<double> level{25.0};
+    gui_forms::Command save{};
+    InvocationCount saved{};
+    using Invoked = gui_forms::Delegate<const gui_forms::CommandInvocation&>;
+    const gui_forms::SubscriptionToken counting =
+        save.invoked().subscribe(Invoked::bind<InvocationCount, &InvocationCount::count>(saved));
+    gui_forms::Value<bool> disposed{true};
+    disposed.dispose();
+    FormSources sources{};
+    sources.add("autosave_", autosave);
+    sources.add("level_", level);
+    sources.add("save_", save);
+    sources.add("people_", people);
+    sources.add("disposed_", disposed);
+
+    int refusals = 0;
+    try {
+        sources.add("level_", autosave);
+    } catch (const std::invalid_argument&) {
+        ++refusals;
+    }
+    try {
+        sources.add("two words", autosave);
+    } catch (const std::invalid_argument&) {
+        ++refusals;
+    }
+    require(refusals == 2 && sources.find("two words") == nullptr && sources.find("level_") != nullptr,
+            "bindings: a repeated name and a name that is no identifier, refused");
+
+    const std::string_view document = "user-control app.root {\n"
+                                      "  check-box app.autosave { checked: bind(autosave_); }\n"
+                                      "  check-box app.mirror { checked: bind(autosave_, one_way); }\n"
+                                      "  numeric-up-down app.level { value: bind(level_); }\n"
+                                      "  text-box app.name { text: bind(people_, \"name\", update on-change); }\n"
+                                      "  button app.save { text: \"Save\"; command: bind(save_); }\n"
+                                      "}\n";
+    Workspace workspace{};
+    LoadedForm loaded{};
+    const FormLoadOutcome outcome = load(workspace, document, schema, sources, loaded);
+    print_diagnostics(workspace);
+    require(outcome == FormLoadOutcome::loaded && loaded.objects.size() == 6U, "bindings: loaded");
+    if (outcome != FormLoadOutcome::loaded || loaded.objects.size() != 6U) return;
+    (*host).add_child(loaded.root);
+    // Held here only for this block: released below, the controls go.
+    std::weak_ptr<gui_forms::CheckBox> released{};
+    {
+        const std::shared_ptr<gui_forms::CheckBox> check =
+            std::dynamic_pointer_cast<gui_forms::CheckBox>(loaded.objects[1]);
+        const std::shared_ptr<gui_forms::CheckBox> mirror =
+            std::dynamic_pointer_cast<gui_forms::CheckBox>(loaded.objects[2]);
+        const std::shared_ptr<gui_forms::NumericUpDown> number =
+            std::dynamic_pointer_cast<gui_forms::NumericUpDown>(loaded.objects[3]);
+        const std::shared_ptr<gui_forms::TextBox> name =
+            std::dynamic_pointer_cast<gui_forms::TextBox>(loaded.objects[4]);
+        const std::shared_ptr<gui_forms::Button> button =
+            std::dynamic_pointer_cast<gui_forms::Button>(loaded.objects[5]);
+        require(check != nullptr && mirror != nullptr && number != nullptr && name != nullptr && button != nullptr,
+                "bindings: every bound control");
+        if (check == nullptr || mirror == nullptr || number == nullptr || name == nullptr || button == nullptr) return;
+
+        require((*check).checked() && (*mirror).checked() && (*number).value() == 25.0 && (*name).text() == "Ada",
+                "bindings: each property takes its source's value at creation");
+        (*check).set_checked(false);
+        require(!autosave.get() && !(*mirror).checked(), "bindings: two way, the change reaches the Value and on");
+        (*mirror).set_checked(true);
+        require(!autosave.get(), "bindings: one way, the control's change stays in the control");
+        (*number).set_value(30.0);
+        require(level.get() == 30.0, "bindings: the numeric value, two way by its property's default");
+        (*name).set_text("Ada Lovelace");
+        const gui_forms::BindingRecord* record = (*people).current();
+        const gui_forms::BindingValue written{std::string("Ada Lovelace")};
+        require(record != nullptr && (*record).fields.at("name") == written,
+                "bindings: the field, written back on every change");
+        static_cast<void>((*button).perform_click());
+        require(saved.calls == 1, "bindings: the button runs its command");
+        released = check;
+    }
+
+    // A missing source, a source of another kind and a disposed one: every
+    // refusal located, the earlier load kept.
+    const std::string_view refused = "user-control bad.root {\n"
+                                     "  check-box bad.a { checked: bind(missing_); }\n"
+                                     "  check-box bad.b { checked: bind(level_); }\n"
+                                     "  button bad.c { command: bind(autosave_); }\n"
+                                     "  check-box bad.d { checked: bind(disposed_); }\n"
+                                     "}\n";
+    require(load(workspace, refused, schema, sources, loaded) == FormLoadOutcome::refused, "bindings: refused");
+    const std::span<const ThemeDiagnostic> records = workspace.diagnostics.records();
+    const bool located = records.size() == 4U && records[0].code == DiagnosticCode::form_binding_source_refused &&
+                         records[0].position.line.value == 2U && records[0].position.column.value == 21U &&
+                         records[1].code == DiagnosticCode::form_binding_source_refused &&
+                         records[1].position.line.value == 3U && records[1].property == "checked" &&
+                         records[2].code == DiagnosticCode::form_binding_source_refused &&
+                         records[2].position.line.value == 4U && records[2].position.column.value == 18U &&
+                         records[3].code == DiagnosticCode::form_binding_source_refused &&
+                         records[3].position.line.value == 5U;
+    if (!located) print_diagnostics(workspace);
+    require(located, "bindings: each refused source located");
+    require(loaded.root != nullptr && (*loaded.root).stable_id().value() == "app.root",
+            "bindings: the earlier load is kept");
+
+    // Released, the controls end their bindings: the sources change alone.
+    static_cast<void>((*host).remove_child((*loaded.root).runtime_id()));
+    loaded = LoadedForm{};
+    require(released.expired(), "bindings: the released form's controls are gone");
+    autosave.set(true);
+    level.set(5.0);
+    require(autosave.get() && level.get() == 5.0, "bindings: the sources change alone once their controls are gone");
 }
 
 void test_refusals() {
@@ -339,6 +482,7 @@ void test_table_placement() {
 
 int main() {
     test_load();
+    test_bindings();
     test_refusals();
     test_form_root();
     test_form_root_defects();
@@ -348,6 +492,6 @@ int main() {
         std::cerr << failures << " form loader checks failed\n";
         return 1;
     }
-    std::cout << "form loader: tree, child order, values, components, handler references and refusals passed\n";
+    std::cout << "form loader: tree, child order, values, components, bindings and refusals passed\n";
     return 0;
 }

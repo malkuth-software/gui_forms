@@ -533,6 +533,8 @@ gui_forms::Control
         - Ends one :cpp:func:`begin_init <gui_forms::Control::begin_init>`.
       * - :cpp:func:`data_bindings <gui_forms::Control::data_bindings>`
         - The control's :cpp:class:`ControlBindingsCollection <gui_forms::ControlBindingsCollection>`, created on first use.
+      * - :cpp:func:`adopt_property_link <gui_forms::Control::adopt_property_link>`
+        - Keeps ``link``, a form binding's link of one of this control's properties to its source (form_binding.hpp), for the control's life: destroying the control ends it (owner ruling FD-6 R4).
       * - :cpp:func:`control_property_entries <gui_forms::Control::control_property_entries>`
         -  
       * - :cpp:func:`has_bindable_property <gui_forms::Control::has_bindable_property>`
@@ -1440,6 +1442,10 @@ gui_forms::Control
    .. cpp:function:: ControlBindingsCollection& data_bindings()
 
       The control's :cpp:class:`ControlBindingsCollection <gui_forms::ControlBindingsCollection>`, created on first use.
+
+   .. cpp:function:: void adopt_property_link(std::unique_ptr<PropertyLink> link)
+
+      Keeps ``link``, a form binding's link of one of this control's properties to its source (form_binding.hpp), for the control's life: destroying the control ends it (owner ruling FD-6 R4). A null link is std::invalid_argument. UI thread.
 
    .. cpp:function:: static const std::array<PropertyEntry, control_property_count>& control_property_entries() noexcept
 

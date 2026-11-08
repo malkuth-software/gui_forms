@@ -50,10 +50,13 @@ CheckBox::CheckBox(StableId stable_id, std::string text)
     : ButtonBase(std::move(stable_id), std::move(text)) {
     text_alignment = ContentAlignment::middle_left;
     image_alignment = ContentAlignment::middle_left;
+    // The user changes it, so a form binding writes it back by default.
+    PropertyDescriptor checked_descriptor{"checked", BindingValueKind::boolean, "Behavior",
+                               "Whether the check box is in a checked state.", BindingValue{false},
+                               Dirty::paint | Dirty::semantics};
+    checked_descriptor.binding_direction = PropertyBindingDirection::two_way;
     define_bindable_property({
-        {"checked", BindingValueKind::boolean, "Behavior",
-         "Whether the check box is in a checked state.", BindingValue{false},
-         Dirty::paint | Dirty::semantics},
+        std::move(checked_descriptor),
         detail::BindingNoexceptMethodGetter<CheckBox, bool>(
             *this, &CheckBox::checked),
         detail::ConvertedPropertySetter<CheckBox, bool>(

@@ -2,6 +2,7 @@
 
 #include "gui_forms/binding.hpp"
 #include "gui_forms/binding/value/property_collection_value/property_collection_value.hpp"
+#include "gui_forms/binding/property_link/property_link.hpp"
 #include "gui_forms/detail/bound_member_function.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
@@ -1850,6 +1851,12 @@ ControlBindingsCollection& Control::data_bindings() {
         data_bindings_ = std::make_unique<ControlBindingsCollection>(*this);
     }
     return *data_bindings_;
+}
+
+void Control::adopt_property_link(std::unique_ptr<PropertyLink> link) {
+    require_mutable();
+    if (!link) throw std::invalid_argument("GUI.Forms cannot keep a null property link");
+    property_links_.push_back(std::move(link));
 }
 
 const ControlBindingsCollection& Control::data_bindings() const {

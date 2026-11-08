@@ -45,6 +45,8 @@ Config keys are the study's (section 15.2) plus these, all optional:
              "mutation_check": the statement a generated prepare_write runs
              first (default "require_mutable();", Control's check); null for
              a component without one (study section 14, G7 point 4).
+  table      "binding_direction": a form binding's default direction
+             (PropertyBindingDirection; "two_way" for what the user edits).
   property   "prepare": C++ statements a generated prepare_write runs after
              require_mutable and before coerce (`incoming` is the incoming value).
              "written_effects": the dirty mask a generated written touches
@@ -74,7 +76,7 @@ TOP_KEYS = {
 }
 TABLE_KEYS = {
     "kind", "category", "description", "default", "effects", "subtree", "bindable", "browsable", "nullable",
-    "enumeration", "reset", "registry", "serialization",
+    "enumeration", "reset", "registry", "serialization", "binding_direction",
 }
 THUNK_KEYS = {"read", "write", "reset", "should_serialize"}
 SHARED_HEADER = "include/gui_forms/control/shared_capabilities/shared_capabilities.hpp"
@@ -753,6 +755,11 @@ def descriptor_function(config, prop):
         lines.append("    descriptor.nullable = true;")
     if table.get("enumeration"):
         lines.append(f"    descriptor.enumeration = {table['enumeration']};")
+    if table.get("binding_direction"):
+        direction = table["binding_direction"]
+        if "::" not in direction:
+            direction = "PropertyBindingDirection::" + direction
+        lines.append(f"    descriptor.binding_direction = {direction};")
     if table.get("serialization"):
         visibility = table["serialization"]
         if "::" not in visibility:

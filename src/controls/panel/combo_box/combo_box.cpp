@@ -81,6 +81,8 @@ ComboBox::ComboBox(StableId stable_id) : Panel(std::move(stable_id)) {
         "selected_index", BindingValueKind::signed_integer, "Behavior",
         "Zero-based selected item index, or -1 when no item is selected.",
         BindingValue{std::int64_t{-1}}, Dirty::paint | Dirty::semantics};
+    // The user chooses it, so a form binding writes it back by default.
+    index_registration.descriptor.binding_direction = PropertyBindingDirection::two_way;
     index_registration.get = detail::BoundMemberFunction<
         BindingValue (ComboBox::*)() const>(
             *this, &ComboBox::selected_index_property_value);
@@ -91,7 +93,6 @@ ComboBox::ComboBox(StableId stable_id) : Panel(std::move(stable_id)) {
         detail::EventChangeConnector<std::optional<std::size_t>>(
             selected_index_changed_);
     define_bindable_property(std::move(index_registration));
-
 
     // What a form document sets besides the items (stage FD6.3). None
     // raises a change event.
@@ -1162,6 +1163,7 @@ PropertyDescriptor combo_box_text_descriptor() {
     descriptor.description = "Text of the field: the editor's in the drop_down style, otherwise the selected item's.";
     descriptor.default_value = BindingValue{std::string{}};
     descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.binding_direction = PropertyBindingDirection::two_way;
     return descriptor;
 }
 

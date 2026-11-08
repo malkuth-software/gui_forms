@@ -6,8 +6,8 @@
 // shipped in the SDK.
 //
 // The generated header holds one class template over the owner class
-// (owner decision FD-3), whose member functions are the document's
-// handlers:
+// (owner decision FD-3), whose members are the sources the document binds
+// (owner rulings FD-6 R1 and R2):
 //
 //   template <typename Owner>
 //   class SettingsForm final {
@@ -21,18 +21,21 @@
 //   with '.' and '-' spelled '_' (settings.auto-save: settings_auto_save).
 //   A form root has no member; it is the window (see below).
 // - initialize_component makes every object in document order, adding each
-//   control to its parent as it is made, then sets each property in
-//   document order, then connects each handler in document order: the
-//   loader's order (form_loader.hpp). It builds a fresh instance and moves
-//   it into this one only once everything succeeded, so a throw leaves the
-//   form as it was.
-// - Handlers connect through Delegate::bind<Owner, &Owner::name>(owner),
-//   so a handler whose signature differs from its event's arguments does
-//   not compile. The form holds the connections: Owner must outlive the
-//   form, or the form be reinitialized or destroyed first.
+//   control to its parent as it is made, then sets or binds each property
+//   in document order: the loader's order (form_loader.hpp). It builds a
+//   fresh instance and moves it into this one only once everything
+//   succeeded, so a throw leaves the form as it was.
 // - Properties are set through Control::set_property_value with the
 //   model's normalized value, the path the loader takes, so both paths set
 //   the same values.
+// - A bound property is bound where a literal would be set, reading the
+//   owner's member: `gui_forms::bind_form_value<Kind>(..., owner.<source>,
+//   ...)` for a Value (one whose type does not carry the property's kind
+//   does not compile), `gui_forms::bind_form_field(...)` for a
+//   BindingSource field and `bind(owner.<source>)` for a Command. The
+//   controls keep their bindings, so the owner's sources must outlive them:
+//   declare the form after them. A form names no program code (FD-6 R6):
+//   the owner attaches behaviour itself.
 // - A form root adds window_title, window_client_size (when the document
 //   sets them) and attach_buttons(window), which gives a window the accept
 //   and cancel buttons.

@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "gui_forms/binding/form_binding/form_binding.hpp"
 #include "gui_forms/binding/value/binding_value.hpp"
 #include "gui_forms/commands/command/command.hpp"
 #include "gui_forms/control.hpp"
@@ -12,9 +13,8 @@
 #include "gui_forms/controls/panel/domain_up_down/domain_up_down.hpp"
 #include "gui_forms/controls/panel/group_box/group_box.hpp"
 #include "gui_forms/controls/panel/list_box/list_box.hpp"
+#include "gui_forms/controls/panel/numeric_up_down/numeric_up_down.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/user_control/user_control.hpp"
-#include "gui_forms/delegate.hpp"
-#include "gui_forms/event.hpp"
 #include "gui_forms/window.hpp"
 
 #include <cstdint>
@@ -29,8 +29,8 @@
 namespace form_generated {
 
 // The objects sample_dialog.form describes, for an owner of type Owner whose
-// member functions are the document's handlers. The form holds the handlers'
-// connections, so Owner must outlive them.
+// members are the sources the document binds; each bound control keeps its binding,
+// so those sources must outlive the form's controls.
 template <typename Owner>
 class SampleDialogForm final {
 public:
@@ -43,6 +43,7 @@ public:
     std::shared_ptr<gui_forms::ListBox> sample_modes{};
     std::shared_ptr<gui_forms::DomainUpDown> sample_band{};
     std::shared_ptr<gui_forms::Label> sample_heading{};
+    std::shared_ptr<gui_forms::NumericUpDown> sample_level{};
     std::shared_ptr<gui_forms::Command> sample_save{};
 
     // The window the form describes.
@@ -56,8 +57,9 @@ public:
     }
 
     // Makes every object in document order, adding each control to its parent as
-    // it is made, then sets each property and connects each handler in document
-    // order. Throws what the objects throw, leaving this form as it was.
+    // it is made, then sets or binds each property in document order, a bound one
+    // taking its source's value and subscribing in one step. Throws what the
+    // objects and bindings throw, leaving this form as it was.
     void initialize_component(Owner& owner) {
         SampleDialogForm made{};
         made.sample_root = gui_forms::make_control<gui_forms::UserControl>(gui_forms::StableId("sample.root"));
@@ -75,38 +77,28 @@ public:
         (*made.sample_root).add_child(made.sample_band);
         made.sample_heading = gui_forms::make_control<gui_forms::Label>(gui_forms::StableId("sample.heading"));
         (*made.sample_root).add_child(made.sample_heading);
+        made.sample_level = gui_forms::make_control<gui_forms::NumericUpDown>(gui_forms::StableId("sample.level"));
+        (*made.sample_root).add_child(made.sample_level);
         made.sample_save = std::make_shared<gui_forms::Command>();
         (*made.sample_root).set_property_value("padding", gui_forms::BindingValue{gui_forms::Insets{.left = 8.0, .top = 4.0, .right = 8.0, .bottom = 4.0}});
         (*made.sample_general).set_property_value("tab_index", gui_forms::BindingValue{std::uint64_t{0U}});
         (*made.sample_general_auto_save).set_property_value("text", gui_forms::BindingValue{std::string("Save automatically")});
-        (*made.sample_general_auto_save).set_property_value("checked", gui_forms::BindingValue{true});
+        gui_forms::bind_form_value<gui_forms::BindingValueKind::boolean>(*made.sample_general_auto_save, "checked", owner.auto_save_, gui_forms::PropertyBindingDirection::two_way);
         (*made.sample_general_auto_save).set_property_value("tab_index", gui_forms::BindingValue{std::uint64_t{0U}});
         (*made.sample_ok).set_property_value("text", gui_forms::BindingValue{std::string("OK")});
         (*made.sample_ok).set_property_value("tab_index", gui_forms::BindingValue{std::uint64_t{1U}});
         (*made.sample_ok).set_property_value("anchor", gui_forms::BindingValue{gui_forms::PropertyEnumValue{.type_name = std::string("anchor_styles"), .name = std::string("top, right"), .value = std::int64_t{9}}});
+        (*made.sample_ok).bind(owner.accept_);
         (*made.sample_cancel).set_property_value("text", gui_forms::BindingValue{std::string("Cancel")});
         (*made.sample_cancel).set_property_value("tab_index", gui_forms::BindingValue{std::uint64_t{2U}});
+        (*made.sample_cancel).bind(owner.dismiss_);
         (*made.sample_modes).set_property_value("items", gui_forms::BindingValue{gui_forms::make_property_collection(std::string("String"), gui_forms::BindingValueKind::text, std::vector<gui_forms::BindingValue>{gui_forms::BindingValue{std::string("AM")}, gui_forms::BindingValue{std::string("FM")}, gui_forms::BindingValue{std::string("Wide FM")}})});
         (*made.sample_modes).set_property_value("tab_index", gui_forms::BindingValue{std::uint64_t{3U}});
         (*made.sample_band).set_property_value("items", gui_forms::BindingValue{gui_forms::make_property_collection(std::string("String"), gui_forms::BindingValueKind::text, std::vector<gui_forms::BindingValue>{gui_forms::BindingValue{std::string("HF")}, gui_forms::BindingValue{std::string("VHF")}, gui_forms::BindingValue{std::string("UHF")}})});
         (*made.sample_band).set_property_value("tab_index", gui_forms::BindingValue{std::uint64_t{4U}});
         (*made.sample_heading).set_property_value("text", gui_forms::BindingValue{std::string("Bands")});
-        {
-            using Handler = typename HandlerDelegate<decltype((*made.sample_general_auto_save).checked_changed())>::Type;
-            made.connections_.push_back((*made.sample_general_auto_save).checked_changed().subscribe(Handler::template bind<Owner, &Owner::auto_save_changed>(owner)));
-        }
-        {
-            using Handler = typename HandlerDelegate<decltype((*made.sample_ok).clicked())>::Type;
-            made.connections_.push_back((*made.sample_ok).clicked().subscribe(Handler::template bind<Owner, &Owner::accept>(owner)));
-        }
-        {
-            using Handler = typename HandlerDelegate<decltype((*made.sample_cancel).clicked())>::Type;
-            made.connections_.push_back((*made.sample_cancel).clicked().subscribe(Handler::template bind<Owner, &Owner::dismiss>(owner)));
-        }
-        {
-            using Handler = typename HandlerDelegate<decltype((*made.sample_save).invoked())>::Type;
-            made.connections_.push_back((*made.sample_save).invoked().subscribe(Handler::template bind<Owner, &Owner::save>(owner)));
-        }
+        gui_forms::bind_form_value<gui_forms::BindingValueKind::number>(*made.sample_level, "value", owner.level_, gui_forms::PropertyBindingDirection::one_way);
+        (*made.sample_level).set_property_value("tab_index", gui_forms::BindingValue{std::uint64_t{5U}});
         *this = std::move(made);
     }
 
@@ -116,18 +108,6 @@ public:
         return root;
     }
 
-private:
-    // The delegate type of an event accessor's result, Event<Arguments...>&.
-    template <typename EventReference>
-    struct HandlerDelegate;
-
-    template <typename... Arguments>
-    struct HandlerDelegate<gui_forms::Event<Arguments...>&> final {
-        using Type = gui_forms::Delegate<Arguments...>;
-    };
-
-    // The handlers' connections, in document order.
-    std::vector<gui_forms::SubscriptionToken> connections_{};
 };
 
 } // namespace form_generated

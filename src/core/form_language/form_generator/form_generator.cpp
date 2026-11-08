@@ -1,5 +1,5 @@
 // A form document's C++ generator (stage FD, phase FD5). Two passes over
-// the model: the first checks that every object, value and handler can be
+// the model: the first checks that every object, value and binding can be
 // spelled, reporting every defect; the second writes the header into a
 // scratch string, which replaces the caller's only when there were none.
 
@@ -33,7 +33,7 @@ using theme_language::SourcePositionCursor;
 using theme_language::ThemeDiagnostic;
 
 // C++20's keywords and alternative tokens, sorted for binary search; a
-// stable ID or handler spelled as one of them cannot be declared.
+// stable ID or binding source spelled as one of them cannot be declared.
 constexpr std::array<std::string_view, 97> cpp_keywords{{
     "alignas",      "alignof",     "and",          "and_eq",       "asm",          "auto",
     "bitand",       "bitor",       "bool",         "break",        "case",         "catch",
@@ -216,6 +216,8 @@ private:
     void write_includes(std::string& out) const;
     void write_initialize(std::string& out) const;
     void write_window(std::string& out) const;
+    // One bound property's binding call, at its place among the properties.
+    void write_binding(std::string& out, const FormProperty& property, const std::string& property_name) const;
     // The member that holds the object at `index`.
     [[nodiscard]] const std::string& member(std::size_t index) const { return members_[index]; }
     [[nodiscard]] const FormSchemaType& type_of(std::size_t index) const {
@@ -298,12 +300,6 @@ void FormGenerator::check_objects() {
             report(model_.objects[0].node, model_.objects[0].stable_id, {}, "the root is not a control");
         }
     }
-    for (const FormHandler& handler : model_.handlers) {
-        if (!form_identifier(handler.handler)) {
-            report(handler.node, model_.objects[handler.object.value].stable_id, handler.interaction,
-                   "the handler " + handler.handler + " is a reserved spelling");
-        }
-    }
 }
 
 void FormGenerator::check_values() {
@@ -314,6 +310,14 @@ void FormGenerator::check_values() {
         if (property.object.value == 0U && form_root_) continue;
         const FormObject& object = model_.objects[property.object.value];
         const PropertyDescriptor& descriptor = form_property_descriptor(schema_, model_, property);
+        if (property.binding) {
+            const std::string& bound_source = (*property.binding).source;
+            if (!form_identifier(bound_source)) {
+                report(property.node, object.stable_id, descriptor.name,
+                       "the binding's source " + bound_source + " is a reserved spelling");
+            }
+            continue;
+        }
         std::optional<std::string> literal = value_literal(property.value);
         if (!literal) {
             report(property.node, object.stable_id, descriptor.name, "the value's kind has no C++ spelling");
@@ -332,8 +336,8 @@ void FormGenerator::write(std::string& out) const {
 
     const std::string& name = options_.class_name;
     out += "// The objects " + options_.source_name + " describes, for an owner of type Owner whose\n";
-    out += "// member functions are the document's handlers. The form holds the handlers'\n";
-    out += "// connections, so Owner must outlive them.\n";
+    out += "// members are the sources the document binds; each bound control keeps its binding,\n";
+    out += "// so those sources must outlive the form's controls.\n";
     out += "template <typename Owner>\n";
     out += "class " + name + " final {\n";
     out += "public:\n";
@@ -350,16 +354,6 @@ void FormGenerator::write(std::string& out) const {
     out += "        const gui_forms::Control::Ptr root = " + member(root_object_) + ";\n";
     out += "        return root;\n";
     out += "    }\n\n";
-    out += "private:\n";
-    out += "    // The delegate type of an event accessor's result, Event<Arguments...>&.\n";
-    out += "    template <typename EventReference>\n";
-    out += "    struct HandlerDelegate;\n\n";
-    out += "    template <typename... Arguments>\n";
-    out += "    struct HandlerDelegate<gui_forms::Event<Arguments...>&> final {\n";
-    out += "        using Type = gui_forms::Delegate<Arguments...>;\n";
-    out += "    };\n\n";
-    out += "    // The handlers' connections, in document order.\n";
-    out += "    std::vector<gui_forms::SubscriptionToken> connections_{};\n";
     out += "};\n";
     if (!options_.namespace_name.empty()) out += "\n} // namespace " + options_.namespace_name + "\n";
 }
@@ -372,8 +366,9 @@ void FormGenerator::write_includes(std::string& out) const {
     }
     headers.insert("gui_forms/binding/value/binding_value.hpp");
     headers.insert("gui_forms/control.hpp");
-    headers.insert("gui_forms/delegate.hpp");
-    headers.insert("gui_forms/event.hpp");
+    for (const FormProperty& property : model_.properties) {
+        if (property.binding) headers.insert("gui_forms/binding/form_binding/form_binding.hpp");
+    }
     if (form_root_) headers.insert("gui_forms/window.hpp");
     if (!model_.spans.empty()) headers.insert("gui_forms/layout/grid_span/grid_span.hpp");
     for (const std::string& header : headers) out += "#include \"" + header + "\"\n";
@@ -424,8 +419,9 @@ void FormGenerator::write_window(std::string& out) const {
 void FormGenerator::write_initialize(std::string& out) const {
     const std::string& name = options_.class_name;
     out += "    // Makes every object in document order, adding each control to its parent as\n";
-    out += "    // it is made, then sets each property and connects each handler in document\n";
-    out += "    // order. Throws what the objects throw, leaving this form as it was.\n";
+    out += "    // it is made, then sets or binds each property in document order, a bound one\n";
+    out += "    // taking its source's value and subscribing in one step. Throws what the\n";
+    out += "    // objects and bindings throw, leaving this form as it was.\n";
     out += "    void initialize_component(Owner& owner) {\n";
     out += "        " + name + " made{};\n";
     for (std::size_t index = 0U; index < model_.objects.size(); ++index) {
@@ -469,21 +465,50 @@ void FormGenerator::write_initialize(std::string& out) const {
                    property_name + "\", gui_forms::BindingValue{" + values_[index] + "});\n";
             continue;
         }
+        if (property.binding) {
+            write_binding(out, property, property_name);
+            continue;
+        }
         out += "        (*made." + field + ").set_property_value(\"" + property_name +
                "\", gui_forms::BindingValue{" + values_[index] + "});\n";
     }
-    for (const FormHandler& handler : model_.handlers) {
-        const std::string& field = member(handler.object.value);
-        out += "        {\n";
-        out += "            using Handler = typename HandlerDelegate<decltype((*made." + field + ")." +
-               handler.interaction + "())>::Type;\n";
-        out += "            made.connections_.push_back((*made." + field + ")." + handler.interaction +
-               "().subscribe(Handler::template bind<Owner, &Owner::" + handler.handler + ">(owner)));\n";
-        out += "        }\n";
+    bool binds = false;
+    for (const FormProperty& property : model_.properties) {
+        if (property.binding) binds = true;
     }
-    if (model_.handlers.empty()) out += "        static_cast<void>(owner);\n";
+    if (!binds) out += "        static_cast<void>(owner);\n";
     out += "        *this = std::move(made);\n";
     out += "    }\n\n";
+}
+
+void FormGenerator::write_binding(std::string& out, const FormProperty& property,
+                                  const std::string& property_name) const {
+    const FormBinding& binding = *property.binding;
+    const std::string& field = member(property.object.value);
+    const FormSchemaType& type = type_of(property.object.value);
+    const PropertyDescriptor& descriptor = form_property_descriptor(schema_, model_, property);
+    const std::string direction = binding.direction == PropertyBindingDirection::two_way
+        ? "gui_forms::PropertyBindingDirection::two_way"
+        : "gui_forms::PropertyBindingDirection::one_way";
+    if (type.bind_command != nullptr && property_name == form_command_slot_name) {
+        out += "        (*made." + field + ").bind(owner." + binding.source + ");\n";
+        return;
+    }
+    if (!binding.field.empty()) {
+        const std::string trigger = binding.trigger == FormUpdateTrigger::on_change
+            ? "gui_forms::FormUpdateTrigger::on_change"
+            : "gui_forms::FormUpdateTrigger::on_validate";
+        out += "        gui_forms::bind_form_field(*made." + field + ", \"" + property_name + "\", owner." +
+               binding.source + ", std::string(" + string_literal(binding.field) + "), " + direction + ", " +
+               trigger + ");\n";
+        return;
+    }
+    // The model admits a Value source for these three kinds only.
+    std::string kind = "gui_forms::BindingValueKind::number";
+    if (descriptor.kind == BindingValueKind::boolean) kind = "gui_forms::BindingValueKind::boolean";
+    if (descriptor.kind == BindingValueKind::signed_integer) kind = "gui_forms::BindingValueKind::signed_integer";
+    out += "        gui_forms::bind_form_value<" + kind + ">(*made." + field + ", \"" + property_name +
+           "\", owner." + binding.source + ", " + direction + ");\n";
 }
 
 void FormGenerator::report(NodeIndex node, const std::string& rule, const std::string& property,

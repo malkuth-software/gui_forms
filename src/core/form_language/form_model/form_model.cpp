@@ -135,8 +135,12 @@ using theme_language::TokenRange;
 // font's four, a flags enumeration's choices, a text collection's items.
 constexpr std::size_t maximum_value_tokens = 256U;
 
-// The prefix that makes a declaration a handler reference.
+// The prefix of a handler reference, which a form no longer admits (E816).
 constexpr std::string_view handler_prefix = "on-";
+
+// The function a binding is written with, its '(' included (a function
+// token's text).
+constexpr std::string_view binding_function = "bind(";
 
 [[nodiscard]] bool is_trivia(TokenKind kind) noexcept {
     return kind == TokenKind::whitespace || kind == TokenKind::comment || kind == TokenKind::byte_order_mark;
@@ -218,7 +222,15 @@ struct ValueReading final {
 // The members one object's block has written so far.
 struct WrittenNames final {
     std::unordered_set<std::string> properties{};
-    std::unordered_set<std::string> handlers{};
+};
+
+// What reading one `bind(...)` found: the binding, or the token it stopped
+// at and the diagnostic that names the defect.
+struct BindingReading final {
+    std::optional<FormBinding> binding{};
+    std::uint32_t offending{};
+    DiagnosticCode code{DiagnosticCode::form_binding_invalid};
+    std::string detail{};
 };
 
 class ModelBuilder final {
@@ -247,10 +259,14 @@ private:
     [[nodiscard]] std::optional<std::uint32_t> span_number(const ValueTokens& value, std::size_t position,
                                                            std::uint32_t minimum) const;
     // `written_names` holds the registered names already written in the
-    // owner's block, properties and handlers apart.
+    // owner's block.
     void read_declaration(NodeIndex node, ObjectIndex owner, WrittenNames& written_names, FormModel& scratch);
-    void read_handler(NodeIndex node, ObjectIndex owner, std::string_view written, WrittenNames& written_names,
-                      FormModel& scratch);
+    // Whether `value` is written as a binding: it begins with `bind(`.
+    [[nodiscard]] bool written_as_binding(const ValueTokens& value) const noexcept;
+    // Reads the binding `value` writes for a property of `descriptor`;
+    // `command_slot` says whether the property is a type's Command slot.
+    [[nodiscard]] BindingReading read_binding(const ValueTokens& value, const PropertyDescriptor& descriptor,
+                                              bool command_slot) const;
     [[nodiscard]] ValueReading read_value(const SyntaxNode& node, const PropertyDescriptor& descriptor) const;
     // The value `value` writes for the descriptor's kind, before the
     // descriptor's own rules; may move `reading`'s offending token.
@@ -629,7 +645,8 @@ void ModelBuilder::read_declaration(NodeIndex node, ObjectIndex owner, WrittenNa
     const FormObject& object = scratch.objects[owner.value];
     const std::string stable_id = object.stable_id;
     if (written.starts_with(handler_prefix)) {
-        read_handler(node, owner, written, written_names, scratch);
+        report(DiagnosticCode::form_handler_removed, name_token, stable_id, written,
+               "a form names no program code: attach the behaviour from program logic");
         return;
     }
     // An object of an unknown type has been reported once; its members
@@ -664,6 +681,8 @@ void ModelBuilder::read_declaration(NodeIndex node, ObjectIndex owner, WrittenNa
     const PropertyDescriptor& descriptor = provider == FormPropertyProvider::object_type
         ? type.properties[*property]
         : (*parent_type).child_properties[*property];
+    const ValueTokens value = value_tokens(declaration.content);
+    const bool bound = written_as_binding(value);
     if (!descriptor.writable) {
         report(DiagnosticCode::form_property_read_only, name_token, stable_id, written, {});
         return;
@@ -691,6 +710,34 @@ void ModelBuilder::read_declaration(NodeIndex node, ObjectIndex owner, WrittenNa
         report(DiagnosticCode::form_value_invalid, name_token, stable_id, written, "!important");
         return;
     }
+    if (bound) {
+        const bool window_property = !object.parent && type.name == form_root_type_name;
+        const bool command_slot = provider == FormPropertyProvider::object_type && type.bind_command != nullptr &&
+                                  descriptor.name == form_command_slot_name;
+        BindingReading binding{};
+        if (window_property || provider == FormPropertyProvider::parent_type) {
+            binding.offending = value.indices[0];
+            binding.detail = window_property ? "the form's window properties are not bound"
+                                             : "a property the parent provides is not bound";
+        } else if (!descriptor.bindable) {
+            binding.offending = value.indices[0];
+            binding.detail = "the property is not bindable";
+        } else {
+            binding = read_binding(value, descriptor, command_slot);
+        }
+        if (!binding.binding) {
+            report(binding.code, binding.offending, stable_id, written, std::move(binding.detail));
+            return;
+        }
+        FormProperty record{};
+        record.object = owner;
+        record.provider = provider;
+        record.schema_property = *property;
+        record.node = node;
+        record.binding = std::move(binding.binding);
+        scratch.properties.push_back(std::move(record));
+        return;
+    }
     const ValueReading reading = read_value(declaration, descriptor);
     if (reading.not_expressible) {
         report(DiagnosticCode::not_yet_built, declaration.content.first.value, stable_id, written,
@@ -714,47 +761,143 @@ void ModelBuilder::read_declaration(NodeIndex node, ObjectIndex owner, WrittenNa
     scratch.properties.push_back(std::move(record));
 }
 
-void ModelBuilder::read_handler(NodeIndex node, ObjectIndex owner, std::string_view written,
-                                WrittenNames& written_names, FormModel& scratch) {
-    const SyntaxNode& declaration = tree_.nodes[node.value];
-    const std::uint32_t name_token = declaration.tokens.first.value;
-    const FormObject& object = scratch.objects[owner.value];
-    const std::string stable_id = object.stable_id;
-    if (object.schema_type >= schema_.types.size()) return;
-    const FormSchemaType& type = schema_.types[object.schema_type];
-    const std::optional<std::string> interaction = registered_from_kebab(written.substr(handler_prefix.size()));
-    bool known = false;
-    if (interaction) {
-        for (const std::string& candidate : type.interactions) {
-            if (candidate == *interaction) {
-                known = true;
-                break;
-            }
+bool ModelBuilder::written_as_binding(const ValueTokens& value) const noexcept {
+    if (value.count == 0U) return false;
+    const std::uint32_t first = value.indices[0];
+    const bool binding = tokens_[first].kind == TokenKind::function && token_text(first) == binding_function;
+    return binding;
+}
+
+BindingReading ModelBuilder::read_binding(const ValueTokens& value, const PropertyDescriptor& descriptor,
+                                          bool command_slot) const {
+    BindingReading reading{};
+    // The tokens between `bind(` and its `)`: [1, close).
+    std::size_t close = value.count;
+    for (std::size_t position = 1U; position < value.count; ++position) {
+        if (tokens_[value.indices[position]].kind == TokenKind::right_paren) {
+            close = position;
+            break;
         }
     }
-    if (!known) {
-        report(DiagnosticCode::form_property_unknown, name_token, stable_id, written, type.name);
-        return;
+    if (value.overflowed || close == value.count) {
+        reading.offending = value.indices[value.count - 1U];
+        reading.detail = "the binding has no closing parenthesis";
+        return reading;
     }
-    if (!written_names.handlers.insert(*interaction).second) {
-        report(DiagnosticCode::form_member_repeated, name_token, stable_id, written, {});
-        return;
+    if (close + 1U != value.count) {
+        reading.offending = value.indices[close + 1U];
+        reading.detail = "a token after the binding";
+        return reading;
     }
-    const ValueTokens value = value_tokens(declaration.content);
-    const bool one_ident = value.count == 1U && !value.overflowed && tokens_[value.indices[0]].kind == TokenKind::ident;
-    const std::string_view handler = one_ident ? token_text(value.indices[0]) : std::string_view{};
-    const bool important = (declaration.flags & theme_language::syntax_flag_important) != 0U;
-    if (!one_ident || !cpp_identifier(handler) || important) {
-        const std::uint32_t offending = value.count == 0U ? name_token : value.indices[0];
-        report(DiagnosticCode::form_handler_invalid, offending, stable_id, written, {});
-        return;
+    FormBinding binding{};
+    binding.direction = descriptor.binding_direction;
+    std::size_t position = 1U;
+    if (position == close || tokens_[value.indices[position]].kind != TokenKind::ident ||
+        !cpp_identifier(token_text(value.indices[position]))) {
+        reading.offending = value.indices[position == close ? 0U : position];
+        reading.detail = "the binding's source is one C++ identifier";
+        return reading;
     }
-    FormHandler record{};
-    record.object = owner;
-    record.interaction = *interaction;
-    record.handler = std::string(handler);
-    record.node = node;
-    scratch.handlers.push_back(std::move(record));
+    binding.source = std::string(token_text(value.indices[position]));
+    ++position;
+    // The field, a string after the source's comma.
+    const bool comma_next = position < close && tokens_[value.indices[position]].kind == TokenKind::comma;
+    if (comma_next && position + 1U < close && tokens_[value.indices[position + 1U]].kind == TokenKind::string) {
+        FormStringReading field = read_form_string(token_text(value.indices[position + 1U]));
+        if (!field.valid || field.text.empty()) {
+            reading.offending = value.indices[position + 1U];
+            reading.code = field.valid ? DiagnosticCode::form_binding_invalid : DiagnosticCode::form_escape_invalid;
+            reading.detail = field.valid ? "the binding's field is empty" : field.escape;
+            return reading;
+        }
+        binding.field = std::move(field.text);
+        position += 2U;
+    }
+    // The options, each after a comma.
+    bool narrowed = false;
+    bool trigger_written = false;
+    std::uint32_t trigger_token{};
+    while (position < close) {
+        const std::uint32_t separator = value.indices[position];
+        if (tokens_[separator].kind != TokenKind::comma || position + 1U == close) {
+            reading.offending = separator;
+            reading.detail = "the binding's arguments are separated by commas";
+            return reading;
+        }
+        ++position;
+        const std::uint32_t option = value.indices[position];
+        const std::string_view word = tokens_[option].kind == TokenKind::ident ? token_text(option) : std::string_view{};
+        reading.offending = option;
+        reading.code = DiagnosticCode::form_binding_option_invalid;
+        if (word == "one_way") {
+            if (narrowed) {
+                reading.detail = "one_way is written twice";
+                return reading;
+            }
+            narrowed = true;
+            binding.direction = PropertyBindingDirection::one_way;
+            ++position;
+        } else if (word == "update") {
+            const std::uint32_t argument = position + 1U < close ? value.indices[position + 1U] : option;
+            const std::string_view when = position + 1U < close && tokens_[argument].kind == TokenKind::ident
+                ? token_text(argument)
+                : std::string_view{};
+            if (trigger_written) {
+                reading.detail = "update is written twice";
+                return reading;
+            }
+            if (when == "on-change") {
+                binding.trigger = FormUpdateTrigger::on_change;
+            } else if (when == "on-validate") {
+                binding.trigger = FormUpdateTrigger::on_validate;
+            } else {
+                reading.offending = argument;
+                reading.detail = "update is on-change or on-validate";
+                return reading;
+            }
+            trigger_written = true;
+            trigger_token = option;
+            position += 2U;
+        } else if (word == "convert") {
+            reading.code = DiagnosticCode::not_yet_built;
+            reading.detail = "a named converter";
+            return reading;
+        } else {
+            reading.detail = "binding options are one_way, update and convert";
+            return reading;
+        }
+    }
+    // The options against the source and the property.
+    reading.code = DiagnosticCode::form_binding_option_invalid;
+    if (trigger_written) {
+        reading.offending = trigger_token;
+        if (binding.field.empty() || descriptor.kind != BindingValueKind::text) {
+            reading.detail = "update applies to a text property bound to a field";
+            return reading;
+        }
+        if (binding.direction != PropertyBindingDirection::two_way) {
+            reading.detail = "update applies to a two-way binding";
+            return reading;
+        }
+    }
+    reading.code = DiagnosticCode::form_binding_invalid;
+    reading.offending = value.indices[1];
+    if (command_slot) {
+        if (!binding.field.empty() || narrowed) {
+            reading.detail = "a Command is bound by its source alone";
+            return reading;
+        }
+    } else if (binding.field.empty()) {
+        const bool scalar = descriptor.kind == BindingValueKind::boolean ||
+                            descriptor.kind == BindingValueKind::signed_integer ||
+                            descriptor.kind == BindingValueKind::number;
+        if (!scalar) {
+            reading.detail = "no Value carries this property's kind: bind a BindingSource field";
+            return reading;
+        }
+    }
+    reading.binding = std::move(binding);
+    return reading;
 }
 
 ValueTokens ModelBuilder::value_tokens(TokenRange content) const noexcept {
@@ -1098,6 +1241,17 @@ FormSchemaType form_root_type() {
     type.properties.emplace_back("cancel_button", BindingValueKind::text, "Behavior",
                                  "The stable ID of the button Escape activates.", std::nullopt, Dirty::none);
     return type;
+}
+
+void add_form_command_slot(FormSchemaType& type) {
+    for (const PropertyDescriptor& existing : type.properties) {
+        if (existing.name == form_command_slot_name) return;
+    }
+    PropertyDescriptor slot{std::string(form_command_slot_name), BindingValueKind::object, "Behavior",
+                            "The Command the object runs and follows: bound only.", std::nullopt, Dirty::none};
+    slot.readable = false;
+    slot.serialization_visibility = PropertySerializationVisibility::hidden;
+    type.properties.push_back(std::move(slot));
 }
 
 FormSchemaType describe_form_type(std::string name, const Component& prototype) {

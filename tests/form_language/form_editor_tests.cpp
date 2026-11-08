@@ -155,6 +155,29 @@ void test_properties() {
     require(diagnostics.records().size() == 1U &&
                 diagnostics.records()[0].code == DiagnosticCode::form_escape_invalid,
             "property: the refused escape's diagnostic");
+
+    // A binding is a value in its property's slot (owner rulings FD-6 R1 and
+    // R6); an `on-` handler is refused, leaving the document as it was.
+    FormDocument bound = open(schema, base);
+    require(set_form_property(bound, "app.ok", "command", "bind(accept_)", schema, diagnostics) ==
+                FormEditOutcome::edited,
+            "binding: written in the Command slot");
+    check_text(bound, replaced(base, "{ text: \"OK\"; }", "{ text: \"OK\"; command: bind(accept_); }"),
+               "binding: kept on the block's line");
+    bool binding_read = false;
+    for (const gui_forms::form_language::FormProperty& property : bound.model.properties) {
+        if (property.binding && (*property.binding).source == "accept_") binding_read = true;
+    }
+    require(binding_read, "binding: the model reads the binding");
+    diagnostics.clear();
+    require(set_form_property(bound, "app.ok", "on-clicked", "accept", schema, diagnostics) ==
+                FormEditOutcome::refused,
+            "binding: an on- handler refused");
+    require(diagnostics.records().size() == 1U &&
+                diagnostics.records()[0].code == DiagnosticCode::form_handler_removed,
+            "binding: the handler's diagnostic, E816");
+    check_text(bound, replaced(base, "{ text: \"OK\"; }", "{ text: \"OK\"; command: bind(accept_); }"),
+               "binding: the refused document is unchanged");
 }
 
 void test_objects() {

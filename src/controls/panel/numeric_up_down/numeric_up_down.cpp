@@ -391,6 +391,7 @@ PropertyDescriptor numeric_up_down_value_descriptor() {
     descriptor.description = "Current numeric value.";
     descriptor.default_value = BindingValue{0.0};
     descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.binding_direction = PropertyBindingDirection::two_way;
     return descriptor;
 }
 
@@ -428,8 +429,7 @@ void NumericUpDown::prepare_write(const decltype(increment)&, double& incoming) 
     }
 }
 
-void NumericUpDown::written(const decltype(increment)&) {
-}
+void NumericUpDown::written(const decltype(increment)&) {}
 
 void NumericUpDown::prepare_write(const decltype(button_width)&, double& incoming) {
     require_mutable();

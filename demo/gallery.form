@@ -4,8 +4,9 @@
    gallery_form.hpp at build time. gallery.root is a declared boundary only:
    the registry-driven shell (src/controls/gallery_pages.cpp) takes each of
    its children to its place (src/controls/gallery_controls.cpp names the
-   mounts). Every handler is a member function of GalleryContext
-   (gallery_context.hpp), one per object (owner decision FD6-2).
+   mounts). The form names no program code (owner ruling FD-6 R6): each
+   handler is a member function of GalleryContext (gallery_context.hpp), one
+   per object (owner decision FD6-2), connected in build_gallery_tree.
 
    Application types (gallery_parts.hpp, gallery_instrument.hpp):
    gallery-lifecycle-card (user-control), gallery-collection (list-box) and
@@ -16,12 +17,10 @@ panel gallery.root {
     button gallery.command.reset {
       text: "Reset";
       bounds: 6 5 72 24;
-      on-clicked: reset_clicked;
     }
     button gallery.command.diagnostics {
       text: "Diagnostics";
       bounds: 84 5 96 24;
-      on-clicked: diagnostics_clicked;
     }
     picture-box gallery.command.status-badge { bounds: 188 9 16 16; }
     label gallery.command.status {
@@ -45,13 +44,11 @@ panel gallery.root {
         text: "Edit this text";
         bounds: 10 50 250 28;
         tab-index: 0;
-        on-text-changed: text_changed;
       }
       button gallery.default-button {
         text: "Apply";
         bounds: 266 50 92 28;
         tab-index: 1;
-        on-clicked: apply_clicked;
       }
       button gallery.disabled-button {
         text: "Unavailable";
@@ -64,32 +61,27 @@ panel gallery.root {
         checked: true;
         bounds: 10 84 220 24;
         tab-index: 3;
-        on-clicked: precise_updates_clicked;
       }
       radio-button gallery.radio.classic {
         text: "Classic relief";
         checked: true;
         bounds: 236 84 180 24;
         tab-index: 4;
-        on-clicked: classic_relief_clicked;
       }
       radio-button gallery.radio.quiet {
         text: "Quiet relief";
         bounds: 422 84 180 24;
         tab-index: 5;
-        on-clicked: quiet_relief_clicked;
       }
       check-box gallery.checkbox.indeterminate {
         text: "Three-state option";
         bounds: 10 112 220 24;
         tab-index: 6;
-        on-clicked: three_state_clicked;
       }
       link-label gallery.link {
         text: "Show control contract";
         bounds: 240 112 170 24;
         tab-index: 7;
-        on-clicked: contract_link_clicked;
       }
       gallery-lifecycle-card gallery.lifecycle-card {
         bounds: 416 112 202 24;
@@ -107,7 +99,6 @@ panel gallery.root {
       maximum: 100;
       value: 42;
       bounds: 10 22 640 28;
-      on-value-changed: slider_changed;
     }
     progress-bar gallery.progress { minimum: 0; maximum: 100; value: 42; bounds: 10 56 640 20; }
     label gallery.value-label { text: "42%"; classes: "body"; bounds: 10 82 640 22; }
@@ -119,7 +110,6 @@ panel gallery.root {
     gallery-collection gallery.collection {
       items: "Alpha channel" "Beta channel" "Gamma channel" "Delta channel";
       bounds: 10 22 640 112;
-      on-selection-changed: collection_selection_changed;
     }
   }
 
