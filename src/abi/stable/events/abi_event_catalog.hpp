@@ -846,6 +846,15 @@ struct EnumerationChoices<TreeListSortOrder> {
 };
 
 template <>
+struct EnumerationChoices<WheelDeltaUnit> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 2> choices{{
+        {"lines", static_cast<std::int64_t>(WheelDeltaUnit::lines)},
+        {"pixels", static_cast<std::int64_t>(WheelDeltaUnit::pixels)},
+    }};
+};
+
+template <>
 struct EnumerationChoices<WindowBackdrop> {
     static constexpr bool flags = false;
     static constexpr std::array<EnumerationChoice, 4> choices{{
@@ -2196,6 +2205,7 @@ inline void append_field(EventFields& fields, std::string_view name, const Point
     append_field(fields, "phase", value.phase);
     append_field(fields, "handled", value.handled);
     append_field(fields, "click_count", value.click_count);
+    append_field(fields, "wheel_unit", value.wheel_unit);
     fields.leave(prefix);
 }
 

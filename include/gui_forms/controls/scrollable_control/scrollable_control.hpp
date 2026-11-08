@@ -181,7 +181,7 @@ private:
                                  bool position_changed);
     static void validate_size(Size size, const char* message);
     static void validate_axis_value(double value, const char* message);
-    [[nodiscard]] static double normalize_wheel_delta(double delta) noexcept;
+    [[nodiscard]] static double normalize_wheel_delta(double delta, WheelDeltaUnit unit) noexcept;
 
     ScrollProperties horizontal_scroll_;
     ScrollProperties vertical_scroll_;

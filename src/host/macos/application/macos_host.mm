@@ -94,6 +94,7 @@ using GFPoint = gui_forms::Point;
 using gui_forms::PointerAction;
 using gui_forms::PointerButton;
 using gui_forms::PointerEvent;
+using gui_forms::WheelDeltaUnit;
 using gui_forms::SemanticAction;
 using gui_forms::SemanticNode;
 using gui_forms::SemanticOrientation;
@@ -3370,7 +3371,12 @@ void post_perform_close(NSWindow* window) {
     PointerEvent input;
     input.action = PointerAction::wheel;
     input.position = [self modelPointForEvent:event];
+    // A trackpad or smooth-scrolling mouse reports precise deltas in points
+    // (logical pixels), its momentum phase included, scrolled exactly; a
+    // detented wheel reports lines, possibly fractional where AppKit
+    // accelerates them. Every event is dispatched: none is coalesced.
     input.wheel_delta = GFPoint{event.scrollingDeltaX, event.scrollingDeltaY};
+    input.wheel_unit = event.hasPreciseScrollingDeltas ? WheelDeltaUnit::pixels : WheelDeltaUnit::lines;
     input.modifiers = modifiers_for(event.modifierFlags);
     input.pointer_id = 1;
     static_cast<void>([self dispatchHostPayload:std::move(input)

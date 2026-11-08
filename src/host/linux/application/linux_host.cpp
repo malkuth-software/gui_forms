@@ -1136,6 +1136,8 @@ void NativeWindow::event(XEvent &event) {
                                button == 4   ? 40.0
                                : button == 5 ? -40.0
                                              : 0.0};
+        // Forty logical pixels a notch.
+        pointer.wheel_unit = WheelDeltaUnit::pixels;
       } else {
         pointer.action =
             event.type == ButtonPress ? PointerAction::down : PointerAction::up;

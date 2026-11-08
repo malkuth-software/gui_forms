@@ -1,5 +1,6 @@
 #include "gui_forms/gui_forms.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
@@ -154,6 +155,24 @@ void test_scroll_gestures_events_semantics_and_state() {
     require(window.dispatch_pointer(wheel) &&
                 (*panel).scroll_position().y > 25.0 && notifications == 0,
             "wheel input must update retained position while preserving WinForms Scroll suppression");
+
+    // A precise device's pixels scroll exactly, fractions included; a
+    // detented wheel's line scrolls one 48-pixel step.
+    const double before_precise = (*panel).scroll_position().y;
+    PointerEvent precise = wheel;
+    precise.wheel_delta = {0.0, -2.5};
+    precise.wheel_unit = WheelDeltaUnit::pixels;
+    require(window.dispatch_pointer(precise) &&
+                std::abs((*panel).scroll_position().y - (before_precise + 2.5)) < 1.0e-9,
+            "a precise wheel delta must scroll by exactly its logical pixels");
+    window.perform_layout();
+    const double before_line = (*panel).scroll_position().y;
+    PointerEvent line = wheel;
+    line.wheel_delta = {0.0, 1.0};
+    require(window.dispatch_pointer(line) &&
+                std::abs((*panel).scroll_position().y - std::max(0.0, before_line - 48.0)) < 1.0e-9,
+            "a detented wheel line must scroll one 48-pixel step");
+    window.perform_layout();
 
     const std::vector<SemanticNode> nodes = (*panel).semantic_virtual_children();
     require(nodes.size() == 1U &&

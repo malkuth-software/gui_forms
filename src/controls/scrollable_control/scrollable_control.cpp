@@ -647,8 +647,8 @@ bool ScrollableControl::handle_scroll_pointer(PointerEvent& event) {
 
 bool ScrollableControl::handle_wheel(PointerEvent& event) {
     if (event.action != PointerAction::wheel || event.handled) return false;
-    const double vertical_delta = -normalize_wheel_delta(event.wheel_delta.y);
-    const double horizontal_delta = -normalize_wheel_delta(event.wheel_delta.x);
+    const double vertical_delta = -normalize_wheel_delta(event.wheel_delta.y, event.wheel_unit);
+    const double horizontal_delta = -normalize_wheel_delta(event.wheel_delta.x, event.wheel_unit);
     bool changed{};
     if (vertical_scroll_.visible_ && vertical_scroll_.enabled_ &&
         vertical_delta != 0.0) {
@@ -676,9 +676,16 @@ bool ScrollableControl::handle_wheel(PointerEvent& event) {
     return changed;
 }
 
-double ScrollableControl::normalize_wheel_delta(double delta) noexcept {
+// The wheel delta in logical pixels. A precise device's pixels are taken
+// exactly, fractions included: multiplying a trackpad's few pixels by a
+// line step made scrolling coarse and skip. Lines are 48 pixels each; a
+// line count above 8 is a host reporting pixels without saying so, taken
+// as pixels.
+double ScrollableControl::normalize_wheel_delta(double delta, WheelDeltaUnit unit) noexcept {
     if (delta == 0.0) return 0.0;
-    return std::abs(delta) <= 8.0 ? delta * 48.0 : delta;
+    if (unit == WheelDeltaUnit::pixels) return delta;
+    const double pixels = std::abs(delta) <= 8.0 ? delta * 48.0 : delta;
+    return pixels;
 }
 
 void ScrollableControl::on_pointer(PointerEvent& event) {

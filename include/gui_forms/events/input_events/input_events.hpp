@@ -31,6 +31,16 @@ enum class PointerButton : std::uint8_t {
     middle,
 };
 
+// What a wheel event's delta counts. A detented wheel reports lines (one
+// per notch, or a fraction of one where the host accelerates), which a
+// scrolling control turns into its own step; a precise device (a trackpad,
+// a smooth-scrolling mouse) reports logical pixels, which it scrolls
+// exactly, fractions included.
+enum class WheelDeltaUnit : std::uint8_t {
+    lines,
+    pixels,
+};
+
 enum class KeyAction : std::uint8_t {
     down,
     up,
@@ -71,6 +81,8 @@ struct PointerEvent {
     // Host-normalized click cardinality. Move/wheel events report zero or one;
     // a second native press in the platform double-click sequence reports two.
     std::uint32_t click_count{1U};
+    // The unit of wheel_delta (a wheel event's only).
+    WheelDeltaUnit wheel_unit{WheelDeltaUnit::lines};
 };
 
 struct KeyEvent {
