@@ -7,7 +7,7 @@ gui_forms::TokenBox
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: TokenBox final : public Control
+.. cpp:class:: TokenBox final : public Control, public TokenBoxCapabilities<TokenBox>
 
    ``#include <gui_forms/controls/panel/token_box/token_box.hpp>``
 
@@ -36,15 +36,7 @@ gui_forms::TokenBox
 
    :Properties:
 
-      **tokens** : ``std::span<const Token>``, read-only
-         The tokens, first to last, each a :cpp:class:`Token <gui_forms::Token>` with its :cpp:class:`TokenId <gui_forms::TokenId>` and text.
-
-      **selected_token** : ``std::optional<TokenId>``, default none, read-only
-         The token the keyboard or the pointer selected, or none. :cpp:func:`select_token <gui_forms::TokenBox::select_token>`
-         selects one, or clears the selection; an identity not in the box throws
-         ``std::invalid_argument``.
-
-      **delimiters** : ``std::string_view``, default ``",;"``
+      **delimiters** : ``std::string``, default ``",;"``
          The characters that end an entry when typed or pasted. Only ASCII
          punctuation and the space are admitted; anything else throws
          ``std::invalid_argument``. With none, only Enter ends an entry.
@@ -52,10 +44,6 @@ gui_forms::TokenBox
       **font** : ``FontSpec``, default ``FontSpec{FontRole::content, 12.0, 400, false}``
          The font of the tokens and the editor. An invalid specification throws
          ``std::invalid_argument``.
-
-      **editor** : ``std::shared_ptr<TextBox>``, read-only
-         The :cpp:class:`TextBox <gui_forms::TextBox>` the user types into. It keeps the keyboard focus for the
-         box.
 
       **auto_complete_mode** : ``AutoCompleteMode``, default ``AutoCompleteMode::none``
          The editor's auto-complete mode (see :cpp:class:`TextBox <gui_forms::TextBox>`).
@@ -66,6 +54,18 @@ gui_forms::TokenBox
 
       **auto_complete_custom_source** : ``std::shared_ptr<AutoCompleteStringCollection>``
          The editor's custom source collection, shared as :cpp:class:`TextBox <gui_forms::TextBox>`'s is.
+
+      **tokens** : ``std::span<const Token>``, read-only
+         The tokens, first to last, each a :cpp:class:`Token <gui_forms::Token>` with its :cpp:class:`TokenId <gui_forms::TokenId>` and text.
+
+      **selected_token** : ``std::optional<TokenId>``, default none, read-only
+         The token the keyboard or the pointer selected, or none. :cpp:func:`select_token <gui_forms::TokenBox::select_token>`
+         selects one, or clears the selection; an identity not in the box throws
+         ``std::invalid_argument``.
+
+      **editor** : ``std::shared_ptr<TextBox>``, read-only
+         The :cpp:class:`TextBox <gui_forms::TextBox>` the user types into. It keeps the keyboard focus for the
+         box.
 
       **parts** : ``Parts``, read-only
          The published parts: ``region``, ``well``, ``field`` (where the editor
@@ -161,9 +161,9 @@ gui_forms::TokenBox
 
       std::shared_ptr<gf::TokenBox> recipients =
           gf::make_control<gf::TokenBox>(gf::StableId("mail.to"));
-      (*(*recipients).auto_complete_custom_source()).add_range({"Ada Lovelace", "Alan Turing"});
-      (*recipients).set_auto_complete_source(gf::AutoCompleteSource::custom_source);
-      (*recipients).set_auto_complete_mode(gf::AutoCompleteMode::suggest);
+      (*(*recipients).auto_complete_custom_source.read()).add_range({"Ada Lovelace", "Alan Turing"});
+      (*recipients).auto_complete_source = gf::AutoCompleteSource::custom_source;
+      (*recipients).auto_complete_mode = gf::AutoCompleteMode::suggest;
       const gf::TokenId grace = (*recipients).add_token("Grace Hopper");
       gf::Window window(recipients, gf::Size{400.0, 60.0});
       window.request_focus((*recipients).editor());
@@ -179,6 +179,30 @@ gui_forms::TokenBox
 
    .. rubric:: Properties
 
+   .. cpp:member:: std::string delimiters
+
+      The characters that end an entry when typed or pasted. Only ASCII
+      punctuation and the space are admitted; anything else throws
+      ``std::invalid_argument``. With none, only Enter ends an entry.
+
+   .. cpp:member:: FontSpec font
+
+      The font of the tokens and the editor. An invalid specification throws
+      ``std::invalid_argument``.
+
+   .. cpp:member:: AutoCompleteMode auto_complete_mode
+
+      The editor's auto-complete mode (see :cpp:class:`TextBox <gui_forms::TextBox>`).
+
+   .. cpp:member:: AutoCompleteSource auto_complete_source
+
+      The editor's auto-complete source. ``list_items`` throws
+      ``std::invalid_argument``: the box has no list.
+
+   .. cpp:member:: std::shared_ptr<AutoCompleteStringCollection> auto_complete_custom_source
+
+      The editor's custom source collection, shared as :cpp:class:`TextBox <gui_forms::TextBox>`'s is.
+
    .. cpp:function:: std::span<const Token> tokens() const noexcept
 
       The tokens, first to last, each a :cpp:class:`Token <gui_forms::Token>` with its :cpp:class:`TokenId <gui_forms::TokenId>` and text.
@@ -189,54 +213,10 @@ gui_forms::TokenBox
       selects one, or clears the selection; an identity not in the box throws
       ``std::invalid_argument``.
 
-   .. cpp:function:: std::string_view delimiters() const noexcept
-
-      The characters that end an entry when typed or pasted. Only ASCII
-      punctuation and the space are admitted; anything else throws
-      ``std::invalid_argument``. With none, only Enter ends an entry.
-
-   .. cpp:function:: void set_delimiters(std::string delimiters)
-
-      Sets :cpp:func:`delimiters <gui_forms::TokenBox::delimiters>`; see the property's description above.
-
-   .. cpp:function:: FontSpec font() const noexcept
-
-      The font of the tokens and the editor. An invalid specification throws
-      ``std::invalid_argument``.
-
-   .. cpp:function:: void set_font(FontSpec font)
-
-      Sets :cpp:func:`font <gui_forms::TokenBox::font>`; see the property's description above.
-
    .. cpp:function:: std::shared_ptr<TextBox> editor() const noexcept
 
       The :cpp:class:`TextBox <gui_forms::TextBox>` the user types into. It keeps the keyboard focus for the
       box.
-
-   .. cpp:function:: AutoCompleteMode auto_complete_mode() const noexcept
-
-      The editor's auto-complete mode (see :cpp:class:`TextBox <gui_forms::TextBox>`).
-
-   .. cpp:function:: void set_auto_complete_mode(AutoCompleteMode mode)
-
-      Sets :cpp:func:`auto_complete_mode <gui_forms::TokenBox::auto_complete_mode>`; see the property's description above.
-
-   .. cpp:function:: AutoCompleteSource auto_complete_source() const noexcept
-
-      The editor's auto-complete source. ``list_items`` throws
-      ``std::invalid_argument``: the box has no list.
-
-   .. cpp:function:: void set_auto_complete_source(AutoCompleteSource source)
-
-      Sets :cpp:func:`auto_complete_source <gui_forms::TokenBox::auto_complete_source>`; see the property's description above.
-
-   .. cpp:function:: const std::shared_ptr<AutoCompleteStringCollection>& auto_complete_custom_source() const noexcept
-
-      The editor's custom source collection, shared as :cpp:class:`TextBox <gui_forms::TextBox>`'s is.
-
-   .. cpp:function:: void set_auto_complete_custom_source(std::shared_ptr<AutoCompleteStringCollection> source)
-
-      Sets :cpp:func:`auto_complete_custom_source <gui_forms::TokenBox::auto_complete_custom_source>`; see the property's description above.
 
    .. cpp:function:: Parts parts() const
 

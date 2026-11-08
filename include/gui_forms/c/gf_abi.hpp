@@ -1503,6 +1503,79 @@ private:
     gf_bindings_table table_;
 };
 
+// gf_subsurfaces_table, negotiated as GF_TABLE_SUBSURFACES.
+class SubsurfacesTable {
+public:
+    SubsurfacesTable() noexcept : table_{} {}
+
+    // Negotiates the table at the header's version into output; a refusal
+    // leaves output serving nothing.
+    [[nodiscard]] static gf_status negotiate(SubsurfacesTable& output) noexcept {
+        gf_subsurfaces_table negotiated_table{};
+        const gf_status negotiated = gf_abi_get_table(GF_TABLE_SUBSURFACES, GF_ABI_MAJOR, GF_ABI_MINOR,
+                                                      &negotiated_table, sizeof(negotiated_table));
+        if (negotiated != GF_STATUS_OK) {
+            output = SubsurfacesTable{};
+            return negotiated;
+        }
+        output.table_ = negotiated_table;
+        return GF_STATUS_OK;
+    }
+
+    // A table the caller negotiated through gf_abi_get_table.
+    [[nodiscard]] static SubsurfacesTable adopt(const gf_subsurfaces_table& adopted_table) noexcept {
+        SubsurfacesTable adopted;
+        adopted.table_ = adopted_table;
+        return adopted;
+    }
+
+    [[nodiscard]] const gf_subsurfaces_table& c_table() const noexcept { return table_; }
+
+    [[nodiscard]] gf_status set_content(gf_object host, const gf_subsurface_content* content) const noexcept {
+        if (table_.struct_size < 16u || table_.set_content == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_content(host, content);
+        return called;
+    }
+
+    [[nodiscard]] gf_status set_root(gf_object root) const noexcept {
+        if (table_.struct_size < 24u || table_.set_root == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_root(root);
+        return called;
+    }
+
+    [[nodiscard]] gf_status state(gf_object host, gf_subsurface_state* state) const noexcept {
+        if (table_.struct_size < 32u || table_.state == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.state(host, state);
+        return called;
+    }
+
+    [[nodiscard]] gf_status content_epoch(gf_object host, uint64_t* epoch) const noexcept {
+        if (table_.struct_size < 40u || table_.content_epoch == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.content_epoch(host, epoch);
+        return called;
+    }
+
+    [[nodiscard]] gf_status failure(gf_object host, char* buffer, uint64_t capacity,
+                                    uint64_t* required) const noexcept {
+        if (table_.struct_size < 48u || table_.failure == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.failure(host, buffer, capacity, required);
+        return called;
+    }
+
+private:
+    gf_subsurfaces_table table_;
+};
+
 // gf_windows_paint_endpoint_table, negotiated as GF_TABLE_WINDOWS_PAINT_ENDPOINT.
 class WindowsPaintEndpointTable {
 public:

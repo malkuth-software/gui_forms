@@ -146,7 +146,7 @@ public:
             // WinForms Panel starts borderless and inherits its effective
             // background. Explicit BorderStyle and BackColor projection below
             // own the two visual decisions independently.
-            (*panel).set_border_style(gui_forms::BorderStyle::none);
+            (*panel).border_style = gui_forms::BorderStyle::none;
             (*record).control = std::move(panel);
             break;
         }
@@ -1127,7 +1127,7 @@ public:
             ? gui_forms::BorderStyle::none
             : border_style == 1U ? gui_forms::BorderStyle::line
                                  : gui_forms::BorderStyle::sunken;
-        (*panel).set_border_style(native_style);
+        (*panel).border_style = native_style;
         return GF_OK;
     }
 

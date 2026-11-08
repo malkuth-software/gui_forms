@@ -15,7 +15,7 @@ namespace gui_forms {
 ColorValueEditor::ColorValueEditor(StableId stable_id, Color value)
     : Panel(std::move(stable_id)), value_(value) {
     set_paint_plane(PaintPlane::control);
-    set_border_style(BorderStyle::none);
+    border_style = BorderStyle::none;
 }
 
 void ColorValueEditor::initialize_control_tree() {

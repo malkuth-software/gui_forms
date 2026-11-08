@@ -4,8 +4,11 @@
 #include <cstdlib>
 #include <iostream>
 #include <memory>
+#include <optional>
+#include <span>
 #include <stdexcept>
 #include <string>
+#include <variant>
 #include <vector>
 
 namespace {
@@ -159,8 +162,8 @@ struct FocusFixture final {
         (*selection).add_child(selection_action);
         (*root).add_child(content);
         (*root).add_child(selection);
-        (*root).set_child_track(*content, 0U);
-        (*root).set_child_track(*selection, 1U);
+        (*root).child_track[*content] = 0U;
+        (*root).child_track[*selection] = 1U;
         (*root).set_track_focus_fallback(1U, *fallback);
         window.perform_layout();
     }
@@ -232,9 +235,9 @@ void test_text_scale_reflow_transactions_and_resize_stability() {
     (*root).add_child(title);
     (*root).add_child(content);
     (*root).add_child(status);
-    (*root).set_child_track(*title, 0U);
-    (*root).set_child_track(*content, 1U);
-    (*root).set_child_track(*status, 2U);
+    (*root).child_track[*title] = 0U;
+    (*root).child_track[*content] = 1U;
+    (*root).child_track[*status] = 2U;
     Window window(root, {480.0, 300.0});
 
     double previous_title = 0.0;
@@ -323,6 +326,72 @@ void test_invalid_specs_reject_atomically() {
 
 } // namespace
 
+void test_child_track_child_property() {
+    std::shared_ptr<ResponsiveTrackPanel> panel =
+        make_control<ResponsiveTrackPanel>(StableId("responsive.child.track"));
+    (*panel).set_track_specs({ResponsiveTrackSpec{}, ResponsiveTrackSpec{}});
+    std::shared_ptr<Panel> first = make_control<Panel>(StableId("responsive.child.track.first"));
+    std::shared_ptr<Panel> stranger = make_control<Panel>(StableId("responsive.child.track.stranger"));
+    (*panel).add_child(first);
+
+    const std::vector<PropertyDescriptor> provided = (*panel).child_property_descriptors();
+    require(provided.size() == 1U && provided[0].name == "child_track" &&
+                provided[0].kind == BindingValueKind::unsigned_integer,
+            "track child table: one unsigned child_track");
+    require(!(*panel).child_track[*first].read(), "child track: none before any write");
+    (*panel).set_child_property_value(*first, "child-track", BindingValue{std::uint64_t{1U}});
+    require((*panel).child_track[*first].read() == std::optional<std::uint32_t>(1U) &&
+                (*panel).should_serialize_child_property(*first, "child_track"),
+            "child track: a name-keyed write reaches the typed read and is serialized");
+    (*panel).child_track[*first] = std::nullopt;
+    const std::optional<BindingValue> named = (*panel).child_property_value(*first, "child_track");
+    require(named && std::holds_alternative<std::monostate>(*named) &&
+                !(*panel).should_serialize_child_property(*first, "child_track"),
+            "child track: none reads as null and is not serialized");
+
+    bool range_refused = false;
+    try {
+        (*panel).child_track[*first] = 2U;
+    } catch (const std::out_of_range&) {
+        range_refused = true;
+    }
+    bool stranger_refused = false;
+    try {
+        (*panel).child_track[*stranger] = 0U;
+    } catch (const std::invalid_argument&) {
+        stranger_refused = true;
+    }
+    require(range_refused && stranger_refused && !(*panel).child_track[*first].read(),
+            "child track: a track past the specs and a stranger are refused before mutation");
+
+    (*panel).child_track[*first] = 1U;
+    static_cast<void>((*panel).remove_child((*first).runtime_id()));
+    (*panel).add_child(first);
+    require(!(*panel).child_track[*first].read(), "child track: the value is dropped when the child leaves");
+}
+
+void test_track_settings_as_properties() {
+    std::shared_ptr<ResponsiveTrackPanel> panel =
+        make_control<ResponsiveTrackPanel>(StableId("responsive.settings"));
+    std::vector<BindingValue> items{BindingValue{std::string{"fixed 120 120 120 priority 2"}},
+                                    BindingValue{std::string{"remaining 40 200 0 weight 2 hidden"}}};
+    (*panel).set_property_value("track-specs",
+                                BindingValue{make_property_collection("String", BindingValueKind::text, items)});
+    const std::span<const ResponsiveTrackSpec> specs = (*panel).track_specs();
+    require(specs.size() == 2U && specs[0].size_mode == ResponsiveTrackSizeMode::fixed &&
+                specs[0].collapse_priority == std::optional<std::uint16_t>(2U) &&
+                specs[1].remaining_weight == 2.0 && specs[1].hidden && specs[1].preferred == 200.0,
+            "track settings: the specs read from their text");
+    const std::optional<BindingValue> read = (*panel).property_value("track_specs");
+    const PropertyCollectionValue& collection = std::get<PropertyCollectionValue>(*read);
+    require(std::get<std::string>(property_collection_items(collection)[1]) == "remaining 40 200 0 weight 2 hidden",
+            "track settings: the specs read back as their text");
+    (*panel).set_property_value("orientation", BindingValue{std::int64_t{1}});
+    (*panel).set_property_value("track_gap", BindingValue{6.0});
+    require((*panel).orientation() == ResponsiveTrackOrientation::vertical && (*panel).track_gap() == 6.0,
+            "track settings: orientation and gap by name");
+}
+
 int main() {
     test_fixed_content_remaining_gap_minimum_and_maximum();
     test_content_shrink_precedes_authored_collapse();
@@ -331,6 +400,8 @@ int main() {
     test_focus_preservation_fallback_and_explicit_reveal();
     test_text_scale_reflow_transactions_and_resize_stability();
     test_invalid_specs_reject_atomically();
+    test_child_track_child_property();
+    test_track_settings_as_properties();
     std::cout << "responsive-track-panel-tests: pass\n";
     return EXIT_SUCCESS;
 }

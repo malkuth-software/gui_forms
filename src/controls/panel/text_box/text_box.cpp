@@ -110,7 +110,7 @@ TextBox::TextBox(StableId stable_id, std::string text)
       editing_host_(std::make_unique<EditingHost>(*this)),
       editing_(std::make_unique<detail::TextEditingEngine>(*editing_host_, text)) {
     set_paint_plane(PaintPlane::control);
-    set_border_style(BorderStyle::sunken);
+    border_style = BorderStyle::sunken;
     set_focusable(true);
     cursor = CursorKind::text;
     set_tool_tip_presentation(ToolTipPresentation::field_hint);
@@ -883,7 +883,7 @@ void TextBox::on_paint(Painter& painter, Rect damage) {
         well.role = PartRole::well;
         well.bounds = bounds;
         well.states = text_states();
-        well.frame = border_style() == BorderStyle::none ? PartFrame::none : PartFrame::drawn;
+        well.frame = border_style.read() == BorderStyle::none ? PartFrame::none : PartFrame::drawn;
         paint_part(painter, *this, well);
     } else {
         Panel::on_paint(painter, damage);

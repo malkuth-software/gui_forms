@@ -79,15 +79,6 @@ void describe_type<DockSite>(SchemaSample& sample) {
     record_control(*site, sample);
 }
 
-// A flags editor over a two-flag enumeration.
-template <>
-void describe_type<FlagsValueEditor>(SchemaSample& sample) {
-    const PropertyEnumDescriptor descriptor{"sample_flags", {{"none", 0}, {"first", 1}, {"second", 2}}, true};
-    const PropertyEnumValue value{"sample_flags", "first", 1};
-    const std::shared_ptr<FlagsValueEditor> editor = make_control<FlagsValueEditor>(sample_id(), descriptor, value);
-    record_control(*editor, sample);
-}
-
 template <>
 void describe_type<PageStrip>(SchemaSample& sample) {
     PageSet pages;

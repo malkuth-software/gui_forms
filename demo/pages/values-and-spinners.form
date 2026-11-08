@@ -1,0 +1,141 @@
+/* The Gallery's values-and-spinners page (stage FD, phase FD6.3): four
+   NumericUpDowns and a DomainUpDown, a PropertyGrid inspector with its
+   CommandBar and a ComboBox to inspect, and the BindingSource specimen's
+   controls with a BindingNavigator. gui_forms_add_form() compiles this
+   document into values-and-spinners_form.hpp at build time.
+
+   gallery.values.document is a declared boundary only: the page moves its
+   children into the shell's page body, where each is placed by its bounds
+   in design coordinates. The page keeps in code the spinners' ranges,
+   increments, formats and values, the DomainUpDown's wrapping and
+   selection, the inspector's selected object and Commands, every event
+   handler, the status line's reports and the page style; the shell binds
+   the BindingSource controls, which the page hands over through
+   PageContext. */
+scaled-panel gallery.values.document {
+  design-size: 1000 690;
+
+  label gallery.values.heading {
+    text: "VALUES AND SPINNERS";
+    classes: "heading" "page-title";
+    bounds: 24 18 600 34;
+  }
+  label gallery.values.lead {
+    text: "Compound TextBox editing, bounded numeric commit, decimal and hexadecimal formats, keys, wheel, and spinner buttons.";
+    classes: "muted" "body";
+    bounds: 26 52 900 24;
+  }
+
+  scaled-group-box gallery.values.numeric {
+    text: "NumericUpDown · public compound control";
+    design-size: 930 360;
+    bounds: 24 92 930 360;
+    classes: "paper" "group-caption";
+    label gallery.values.caption.0 {
+      text: "Integer range";
+      classes: "muted" "emphasis";
+      bounds: 24 44 170 26;
+    }
+    numeric-up-down gallery.values.numeric.0 {
+      accessible-name: "Integer range";
+      bounds: 194 38 260 36;
+    }
+    label gallery.values.caption.1 {
+      text: "Decimal increment";
+      classes: "muted" "emphasis";
+      bounds: 24 106 170 26;
+    }
+    numeric-up-down gallery.values.numeric.1 {
+      accessible-name: "Decimal increment";
+      bounds: 194 100 260 36;
+    }
+    label gallery.values.caption.2 {
+      text: "Signed range";
+      classes: "muted" "emphasis";
+      bounds: 24 168 170 26;
+    }
+    numeric-up-down gallery.values.numeric.2 {
+      accessible-name: "Signed range";
+      bounds: 194 162 260 36;
+    }
+    label gallery.values.caption.3 {
+      text: "Hexadecimal";
+      classes: "muted" "emphasis";
+      bounds: 24 230 170 26;
+    }
+    numeric-up-down gallery.values.numeric.3 {
+      accessible-name: "Hexadecimal";
+      bounds: 194 224 260 36;
+    }
+    label gallery.values.caption.domain {
+      text: "Domain (wraps)";
+      classes: "muted" "emphasis";
+      bounds: 24 292 170 26;
+    }
+    domain-up-down gallery.values.domain {
+      accessible-name: "Demodulation mode";
+      items: "AM" "FM" "WFM" "USB" "LSB" "CW";
+      bounds: 194 286 260 36;
+    }
+    combo-box gallery.values.items-target {
+      accessible-name: "Inspectable mode collection";
+      items: "AM" "FM" "WFM";
+      selected-index: 1;
+      bounds: 486 34 174 30;
+    }
+    command-bar gallery.values.inspector-commands {
+      accessible-name: "Inspector commands";
+      bounds: 668 34 236 30;
+    }
+    property-grid gallery.values.property-grid {
+      accessible-name: "Decimal control property grid";
+      bounds: 486 72 420 222;
+    }
+    label gallery.values.status {
+      text: "PropertyGrid uses instance-owned converter/editor services.";
+      classes: "positive" "note-emphasis";
+      text-wrapping: word;
+      vertical-alignment: near;
+      bounds: 494 306 404 34;
+    }
+  }
+
+  scaled-group-box gallery.values.binding {
+    text: "BindingSource · currency, edit, conversion, two-way controls · BindingNavigator";
+    design-size: 930 196;
+    bounds: 24 474 930 196;
+    classes: "paper" "group-caption";
+    text-box gallery.values.binding.name {
+      accessible-name: "Bound profile name";
+      bounds: 20 42 190 32;
+    }
+    check-box gallery.values.binding.enabled {
+      text: "Enabled";
+      bounds: 228 44 120 28;
+    }
+    track-bar gallery.values.binding.gain {
+      visual-style: filled;
+      bounds: 360 42 250 32;
+    }
+    button gallery.values.binding.previous {
+      text: "‹ Previous";
+      visual-style: command;
+      bounds: 630 42 128 32;
+    }
+    button gallery.values.binding.next {
+      text: "Next ›";
+      visual-style: command;
+      bounds: 772 42 128 32;
+    }
+    label gallery.values.binding.status {
+      text: "Runtime binding initializes after the retained Window attaches";
+      classes: "positive" "note-medium";
+      bounds: 20 94 880 26;
+    }
+    /* A BindingNavigator over the same source; the shell binds it. */
+    binding-navigator gallery.values.binding.navigator {
+      accessible-name: "Profile navigator";
+      bounds: 20 128 520 27;
+    }
+  }
+}

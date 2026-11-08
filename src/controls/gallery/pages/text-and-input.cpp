@@ -1,5 +1,10 @@
 #include "pages.hpp"
 
+#include "text-and-input_form.hpp"
+
+#include <array>
+#include <vector>
+
 namespace gui_forms::gallery::pages {
 namespace {
 
@@ -13,80 +18,71 @@ constexpr int command_copy = 4;
 constexpr int command_cut = 5;
 constexpr int command_paste = 6;
 
+// Owns the text-and-input page: the controls demo/pages/text-and-input.form
+// describes, and their behaviour.
 class TextAndInputPage final : public Component {
 public:
     TextAndInputPage(const std::shared_ptr<Surface>& body,
                      const std::shared_ptr<PageContext>& context) {
         static_cast<void>(context);
-        (*body).add_at(label("gallery.text.heading", "TEXT AND INPUT", 22.0, 700,
-                             shell_blue_dark), {24.0, 18.0, 500.0, 34.0});
-        (*body).add_at(label("gallery.text.lead",
-                             "Unicode editing, word navigation, host clipboard commands, protected text, captured drag, caret deadlines, and history.",
-                             12.0, 400, muted), {26.0, 52.0, 900.0, 24.0});
-        build_fields(body);
-        build_commands(body);
-        build_masked(body);
-        build_auto_complete(body);
-        build_tokens(body);
-        build_rich_text(body);
+        document_.initialize_component(*this);
+        mount_document(body);
+        build_fields();
+        build_commands();
+        build_masked();
+        build_auto_complete();
+        build_tokens();
+        build_rich_text();
         refresh_state();
     }
 
 private:
-    void build_fields(const std::shared_ptr<Surface>& body) {
-        std::shared_ptr<LayoutGroup> editing = group("gallery.text.editing",
-                                                     "Editable TextBox states", {930.0, 290.0});
-        (*body).add_at(editing, {24.0, 92.0, 930.0, 290.0});
-        (*editing).add_at(label("gallery.text.primary.caption", "Primary field", 11.0, 600, muted),
-                          {24.0, 42.0, 130.0, 24.0});
-        primary_ = make_control<TextBox>(StableId("gallery.text.primary"));
-        (*primary_).accessible_name = "Primary field";
-        (*primary_).set_placeholder_text(
-            "Click, type, drag-select, use Shift+Arrow, Cmd/Ctrl+A, Z, Y");
-        (*editing).add_at(primary_, {154.0, 36.0, 700.0, 36.0});
+    void mount_document(const std::shared_ptr<Surface>& body) {
+        // The document's root is a declared boundary only: its children move
+        // into the shell's page body, where each is placed by its bounds in
+        // design coordinates. The copy of the child list keeps the iteration
+        // valid while the root shrinks.
+        Control& root = *document_.gallery_text_document;
+        const std::vector<Control::Ptr> children(root.children().begin(), root.children().end());
+        for (const Control::Ptr& child : children) {
+            Control::Ptr moved = root.remove_child((*child).runtime_id());
+            (*body).add_child(std::move(moved));
+        }
+        const std::array<std::shared_ptr<ScaledGroupBox>, 6> groups{
+            document_.gallery_text_editing, document_.gallery_text_commands,
+            document_.gallery_text_masked, document_.gallery_text_complete,
+            document_.gallery_text_tokens, document_.gallery_text_rich};
+        for (const std::shared_ptr<ScaledGroupBox>& group : groups) {
+            (*group).set_style(page_style());
+        }
+        primary_ = document_.gallery_text_primary;
+        state_ = document_.gallery_text_state;
+        bar_ = document_.gallery_text_command;
+        clipboard_status_ = document_.gallery_text_clipboard_status;
+        phone_ = document_.gallery_text_masked_phone;
+        masked_status_ = document_.gallery_text_masked_status;
+        city_ = document_.gallery_text_complete_city;
+        band_ = document_.gallery_text_complete_band;
+        complete_status_ = document_.gallery_text_complete_status;
+        recipients_ = document_.gallery_text_tokens_recipients;
+        tokens_status_ = document_.gallery_text_tokens_status;
+        note_ = document_.gallery_text_rich_note;
+        rich_status_ = document_.gallery_text_rich_status;
+    }
 
-        (*editing).add_at(label("gallery.text.unicode.caption", "Unicode field", 11.0, 600, muted),
-                          {24.0, 96.0, 130.0, 24.0});
-        std::shared_ptr<TextBox> unicode = make_control<TextBox>(
-            StableId("gallery.text.unicode"), "Graphemes: a\xCC\x81 · Ω · 日本語 · 🚀");
-        (*unicode).accessible_name = "Unicode field";
-        (*editing).add_at(unicode, {154.0, 90.0, 700.0, 36.0});
-
-        (*editing).add_at(label("gallery.text.readonly.caption", "Read-only", 11.0, 600, muted),
-                          {24.0, 150.0, 130.0, 24.0});
-        std::shared_ptr<TextBox> read_only = make_control<TextBox>(
-            StableId("gallery.text.readonly"), "Selection remains available; mutation is blocked.");
-        (*read_only).accessible_name = "Read-only field";
-        (*read_only).set_read_only(true);
-        (*editing).add_at(read_only, {154.0, 144.0, 700.0, 36.0});
-
-        (*editing).add_at(label("gallery.text.password.caption", "Protected", 11.0, 600, muted),
-                          {24.0, 204.0, 130.0, 24.0});
-        std::shared_ptr<TextBox> password = make_control<TextBox>(
-            StableId("gallery.text.password"), "Portsmouth-Ω-2026");
-        (*password).accessible_name = "Protected credential field";
-        (*password).accessible_description = "Password text is editable but excluded from paint traces, clipboard export, and semantic values.";
-        (*password).set_use_system_password_character(true);
-        (*editing).add_at(password, {154.0, 198.0, 700.0, 36.0});
-
-        state_ = label("gallery.text.state", "Selection: empty · History: clean", 11.0, 600, green);
-        (*editing).add_at(state_, {154.0, 250.0, 700.0, 26.0});
+    void build_fields() {
+        (*document_.gallery_text_password).set_use_system_password_character(true);
         // Both are state events; the handler reads the field, so it takes no
         // event argument and serves either publisher.
         on((*primary_).text_changed(), *this, &TextAndInputPage::refresh_state);
         on((*primary_).selection_changed(), *this, &TextAndInputPage::refresh_state);
     }
 
-    void build_commands(const std::shared_ptr<Surface>& body) {
-        std::shared_ptr<LayoutGroup> commands = group("gallery.text.commands",
-                                                      "Programmatic editing surface", {930.0, 216.0});
-        (*body).add_at(commands, {24.0, 404.0, 930.0, 216.0});
+    void build_commands() {
         // Undo and Redo are Commands so their availability (the field's
         // history) projects onto the bar's retained buttons; the other five
         // items dispatch through the bar's single group notification.
-        bar_ = make_control<CommandBar>(StableId("gallery.text.command"));
         (*bar_).set_style(page_style());
-        (*bar_).accessible_name = "Editing commands";
         (*bar_).set_items({
             {.id = command_select_all, .label = "Select all"},
             {.id = command_copy, .label = "Copy"},
@@ -100,45 +96,17 @@ private:
             (*bar_).item(index).set_style(page_style());
         }
         (*bar_).item(4).set_visual_style(ButtonVisualStyle::accent);
-        (*commands).add_at(bar_, {24.0, 42.0, 870.0, 36.0});
         on((*bar_).invoked(), *this, &TextAndInputPage::on_command);
         on(undo_.invoked(), *this, &TextAndInputPage::on_undo);
         on(redo_.invoked(), *this, &TextAndInputPage::on_redo);
-
-        clipboard_status_ = label("gallery.text.clipboard.status",
-                                  "Clipboard: select text, then use buttons or Cmd/Ctrl+C, X, V",
-                                  11.0, 600, green);
-        (*commands).add_at(clipboard_status_, {24.0, 92.0, 830.0, 26.0});
-        std::shared_ptr<Label> guarantee = label(
-            "gallery.text.guarantee",
-            "TextBox + TextStore own editing. HostServices only transports bounded UTF-8 clipboard data; protected fields never export values.",
-            11.0, 600, shell_blue_dark);
-        (*guarantee).set_text_wrapping(TextWrapping::word);
-        (*guarantee).set_vertical_alignment(VerticalAlignment::near);
-        (*commands).add_at(guarantee, {24.0, 132.0, 830.0, 52.0});
     }
 
     // MaskedTextBox specimens: a telephone mask, and a part code whose
     // letters are shifted to upper and then lower case. The telephone
     // field's refusals and completion report to the status label.
-    void build_masked(const std::shared_ptr<Surface>& body) {
-        std::shared_ptr<LayoutGroup> masked = group("gallery.text.masked",
-                                                    "MaskedTextBox · input through a mask", {930.0, 132.0});
-        (*body).add_at(masked, {24.0, 640.0, 930.0, 132.0});
-        (*masked).add_at(label("gallery.text.masked.phone.caption", "Telephone", 11.0, 600, muted),
-                         {24.0, 42.0, 130.0, 24.0});
-        phone_ = make_control<MaskedTextBox>(StableId("gallery.text.masked.phone"), "(000) 000-0000");
-        (*phone_).accessible_name = "Telephone number";
-        (*masked).add_at(phone_, {154.0, 36.0, 260.0, 36.0});
-        (*masked).add_at(label("gallery.text.masked.code.caption", "Part code", 11.0, 600, muted),
-                         {440.0, 42.0, 110.0, 24.0});
-        std::shared_ptr<MaskedTextBox> code = make_control<MaskedTextBox>(
-            StableId("gallery.text.masked.code"), ">LL-0000-<aa");
-        (*code).accessible_name = "Part code";
-        (*masked).add_at(code, {550.0, 36.0, 300.0, 36.0});
-        masked_status_ = label("gallery.text.masked.status",
-                               "Telephone: digits only; letters are refused and reported", 11.0, 600, green);
-        (*masked).add_at(masked_status_, {154.0, 86.0, 700.0, 26.0});
+    void build_masked() {
+        (*phone_).set_mask("(000) 000-0000");
+        (*document_.gallery_text_masked_code).set_mask(">LL-0000-<aa");
         on((*phone_).mask_input_rejected(), *this, &TextAndInputPage::masked_rejected);
         on((*phone_).text_changed(), *this, &TextAndInputPage::masked_changed);
     }
@@ -146,57 +114,27 @@ private:
     // Auto-complete specimens: a TextBox that suggests and appends from its
     // own collection, and an editable ComboBox that completes from its
     // items. Accepted completions report to the status label.
-    void build_auto_complete(const std::shared_ptr<Surface>& body) {
-        std::shared_ptr<LayoutGroup> completion = group("gallery.text.complete",
-                                                        "Auto-complete · suggest and append", {930.0, 132.0});
-        (*body).add_at(completion, {24.0, 792.0, 930.0, 132.0});
-        (*completion).add_at(label("gallery.text.complete.city.caption", "City", 11.0, 600, muted),
-                             {24.0, 42.0, 130.0, 24.0});
-        city_ = make_control<TextBox>(StableId("gallery.text.complete.city"));
-        (*city_).accessible_name = "City";
-        (*city_).set_placeholder_text("Type a city: Ca, Ed, Lo");
+    void build_auto_complete() {
         (*(*city_).auto_complete_custom_source()).add_range(
             {"Calgary", "Cambridge", "Canberra", "Cardiff", "Edinburgh", "Edmonton", "London", "Los Angeles"});
         (*city_).set_auto_complete_source(AutoCompleteSource::custom_source);
         (*city_).set_auto_complete_mode(AutoCompleteMode::suggest_append);
-        (*completion).add_at(city_, {154.0, 36.0, 300.0, 36.0});
-        (*completion).add_at(label("gallery.text.complete.band.caption", "Band", 11.0, 600, muted),
-                             {480.0, 42.0, 70.0, 24.0});
-        band_ = make_control<ComboBox>(StableId("gallery.text.complete.band"));
-        (*band_).accessible_name = "Band";
         (*band_).set_items({"Long wave", "Medium wave", "Short wave", "VHF FM", "UHF", "Microwave"});
         (*band_).set_drop_down_style(ComboBoxStyle::drop_down);
         (*band_).set_auto_complete_source(AutoCompleteSource::list_items);
         (*band_).set_auto_complete_mode(AutoCompleteMode::suggest);
-        (*completion).add_at(band_, {550.0, 36.0, 300.0, 36.0});
-        complete_status_ = label("gallery.text.complete.status",
-                                 "Type to see suggestions; Up and Down choose, Enter or Tab accepts, Escape restores",
-                                 11.0, 600, green);
-        (*completion).add_at(complete_status_, {154.0, 86.0, 700.0, 26.0});
         on((*city_).auto_complete_accepted(), *this, &TextAndInputPage::completion_accepted);
         on((*(*band_).editor()).auto_complete_accepted(), *this, &TextAndInputPage::completion_accepted);
     }
 
     // TokenBox specimen: recipients entered by Enter, a comma or a
     // suggestion, each a removable token.
-    void build_tokens(const std::shared_ptr<Surface>& body) {
-        std::shared_ptr<LayoutGroup> tokens = group("gallery.text.tokens",
-                                                    "TokenBox · entries become removable tokens", {930.0, 150.0});
-        (*body).add_at(tokens, {24.0, 944.0, 930.0, 150.0});
-        (*tokens).add_at(label("gallery.text.tokens.caption", "Recipients", 11.0, 600, muted),
-                         {24.0, 42.0, 130.0, 24.0});
-        recipients_ = make_control<TokenBox>(StableId("gallery.text.tokens.recipients"));
-        (*recipients_).accessible_name = "Recipients";
-        (*(*recipients_).auto_complete_custom_source()).add_range(
+    void build_tokens() {
+        (*(*recipients_).auto_complete_custom_source.read()).add_range(
             {"Ada Lovelace", "Alan Turing", "Grace Hopper", "Edsger Dijkstra", "Barbara Liskov"});
-        (*recipients_).set_auto_complete_source(AutoCompleteSource::custom_source);
-        (*recipients_).set_auto_complete_mode(AutoCompleteMode::suggest);
+        (*recipients_).auto_complete_source = AutoCompleteSource::custom_source;
+        (*recipients_).auto_complete_mode = AutoCompleteMode::suggest;
         static_cast<void>((*recipients_).add_token("Grace Hopper"));
-        (*tokens).add_at(recipients_, {154.0, 36.0, 700.0, 58.0});
-        tokens_status_ = label("gallery.text.tokens.status",
-                               "Enter, a comma or a suggestion adds a token; Backspace selects and removes the last",
-                               11.0, 600, green);
-        (*tokens).add_at(tokens_status_, {154.0, 104.0, 700.0, 26.0});
         on((*recipients_).token_added(), *this, &TextAndInputPage::token_added);
         on((*recipients_).token_removed(), *this, &TextAndInputPage::token_removed);
     }
@@ -204,23 +142,13 @@ private:
     // A RichTextBox over markdown: a heading, emphasis, a link, a list and a
     // code block, shown styled with their markup dimmed. Ctrl+click on the
     // link reports its target.
-    void build_rich_text(const std::shared_ptr<Surface>& body) {
-        std::shared_ptr<LayoutGroup> rich = group("gallery.text.rich",
-                                                  "RichTextBox · markdown shown styled", {930.0, 270.0});
-        (*body).add_at(rich, {24.0, 1114.0, 930.0, 270.0});
-        (*rich).add_at(label("gallery.text.rich.caption", "Note", 11.0, 600, muted),
-                       {24.0, 42.0, 130.0, 24.0});
-        note_ = make_control<RichTextBox>(StableId("gallery.text.rich.note"),
-                                          "## Release notes\n\n"
-                                          "Text may be **bold**, *italic* or `code`. "
-                                          "See [the guide](https://example.org/guide).\n\n"
-                                          "- Ctrl+B and Ctrl+I format the selection\n"
-                                          "- Ctrl+K makes a link\n\n"
-                                          "```\nsave_rtf(document);\n```\n");
-        (*note_).accessible_name = "Note";
-        (*rich).add_at(note_, {154.0, 36.0, 700.0, 184.0});
-        rich_status_ = label("gallery.text.rich.status", "Ctrl+click a link to open it", 11.0, 600, green);
-        (*rich).add_at(rich_status_, {154.0, 228.0, 700.0, 26.0});
+    void build_rich_text() {
+        (*note_).set_markdown("## Release notes\n\n"
+                              "Text may be **bold**, *italic* or `code`. "
+                              "See [the guide](https://example.org/guide).\n\n"
+                              "- Ctrl+B and Ctrl+I format the selection\n"
+                              "- Ctrl+K makes a link\n\n"
+                              "```\nsave_rtf(document);\n```\n");
         on((*note_).link_clicked(), *this, &TextAndInputPage::rich_link_clicked);
     }
 
@@ -310,6 +238,8 @@ private:
     std::shared_ptr<Label> rich_status_;
     Command undo_{"gallery.text.command.undo", "Undo"};
     Command redo_{"gallery.text.command.redo", "Redo"};
+    // Declared after the Commands its bar borrows, so it is released first.
+    TextAndInputDocument<TextAndInputPage> document_{};
 };
 
 } // namespace

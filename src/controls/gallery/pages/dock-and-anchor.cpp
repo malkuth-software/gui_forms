@@ -50,7 +50,7 @@ private:
         dock_canvas_ = make_control<Panel>(StableId("gallery.dock.canvas"));
         (*dock_canvas_).accessible_name = "Dock layout specimen";
         (*dock_canvas_).set_background(Color::rgba(238, 243, 247));
-        (*dock_canvas_).set_border_style(BorderStyle::sunken);
+        (*dock_canvas_).border_style = BorderStyle::sunken;
         (*dock_canvas_).padding = {8.0, 8.0, 8.0, 8.0};
         (*dock_group).add_at(dock_canvas_, {18.0, 38.0, 610.0, 190.0});
 
@@ -96,7 +96,7 @@ private:
         anchor_canvas_ = make_control<Panel>(StableId("gallery.anchor.canvas"));
         (*anchor_canvas_).accessible_name = "Compound anchor specimen";
         (*anchor_canvas_).set_background(Color::rgba(247, 249, 251));
-        (*anchor_canvas_).set_border_style(BorderStyle::line);
+        (*anchor_canvas_).border_style = BorderStyle::line;
         (*anchor_canvas_).padding = {8.0, 8.0, 8.0, 8.0};
         (*anchor_group_).add_at(anchor_canvas_, {18.0, 38.0, 600.0, 170.0});
 
@@ -147,7 +147,7 @@ private:
         std::shared_ptr<Panel> canvas = make_control<Panel>(StableId("gallery.splitter.canvas"));
         (*canvas).accessible_name = "Splitter specimen";
         (*canvas).set_background(Color::rgba(247, 249, 251));
-        (*canvas).set_border_style(BorderStyle::line);
+        (*canvas).border_style = BorderStyle::line;
         (*splitter_group).add_at(canvas, {18.0, 38.0, 610.0, 130.0});
         std::shared_ptr<Panel> folders = make_control<Panel>(StableId("gallery.splitter.folders"));
         (*folders).set_background(Color::rgba(225, 235, 243));

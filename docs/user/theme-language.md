@@ -16,6 +16,14 @@ resources and the themes it imports, each with its SHA-256 hash.
 sheets it imports (imported sheets first, as in CSS) and returns either a
 `Theme` with any warnings or a refusal with its diagnostics.
 
+The sheets compile onto a built-in theme, whose recipes stand wherever they
+set nothing: `windows-professional` unless `ThemeCompileOptions::base` is
+`ThemeCompileBase::gui_forms`. Onto GUI.Forms' own theme (`gui-forms`), its
+light sheet comes first in the cascade, so the package's rules override it
+and may read its colour roles, and its dark variant is derived by rule: the
+package's colours are written in light terms and darken by the same rule in
+a dark window, so a package on `gui-forms` writes no dark values of its own.
+
 - An **error** refuses the whole theme. Nothing of it is installed; the theme
   in use stays in use, and the images the refused compilation loaded are
   released.
@@ -260,6 +268,16 @@ window follows the host's light or dark preference (capability
 Colour belongs in the theme: setting `back_color` or `fore_color` on a
 control still applies, for compatibility, but writes the warning W404
 `inline_colour` once per control and property.
+
+`tools/relocate_colours.py` moves the colours a form document writes
+(`fore-color`, `back-color` as literal hexadecimal colours) into a theme
+sheet: one rule per control, keyed by its escaped stable ID, with the light
+value as written and a dark value under `@media (prefers-color-scheme:
+dark)` seeded by the dark colour rule (the `gui_forms_dark_colour` filter
+the build makes), a starting point to edit. It declares `:root {
+color-scheme: light dark }` when the sheet declares no scheme, removes the
+statements from the document, and leaves alone any other colour form and any
+control the sheet already selects. It prints a diff unless given `--write`.
 
 ## Inline styles
 

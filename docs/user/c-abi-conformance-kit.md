@@ -39,7 +39,10 @@ Two rules apply to the call:
   own, which is what a test program is, and do not create GUI.Forms objects
   before it in that process.
 - **Pick the window flag.** `GF_CONFORMANCE_FLAGS_WINDOW` adds the window
-  checks, which show a window briefly and need a display.
+  checks, which show a window briefly and need a display. They include a
+  threaded sub-surface (`GF_TABLE_SUBSURFACES`, since 1.1): its build and
+  posted callbacks on its own thread, objects owned by the thread that made
+  them, and stale identities once it stops.
   `GF_CONFORMANCE_FLAGS_NONE` leaves them out, for headless CI.
 
 A complete test program, as the SDK's own installed example builds it

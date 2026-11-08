@@ -2,18 +2,171 @@
 #include "gui_forms/window.hpp"
 
 #include "../container_layout_utilities.hpp"
+#include "../text_collection_property.hpp"
+#include "gui_forms/detail/bound_member_function.hpp"
+#include "gui_forms/detail/property_binding_adapters.hpp"
 #include "../../scrollable_anatomy.hpp"
 #include "../../../../core/types/restrict/restrict.hpp"
 
 #include <algorithm>
+#include <array>
+#include <charconv>
 #include <cmath>
 #include <limits>
 #include <numeric>
 #include <stdexcept>
+#include <string>
+#include <string_view>
+#include <system_error>
 #include <utility>
+#include <variant>
 
 namespace gui_forms {
 namespace {
+
+std::shared_ptr<const PropertyEnumDescriptor> orientation_enum() {
+    static const std::shared_ptr<const PropertyEnumDescriptor> value =
+        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+            "responsive_track_orientation", {{"horizontal", 0}, {"vertical", 1}}, false});
+    return value;
+}
+
+void append_number(std::string& text, double value) {
+    std::array<char, 32U> buffer{};
+    const std::to_chars_result written = std::to_chars(buffer.data(), buffer.data() + buffer.size(), value);
+    text.append(buffer.data(), static_cast<std::size_t>(written.ptr - buffer.data()));
+}
+
+// A number word of a spec's text; false when `word` is not one.
+bool number_word(std::string_view word, double& value) noexcept {
+    const char* const end = word.data() + word.size();
+    const std::from_chars_result parsed = std::from_chars(word.data(), end, value);
+    const bool whole = !word.empty() && parsed.ec == std::errc{} && parsed.ptr == end;
+    return whole;
+}
+
+const char* mode_word(ResponsiveTrackSizeMode mode) noexcept {
+    switch (mode) {
+    case ResponsiveTrackSizeMode::fixed:
+        return "fixed";
+    case ResponsiveTrackSizeMode::content:
+        return "content";
+    case ResponsiveTrackSizeMode::remaining:
+        return "remaining";
+    default:
+        // validate_specs admits only the enumerators; content is the
+        // spec's default mode, so a read never fails.
+        return "content";
+    }
+}
+
+// One spec's text: the mode and three extents, then the weight when it is
+// not 1, "hidden", and the priority when there is one.
+std::string spec_text(const ResponsiveTrackSpec& spec) {
+    std::string text{mode_word(spec.size_mode)};
+    text.push_back(' ');
+    append_number(text, spec.minimum);
+    text.push_back(' ');
+    append_number(text, spec.preferred);
+    text.push_back(' ');
+    append_number(text, spec.maximum);
+    if (spec.remaining_weight != 1.0) {
+        text.append(" weight ");
+        append_number(text, spec.remaining_weight);
+    }
+    if (spec.hidden) text.append(" hidden");
+    if (spec.collapse_priority) {
+        text.append(" priority ");
+        text.append(std::to_string(*spec.collapse_priority));
+    }
+    return text;
+}
+
+// One spec read from its text; throws std::invalid_argument for another
+// shape. The values' ranges are validate_specs'.
+ResponsiveTrackSpec spec_from_text(std::string_view item) {
+    const std::vector<std::string_view> words = text_collection_property::words_of(item);
+    ResponsiveTrackSpec spec{};
+    bool valid = words.size() >= 4U;
+    if (valid) {
+        if (words[0] == "fixed") {
+            spec.size_mode = ResponsiveTrackSizeMode::fixed;
+        } else if (words[0] == "content") {
+            spec.size_mode = ResponsiveTrackSizeMode::content;
+        } else if (words[0] == "remaining") {
+            spec.size_mode = ResponsiveTrackSizeMode::remaining;
+        } else {
+            valid = false;
+        }
+    }
+    valid = valid && number_word(words[1], spec.minimum) && number_word(words[2], spec.preferred) &&
+            number_word(words[3], spec.maximum);
+    std::size_t index = 4U;
+    while (valid && index < words.size()) {
+        if (words[index] == "hidden") {
+            spec.hidden = true;
+            ++index;
+        } else if (words[index] == "weight" && index + 1U < words.size()) {
+            valid = number_word(words[index + 1U], spec.remaining_weight);
+            index += 2U;
+        } else if (words[index] == "priority" && index + 1U < words.size()) {
+            std::uint16_t priority{};
+            const std::string_view word = words[index + 1U];
+            const char* const end = word.data() + word.size();
+            const std::from_chars_result parsed = std::from_chars(word.data(), end, priority);
+            valid = parsed.ec == std::errc{} && parsed.ptr == end;
+            spec.collapse_priority = priority;
+            index += 2U;
+        } else {
+            valid = false;
+        }
+    }
+    if (!valid) {
+        throw std::invalid_argument(
+            "ResponsiveTrackPanel track spec is \"<fixed|content|remaining> <minimum> <preferred> <maximum>\" "
+            "with optional \"weight <w>\", \"hidden\" and \"priority <n>\"");
+    }
+    return spec;
+}
+
+// The child track's descriptor before validation: nullable, so its default
+// (none) is of its kind.
+PropertyDescriptor nullable_child_track() {
+    PropertyDescriptor descriptor{"child_track", BindingValueKind::unsigned_integer, "Layout",
+                                  "The track the child occupies; none takes the next track no child names.",
+                                  BindingValue{}, invalidation::bounds};
+    descriptor.nullable = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_child_track() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(nullable_child_track(),
+                                                                           PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+BindingValue read_child_track(const Component& container, const Control& child) {
+    const ResponsiveTrackPanel& panel = static_cast<const ResponsiveTrackPanel&>(container);
+    const std::optional<std::uint32_t> track = panel.child_track[child].read();
+    const BindingValue value = PropertyValueTraits<std::optional<std::uint32_t>>::to_binding(track);
+    return value;
+}
+
+// Writes a null (none) or an unsigned track index; an index past 32 bits
+// cannot name a track, so it is refused as out of range.
+void write_child_track(Component& container, const Control& child, const BindingValue& value) {
+    ResponsiveTrackPanel& panel = static_cast<ResponsiveTrackPanel&>(container);
+    if (std::holds_alternative<std::monostate>(value)) {
+        panel.child_track[child] = std::nullopt;
+        return;
+    }
+    const std::uint64_t index = std::get<std::uint64_t>(value);
+    if (index > std::numeric_limits<std::uint32_t>::max()) {
+        throw std::out_of_range("ResponsiveTrackPanel child track index");
+    }
+    panel.child_track[child] = static_cast<std::uint32_t>(index);
+}
+
 
 constexpr std::size_t maximum_responsive_tracks = 64U;
 constexpr double maximum_track_extent = 1'000'000.0;
@@ -328,11 +481,78 @@ ResponsiveTrackResolution resolve_responsive_tracks(
 using namespace container_layout_detail;
 
 ResponsiveTrackPanel::ResponsiveTrackPanel(StableId stable_id)
-    : ContainerControl(std::move(stable_id)) {}
+    : ContainerControl(std::move(stable_id)) {
+    register_panel_properties();
+}
+
+void ResponsiveTrackPanel::register_panel_properties() {
+    PropertyDescriptor orientation{"orientation", BindingValueKind::enumeration, "Layout",
+                                   "The axis the tracks run along: horizontal or vertical.",
+                                   BindingValue{std::int64_t{0}}, invalidation::bounds};
+    orientation.bindable = false;
+    orientation.enumeration = orientation_enum();
+    define_bindable_property({std::move(orientation),
+                              detail::EnumerationPropertyGetter<ResponsiveTrackPanel, ResponsiveTrackOrientation>(
+                                  *this, &ResponsiveTrackPanel::orientation, orientation_enum()),
+                              detail::EnumerationPropertySetter<ResponsiveTrackPanel, ResponsiveTrackOrientation>(
+                                  *this, &ResponsiveTrackPanel::set_orientation),
+                              {}, {}, {}});
+    PropertyDescriptor gap{"track_gap", BindingValueKind::number, "Layout", "The space between neighbouring tracks.",
+                           BindingValue{0.0}, invalidation::bounds};
+    gap.bindable = false;
+    define_bindable_property({std::move(gap),
+                              detail::BindingNoexceptMethodGetter<ResponsiveTrackPanel, double>(
+                                  *this, &ResponsiveTrackPanel::track_gap),
+                              detail::DirectPropertySetter<ResponsiveTrackPanel, double>(
+                                  *this, &ResponsiveTrackPanel::set_track_gap),
+                              {}, {}, {}});
+    const std::array<std::string, 1U> single{spec_text(ResponsiveTrackSpec{})};
+    PropertyDescriptor specs{"track_specs", BindingValueKind::collection, "Layout",
+                             "One item per track: \"<fixed|content|remaining> <minimum> <preferred> <maximum>\", "
+                             "optionally followed by \"weight <w>\", \"hidden\" and \"priority <n>\".",
+                             text_collection_property::value_of(single), invalidation::bounds};
+    specs.bindable = false;
+    define_bindable_property({std::move(specs),
+                              detail::BoundMemberFunction<BindingValue (ResponsiveTrackPanel::*)() const>(
+                                  *this, &ResponsiveTrackPanel::track_specs_property),
+                              detail::BoundMemberFunction<void (ResponsiveTrackPanel::*)(const BindingValue&)>(
+                                  *this, &ResponsiveTrackPanel::set_track_specs_property),
+                              {}, {}, {}});
+}
+
+BindingValue ResponsiveTrackPanel::track_specs_property() const {
+    std::vector<std::string> items{};
+    items.reserve(track_specs_.size());
+    for (const ResponsiveTrackSpec& spec : track_specs_) items.push_back(spec_text(spec));
+    BindingValue value = text_collection_property::value_of(items);
+    return value;
+}
+
+void ResponsiveTrackPanel::set_track_specs_property(const BindingValue& value) {
+    const std::vector<std::string> items = text_collection_property::items_of(value, "ResponsiveTrackPanel.track_specs");
+    std::vector<ResponsiveTrackSpec> specs{};
+    specs.reserve(items.size());
+    for (const std::string& item : items) specs.push_back(spec_from_text(item));
+    set_track_specs(std::move(specs));
+}
 
 void ResponsiveTrackPanel::validate_specs(
     std::span<const ResponsiveTrackSpec> specs) {
     validate_track_specs(specs);
+}
+
+const std::array<ChildPropertyEntry, ResponsiveTrackPanel::track_child_property_count>&
+ResponsiveTrackPanel::track_child_property_entries() noexcept {
+    static constexpr std::array<ChildPropertyEntry, track_child_property_count> entries{{
+        {"child_track", &describe_child_track, &read_child_track, &write_child_track, nullptr, nullptr},
+    }};
+    static_assert(property_names_distinct(entries), "ResponsiveTrackPanel's child table names a property twice");
+    return entries;
+}
+
+std::span<const ChildPropertyEntry> ResponsiveTrackPanel::child_property_table() const noexcept {
+    const std::array<ChildPropertyEntry, track_child_property_count>& entries = track_child_property_entries();
+    return std::span<const ChildPropertyEntry>(entries);
 }
 
 void ResponsiveTrackPanel::set_orientation(
@@ -396,30 +616,43 @@ void ResponsiveTrackPanel::set_track_spec(
     invalidate(invalidation::bounds);
 }
 
-void ResponsiveTrackPanel::set_child_track(
-    const Control& child, std::size_t track) {
+void ResponsiveTrackPanel::prepare_write(const Control& child,
+                                         const std::optional<std::uint32_t>& incoming) const {
     require_mutable();
-    if (child.parent().get() != this || !child.is_alive()) {
-        throw std::invalid_argument(
-            "ResponsiveTrackPanel track assignment requires a live direct child");
-    }
-    if (track >= track_specs_.size()) {
+    require_direct_child(child);
+    if (incoming && *incoming >= track_specs_.size()) {
         throw std::out_of_range("ResponsiveTrackPanel child track index");
     }
-    const std::uint64_t id = child.runtime_id().value;
-    const ChildTrackMap::iterator found = child_tracks_.find(id);
-    if (found != child_tracks_.end() && (*found).second == track) return;
-    child_tracks_[id] = track;
+}
+
+void ResponsiveTrackPanel::written(const Control& child) {
+    static_cast<void>(child);
     invalidate(invalidation::bounds);
 }
 
-std::optional<std::size_t> ResponsiveTrackPanel::child_track(
-    const Control& child) const {
-    if (child.parent().get() != this || !child.is_alive()) return std::nullopt;
-    const ChildTrackMap::const_iterator found =
-        child_tracks_.find(child.runtime_id().value);
-    return found == child_tracks_.end()
-        ? std::nullopt : std::optional<std::size_t>((*found).second);
+bool ResponsiveTrackPanel::replace_child_track(const Control& child, std::optional<std::uint32_t> value) {
+    const std::uint64_t id = child.runtime_id().value;
+    const ChildTrackMap::iterator found = child_tracks_.find(id);
+    if (!value) {
+        if (found == child_tracks_.end()) return false;
+        child_tracks_.erase(found);
+        return true;
+    }
+    if (found != child_tracks_.end() && (*found).second == *value) return false;
+    child_tracks_[id] = *value;
+    return true;
+}
+
+std::optional<std::uint32_t> ResponsiveTrackPanel::stored_child_track(const Control& child) const {
+    require_direct_child(child);
+    const ChildTrackMap::const_iterator found = child_tracks_.find(child.runtime_id().value);
+    if (found == child_tracks_.end()) return std::nullopt;
+    const std::optional<std::uint32_t> value = static_cast<std::uint32_t>((*found).second);
+    return value;
+}
+
+void ResponsiveTrackPanel::child_leaving(const Control& child) noexcept {
+    child_tracks_.erase(child.runtime_id().value);
 }
 
 void ResponsiveTrackPanel::set_track_revealed(

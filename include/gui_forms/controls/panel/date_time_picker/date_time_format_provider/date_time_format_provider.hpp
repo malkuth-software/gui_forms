@@ -19,6 +19,17 @@ struct DateTimeFormatProvider final {
     std::string pm_designator{"PM"};
 
     [[nodiscard]] static DateTimeFormatProvider english_united_states();
+
+    // Field by field; a property cell compares before it stores.
+    friend bool operator==(const DateTimeFormatProvider& left, const DateTimeFormatProvider& right) {
+        const bool names = left.month_names == right.month_names &&
+                           left.abbreviated_month_names == right.abbreviated_month_names &&
+                           left.day_names == right.day_names && left.abbreviated_day_names == right.abbreviated_day_names;
+        const bool patterns = left.long_date_pattern == right.long_date_pattern &&
+                              left.short_date_pattern == right.short_date_pattern && left.time_pattern == right.time_pattern;
+        const bool designators = left.am_designator == right.am_designator && left.pm_designator == right.pm_designator;
+        return names && patterns && designators;
+    }
 };
 
 } // namespace gui_forms

@@ -108,6 +108,24 @@
       "reason": "A colour set on a control cannot adapt to a theme's light and dark variants, and painting a light-mode colour over the dark fallback breaks the look. Colour belongs in theme rules (T4 theme variants, stage A).",
       "source": "owner",
       "date": "2026-11-04"
+    },
+    {
+      "control": "TableLayoutPanelCompat",
+      "member": "column_span / row_span (automatic children)",
+      "winforms": "SetColumnSpan and SetRowSpan apply to any child; a child without an explicit cell is auto-placed into the first free run of cells its span needs.",
+      "gui_forms": "A span needs an explicit cell: writing a span other than 1 to an automatically placed child is refused, and automatic placement gives each child one cell.",
+      "reason": "The table holds the spans as anonymous GridSpan objects anchored at a child's cell (study 10.9 section 5); an automatic child has no anchor. Coordinator for cp20: automatic placement ignores spans.",
+      "source": "coordinator",
+      "date": "2026-11-05"
+    },
+    {
+      "control": "TableLayoutPanelCompat",
+      "member": "column_span / row_span / cell (overlap)",
+      "winforms": "Spans may overlap other spans or explicitly placed children; the layout then moves the later child on (or leaves it out under FixedSize).",
+      "gui_forms": "A span that would overlap another span or cover another child's cell, and a cell inside another child's span, are refused with std::invalid_argument when written.",
+      "reason": "The table's spans follow the GridSpan conflict rules (study 10.9 section 1, rules a and d), so a fused region never holds a second placed child.",
+      "source": "owner",
+      "date": "2026-11-05"
     }
   ]
 }

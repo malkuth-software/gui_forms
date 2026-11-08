@@ -210,6 +210,9 @@ enum class DiagnosticCode : std::uint16_t {
     // span of the parent, or a `cell` inside a span. Every conflict is
     // reported.
     form_span_conflict = 814,
+    // A string escape the form language does not admit (form_model.hpp,
+    // Strings): the detail is the escape as written.
+    form_escape_invalid = 815,
     // E999 is temporary: a form a later phase gives its meaning, refused
     // until then so that no interim meaning ships (PLAN.md P4: a custom
     // property with several definitions, until P12; P5: `!important`, the

@@ -4712,6 +4712,10 @@ Types
 
       The host's colour hints the sheets' env() reads (T4 theme variants), as compiled: a theme compiled again reads new hints. Empty, every env() reads its fallback. ApplicationResources::compile_theme_package and compile_user_theme pass the resources' (system_colour_hints) where these are empty.
 
+   .. cpp:member:: ThemeCompileBase base
+
+      The theme the sheets compile onto; windows_professional unless the caller chooses gui_forms. With gui_forms, ``controls`` names the stock control types too: the light sheet's rules for a type outside it are warnings that drop them, named for ``gui-forms/light.css``. Default: ``{ThemeCompileBase::windows_professional}``.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:class:: ThemeCompileResult final
@@ -6605,6 +6609,16 @@ Enumerations
    .. cpp:enumerator:: monospace
 
    .. cpp:enumerator:: count
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ThemeCompileBase
+
+   ``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>``
+
+   .. cpp:enumerator:: windows_professional
+
+   .. cpp:enumerator:: gui_forms
 
 .. cpp:namespace:: gui_forms
 

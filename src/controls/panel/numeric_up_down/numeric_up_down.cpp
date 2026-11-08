@@ -18,7 +18,7 @@ namespace gui_forms {
 
 NumericUpDown::NumericUpDown(StableId stable_id) : Panel(std::move(stable_id)) {
     set_tool_tip_presentation(ToolTipPresentation::field_hint);
-    set_border_style(BorderStyle::line);
+    border_style = BorderStyle::line;
     set_background(style().paper);
     define_bindable_property({
         {"value", BindingValueKind::number, "Behavior",
@@ -48,7 +48,7 @@ void NumericUpDown::SpinnerStepCallback::operator()(int direction) const {
 void NumericUpDown::initialize_control_tree() {
     const std::string prefix(stable_id().value());
     editor_ = make_control<TextBox>(StableId(prefix + ".editor"));
-    (*editor_).set_border_style(BorderStyle::none);
+    (*editor_).border_style = BorderStyle::none;
     spinner_ = make_control<SpinButtons>(StableId(prefix + ".spinner"));
     add_child(editor_);
     add_child(spinner_);
@@ -184,7 +184,7 @@ void NumericUpDown::arrange(Rect final_bounds) {
     arrange_self(final_bounds);
     // The field and the spin column sit inside the control's own border
     // (the borderless editor draws none of its own).
-    const double inset = border_style() == BorderStyle::none ? 0.0 : 1.0;
+    const double inset = border_style.read() == BorderStyle::none ? 0.0 : 1.0;
     const double inner_width = std::max(0.0, final_bounds.width - 2.0 * inset);
     const double inner_height = std::max(0.0, final_bounds.height - 2.0 * inset);
     const double button_width = std::min(button_width_, inner_width);

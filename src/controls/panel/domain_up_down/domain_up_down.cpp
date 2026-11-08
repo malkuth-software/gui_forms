@@ -63,7 +63,7 @@ struct SortedItemOrder final {
 
 DomainUpDown::DomainUpDown(StableId stable_id) : Panel(std::move(stable_id)) {
     set_tool_tip_presentation(ToolTipPresentation::field_hint);
-    set_border_style(BorderStyle::line);
+    border_style = BorderStyle::line;
     set_background(style().paper);
     PropertyRegistration items_registration;
     items_registration.descriptor = text_items_property::descriptor("Ordered text items the spinner steps through.");
@@ -120,7 +120,7 @@ void DomainUpDown::SpinnerStepCallback::operator()(int direction) const {
 void DomainUpDown::initialize_control_tree() {
     const std::string prefix(stable_id().value());
     editor_ = make_control<TextBox>(StableId(prefix + ".editor"));
-    (*editor_).set_border_style(BorderStyle::none);
+    (*editor_).border_style = BorderStyle::none;
     // The editor stays writable: read-only is enforced by the edit filter,
     // which also sees the characters a read-only field refuses.
     (*editor_).set_edit_filter(
@@ -321,7 +321,7 @@ void DomainUpDown::arrange(Rect final_bounds) {
     // at the right; the field takes the rest.
     // Both sit inside the control's own border (the borderless editor
     // draws none of its own).
-    const double inset = border_style() == BorderStyle::none ? 0.0 : 1.0;
+    const double inset = border_style.read() == BorderStyle::none ? 0.0 : 1.0;
     const double inner_width = std::max(0.0, final_bounds.width - 2.0 * inset);
     const double inner_height = std::max(0.0, final_bounds.height - 2.0 * inset);
     const double button_width = std::min(button_width_, inner_width);

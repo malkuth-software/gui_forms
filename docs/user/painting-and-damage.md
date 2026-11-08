@@ -254,6 +254,26 @@ sides.
 Overlays opened with `SurfaceRoot::open_popup` inside a sub-surface stay
 within its region.
 
+### Sub-surface accessibility
+
+Assistive technology sees one tree per window. At the end of each turn in
+which its tree's semantic generation moved, a sub-surface publishes an
+immutable `SemanticSnapshot` and tells the host through the window's
+dispatcher; the host publishes that snapshot's nodes as its own virtual
+children, so the Windows, macOS and Linux adapters read them from the
+window's snapshot like any other node and never call into the sub-surface's
+thread. Each node is translated into the window: its stable identity is
+prefixed with the host's (`<host>.<node>`), its bounds move by the host's
+position, its runtime identity is derived from the host and the node's own
+runtime identity (so a replaced control, or a restarted sub-surface, gives
+new nodes), and it is focused only while the sub-surface has keyboard
+focus. An action on one of those nodes is posted to the sub-surface's thread
+with the node's own runtime identity and performed or refused there
+(`SubSurfaceStatistics` counts the snapshots and the actions); a focus
+action also focuses the host. Editable text inside a sub-surface publishes
+its value and selection but no text layout, so hosts offer no text ranges
+there.
+
 ## Reading the counters
 
 `MetricsSnapshot` carries `paint_passes`, `controls_painted`,

@@ -1351,11 +1351,11 @@ private:
             fault(where, "TableLayoutPanelCompat places a child on both axes or neither");
         }
         if (layout.column.start_line) {
-            table.set_cell_position(control, TableLayoutCellPosition{*layout.column.start_line - 1U,
-                                                                     *layout.row.start_line - 1U});
+            table.cell[control] = GridCell{.row = static_cast<std::uint32_t>(*layout.row.start_line - 1U),
+                                           .column = static_cast<std::uint32_t>(*layout.column.start_line - 1U)};
         }
-        table.set_column_span(control, layout.column.span);
-        table.set_row_span(control, layout.row.span);
+        table.column_span[control] = static_cast<std::uint32_t>(layout.column.span);
+        table.row_span[control] = static_cast<std::uint32_t>(layout.row.span);
         const CellAlignment justify = layout.justify_self.value_or(defaults.justify_items);
         const CellAlignment align = layout.align_self.value_or(defaults.align_items);
         control.dock = DockStyle::none;

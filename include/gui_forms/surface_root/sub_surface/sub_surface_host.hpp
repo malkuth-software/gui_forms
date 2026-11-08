@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <memory>
 #include <span>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -63,6 +64,25 @@ struct SubSurfaceRequestStatistics final {
 // request is shown at once. Answers go back asynchronously. The host revokes
 // the pointer's requests when the pointer leaves it, the keyboard's when its
 // keyboard focus leaves, and drops every request when its thread stops.
+//
+// Accessibility (design note section 5, decision 5): the sub-surface
+// publishes an immutable semantic snapshot whenever its tree's semantic
+// generation moves, and the host publishes that snapshot's nodes as its own
+// virtual children, so every host adapter reads one tree from the window's
+// snapshot and names those nodes as it names any virtual child. Each node
+// is translated into the window: its stable identity is prefixed with the
+// host's ("<host>.<node>"), and so is a controlled panel's; its bounds move
+// by the host's position; its runtime identity is
+// virtual_semantic_runtime_id of "<host>#<node's runtime identity>", so a
+// node of a control the sub-surface replaced, or of a restarted
+// sub-surface, is a different node; and it is focused only while the
+// sub-surface has keyboard focus. Actions on those nodes are posted to the
+// sub-surface's thread with the node's own runtime identity, which refuses
+// them there if the control has gone since; a focus action also focuses
+// the host. Editable text on those nodes publishes its value and selection
+// but no text layout (Window::semantic_text_layout answers only for the
+// window's own controls), so hosts offer no text ranges inside a
+// sub-surface.
 class SubSurfaceHost final : public Control {
 public:
     explicit SubSurfaceHost(StableId stable_id);
@@ -74,10 +94,23 @@ public:
     // Null content stops it and leaves the region empty.
     void set_content(std::unique_ptr<SubSurfaceContent> content, bool opaque);
     [[nodiscard]] bool opaque() const noexcept { return opaque_; }
+    // The parent's redraw-all (design note section 2): sends a configuration
+    // under a new content epoch carrying `update` (null for none), so that
+    // the sub-surface's first frame at that epoch shows it and the window
+    // composes no older frame once it pairs (section 6). Call it in the same
+    // turn as the chrome change it must agree with (a scroll, a column
+    // width). Returns the epoch the update rides: the new content_epoch(),
+    // or, while there is no content, no window or no device size yet, 0 and
+    // the update waits for the first configuration (a newer one replaces
+    // it). New content (set_content) discards a waiting update.
+    std::uint64_t redraw_all(std::unique_ptr<SubSurfaceContentUpdate> update);
     // Whether the sub-surface's thread exists (started and not stopped).
     [[nodiscard]] bool started() const noexcept { return static_cast<bool>(thread_); }
     // The thread's state; stopped while there is none.
     [[nodiscard]] SubSurfaceState state() const;
+    // What the content threw or why it built no root, for state failed;
+    // empty otherwise (SubSurfaceThread::failure).
+    [[nodiscard]] std::string failure() const;
     [[nodiscard]] SubSurfaceStatistics statistics() const;
     // Posts to the sub-surface's thread (SubSurfaceThread::dispatcher);
     // empty while it is not running.
@@ -111,6 +144,16 @@ public:
     // stop through which focus enters the sub-surface. The sub-surface's
     // tree publishes its nodes in its own root, not under this one.
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
+    // The sub-surface's newest semantic snapshot taken by the host,
+    // translated into the window (see the class comment); empty before the
+    // first and while no sub-surface runs.
+    [[nodiscard]] std::vector<SemanticNode> semantic_virtual_children() const override;
+    // Posts the action to the sub-surface when `stable_id` names one of the
+    // nodes semantic_virtual_children publishes and that node offers it
+    // (focus: a focusable node). True when posted; the sub-surface performs
+    // or refuses it on its own thread (SubSurfaceStatistics).
+    bool on_semantic_child_action(std::string_view stable_id, SemanticAction action,
+                                  std::string_view value) override;
     // Stage T1 anatomy, as dot members (see Control::Parts). `content` is
     // the composed sub-surface frame, present once the sub-surface has a
     // LiveSurface; the sub-surface's own controls are parts of its tree,
@@ -171,6 +214,9 @@ private:
     void relay_alert(const SurfaceRequestOutcome& outcome);
     // The window's presenter showed or closed one of this host's items.
     void on_window_tool_tip(const ToolTipEvent& change);
+    // The sub-surface's semantics listener for one thread, revoked like
+    // KeyReturn. Parent thread only.
+    class SemanticsNotice;
 
     // Tells the sub-surface whether it has keyboard focus: the host is the
     // window's focused control in an active window. `entry` is where focus
@@ -182,6 +228,9 @@ private:
     void hold_capture_for(const PointerEvent& event);
     // A key the sub-surface returned (KeyReturn): continues in the window.
     void continue_returned_key(const KeyEvent& event);
+    // A semantics notice (SemanticsNotice): takes the newest snapshot and
+    // marks the host's semantics.
+    void take_sub_surface_semantics();
     // Starts the thread when it can, and sends a configuration when the
     // region's device size or the window scale changed: a new content epoch,
     // a framebuffer at the new size, the pairing requirement, and a paint of
@@ -205,6 +254,9 @@ private:
     bool opaque_{};
     // An environment change not yet sent.
     bool environment_changed_{};
+    // A redraw-all not yet sent, and its update (redraw_all).
+    bool redraw_requested_{};
+    std::unique_ptr<SubSurfaceContentUpdate> pending_update_{};
     SubscriptionToken theme_subscription_{};
     SubscriptionToken presentation_subscription_{};
     SubscriptionToken active_subscription_{};
@@ -221,6 +273,10 @@ private:
     std::uint64_t pointer_left_sequence_{};
     std::uint64_t focus_left_sequence_{};
     SubSurfaceRequestStatistics request_statistics_{};
+    std::shared_ptr<SemanticsNotice> semantics_notice_{};
+    // The newest snapshot taken from the running sub-surface; null before
+    // the first and after the thread stopped.
+    std::shared_ptr<const SemanticSnapshot> semantics_{};
     // The sub-surface was last told it has keyboard focus.
     bool keyboard_inside_{};
     // The non-primary pointer buttons forwarded down and not yet up, one bit

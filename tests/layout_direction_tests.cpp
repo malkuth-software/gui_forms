@@ -208,8 +208,8 @@ void test_table_layout_starts_at_the_right() {
     std::shared_ptr<Button> second = sized_button("direction.table.second", 50.0, 20.0);
     (*table).add_child(first);
     (*table).add_child(second);
-    (*table).set_cell_position(*first, {0U, 0U});
-    (*table).set_cell_position(*second, {1U, 0U});
+    (*table).cell[*first] = GridCell{.row = 0U, .column = 0U};
+    (*table).cell[*second] = GridCell{.row = 0U, .column = 1U};
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(table, Size{200.0, 100.0});
     Window& window = *held_window;
     window.perform_layout();

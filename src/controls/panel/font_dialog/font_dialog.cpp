@@ -57,7 +57,7 @@ class FontDialogLayer final : public Panel {
 public:
     explicit FontDialogLayer(StableId stable_id) : Panel(std::move(stable_id)) {
         set_paint_plane(PaintPlane::overlay);
-        set_border_style(BorderStyle::none);
+        border_style = BorderStyle::none;
         // Fully transparent: the layer has no appearance of its own.
         set_background(Color::rgba(0, 0, 0, 0));
     }
@@ -86,7 +86,7 @@ std::span<const BundledFontFace> bundled_font_faces() noexcept {
 }
 
 FontDialog::FontDialog(StableId stable_id) : Panel(std::move(stable_id)) {
-    set_border_style(BorderStyle::none);
+    border_style = BorderStyle::none;
     set_focusable(false);
 }
 

@@ -521,6 +521,18 @@ GF_LAYOUT_ASSERT(offsetof(gf_bindings_table, set_position) == 72, "gf_bindings_t
 GF_LAYOUT_ASSERT(offsetof(gf_bindings_table, position) == 80, "gf_bindings_table.position offset");
 GF_LAYOUT_ASSERT(offsetof(gf_bindings_table, current_field) == 88, "gf_bindings_table.current_field offset");
 GF_LAYOUT_ASSERT(offsetof(gf_bindings_table, set_current_field) == 96, "gf_bindings_table.set_current_field offset");
+GF_LAYOUT_ASSERT(sizeof(gf_subsurface_content) == 40, "gf_subsurface_content size");
+GF_LAYOUT_ASSERT(offsetof(gf_subsurface_content, struct_size) == 0, "gf_subsurface_content.struct_size offset");
+GF_LAYOUT_ASSERT(offsetof(gf_subsurface_content, opaque) == 4, "gf_subsurface_content.opaque offset");
+GF_LAYOUT_ASSERT(offsetof(gf_subsurface_content, build) == 8, "gf_subsurface_content.build offset");
+GF_LAYOUT_ASSERT(sizeof(gf_subsurfaces_table) == 48, "gf_subsurfaces_table size");
+GF_LAYOUT_ASSERT(offsetof(gf_subsurfaces_table, struct_size) == 0, "gf_subsurfaces_table.struct_size offset");
+GF_LAYOUT_ASSERT(offsetof(gf_subsurfaces_table, abi_minor) == 4, "gf_subsurfaces_table.abi_minor offset");
+GF_LAYOUT_ASSERT(offsetof(gf_subsurfaces_table, set_content) == 8, "gf_subsurfaces_table.set_content offset");
+GF_LAYOUT_ASSERT(offsetof(gf_subsurfaces_table, set_root) == 16, "gf_subsurfaces_table.set_root offset");
+GF_LAYOUT_ASSERT(offsetof(gf_subsurfaces_table, state) == 24, "gf_subsurfaces_table.state offset");
+GF_LAYOUT_ASSERT(offsetof(gf_subsurfaces_table, content_epoch) == 32, "gf_subsurfaces_table.content_epoch offset");
+GF_LAYOUT_ASSERT(offsetof(gf_subsurfaces_table, failure) == 40, "gf_subsurfaces_table.failure offset");
 GF_LAYOUT_ASSERT(sizeof(gf_windows_paint_endpoint_table) == 104, "gf_windows_paint_endpoint_table size");
 GF_LAYOUT_ASSERT(offsetof(gf_windows_paint_endpoint_table, struct_size) == 0, "gf_windows_paint_endpoint_table.struct_size offset");
 GF_LAYOUT_ASSERT(offsetof(gf_windows_paint_endpoint_table, abi_minor) == 4, "gf_windows_paint_endpoint_table.abi_minor offset");

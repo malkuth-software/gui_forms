@@ -200,6 +200,10 @@ Types
      - gf_size projects renderer-neutral logical dimensions across the stable C ABI.
    * - :cpp:class:`gf_string_view <gf_string_view>`
      - gf_string_view is a non-owning bounded byte view; operations validate null/size and UTF-8 rules before copying.
+   * - :cpp:class:`gf_subsurface_content <gf_subsurface_content>`
+     -  
+   * - :cpp:class:`gf_subsurfaces_table <gf_subsurfaces_table>`
+     -  
    * - :cpp:class:`gf_text_editing_table <gf_text_editing_table>`
      -  
    * - :cpp:class:`gf_theme_diagnostic <gf_theme_diagnostic>`
@@ -238,6 +242,8 @@ Types
      - gf_schema_table, negotiated as GF_TABLE_SCHEMA.
    * - :cpp:class:`SubscriptionReference <gui_forms::abi::SubscriptionReference>`
      - One subscription, disconnected (events.disconnect) when the owner goes or resets.
+   * - :cpp:class:`SubsurfacesTable <gui_forms::abi::SubsurfacesTable>`
+     - gf_subsurfaces_table, negotiated as GF_TABLE_SUBSURFACES.
    * - :cpp:class:`TextEditingTable <gui_forms::abi::TextEditingTable>`
      - gf_text_editing_table, negotiated as GF_TABLE_TEXT_EDITING.
    * - :cpp:class:`ThemesTable <gui_forms::abi::ThemesTable>`
@@ -2638,6 +2644,41 @@ Types
 
 .. cpp:namespace:: 0
 
+.. cpp:struct:: gf_subsurface_content
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t opaque
+
+   .. cpp:member:: gf_callback build
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_subsurfaces_table
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+
+   .. rubric:: Methods
+
+   .. cpp:member:: gf_status (*set_content)(gf_object host, const gf_subsurface_content* content)
+
+   .. cpp:member:: gf_status (*set_root)(gf_object root)
+
+   .. cpp:member:: gf_status (*state)(gf_object host, gf_subsurface_state* state)
+
+   .. cpp:member:: gf_status (*content_epoch)(gf_object host, uint64_t* epoch)
+
+   .. cpp:member:: gf_status (*failure)(gf_object host, char* buffer, uint64_t capacity, uint64_t* required)
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t abi_minor
+
+.. cpp:namespace:: 0
+
 .. cpp:struct:: gf_text_editing_table
 
    ``#include <gui_forms/c/gf_abi.h>``
@@ -3246,6 +3287,45 @@ Types
    .. cpp:function:: gf_status reset() noexcept
 
       Disconnects now; GF_STATUS_OK when there was nothing to disconnect. The owner is empty afterwards whatever disconnect answered.
+
+.. cpp:namespace:: gui_forms::abi
+
+.. cpp:class:: SubsurfacesTable
+
+   ``#include <gui_forms/c/gf_abi.hpp>``
+
+   gf_subsurfaces_table, negotiated as GF_TABLE_SUBSURFACES.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: SubsurfacesTable() noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: const gf_subsurfaces_table& c_table() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static gf_status negotiate(SubsurfacesTable& output) noexcept
+
+      Negotiates the table at the header's version into output; a refusal leaves output serving nothing.
+
+   .. cpp:function:: static SubsurfacesTable adopt(const gf_subsurfaces_table& adopted_table) noexcept
+
+      A table the caller negotiated through gf_abi_get_table.
+
+   .. cpp:function:: gf_status state(gf_object host, gf_subsurface_state* state) const noexcept
+
+   .. cpp:function:: gf_status content_epoch(gf_object host, uint64_t* epoch) const noexcept
+
+   .. cpp:function:: gf_status failure(gf_object host, char* buffer, uint64_t capacity, uint64_t* required) const noexcept
+
+   .. cpp:function:: gf_status set_content(gf_object host, const gf_subsurface_content* content) const noexcept
+
+   .. cpp:function:: gf_status set_root(gf_object root) const noexcept
 
 .. cpp:namespace:: gui_forms::abi
 

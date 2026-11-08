@@ -2,9 +2,12 @@
 
 #include "../kernel/box_blur.hpp"
 #include "../kernel/pixel_kernel.hpp"
+#include "../material/material_bake_policy.hpp"
+#include "../material/material_primitive.hpp"
 
 #include "gui_forms/engine/part_raster/part_raster.hpp"
 #include "gui_forms/engine/part_shape/part_shape.hpp"
+#include "gui_forms/surface_material/painting/surface_material_painting.hpp"
 #include "gui_forms/surface_material/types/surface_material_types.hpp"
 #include "gui_forms/theme/types/theme_types.hpp"
 
@@ -33,6 +36,7 @@ constexpr std::size_t glass_blur = 0U;
 constexpr std::size_t glass_tint = 1U;
 constexpr std::size_t glass_corner = 2U;
 constexpr std::size_t glass_recipe = 3U;
+constexpr std::size_t glass_layers = 4U;
 
 // `none`, then the theme's recipe roles in enum order (E9.6): the recipe
 // whose material's colour filter glass applies to its backdrop.
@@ -43,11 +47,17 @@ constexpr std::array<std::string_view, 15> glass_recipe_names{
 static_assert(glass_recipe_names.size() == static_cast<std::size_t>(ControlVisualRole::count) + 1U,
               "none, then one choice per recipe role");
 
+// What glass draws of its recipe's material (the glass recipe): its colour
+// filter alone, under the tint (`filter`, the default), or the material's
+// layers in place of the tint (`material`).
+constexpr std::array<std::string_view, 2> glass_layer_names{"filter", "material"};
+
 const PrimitiveParameterDeclaration glass_parameters[] = {
     {"blur", PrimitiveParameterKind::number, 0.0, 8.0, 6.0, {}},
     {"tint", PrimitiveParameterKind::colour, 0.0, 0.0, 0.0, {255, 255, 255, 64}},
     {"corner", PrimitiveParameterKind::number, 0.0, 64.0, 0.0, {}},
     {"recipe", PrimitiveParameterKind::choice, 0.0, 0.0, 0.0, {}, false, glass_recipe_names},
+    {"layers", PrimitiveParameterKind::choice, 0.0, 0.0, 0.0, {}, false, glass_layer_names},
 };
 
 const PrimitiveDescriptor glass_descriptor{
@@ -105,6 +115,49 @@ Unit opaque_of(Unit pixel) noexcept {
     return opaque;
 }
 
+// Whether `parameters` draw the recipe's material in place of the tint: the
+// `material` layers with a recipe named.
+bool draws_material(const PrimitiveParameterBlock& parameters) noexcept {
+    const bool named = parameters.values[glass_recipe].number >= 1.0;
+    const bool layers = parameters.values[glass_layers].number >= 1.0;
+    return named && layers;
+}
+
+// The layers glass draws of `authored` over its backdrop: those inside the
+// part's box. Glass has no outsets, so the outer shadows, the under glows,
+// the drop shadow and the reflection, which lie past the box, are left out;
+// so are the colour filter, which glass applies to the backdrop instead,
+// and the filter blur, which would blur the material and not the backdrop.
+void inside_layers(const SurfaceMaterial& authored, SurfaceMaterial& inside) {
+    inside = authored;
+    inside.shadows.clear();
+    for (const MaterialShadow& shadow : authored.shadows) {
+        if (shadow.inset) inside.shadows.push_back(shadow);
+    }
+    inside.glows.clear();
+    for (const MaterialGlow& glow : authored.glows) {
+        if (glow.placement == MaterialGlowPlacement::over) inside.glows.push_back(glow);
+    }
+    inside.colour_filter = MaterialColourFilter{};
+    inside.drop_shadow.reset();
+    inside.filter_blur = 0.0;
+    inside.reflection.reset();
+}
+
+// A fill glass's material layers do not draw (they need image variants or a
+// generated pattern the engine lends only to the material primitive).
+bool lent_only_to_materials(const MaterialFillLayer& layer) noexcept {
+    const bool lent = layer.kind == MaterialFillKind::image || layer.kind == MaterialFillKind::procedural;
+    return lent;
+}
+
+// The pixel at byte `at` of `view`, premultiplied.
+Unit view_pixel(const PartRasterView& view, std::size_t at) noexcept {
+    const Unit pixel{unit_lane(view.pixels[at + 2U]), unit_lane(view.pixels[at + 1U]), unit_lane(view.pixels[at]),
+                     unit_lane(view.pixels[at + 3U])};
+    return pixel;
+}
+
 } // namespace
 
 std::uint32_t glass_box_half(double blur, double scale) noexcept {
@@ -139,6 +192,25 @@ std::optional<std::uint32_t> GlassPrimitive::backplane_margin(const PrimitivePar
     return margin;
 }
 
+// With the material layers, the recipe's material must be lent and valid,
+// hold no image or procedural fill or image mask, and bake within the
+// material primitive's bound (material_bake_policy.hpp); otherwise the part
+// falls back to the built-in recipe, as the material primitive's would.
+bool GlassPrimitive::accepts(const PrimitiveParameterBlock& parameters, const PrimitiveTarget& target) const noexcept {
+    if (!draws_material(parameters)) return true;
+    if (target.material == nullptr) return false;
+    const SurfaceMaterial& material = *target.material;
+    if (!valid_surface_material(material)) return false;
+    for (const MaterialFillLayer& layer : material.fills) {
+        if (lent_only_to_materials(layer)) return false;
+    }
+    if (material.mask && lent_only_to_materials(*material.mask)) return false;
+    // The authored material bounds the layers drawn, which are fewer.
+    const BakeEffort effort = material_bake_effort(material, target, 0.0);
+    const bool within = effort <= maximum_material_bake_effort;
+    return within;
+}
+
 void GlassPrimitive::derive(const PrimitiveParameterBlock&, const PrimitiveTarget&, std::span<double>) const noexcept {}
 
 void GlassPrimitive::fill(const PrimitiveParameterBlock& parameters, const PrimitiveTarget& target,
@@ -147,7 +219,14 @@ void GlassPrimitive::fill(const PrimitiveParameterBlock& parameters, const Primi
     const std::size_t width = destination.extent.width;
     const std::size_t height = destination.extent.height;
     const Color tint = parameters.values[glass_tint].colour;
+    const SurfaceMaterial* const lent = target.material;
+    // The material's layers replace the tint (the glass recipe); accepts()
+    // has checked the material.
+    const bool material_layers = draws_material(parameters) && lent != nullptr;
     PartShape shape = GlassPrimitive::shape(parameters);
+    // With the material's layers the backdrop takes the material's corner,
+    // as its fills do.
+    if (material_layers) shape.corner_radius = (*lent).corner_radius;
     if (target.corner_radius) shape.corner_radius = std::max(0.0, *target.corner_radius);
     const Rect box{0.0, 0.0, target.logical_size.width, target.logical_size.height};
 
@@ -178,8 +257,28 @@ void GlassPrimitive::fill(const PrimitiveParameterBlock& parameters, const Primi
     }
     const bool flattened_over_backplane = flattened && fits;
 
+    // The material's layers, baked once into a raster of the destination's
+    // extent and composited over the backdrop pixel by pixel. Without the
+    // storage, the backdrop alone is drawn.
+    std::vector<std::uint8_t> layer_pixels{};
+    PartRasterView layers{};
+    bool layered = false;
+    if (material_layers) {
+        try {
+            SurfaceMaterial inside{};
+            inside_layers(*lent, inside);
+            const std::size_t row_bytes = width * part_raster_bytes_per_pixel;
+            layer_pixels.assign(row_bytes * height, std::uint8_t{0});
+            layers = PartRasterView{std::span<std::uint8_t>(layer_pixels), destination.extent, row_bytes};
+            bake_material(inside, target, layers, 0.0);
+            layered = true;
+        } catch (const std::exception&) {
+            // std::bad_alloc or std::length_error.
+            layered = false;
+        }
+    }
+
     // The backdrop's colour filter, from the recipe's material (E9.6).
-    const SurfaceMaterial* const lent = target.material;
     const bool filtered = lent != nullptr && (*lent).colour_filter.has_value();
     const MaterialColourMatrix filter = filtered ? *(*lent).colour_filter : MaterialColourMatrix{};
     const Unit over = premultiply(tint, 1.0);
@@ -197,12 +296,13 @@ void GlassPrimitive::fill(const PrimitiveParameterBlock& parameters, const Primi
                 pixel = backplane_pixel(*target.backplane, margin, column, row);
                 if (filtered) pixel = colour_filtered(filter, pixel);
             }
-            blend_over(pixel, over);
+            if (!material_layers) blend_over(pixel, over);
             if (flattened) pixel = opaque_of(pixel);
             const double coverage = shape_coverage(shape, box, scale, static_cast<std::int64_t>(column),
                                                    static_cast<std::int64_t>(row));
-            const Unit covered{pixel.red * coverage, pixel.green * coverage, pixel.blue * coverage,
-                               pixel.alpha * coverage};
+            Unit covered{pixel.red * coverage, pixel.green * coverage, pixel.blue * coverage,
+                         pixel.alpha * coverage};
+            if (layered) blend_over(covered, view_pixel(layers, row * layers.row_bytes + column * lanes));
             store(destination, start + column * part_raster_bytes_per_pixel, covered);
         }
     }

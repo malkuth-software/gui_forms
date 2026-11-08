@@ -1,5 +1,6 @@
 #include "gui_forms/controls/scrollable_control/container_control/flow_layout_panel_compat/flow_layout_panel_compat.hpp"
 #include "../container_layout_utilities.hpp"
+#include "gui_forms/detail/property_binding_adapters.hpp"
 #include "../../scrollable_anatomy.hpp"
 
 #include <algorithm>
@@ -36,10 +37,93 @@ void write_flow_break(Component& container, const Control& child, const BindingV
     flow.flow_break[child] = std::get<bool>(value);
 }
 
+
+std::shared_ptr<const PropertyEnumDescriptor> flow_direction_enum() {
+    static const std::shared_ptr<const PropertyEnumDescriptor> value =
+        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+            "flow_direction", {{"left_to_right", 0}, {"right_to_left", 1}, {"top_down", 2}, {"bottom_up", 3}}, false});
+    return value;
+}
+
+std::shared_ptr<const PropertyEnumDescriptor> main_alignment_enum() {
+    static const std::shared_ptr<const PropertyEnumDescriptor> value =
+        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+            "flow_main_alignment",
+            {{"start", 0}, {"center", 1}, {"end", 2}, {"space_between", 3}, {"space_around", 4}, {"space_evenly", 5}},
+            false});
+    return value;
+}
+
+std::shared_ptr<const PropertyEnumDescriptor> cross_alignment_enum() {
+    static const std::shared_ptr<const PropertyEnumDescriptor> value =
+        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+            "flow_cross_alignment", {{"start", 0}, {"center", 1}, {"end", 2}, {"stretch", 3}}, false});
+    return value;
+}
+
 } // namespace
 
 FlowLayoutPanelCompat::FlowLayoutPanelCompat(StableId stable_id)
-    : ContainerControl(std::move(stable_id)) {}
+    : ContainerControl(std::move(stable_id)) {
+    register_panel_properties();
+}
+
+void FlowLayoutPanelCompat::register_panel_properties() {
+    PropertyDescriptor direction{"flow_direction", BindingValueKind::enumeration, "Layout",
+                                 "The direction children follow one another: left to right, right to left, top "
+                                 "down or bottom up.",
+                                 BindingValue{std::int64_t{0}}, invalidation::bounds};
+    direction.bindable = false;
+    direction.enumeration = flow_direction_enum();
+    define_bindable_property({std::move(direction),
+                              detail::EnumerationPropertyGetter<FlowLayoutPanelCompat, FlowDirection>(
+                                  *this, &FlowLayoutPanelCompat::flow_direction, flow_direction_enum()),
+                              detail::EnumerationPropertySetter<FlowLayoutPanelCompat, FlowDirection>(
+                                  *this, &FlowLayoutPanelCompat::set_flow_direction),
+                              {}, {}, {}});
+    PropertyDescriptor wrap{"wrap_contents", BindingValueKind::boolean, "Layout",
+                            "Whether a child that does not fit the rest of the line starts a new one.",
+                            BindingValue{true}, invalidation::bounds};
+    wrap.bindable = false;
+    define_bindable_property({std::move(wrap),
+                              detail::BindingNoexceptMethodGetter<FlowLayoutPanelCompat, bool>(
+                                  *this, &FlowLayoutPanelCompat::wrap_contents),
+                              detail::DirectPropertySetter<FlowLayoutPanelCompat, bool>(
+                                  *this, &FlowLayoutPanelCompat::set_wrap_contents),
+                              {}, {}, {}});
+    PropertyDescriptor spacing{"item_spacing", BindingValueKind::size, "Layout",
+                               "The space between items along a line (width) and between lines (height).",
+                               BindingValue{Size{}}, invalidation::bounds};
+    spacing.bindable = false;
+    define_bindable_property({std::move(spacing),
+                              detail::BindingNoexceptMethodGetter<FlowLayoutPanelCompat, Size>(
+                                  *this, &FlowLayoutPanelCompat::item_spacing),
+                              detail::DirectPropertySetter<FlowLayoutPanelCompat, Size>(
+                                  *this, &FlowLayoutPanelCompat::set_item_spacing),
+                              {}, {}, {}});
+    PropertyDescriptor main{"main_alignment", BindingValueKind::enumeration, "Layout",
+                            "How a line's items share its free space along the flow.",
+                            BindingValue{std::int64_t{0}}, invalidation::bounds};
+    main.bindable = false;
+    main.enumeration = main_alignment_enum();
+    define_bindable_property({std::move(main),
+                              detail::EnumerationPropertyGetter<FlowLayoutPanelCompat, FlowMainAlignment>(
+                                  *this, &FlowLayoutPanelCompat::main_alignment, main_alignment_enum()),
+                              detail::EnumerationPropertySetter<FlowLayoutPanelCompat, FlowMainAlignment>(
+                                  *this, &FlowLayoutPanelCompat::set_main_alignment),
+                              {}, {}, {}});
+    PropertyDescriptor cross{"cross_alignment", BindingValueKind::enumeration, "Layout",
+                             "Where an item sits across its line: start, center, end or stretched.",
+                             BindingValue{std::int64_t{0}}, invalidation::bounds};
+    cross.bindable = false;
+    cross.enumeration = cross_alignment_enum();
+    define_bindable_property({std::move(cross),
+                              detail::EnumerationPropertyGetter<FlowLayoutPanelCompat, FlowCrossAlignment>(
+                                  *this, &FlowLayoutPanelCompat::cross_alignment, cross_alignment_enum()),
+                              detail::EnumerationPropertySetter<FlowLayoutPanelCompat, FlowCrossAlignment>(
+                                  *this, &FlowLayoutPanelCompat::set_cross_alignment),
+                              {}, {}, {}});
+}
 
 const std::array<ChildPropertyEntry, FlowLayoutPanelCompat::flow_child_property_count>&
 FlowLayoutPanelCompat::flow_child_property_entries() noexcept {

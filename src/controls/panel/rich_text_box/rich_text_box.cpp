@@ -116,7 +116,7 @@ RichTextBox::RichTextBox(StableId stable_id, std::string_view markdown)
     editing_ = std::make_unique<detail::TextEditingEngine>(*editing_host_, markdown);
     (*editing_).set_maximum_bytes(maximum_bytes);
     set_paint_plane(PaintPlane::control);
-    set_border_style(BorderStyle::sunken);
+    border_style = BorderStyle::sunken;
     set_focusable(true);
     cursor = CursorKind::text;
     set_tool_tip_presentation(ToolTipPresentation::field_hint);

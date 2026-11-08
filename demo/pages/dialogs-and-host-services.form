@@ -1,0 +1,193 @@
+/* The Gallery's dialogs-and-host-services page (stage FD, phase FD6.3):
+   message dialogs, path and colour dialogs, host services with the
+   FontDialog specimen, TaskDialog and ThreadExceptionDialog, and a
+   NotifyIcon. gui_forms_add_form() compiles this document into
+   dialogs-and-host-services_form.hpp at build time.
+
+   gallery.host.document is a declared boundary only: the page moves its
+   children into the shell's page body, where each is placed by its bounds
+   in design coordinates. The page keeps in code the Commands and their
+   bindings, the dialog components and their requests, the font sample (its
+   font seeds the FontDialog), the NotifyIcon, every event handler, the
+   status line's reports and the page style. */
+scaled-panel gallery.host.document {
+  design-size: 1000 870;
+
+  label gallery.host.heading {
+    text: "DIALOGS AND HOST SERVICES";
+    classes: "heading" "page-title";
+    bounds: 24 18 620 34;
+  }
+  label gallery.host.lead {
+    text: "One portable contract for modal results, clipboard, monitor geometry, and semantic sound across native hosts.";
+    classes: "muted" "body";
+    bounds: 26 52 900 24;
+  }
+
+  scaled-group-box gallery.host.messages {
+    text: "Message dialogs · buttons, icons, default choices";
+    design-size: 930 132;
+    bounds: 24 92 930 132;
+    classes: "paper" "group-caption";
+    button gallery.host.message.0 {
+      text: "OK";
+      visual-style: command;
+      bounds: 24 44 138 42;
+    }
+    button gallery.host.message.1 {
+      text: "OK/Cancel";
+      visual-style: command;
+      bounds: 172 44 138 42;
+    }
+    button gallery.host.message.2 {
+      text: "Yes/No";
+      visual-style: accent;
+      bounds: 320 44 138 42;
+    }
+    button gallery.host.message.3 {
+      text: "Retry/Cancel";
+      visual-style: command;
+      bounds: 468 44 138 42;
+    }
+    button gallery.host.message.4 {
+      text: "Abort/Retry/Ignore";
+      visual-style: command;
+      bounds: 616 44 138 42;
+    }
+    button gallery.host.message.5 {
+      text: "Cancel/Try/Continue";
+      visual-style: command;
+      bounds: 764 44 138 42;
+    }
+  }
+
+  scaled-group-box gallery.host.paths {
+    text: "Path and color dialogs · file dialog components, typed requests and cancel preservation";
+    design-size: 930 142;
+    bounds: 24 242 930 142;
+    classes: "paper" "group-caption";
+    button gallery.host.dialog.0 {
+      text: "Open file";
+      bounds: 24 44 158 40;
+    }
+    button gallery.host.dialog.1 {
+      text: "Open multiple";
+      bounds: 200 44 158 40;
+    }
+    button gallery.host.dialog.2 {
+      text: "Save file";
+      bounds: 376 44 158 40;
+    }
+    button gallery.host.dialog.3 {
+      text: "Choose folder";
+      bounds: 552 44 158 40;
+    }
+    button gallery.host.dialog.4 {
+      text: "Choose color";
+      visual-style: accent;
+      bounds: 728 44 158 40;
+    }
+    label gallery.host.paths.note {
+      text: "Cancel never overwrites the last accepted path, choice, or color.";
+      classes: "muted" "small";
+      bounds: 24 98 700 24;
+    }
+  }
+
+  scaled-group-box gallery.host.services {
+    text: "Host services · clipboard, monitors, completion cue";
+    design-size: 930 224;
+    bounds: 24 402 930 224;
+    classes: "paper" "group-caption";
+    text-box gallery.host.clipboard.editor {
+      text: "GUI.Forms clipboard probe Ω";
+      accessible-name: "Clipboard probe text";
+      bounds: 24 42 432 32;
+    }
+    button gallery.host.service.0 {
+      text: "Copy to host";
+      visual-style: command;
+      bounds: 24 88 158 36;
+    }
+    button gallery.host.service.1 {
+      text: "Paste from host";
+      visual-style: command;
+      bounds: 200 88 158 36;
+    }
+    button gallery.host.service.2 {
+      text: "Inspect monitors";
+      visual-style: command;
+      bounds: 376 88 158 36;
+    }
+    button gallery.host.service.3 {
+      text: "Completion cue";
+      visual-style: command;
+      bounds: 552 88 158 36;
+    }
+    button gallery.host.service.4 {
+      text: "Warning cue";
+      visual-style: command;
+      bounds: 728 88 158 36;
+    }
+    label gallery.host.status {
+      text: "Ready · native host results remain typed, bounded, and owner-modal";
+      classes: "positive" "emphasis";
+      text-wrapping: word;
+      vertical-alignment: near;
+      bounds: 24 142 440 56;
+    }
+    /* The FontDialog specimen; the page adds the sample label after it. */
+    button gallery.host.font.choose {
+      text: "Choose font...";
+      visual-style: command;
+      bounds: 488 142 150 36;
+    }
+  }
+
+  scaled-group-box gallery.host.task-dialog {
+    text: "TaskDialog and ThreadExceptionDialog · in-window owned dialogs, the same on every host";
+    design-size: 930 96;
+    bounds: 24 648 930 96;
+    classes: "paper" "group-caption";
+    button gallery.host.task-dialog.show {
+      text: "Show task dialog";
+      visual-style: accent;
+      bounds: 24 40 202 38;
+    }
+    button gallery.host.exception-dialog.show {
+      text: "Show exception dialog";
+      visual-style: command;
+      bounds: 238 40 202 38;
+    }
+    label gallery.host.task-dialog.note {
+      text: "Each reports its result in closed: a button ID, or cancel and abort.";
+      classes: "muted" "small";
+      bounds: 458 36 446 24;
+    }
+    check-box gallery.host.task-dialog.native {
+      text: "Open the task and font dialogs as native popup windows";
+      bounds: 458 60 446 26;
+    }
+  }
+
+  scaled-group-box gallery.host.notify-icon {
+    text: "NotifyIcon · an icon in the notification area, where the host has one";
+    design-size: 930 96;
+    bounds: 24 756 930 96;
+    classes: "paper" "group-caption";
+    button gallery.host.notify-icon.toggle {
+      text: "Show tray icon";
+      visual-style: accent;
+      bounds: 24 40 180 38;
+    }
+    button gallery.host.notify-icon.notify {
+      text: "Notify";
+      bounds: 216 40 120 38;
+    }
+    label gallery.host.notify-icon.note {
+      text: "Click, double-click or open the icon's menu; refusals report the host's capability.";
+      classes: "muted" "small";
+      bounds: 352 46 560 24;
+    }
+  }
+}

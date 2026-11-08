@@ -45,14 +45,14 @@ BreadcrumbTrail::BreadcrumbTrail(StableId stable_id,
     edit_stable_id_ = prefix + ".edit";
     set_paint_plane(PaintPlane::control);
     set_background(style().paper);
-    set_border_style(BorderStyle::sunken);
+    border_style = BorderStyle::sunken;
     set_focusable(true);
 }
 
 void BreadcrumbTrail::initialize_control_tree() {
     if (editor_) return;
     editor_ = make_control<TextBox>(StableId(editor_stable_id_));
-    (*editor_).set_border_style(BorderStyle::none);
+    (*editor_).border_style = BorderStyle::none;
     (*editor_).set_placeholder_text("Enter an exact path");
     (*editor_).accessible_name = "Exact location path";
     // Enter commits the path (editor_committed) and Escape ends the edit

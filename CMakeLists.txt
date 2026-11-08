@@ -805,6 +805,8 @@ add_library(gui_forms_controls STATIC
     src/controls/data_grid_view/data_grid_view_parts.cpp
     src/controls/data_grid_view/data_grid_view_row_heights.cpp
     src/controls/data_grid_view/data_grid_view_row_order.cpp
+    src/controls/data_grid_view/data_grid_view_cells.cpp
+    src/controls/data_grid_view/data_grid_view_cells_region.cpp
     src/controls/task_dialog/task_dialog.cpp
     src/controls/notify_icon/notify_icon.cpp
     src/controls/file_dialog/file_dialog_support.cpp
@@ -832,6 +834,7 @@ add_library(gui_forms_controls STATIC
     src/controls/scrollable_control/container_control/flex_panel/flex_panel.cpp
     src/controls/scrollable_control/container_control/grid_panel/grid_panel.cpp
     src/controls/scrollable_control/container_control/block_panel/block_panel.cpp
+    src/controls/scrollable_control/container_control/layout_style_property.cpp
     src/controls/scrollable_control/container_control/out_of_flow.cpp
     src/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat.cpp
     src/controls/scrollable_control/container_control/responsive_track_panel/responsive_track_panel.cpp
@@ -1621,10 +1624,36 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         CLASS ImagesDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/ranges-and-progress.form
         CLASS RangesDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/checked-collections.form
+        CLASS CheckedCollectionsDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/choices-and-sections.form
+        CLASS ChoicesDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/tree-and-object-views.form
+        CLASS TreeAndObjectViewsDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/text-and-input.form
+        CLASS TextAndInputDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/states-and-diagnostics.form
+        CLASS StatesDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/timing-and-tooltips.form
+        CLASS TimingDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/dates-and-calendar.form
+        CLASS DatesDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/values-and-spinners.form
+        CLASS ValuesDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/value-editors.form
+        CLASS ValueEditorsDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/dialogs-and-host-services.form
+        CLASS HostServicesDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/semantic-feedback.form
         CLASS SemanticFeedbackDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/control-spectrum.form
         CLASS ControlSpectrumDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/retained-layout-panels.form
+        CLASS RetainedLayoutDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/responsive-layouts.form
+        CLASS ResponsiveLayoutsDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/css-layout-panels.form
+        CLASS CssLayoutDocument NAMESPACE gui_forms::gallery::pages)
     # The Gallery's project theme (owner rulings of 2026-11-04): the forms
     # name roles by class; the theme gives the roles their look.
     gui_forms_add_theme(gui_forms_gallery_model demo/themes/gallery
@@ -1632,7 +1661,14 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         FORMS demo/gallery.form demo/pages/typography-and-inspection.form
             demo/pages/animation-laboratory.form demo/pages/collections-and-overlays.form
             demo/pages/images-and-drawing.form demo/pages/ranges-and-progress.form
-            demo/pages/semantic-feedback.form demo/pages/control-spectrum.form)
+            demo/pages/semantic-feedback.form demo/pages/control-spectrum.form
+            demo/pages/retained-layout-panels.form demo/pages/responsive-layouts.form
+            demo/pages/css-layout-panels.form
+            demo/pages/checked-collections.form demo/pages/choices-and-sections.form
+            demo/pages/tree-and-object-views.form demo/pages/text-and-input.form
+            demo/pages/states-and-diagnostics.form demo/pages/timing-and-tooltips.form
+            demo/pages/dates-and-calendar.form demo/pages/values-and-spinners.form
+            demo/pages/value-editors.form demo/pages/dialogs-and-host-services.form)
     target_include_directories(gui_forms_gallery_model PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/gui_forms_forms>)
     # The Gallery is compiled with the localizable-literal plugin: its own
@@ -2956,6 +2992,9 @@ if(GUI_FORMS_BUILD_TESTS)
 
     add_executable(gui_forms_callback_lab tools/callback_lab.cpp)
     target_link_libraries(gui_forms_callback_lab PRIVATE gui_forms_core)
+    # The dark colour rule as a filter, for tools/relocate_colours.py.
+    add_executable(gui_forms_dark_colour tools/dark_colour.cpp)
+    target_link_libraries(gui_forms_dark_colour PRIVATE gui_forms_core)
 
     if(TARGET gui_forms_skia)
         add_executable(gui_forms_concise_authoring_lab tools/concise_authoring_lab.cpp)
@@ -2977,6 +3016,10 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_sub_surface_tests PRIVATE gui_forms_controls gui_forms_host_headless)
     add_test(NAME gui_forms_sub_surface_tests COMMAND gui_forms_sub_surface_tests)
     set_tests_properties(gui_forms_sub_surface_tests PROPERTIES TIMEOUT 120)
+    add_executable(gui_forms_data_grid_view_cells_tests tests/data_grid_view_cells_tests.cpp)
+    target_link_libraries(gui_forms_data_grid_view_cells_tests PRIVATE gui_forms_controls gui_forms_host_headless)
+    add_test(NAME gui_forms_data_grid_view_cells_tests COMMAND gui_forms_data_grid_view_cells_tests)
+    set_tests_properties(gui_forms_data_grid_view_cells_tests PROPERTIES TIMEOUT 60)
     add_executable(gui_forms_live_surface_idle_wake_tests tests/live_surface_idle_wake_tests.cpp)
     target_link_libraries(gui_forms_live_surface_idle_wake_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_live_surface_idle_wake_tests COMMAND gui_forms_live_surface_idle_wake_tests)
@@ -4493,6 +4536,10 @@ if(GUI_FORMS_BUILD_TESTS)
     if(TARGET gui_forms_skia)
         add_executable(gui_forms_live_surface_benchmark EXCLUDE_FROM_ALL benchmarks/live_surface_benchmark.cpp)
         target_link_libraries(gui_forms_live_surface_benchmark PRIVATE gui_forms_skia)
+        # Threaded sub-surfaces measurements M1, M2, M4-M9 for the grid's cell
+        # region (stage S7); run by hand, not by ctest.
+        add_executable(gui_forms_sub_surface_cells_benchmark EXCLUDE_FROM_ALL benchmarks/sub_surface_cells_benchmark.cpp)
+        target_link_libraries(gui_forms_sub_surface_cells_benchmark PRIVATE gui_forms_controls gui_forms_skia)
         add_executable(gui_forms_opaque_live_surface_raster_tests tests/opaque_live_surface_raster_tests.cpp)
         target_link_libraries(gui_forms_opaque_live_surface_raster_tests PRIVATE gui_forms_controls gui_forms_skia)
         add_test(NAME gui_forms_opaque_live_surface_raster_tests COMMAND gui_forms_opaque_live_surface_raster_tests)

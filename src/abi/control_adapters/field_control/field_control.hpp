@@ -29,9 +29,9 @@ public:
         set_paint_plane(gui_forms::PaintPlane::control);
         const gui_forms::BasicControlStyle style = style_;
         set_background(kind_ == FieldControlKind::tool_strip ? style.face : style.paper);
-        set_border_style(kind_ == FieldControlKind::tool_strip
+        border_style = kind_ == FieldControlKind::tool_strip
                              ? gui_forms::BorderStyle::none
-                             : gui_forms::BorderStyle::sunken);
+                             : gui_forms::BorderStyle::sunken;
         if (kind_ == FieldControlKind::text_box ||
             kind_ == FieldControlKind::combo_box ||
             kind_ == FieldControlKind::list_box ||

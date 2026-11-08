@@ -29,6 +29,9 @@ gui_forms::SubSurfaceHost
       **state** : ``SubSurfaceState``, read-only
          The thread's state; stopped while there is none.
 
+      **failure** : ``std::string``, read-only
+         What the content threw or why it built no root, for state failed; empty otherwise (SubSurfaceThread::failure).
+
       **statistics** : ``SubSurfaceStatistics``, read-only
 
       **dispatcher** : ``WindowDispatcher``, read-only
@@ -57,6 +60,8 @@ gui_forms::SubSurfaceHost
       :class: autosummary longtable
       :widths: 35 65
 
+      * - :cpp:func:`redraw_all <gui_forms::SubSurfaceHost::redraw_all>`
+        - The parent's redraw-all (design note section 2): sends a configuration under a new content epoch carrying ``update`` (null for none), so that the sub-surface's first frame at that epoch shows it and the window composes no older frame once it pairs (section 6).
       * - :cpp:func:`request_statistics <gui_forms::SubSurfaceHost::request_statistics>`
         -  
       * - :cpp:func:`set_content <gui_forms::SubSurfaceHost::set_content>`
@@ -79,6 +84,10 @@ gui_forms::SubSurfaceHost
    .. cpp:function:: SubSurfaceState state() const
 
       The thread's state; stopped while there is none.
+
+   .. cpp:function:: std::string failure() const
+
+      What the content threw or why it built no root, for state failed; empty otherwise (SubSurfaceThread::failure).
 
    .. cpp:function:: SubSurfaceStatistics statistics() const
 
@@ -104,6 +113,10 @@ gui_forms::SubSurfaceHost
 
 
    .. rubric:: Methods
+
+   .. cpp:function:: std::uint64_t redraw_all(std::unique_ptr<SubSurfaceContentUpdate> update)
+
+      The parent's redraw-all (design note section 2): sends a configuration under a new content epoch carrying ``update`` (null for none), so that the sub-surface's first frame at that epoch shows it and the window composes no older frame once it pairs (section 6). Call it in the same turn as the chrome change it must agree with (a scroll, a column width). Returns the epoch the update rides: the new content_epoch(), or, while there is no content, no window or no device size yet, 0 and the update waits for the first configuration (a newer one replaces it). New content (set_content) discards a waiting update.
 
    .. cpp:function:: const SubSurfaceRequestStatistics& request_statistics() const noexcept
 
@@ -131,6 +144,14 @@ gui_forms::SubSurfaceHost
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
 
       A pane of its own, named by the accessible name ("Sub-surface" without one), whose default action focuses it: the host is the tab stop through which focus enters the sub-surface. The sub-surface's tree publishes its nodes in its own root, not under this one.
+
+   .. cpp:function:: std::vector<SemanticNode> semantic_virtual_children() const override
+
+      The sub-surface's newest semantic snapshot taken by the host, translated into the window (see the class comment); empty before the first and while no sub-surface runs.
+
+   .. cpp:function:: bool on_semantic_child_action(std::string_view stable_id, SemanticAction action, std::string_view value) override
+
+      Posts the action to the sub-surface when ``stable_id`` names one of the nodes semantic_virtual_children publishes and that node offers it (focus: a focusable node). True when posted; the sub-surface performs or refuses it on its own thread (SubSurfaceStatistics).
 
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 

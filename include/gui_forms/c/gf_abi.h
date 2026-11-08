@@ -108,6 +108,7 @@ typedef uint32_t gf_table_id;
 #define GF_TABLE_PROPERTY_GRID 14u
 #define GF_TABLE_CUSTOM_CONTROLS 15u
 #define GF_TABLE_BINDINGS 16u
+#define GF_TABLE_SUBSURFACES 17u
 /* Platform extension tables have ids from 0x100. A library has one only on
  * its platform, and reports it as a host capability; elsewhere
  * gf_abi_get_table gives GF_STATUS_NOT_FOUND. */
@@ -194,7 +195,10 @@ typedef struct gf_runtime_table {
  * GF_STATUS_WRONG_THREAD elsewhere, except objects.retain, objects.release and
  * dispatch.begin_invoke, which any thread may call. A release that ends an
  * object off the UI thread is completed on the UI thread: at its next call
- * into the library, or by a running window's event loop.
+ * into the library, or by a running window's event loop. Since 1.1 a
+ * threaded sub-surface's thread is a second kind of owning thread: the
+ * objects it creates are its own, as GF_TABLE_SUBSURFACES describes, and
+ * "the UI thread" below reads "the object's thread" for them.
  *
  * Callbacks. The library calls a callback on the UI thread only, never two at
  * once, and calls its release exactly once, on the UI thread, after the last
@@ -429,7 +433,9 @@ typedef struct gf_create_choice {
  *   binds to.
  * A flags_value_editor takes no owner but an enumeration: its name, its
  * choices (1 to GF_CREATE_MAXIMUM_CHOICES, distinct non-empty names) and
- * value, its current value. The new object keeps what it needs of its owner
+ * value, its current value; objects.create also makes one, empty until its
+ * enumeration_name, flag_names, none_name and checked_flags properties are
+ * written. The new object keeps what it needs of its owner
  * alive for as long as it lives, except a window. For a component bound to a
  * window, owner means only the window it binds to, as in C++: the caller's
  * references own the component, the component observes the window without
@@ -1795,6 +1801,89 @@ typedef struct gf_bindings_table {
     gf_status (GF_CALL* set_current_field)(gf_object source, gf_utf8_view field, const gf_value* value,
                                            uint32_t* accepted);
 } gf_bindings_table;
+
+/*
+ * GF_TABLE_SUBSURFACES (since 1.1): threaded sub-surfaces. A
+ * sub_surface_host control (objects.create "SubSurfaceHost") occupies a
+ * region of its window; its content is a tree of controls built and run on
+ * a thread of its own and composed into the region. set_content gives a
+ * host its content's build callback. The host starts the thread the first
+ * time it is in a window with a non-empty size, and stops it (joining the
+ * thread) when it leaves its window, when it is given other content, and
+ * when set_content gives it none.
+ *
+ * Threads. The sub-surface's thread calls the build callback once. Objects
+ * created on that thread (in the build callback, or in callbacks raised by
+ * the sub-surface's controls) belong to the sub-surface: only its thread
+ * may use them, and the UI thread gets GF_STATUS_WRONG_THREAD; the UI
+ * thread's objects are refused on the sub-surface's thread the same way.
+ * Any thread may retain, release and begin_invoke them: a posted callback
+ * runs on the sub-surface's thread, and a last release made elsewhere is
+ * completed there. Callbacks registered on the sub-surface's objects run on
+ * its thread, and so do their releases. On that thread the objects,
+ * properties, events, dispatch, schema, controls, text editing and
+ * subsurfaces tables may be called; every other function gives
+ * GF_STATUS_WRONG_THREAD. When the sub-surface stops, its thread destroys
+ * its objects: their identities stay until released and give
+ * GF_STATUS_STALE_HANDLE, and callbacks still posted to them are released
+ * without being invoked.
+ */
+
+/* gf_subsurface_state: where a host's sub-surface is. */
+typedef uint32_t gf_subsurface_state;
+/* No thread: never started, or stopped after its host left its window or
+ * lost its content. */
+#define GF_SUBSURFACE_STATE_STOPPED 0u
+/* The thread is running the build callback. */
+#define GF_SUBSURFACE_STATE_STARTING 1u
+/* The tree is built and the sub-surface runs. */
+#define GF_SUBSURFACE_STATE_RUNNING 2u
+/* The build handed over no root; the thread ended (subsurfaces.failure). */
+#define GF_SUBSURFACE_STATE_FAILED 3u
+
+/*
+ * A sub-surface's content. The caller sets struct_size to
+ * sizeof(gf_subsurface_content). build is invoked once, on the
+ * sub-surface's thread, with sender zero and the name "build"; it creates
+ * the content's root control there and hands it over with
+ * subsurfaces.set_root before it returns. Its release runs on the
+ * sub-surface's thread after that invoke, or on the UI thread when the
+ * content never started (replaced first, or its host destroyed first).
+ * opaque is 1 when the content covers its whole region with opaque pixels
+ * (the window then copies its frames instead of blending them), else 0.
+ */
+typedef struct gf_subsurface_content {
+    uint32_t struct_size;
+    uint32_t opaque;
+    gf_callback build;
+} gf_subsurface_content;
+
+typedef struct gf_subsurfaces_table {
+    uint32_t struct_size;
+    uint32_t abi_minor;
+    /* Gives host content to show; a null content stops the sub-surface and
+     * leaves the region empty. A running sub-surface is stopped and its
+     * thread joined first. The library takes content->build only when this
+     * returns GF_STATUS_OK. A host that is not a sub_surface_host gives
+     * GF_STATUS_WRONG_HANDLE_KIND. UI thread. */
+    gf_status (GF_CALL* set_content)(gf_object host, const gf_subsurface_content* content);
+    /* Hands root, a control created on the calling thread, to the
+     * sub-surface whose build callback is running there; the sub-surface
+     * holds it from then on, and the caller keeps its own reference. Only
+     * inside a build callback, elsewhere GF_STATUS_INVALID_STATE; a second
+     * call replaces the first. */
+    gf_status (GF_CALL* set_root)(gf_object root);
+    /* The host's state; GF_SUBSURFACE_STATE_STOPPED while it has no
+     * thread. UI thread. */
+    gf_status (GF_CALL* state)(gf_object host, gf_subsurface_state* state);
+    /* The content epoch of the newest configuration the host sent its
+     * sub-surface (each frame the sub-surface shows was produced at one);
+     * zero before the first. UI thread. */
+    gf_status (GF_CALL* content_epoch)(gf_object host, uint64_t* epoch);
+    /* Why the sub-surface failed (GF_SUBSURFACE_STATE_FAILED), as text;
+     * empty in every other state. UI thread. */
+    gf_status (GF_CALL* failure)(gf_object host, char* buffer, uint64_t capacity, uint64_t* required);
+} gf_subsurfaces_table;
 
 /*
  * GF_TABLE_WINDOWS_PAINT_ENDPOINT (Windows only; host capability

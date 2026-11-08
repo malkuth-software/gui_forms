@@ -1,0 +1,108 @@
+/* The Gallery's value-editors page (stage FD, phase FD6.3): one record
+   edited through a ColorValueEditor and a FlagsValueEditor, a PropertyList
+   and an InstrumentRack module, with a CommandBar over the Window's
+   BindingContext. gui_forms_add_form() compiles this document into
+   value-editors_form.hpp at build time.
+
+   gallery.value-editors.document is a declared boundary only: the page
+   moves its children into the shell's page body, where each is placed by
+   its bounds in design coordinates. The page keeps in code the record and
+   every value drawn from it (the colour editor's value, the preview's
+   colour, the list's groups and rows, the rack's module and its Reset
+   button), the flags list's width, the Commands, every event handler, the
+   status lines' reports and the page style; the flags editor's
+   enumeration and value are in the document. */
+scaled-panel gallery.value-editors.document {
+  design-size: 1000 640;
+
+  label gallery.value-editors.heading {
+    text: "VALUE EDITORS";
+    classes: "heading" "page-title";
+    bounds: 24 18 620 34;
+  }
+  label gallery.value-editors.lead {
+    text: "One record, four views: typed color and flags editors, a grouped PropertyList, and an InstrumentRack module, all kept equal by the owner.";
+    classes: "muted" "body";
+    bounds: 26 52 920 24;
+  }
+
+  scaled-group-box gallery.value-editors.editors {
+    text: "ColorValueEditor · FlagsValueEditor · typed fields of the record";
+    design-size: 450 170;
+    bounds: 24 92 450 170;
+    classes: "paper" "group-caption";
+    label gallery.value-editors.color.caption {
+      text: "Tint";
+      classes: "heading" "note-strong";
+      bounds: 20 42 60 22;
+    }
+    color-value-editor gallery.value-editors.color {
+      accessible-name: "Lamp tint";
+      bounds: 84 37 236 30;
+    }
+    panel gallery.value-editors.preview {
+      accessible-name: "Tint preview";
+      bounds: 336 37 92 30;
+    }
+    label gallery.value-editors.flags.caption {
+      text: "Edges";
+      classes: "heading" "note-strong";
+      bounds: 20 96 60 22;
+    }
+    flags-value-editor gallery.value-editors.flags {
+      accessible-name: "Lamp edges";
+      enumeration-name: "Edges";
+      none-name: "None";
+      flag-names: "Top" "Left" "Right" "Bottom";
+      checked-flags: "Top" "Left";
+      bounds: 84 91 236 30;
+    }
+    label gallery.value-editors.editor-status {
+      text: "Enter commits · Esc restores · F4 drops the flags list down";
+      classes: "positive" "note-medium";
+      text-wrapping: word;
+      vertical-alignment: near;
+      bounds: 20 130 410 34;
+    }
+  }
+
+  scaled-group-box gallery.value-editors.binding {
+    text: "BindingContext · Window-scoped membership of one BindingSource";
+    design-size: 450 142;
+    bounds: 24 280 450 142;
+    classes: "paper" "group-caption";
+    command-bar gallery.value-editors.binding-commands {
+      accessible-name: "Binding context commands";
+      bounds: 20 38 410 32;
+    }
+    label gallery.value-editors.binding-status {
+      text: "";
+      classes: "positive" "note-medium";
+      text-wrapping: word;
+      vertical-alignment: near;
+      bounds: 20 84 410 48;
+    }
+  }
+
+  scaled-group-box gallery.value-editors.record {
+    text: "PropertyList · the record as grouped rows";
+    design-size: 460 330;
+    bounds: 494 92 460 330;
+    classes: "paper" "group-caption";
+    property-list gallery.value-editors.properties {
+      accessible-name: "Lamp profile properties";
+      bounds: 20 36 420 274;
+    }
+  }
+
+  scaled-group-box gallery.value-editors.rack-group {
+    text: "InstrumentRack · the same record as one compact module";
+    design-size: 930 190;
+    bounds: 24 440 930 190;
+    classes: "paper" "group-caption";
+    instrument-rack gallery.value-editors.rack {
+      accessible-name: "Lamp profile rack";
+      bounds: 20 36 890 140;
+    }
+  }
+}

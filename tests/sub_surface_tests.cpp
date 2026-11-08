@@ -2,12 +2,14 @@
 // publishing into a LiveSurface its SubSurfaceHost composes (threaded
 // sub-surfaces design note sections 2, 6, 7 and 9), stage S3, input and
 // focus forwarding (section 4), S3.3, tooltips asked of the parent
-// (section 15), and S4, effects on a sub-surface (section 14).
+// (section 15), S4, effects on a sub-surface (section 14), and S5,
+// accessibility (section 5).
 
 #include "gui_forms/gui_forms.hpp"
 #include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
 #include "gui_forms/paint_framebuffer.hpp"
 #include "headless_host.hpp"
+#include "support/fill_raster.hpp"
 #include "support/theme_definition_heap.hpp"
 
 #include <algorithm>
@@ -29,121 +31,14 @@
 namespace {
 
 using namespace gui_forms;
+using gui_forms::test_support::FillFramebuffer;
+using gui_forms::test_support::FillRaster;
 
 // Throws on failure, so the check runs in every build type (Release defines
 // NDEBUG); an uncaught throw fails the test.
 void require(const bool condition, const char* const message) {
     if (!condition) throw std::runtime_error(message);
 }
-
-// A CPU stand-in for a host raster that really writes pixels: fill_rect
-// stores the colour (opaque test colours only, no blending) into the
-// rectangle under the current translation and clips, at the framebuffer's
-// scale. Everything else draws nothing.
-class FillPainter final : public Painter {
-public:
-    FillPainter(std::vector<std::byte>& pixels, std::uint32_t width, std::uint32_t height, double scale)
-        : pixels_(pixels), width_(width), height_(height), scale_(scale) {
-        states_.push_back(State{Point{}, Rect{0.0, 0.0, static_cast<double>(width) / scale,
-                                              static_cast<double>(height) / scale}});
-    }
-    void save() override { states_.push_back(states_.back()); }
-    void restore() override {
-        if (states_.size() > 1U) states_.pop_back();
-    }
-    void translate(Point offset) override {
-        states_.back().offset.x += offset.x;
-        states_.back().offset.y += offset.y;
-    }
-    void clip_rect(Rect rect) override {
-        const Rect placed{rect.x + states_.back().offset.x, rect.y + states_.back().offset.y, rect.width,
-                          rect.height};
-        states_.back().clip = Rect::intersection(states_.back().clip, placed);
-    }
-    void fill_rect(Rect rect, Color color) override {
-        const Rect placed{rect.x + states_.back().offset.x, rect.y + states_.back().offset.y, rect.width,
-                          rect.height};
-        const Rect visible = Rect::intersection(placed, states_.back().clip);
-        if (visible.empty()) return;
-        const std::uint32_t left = pixel(visible.x, width_);
-        const std::uint32_t top = pixel(visible.y, height_);
-        const std::uint32_t right = pixel(visible.x + visible.width, width_);
-        const std::uint32_t bottom = pixel(visible.y + visible.height, height_);
-        for (std::uint32_t row = top; row < bottom; ++row) {
-            for (std::uint32_t column = left; column < right; ++column) {
-                const std::size_t at = (static_cast<std::size_t>(row) * width_ + column) * 4U;
-                pixels_[at] = static_cast<std::byte>(color.blue);
-                pixels_[at + 1U] = static_cast<std::byte>(color.green);
-                pixels_[at + 2U] = static_cast<std::byte>(color.red);
-                pixels_[at + 3U] = static_cast<std::byte>(color.alpha);
-            }
-        }
-    }
-    void stroke_rect(Rect, Color, double) override {}
-    void draw_line(Point, Point, Color, double) override {}
-    void draw_text_utf8(Point, std::string_view, FontSpec, Color) override {}
-    void draw_image(ImageId, Rect, double) override {}
-
-private:
-    struct State final {
-        Point offset{};
-        Rect clip{};
-    };
-    [[nodiscard]] std::uint32_t pixel(double logical, std::uint32_t limit) const noexcept {
-        const double device = std::clamp(std::round(logical * scale_), 0.0, static_cast<double>(limit));
-        return static_cast<std::uint32_t>(device);
-    }
-
-    std::vector<std::byte>& pixels_;
-    std::uint32_t width_{};
-    std::uint32_t height_{};
-    double scale_{1.0};
-    std::vector<State> states_;
-};
-
-// Owns its pixels and its painter, so it may move to another thread with
-// nothing left behind on the one that made it.
-class FillFramebuffer final : public PaintFramebuffer {
-public:
-    FillFramebuffer(std::uint32_t width, std::uint32_t height, double scale)
-        : width_(width), height_(height), pixels_(static_cast<std::size_t>(width) * height * 4U),
-          painter_(pixels_, width, height, scale) {}
-    bool begin(const ImageRegistry&, Rect) override { return true; }
-    void end() override {}
-    Painter& painter() noexcept override { return painter_; }
-    std::span<std::byte> pixels() noexcept override { return pixels_; }
-    std::size_t row_bytes() const noexcept override { return static_cast<std::size_t>(width_) * 4U; }
-    std::uint32_t width() const noexcept override { return width_; }
-    std::uint32_t height() const noexcept override { return height_; }
-
-private:
-    std::uint32_t width_{};
-    std::uint32_t height_{};
-    std::vector<std::byte> pixels_;
-    FillPainter painter_;
-};
-
-// The window's framebuffer painter: makes FillFramebuffers. It keeps no
-// state, so the window's thread may call it while sub-surfaces paint.
-class FillRaster final : public Painter {
-public:
-    std::unique_ptr<PaintFramebuffer> create_framebuffer(Size logical_size, double scale) override {
-        const std::uint32_t width = static_cast<std::uint32_t>(std::ceil(logical_size.width * scale));
-        const std::uint32_t height = static_cast<std::uint32_t>(std::ceil(logical_size.height * scale));
-        if (width == 0U || height == 0U) return {};
-        std::unique_ptr<PaintFramebuffer> result = std::make_unique<FillFramebuffer>(width, height, scale);
-        return result;
-    }
-    void save() override {}
-    void restore() override {}
-    void translate(Point) override {}
-    void clip_rect(Rect) override {}
-    void fill_rect(Rect, Color) override {}
-    void stroke_rect(Rect, Color, double) override {}
-    void draw_line(Point, Point, Color, double) override {}
-    void draw_text_utf8(Point, std::string_view, FontSpec, Color) override {}
-    void draw_image(ImageId, Rect, double) override {}
-};
 
 // What the sub-surface's thread reports back to the test: written there,
 // read here, under the mutex. The control is held weakly, so the test never
@@ -341,6 +236,133 @@ void thread_produces_tagged_frames() {
         require((*probe).surface.expired(), "the tree is released when the thread stops");
     }
     require(!thread.dispatcher().window_alive(), "the dispatcher is closed after stop");
+}
+
+// Raises a flag on the thread that runs it: a posted call's completion.
+class RaiseFlag final {
+public:
+    explicit RaiseFlag(std::shared_ptr<std::atomic<bool>> flag) : flag_(std::move(flag)) {}
+    void operator()() const { (*flag_).store(true, std::memory_order_release); }
+
+private:
+    std::shared_ptr<std::atomic<bool>> flag_;
+};
+
+[[nodiscard]] bool wait_for_flag(const std::atomic<bool>& flag) {
+    const std::chrono::steady_clock::time_point limit = std::chrono::steady_clock::now() + wait_limit;
+    while (std::chrono::steady_clock::now() < limit) {
+        if (flag.load(std::memory_order_acquire)) return true;
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    return false;
+}
+
+// Posts `call` to the host's sub-surface thread, then a flag after it, and
+// waits until the flag is raised: `call` has run, in that turn or before.
+[[nodiscard]] bool run_on_sub_surface(SubSurfaceHost& host, const Recolour& call) {
+    static_cast<void>(host.dispatcher().begin_invoke(call));
+    std::shared_ptr<std::atomic<bool>> done = std::make_shared<std::atomic<bool>>(false);
+    static_cast<void>(host.dispatcher().begin_invoke(RaiseFlag(done)));
+    const bool ran = wait_for_flag(*done);
+    return ran;
+}
+
+// Waits until a call posted now has run: every turn before it has ended.
+[[nodiscard]] bool finish_turn(SubSurfaceHost& host) {
+    std::shared_ptr<std::atomic<bool>> done = std::make_shared<std::atomic<bool>>(false);
+    static_cast<void>(host.dispatcher().begin_invoke(RaiseFlag(done)));
+    const bool ran = wait_for_flag(*done);
+    return ran;
+}
+
+// Pairing (design note section 6): a newly configured epoch is produced at
+// once, not at the pacer's next tick, and once per configuration. The
+// presenter reports an hour's refresh period, so while a published frame is
+// unshown the pacer holds the next for an hour and a half: anything
+// produced within the test's wait went out without pacing.
+void new_epochs_are_produced_without_pacing() {
+    std::shared_ptr<Panel> root = std::make_shared<Panel>(StableId("paced.root"));
+    std::shared_ptr<SubSurfaceHost> host = std::make_shared<SubSurfaceHost>(StableId("paced.host"));
+    (*host).set_requested_bounds(Rect{10.0, 10.0, 60.0, 30.0});
+    std::shared_ptr<Probe> probe = std::make_shared<Probe>();
+    (*host).set_content(std::make_unique<SolidContent>(probe, red), true);
+    (*root).add_child(host);
+    FillRaster raster;
+    Window window(root, Size{200.0, 100.0});
+    window.set_framebuffer_painter(&raster);
+    window.flush();
+    const std::shared_ptr<LiveSurface> surface = (*host).live_surface();
+    require(static_cast<bool>(surface) && wait_for_content_tag(*surface, 1U), "the first epoch is published");
+
+    // The first frame is shown; the second epoch's frame is left unshown.
+    LiveDisplayTiming slow{};
+    slow.refresh_period = std::chrono::duration_cast<FrameInterval>(std::chrono::hours(1));
+    slow.last_vblank = FrameClock::now();
+    slow.source = LiveTimingSource::display_phased;
+    const LiveSurfaceFrame first = (*surface).acquire_latest();
+    require(static_cast<bool>(first), "the first frame can be read");
+    (*surface).notify_presented(first.generation(), slow);
+    const std::uint64_t second = (*host).redraw_all(nullptr);
+    require(second == 2U && wait_for_content_tag(*surface, second), "the second epoch is published");
+
+    // The pacer now waits on an unshown frame; a third epoch does not.
+    const SubSurfaceStatistics before = (*host).statistics();
+    const std::uint64_t third = (*host).redraw_all(nullptr);
+    require(third == 3U && wait_for_content_tag(*surface, third), "a new epoch is produced without waiting for the pacer");
+
+    // Dirt without a configuration waits for the pacer: a recolour posted
+    // after the third epoch, and a call after it, leave one frame only.
+    require(run_on_sub_surface(*host, Recolour(probe, green)), "the recolour runs");
+    require(finish_turn(*host), "a later turn runs");
+    const SubSurfaceStatistics after = (*host).statistics();
+    require(after.frames_published == before.frames_published + 1U, "one frame for the configuration");
+    require(after.deadline_wakes == before.deadline_wakes, "no pacer deadline passed");
+    require((*surface).snapshot().content_tag == third, "the newest frame is the third epoch's");
+    static_cast<void>((*root).remove_child((*host).runtime_id()));
+}
+
+// Holds the sub-surface's thread inside a posted call until released.
+class HoldThread final {
+public:
+    HoldThread(std::shared_ptr<std::atomic<bool>> entered, std::shared_ptr<std::atomic<bool>> released)
+        : entered_(std::move(entered)), released_(std::move(released)) {}
+    void operator()() const {
+        (*entered_).store(true, std::memory_order_release);
+        const std::chrono::steady_clock::time_point limit = std::chrono::steady_clock::now() + wait_limit;
+        while (!(*released_).load(std::memory_order_acquire) && std::chrono::steady_clock::now() < limit) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+    }
+
+private:
+    std::shared_ptr<std::atomic<bool>> entered_;
+    std::shared_ptr<std::atomic<bool>> released_;
+};
+
+// A configuration of the same device size carries no framebuffer (the host
+// makes one per size). When it replaces the first configuration before the
+// loop applied it, the first one's framebuffer is kept: the newer epoch is
+// produced. (A grid sending its cells from its first paint did this on a
+// slow machine, and its region never published.)
+void coalesced_first_configuration_keeps_its_framebuffer() {
+    std::shared_ptr<Probe> probe = std::make_shared<Probe>();
+    std::shared_ptr<LiveSurface> surface = LiveSurface::create({40U, 20U});
+    require(static_cast<bool>(surface), "surface");
+    SubSurfaceThread thread(std::make_unique<SolidContent>(probe, red), surface, default_theme(), nullptr);
+    require(wait_for_state(thread, SubSurfaceState::running), "thread reaches running");
+    std::shared_ptr<std::atomic<bool>> entered = std::make_shared<std::atomic<bool>>(false);
+    std::shared_ptr<std::atomic<bool>> released = std::make_shared<std::atomic<bool>>(false);
+    static_cast<void>(thread.dispatcher().begin_invoke(HoldThread(entered, released)));
+    require(wait_for_flag(*entered), "the thread is held");
+    thread.configure(configuration_of(1U, 40U, 20U));
+    SubSurfaceConfiguration same_size = configuration_of(2U, 40U, 20U);
+    same_size.framebuffer.reset();
+    thread.configure(std::move(same_size));
+    (*released).store(true, std::memory_order_release);
+    require(wait_for_content_tag(*surface, 2U), "the newer epoch is produced with the first one's framebuffer");
+    const SubSurfaceStatistics statistics = thread.statistics();
+    require(statistics.configurations_coalesced == 1U && statistics.configurations_applied == 1U,
+            "the two configurations were applied as one");
 }
 
 void content_failure_is_reported() {
@@ -796,6 +818,326 @@ void host_forwards_input_and_focus() {
     events = events_of(*outer);
     require(std::find(events.begin(), events.end(), std::string("after:focus")) != events.end(),
             "the window's own traversal moved on");
+}
+
+// Stage S5: accessibility (design note section 5).
+
+// A focusable button-like node that logs its semantic actions, and one
+// virtual child, "<id>.item", that takes select.
+class SemanticStop final : public Control {
+public:
+    SemanticStop(StableId stable_id, std::string name, std::shared_ptr<InputLog> log)
+        : Control(std::move(stable_id)), name_(std::move(name)), log_(std::move(log)) {
+        set_focusable(true);
+    }
+
+    [[nodiscard]] SemanticDescriptor semantic_descriptor() const override {
+        SemanticDescriptor descriptor;
+        descriptor.role = SemanticRole::button;
+        descriptor.name = name_;
+        descriptor.actions = {SemanticAction::press};
+        descriptor.exposed = true;
+        return descriptor;
+    }
+    [[nodiscard]] std::vector<SemanticNode> semantic_virtual_children() const override {
+        SemanticNode item;
+        item.stable_id = std::string(stable_id().value()) + ".item";
+        item.role = SemanticRole::list_item;
+        item.name = name_ + " item";
+        item.bounds = Rect{absolute_bounds().x + 2.0, absolute_bounds().y + 2.0, 10.0, 10.0};
+        item.actions = {SemanticAction::select};
+        std::vector<SemanticNode> children;
+        children.push_back(std::move(item));
+        return children;
+    }
+    bool on_semantic_action(SemanticAction action, std::string_view) override {
+        if (action != SemanticAction::press) return false;
+        record(":press");
+        return true;
+    }
+    bool on_semantic_child_action(std::string_view child, SemanticAction action, std::string_view) override {
+        if (child != std::string(stable_id().value()) + ".item" || action != SemanticAction::select) return false;
+        record(":item:select");
+        return true;
+    }
+    void rename(std::string name) {
+        name_ = std::move(name);
+        invalidate(Dirty::semantics);
+    }
+
+protected:
+    void on_focus_changed(bool focused) override { record(focused ? ":focus" : ":blur"); }
+
+private:
+    void record(const char* what) {
+        const std::lock_guard<std::mutex> lock((*log_).mutex);
+        (*log_).events.push_back(name_ + what);
+    }
+
+    std::string name_;
+    std::shared_ptr<InputLog> log_;
+};
+
+// The sub-surface's semantic stops, held weakly for posted work.
+struct SemanticStops final {
+    std::mutex mutex;
+    std::weak_ptr<SemanticStop> first;
+};
+
+// Two semantic stops: "first" at (0, 0, 50, 30) and "second" at
+// (50, 0, 50, 30).
+class SemanticContent final : public SubSurfaceContent {
+public:
+    SemanticContent(std::shared_ptr<InputLog> log, std::shared_ptr<SemanticStops> stops)
+        : log_(std::move(log)), stops_(std::move(stops)) {}
+    Control::Ptr build_root() override {
+        std::shared_ptr<Panel> root = std::make_shared<Panel>(StableId("sub.semantic"));
+        std::shared_ptr<SemanticStop> first = std::make_shared<SemanticStop>(StableId("sub.first"), "first", log_);
+        std::shared_ptr<SemanticStop> second =
+            std::make_shared<SemanticStop>(StableId("sub.second"), "second", log_);
+        (*first).set_requested_bounds(Rect{0.0, 0.0, 50.0, 30.0});
+        (*second).set_requested_bounds(Rect{50.0, 0.0, 50.0, 30.0});
+        (*root).add_child(first);
+        (*root).add_child(second);
+        const std::lock_guard<std::mutex> lock((*stops_).mutex);
+        (*stops_).first = first;
+        return root;
+    }
+
+private:
+    std::shared_ptr<InputLog> log_;
+    std::shared_ptr<SemanticStops> stops_;
+};
+
+// Posted to the sub-surface's thread: renames the first stop.
+class RenameFirst final {
+public:
+    RenameFirst(std::shared_ptr<SemanticStops> stops, std::string name)
+        : stops_(std::move(stops)), name_(std::move(name)) {}
+    void operator()() const {
+        std::shared_ptr<SemanticStop> first;
+        {
+            const std::lock_guard<std::mutex> lock((*stops_).mutex);
+            first = (*stops_).first.lock();
+        }
+        if (first) (*first).rename(name_);
+    }
+
+private:
+    std::shared_ptr<SemanticStops> stops_;
+    std::string name_;
+};
+
+// The node with `stable_id` in `nodes` and below, or null.
+[[nodiscard]] const SemanticNode* find_node(const std::vector<SemanticNode>& nodes, std::string_view stable_id) {
+    for (const SemanticNode& node : nodes) {
+        if (node.stable_id == stable_id) return &node;
+        const SemanticNode* const below = find_node(node.children, stable_id);
+        if (below != nullptr) return below;
+    }
+    return nullptr;
+}
+
+const SemanticNode* find_node(std::vector<SemanticNode>&& nodes, std::string_view stable_id) = delete;
+
+// What wait_for_node checks of a node.
+enum class NodeCheck : std::uint8_t { present, absent, focused, named_renamed };
+
+[[nodiscard]] bool node_passes(const SemanticSnapshot& snapshot, std::string_view stable_id, NodeCheck check) {
+    const SemanticNode* const node = find_node(snapshot.roots, stable_id);
+    switch (check) {
+    case NodeCheck::present:
+        return node != nullptr;
+    case NodeCheck::absent:
+        return node == nullptr;
+    case NodeCheck::focused:
+        return node != nullptr && has_semantic_state((*node).states, SemanticState::focused);
+    case NodeCheck::named_renamed:
+        return node != nullptr && (*node).name == "renamed";
+    default:
+        return false;
+    }
+}
+
+// Runs the window's posted work until its semantic snapshot passes `check`
+// for `stable_id`.
+[[nodiscard]] bool wait_for_node(Window& window, std::string_view stable_id, NodeCheck check) {
+    const std::chrono::steady_clock::time_point limit = std::chrono::steady_clock::now() + wait_limit;
+    while (std::chrono::steady_clock::now() < limit) {
+        static_cast<void>(window.drain_posted_work());
+        const SemanticSnapshot snapshot = window.semantic_snapshot();
+        if (node_passes(snapshot, stable_id, check)) return true;
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    return false;
+}
+
+[[nodiscard]] bool wait_for_event(InputLog& log, const std::string& event) {
+    const std::chrono::steady_clock::time_point limit = std::chrono::steady_clock::now() + wait_limit;
+    while (std::chrono::steady_clock::now() < limit) {
+        {
+            const std::lock_guard<std::mutex> lock(log.mutex);
+            if (std::find(log.events.begin(), log.events.end(), event) != log.events.end()) return true;
+        }
+        std::this_thread::sleep_for(std::chrono::microseconds(50));
+    }
+    return false;
+}
+
+[[nodiscard]] double elapsed_microseconds(std::chrono::steady_clock::time_point since) {
+    const std::chrono::duration<double, std::micro> elapsed = std::chrono::steady_clock::now() - since;
+    return elapsed.count();
+}
+
+// The thread alone: it publishes a snapshot once configured and again when
+// its semantic generation moves, and a posted action naming a runtime
+// identity its tree does not hold is refused there.
+void thread_publishes_semantics() {
+    std::shared_ptr<InputLog> log = std::make_shared<InputLog>();
+    std::shared_ptr<SemanticStops> stops = std::make_shared<SemanticStops>();
+    std::shared_ptr<LiveSurface> surface = LiveSurface::create({100U, 30U});
+    require(static_cast<bool>(surface), "surface");
+    SubSurfaceThread thread(std::make_unique<SemanticContent>(log, stops), surface, default_theme(), nullptr);
+    require(wait_for_state(thread, SubSurfaceState::running), "thread reaches running");
+    require(!thread.take_semantics(), "nothing is published before the first configuration");
+    thread.configure(configuration_of(1U, 100U, 30U));
+    require(wait_for_published(thread, 1U), "the first frame is published");
+    std::shared_ptr<const SemanticSnapshot> first = thread.take_semantics();
+    require(static_cast<bool>(first), "a snapshot is published with the first configuration");
+    const SemanticNode* const stop = find_node((*first).roots, "sub.first");
+    require(stop != nullptr && (*stop).bounds == Rect{0.0, 0.0, 50.0, 30.0} &&
+                !is_virtual_semantic_runtime_id((*stop).runtime_id),
+            "the snapshot is the tree's own, in its coordinates");
+    require(find_node((*first).roots, "sub.first.item") != nullptr, "with the virtual children");
+    require(thread.statistics().semantic_snapshots_published == 1U, "one snapshot");
+
+    const DispatchOperation renamed = thread.dispatcher().begin_invoke(RenameFirst(stops, "renamed"));
+    static_cast<void>(renamed);
+    const std::chrono::steady_clock::time_point limit = std::chrono::steady_clock::now() + wait_limit;
+    while (thread.statistics().semantic_snapshots_published < 2U && std::chrono::steady_clock::now() < limit) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    std::shared_ptr<const SemanticSnapshot> second = thread.take_semantics();
+    require(second && (*second).generation > (*first).generation, "a semantic change publishes again");
+    const SemanticNode* const named = find_node((*second).roots, "sub.first");
+    require(named != nullptr && (*named).name == "renamed", "the new snapshot shows the change");
+    require((*find_node((*first).roots, "sub.first")).name == "first", "the old snapshot is unchanged");
+
+    SubSurfaceInput stale;
+    stale.kind = SubSurfaceInputKind::semantic_action;
+    stale.semantic.control = RuntimeId{(*stop).runtime_id + 1000000U};
+    stale.semantic.action = SemanticAction::press;
+    const std::uint64_t sequence = thread.post_input(stale);
+    require(sequence != 0U && wait_for_inputs(thread, sequence), "the action is dispatched");
+    const SubSurfaceStatistics statistics = thread.statistics();
+    require(statistics.semantic_actions_refused == 1U && statistics.semantic_actions_performed == 0U,
+            "an identity the tree does not hold is refused");
+}
+
+// The host in a window: the sub-surface's nodes are the host's children in
+// the window's snapshot, translated into the window; actions on them are
+// posted and performed on the sub-surface's thread; focus follows the
+// host; a stopped sub-surface's nodes leave at once, and a restarted one's
+// are new nodes.
+void host_stitches_semantics() {
+    std::shared_ptr<InputLog> log = std::make_shared<InputLog>();
+    std::shared_ptr<SemanticStops> stops = std::make_shared<SemanticStops>();
+    std::shared_ptr<Panel> root = std::make_shared<Panel>(StableId("sub.root"));
+    std::shared_ptr<PlainStop> before = std::make_shared<PlainStop>(StableId("sub.before"));
+    std::shared_ptr<SubSurfaceHost> host = std::make_shared<SubSurfaceHost>(StableId("sub.host"));
+    (*before).set_requested_bounds(Rect{0.0, 0.0, 20.0, 20.0});
+    (*host).set_requested_bounds(Rect{20.0, 40.0, 100.0, 30.0});
+    (*host).set_content(std::make_unique<SemanticContent>(log, stops), true);
+    (*root).add_child(before);
+    (*root).add_child(host);
+    FillRaster raster;
+    Window window(root, Size{200.0, 100.0});
+    window.set_framebuffer_painter(&raster);
+    window.flush();
+    require(window.request_focus(before), "focus starts outside the host");
+    require(wait_for_node(window, "sub.host.sub.second", NodeCheck::present), "the sub-surface's nodes arrive");
+
+    const SemanticSnapshot snapshot = window.semantic_snapshot();
+    const SemanticNode* const host_node = find_node(snapshot.roots, "sub.host");
+    require(host_node != nullptr && find_node((*host_node).children, "sub.host.sub.first") != nullptr &&
+                find_node((*host_node).children, "sub.host.sub.second") != nullptr,
+            "the sub-surface's nodes are below the host node");
+    const SemanticNode* const first = find_node(snapshot.roots, "sub.host.sub.first");
+    require(first != nullptr && (*first).role == SemanticRole::button && (*first).name == "first",
+            "a node keeps its role and name");
+    require(is_virtual_semantic_runtime_id((*first).runtime_id), "it is a virtual child of the host");
+    require((*first).bounds == Rect{20.0, 40.0, 50.0, 30.0}, "its bounds are in the window");
+    const SemanticNode* const item = find_node(snapshot.roots, "sub.host.sub.first.item");
+    require(item != nullptr && (*item).bounds == Rect{22.0, 42.0, 10.0, 10.0}, "so are a virtual child's");
+    require(item != nullptr && (*item).runtime_id != (*first).runtime_id &&
+                (*item).runtime_id != virtual_semantic_runtime_id((*item).stable_id),
+            "runtime identities come from the sub-surface's, under the host");
+    require(!has_semantic_state((*first).states, SemanticState::focused), "nothing inside is focused");
+
+    // Actions, posted. M8 (design note section 12): the round trip of a
+    // posted action and the cost of the window's snapshot with the
+    // sub-surface's nodes in it.
+    const std::chrono::steady_clock::time_point acted = std::chrono::steady_clock::now();
+    require(window.perform_semantic_action((*host).runtime_id(), "sub.host.sub.first", SemanticAction::press),
+            "an action on a sub-surface node is posted");
+    require(wait_for_event(*log, "first:press"), "and performed on the sub-surface's thread");
+    const double round_trip = elapsed_microseconds(acted);
+    require(window.perform_semantic_action("sub.host.sub.first.item", SemanticAction::select),
+            "a virtual child's action, by stable identity");
+    require(wait_for_event(*log, "first:item:select"), "reaches the sub-surface's virtual child");
+    require(!window.perform_semantic_action((*host).runtime_id(), "sub.host.sub.first", SemanticAction::expand),
+            "an action the node does not offer is refused");
+    require(!window.perform_semantic_action((*host).runtime_id(), "sub.host.sub.none", SemanticAction::press),
+            "a node the sub-surface does not publish is refused");
+    require(!window.perform_semantic_action("sub.first", SemanticAction::press),
+            "the sub-surface's own identity is not the window's");
+    const std::chrono::steady_clock::time_point read = std::chrono::steady_clock::now();
+    constexpr int reads = 100;
+    for (int index = 0; index < reads; ++index) {
+        const SemanticSnapshot again = window.semantic_snapshot();
+        require(again.node_count == snapshot.node_count, "reads are stable");
+    }
+    const double read_cost = elapsed_microseconds(read) / static_cast<double>(reads);
+    std::printf("m8 sub-surface action round trip %.1f us; window snapshot read with %zu nodes %.1f us\n",
+                round_trip, snapshot.node_count, read_cost);
+
+    // Focus: the host takes the window's focus and the node its sub-surface's.
+    require(window.perform_semantic_action((*host).runtime_id(), "sub.host.sub.second", SemanticAction::focus),
+            "focus on a sub-surface node is posted");
+    require(window.focused_control() == host, "the host takes the window's focus");
+    require(wait_for_event(*log, "second:focus"), "the node's control takes the sub-surface's");
+    require(wait_for_node(window, "sub.host.sub.second", NodeCheck::focused), "the node is focused in the window");
+    require(window.request_focus(before), "focus leaves the host");
+    require(wait_for_node(window, "sub.host.sub.second", NodeCheck::present), "the node stays");
+    require(!node_passes(window.semantic_snapshot(), "sub.host.sub.second", NodeCheck::focused),
+            "and is not focused while the host is not");
+
+    // A change inside reaches the window's snapshot.
+    const std::uint64_t generation = window.semantic_generation();
+    const DispatchOperation renamed = (*host).dispatcher().begin_invoke(RenameFirst(stops, "renamed"));
+    static_cast<void>(renamed);
+    require(wait_for_node(window, "sub.host.sub.first", NodeCheck::named_renamed), "the rename arrives");
+    require(window.semantic_generation() > generation, "as a new semantic generation of the window");
+    const SubSurfaceStatistics statistics = (*host).statistics();
+    require(statistics.semantic_actions_performed == 3U && statistics.semantic_actions_refused == 0U,
+            "three actions performed");
+
+    // Stop, then a new sub-surface: its nodes are new nodes.
+    const SemanticSnapshot before_stop = window.semantic_snapshot();
+    const SemanticNode* const old_node = find_node(before_stop.roots, "sub.host.sub.first");
+    require(old_node != nullptr, "the node is there before the stop");
+    const std::uint64_t old_identity = (*old_node).runtime_id;
+    (*host).set_content(nullptr, true);
+    require(node_passes(window.semantic_snapshot(), "sub.host.sub.first", NodeCheck::absent),
+            "a stopped sub-surface's nodes leave at once");
+    (*host).set_content(std::make_unique<SemanticContent>(log, stops), true);
+    window.flush();
+    require(wait_for_node(window, "sub.host.sub.first", NodeCheck::present), "the new sub-surface's nodes arrive");
+    const SemanticSnapshot after_restart = window.semantic_snapshot();
+    const SemanticNode* const restarted = find_node(after_restart.roots, "sub.host.sub.first");
+    require(restarted != nullptr && (*restarted).runtime_id != old_identity, "under new runtime identities");
+    static_cast<void>((*root).remove_child((*host).runtime_id()));
+    require(!(*host).started(), "leaving the window stops the sub-surface");
 }
 
 // Stage S3.3: tooltips asked of the parent (design note section 15).
@@ -1361,7 +1703,11 @@ void user_theme_and_engine_input_reach_the_sub_surface() {
     std::uint64_t moves = 0U;
     const Point positions[2] = {Point{20.0 + 10.0, 40.0 + 10.0}, Point{20.0 + 30.0, 40.0 + 12.0}};
     for (std::uint64_t index = 0U; index < 2U; ++index) {
+        // Each move is posted once, the entering one too (its enter is not
+        // forwarded as a second move).
+        const std::uint64_t received = (*host).statistics().inputs_received;
         static_cast<void>(window.dispatch_pointer(pointer_move(positions[index])));
+        require((*host).statistics().inputs_received == received + 1U, "each move is posted to the sub-surface once");
         const std::chrono::steady_clock::time_point moved_limit = std::chrono::steady_clock::now() + wait_limit;
         while (moves <= index && std::chrono::steady_clock::now() < moved_limit) {
             {
@@ -1646,6 +1992,8 @@ void tool_tips_without_a_parent_ask_nowhere() {
 int run_all() {
     thread_produces_tagged_frames();
     content_failure_is_reported();
+    coalesced_first_configuration_keeps_its_framebuffer();
+    new_epochs_are_produced_without_pacing();
     start_stop_stress();
     host_in_window();
     caret_falls_back_to_left_edge();
@@ -1659,6 +2007,8 @@ int run_all() {
     user_theme_and_engine_input_reach_the_sub_surface();
     window_shows_alerts();
     sub_surface_forwards_alerts();
+    thread_publishes_semantics();
+    host_stitches_semantics();
     return 0;
 }
 

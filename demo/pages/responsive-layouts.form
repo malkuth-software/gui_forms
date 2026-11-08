@@ -1,0 +1,277 @@
+/* The Gallery's responsive-layouts page (stage FD, phase FD6.3; study 10):
+   one stage width narrows four specimens. A ResponsiveTrackPanel collapses
+   authored tracks (track-specs, child-track), a CommandOverflowPanel
+   collapses command groups (group-spec) into its actuator, a
+   MasterDetailView drops to a compact presentation and an AutoScroll panel
+   exposes more overflow. gui_forms_add_form() compiles this document into
+   responsive-layouts_form.hpp at build time.
+
+   gallery.responsive.document is a declared boundary only: the page moves
+   its children into the shell's page body (a 1000 x 660 design surface).
+   The page keeps in code what a form does not yet express: the stage
+   width's Value<double> and the slider's step sizes, the command bars'
+   items, the shelf's overflow actuator, the master/detail layout and its
+   two roles, the scroller's face (see the page), the commands, the status
+   texts and the page style. The Gallery theme styles the classes. */
+scaled-panel gallery.responsive.document {
+  design-size: 1000 660;
+
+  label gallery.responsive-layouts.heading {
+    text: "RESPONSIVE LAYOUTS";
+    classes: "heading" "page-title";
+    bounds: 24 18 620 34;
+  }
+  label gallery.responsive-layouts.lead {
+    text: "Narrow the stage: tracks and command groups collapse by authored priority, master/detail goes compact, and the scroller exposes more overflow.";
+    classes: "muted" "body";
+    bounds: 26 52 920 24;
+  }
+
+
+  scaled-group-box gallery.responsive.width.group {
+    text: "Stage width · one Value<double> bound to the slider and observed by the page";
+    design-size: 930 64;
+    bounds: 24 90 930 64;
+    classes: "paper" "group-caption";
+    track-bar gallery.responsive.width {
+      accessible-name: "Stage width";
+      maximum: 894;
+      minimum: 320;
+      tick-frequency: 100;
+      visual-style: filled;
+      bounds: 18 26 640 30;
+    }
+    label gallery.responsive.width.value {
+      classes: "positive" "emphasis";
+      bounds: 672 28 240 24;
+    }
+  }
+
+  scaled-group-box gallery.responsive.tracks.group {
+    text: "ResponsiveTrackPanel · fixed + remaining + content tracks · priority collapse · focus reveal";
+    design-size: 930 118;
+    bounds: 24 164 930 118;
+    classes: "paper" "group-caption";
+    responsive-track-panel gallery.responsive.tracks {
+      accessible-name: "Responsive track specimen";
+      track-gap: 6;
+      track-specs: "fixed 160 160 160 priority 20" "remaining 220 320 0" "fixed 200 200 200 priority 10" "content 120 120 160 priority 30";
+      bounds: 18 30 894 48;
+      panel gallery.responsive.tracks.navigation {
+        bounds: 0 0 120 48;
+        child-track: 0;
+        classes: "specimen-navigation";
+        border-style: line;
+        dock: fill;
+        margin: 0;
+        label gallery.responsive.tracks.navigation.text {
+          text: "Navigation · fixed 160 · priority 20";
+          classes: "ink" "emphasis";
+          text-wrapping: word;
+          padding: 4 8;
+          dock: fill;
+        }
+      }
+      panel gallery.responsive.tracks.content {
+        bounds: 0 0 120 48;
+        child-track: 1;
+        classes: "paper";
+        border-style: line;
+        dock: fill;
+        margin: 0;
+        label gallery.responsive.tracks.content.text {
+          text: "Content · remaining · never collapses";
+          classes: "ink" "emphasis";
+          text-wrapping: word;
+          padding: 4 8;
+          dock: fill;
+        }
+      }
+      panel gallery.responsive.tracks.inspector {
+        bounds: 0 0 120 48;
+        child-track: 2;
+        classes: "specimen-inspector";
+        border-style: line;
+        dock: fill;
+        margin: 0;
+        label gallery.responsive.tracks.inspector.text {
+          text: "Inspector · fixed 200 · priority 10";
+          classes: "ink" "emphasis";
+          text-wrapping: word;
+          padding: 4 8;
+          dock: fill;
+        }
+      }
+      panel gallery.responsive.tracks.activity {
+        bounds: 0 0 120 48;
+        child-track: 3;
+        classes: "specimen-activity";
+        border-style: line;
+        dock: fill;
+        margin: 0;
+        label gallery.responsive.tracks.activity.text {
+          text: "Activity · content 120 · priority 30";
+          classes: "ink" "emphasis";
+          text-wrapping: word;
+          padding: 4 8;
+          dock: fill;
+        }
+      }
+    }
+    check-box gallery.responsive.tracks.protect {
+      text: "Protect the inspector track";
+      indicator-style: modern;
+      bounds: 18 86 250 24;
+    }
+    label gallery.responsive.tracks.status {
+      classes: "positive" "emphasis";
+      bounds: 280 86 632 24;
+    }
+  }
+
+  scaled-group-box gallery.responsive.shelf.group {
+    text: "CommandOverflowPanel · three command groups · consumer-owned overflow actuator";
+    design-size: 930 112;
+    bounds: 24 292 930 112;
+    classes: "paper" "group-caption";
+    command-overflow-panel gallery.responsive.shelf {
+      accessible-name: "Command shelf specimen";
+      group-gap: 8;
+      bounds: 18 30 894 44;
+      panel gallery.responsive.shelf.selection {
+        accessible-name: "Selection commands";
+        bounds: 0 0 270 40;
+        group-spec: "270 270 270 priority 2";
+        command-bar gallery.responsive.shelf.selection.bar {
+          dock: fill;
+        }
+      }
+      panel gallery.responsive.shelf.arrange {
+        accessible-name: "Arrange commands";
+        bounds: 0 0 270 40;
+        group-spec: "270 270 270 priority 1";
+        command-bar gallery.responsive.shelf.arrange.bar {
+          dock: fill;
+        }
+      }
+      panel gallery.responsive.shelf.navigate {
+        accessible-name: "Navigate commands";
+        bounds: 0 0 180 40;
+        group-spec: "180 180 180";
+        command-bar gallery.responsive.shelf.navigate.bar {
+          dock: fill;
+        }
+      }
+      button gallery.responsive.shelf.more {
+        text: "More…";
+        visual-style: accent;
+        bounds: 0 0 90 40;
+      }
+    }
+    label gallery.responsive.shelf.status {
+      text: "Shelf · no command invoked yet · More… appears only when a group collapses";
+      classes: "positive" "emphasis";
+      bounds: 18 80 894 24;
+    }
+  }
+
+  scaled-group-box gallery.responsive.master-detail.group {
+    text: "MasterDetailView · side-by-side above 620 px · compact master/detail navigation below";
+    design-size: 930 142;
+    bounds: 24 414 930 142;
+    classes: "paper" "group-caption";
+    master-detail-view gallery.responsive.master-detail {
+      accessible-name: "Folder browser specimen";
+      bounds: 18 30 894 70;
+    }
+    button gallery.responsive.master-detail.show-detail {
+      text: "Show detail";
+      bounds: 18 106 150 28;
+    }
+    button gallery.responsive.master-detail.show-master {
+      text: "Show master";
+      bounds: 180 106 150 28;
+    }
+    label gallery.responsive.master-detail.status {
+      text: "Side by side · both roles visible · compact commands disabled";
+      classes: "positive" "emphasis";
+      bounds: 344 108 568 24;
+    }
+  }
+
+  scaled-group-box gallery.responsive.scroll.group {
+    text: "ScrollableControl · AutoScroll viewport · wheel, track, thumb and command paging";
+    design-size: 930 84;
+    bounds: 24 566 930 84;
+    classes: "paper" "group-caption";
+    panel gallery.responsive.scroll {
+      accessible-name: "Column scroller specimen";
+      border-style: sunken;
+      auto-scroll: true;
+      bounds: 18 30 694 48;
+      button gallery.responsive.scroll.column.0 {
+        text: "Column 1";
+        visual-style: command;
+        bounds: 8 4 110 22;
+      }
+      button gallery.responsive.scroll.column.1 {
+        text: "Column 2";
+        visual-style: standard;
+        bounds: 128 4 110 22;
+      }
+      button gallery.responsive.scroll.column.2 {
+        text: "Column 3";
+        visual-style: command;
+        bounds: 248 4 110 22;
+      }
+      button gallery.responsive.scroll.column.3 {
+        text: "Column 4";
+        visual-style: standard;
+        bounds: 368 4 110 22;
+      }
+      button gallery.responsive.scroll.column.4 {
+        text: "Column 5";
+        visual-style: command;
+        bounds: 488 4 110 22;
+      }
+      button gallery.responsive.scroll.column.5 {
+        text: "Column 6";
+        visual-style: standard;
+        bounds: 608 4 110 22;
+      }
+      button gallery.responsive.scroll.column.6 {
+        text: "Column 7";
+        visual-style: command;
+        bounds: 728 4 110 22;
+      }
+      button gallery.responsive.scroll.column.7 {
+        text: "Column 8";
+        visual-style: standard;
+        bounds: 848 4 110 22;
+      }
+      button gallery.responsive.scroll.column.8 {
+        text: "Column 9";
+        visual-style: command;
+        bounds: 968 4 110 22;
+      }
+      button gallery.responsive.scroll.column.9 {
+        text: "Column 10";
+        visual-style: standard;
+        bounds: 1088 4 110 22;
+      }
+    }
+    button gallery.responsive.scroll.previous {
+      text: "Page left";
+      bounds: 732 30 86 22;
+    }
+    button gallery.responsive.scroll.next {
+      text: "Page right";
+      bounds: 826 30 86 22;
+    }
+    label gallery.responsive.scroll.status {
+      text: "Scroll · x 0 · no user scroll yet";
+      classes: "positive" "emphasis";
+      bounds: 732 56 180 22;
+    }
+  }
+}

@@ -7,12 +7,14 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <initializer_list>
 #include <iostream>
 #include <memory>
 #include <limits>
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace {
 
@@ -1199,6 +1201,45 @@ void test_property_typography_preserves_editors_and_updates_geometry() {
 
 } // namespace
 
+// A FlagsValueEditor made from its stable ID alone, as a form document makes
+// it: its form properties describe the enumeration and value in any order;
+// a checked name that is no flag's is refused and changes nothing.
+BindingValue text_list(std::initializer_list<const char*> items) {
+    std::vector<BindingValue> values;
+    for (const char* item : items) values.emplace_back(std::string(item));
+    return BindingValue{make_property_collection("String", BindingValueKind::text, std::move(values))};
+}
+
+void test_flags_editor_form_properties() {
+    std::shared_ptr<FlagsValueEditor> empty = make_control<FlagsValueEditor>(StableId("flags.empty"));
+    require((*empty).descriptor().choices.empty() && (*empty).value().name.empty(),
+            "an unwritten flags editor holds no flags");
+
+    std::shared_ptr<FlagsValueEditor> flags = make_control<FlagsValueEditor>(StableId("flags.form"));
+    (*flags).set_property_value("checked_flags", text_list({"Top", "Left"}));
+    require((*flags).descriptor().choices.empty(), "checked flags wait for the flag names");
+    (*flags).set_property_value("flag_names", text_list({"Top", "Left", "Right", "Bottom"}));
+    (*flags).set_property_value("none_name", BindingValue{std::string("None")});
+    (*flags).set_property_value("enumeration_name", BindingValue{std::string("Edges")});
+    const PropertyEnumDescriptor expected{
+        "Edges", {{"None", 0}, {"Top", 1}, {"Left", 2}, {"Right", 4}, {"Bottom", 8}}, true};
+    require((*flags).descriptor() == expected, "the form properties describe the enumeration");
+    require((*flags).value() == PropertyEnumValue{"Edges", "Top, Left", 3}, "the checked flags are the value");
+    require((*flags).property_value("checked_flags") == text_list({"Top", "Left"}) &&
+                (*flags).property_value("flag_names") == text_list({"Top", "Left", "Right", "Bottom"}) &&
+                (*flags).property_value("none_name") == BindingValue{std::string("None")} &&
+                (*flags).property_value("enumeration_name") == BindingValue{std::string("Edges")},
+            "the form properties read back");
+    bool refused = false;
+    try {
+        (*flags).set_property_value("checked_flags", text_list({"Middle"}));
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*flags).value() == PropertyEnumValue{"Edges", "Top, Left", 3},
+            "a checked name that is no flag's is refused and changes nothing");
+}
+
 int main() {
     try {
         test_grouped_editors_commit_cancel_validation_and_semantics();
@@ -1211,6 +1252,7 @@ int main() {
         test_default_flags_and_color_property_editors();
         test_recursive_object_and_collection_projection_and_mutation();
         test_property_typography_preserves_editors_and_updates_geometry();
+        test_flags_editor_form_properties();
         std::cout << "gui_forms_inspection_controls_tests: all tests passed\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {

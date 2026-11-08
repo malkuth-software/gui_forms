@@ -7,7 +7,7 @@ gui_forms::TableLayoutPanelCompat
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: TableLayoutPanelCompat final : public ContainerControl
+.. cpp:class:: TableLayoutPanelCompat final : public ContainerControl, public TableCellCapability<TableLayoutPanelCompat>, public TableColumnSpanCapability<TableLayoutPanelCompat>, public TableRowSpanCapability<TableLayoutPanelCompat>
 
    ``#include <gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat.hpp>``
 
@@ -38,6 +38,36 @@ gui_forms::TableLayoutPanelCompat
 
    :Properties:
 
+      **cell** : ``GridCell``, child property, no default
+         A child's explicit cell, row then column from 0, a property the panel
+         provides to its direct children and stores for each:
+         ``(*table).cell[*child] = GridCell{.row = 1U, .column = 0U};``. A child
+         without one is placed automatically, and reading it then gives row 0,
+         column 0. A ``.form`` child writes ``cell: 1 0;``. A row or column of 64 or
+         more throws ``std::out_of_range``; a cell inside another child's span, or
+         a control that is not a live direct child, throws
+         ``std::invalid_argument``. Moving a child carries its span with it unless
+         another child is anchored at the old cell; the value is dropped when the
+         child leaves.
+
+      **column_span** : ``std::uint32_t``, child property, default ``1``
+         How many columns the child's cell spans, from 1 through 64:
+         ``(*table).column_span[*child] = 2U;`` (``column-span: 2;`` in a ``.form``).
+         The table holds the spans: each is an anonymous :cpp:class:`GridSpan <gui_forms::GridSpan>` anchored at a
+         child's cell (``spans()``), and a span of 1 by 1 removes it. A child needs
+         an explicit cell before it can span (``std::invalid_argument``); a span
+         that ends past track 64 throws ``std::out_of_range``, and one that would
+         overlap another span or cover another child's cell throws
+         ``std::invalid_argument``.
+
+      **row_span** : ``std::uint32_t``, child property, default ``1``
+         How many rows the child's cell spans, with the same rules as
+         :cpp:member:`column_span <gui_forms::TableLayoutPanelCompat::column_span>`.
+
+      **spans** : ``std::span<const GridSpan>``, read-only
+         The anonymous spans, in the order they were made, each anchored at a
+         placed child's cell.
+
       **column_count** : ``std::size_t``, default ``1``
          The number of authored column tracks, from 1 through 64. Out-of-range
          values throw ``std::out_of_range``. Growing the count adds columns with the
@@ -66,13 +96,17 @@ gui_forms::TableLayoutPanelCompat
          but not outside the outer tracks. Each value must be finite and between
          0 and 256.
 
-      **column_styles** : ``std::span<const TableLayoutStyle>``, read-only
-         The size mode and size of each authored column, one per column. Set them
-         with :cpp:func:`set_column_style <gui_forms::TableLayoutPanelCompat::set_column_style>`.
+      **column_styles** : ``std::span<const TableLayoutStyle>``
+         The size mode and size of each authored column, one per column. Set one
+         with :cpp:func:`set_column_style <gui_forms::TableLayoutPanelCompat::set_column_style>`, or all with :cpp:func:`set_column_styles <gui_forms::TableLayoutPanelCompat::set_column_styles>`, which makes the
+         column count the number of styles (1 through 64, ``std::out_of_range``)
+         and checks every style first. In a ``.form`` it is the ``column-styles`` text
+         collection, one item per column:
+         ``column-styles: "absolute 140" "auto" "percent 1";``.
 
-      **row_styles** : ``std::span<const TableLayoutStyle>``, read-only
-         The size mode and size of each authored row. Set them with
-         :cpp:func:`set_row_style <gui_forms::TableLayoutPanelCompat::set_row_style>`.
+      **row_styles** : ``std::span<const TableLayoutStyle>``
+         The size mode and size of each authored row, set with :cpp:func:`set_row_style <gui_forms::TableLayoutPanelCompat::set_row_style>` or
+         :cpp:func:`set_row_styles <gui_forms::TableLayoutPanelCompat::set_row_styles>` as the columns are (``row-styles`` in a ``.form``).
 
       **column_widths** : ``std::span<const double>``, read-only
          The column widths resolved by the last layout, including any columns the
@@ -102,26 +136,20 @@ gui_forms::TableLayoutPanelCompat
       :class: autosummary longtable
       :widths: 35 65
 
-      * - :cpp:func:`clear_cell_position <gui_forms::TableLayoutPanelCompat::clear_cell_position>`
-        - Returns ``child`` to automatic placement.
+      * - :cpp:func:`table_child_property_entries <gui_forms::TableLayoutPanelCompat::table_child_property_entries>`
+        -  
       * - :cpp:func:`cell_position <gui_forms::TableLayoutPanelCompat::cell_position>`
-        - The cell the last layout placed ``child`` in.
-      * - :cpp:func:`column_span <gui_forms::TableLayoutPanelCompat::column_span>`
-        - The column span of ``child``; 1 when none is set.
-      * - :cpp:func:`row_span <gui_forms::TableLayoutPanelCompat::row_span>`
-        - The row span of ``child``; 1 when none is set.
+        - The cell the last layout placed ``child`` in: its explicit cell, or the one automatic placement found.
+      * - :cpp:func:`clear_cell <gui_forms::TableLayoutPanelCompat::clear_cell>`
+        - Returns ``child`` to automatic placement, the reset of :cpp:member:`cell <gui_forms::TableLayoutPanelCompat::cell>`.
+      * - :cpp:func:`has_cell <gui_forms::TableLayoutPanelCompat::has_cell>`
+        - Whether ``child`` has an explicit cell.
       * - :cpp:func:`control_from_position <gui_forms::TableLayoutPanelCompat::control_from_position>`
         - The visible child whose cell or span covers the given column and row, or null.
       * - :cpp:func:`set_column_style <gui_forms::TableLayoutPanelCompat::set_column_style>`
         - ``set_column_style(column, style)`` sets how one column is sized.
       * - :cpp:func:`set_row_style <gui_forms::TableLayoutPanelCompat::set_row_style>`
         - The same as :cpp:func:`set_column_style <gui_forms::TableLayoutPanelCompat::set_column_style>`, for one row.
-      * - :cpp:func:`set_cell_position <gui_forms::TableLayoutPanelCompat::set_cell_position>`
-        - Places ``child`` at an explicit column and row, counted from 0.
-      * - :cpp:func:`set_column_span <gui_forms::TableLayoutPanelCompat::set_column_span>`
-        - The number of columns ``child`` covers, from 1 through 64, starting at its cell.
-      * - :cpp:func:`set_row_span <gui_forms::TableLayoutPanelCompat::set_row_span>`
-        - The number of rows ``child`` covers, from 1 through 64, with the same rules as :cpp:func:`set_column_span <gui_forms::TableLayoutPanelCompat::set_column_span>`.
 
    .. seealso::
 
@@ -139,8 +167,8 @@ gui_forms::TableLayoutPanelCompat
    Each layout places children in two passes. First, children with an explicit
    cell take it, in child order; a child whose cells are already taken, or lie
    outside a grid that :cpp:func:`grow_style <gui_forms::TableLayoutPanelCompat::grow_style>` cannot extend, is left out. Then the other
-   children fill the first free cell, or run of cells for a span, scanning row
-   by row; when none is free, the table adds a row or a column as :cpp:func:`grow_style <gui_forms::TableLayoutPanelCompat::grow_style>`
+   children fill the first free cell, scanning row by row (an automatic child
+   takes one cell: a span needs an explicit cell); when none is free, the table adds a row or a column as :cpp:func:`grow_style <gui_forms::TableLayoutPanelCompat::grow_style>`
    allows. A child that is left out gets an empty slot at the top-left corner
    and :cpp:func:`layout_overflowed <gui_forms::TableLayoutPanelCompat::layout_overflowed>` becomes true. Hidden children take no cell, and the
    added tracks disappear again when they are no longer needed.
@@ -224,8 +252,8 @@ gui_forms::TableLayoutPanelCompat
       (*grid).add_child(left);
       (*grid).add_child(right);
       (*grid).add_child(extra);
-      (*grid).set_cell_position(*heading, {0U, 0U});
-      (*grid).set_column_span(*heading, 2U);
+      (*grid).cell[*heading] = gf::GridCell{.row = 0U, .column = 0U};
+      (*grid).column_span[*heading] = 2U;
 
       gf::Window window(grid, {200.0, 80.0});
       window.perform_layout();
@@ -240,6 +268,40 @@ gui_forms::TableLayoutPanelCompat
 
 
    .. rubric:: Properties
+
+   .. cpp:member:: GridCell cell
+
+      A child's explicit cell, row then column from 0, a property the panel
+      provides to its direct children and stores for each:
+      ``(*table).cell[*child] = GridCell{.row = 1U, .column = 0U};``. A child
+      without one is placed automatically, and reading it then gives row 0,
+      column 0. A ``.form`` child writes ``cell: 1 0;``. A row or column of 64 or
+      more throws ``std::out_of_range``; a cell inside another child's span, or
+      a control that is not a live direct child, throws
+      ``std::invalid_argument``. Moving a child carries its span with it unless
+      another child is anchored at the old cell; the value is dropped when the
+      child leaves.
+
+   .. cpp:member:: std::uint32_t column_span
+
+      How many columns the child's cell spans, from 1 through 64:
+      ``(*table).column_span[*child] = 2U;`` (``column-span: 2;`` in a ``.form``).
+      The table holds the spans: each is an anonymous :cpp:class:`GridSpan <gui_forms::GridSpan>` anchored at a
+      child's cell (``spans()``), and a span of 1 by 1 removes it. A child needs
+      an explicit cell before it can span (``std::invalid_argument``); a span
+      that ends past track 64 throws ``std::out_of_range``, and one that would
+      overlap another span or cover another child's cell throws
+      ``std::invalid_argument``.
+
+   .. cpp:member:: std::uint32_t row_span
+
+      How many rows the child's cell spans, with the same rules as
+      :cpp:member:`column_span <gui_forms::TableLayoutPanelCompat::column_span>`.
+
+   .. cpp:function:: std::span<const GridSpan> spans() const& noexcept
+
+      The anonymous spans, in the order they were made, each anchored at a
+      placed child's cell.
 
    .. cpp:function:: std::size_t column_count() const noexcept
 
@@ -296,13 +358,25 @@ gui_forms::TableLayoutPanelCompat
 
    .. cpp:function:: std::span<const TableLayoutStyle> column_styles() const noexcept
 
-      The size mode and size of each authored column, one per column. Set them
-      with :cpp:func:`set_column_style <gui_forms::TableLayoutPanelCompat::set_column_style>`.
+      The size mode and size of each authored column, one per column. Set one
+      with :cpp:func:`set_column_style <gui_forms::TableLayoutPanelCompat::set_column_style>`, or all with :cpp:func:`set_column_styles <gui_forms::TableLayoutPanelCompat::set_column_styles>`, which makes the
+      column count the number of styles (1 through 64, ``std::out_of_range``)
+      and checks every style first. In a ``.form`` it is the ``column-styles`` text
+      collection, one item per column:
+      ``column-styles: "absolute 140" "auto" "percent 1";``.
+
+   .. cpp:function:: void set_column_styles(std::span<const TableLayoutStyle> styles)
+
+      Sets :cpp:func:`column_styles <gui_forms::TableLayoutPanelCompat::column_styles>`; see the property's description above.
 
    .. cpp:function:: std::span<const TableLayoutStyle> row_styles() const noexcept
 
-      The size mode and size of each authored row. Set them with
-      :cpp:func:`set_row_style <gui_forms::TableLayoutPanelCompat::set_row_style>`.
+      The size mode and size of each authored row, set with :cpp:func:`set_row_style <gui_forms::TableLayoutPanelCompat::set_row_style>` or
+      :cpp:func:`set_row_styles <gui_forms::TableLayoutPanelCompat::set_row_styles>` as the columns are (``row-styles`` in a ``.form``).
+
+   .. cpp:function:: void set_row_styles(std::span<const TableLayoutStyle> styles)
+
+      Sets :cpp:func:`row_styles <gui_forms::TableLayoutPanelCompat::row_styles>`; see the property's description above.
 
    .. cpp:function:: std::span<const double> column_widths() const noexcept
 
@@ -324,23 +398,24 @@ gui_forms::TableLayoutPanelCompat
 
    .. rubric:: Methods
 
-   .. cpp:function:: void clear_cell_position(const Control& child)
-
-      Returns ``child`` to automatic placement.
+   .. cpp:function:: static const std::array<ChildPropertyEntry, table_child_property_count>& table_child_property_entries() noexcept
 
    .. cpp:function:: std::optional<TableLayoutCellPosition> cell_position(const Control& child) const
 
-      The cell the last layout placed ``child`` in. When the last layout placed
-      it nowhere, returns the position set with :cpp:func:`set_cell_position <gui_forms::TableLayoutPanelCompat::set_cell_position>`, or no
-      value if there is none. Reading it brings the layout up to date first.
+      The cell the last layout placed ``child`` in: its explicit cell, or the
+      one automatic placement found. When the last layout placed it nowhere,
+      returns its explicit cell, or no value if there is none. Reading it
+      brings the layout up to date first.
 
-   .. cpp:function:: std::size_t column_span(const Control& child) const
+   .. cpp:function:: void clear_cell(const Control& child)
 
-      The column span of ``child``; 1 when none is set.
+      Returns ``child`` to automatic placement, the reset of :cpp:member:`cell <gui_forms::TableLayoutPanelCompat::cell>`. A child that
+      is the only one anchored at a span is refused with
+      ``std::invalid_argument``; set its spans back to 1 first.
 
-   .. cpp:function:: std::size_t row_span(const Control& child) const
+   .. cpp:function:: bool has_cell(const Control& child) const
 
-      The row span of ``child``; 1 when none is set.
+      Whether ``child`` has an explicit cell.
 
    .. cpp:function:: Control::Ptr control_from_position(std::size_t column, std::size_t row) const
 
@@ -365,25 +440,10 @@ gui_forms::TableLayoutPanelCompat
 
       The same as :cpp:func:`set_column_style <gui_forms::TableLayoutPanelCompat::set_column_style>`, for one row.
 
-   .. cpp:function:: void set_cell_position(const Control& child, TableLayoutCellPosition position)
-
-      Places ``child`` at an explicit column and row, counted from 0. A column or
-      row of 64 or more throws ``std::out_of_range``, and a control that is not a
-      live direct child throws ``std::invalid_argument``.
-
-   .. cpp:function:: void set_column_span(const Control& child, std::size_t span)
-
-      The number of columns ``child`` covers, from 1 through 64, starting at its
-      cell. Out-of-range spans throw ``std::out_of_range``, and a control that is
-      not a live direct child throws ``std::invalid_argument``.
-
-   .. cpp:function:: void set_row_span(const Control& child, std::size_t span)
-
-      The number of rows ``child`` covers, from 1 through 64, with the same
-      rules as :cpp:func:`set_column_span <gui_forms::TableLayoutPanelCompat::set_column_span>`.
-
 
    .. rubric:: Extension points
+
+   .. cpp:function:: std::span<const ChildPropertyEntry> child_property_table() const noexcept override
 
    .. cpp:function:: Size measure(Size available) override
 
@@ -398,3 +458,11 @@ gui_forms::TableLayoutPanelCompat
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 
       *Protected.*
+
+   .. cpp:function:: void child_leaving(const Control& child) noexcept override
+
+      *Protected.*
+
+   .. cpp:member:: constexpr std::size_t table_child_property_count
+
+      The child properties it provides, the cell first (a span needs it). Default: ``3U``.

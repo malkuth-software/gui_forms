@@ -4,6 +4,8 @@
 #include "gui_forms/controls/panel/date_time_picker/date_time_format_provider/date_time_format_provider.hpp"
 #include "gui_forms/controls/panel/date_time_picker/date_time_value/date_time_value.hpp"
 #include "gui_forms/event.hpp"
+#include "gui_forms/controls/panel/month_calendar/calendar_values/calendar_values.hpp"
+#include "gui_forms/controls/panel/month_calendar/month_calendar_capabilities/month_calendar_capabilities.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -15,38 +17,6 @@
 
 namespace gui_forms {
 
-// A day of the week, numbered as day_of_week numbers them (Sunday is 0).
-enum class CalendarWeekday : std::uint8_t {
-    sunday,
-    monday,
-    tuesday,
-    wednesday,
-    thursday,
-    friday,
-    saturday,
-};
-
-// A run of whole days, first to last inclusive; the time of day is zero.
-struct CalendarDateRange final {
-    DateTimeValue start{};
-    DateTimeValue end{};
-
-    friend constexpr bool operator==(const CalendarDateRange& left,
-                                     const CalendarDateRange& right) noexcept {
-        return left.start == right.start && left.end == right.end;
-    }
-};
-
-// How many months the calendar shows: columns by rows, at most twelve.
-struct CalendarDimensions final {
-    std::uint32_t columns{1U};
-    std::uint32_t rows{1U};
-
-    friend constexpr bool operator==(CalendarDimensions left, CalendarDimensions right) noexcept {
-        return left.columns == right.columns && left.rows == right.rows;
-    }
-};
-
 // A month calendar (Windows Forms' MonthCalendar): one or more month pages
 // on which the user selects a date or a run of dates. Each month shows its
 // title, the weekday names, optionally week numbers, and its own days (days
@@ -57,7 +27,7 @@ struct CalendarDimensions final {
 //
 // Dates are civil days: the time of day of every date the calendar takes is
 // dropped, and every date it reports is at midnight.
-class MonthCalendar final : public Control {
+class MonthCalendar final : public Control, public MonthCalendarCapabilities<MonthCalendar> {
 public:
     explicit MonthCalendar(StableId stable_id);
 
@@ -71,10 +41,6 @@ public:
     void set_selection_range(DateTimeValue first, DateTimeValue last);
     // Selects one day.
     void set_date(DateTimeValue date);
-    // The most days a selection may hold; zero throws std::out_of_range.
-    // Lowering it shortens the current selection.
-    [[nodiscard]] std::uint32_t max_selection_count() const noexcept { return max_selection_count_; }
-    void set_max_selection_count(std::uint32_t count);
     [[nodiscard]] DateTimeValue min_date() const noexcept { return minimum_; }
     [[nodiscard]] DateTimeValue max_date() const noexcept { return maximum_; }
     // Throws std::invalid_argument for an invalid or reversed range. The
@@ -86,35 +52,11 @@ public:
     [[nodiscard]] DateTimeValue today_date() const noexcept { return set_today_.value_or(system_today_); }
     void set_today_date(DateTimeValue date);
     [[nodiscard]] bool today_date_set() const noexcept { return set_today_.has_value(); }
-    // Whether the "Today:" line is shown below the months.
-    [[nodiscard]] bool show_today() const noexcept { return show_today_; }
-    void set_show_today(bool show);
-    // Whether today's day publishes the current state and its marker part.
-    [[nodiscard]] bool show_today_circle() const noexcept { return show_today_circle_; }
-    void set_show_today_circle(bool show);
-    // Week numbers beside each row: week 1 is the week that holds 1 January
-    // (Windows Forms' FirstDay rule), weeks starting on first_day_of_week.
-    [[nodiscard]] bool show_week_numbers() const noexcept { return show_week_numbers_; }
-    void set_show_week_numbers(bool show);
-    [[nodiscard]] CalendarWeekday first_day_of_week() const noexcept { return first_day_of_week_; }
-    void set_first_day_of_week(CalendarWeekday day);
-    // Throws std::out_of_range for a zero dimension or more than twelve months.
-    [[nodiscard]] CalendarDimensions calendar_dimensions() const noexcept { return dimensions_; }
-    void set_calendar_dimensions(CalendarDimensions dimensions);
-    // Months an arrow scrolls; zero (the default) scrolls by the number of
-    // months shown.
-    [[nodiscard]] std::uint32_t scroll_change() const noexcept { return scroll_change_; }
-    void set_scroll_change(std::uint32_t months);
     // The first day of the first month shown.
     [[nodiscard]] DateTimeValue first_displayed_month() const noexcept;
     // Scrolls the months shown by `months` (negative: back), within
     // min_date..max_date. Returns whether the months changed.
     bool scroll_months(std::int32_t months);
-    // Month and day names and the "Today:" date pattern.
-    [[nodiscard]] const DateTimeFormatProvider& format_provider() const noexcept { return provider_; }
-    void set_format_provider(DateTimeFormatProvider provider);
-    [[nodiscard]] FontSpec font() const noexcept { return font_; }
-    void set_font(FontSpec font);
 
     // Days shown in bold: on one date, on a month and day every year, or on
     // a day of every month (only the day of a monthly date counts, and only
@@ -270,12 +212,6 @@ private:
     std::optional<DateTimeValue> set_today_{};
     std::int32_t first_year_{2000};
     std::uint8_t first_month_{1U};
-    std::uint32_t max_selection_count_{7U};
-    std::uint32_t scroll_change_{};
-    CalendarDimensions dimensions_{};
-    CalendarWeekday first_day_of_week_{CalendarWeekday::sunday};
-    DateTimeFormatProvider provider_{DateTimeFormatProvider::english_united_states()};
-    FontSpec font_{FontRole::control, 10.5, 400, false, 0.12};
     std::vector<DateTimeValue> bolded_{};
     std::vector<DateTimeValue> annually_bolded_{};
     std::vector<DateTimeValue> monthly_bolded_{};
@@ -283,12 +219,47 @@ private:
     Zone hot_zone_{Zone::none};
     Zone pressed_zone_{Zone::none};
     bool dragging_{};
-    bool show_today_{true};
-    bool show_today_circle_{true};
-    bool show_week_numbers_{};
     bool focused_{};
     Event<const CalendarDateRange&> date_changed_{};
     Event<const CalendarDateRange&> date_selected_{};
+    // property_codemod begin MonthCalendar (tools/property_families/month_calendar.json; generated, do not edit)
+protected:
+    // on_<property>_changed runs after a changed write's touch and raises the
+    // change event; an override calls the base. coerce_<property> runs last
+    // before the compare and may rewrite the incoming value.
+    virtual void on_font_changed();
+    virtual void coerce_font(FontSpec& incoming);
+
+private:
+    friend struct ShowTodayCapability<MonthCalendar>;
+    friend struct ShowTodayCircleCapability<MonthCalendar>;
+    friend struct ShowWeekNumbersCapability<MonthCalendar>;
+    friend struct FirstDayOfWeekCapability<MonthCalendar>;
+    friend struct CalendarDimensionsCapability<MonthCalendar>;
+    friend struct MaxSelectionCountCapability<MonthCalendar>;
+    friend struct ScrollChangeCapability<MonthCalendar>;
+    friend struct MonthCalendarFormatProviderCapability<MonthCalendar>;
+    friend struct FontCapability<MonthCalendar>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(show_today)& cell, bool& incoming);
+    void written(const decltype(show_today)& cell);
+    void prepare_write(const decltype(show_today_circle)& cell, bool& incoming);
+    void written(const decltype(show_today_circle)& cell);
+    void prepare_write(const decltype(show_week_numbers)& cell, bool& incoming);
+    void written(const decltype(show_week_numbers)& cell);
+    void prepare_write(const decltype(first_day_of_week)& cell, CalendarWeekday& incoming);
+    void written(const decltype(first_day_of_week)& cell);
+    void prepare_write(const decltype(calendar_dimensions)& cell, CalendarDimensions& incoming);
+    void written(const decltype(calendar_dimensions)& cell);
+    void prepare_write(const decltype(max_selection_count)& cell, std::uint32_t& incoming);
+    void written(const decltype(max_selection_count)& cell);
+    void prepare_write(const decltype(scroll_change)& cell, std::uint32_t& incoming);
+    void written(const decltype(scroll_change)& cell);
+    void prepare_write(const decltype(format_provider)& cell, DateTimeFormatProvider& incoming);
+    void written(const decltype(format_provider)& cell);
+    void prepare_write(const decltype(font)& cell, FontSpec& incoming);
+    void written(const decltype(font)& cell);
+    // property_codemod end MonthCalendar
 };
 
 } // namespace gui_forms

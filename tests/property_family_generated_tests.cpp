@@ -4,6 +4,10 @@
 // raises the change event once (property-capabilities study, section 15.2).
 #include "gui_forms/gui_forms.hpp"
 #include "gui_forms/controls/button_base/button/button.hpp"
+#include "gui_forms/controls/data_grid_view/data_grid_view.hpp"
+#include "gui_forms/controls/panel/month_calendar/month_calendar.hpp"
+#include "gui_forms/controls/panel/panel.hpp"
+#include "gui_forms/controls/panel/token_box/token_box.hpp"
 #include "gui_forms/controls/panel/tree_list_view/tree_list_view.hpp"
 #include "gui_forms/controls/scrollable_control/scrollable_control.hpp"
 
@@ -111,6 +115,252 @@ void test_button_base_properties() {
     }
 }
 
+void test_data_grid_view_properties() {
+    std::shared_ptr<DataGridView> control = make_control<DataGridView>(StableId("generated.datagridview"));
+    {
+        const DataGridViewAutoSizeColumnsMode sample = DataGridViewAutoSizeColumnsMode::fill;
+        (*control).auto_size_columns_mode = sample;
+        expect((*control).auto_size_columns_mode.read() == sample, "DataGridView.auto_size_columns_mode: a write stores");
+    }
+    {
+        const DataGridViewAutoSizeRowsMode sample = DataGridViewAutoSizeRowsMode::all_cells;
+        (*control).auto_size_rows_mode = sample;
+        expect((*control).auto_size_rows_mode.read() == sample, "DataGridView.auto_size_rows_mode: a write stores");
+    }
+    {
+        const DataGridViewClipboardCopyMode sample = DataGridViewClipboardCopyMode::disable;
+        (*control).clipboard_copy_mode = sample;
+        expect((*control).clipboard_copy_mode.read() == sample, "DataGridView.clipboard_copy_mode: a write stores");
+    }
+    {
+        const DataGridViewRowOrderPolicy sample = DataGridViewRowOrderPolicy::edit;
+        (*control).row_order_policy = sample;
+        expect((*control).row_order_policy.read() == sample, "DataGridView.row_order_policy: a write stores");
+    }
+    {
+        const DataGridViewRowOrderThresholds sample = DataGridViewRowOrderThresholds{};
+        (*control).row_order_thresholds = sample;
+        expect((*control).row_order_thresholds.read() == sample, "DataGridView.row_order_thresholds: a write stores");
+    }
+    {
+        const bool sample = false;
+        (*control).allow_user_to_delete_rows = sample;
+        expect((*control).allow_user_to_delete_rows.read() == sample, "DataGridView.allow_user_to_delete_rows: a write stores");
+    }
+    {
+        const bool sample = false;
+        (*control).show_cell_errors = sample;
+        expect((*control).show_cell_errors.read() == sample, "DataGridView.show_cell_errors: a write stores");
+    }
+    {
+        const bool sample = false;
+        (*control).show_row_errors = sample;
+        expect((*control).show_row_errors.read() == sample, "DataGridView.show_row_errors: a write stores");
+    }
+    {
+        const bool sample = false;
+        (*control).show_editing_icon = sample;
+        expect((*control).show_editing_icon.read() == sample, "DataGridView.show_editing_icon: a write stores");
+    }
+    {
+        const DataGridViewCellStyle sample = DataGridViewCellStyle{.wrap_mode = true};
+        (*control).default_cell_style = sample;
+        expect((*control).default_cell_style.read() == sample, "DataGridView.default_cell_style: a write stores");
+    }
+    {
+        const DataGridViewCellStyle sample = DataGridViewCellStyle{.wrap_mode = true};
+        (*control).rows_default_cell_style = sample;
+        expect((*control).rows_default_cell_style.read() == sample, "DataGridView.rows_default_cell_style: a write stores");
+    }
+    {
+        const DataGridViewCellStyle sample = DataGridViewCellStyle{.wrap_mode = true};
+        (*control).alternating_rows_default_cell_style = sample;
+        expect((*control).alternating_rows_default_cell_style.read() == sample, "DataGridView.alternating_rows_default_cell_style: a write stores");
+    }
+    {
+        const DataGridViewCellStyle sample = DataGridViewCellStyle{.wrap_mode = true};
+        (*control).column_headers_default_cell_style = sample;
+        expect((*control).column_headers_default_cell_style.read() == sample, "DataGridView.column_headers_default_cell_style: a write stores");
+    }
+    {
+        const DataGridViewCellStyle sample = DataGridViewCellStyle{.wrap_mode = true};
+        (*control).row_headers_default_cell_style = sample;
+        expect((*control).row_headers_default_cell_style.read() == sample, "DataGridView.row_headers_default_cell_style: a write stores");
+    }
+    {
+        const bool sample = false;
+        (*control).enable_headers_visual_styles = sample;
+        expect((*control).enable_headers_visual_styles.read() == sample, "DataGridView.enable_headers_visual_styles: a write stores");
+    }
+    {
+        const std::optional<Color> sample = std::optional<Color>{Color::rgba(10U, 20U, 30U)};
+        (*control).grid_color = sample;
+        expect((*control).grid_color.read() == sample, "DataGridView.grid_color: a write stores");
+    }
+    {
+        const std::optional<Color> sample = std::optional<Color>{Color::rgba(10U, 20U, 30U)};
+        (*control).background_color = sample;
+        expect((*control).background_color.read() == sample, "DataGridView.background_color: a write stores");
+    }
+    {
+        const BorderStyle sample = BorderStyle::sunken;
+        (*control).border_style = sample;
+        expect((*control).border_style.read() == sample, "DataGridView.border_style: a write stores");
+    }
+    {
+        const DataGridViewCellBorderStyle sample = DataGridViewCellBorderStyle::none;
+        (*control).cell_border_style = sample;
+        expect((*control).cell_border_style.read() == sample, "DataGridView.cell_border_style: a write stores");
+    }
+    {
+        const DataGridViewHeaderBorderStyle sample = DataGridViewHeaderBorderStyle::single;
+        (*control).column_headers_border_style = sample;
+        expect((*control).column_headers_border_style.read() == sample, "DataGridView.column_headers_border_style: a write stores");
+    }
+    {
+        const DataGridViewHeaderBorderStyle sample = DataGridViewHeaderBorderStyle::single;
+        (*control).row_headers_border_style = sample;
+        expect((*control).row_headers_border_style.read() == sample, "DataGridView.row_headers_border_style: a write stores");
+    }
+    {
+        const ItemDrawMode sample = ItemDrawMode::owner_draw;
+        (*control).draw_mode = sample;
+        expect((*control).draw_mode.read() == sample, "DataGridView.draw_mode: a write stores");
+    }
+    {
+        const bool sample = false;
+        (*control).column_headers_visible = sample;
+        expect((*control).column_headers_visible.read() == sample, "DataGridView.column_headers_visible: a write stores");
+    }
+    {
+        const bool sample = false;
+        (*control).row_headers_visible = sample;
+        expect((*control).row_headers_visible.read() == sample, "DataGridView.row_headers_visible: a write stores");
+    }
+    {
+        const double sample = 30.0;
+        (*control).column_headers_height = sample;
+        expect((*control).column_headers_height.read() == sample, "DataGridView.column_headers_height: a write stores");
+    }
+    {
+        const double sample = 50.0;
+        (*control).row_headers_width = sample;
+        expect((*control).row_headers_width.read() == sample, "DataGridView.row_headers_width: a write stores");
+    }
+    {
+        const double sample = 30.0;
+        (*control).row_height = sample;
+        expect((*control).row_height.read() == sample, "DataGridView.row_height: a write stores");
+    }
+    {
+        const FontSpec sample = FontSpec{FontRole::content, 13.0, 600, false};
+        (*control).font = sample;
+        expect((*control).font.read() == sample, "DataGridView.font: a write stores");
+    }
+    {
+        const bool sample = true;
+        (*control).read_only = sample;
+        expect((*control).read_only.read() == sample, "DataGridView.read_only: a write stores");
+    }
+    {
+        const bool sample = false;
+        (*control).allow_user_to_resize_columns = sample;
+        expect((*control).allow_user_to_resize_columns.read() == sample, "DataGridView.allow_user_to_resize_columns: a write stores");
+    }
+    {
+        const bool sample = false;
+        (*control).allow_user_to_resize_rows = sample;
+        expect((*control).allow_user_to_resize_rows.read() == sample, "DataGridView.allow_user_to_resize_rows: a write stores");
+    }
+    {
+        const bool sample = true;
+        (*control).allow_user_to_order_columns = sample;
+        expect((*control).allow_user_to_order_columns.read() == sample, "DataGridView.allow_user_to_order_columns: a write stores");
+    }
+    {
+        const DataGridViewSelectionMode sample = DataGridViewSelectionMode::full_row_select;
+        (*control).selection_mode = sample;
+        expect((*control).selection_mode.read() == sample, "DataGridView.selection_mode: a write stores");
+    }
+    {
+        const bool sample = false;
+        (*control).multi_select = sample;
+        expect((*control).multi_select.read() == sample, "DataGridView.multi_select: a write stores");
+    }
+    {
+        const DataGridViewEditMode sample = DataGridViewEditMode::edit_on_enter;
+        (*control).edit_mode = sample;
+        expect((*control).edit_mode.read() == sample, "DataGridView.edit_mode: a write stores");
+    }
+    {
+        const bool sample = true;
+        (*control).cells_on_sub_surface = sample;
+        expect((*control).cells_on_sub_surface.read() == sample, "DataGridView.cells_on_sub_surface: a write stores");
+    }
+}
+
+void test_month_calendar_properties() {
+    std::shared_ptr<MonthCalendar> control = make_control<MonthCalendar>(StableId("generated.monthcalendar"));
+    {
+        const bool sample = false;
+        (*control).show_today = sample;
+        expect((*control).show_today.read() == sample, "MonthCalendar.show_today: a write stores");
+    }
+    {
+        const bool sample = false;
+        (*control).show_today_circle = sample;
+        expect((*control).show_today_circle.read() == sample, "MonthCalendar.show_today_circle: a write stores");
+    }
+    {
+        const bool sample = true;
+        (*control).show_week_numbers = sample;
+        expect((*control).show_week_numbers.read() == sample, "MonthCalendar.show_week_numbers: a write stores");
+    }
+    {
+        const CalendarWeekday sample = CalendarWeekday::monday;
+        (*control).first_day_of_week = sample;
+        expect((*control).first_day_of_week.read() == sample, "MonthCalendar.first_day_of_week: a write stores");
+    }
+    {
+        const CalendarDimensions sample = CalendarDimensions{2U, 1U};
+        (*control).calendar_dimensions = sample;
+        expect((*control).calendar_dimensions.read() == sample, "MonthCalendar.calendar_dimensions: a write stores");
+    }
+    {
+        const std::uint32_t sample = 3U;
+        (*control).max_selection_count = sample;
+        expect((*control).max_selection_count.read() == sample, "MonthCalendar.max_selection_count: a write stores");
+    }
+    {
+        const std::uint32_t sample = 3U;
+        (*control).scroll_change = sample;
+        expect((*control).scroll_change.read() == sample, "MonthCalendar.scroll_change: a write stores");
+    }
+    // format_provider: no sample for DateTimeFormatProvider; give the property a "sample".
+    {
+        const FontSpec sample = FontSpec{FontRole::control, 12.0, 700, false, 0.12};
+        (*control).font = sample;
+        expect((*control).font.read() == sample, "MonthCalendar.font: a write stores");
+    }
+}
+
+void test_panel_properties() {
+    std::shared_ptr<Panel> control = make_control<Panel>(StableId("generated.panel"));
+    {
+        const BorderStyle sample = BorderStyle::sunken;
+        (*control).border_style = sample;
+        expect((*control).border_style.read() == sample, "Panel.border_style: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("border_style");
+        expect(by_name && *by_name == PropertyValueTraits<BorderStyle>::to_binding(sample),
+               "Panel.border_style: the table reads the cell");
+    }
+    {
+        const ControlVisualRole sample = ControlVisualRole::card;
+        (*control).visual_role = sample;
+        expect((*control).visual_role.read() == sample, "Panel.visual_role: a write stores");
+    }
+}
+
 void test_scrollable_control_properties() {
     std::shared_ptr<ScrollableControl> control = make_control<ScrollableControl>(StableId("generated.scrollablecontrol"));
     {
@@ -139,6 +389,20 @@ void test_scrollable_control_properties() {
     }
 }
 
+void test_token_box_properties() {
+    std::shared_ptr<TokenBox> control = make_control<TokenBox>(StableId("generated.tokenbox"));
+    {
+        const std::string sample = std::string{"|"};
+        (*control).delimiters = sample;
+        expect((*control).delimiters.read() == sample, "TokenBox.delimiters: a write stores");
+    }
+    {
+        const FontSpec sample = FontSpec{FontRole::content, 14.0, 700, false};
+        (*control).font = sample;
+        expect((*control).font.read() == sample, "TokenBox.font: a write stores");
+    }
+}
+
 void test_tree_list_view_properties() {
     std::shared_ptr<TreeListView> control = make_control<TreeListView>(StableId("generated.treelistview"));
     {
@@ -158,7 +422,11 @@ void test_tree_list_view_properties() {
 
 int main() {
     test_button_base_properties();
+    test_data_grid_view_properties();
+    test_month_calendar_properties();
+    test_panel_properties();
     test_scrollable_control_properties();
+    test_token_box_properties();
     test_tree_list_view_properties();
     std::cout << "generated property tests passed\n";
     return EXIT_SUCCESS;

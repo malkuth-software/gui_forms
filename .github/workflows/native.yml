@@ -118,6 +118,8 @@ jobs:
           # Stage T4: direct drawing in controls may only fall (manifests/paint_census.json).
           python3 -B -m unittest discover -s tools -p test_paint_census.py
           python3 -B tools/paint_census.py check
+          # Theme variants stage B: the colour relocation instrument.
+          python3 -B -m unittest discover -s tools -p test_relocate_colours.py
           python3 -B -m unittest discover -s tools -p test_generate_library_docs.py
           python3 tools/generate_library_docs.py --check
           python3 -B ../template_harness/harness/check_house_style.py include src demo tests examples tools file_manager_demoboard fuzz

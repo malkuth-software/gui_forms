@@ -254,7 +254,7 @@ void test_public_controls_render_with_role_policy() {
     std::shared_ptr<gui_forms::Panel> panel = make_control<Panel>(StableId("controls.panel"));
     (*panel).accessible_name = "Public panel group";
     (*panel).set_requested_bounds({0.0, 0.0, 360.0, 180.0});
-    (*panel).set_border_style(BorderStyle::line);
+    (*panel).border_style = BorderStyle::line;
     std::shared_ptr<gui_forms::GroupBox> group = make_control<GroupBox>(StableId("controls.group"), "Reusable controls");
     (*group).set_requested_bounds({10.0, 10.0, 340.0, 160.0});
     // The caption is the group's `text` property (Windows Forms' GroupBox.Text).
@@ -1367,11 +1367,11 @@ void test_basic_control_layout_customization_is_bounded_and_atomic() {
     std::shared_ptr<gui_forms::Panel> panel = make_control<Panel>(StableId("panel.border-validation"));
     bool rejected_border{};
     try {
-        (*panel).set_border_style(static_cast<BorderStyle>(255));
+        (*panel).border_style = static_cast<BorderStyle>(255);
     } catch (const std::invalid_argument&) {
         rejected_border = true;
     }
-    require(rejected_border && (*panel).border_style() == BorderStyle::none,
+    require(rejected_border && (*panel).border_style.read() == BorderStyle::none,
             "Panel must reject invalid border-style states atomically");
 }
 
@@ -1420,7 +1420,7 @@ void test_label_inherits_theme_typography_until_explicitly_overridden() {
 void test_picture_box_modes_registry_and_semantics() {
     std::shared_ptr<gui_forms::PictureBox> picture = make_control<PictureBox>(StableId("picture"));
     (*picture).set_requested_bounds({0.0, 0.0, 100.0, 100.0});
-    (*picture).set_border_style(BorderStyle::line);
+    (*picture).border_style = BorderStyle::line;
     (*picture).accessible_name = "Professional test card";
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(picture, Size{100.0, 100.0});
     Window& window = *held_window;

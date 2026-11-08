@@ -7,7 +7,7 @@ gui_forms::CommandOverflowPanel
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: CommandOverflowPanel final : public ContainerControl
+.. cpp:class:: CommandOverflowPanel final : public ContainerControl, public GroupSpecCapability<CommandOverflowPanel>
 
    ``#include <gui_forms/controls/scrollable_control/container_control/command_overflow_panel/command_overflow_panel.hpp>``
 
@@ -31,6 +31,23 @@ gui_forms::CommandOverflowPanel
          Identity of the panel, unique within its window.
 
    :Properties:
+
+      **group_spec** : ``std::optional<CommandOverflowGroupSpec>``, child property, default none
+         A direct child's sizing and collapse rule, a property the panel provides
+         to its children and stores for each: `(*shelf).group_spec[*group] =
+         CommandOverflowGroupSpec{176.0, 176.0, 176.0, 2U};` gives a ``minimum``,
+         ``preferred`` and ``maximum`` width (a ``maximum`` of 0 means unbounded) and
+         an optional ``collapse_priority``. The group is given its preferred width
+         and shrinks toward its minimum before any group collapses; it never
+         grows past its preferred width. Writing ``std::nullopt`` removes the spec,
+         and the child then keeps its measured width and never collapses. In a
+         ``.form`` the value is text: the three widths, then optionally ``priority``
+         and the priority, as in ``group-spec: "176 176 176 priority 2";``; the
+         empty text is none. It throws ``std::invalid_argument`` if the extents are
+         not finite, nonnegative and ordered, if the text has another shape, if
+         the control is not a live direct child, if it is the actuator, if
+         another group already has the same priority, or if 32 groups already
+         have specs. The value is dropped when the child leaves.
 
       **group_gap** : ``double``, default ``0.0``
          Space between neighbouring groups that are shown, and between the last
@@ -65,14 +82,10 @@ gui_forms::CommandOverflowPanel
       :class: autosummary longtable
       :widths: 35 65
 
-      * - :cpp:func:`group_spec <gui_forms::CommandOverflowPanel::group_spec>`
-        - The spec of ``group``, or no value when it has none or is not a direct child.
-      * - :cpp:func:`clear_group_spec <gui_forms::CommandOverflowPanel::clear_group_spec>`
-        - Removes the spec of ``group``, which then keeps its measured width and never collapses.
+      * - :cpp:func:`overflow_child_property_entries <gui_forms::CommandOverflowPanel::overflow_child_property_entries>`
+        -  
       * - :cpp:func:`clear_overflow_actuator <gui_forms::CommandOverflowPanel::clear_overflow_actuator>`
         - Turns the actuator back into an ordinary child.
-      * - :cpp:func:`set_group_spec <gui_forms::CommandOverflowPanel::set_group_spec>`
-        - ``set_group_spec(group, spec)`` gives a direct child its sizing and collapse rule: a ``minimum``, ``preferred`` and ``maximum`` width (a ``maximum`` of 0 means unbounded) and an optional ``collapse_priority``.
 
    .. seealso::
 
@@ -143,8 +156,8 @@ gui_forms::CommandOverflowPanel
       (*shelf).add_child(arrange);
       (*shelf).add_child(more);
       (*shelf).set_group_gap(4.0);
-      (*shelf).set_group_spec(*selection, {176.0, 176.0, 176.0, 2U});
-      (*shelf).set_group_spec(*arrange, {306.0, 306.0, 306.0, 1U});
+      (*shelf).group_spec[*selection] = gf::CommandOverflowGroupSpec{176.0, 176.0, 176.0, 2U};
+      (*shelf).group_spec[*arrange] = gf::CommandOverflowGroupSpec{306.0, 306.0, 306.0, 1U};
       (*shelf).set_overflow_actuator(*more);
 
       gf::Window window(shelf, {600.0, 66.0});
@@ -167,6 +180,24 @@ gui_forms::CommandOverflowPanel
 
 
    .. rubric:: Properties
+
+   .. cpp:member:: std::optional<CommandOverflowGroupSpec> group_spec
+
+      A direct child's sizing and collapse rule, a property the panel provides
+      to its children and stores for each: `(*shelf).group_spec[*group] =
+      CommandOverflowGroupSpec{176.0, 176.0, 176.0, 2U};` gives a ``minimum``,
+      ``preferred`` and ``maximum`` width (a ``maximum`` of 0 means unbounded) and
+      an optional ``collapse_priority``. The group is given its preferred width
+      and shrinks toward its minimum before any group collapses; it never
+      grows past its preferred width. Writing ``std::nullopt`` removes the spec,
+      and the child then keeps its measured width and never collapses. In a
+      ``.form`` the value is text: the three widths, then optionally ``priority``
+      and the priority, as in ``group-spec: "176 176 176 priority 2";``; the
+      empty text is none. It throws ``std::invalid_argument`` if the extents are
+      not finite, nonnegative and ordered, if the text has another shape, if
+      the control is not a live direct child, if it is the actuator, if
+      another group already has the same priority, or if 32 groups already
+      have specs. The value is dropped when the child leaves.
 
    .. cpp:function:: double group_gap() const noexcept
 
@@ -201,34 +232,16 @@ gui_forms::CommandOverflowPanel
 
    .. rubric:: Methods
 
-   .. cpp:function:: std::optional<CommandOverflowGroupSpec> group_spec(const Control& group) const
-
-      The spec of ``group``, or no value when it has none or is not a direct
-      child.
-
-   .. cpp:function:: void clear_group_spec(const Control& group)
-
-      Removes the spec of ``group``, which then keeps its measured width and
-      never collapses.
+   .. cpp:function:: static const std::array<ChildPropertyEntry, overflow_child_property_count>& overflow_child_property_entries() noexcept
 
    .. cpp:function:: void clear_overflow_actuator()
 
       Turns the actuator back into an ordinary child.
 
-   .. cpp:function:: void set_group_spec(const Control& group, CommandOverflowGroupSpec spec)
-
-      ``set_group_spec(group, spec)`` gives a direct child its sizing and
-      collapse rule: a ``minimum``, ``preferred`` and ``maximum`` width (a ``maximum``
-      of 0 means unbounded) and an optional ``collapse_priority``. The group is
-      given its preferred width and shrinks toward its minimum before any group
-      collapses; it never grows past its preferred width. It throws
-      ``std::invalid_argument`` if the extents are not finite, nonnegative and
-      ordered, if the control is not a live direct child, if it is the
-      actuator, if another group already has the same priority, or if 32
-      groups already have specs.
-
 
    .. rubric:: Extension points
+
+   .. cpp:function:: std::span<const ChildPropertyEntry> child_property_table() const noexcept override
 
    .. cpp:function:: Size measure(Size available) override
 
@@ -237,3 +250,11 @@ gui_forms::CommandOverflowPanel
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
 
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
+
+   .. cpp:function:: void child_leaving(const Control& child) noexcept override
+
+      *Protected.*
+
+   .. cpp:member:: constexpr std::size_t overflow_child_property_count
+
+      The child properties it provides: group_spec. Default: ``1U``.

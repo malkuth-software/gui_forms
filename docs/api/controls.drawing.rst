@@ -49,6 +49,8 @@ Related types
      - The state both sides agree on in one visible frame (design note section 6), sent by the parent with each content epoch.
    * - :cpp:class:`SubSurfaceContent <gui_forms::SubSurfaceContent>`
      - What a sub-surface shows (stage S2, threaded sub-surfaces design note section 2).
+   * - :cpp:class:`SubSurfaceContentUpdate <gui_forms::SubSurfaceContentUpdate>`
+     - One change of a sub-surface's content that must agree with its parent's chrome in the same visible frame (design note section 2, redraw-all): made on the parent's thread, carried with a configuration (SubSurfaceHost::redraw_all), handed to SubSurfaceContent::apply_update on the sub-surface's thread after that configuration is applied and before its first frame, and destroyed there.
    * - :cpp:class:`SubSurfaceHost::Parts <gui_forms::SubSurfaceHost::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`SubSurfaceHost::States <gui_forms::SubSurfaceHost::States>`
@@ -63,6 +65,10 @@ Related types
      - Counters of a host's side of its sub-surface's requests (design note section 15).
    * - :cpp:class:`SubSurfaceRequestTarget <gui_forms::SubSurfaceRequestTarget>`
      - Where a sub-surface's requests go: called on the parent's thread only, through the parent's dispatcher, in the order the sub-surface posted.
+   * - :cpp:class:`SubSurfaceSemanticAction <gui_forms::SubSurfaceSemanticAction>`
+     - A semantic action for a node of the sub-surface's own tree, named as a host names a node to SurfaceRoot::perform_semantic_action: the runtime identity of a control of the sub-surface and, for one of its virtual children, that child's stable identity (empty for the control's own node).
+   * - :cpp:class:`SubSurfaceSemanticsListener <gui_forms::SubSurfaceSemanticsListener>`
+     - Told that a sub-surface published a new semantic snapshot (design note section 5).
    * - :cpp:class:`SubSurfaceStatistics <gui_forms::SubSurfaceStatistics>`
      - Counters of one sub-surface (design note section 8, rules), written by its thread and read by its parent under the channel's lock.
    * - :cpp:class:`SubSurfaceThread <gui_forms::SubSurfaceThread>`
@@ -202,6 +208,10 @@ Related types
 
       Made by the parent on its own thread (SurfaceRoot::create_framebuffer) at the device size, and owned from then on by the sub-surface's thread, which alone uses and destroys it. Null keeps the previous framebuffer; a sub-surface without one lays out but publishes nothing.
 
+   .. cpp:member:: std::unique_ptr<SubSurfaceContentUpdate> update
+
+      The content's update for this epoch (SubSurfaceContentUpdate), or null. A configuration that replaces an unapplied one without an update of its own takes over the replaced one's.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:class:: SubSurfaceContent
@@ -216,6 +226,22 @@ Related types
    .. cpp:function:: virtual Control::Ptr build_root() = 0
 
       Called once, on the sub-surface's thread, before the first configuration is applied: the root control of the sub-surface's tree, made on that thread. A null root or an exception stops the sub-surface as failed (SubSurfaceState::failed).
+
+   .. cpp:function:: virtual void root_started(const WindowDispatcher& dispatcher)
+
+      Called once, on the sub-surface's thread, after the sub-surface made its root of the built tree and before its loop starts: ``dispatcher`` posts to that thread (the C ABI runs its posted callbacks through it). The base does nothing.
+
+   .. cpp:function:: virtual void apply_update(SubSurfaceContentUpdate& update)
+
+      Called on the sub-surface's thread with the update a configuration carried, after the configuration is applied and before its input, posted work and flush: the frame published at that content epoch shows the update. An exception stops the sub-surface as failed. The base ignores updates.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: SubSurfaceContentUpdate
+
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>``
+
+   One change of a sub-surface's content that must agree with its parent's chrome in the same visible frame (design note section 2, redraw-all): made on the parent's thread, carried with a configuration (SubSurfaceHost::redraw_all), handed to SubSurfaceContent::apply_update on the sub-surface's thread after that configuration is applied and before its first frame, and destroyed there. Each update is complete, so of updates sent before the sub-surface applied any only the newest is applied (statistics: updates_coalesced). A content downcasts it to the type it made.
 
 .. cpp:namespace:: gui_forms
 
@@ -268,6 +294,8 @@ Related types
    .. cpp:member:: SubSurfaceFocusEntry focus_entry
 
       Default: ``{SubSurfaceFocusEntry::restore}``.
+
+   .. cpp:member:: SubSurfaceSemanticAction semantic
 
 .. cpp:namespace:: gui_forms
 
@@ -391,6 +419,37 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: SubSurfaceSemanticAction final
+
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>``
+
+   A semantic action for a node of the sub-surface's own tree, named as a host names a node to SurfaceRoot::perform_semantic_action: the runtime identity of a control of the sub-surface and, for one of its virtual children, that child's stable identity (empty for the control's own node). Runtime identities are never reused, so an action for a control the sub-surface has since replaced is refused there.
+
+   .. cpp:member:: RuntimeId control
+
+   .. cpp:member:: std::string virtual_child
+
+   .. cpp:member:: SemanticAction action
+
+      Default: ``{SemanticAction::focus}``.
+
+   .. cpp:member:: std::string value
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: SubSurfaceSemanticsListener
+
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>``
+
+   Told that a sub-surface published a new semantic snapshot (design note section 5). Called on the parent's thread only, through the parent's dispatcher; one notice stands for every snapshot published until the parent takes the newest (SubSurfaceThread::take_semantics). A target the parent has released receives nothing.
+
+
+   .. rubric:: Extension points
+
+   .. cpp:function:: virtual void sub_surface_semantics_changed() = 0
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: SubSurfaceStatistics final
 
    ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>``
@@ -404,6 +463,12 @@ Related types
       Configurations replaced by a newer one before the thread applied them (newest wins: resize rule 3).
 
    .. cpp:member:: std::uint64_t configurations_applied
+
+   .. cpp:member:: std::uint64_t updates_applied
+
+      Content updates handed to the content (apply_update), and updates replaced by a newer one before the thread applied them.
+
+   .. cpp:member:: std::uint64_t updates_coalesced
 
    .. cpp:member:: std::uint64_t surface_reconfigures
 
@@ -448,6 +513,14 @@ Related types
    .. cpp:member:: std::uint64_t outcomes_received
 
    .. cpp:member:: std::uint64_t outcomes_stale
+
+   .. cpp:member:: std::uint64_t semantic_snapshots_published
+
+      Accessibility (design note section 5): semantic snapshots published (one per turn in which the tree's semantic generation moved), and the posted semantic actions the tree performed and refused.
+
+   .. cpp:member:: std::uint64_t semantic_actions_performed
+
+   .. cpp:member:: std::uint64_t semantic_actions_refused
 
 .. cpp:namespace:: gui_forms
 
@@ -498,6 +571,10 @@ Related types
 
       Queues the parent's answer to a request and wakes the sub-surface, which hands it to its tooltip route after its input, before its flush (an answer to request_tool_tip goes on to that request's answer target). Discarded after stop() or a failure.
 
+   .. cpp:function:: std::shared_ptr<const SemanticSnapshot> take_semantics()
+
+      The newest semantic snapshot the sub-surface published (design note section 5: an immutable snapshot, shared and never mutated across the threads; its nodes are in the sub-surface's own coordinates and runtime identities); null before the first. Taking it re-arms the notice: the next publication posts a new one.
+
    .. cpp:function:: void stop() noexcept
 
       Revokes the sub-surface (it publishes no frame from now on), asks its loop to stop, and joins the thread: the loop finishes its current flush, releases its tree on its own thread and exits (design note section 9). Idempotent.
@@ -509,6 +586,10 @@ Related types
    .. cpp:function:: void set_request_target(WindowDispatcher parent, std::weak_ptr<SubSurfaceRequestTarget> target)
 
       Where requests go (design note section 15): posted through ``parent`` to ``target``, held weakly. Replaces any earlier target; an empty one receives nothing and the sub-surface posts nothing.
+
+   .. cpp:function:: void set_semantics_listener(WindowDispatcher parent, std::weak_ptr<SubSurfaceSemanticsListener> target)
+
+      Where semantic snapshot notices go: posted through ``parent`` to ``target``, held weakly, as set_key_return. Replaces any earlier target.
 
 Enumerations
 ------------
@@ -540,6 +621,8 @@ Enumerations
    .. cpp:enumerator:: focus_enter
 
    .. cpp:enumerator:: focus_leave
+
+   .. cpp:enumerator:: semantic_action
 
 .. cpp:namespace:: gui_forms
 

@@ -1,0 +1,138 @@
+{
+  "family": "TokenBox",
+  "step": "B3",
+  "declaring": "TokenBox",
+  "header": "include/gui_forms/controls/panel/token_box/token_box.hpp",
+  "source": "src/controls/panel/token_box/token_box.cpp",
+  "capabilities_header": "include/gui_forms/controls/panel/token_box/token_box_capabilities/token_box_capabilities.hpp",
+  "shared": [
+    "FontCapability"
+  ],
+  "properties": [
+    {
+      "name": "delimiters",
+      "capability": "Delimiters",
+      "value": "std::string",
+      "initial": "std::string{\",;\"}",
+      "comment": "The characters that end an entry when typed or pasted, default \",;\". Only ASCII punctuation and the space are admitted; anything else throws std::invalid_argument. Empty: only Enter ends an entry.",
+      "getter": "delimiters",
+      "setter": "set_delimiters",
+      "clear": null,
+      "field": "delimiters_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "effects": null,
+      "hooks": "generated",
+      "hand": [],
+      "sample": "std::string{\"|\"}",
+      "prepare": [
+        "for (const char byte : incoming) {",
+        "    if (!admitted_delimiter(byte)) {",
+        "        throw std::invalid_argument(\"TokenBox delimiters must be ASCII punctuation or the space\");",
+        "    }",
+        "}"
+      ]
+    },
+    {
+      "name": "font",
+      "capability": "Font",
+      "value": "FontSpec",
+      "initial": "FontRole::content, 12.0, 400, false",
+      "comment": "The font the tokens and the entry editor use.",
+      "getter": "font",
+      "setter": "set_font",
+      "clear": null,
+      "field": "font_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "effects": "Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "hooks": "hand",
+      "hand": [
+        "written forwards the font to the inner editor"
+      ],
+      "sample": "FontSpec{FontRole::content, 14.0, 700, false}"
+    },
+    {
+      "name": "auto_complete_mode",
+      "capability": "TokenBoxAutoCompleteMode",
+      "value": "AutoCompleteMode",
+      "initial": null,
+      "comment": "The editor's auto-complete (see TextBox); an accepted completion becomes a token. list_items throws std::invalid_argument.",
+      "getter": "auto_complete_mode",
+      "setter": "set_auto_complete_mode",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "effects": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto the inner editor's completion setting"
+      ],
+      "storage": "view"
+    },
+    {
+      "name": "auto_complete_source",
+      "capability": "TokenBoxAutoCompleteSource",
+      "value": "AutoCompleteSource",
+      "initial": null,
+      "comment": "Where the editor's completion candidates come from (see TextBox).",
+      "getter": "auto_complete_source",
+      "setter": "set_auto_complete_source",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "effects": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto the inner editor's completion setting"
+      ],
+      "storage": "view"
+    },
+    {
+      "name": "auto_complete_custom_source",
+      "capability": "TokenBoxAutoCompleteCustomSource",
+      "value": "std::shared_ptr<AutoCompleteStringCollection>",
+      "initial": null,
+      "comment": "The candidate list used when auto_complete_source is custom_source; null for none.",
+      "getter": "auto_complete_custom_source",
+      "setter": "set_auto_complete_custom_source",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "effects": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto the inner editor's completion setting"
+      ],
+      "storage": "view"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "selected",
+      "reason": "keyboard and pointer selection state; the setter is private and selected_token() is read-only"
+    }
+  ],
+  "test": {
+    "type": "TokenBox",
+    "include": "gui_forms/controls/panel/token_box/token_box.hpp"
+  }
+}

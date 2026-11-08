@@ -13,6 +13,7 @@
 #include <iostream>
 #include <string>
 #include <string_view>
+#include <variant>
 
 namespace {
 
@@ -24,6 +25,7 @@ using gui_forms::form_language::form_control_type;
 using gui_forms::form_language::form_root_type;
 using gui_forms::form_language::move_form_object;
 using gui_forms::form_language::open_form_document;
+using gui_forms::form_language::quote_form_string;
 using gui_forms::form_language::remove_form_object;
 using gui_forms::form_language::reset_form_property;
 using gui_forms::form_language::set_form_property;
@@ -130,6 +132,29 @@ void test_properties() {
                 FormEditOutcome::object_missing,
             "property: an unknown object");
     check_text(refused, std::string(base), "property: the refused document is unchanged");
+
+    // A text written through quote_form_string: its escapes are the value's
+    // bytes, and the model reads the text back.
+    FormDocument escaped = open(schema, base);
+    const std::string two_lines = quote_form_string("Close\n\"now\"");
+    require(set_form_property(escaped, "app.cancel", "text", two_lines, schema, diagnostics) ==
+                FormEditOutcome::edited,
+            "property: an escaped text written");
+    check_text(escaped, replaced(base, "\"Cancel\"", "\"Close\\n\\\"now\\\"\""),
+               "property: the escapes are written as the value's bytes");
+    bool read_back = false;
+    for (const gui_forms::form_language::FormProperty& property : escaped.model.properties) {
+        const std::string* text = std::get_if<std::string>(&property.value);
+        if (text != nullptr && *text == "Close\n\"now\"") read_back = true;
+    }
+    require(read_back, "property: the model reads the escaped text back");
+    diagnostics.clear();
+    require(set_form_property(escaped, "app.ok", "text", "\"bad \\q\"", schema, diagnostics) ==
+                FormEditOutcome::refused,
+            "property: a refused escape refuses the edit");
+    require(diagnostics.records().size() == 1U &&
+                diagnostics.records()[0].code == DiagnosticCode::form_escape_invalid,
+            "property: the refused escape's diagnostic");
 }
 
 void test_objects() {

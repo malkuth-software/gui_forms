@@ -19,7 +19,7 @@ AnchoredOverlayLayer::AnchoredOverlayLayer(
     validate_placement(placement_);
     validate_anchor(anchor);
     set_paint_plane(PaintPlane::overlay);
-    set_border_style(BorderStyle::none);
+    border_style = BorderStyle::none;
     set_background(Color::rgba(0, 0, 0, 0));
 }
 

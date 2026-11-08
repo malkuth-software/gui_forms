@@ -108,7 +108,7 @@ void test_dates_and_calendar(gui_forms::Window& window) {
     const std::shared_ptr<gui_forms::Label> month_status = std::dynamic_pointer_cast<Label>(
         window.find("gallery.date.month.status"));
     require(month && month_status && (*month).realized_days().size() == 31U + 30U &&
-                (*month).calendar_dimensions() == CalendarDimensions{2U, 1U},
+                (*month).calendar_dimensions.read() == CalendarDimensions{2U, 1U},
             "the month calendar specimen shows August and September");
     require(window.perform_semantic_action("gallery.date.month.calendar.day.2026-09-07", SemanticAction::select) &&
                 (*month).selection_start() == DateTimeValue{2026, 9U, 7U} &&

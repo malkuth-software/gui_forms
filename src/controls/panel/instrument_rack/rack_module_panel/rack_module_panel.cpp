@@ -8,7 +8,7 @@ namespace gui_forms::detail {
 
 RackModulePanel::RackModulePanel(StableId stable_id)
     : Panel(std::move(stable_id)) {
-    set_border_style(BorderStyle::line);
+    border_style = BorderStyle::line;
     margin = Insets{};
     accessible_description = "Compact editing instrument; Alt+Left and Alt+Right request reordering";
 }
@@ -24,7 +24,7 @@ void RackModulePanel::arrange(Rect final_bounds) {
     const double scale = effective_text_scale();
     // Children sit inside the module's 1-unit line border (sweep defect
     // D19: the enable switch at x 0 covered the left border).
-    const double border = border_style() == BorderStyle::none ? 0.0 : 1.0;
+    const double border = border_style.read() == BorderStyle::none ? 0.0 : 1.0;
     const double width = std::max(0.0, final_bounds.width - border);
     const double height = std::max(0.0, final_bounds.height - 2.0 * border);
     const double enable_width = 20.0 * scale;

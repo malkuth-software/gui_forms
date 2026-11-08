@@ -1,5 +1,7 @@
 #pragma once
 
+#include "gui_forms/controls/panel/border_style/border_style.hpp"
+#include "gui_forms/controls/panel/panel_capabilities/panel_capabilities.hpp"
 #include "gui_forms/controls/scrollable_control/scrollable_control.hpp"
 #include "gui_forms/theme.hpp"
 
@@ -9,19 +11,10 @@
 
 namespace gui_forms {
 
-enum class BorderStyle : std::uint8_t {
-    none,
-    line,
-    sunken,
-    raised,
-};
-
-class Panel : public ScrollableControl {
+class Panel : public ScrollableControl, public PanelCapabilities<Panel> {
 public:
     explicit Panel(StableId stable_id);
 
-    [[nodiscard]] BorderStyle border_style() const noexcept { return border_style_; }
-    void set_border_style(BorderStyle style);
     // The face's ground: the background or back_color override, else the
     // material a theme rule's fields assemble for the face (G3), else the
     // theme recipe's material; a gradient or image reports its first colour.
@@ -37,10 +30,6 @@ public:
     }
     void set_style(BasicControlStyle style);
     void clear_style();
-    [[nodiscard]] ControlVisualRole visual_role() const noexcept {
-        return visual_role_;
-    }
-    void set_visual_role(ControlVisualRole role);
 
     void on_paint(Painter& painter, Rect local_damage) override;
     [[nodiscard]] Insets visual_outsets() const noexcept override;
@@ -83,8 +72,22 @@ private:
 
     std::optional<BasicControlStyle> style_override_;
     std::optional<Color> background_override_;
-    ControlVisualRole visual_role_{ControlVisualRole::panel};
-    BorderStyle border_style_{BorderStyle::none};
+    // property_codemod begin Panel (tools/property_families/panel.json; generated, do not edit)
+public:
+    // Panel's property table: ScrollableControl's entries, then its own.
+    static constexpr std::size_t panel_property_count = ScrollableControl::scrollable_control_property_count + 1U;
+    [[nodiscard]] static const std::array<PropertyEntry, panel_property_count>& panel_property_entries() noexcept;
+    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
+
+private:
+    friend struct BorderStyleCapability<Panel>;
+    friend struct VisualRoleCapability<Panel>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(border_style)& cell, BorderStyle& incoming);
+    void written(const decltype(border_style)& cell);
+    void prepare_write(const decltype(visual_role)& cell, ControlVisualRole& incoming);
+    void written(const decltype(visual_role)& cell);
+    // property_codemod end Panel
 };
 
 } // namespace gui_forms

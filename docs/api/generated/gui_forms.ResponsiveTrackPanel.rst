@@ -7,7 +7,7 @@ gui_forms::ResponsiveTrackPanel
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: ResponsiveTrackPanel final : public ContainerControl
+.. cpp:class:: ResponsiveTrackPanel final : public ContainerControl, public ChildTrackCapability<ResponsiveTrackPanel>
 
    ``#include <gui_forms/controls/scrollable_control/container_control/responsive_track_panel/responsive_track_panel.hpp>``
 
@@ -31,6 +31,18 @@ gui_forms::ResponsiveTrackPanel
          Identity of the panel, unique within its window.
 
    :Properties:
+
+      **child_track** : ``std::optional<std::uint32_t>``, child property, default none
+         The track a child occupies, a property the panel provides to its direct
+         children and stores for each: ``(*tracks).child_track[*child] = 1U;`` puts
+         the child in track 1, ``= std::nullopt`` returns it to automatic placement,
+         and ``(*tracks).child_track[*child].read()`` reads it (none when placed
+         automatically). Several children may share a track; they are laid over
+         one another in the same cell. A ``.form`` child writes ``child-track: 1;``.
+         A control that is not a live direct child is refused with
+         ``std::invalid_argument`` and a track past the specs with
+         ``std::out_of_range``; the value is dropped when the child leaves or when
+         the specs shrink below it.
 
       **orientation** : ``ResponsiveTrackOrientation``, default ``ResponsiveTrackOrientation::horizontal``
          The axis the tracks run along. Horizontal tracks are columns that fill
@@ -74,16 +86,14 @@ gui_forms::ResponsiveTrackPanel
       :class: autosummary longtable
       :widths: 35 65
 
-      * - :cpp:func:`child_track <gui_forms::ResponsiveTrackPanel::child_track>`
-        - The track ``child`` was put in with :cpp:func:`set_child_track <gui_forms::ResponsiveTrackPanel::set_child_track>`, or no value when it is placed automatically or is not a direct child.
+      * - :cpp:func:`track_child_property_entries <gui_forms::ResponsiveTrackPanel::track_child_property_entries>`
+        -  
       * - :cpp:func:`track_revealed <gui_forms::ResponsiveTrackPanel::track_revealed>`
         - Whether a track is protected by :cpp:func:`set_track_revealed <gui_forms::ResponsiveTrackPanel::set_track_revealed>`.
       * - :cpp:func:`clear_track_focus_fallback <gui_forms::ResponsiveTrackPanel::clear_track_focus_fallback>`
         - Removes a track's focus fallback.
       * - :cpp:func:`set_track_spec <gui_forms::ResponsiveTrackPanel::set_track_spec>`
         - Replaces one track's spec.
-      * - :cpp:func:`set_child_track <gui_forms::ResponsiveTrackPanel::set_child_track>`
-        - Puts ``child`` in a track.
       * - :cpp:func:`set_track_revealed <gui_forms::ResponsiveTrackPanel::set_track_revealed>`
         - ``set_track_revealed(track, true)`` protects a track from automatic collapse until you clear it, for example while the user works in it.
       * - :cpp:func:`set_track_focus_fallback <gui_forms::ResponsiveTrackPanel::set_track_focus_fallback>`
@@ -126,7 +136,7 @@ gui_forms::ResponsiveTrackPanel
    neighbouring tracks never overlap or leave a crack.
 
    Visible children are assigned to tracks in child order: a child put in a
-   track with :cpp:func:`set_child_track <gui_forms::ResponsiveTrackPanel::set_child_track>` uses it, and any other child takes the next
+   track with :cpp:member:`child_track <gui_forms::ResponsiveTrackPanel::child_track>` uses it, and any other child takes the next
    track that no child was explicitly put in. Inside its track, after its
    margins, a child keeps its preferred size, but never more than the track, and
    Dock and Anchor place it as in a :cpp:class:`TableLayoutPanelCompat <gui_forms::TableLayoutPanelCompat>` cell. A visible child left
@@ -182,8 +192,8 @@ gui_forms::ResponsiveTrackPanel
       (*inspector).dock = gf::DockStyle::fill;
       (*shell).add_child(content);
       (*shell).add_child(inspector);
-      (*shell).set_child_track(*content, 0U);
-      (*shell).set_child_track(*inspector, 1U);
+      (*shell).child_track[*content] = 0U;
+      (*shell).child_track[*inspector] = 1U;
 
       gf::Window window(shell, {240.0, 100.0});
       window.perform_layout();      // both tracks fit side by side
@@ -200,6 +210,19 @@ gui_forms::ResponsiveTrackPanel
 
 
    .. rubric:: Properties
+
+   .. cpp:member:: std::optional<std::uint32_t> child_track
+
+      The track a child occupies, a property the panel provides to its direct
+      children and stores for each: ``(*tracks).child_track[*child] = 1U;`` puts
+      the child in track 1, ``= std::nullopt`` returns it to automatic placement,
+      and ``(*tracks).child_track[*child].read()`` reads it (none when placed
+      automatically). Several children may share a track; they are laid over
+      one another in the same cell. A ``.form`` child writes ``child-track: 1;``.
+      A control that is not a live direct child is refused with
+      ``std::invalid_argument`` and a track past the specs with
+      ``std::out_of_range``; the value is dropped when the child leaves or when
+      the specs shrink below it.
 
    .. cpp:function:: ResponsiveTrackOrientation orientation() const noexcept
 
@@ -248,10 +271,7 @@ gui_forms::ResponsiveTrackPanel
 
    .. rubric:: Methods
 
-   .. cpp:function:: std::optional<std::size_t> child_track(const Control& child) const
-
-      The track ``child`` was put in with :cpp:func:`set_child_track <gui_forms::ResponsiveTrackPanel::set_child_track>`, or no value when it
-      is placed automatically or is not a direct child.
+   .. cpp:function:: static const std::array<ChildPropertyEntry, track_child_property_count>& track_child_property_entries() noexcept
 
    .. cpp:function:: bool track_revealed(std::size_t track) const noexcept
 
@@ -266,13 +286,6 @@ gui_forms::ResponsiveTrackPanel
       Replaces one track's spec. The track index must be below the track
       count, or ``std::out_of_range`` is thrown; the resulting list is validated
       as a whole, so a duplicate priority throws ``std::invalid_argument``.
-
-   .. cpp:function:: void set_child_track(const Control& child, std::size_t track)
-
-      Puts ``child`` in a track. Several children may share a track; they are
-      laid over one another in the same cell. The child must be a live direct
-      child (``std::invalid_argument``) and the track must exist
-      (``std::out_of_range``).
 
    .. cpp:function:: void set_track_revealed(std::size_t track, bool revealed)
 
@@ -290,6 +303,8 @@ gui_forms::ResponsiveTrackPanel
 
    .. rubric:: Extension points
 
+   .. cpp:function:: std::span<const ChildPropertyEntry> child_property_table() const noexcept override
+
    .. cpp:function:: Size measure(Size available) override
 
    .. cpp:function:: void arrange(Rect final_bounds) override
@@ -297,3 +312,11 @@ gui_forms::ResponsiveTrackPanel
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
 
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
+
+   .. cpp:function:: void child_leaving(const Control& child) noexcept override
+
+      *Protected.*
+
+   .. cpp:member:: constexpr std::size_t track_child_property_count
+
+      The child properties it provides: child_track. Default: ``1U``.

@@ -62,6 +62,8 @@ Related types
    :class: autosummary longtable
    :widths: 35 65
 
+   * - :cpp:class:`BorderStyleCapability <gui_forms::BorderStyleCapability>`
+     - The panel's border: none, a line, sunken or raised (BorderStyle).
    * - :cpp:class:`Card::States <gui_forms::Card::States>`
      - Stage T1 states, as dot members; Card's parts are Panel's.
    * - :cpp:class:`CardLayout <gui_forms::CardLayout>`
@@ -116,6 +118,8 @@ Related types
      -  
    * - :cpp:class:`Panel::Parts <gui_forms::Panel::Parts>`
      - Stage T1 anatomy, as dot members: the scrollable parts, a face and an edge.
+   * - :cpp:class:`PanelCapabilities <gui_forms::PanelCapabilities>`
+     - Every Panel capability, in the order the declaring class takes them.
    * - :cpp:class:`TabControl::Item <gui_forms::TabControl::Item>`
      -  
    * - :cpp:class:`TabControl::ItemParts <gui_forms::TabControl::ItemParts>`
@@ -130,6 +134,25 @@ Related types
      - A page left or chosen (Windows Forms' TabControlEventArgs).
    * - :cpp:class:`TabSelectionChange <gui_forms::TabSelectionChange>`
      - TabSelectionChange reports previous/current tab indices and stable page identities after one accepted selection.
+   * - :cpp:class:`VisualRoleCapability <gui_forms::VisualRoleCapability>`
+     - The recipe family the panel paints with: window, panel or card.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> BorderStyleCapability
+
+   ``#include <gui_forms/controls/panel/panel_capabilities/panel_capabilities.hpp>``
+
+   The panel's border: none, a line, sunken or raised (BorderStyle).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(BorderStyleCapability& capability, BorderStyle incoming)
+
+   .. cpp:member:: PropertyCell<BorderStyle, BorderStyleCapability<Declaring>> border_style
+
+      Default: ``{BorderStyle::none}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -659,6 +682,25 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> PanelCapabilities : public BorderStyleCapability<Declaring>, public VisualRoleCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/panel_capabilities/panel_capabilities.hpp>``
+
+   Every Panel capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: BorderStyle border_style
+
+      The panel's border: none, a line, sunken or raised (BorderStyle).
+
+   .. cpp:member:: ControlVisualRole visual_role
+
+      The recipe family the panel paints with: window, panel or card.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: TabControl::Item final
 
    ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control.hpp>``
@@ -757,6 +799,23 @@ Related types
 
    .. cpp:member:: std::optional<std::size_t> new_index
 
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> VisualRoleCapability
+
+   ``#include <gui_forms/controls/panel/panel_capabilities/panel_capabilities.hpp>``
+
+   The recipe family the panel paints with: window, panel or card.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(VisualRoleCapability& capability, ControlVisualRole incoming)
+
+   .. cpp:member:: PropertyCell<ControlVisualRole, VisualRoleCapability<Declaring>> visual_role
+
+      Default: ``{ControlVisualRole::panel}``.
+
 Enumerations
 ------------
 
@@ -764,7 +823,7 @@ Enumerations
 
 .. cpp:enum-class:: BorderStyle
 
-   ``#include <gui_forms/controls/panel/panel.hpp>``
+   ``#include <gui_forms/controls/panel/border_style/border_style.hpp>``
 
    .. cpp:enumerator:: none
 

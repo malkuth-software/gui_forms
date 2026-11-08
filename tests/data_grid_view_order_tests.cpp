@@ -283,7 +283,7 @@ void window_mode_is_bounded() {
     Window window(grid, {300.0, 200.0});
     window.perform_layout();
     const std::size_t shown = (*grid).displayed_row_end().value - (*grid).first_displayed_row().value;
-    const std::size_t margin = (*grid).row_order_thresholds().window_margin;
+    const std::size_t margin = (*grid).row_order_thresholds.read().window_margin;
     require(shown > 0U && (*source).requests == 1U && (*source).asked <= shown + 2U * margin,
             "the first layout asks once, for the displayed rows and the margin");
     CountingPainter painter;
@@ -324,7 +324,7 @@ void switches_keep_identity() {
     limits.edit_rows = 800U;
     limits.window_changes = 5000U;
     limits.edit_changes = 100U;
-    (*grid).set_row_order_thresholds(limits);
+    (*grid).row_order_thresholds = limits;
     (*source).order = ids(1000U);
     (*grid).set_virtual_rows(provider, (*source).order);
     (*grid).set_virtual_row_window_source(source);
@@ -333,7 +333,7 @@ void switches_keep_identity() {
     Window window(grid, {300.0, 200.0});
     window.perform_layout();
     require((*grid).set_current_cell(DataGridViewCellAddress{row_at(10U), 0U}), "row r10 is current");
-    (*grid).set_selection_mode(DataGridViewSelectionMode::full_row_select);
+    (*grid).selection_mode = DataGridViewSelectionMode::full_row_select;
     require((*grid).set_current_cell(DataGridViewCellAddress{row_at(10U), 0U}), "row r10 is current");
     (*grid).set_row_selected(row_at(20U), true);
     (*grid).set_first_displayed_row(row_at(5U));
@@ -381,7 +381,7 @@ void switches_keep_identity() {
 
     // A burst of single inserts crosses window_changes.
     limits.window_changes = 300U;
-    (*grid).set_row_order_thresholds(limits);
+    (*grid).row_order_thresholds = limits;
     for (std::size_t step = 0; step < 400U; ++step) {
         const DataGridViewRowId added = id("burst" + std::to_string(step));
         (*source).order.insert((*source).order.begin(), added);
@@ -401,7 +401,7 @@ void switches_keep_identity() {
     require((*grid).row_order_mode() == DataGridViewRowOrderMode::window,
             "1104 rows are more than edit_rows: window mode stays");
     limits.edit_rows = 1200U;
-    (*grid).set_row_order_thresholds(limits);
+    (*grid).row_order_thresholds = limits;
     require((*grid).row_order_mode() == DataGridViewRowOrderMode::edit && switches.size() == 4U &&
                 switches[3].reason == DataGridViewRowOrderSwitchReason::policy,
             "new thresholds are applied at once, reported as the policy's");
@@ -409,7 +409,7 @@ void switches_keep_identity() {
             "after the burst the current row is still r910, 400 rows lower");
 
     // Pinning.
-    (*grid).set_row_order_policy(DataGridViewRowOrderPolicy::window);
+    (*grid).row_order_policy = DataGridViewRowOrderPolicy::window;
     require((*grid).row_order_mode() == DataGridViewRowOrderMode::window && switches.size() == 5U &&
                 switches[4].reason == DataGridViewRowOrderSwitchReason::policy,
             "pinning window mode switches at once");
@@ -418,7 +418,7 @@ void switches_keep_identity() {
     (*source).order.push_back(id("pinned"));
     (*grid).insert_virtual_rows(row_at((*grid).row_count()), {id("pinned")});
     require((*grid).row_order_mode() == DataGridViewRowOrderMode::window, "a pinned mode is kept");
-    (*grid).set_row_order_policy(DataGridViewRowOrderPolicy::automatic);
+    (*grid).row_order_policy = DataGridViewRowOrderPolicy::automatic;
     require((*grid).row_order_mode() == DataGridViewRowOrderMode::edit, "back to automatic, few rows go to edit");
 
     // A full republish is a reset.
@@ -430,14 +430,14 @@ void switches_keep_identity() {
             "a republish rebuilds the order once");
 
     // Taking the source away from window mode fetches the whole order first.
-    (*grid).set_row_order_policy(DataGridViewRowOrderPolicy::window);
+    (*grid).row_order_policy = DataGridViewRowOrderPolicy::window;
     (*grid).set_virtual_row_window_source(nullptr);
     require((*grid).row_order_mode() == DataGridViewRowOrderMode::edit && (*grid).row_count() == 50U &&
-                (*grid).row_order_policy() == DataGridViewRowOrderPolicy::automatic,
+                (*grid).row_order_policy.read() == DataGridViewRowOrderPolicy::automatic,
             "without a source the order is in edit mode and window mode is no longer pinned");
     bool refused = false;
     try {
-        (*grid).set_row_order_policy(DataGridViewRowOrderPolicy::window);
+        (*grid).row_order_policy = DataGridViewRowOrderPolicy::window;
     } catch (const std::logic_error&) {
         refused = true;
     }

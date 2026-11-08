@@ -544,6 +544,16 @@ struct PageDigest final {
 // is one control more in the window, which states-and-diagnostics' live
 // control count follows. Recorded again: states-and-diagnostics.
 //
+// responsive-layouts became a form document (FD6.3): its four track tiles
+// name their faces by class, so the Gallery theme paints them as parts
+// instead of the page's fills and strokes. Recorded again; a 1280 x 820
+// capture at scale 1 is pixel-identical to the page before.
+// FD6.3's nine further page documents (FD-4) move no page but one:
+// values-and-spinners' property grid shows the inspected NumericUpDown's
+// Bounds as the document declares them (194, 100, 260, 36) where the
+// code-built page left the property at zero. Recorded again:
+// values-and-spinners.
+//
 // typography-and-inspection's entry is the trace with the RuntimeId the
 // specimen has when this test runs first (#1328 since L8a on main); the digest
 // changes whenever a page made before it makes a control more or less.
@@ -559,7 +569,7 @@ constexpr std::array<PageDigest, 31> expected_digests{{
     {"states-and-diagnostics", 0xe350d998f2044a29ULL},
     {"text-and-input", 0x750c2338fcc2ddb7ULL},
     {"collections-and-overlays", 0x5110f0cc784f0d78ULL},
-    {"values-and-spinners", 0x097e47bc26908f3bULL},
+    {"values-and-spinners", 0x8edc2ca2b8fb8223ULL},
     {"images-and-drawing", 0xe81d199e463d268aULL},
     {"tabs-and-pages", 0xc8cd48aa9b829b7aULL},
     {"checked-collections", 0x8f8fcb8a8a314d53ULL},
@@ -574,7 +584,7 @@ constexpr std::array<PageDigest, 31> expected_digests{{
     {"tree-and-object-views", 0xe3db9316c5b9f256ULL},
     {"choices-and-sections", 0x645f4d73f05c1950ULL},
     {"value-editors", 0xde01fa2d69bfd844ULL},
-    {"responsive-layouts", 0x819eb7ee4459b363ULL},
+    {"responsive-layouts", 0x32350b9adc99d846ULL},
     {"anchored-overlays", 0xa32f4aaa22f2dcf4ULL},
     {"live-surfaces", 0x73767712b8e50f6cULL},
     {"typography-and-inspection", 0x558e28500aa51a02ULL},

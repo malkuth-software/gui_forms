@@ -361,7 +361,7 @@ void CorrespondenceShell::build_panes() {
     (*reading_body_).set_read_only(true);
     (*reading_body_).set_font(body_font);
     (*reading_body_).set_style(correspondence_style());
-    (*reading_body_).set_border_style(BorderStyle::none);
+    (*reading_body_).border_style = BorderStyle::none;
     (*reading_body_).dock = DockStyle::fill;
     (*reading_body_).accessible_name = "Message body";
     (*reading_).add_child(reading_body_);

@@ -42,20 +42,24 @@ layout_snapshot
     tracks overflow the panel, and a revision number that increases only
     when the result changes. Reading it brings the layout up to date first.
 
+child_track : child property, default none
+    The track a child occupies, a property the panel provides to its direct
+    children and stores for each: `(*tracks).child_track[*child] = 1U;` puts
+    the child in track 1, `= std::nullopt` returns it to automatic placement,
+    and `(*tracks).child_track[*child].read()` reads it (none when placed
+    automatically). Several children may share a track; they are laid over
+    one another in the same cell. A `.form` child writes `child-track: 1;`.
+    A control that is not a live direct child is refused with
+    `std::invalid_argument` and a track past the specs with
+    `std::out_of_range`; the value is dropped when the child leaves or when
+    the specs shrink below it.
+
 Methods
 -------
 set_track_spec
     Replaces one track's spec. The track index must be below the track
     count, or `std::out_of_range` is thrown; the resulting list is validated
     as a whole, so a duplicate priority throws `std::invalid_argument`.
-set_child_track
-    Puts `child` in a track. Several children may share a track; they are
-    laid over one another in the same cell. The child must be a live direct
-    child (`std::invalid_argument`) and the track must exist
-    (`std::out_of_range`).
-child_track
-    The track `child` was put in with `set_child_track`, or no value when it
-    is placed automatically or is not a direct child.
 set_track_revealed
     `set_track_revealed(track, true)` protects a track from automatic
     collapse until you clear it, for example while the user works in it. A
@@ -102,7 +106,7 @@ Track boundaries are snapped to device pixels at the window's scale, so
 neighbouring tracks never overlap or leave a crack.
 
 Visible children are assigned to tracks in child order: a child put in a
-track with `set_child_track` uses it, and any other child takes the next
+track with `child_track` uses it, and any other child takes the next
 track that no child was explicitly put in. Inside its track, after its
 margins, a child keeps its preferred size, but never more than the track, and
 Dock and Anchor place it as in a `TableLayoutPanelCompat` cell. A visible child left
@@ -158,8 +162,8 @@ narrow:
    (*inspector).dock = gf::DockStyle::fill;
    (*shell).add_child(content);
    (*shell).add_child(inspector);
-   (*shell).set_child_track(*content, 0U);
-   (*shell).set_child_track(*inspector, 1U);
+   (*shell).child_track[*content] = 0U;
+   (*shell).child_track[*inspector] = 1U;
 
    gf::Window window(shell, {240.0, 100.0});
    window.perform_layout();      // both tracks fit side by side

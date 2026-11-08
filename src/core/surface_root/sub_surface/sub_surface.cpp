@@ -15,6 +15,10 @@
 
 namespace gui_forms {
 
+void SubSurfaceContent::root_started(const WindowDispatcher&) {}
+
+void SubSurfaceContent::apply_update(SubSurfaceContentUpdate&) {}
+
 SubSurface::SubSurface(Control::Ptr root, std::shared_ptr<ApplicationResources> resources)
     : SurfaceRoot(std::move(root), Size{}, std::move(resources)) {
     if (!resources_) {
@@ -180,6 +184,23 @@ private:
     std::uint64_t sequence_{};
 };
 
+// Posted to the parent's dispatcher when the sub-surface published a
+// semantic snapshot: tells the listener on the parent's thread, unless the
+// parent released it first.
+class NoticeSemantics final {
+public:
+    explicit NoticeSemantics(std::weak_ptr<SubSurfaceSemanticsListener> target) noexcept
+        : target_(std::move(target)) {}
+    void operator()() const {
+        const std::shared_ptr<SubSurfaceSemanticsListener> target = target_.lock();
+        if (!target) return;
+        (*target).sub_surface_semantics_changed();
+    }
+
+private:
+    std::weak_ptr<SubSurfaceSemanticsListener> target_;
+};
+
 // How long a frame waits before trying again for a LiveSurface buffer when
 // the presenter holds every one (rare: three buffers by default).
 constexpr std::chrono::milliseconds publish_retry_interval{4};
@@ -221,6 +242,9 @@ private:
     void publish();
     // Publishes the root's text input caret when it changed.
     void publish_caret(SubSurface& root);
+    // Publishes a semantic snapshot of the tree when its semantic generation
+    // moved since the last one, and tells the parent (design note section 5).
+    void publish_semantics(SubSurface& root);
     void record_end(SubSurfaceState state, std::string failure) noexcept;
 
     std::shared_ptr<detail::SubSurfaceChannel> channel_;
@@ -238,6 +262,10 @@ private:
     std::uint32_t surface_height_{};
     bool surface_opaque_{};
     bool configured_{};
+    // A configuration (a new content epoch) applied since the last frame:
+    // its frame is produced at once, not at the pacer's next tick, so the
+    // parent's frame painted with that epoch finds it at its present.
+    bool epoch_due_{};
     // The framebuffer pixels painted but not yet published.
     PixelRectangle unpublished_{};
     // The next publication copies the whole framebuffer (first frame of a
@@ -254,6 +282,9 @@ private:
     std::vector<detail::SubSurfaceInputRecord> inputs_{};
     std::vector<SurfaceRequestOutcome> outcomes_{};
     std::optional<Rect> published_caret_{};
+    // The tree's semantic generation at the last published snapshot; zero
+    // before the first (generations start at one).
+    std::uint64_t published_semantic_generation_{};
 };
 
 void SubSurfaceLoop::run(std::unique_ptr<SubSurfaceLoop> loop) noexcept {
@@ -300,11 +331,17 @@ void SubSurfaceLoop::run_tree() {
         (*channel_).dispatcher = root.dispatcher();
         (*channel_).state = SubSurfaceState::running;
     }
+    (*content_).root_started(root.dispatcher());
     std::optional<SubSurfaceConfiguration> configuration;
     while (wait(root, configuration)) {
         const bool configured = static_cast<bool>(configuration);
         if (configured) {
             apply(root, *configuration);
+            if ((*configuration).update) {
+                (*content_).apply_update(*(*configuration).update);
+                const std::lock_guard<std::mutex> lock((*channel_).mutex);
+                ++(*channel_).statistics.updates_applied;
+            }
             configuration.reset();
         }
         dispatch_inputs(root);
@@ -327,6 +364,7 @@ void SubSurfaceLoop::run_tree() {
         if (configured) (*root.requester_).content_epoch_changed();
         produce(root);
         publish_caret(root);
+        publish_semantics(root);
     }
     // Leaving the scope releases the tree on this thread (SubSurface's
     // destructor), before run() releases the content.
@@ -367,6 +405,8 @@ void SubSurfaceLoop::dispatch_inputs(SubSurface& root) {
     }
     const bool returns_keys = !target.expired();
     std::uint64_t returned = 0U;
+    std::uint64_t performed = 0U;
+    std::uint64_t refused = 0U;
     for (const detail::SubSurfaceInputRecord& record : inputs_) {
         const SubSurfaceInput& input = record.input;
         // A request the tree makes now carries this sequence.
@@ -394,6 +434,17 @@ void SubSurfaceLoop::dispatch_inputs(SubSurface& root) {
         case SubSurfaceInputKind::focus_leave:
             root.leave_focus();
             break;
+        case SubSurfaceInputKind::semantic_action: {
+            const SubSurfaceSemanticAction& semantic = input.semantic;
+            const bool done =
+                root.perform_semantic_action(semantic.control, semantic.virtual_child, semantic.action, semantic.value);
+            if (done) {
+                ++performed;
+            } else {
+                ++refused;
+            }
+            break;
+        }
         default:
             throw std::invalid_argument("GUI.Forms sub-surface input kind is not a defined value");
         }
@@ -405,6 +456,8 @@ void SubSurfaceLoop::dispatch_inputs(SubSurface& root) {
     (*channel_).statistics.inputs_dispatched += dispatched;
     (*channel_).statistics.last_input_sequence = last_sequence;
     (*channel_).statistics.keys_returned += returned;
+    (*channel_).statistics.semantic_actions_performed += performed;
+    (*channel_).statistics.semantic_actions_refused += refused;
 }
 
 void SubSurfaceLoop::deliver_outcomes(SubSurface& root) {
@@ -473,14 +526,24 @@ void SubSurfaceLoop::apply(SubSurface& root, SubSurfaceConfiguration& configurat
         surface_opaque_ = configuration.opaque;
         publish_whole_ = true;
     }
+    // Every configuration is a redraw-all (design note section 2): its first
+    // frame is painted whole, so the parent pairs each epoch it sends,
+    // whether or not the size, the theme or the content changed.
+    const Control::Ptr top = root.root();
+    if (top) (*top).invalidate(Dirty::paint);
     configured_ = true;
+    epoch_due_ = true;
 }
 
 void SubSurfaceLoop::produce(SubSurface& root) {
     if (!configured_ || !framebuffer_) return;
     if (root.needs_frame()) {
         const LivePacingResult pace = pacer_.plan(FrameClock::now());
-        if (pace.outcome == LivePacingOutcome::pending) {
+        // A new epoch's frame does not wait for pacing (pairing, design note
+        // section 6): the parent painted with it and presents at its next
+        // tick. One frame per configuration, so the parent's paint rate
+        // bounds it.
+        if (pace.outcome == LivePacingOutcome::pending && !epoch_due_) {
             // The dirt stays; a presentation report or the deadline wakes
             // the loop for it.
             pacing_wake_ = pace.wake_at;
@@ -493,6 +556,7 @@ void SubSurfaceLoop::produce(SubSurface& root) {
             return;
         }
         pacing_wake_.reset();
+        epoch_due_ = false;
         if (pace.outcome == LivePacingOutcome::deadline) {
             const std::lock_guard<std::mutex> lock((*channel_).mutex);
             ++(*channel_).statistics.deadline_wakes;
@@ -520,6 +584,36 @@ void SubSurfaceLoop::publish_caret(SubSurface& root) {
     published_caret_ = caret;
     const std::lock_guard<std::mutex> lock((*channel_).mutex);
     (*channel_).text_input_caret = caret;
+}
+
+void SubSurfaceLoop::publish_semantics(SubSurface& root) {
+    if (!configured_) return;
+    const std::uint64_t generation = root.semantic_generation();
+    if (generation == published_semantic_generation_) return;
+    // Built here, on the tree's thread, and never changed after: the parent
+    // reads it on its own thread through the shared pointer.
+    std::shared_ptr<const SemanticSnapshot> snapshot = std::make_shared<const SemanticSnapshot>(root.semantic_snapshot());
+    published_semantic_generation_ = (*snapshot).generation;
+    WindowDispatcher parent;
+    std::weak_ptr<SubSurfaceSemanticsListener> target;
+    bool notify = false;
+    {
+        const std::lock_guard<std::mutex> lock((*channel_).mutex);
+        detail::SubSurfaceChannel& channel = *channel_;
+        // The snapshot replaced here is released after the lock.
+        std::swap(channel.semantics, snapshot);
+        ++channel.statistics.semantic_snapshots_published;
+        if (!channel.semantics_notice_pending && !channel.semantics_listener.expired()) {
+            channel.semantics_notice_pending = true;
+            parent = channel.semantics_dispatcher;
+            target = channel.semantics_listener;
+            notify = true;
+        }
+    }
+    // Posted outside the channel's lock (lock order: the parent's dispatcher
+    // is never taken under it). A parent that closed refuses the post; the
+    // sub-surface is being stopped then.
+    if (notify) static_cast<void>(parent.begin_invoke(NoticeSemantics(std::move(target))));
 }
 
 void SubSurfaceLoop::publish() {
@@ -598,6 +692,21 @@ void SubSurfaceThread::configure(SubSurfaceConfiguration configuration) {
         if (channel.pending) {
             ++channel.statistics.configurations_coalesced;
             replaced.swap(channel.pending);
+            // A framebuffer comes with a new device size only, so a newer
+            // configuration of the same size has none: it takes the
+            // replaced one's, which is of that size. Without it a first
+            // configuration replaced before the loop applied it would leave
+            // the loop with no framebuffer, and nothing would be produced.
+            if (!configuration.framebuffer) configuration.framebuffer = std::move((*replaced).framebuffer);
+            // An update is complete: the newer one wins, and a configuration
+            // without one keeps the replaced one's.
+            if ((*replaced).update) {
+                if (configuration.update) {
+                    ++channel.statistics.updates_coalesced;
+                } else {
+                    configuration.update = std::move((*replaced).update);
+                }
+            }
         }
         channel.pending.emplace(std::move(configuration));
         channel.wake.notify_one();
@@ -650,6 +759,27 @@ void SubSurfaceThread::post_request_outcome(const SurfaceRequestOutcome& outcome
     if (channel.stop_requested || channel.state == SubSurfaceState::failed) return;
     channel.outcomes.push_back(outcome);
     channel.wake.notify_one();
+}
+
+void SubSurfaceThread::set_semantics_listener(WindowDispatcher parent,
+                                              std::weak_ptr<SubSurfaceSemanticsListener> target) {
+    if (!target.expired() && !parent.window_alive()) {
+        throw std::invalid_argument("GUI.Forms sub-surface semantics listener needs a live parent dispatcher");
+    }
+    // The previous dispatcher and target are released after the lock.
+    WindowDispatcher previous_parent = std::move(parent);
+    std::weak_ptr<SubSurfaceSemanticsListener> previous_target = std::move(target);
+    const std::lock_guard<std::mutex> lock((*channel_).mutex);
+    std::swap((*channel_).semantics_dispatcher, previous_parent);
+    std::swap((*channel_).semantics_listener, previous_target);
+    // A notice owed to the previous target is owed to this one.
+    (*channel_).semantics_notice_pending = false;
+}
+
+std::shared_ptr<const SemanticSnapshot> SubSurfaceThread::take_semantics() {
+    const std::lock_guard<std::mutex> lock((*channel_).mutex);
+    (*channel_).semantics_notice_pending = false;
+    return (*channel_).semantics;
 }
 
 void SubSurfaceThread::stop() noexcept {

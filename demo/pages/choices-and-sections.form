@@ -1,0 +1,88 @@
+/* The Gallery's choices-and-sections page (stage FD, phase FD6.3): one
+   deployment ring shown by two ChoiceGroups, three review sections with a
+   GroupBox of toggles sharing their open state, and a Card and a ReviewCard
+   that project the chosen ring. gui_forms_add_form() compiles this document
+   into choices-and-sections_form.hpp at build time.
+
+   gallery.choices.document is a declared boundary only: the page moves its
+   children into the shell's page body, where each is placed by its bounds
+   in design coordinates. The page keeps in code the ChoiceGroups' items and
+   their shared Value<int>, the sections' items, content and Value<bool>s,
+   the toggles' bindings, the Card's parts and selection behaviour, the
+   review record, every event handler, the status lines' reports and the
+   page style. */
+scaled-panel gallery.choices.document {
+  design-size: 1000 600;
+
+  label gallery.choices-and-sections.heading {
+    text: "CHOICES AND SECTIONS";
+    classes: "heading" "page-title";
+    bounds: 24 18 620 34;
+  }
+  label gallery.choices-and-sections.lead {
+    text: "One Value<int> behind two ChoiceGroups, three Value<bool>s behind sections and toggles, and cards that project the choice.";
+    classes: "muted" "body";
+    bounds: 26 52 920 24;
+  }
+
+  scaled-group-box gallery.choices.ring-group {
+    text: "ChoiceGroup · one Value<int>, two views";
+    design-size: 930 120;
+    bounds: 24 92 930 120;
+    classes: "paper" "group-caption";
+    choice-group gallery.choices.ring {
+      accessible-name: "Deployment ring";
+      bounds: 20 38 480 32;
+    }
+    choice-group gallery.choices.ring-chips {
+      accessible-name: "Deployment ring (glyphs)";
+      bounds: 540 38 180 32;
+    }
+    label gallery.choices.ring-status {
+      text: "";
+      classes: "positive" "note-medium";
+      bounds: 20 84 890 24;
+    }
+  }
+
+  expandable-sections gallery.choices.sections {
+    accessible-name: "Review sections";
+    bounds: 24 230 450 300;
+  }
+  label gallery.choices.sections-status {
+    text: "Checklist open · headers, Space and the toggles share one state";
+    classes: "positive" "note-medium";
+    bounds: 24 540 450 24;
+  }
+
+  group-box gallery.choices.state {
+    text: "Section state";
+    accessible-name: "Section state";
+    classes: "paper" "group-caption";
+    bounds: 494 230 460 120;
+    check-box gallery.choices.state.checklist {
+      text: "Checklist";
+      indicator-style: toggle;
+      bounds: 20 44 130 28;
+    }
+    check-box gallery.choices.state.notes {
+      text: "Notes";
+      indicator-style: toggle;
+      bounds: 160 44 130 28;
+    }
+    check-box gallery.choices.state.history {
+      text: "History";
+      indicator-style: toggle;
+      bounds: 300 44 130 28;
+    }
+  }
+
+  card gallery.choices.card {
+    accessible-name: "Rollout plan card";
+    bounds: 494 368 220 196;
+  }
+  review-card gallery.choices.review {
+    accessible-name: "Rollout review";
+    bounds: 730 368 224 196;
+  }
+}

@@ -2560,7 +2560,7 @@ void ListView::create_label_editor() {
     const std::string prefix(stable_id().value());
     label_editor_ = make_control<TextBox>(StableId(prefix + ".label-editor"));
     TextBox& editor = *label_editor_;
-    editor.set_border_style(BorderStyle::none);
+    editor.border_style = BorderStyle::none;
     editor.set_font(font_);
     add_child(label_editor_);
     set_child_layout_collapsed(label_editor_, true);

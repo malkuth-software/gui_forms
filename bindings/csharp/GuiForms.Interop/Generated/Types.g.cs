@@ -825,6 +825,28 @@ public unsafe struct gf_bindings_table
     public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, gf_value*, uint*, gf_status> set_current_field;
 }
 
+/// <summary>gf_subsurface_content (extensible, 40 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_subsurface_content
+{
+    public uint struct_size;
+    public uint opaque;
+    public gf_callback build;
+}
+
+/// <summary>gf_subsurfaces_table (table, 48 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_subsurfaces_table
+{
+    public uint struct_size;
+    public uint abi_minor;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_subsurface_content*, gf_status> set_content;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_status> set_root;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_subsurface_state*, gf_status> state;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong*, gf_status> content_epoch;
+    public delegate* unmanaged[Cdecl]<gf_object, byte*, ulong, ulong*, gf_status> failure;
+}
+
 /// <summary>gf_windows_paint_endpoint_table (table, 104 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_windows_paint_endpoint_table

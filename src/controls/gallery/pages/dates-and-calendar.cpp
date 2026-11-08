@@ -1,24 +1,28 @@
 #include "pages.hpp"
 
-namespace gui_forms::gallery::pages {
+#include "dates-and-calendar_form.hpp"
 
-// Owner of the DateTimePicker specimens. The lifecycle actions are three
-// application Commands shown through one CommandBar; their enabled state
-// follows the bounded appointment date and the open calendar, and the
-// picker's state events report to the status label through named members.
+#include <array>
+#include <vector>
+
+namespace gui_forms::gallery::pages {
+namespace {
+
+// Owner of the DateTimePicker specimens: the controls
+// demo/pages/dates-and-calendar.form describes, and their behaviour. The
+// lifecycle actions are three application Commands shown through one
+// CommandBar; their enabled state follows the bounded appointment date and
+// the open calendar, and the picker's state events report to the status
+// label through named members.
 class DatesPage final : public gui_forms::Component {
 public:
     explicit DatesPage(const std::shared_ptr<Surface>& body) {
-        (*body).add_at(label("gallery.date.heading", "DATES AND CALENDAR", 22.0, 700,
-                             shell_blue_dark), {24.0, 18.0, 620.0, 34.0});
-        (*body).add_at(label(
-            "gallery.date.lead",
-            "Validated civil time, caller-owned formats, nullable and spinner modes, retained overlay focus, and semantic date cells.",
-            12.0, 400, muted), {26.0, 52.0, 920.0, 24.0});
-        build_formats(body);
-        build_modes(body);
-        build_lifecycle(body);
-        build_month_calendar(body);
+        document_.initialize_component(*this);
+        mount_document(body);
+        build_formats();
+        build_modes();
+        build_lifecycle();
+        build_month_calendar();
         on((*primary_).value_changed(), *this, &DatesPage::value_committed);
         on((*primary_).drop_down_changed(), *this, &DatesPage::drop_down_changed);
         on((*optional_).checked_changed(), *this, &DatesPage::optional_checked);
@@ -30,94 +34,79 @@ public:
 
 private:
     static constexpr DateTimeValue specimen{2026, 8U, 5U, 14U, 7U, 9U, 125U};
-    static constexpr std::array<std::string_view, 4> captions{
-        "Long date", "Short date", "Time", "Custom"};
     static constexpr int command_previous = 1;
     static constexpr int command_next = 2;
     static constexpr int command_open = 3;
 
-    [[nodiscard]] static std::shared_ptr<DateTimePicker> make_picker(
-        std::string id, std::string accessible_name) {
-        std::shared_ptr<DateTimePicker> picker =
-            make_control<DateTimePicker>(StableId(std::move(id)));
-        (*picker).set_style(page_style());
-        (*picker).set_value(specimen);
-        (*picker).accessible_name = std::move(accessible_name);
-        return picker;
-    }
-
-    void build_formats(const std::shared_ptr<Surface>& body) {
-        std::shared_ptr<LayoutGroup> formats = group(
-            "gallery.date.formats", "Formatting · four modes and an owned provider",
-            {930.0, 180.0});
-        (*body).add_at(formats, {24.0, 92.0, 930.0, 180.0});
-        for (std::size_t index = 0U; index < captions.size(); ++index) {
-            const double column = index % 2U == 0U ? 22.0 : 474.0;
-            const double row = index < 2U ? 40.0 : 102.0;
-            (*formats).add_at(label("gallery.date.format.caption." + std::to_string(index),
-                                    std::string(captions[index]), 10.0, 700, shell_blue_dark),
-                              {column, row, 86.0, 22.0});
-            std::shared_ptr<DateTimePicker> picker = make_picker(
-                "gallery.date.format." + std::to_string(index),
-                std::string(captions[index]) + " picker");
-            if (index == 1U) {
-                (*picker).set_format(DateTimePickerFormat::short_date);
-            } else if (index == 2U) {
-                (*picker).set_format(DateTimePickerFormat::time);
-            } else if (index == 3U) {
-                (*picker).set_custom_format("yyyy-MM-dd '·' HH:mm");
-                (*picker).set_format(DateTimePickerFormat::custom);
-            }
-            (*formats).add_at(picker, {column + 92.0, row - 5.0, 320.0, 30.0});
+    void mount_document(const std::shared_ptr<Surface>& body) {
+        // The document's root is a declared boundary only: its children move
+        // into the shell's page body, where each is placed by its bounds in
+        // design coordinates. The copy of the child list keeps the iteration
+        // valid while the root shrinks.
+        Control& root = *document_.gallery_date_document;
+        const std::vector<Control::Ptr> children(root.children().begin(), root.children().end());
+        for (const Control::Ptr& child : children) {
+            Control::Ptr moved = root.remove_child((*child).runtime_id());
+            (*body).add_child(std::move(moved));
         }
+        const std::array<std::shared_ptr<ScaledGroupBox>, 4> groups{
+            document_.gallery_date_formats, document_.gallery_date_modes,
+            document_.gallery_date_lifecycle, document_.gallery_date_month};
+        for (const std::shared_ptr<ScaledGroupBox>& group : groups) {
+            (*group).set_style(page_style());
+        }
+        optional_ = document_.gallery_date_optional;
+        primary_ = document_.gallery_date_primary;
+        commands_ = document_.gallery_date_commands;
+        status_ = document_.gallery_date_status;
+        month_ = document_.gallery_date_month_calendar;
+        month_status_ = document_.gallery_date_month_status;
     }
 
-    void build_modes(const std::shared_ptr<Surface>& body) {
-        std::shared_ptr<LayoutGroup> modes = group(
-            "gallery.date.modes", "Modes and states · nullable, spinner, provider, disabled",
-            {930.0, 180.0});
-        (*body).add_at(modes, {24.0, 290.0, 930.0, 180.0});
+    // Every picker starts at the specimen value in the page style.
+    static void prepare_picker(DateTimePicker& picker) {
+        picker.set_style(page_style());
+        picker.set_value(specimen);
+    }
 
-        optional_ = make_picker("gallery.date.optional", "Optional unchecked date");
+    void build_formats() {
+        prepare_picker(*document_.gallery_date_format_0);
+        DateTimePicker& short_date = *document_.gallery_date_format_1;
+        prepare_picker(short_date);
+        short_date.set_format(DateTimePickerFormat::short_date);
+        DateTimePicker& time = *document_.gallery_date_format_2;
+        prepare_picker(time);
+        time.set_format(DateTimePickerFormat::time);
+        DateTimePicker& custom = *document_.gallery_date_format_3;
+        prepare_picker(custom);
+        custom.set_custom_format("yyyy-MM-dd '·' HH:mm");
+        custom.set_format(DateTimePickerFormat::custom);
+    }
+
+    void build_modes() {
+        prepare_picker(*optional_);
         (*optional_).set_format(DateTimePickerFormat::short_date);
         (*optional_).set_show_check_box(true);
         (*optional_).set_checked(false);
-        (*modes).add_at(label("gallery.date.optional.caption", "Optional value", 10.0, 700,
-                              shell_blue_dark), {22.0, 40.0, 106.0, 22.0});
-        (*modes).add_at(optional_, {132.0, 35.0, 284.0, 30.0});
 
-        std::shared_ptr<DateTimePicker> spinner = make_picker("gallery.date.spinner", "Date spinner");
-        (*spinner).set_format(DateTimePickerFormat::short_date);
-        (*spinner).set_show_up_down(true);
-        (*modes).add_at(label("gallery.date.spinner.caption", "Up/down date", 10.0, 700,
-                              shell_blue_dark), {474.0, 40.0, 106.0, 22.0});
-        (*modes).add_at(spinner, {584.0, 35.0, 320.0, 30.0});
+        DateTimePicker& spinner = *document_.gallery_date_spinner;
+        prepare_picker(spinner);
+        spinner.set_format(DateTimePickerFormat::short_date);
+        spinner.set_show_up_down(true);
 
-        std::shared_ptr<DateTimePicker> provider = make_picker(
-            "gallery.date.provider", "Caller-owned French date provider");
-        (*provider).set_format_provider(french_date_provider());
-        (*modes).add_at(label("gallery.date.provider.caption", "Owned provider", 10.0, 700,
-                              shell_blue_dark), {22.0, 102.0, 106.0, 22.0});
-        (*modes).add_at(provider, {132.0, 97.0, 284.0, 30.0});
+        DateTimePicker& provider = *document_.gallery_date_provider;
+        prepare_picker(provider);
+        provider.set_format_provider(french_date_provider());
 
-        std::shared_ptr<DateTimePicker> disabled = make_picker(
-            "gallery.date.disabled", "Disabled date picker");
-        (*disabled).set_custom_format("MMM d, yyyy");
-        (*disabled).set_format(DateTimePickerFormat::custom);
-        (*disabled).enabled = false;
-        (*modes).add_at(label("gallery.date.disabled.caption", "Disabled state", 10.0, 700,
-                              shell_blue_dark), {474.0, 102.0, 106.0, 22.0});
-        (*modes).add_at(disabled, {584.0, 97.0, 320.0, 30.0});
+        DateTimePicker& disabled = *document_.gallery_date_disabled;
+        prepare_picker(disabled);
+        disabled.set_custom_format("MMM d, yyyy");
+        disabled.set_format(DateTimePickerFormat::custom);
     }
 
-    void build_lifecycle(const std::shared_ptr<Surface>& body) {
-        std::shared_ptr<LayoutGroup> lifecycle = group(
-            "gallery.date.lifecycle", "Overlay lifecycle · commit, cancel, bounds, semantics",
-            {930.0, 138.0});
-        (*body).add_at(lifecycle, {24.0, 488.0, 930.0, 138.0});
-        primary_ = make_picker("gallery.date.primary", "Bounded appointment date");
+    void build_lifecycle() {
+        prepare_picker(*primary_);
         (*primary_).set_range({2026, 8U, 1U}, {2026, 8U, 31U, 23U, 59U, 59U, 999U});
-        (*lifecycle).add_at(primary_, {22.0, 38.0, 310.0, 31.0});
 
         previous_day_.set_text("Previous day");
         previous_day_.set_description("Move the appointment one day earlier");
@@ -125,8 +114,6 @@ private:
         next_day_.set_description("Move the appointment one day later");
         open_calendar_.set_text("Open calendar");
         open_calendar_.set_description("Drop the retained calendar overlay down");
-        commands_ = make_control<CommandBar>(StableId("gallery.date.commands"));
-        (*commands_).accessible_name = "Appointment commands";
         (*commands_).set_items({
             {.id = command_previous, .label = "Previous day",
              .accessible_name = "Previous day", .command = &previous_day_},
@@ -135,36 +122,18 @@ private:
             {.id = command_open, .label = "Open calendar",
              .accessible_name = "Open calendar", .command = &open_calendar_}});
         (*commands_).item(2).set_visual_style(ButtonVisualStyle::accent);
-        (*lifecycle).add_at(commands_, {352.0, 38.0, 454.0, 32.0});
-        status_ = label("gallery.date.status",
-                        "Ready · August 1–31, 2026 · F4 or Alt+Down opens", 10.0, 600, green);
-        (*status_).set_text_wrapping(TextWrapping::word);
-        (*status_).set_vertical_alignment(VerticalAlignment::near);
-        (*lifecycle).add_at(status_, {22.0, 86.0, 884.0, 34.0});
     }
 
     // A two-month MonthCalendar with week numbers, bold dates and a bounded
     // range; its selection reports to its own status label.
-    void build_month_calendar(const std::shared_ptr<Surface>& body) {
-        std::shared_ptr<LayoutGroup> months = group(
-            "gallery.date.month", "MonthCalendar · two months, week numbers, bold dates, bounded range",
-            {930.0, 280.0});
-        (*body).add_at(months, {24.0, 644.0, 930.0, 280.0});
-        month_ = make_control<MonthCalendar>(StableId("gallery.date.month.calendar"));
-        (*month_).accessible_name = "Appointment calendar";
+    void build_month_calendar() {
         (*month_).set_today_date(specimen);
         (*month_).set_range({2026, 8U, 1U}, {2026, 12U, 31U});
-        (*month_).set_calendar_dimensions({2U, 1U});
-        (*month_).set_show_week_numbers(true);
+        (*month_).calendar_dimensions = {2U, 1U};
+        (*month_).show_week_numbers = true;
         (*month_).set_bolded_dates({{2026, 8U, 21U}, {2026, 9U, 7U}});
         (*month_).add_monthly_bolded_date({2026, 1U, 1U});
         (*month_).set_date({2026, 8U, 12U});
-        (*months).add_at(month_, {22.0, 38.0, 500.0, 216.0});
-        month_status_ = label("gallery.date.month.status",
-                              "Drag to select up to seven days · arrows, Page Up/Down, Home, End", 10.0, 600, green);
-        (*month_status_).set_text_wrapping(TextWrapping::word);
-        (*month_status_).set_vertical_alignment(VerticalAlignment::near);
-        (*months).add_at(month_status_, {546.0, 44.0, 360.0, 60.0});
         on((*month_).date_changed(), *this, &DatesPage::month_changed);
     }
 
@@ -219,7 +188,11 @@ private:
     std::shared_ptr<Label> status_;
     std::shared_ptr<MonthCalendar> month_;
     std::shared_ptr<Label> month_status_;
+    // Declared after the Commands its bar borrows, so it is released first.
+    DatesDocument<DatesPage> document_{};
 };
+
+} // namespace
 
 void add_dates_and_calendar(const std::shared_ptr<Surface>& page,
                             const std::shared_ptr<PageContext>& context) {

@@ -1,0 +1,249 @@
+{
+  "family": "MonthCalendar",
+  "step": "B8",
+  "declaring": "MonthCalendar",
+  "header": "include/gui_forms/controls/panel/month_calendar/month_calendar.hpp",
+  "source": "src/controls/panel/month_calendar/month_calendar.cpp",
+  "capabilities_header": "include/gui_forms/controls/panel/month_calendar/month_calendar_capabilities/month_calendar_capabilities.hpp",
+  "shared": [
+    "FontCapability"
+  ],
+  "properties": [
+    {
+      "name": "show_today",
+      "capability": "ShowToday",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether the \"Today:\" line is shown below the months.",
+      "getter": "show_today",
+      "setter": "set_show_today",
+      "clear": null,
+      "field": "show_today_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "effects": "Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "hooks": "generated",
+      "hand": [],
+      "sample": "false"
+    },
+    {
+      "name": "show_today_circle",
+      "capability": "ShowTodayCircle",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether today's day publishes the current state and its marker part.",
+      "getter": "show_today_circle",
+      "setter": "set_show_today_circle",
+      "clear": null,
+      "field": "show_today_circle_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "effects": "Dirty::paint | Dirty::semantics",
+      "hooks": "generated",
+      "hand": [],
+      "sample": "false"
+    },
+    {
+      "name": "show_week_numbers",
+      "capability": "ShowWeekNumbers",
+      "value": "bool",
+      "initial": null,
+      "comment": "Week numbers beside each row: week 1 is the week that holds 1 January (Windows Forms' FirstDay rule), weeks starting on first_day_of_week.",
+      "getter": "show_week_numbers",
+      "setter": "set_show_week_numbers",
+      "clear": null,
+      "field": "show_week_numbers_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "effects": "Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "hooks": "generated",
+      "hand": [],
+      "sample": "true"
+    },
+    {
+      "name": "first_day_of_week",
+      "capability": "FirstDayOfWeek",
+      "value": "CalendarWeekday",
+      "initial": "CalendarWeekday::sunday",
+      "comment": "The weekday each week row starts on.",
+      "getter": "first_day_of_week",
+      "setter": "set_first_day_of_week",
+      "clear": null,
+      "field": "first_day_of_week_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "effects": "Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "hooks": "generated",
+      "hand": [],
+      "sample": "CalendarWeekday::monday",
+      "prepare": [
+        "if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(CalendarWeekday::saturday)) {",
+        "    throw std::invalid_argument(\"MonthCalendar first day of week is invalid\");",
+        "}"
+      ]
+    },
+    {
+      "name": "calendar_dimensions",
+      "capability": "CalendarDimensions",
+      "value": "CalendarDimensions",
+      "initial": null,
+      "comment": "The months shown, as columns by rows; one to twelve months in all.",
+      "getter": "calendar_dimensions",
+      "setter": "set_calendar_dimensions",
+      "clear": null,
+      "field": "dimensions_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "effects": "Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "hooks": "hand",
+      "hand": [
+        "written keeps the first month in range and the focus date visible"
+      ],
+      "sample": "CalendarDimensions{2U, 1U}"
+    },
+    {
+      "name": "max_selection_count",
+      "capability": "MaxSelectionCount",
+      "value": "std::uint32_t",
+      "initial": "7U",
+      "comment": "The most days a selection may hold; zero throws std::out_of_range.",
+      "getter": "max_selection_count",
+      "setter": "set_max_selection_count",
+      "clear": null,
+      "field": "max_selection_count_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "effects": null,
+      "hooks": "hand",
+      "hand": [
+        "written trims the selection to the new count"
+      ],
+      "sample": "3U"
+    },
+    {
+      "name": "scroll_change",
+      "capability": "ScrollChange",
+      "value": "std::uint32_t",
+      "initial": null,
+      "comment": "Months an arrow scrolls; zero (the default) scrolls by the number of months shown.",
+      "getter": "scroll_change",
+      "setter": "set_scroll_change",
+      "clear": null,
+      "field": "scroll_change_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "effects": null,
+      "hooks": "generated",
+      "hand": [],
+      "sample": "3U",
+      "prepare": [
+        "if (incoming > 20000U) throw std::out_of_range(\"MonthCalendar scroll change is at most 20000 months\");"
+      ]
+    },
+    {
+      "name": "format_provider",
+      "capability": "MonthCalendarFormatProvider",
+      "value": "DateTimeFormatProvider",
+      "initial": "DateTimeFormatProvider::english_united_states()",
+      "comment": "Month and day names and the \"Today:\" date pattern.",
+      "getter": "format_provider",
+      "setter": "set_format_provider",
+      "clear": null,
+      "field": "provider_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "effects": "Dirty::measure | Dirty::paint | Dirty::semantics",
+      "hooks": "generated",
+      "hand": [],
+      "prepare": [
+        "date_time_detail::validate_provider(incoming);"
+      ]
+    },
+    {
+      "name": "font",
+      "capability": "Font",
+      "value": "FontSpec",
+      "initial": "FontRole::control, 10.5, 400, false, 0.12",
+      "comment": "The font of the title, the days and the \"Today:\" line.",
+      "getter": "font",
+      "setter": "set_font",
+      "clear": null,
+      "field": "font_",
+      "event": null,
+      "on_changed": true,
+      "coerce": true,
+      "localizable": null,
+      "table": null,
+      "effects": "Dirty::measure | Dirty::paint",
+      "hooks": "generated",
+      "hand": [],
+      "prepare": [
+        "if (!valid_font_spec(incoming)) throw std::invalid_argument(\"MonthCalendar font specification is invalid\");",
+        "set_font_from_code(true);"
+      ],
+      "sample": "FontSpec{FontRole::control, 12.0, 700, false, 0.12}"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "set_date",
+      "reason": "kept as a method (per-item, multi-value or structural)"
+    },
+    {
+      "name": "set_selection_range(first, last)",
+      "reason": "kept as a method (per-item, multi-value or structural)"
+    },
+    {
+      "name": "set_range(min, max)",
+      "reason": "kept as a method (per-item, multi-value or structural)"
+    },
+    {
+      "name": "today_date",
+      "reason": "computed: the set date, else the system clock's; set_today_date normalizes to the civil date"
+    },
+    {
+      "name": "bolded_dates",
+      "reason": "a collection edited in place (add_/remove_/remove_all_ helpers); collections stay methods until W proposes a shape (coordinator, 2026-11-05)"
+    },
+    {
+      "name": "annually_bolded_dates",
+      "reason": "a collection edited in place (add_/remove_/remove_all_ helpers); collections stay methods until W proposes a shape (coordinator, 2026-11-05)"
+    },
+    {
+      "name": "monthly_bolded_dates",
+      "reason": "a collection edited in place (add_/remove_/remove_all_ helpers); collections stay methods until W proposes a shape (coordinator, 2026-11-05)"
+    }
+  ],
+  "test": {
+    "type": "MonthCalendar",
+    "include": "gui_forms/controls/panel/month_calendar/month_calendar.hpp"
+  },
+  "includes": [
+    "gui_forms/controls/panel/month_calendar/calendar_values/calendar_values.hpp",
+    "gui_forms/controls/panel/date_time_picker/date_time_format_provider/date_time_format_provider.hpp"
+  ]
+}

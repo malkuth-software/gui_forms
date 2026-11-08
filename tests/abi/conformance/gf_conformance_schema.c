@@ -138,7 +138,7 @@ static void effects(gf_kit* kit) {
 }
 
 /* The properties a type provides to its children (since 1.1): a grid
- * panel's area and cell, none for a button, and the refusals. */
+ * panel's area, cell and item_style, none for a button, and the refusals. */
 static void child_properties(gf_kit* kit) {
     uint64_t grid = 0u;
     uint64_t button = 0u;
@@ -147,7 +147,7 @@ static void child_properties(gf_kit* kit) {
                   "find button for child properties");
     uint64_t count = 0u;
     gf_kit_status(kit, (*kit).schema.child_property_count(grid, &count), GF_STATUS_OK, "child_property_count");
-    gf_kit_check(kit, count == 2u, "a grid panel provides two properties to its children");
+    gf_kit_check(kit, count == 3u, "a grid panel provides three properties to its children");
     uint64_t none = 1u;
     gf_kit_status(kit, (*kit).schema.child_property_count(button, &none), GF_STATUS_OK,
                   "child_property_count of a button");
@@ -161,6 +161,21 @@ static void child_properties(gf_kit* kit) {
     gf_kit_check(kit, gf_kit_view_equals(area.name, "area") && area.kind == GF_VALUE_KIND_TEXT &&
                           (area.flags & GF_SCHEMA_PROPERTY_FLAGS_WRITABLE) != 0u && area.choice_count == 0u,
                  "a grid panel's first child property is its writable text area");
+    /* item_style is found by its name, not its position. */
+    uint64_t item_style_found = 0u;
+    uint64_t index = 0u;
+    for (index = 0u; index < count; ++index) {
+        gf_schema_property record;
+        memset(&record, 0, sizeof(record));
+        record.struct_size = (uint32_t)sizeof(record);
+        if ((*kit).schema.child_property_at(grid, index, &record) != GF_STATUS_OK) continue;
+        if (!gf_kit_view_equals(record.name, "item_style")) continue;
+        if (record.kind == GF_VALUE_KIND_TEXT && (record.flags & GF_SCHEMA_PROPERTY_FLAGS_WRITABLE) != 0u &&
+            record.choice_count == 0u) {
+            ++item_style_found;
+        }
+    }
+    gf_kit_check(kit, item_style_found == 1u, "a grid panel provides its writable text item_style once");
     gf_schema_property past;
     memset(&past, 0, sizeof(past));
     past.struct_size = (uint32_t)sizeof(past);

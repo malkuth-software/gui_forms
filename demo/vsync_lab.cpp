@@ -882,7 +882,7 @@ std::unique_ptr<Window> make_vsync_lab() {
     (*controls).set_requested_bounds({0.0, 0.0, 300.0, 0.0});
     (*controls).dock = DockStyle::left;
     (*controls).padding = {12.0, 12.0, 12.0, 12.0};
-    (*controls).set_border_style(BorderStyle::sunken);
+    (*controls).border_style = BorderStyle::sunken;
     (*controls).add_child(label("vsync.controls.heading", "PRODUCER + INPUT",
                               {18.0, 12.0, 250.0, 28.0},
                               TextStyleRole::heading));
@@ -965,7 +965,7 @@ std::unique_ptr<Window> make_vsync_lab() {
     (*metrics_panel).set_requested_bounds({0.0, 0.0, 286.0, 0.0});
     (*metrics_panel).dock = DockStyle::right;
     (*metrics_panel).padding = {12.0, 12.0, 12.0, 12.0};
-    (*metrics_panel).set_border_style(BorderStyle::sunken);
+    (*metrics_panel).border_style = BorderStyle::sunken;
     (*metrics_panel).add_child(label("vsync.metrics.heading", "LIVE TELEMETRY",
                                    {18.0, 12.0, 240.0, 28.0},
                                    TextStyleRole::heading));
@@ -991,7 +991,7 @@ std::unique_ptr<Window> make_vsync_lab() {
     (*center).dock = DockStyle::fill;
     (*center).padding = {12.0, 12.0, 12.0, 12.0};
     (*center).set_background(Color::rgba(10, 17, 25));
-    (*center).set_border_style(BorderStyle::sunken);
+    (*center).border_style = BorderStyle::sunken;
     (*context).waterfall =
         make_control<WaterfallSurface>(StableId("vsync.waterfall"));
     (*(*context).waterfall).dock = DockStyle::fill;

@@ -42,7 +42,7 @@ using namespace input_control_detail;
 
 ListBox::ListBox(StableId stable_id) : Panel(std::move(stable_id)) {
     set_paint_plane(PaintPlane::control);
-    set_border_style(BorderStyle::sunken);
+    border_style = BorderStyle::sunken;
     set_focusable(true);
     PropertyRegistration items_registration;
     items_registration.descriptor = text_items_property::descriptor("Ordered text items the list shows.");

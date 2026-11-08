@@ -73,7 +73,7 @@ struct ContextMenu::Impl final {
     public:
         MenuLayer(StableId id, Impl& impl) : Panel(std::move(id)), impl_(impl) {
             set_paint_plane(PaintPlane::overlay);
-            set_border_style(BorderStyle::none);
+            border_style = BorderStyle::none;
             set_background(Color::rgba(0, 0, 0, 0));
         }
 
@@ -109,7 +109,7 @@ struct ContextMenu::Impl final {
             set_focusable(true);
             set_paint_plane(PaintPlane::overlay);
             set_background(Color::rgba(250, 253, 255));
-            set_border_style(BorderStyle::line);
+            border_style = BorderStyle::line;
         }
 
         // The panel overlaps the window's content, so it casts the theme's

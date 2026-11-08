@@ -38,7 +38,7 @@ CorrespondenceView::CorrespondenceView(StableId stable_id)
     : Panel(std::move(stable_id)) {
     set_paint_plane(PaintPlane::control);
     set_background(style().paper);
-    set_border_style(BorderStyle::sunken);
+    border_style = BorderStyle::sunken;
     set_focusable(true);
 }
 

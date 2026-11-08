@@ -18,7 +18,7 @@ TabPage::TabPage(StableId stable_id, std::string text)
     // No border of its own, as Windows Forms' TabPage.BorderStyle (None):
     // the owning TabControl paints the display's frame (sweep defect D13:
     // a square line over the display's rounded card left corner notches).
-    set_border_style(BorderStyle::none);
+    border_style = BorderStyle::none;
 }
 
 void TabPage::set_text(std::string text) {

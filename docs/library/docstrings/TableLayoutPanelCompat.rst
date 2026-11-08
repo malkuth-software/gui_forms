@@ -47,11 +47,15 @@ track_spacing : default ``{0.0, 0.0}``
     but not outside the outer tracks. Each value must be finite and between
     0 and 256.
 column_styles
-    The size mode and size of each authored column, one per column. Set them
-    with `set_column_style`.
+    The size mode and size of each authored column, one per column. Set one
+    with `set_column_style`, or all with `set_column_styles`, which makes the
+    column count the number of styles (1 through 64, `std::out_of_range`)
+    and checks every style first. In a `.form` it is the `column-styles` text
+    collection, one item per column:
+    `column-styles: "absolute 140" "auto" "percent 1";`.
 row_styles
-    The size mode and size of each authored row. Set them with
-    `set_row_style`.
+    The size mode and size of each authored row, set with `set_row_style` or
+    `set_row_styles` as the columns are (`row-styles` in a `.form`).
 column_widths
     The column widths resolved by the last layout, including any columns the
     table added. Empty before the first layout.
@@ -61,7 +65,32 @@ row_heights
 layout_overflowed : default ``false``
     Whether the last layout left a visible child out because it found no cell
     for it.
-
+cell : child property, no default
+    A child's explicit cell, row then column from 0, a property the panel
+    provides to its direct children and stores for each:
+    `(*table).cell[*child] = GridCell{.row = 1U, .column = 0U};`. A child
+    without one is placed automatically, and reading it then gives row 0,
+    column 0. A `.form` child writes `cell: 1 0;`. A row or column of 64 or
+    more throws `std::out_of_range`; a cell inside another child's span, or
+    a control that is not a live direct child, throws
+    `std::invalid_argument`. Moving a child carries its span with it unless
+    another child is anchored at the old cell; the value is dropped when the
+    child leaves.
+column_span : child property, default ``1``
+    How many columns the child's cell spans, from 1 through 64:
+    `(*table).column_span[*child] = 2U;` (`column-span: 2;` in a `.form`).
+    The table holds the spans: each is an anonymous `GridSpan` anchored at a
+    child's cell (`spans()`), and a span of 1 by 1 removes it. A child needs
+    an explicit cell before it can span (`std::invalid_argument`); a span
+    that ends past track 64 throws `std::out_of_range`, and one that would
+    overlap another span or cover another child's cell throws
+    `std::invalid_argument`.
+row_span : child property, default ``1``
+    How many rows the child's cell spans, with the same rules as
+    `column_span`.
+spans
+    The anonymous spans, in the order they were made, each anchored at a
+    placed child's cell.
 Methods
 -------
 set_column_style
@@ -78,27 +107,17 @@ set_column_style
     index at or beyond `column_count` throws `std::out_of_range`.
 set_row_style
     The same as `set_column_style`, for one row.
-set_cell_position
-    Places `child` at an explicit column and row, counted from 0. A column or
-    row of 64 or more throws `std::out_of_range`, and a control that is not a
-    live direct child throws `std::invalid_argument`.
-clear_cell_position
-    Returns `child` to automatic placement.
 cell_position
-    The cell the last layout placed `child` in. When the last layout placed
-    it nowhere, returns the position set with `set_cell_position`, or no
-    value if there is none. Reading it brings the layout up to date first.
-set_column_span
-    The number of columns `child` covers, from 1 through 64, starting at its
-    cell. Out-of-range spans throw `std::out_of_range`, and a control that is
-    not a live direct child throws `std::invalid_argument`.
-column_span
-    The column span of `child`; 1 when none is set.
-set_row_span
-    The number of rows `child` covers, from 1 through 64, with the same
-    rules as `set_column_span`.
-row_span
-    The row span of `child`; 1 when none is set.
+    The cell the last layout placed `child` in: its explicit cell, or the
+    one automatic placement found. When the last layout placed it nowhere,
+    returns its explicit cell, or no value if there is none. Reading it
+    brings the layout up to date first.
+clear_cell
+    Returns `child` to automatic placement, the reset of `cell`. A child that
+    is the only one anchored at a span is refused with
+    `std::invalid_argument`; set its spans back to 1 first.
+has_cell
+    Whether `child` has an explicit cell.
 control_from_position
     The visible child whose cell or span covers the given column and row, or
     null. Reading it brings the layout up to date first.
@@ -114,8 +133,8 @@ Notes
 Each layout places children in two passes. First, children with an explicit
 cell take it, in child order; a child whose cells are already taken, or lie
 outside a grid that `grow_style` cannot extend, is left out. Then the other
-children fill the first free cell, or run of cells for a span, scanning row
-by row; when none is free, the table adds a row or a column as `grow_style`
+children fill the first free cell, scanning row by row (an automatic child
+takes one cell: a span needs an explicit cell); when none is free, the table adds a row or a column as `grow_style`
 allows. A child that is left out gets an empty slot at the top-left corner
 and `layout_overflowed` becomes true. Hidden children take no cell, and the
 added tracks disappear again when they are no longer needed.
@@ -199,8 +218,8 @@ fixed-size table, a child with no free cell is left out:
    (*grid).add_child(left);
    (*grid).add_child(right);
    (*grid).add_child(extra);
-   (*grid).set_cell_position(*heading, {0U, 0U});
-   (*grid).set_column_span(*heading, 2U);
+   (*grid).cell[*heading] = gf::GridCell{.row = 0U, .column = 0U};
+   (*grid).column_span[*heading] = 2U;
 
    gf::Window window(grid, {200.0, 80.0});
    window.perform_layout();

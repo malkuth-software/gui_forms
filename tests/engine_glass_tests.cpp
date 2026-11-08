@@ -13,6 +13,8 @@
 #include "../src/core/engine/primitives/light/glass_primitive.hpp"
 
 #include <algorithm>
+#include <array>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
@@ -82,14 +84,19 @@ const EnginePrimitive& glass() {
 }
 
 // Draws glass of `logical` size at `scale` over `backplane` (null for
-// none) with `parameters`.
+// none) with `parameters`, lent `material` (null for none), under reduced
+// transparency when `reduced`.
 std::shared_ptr<PartRaster> draw_glass(const PrimitiveParameterBlock& parameters, Size logical, double scale,
-                                       const PartRaster* backplane) {
+                                       const PartRaster* backplane, const SurfaceMaterial* material = nullptr,
+                                       bool reduced = false) {
     const EnginePrimitive& primitive = glass();
     PrimitiveTarget target{};
     target.logical_size = logical;
     target.scale = DeviceScale{scale};
     target.backplane = backplane;
+    target.material = material;
+    target.reduced_transparency = reduced;
+    require(primitive.accepts(parameters, target), "glass accepts the target");
     const std::optional<std::uint32_t> margin = primitive.backplane_margin(parameters, target.scale);
     require(margin.has_value(), "glass samples the backplane");
     target.backplane_margin = *margin;
@@ -169,6 +176,96 @@ void the_blur(bool printing) {
         return;
     }
     require(hash == expected_glass_hash, "the glass has the same bits on every host");
+}
+
+// -- the glass recipe: the material's layers over the backdrop ----------------------
+
+// Glass with the material's layers: blur 6, recipe `button` (choice 4),
+// layers `material` (choice 1).
+PrimitiveParameterBlock material_glass() {
+    PrimitiveParameterBlock parameters = default_parameters(glass().descriptor());
+    parameters.values[3].number = 4.0;
+    parameters.values[4].number = 1.0;
+    return parameters;
+}
+
+// Half-transparent blue over the backdrop, with a white keyline on top.
+SurfaceMaterial translucent_material() {
+    SurfaceMaterial material{};
+    material.fills.clear();
+    material.fills.push_back(MaterialFillLayer::solid(Color::rgba(0, 0, 255, 128)));
+    MaterialKeyline keyline{};
+    keyline.edge = MaterialEdge::top;
+    keyline.color = Color::rgba(255, 255, 255, 255);
+    material.keylines.push_back(keyline);
+    MaterialShadow outer{};
+    material.shadows.push_back(outer);
+    return material;
+}
+
+// The glass over the stripes with translucent_material's layers at scale 1;
+// recorded on macOS arm64 and checked on every CI platform.
+constexpr std::uint64_t expected_material_glass_hash = 0xd5a8856b87b8bab5ULL;
+
+void the_glass_recipe(bool printing) {
+    const PrimitiveParameterBlock parameters = material_glass();
+    const SurfaceMaterial material = translucent_material();
+    const std::shared_ptr<PartRaster> uniform = solid_raster(DeviceExtent{58U, 38U}, 1.0, {200U, 100U, 50U, 255U});
+    const std::shared_ptr<PartRaster> drawn = draw_glass(parameters, Size{40.0, 20.0}, 1.0, uniform.get(), &material);
+    // Inside: the blue fill over the backdrop, with no tint: 128/255 of blue
+    // over (200, 100, 50). The outer shadow lies past the box and is not drawn.
+    const double keep = 1.0 - 128.0 / 255.0;
+    const std::array<std::uint8_t, 4> inside = pixel_of(*drawn, 20U, 10U);
+    const int red = static_cast<int>(std::floor(200.0 * keep + 0.5));
+    const int blue = static_cast<int>(std::floor(128.0 + 50.0 * keep + 0.5));
+    require(std::abs(static_cast<int>(inside[0]) - red) <= 1 && std::abs(static_cast<int>(inside[2]) - blue) <= 1 &&
+                inside[3] == 255U,
+            "the material's fill lies over the backdrop in place of the tint");
+    // The keyline is the top row.
+    require(pixel_of(*drawn, 20U, 0U) == (std::array<std::uint8_t, 4>{255U, 255U, 255U, 255U}),
+            "the material's keyline is drawn");
+
+    // An opaque fill hides the backdrop.
+    SurfaceMaterial opaque{};
+    const std::shared_ptr<PartRaster> covered = draw_glass(parameters, Size{40.0, 20.0}, 1.0, uniform.get(), &opaque);
+    require(pixel_of(*covered, 20U, 10U) == (std::array<std::uint8_t, 4>{255U, 255U, 255U, 255U}),
+            "an opaque fill covers the backdrop");
+
+    // Under reduced transparency the flattened backdrop is opaque, and so is
+    // the material over it.
+    SurfaceMaterial clear{};
+    clear.fills.clear();
+    clear.fills.push_back(MaterialFillLayer::solid(Color::rgba(0, 0, 0, 0)));
+    const std::shared_ptr<PartRaster> flat =
+        draw_glass(parameters, Size{40.0, 20.0}, 1.0, nullptr, &material, true);
+    require(pixel_of(*flat, 20U, 10U)[3] == 255U, "reduced transparency draws the recipe opaque");
+    // A clear material over a uniform backdrop is the backdrop itself.
+    const std::shared_ptr<PartRaster> bare = draw_glass(parameters, Size{40.0, 20.0}, 1.0, uniform.get(), &clear);
+    require(pixel_of(*bare, 20U, 10U) == (std::array<std::uint8_t, 4>{200U, 100U, 50U, 255U}),
+            "without layers to draw the glass is its backdrop, untinted");
+
+    // Refusals: no material lent, or an image fill; the filter layers need
+    // neither.
+    const EnginePrimitive& primitive = glass();
+    PrimitiveTarget target{};
+    target.logical_size = Size{40.0, 20.0};
+    target.scale = DeviceScale{1.0};
+    require(!primitive.accepts(parameters, target), "the material layers refuse without a material");
+    require(primitive.accepts(default_parameters(primitive.descriptor()), target), "the filter layers need none");
+    SurfaceMaterial imaged{};
+    imaged.fills.clear();
+    imaged.fills.push_back(MaterialFillLayer::stretched_image(ImageId{1U}, Size{4.0, 4.0}));
+    target.material = &imaged;
+    require(!primitive.accepts(parameters, target), "an image fill is refused");
+
+    const std::shared_ptr<PartRaster> striped = stripes(DeviceExtent{58U, 38U});
+    const std::shared_ptr<PartRaster> recipe = draw_glass(parameters, Size{40.0, 20.0}, 1.0, striped.get(), &material);
+    const std::uint64_t hash = hash_bytes((*recipe).pixels());
+    if (printing) {
+        std::cout << "material glass hash 0x" << std::hex << hash << std::dec << '\n';
+        return;
+    }
+    require(hash == expected_material_glass_hash, "the glass recipe has the same bits on every host");
 }
 
 // -- the window --------------------------------------------------------------------
@@ -368,6 +465,7 @@ void over_the_cap_falls_back() {
 int main(int argc, char** argv) {
     const bool printing = print_mode(argc, argv);
     the_blur(printing);
+    the_glass_recipe(printing);
     if (printing) return 0;
     glass_samples_the_backplane();
     glass_follows_backplane_damage();

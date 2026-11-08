@@ -206,6 +206,33 @@ internal static unsafe class Program
         }
     }
 
+    // GF_TABLE_SUBSURFACES (since 1.1) without a window: a host's state, a
+    // refused set_root, and content the host takes and gives back unstarted
+    // (its build callback is released, never invoked). The C kit runs the
+    // sub-surface's thread.
+    private static void subsurfaces()
+    {
+        Abi.check(Exports.get_subsurfaces_table(out gf_subsurfaces_table table));
+        using ObjectHandle host = ObjectHandle.create("sub_surface_host"u8, "csharp.subsurface"u8);
+        gf_subsurface_state state = 99u;
+        Abi.check(table.state(host.value, &state));
+        expect(state == Constants.GF_SUBSURFACE_STATE_STOPPED, "a host without content has no thread");
+        gf_status refused = table.set_root(host.value);
+        expect(refused == Constants.GF_STATUS_INVALID_STATE, "set_root outside a build callback is refused");
+        gf_subsurface_content content = default;
+        content.struct_size = (uint)sizeof(gf_subsurface_content);
+        content.build = Callbacks.to_native(throwing_handler);
+        gf_status taken = table.set_content(host.value, &content);
+        if (taken != Constants.GF_STATUS_OK)
+        {
+            Callbacks.free_unregistered(content.build);
+        }
+        Abi.check(taken);
+        Abi.check(table.set_content(host.value, null));
+        Abi.check(table.state(host.value, &state));
+        expect(state == Constants.GF_SUBSURFACE_STATE_STOPPED, "content that never started leaves no thread");
+    }
+
     private static int Main()
     {
         Console.OutputEncoding = Encoding.UTF8;
@@ -216,6 +243,7 @@ internal static unsafe class Program
         event_thunk();
         window_help();
         posted_thunk();
+        subsurfaces();
         Console.WriteLine(failures == 0 ? "gui_forms_abi_csharp: all checks passed" :
                                           $"gui_forms_abi_csharp: {failures} checks failed");
         return failures == 0 ? 0 : 1;

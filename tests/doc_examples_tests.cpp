@@ -830,8 +830,8 @@ void example() {
     (*shelf).add_child(arrange);
     (*shelf).add_child(more);
     (*shelf).set_group_gap(4.0);
-    (*shelf).set_group_spec(*selection, {176.0, 176.0, 176.0, 2U});
-    (*shelf).set_group_spec(*arrange, {306.0, 306.0, 306.0, 1U});
+    (*shelf).group_spec[*selection] = gf::CommandOverflowGroupSpec{176.0, 176.0, 176.0, 2U};
+    (*shelf).group_spec[*arrange] = gf::CommandOverflowGroupSpec{306.0, 306.0, 306.0, 1U};
     (*shelf).set_overflow_actuator(*more);
 
     gf::Window window(shelf, {600.0, 66.0});
@@ -2627,7 +2627,7 @@ void example() {
     std::shared_ptr<gf::Panel> swatch = gf::make_control<gf::Panel>(gf::StableId("swatch"));
     (*swatch).set_requested_bounds({12.0, 12.0, 120.0, 80.0});
     (*swatch).set_background(gf::Color::rgba(250, 240, 200));
-    (*swatch).set_border_style(gf::BorderStyle::line);
+    (*swatch).border_style = gf::BorderStyle::line;
     (*swatch).accessible_name = "Highlight colour";
 }
 }  // namespace doc_example_Panel_2
@@ -2941,8 +2941,8 @@ void example() {
     (*inspector).dock = gf::DockStyle::fill;
     (*shell).add_child(content);
     (*shell).add_child(inspector);
-    (*shell).set_child_track(*content, 0U);
-    (*shell).set_child_track(*inspector, 1U);
+    (*shell).child_track[*content] = 0U;
+    (*shell).child_track[*inspector] = 1U;
 
     gf::Window window(shell, {240.0, 100.0});
     window.perform_layout();      // both tracks fit side by side
@@ -3519,8 +3519,8 @@ void example() {
     (*grid).add_child(left);
     (*grid).add_child(right);
     (*grid).add_child(extra);
-    (*grid).set_cell_position(*heading, {0U, 0U});
-    (*grid).set_column_span(*heading, 2U);
+    (*grid).cell[*heading] = gf::GridCell{.row = 0U, .column = 0U};
+    (*grid).column_span[*heading] = 2U;
 
     gf::Window window(grid, {200.0, 80.0});
     window.perform_layout();
@@ -3711,9 +3711,9 @@ namespace doc_example_TokenBox_1 {
 void example() {
     std::shared_ptr<gf::TokenBox> recipients =
         gf::make_control<gf::TokenBox>(gf::StableId("mail.to"));
-    (*(*recipients).auto_complete_custom_source()).add_range({"Ada Lovelace", "Alan Turing"});
-    (*recipients).set_auto_complete_source(gf::AutoCompleteSource::custom_source);
-    (*recipients).set_auto_complete_mode(gf::AutoCompleteMode::suggest);
+    (*(*recipients).auto_complete_custom_source.read()).add_range({"Ada Lovelace", "Alan Turing"});
+    (*recipients).auto_complete_source = gf::AutoCompleteSource::custom_source;
+    (*recipients).auto_complete_mode = gf::AutoCompleteMode::suggest;
     const gf::TokenId grace = (*recipients).add_token("Grace Hopper");
     gf::Window window(recipients, gf::Size{400.0, 60.0});
     window.request_focus((*recipients).editor());

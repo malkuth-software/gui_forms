@@ -7,7 +7,7 @@ gui_forms::Panel
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: Panel : public ScrollableControl
+.. cpp:class:: Panel : public ScrollableControl, public PanelCapabilities<Panel>
 
    ``#include <gui_forms/controls/panel/panel.hpp>``
 
@@ -36,9 +36,14 @@ gui_forms::Panel
          or a two-tone :cpp:enumerator:`BorderStyle::sunken <gui_forms::BorderStyle::sunken>` or :cpp:enumerator:`BorderStyle::raised <gui_forms::BorderStyle::raised>` bevel. An
          unknown value throws ``std::invalid_argument``.
 
+      **visual_role** : ``ControlVisualRole``, default ``ControlVisualRole::panel``
+         Which themed surface the panel paints: :cpp:enumerator:`ControlVisualRole::panel <gui_forms::ControlVisualRole::panel>`,
+         :cpp:enumerator:`ControlVisualRole::window <gui_forms::ControlVisualRole::window>` or :cpp:enumerator:`ControlVisualRole::card <gui_forms::ControlVisualRole::card>`. Any other role
+         throws ``std::invalid_argument``.
+
       **background** : ``Color``
          The fill colour. Until you call :cpp:func:`set_background <gui_forms::Panel::set_background>` it comes from the
-         theme's surface for :cpp:func:`visual_role <gui_forms::Panel::visual_role>`. :cpp:func:`clear_background <gui_forms::Panel::clear_background>` returns to the
+         theme's surface for :cpp:member:`visual_role <gui_forms::Panel::visual_role>`. :cpp:func:`clear_background <gui_forms::Panel::clear_background>` returns to the
          theme.
 
       **has_background_override** : ``bool``, default ``false``, read-only
@@ -50,11 +55,6 @@ gui_forms::Panel
 
       **has_style_override** : ``bool``, default ``false``, read-only
          Whether :cpp:func:`set_style <gui_forms::Panel::set_style>` has replaced the theme's colours.
-
-      **visual_role** : ``ControlVisualRole``, default ``ControlVisualRole::panel``
-         Which themed surface the panel paints: :cpp:enumerator:`ControlVisualRole::panel <gui_forms::ControlVisualRole::panel>`,
-         :cpp:enumerator:`ControlVisualRole::window <gui_forms::ControlVisualRole::window>` or :cpp:enumerator:`ControlVisualRole::card <gui_forms::ControlVisualRole::card>`. Any other role
-         throws ``std::invalid_argument``.
 
       **parts** : ``Parts``, read-only
 
@@ -74,6 +74,8 @@ gui_forms::Panel
         - Removes the :cpp:func:`set_background <gui_forms::Panel::set_background>` override so the theme's surface is painted again.
       * - :cpp:func:`clear_style <gui_forms::Panel::clear_style>`
         - Removes the :cpp:func:`set_style <gui_forms::Panel::set_style>` override.
+      * - :cpp:func:`panel_property_entries <gui_forms::Panel::panel_property_entries>`
+        -  
 
    .. seealso::
 
@@ -105,7 +107,7 @@ gui_forms::Panel
    area that docked children fill and that anchored children keep their
    distances to. Hidden children take no space.
 
-   With no override the panel paints the theme's material for :cpp:func:`visual_role <gui_forms::Panel::visual_role>`,
+   With no override the panel paints the theme's material for :cpp:member:`visual_role <gui_forms::Panel::visual_role>`,
    then the border. Setting a background or a style replaces that material
    with a flat fill of :cpp:func:`background <gui_forms::Panel::background>`.
 
@@ -154,7 +156,7 @@ gui_forms::Panel
       std::shared_ptr<gf::Panel> swatch = gf::make_control<gf::Panel>(gf::StableId("swatch"));
       (*swatch).set_requested_bounds({12.0, 12.0, 120.0, 80.0});
       (*swatch).set_background(gf::Color::rgba(250, 240, 200));
-      (*swatch).set_border_style(gf::BorderStyle::line);
+      (*swatch).border_style = gf::BorderStyle::line;
       (*swatch).accessible_name = "Highlight colour";
 
 
@@ -165,20 +167,22 @@ gui_forms::Panel
 
    .. rubric:: Properties
 
-   .. cpp:function:: BorderStyle border_style() const noexcept
+   .. cpp:member:: BorderStyle border_style
 
       The edge drawn around the panel: none, a one-pixel :cpp:enumerator:`BorderStyle::line <gui_forms::BorderStyle::line>`,
       or a two-tone :cpp:enumerator:`BorderStyle::sunken <gui_forms::BorderStyle::sunken>` or :cpp:enumerator:`BorderStyle::raised <gui_forms::BorderStyle::raised>` bevel. An
       unknown value throws ``std::invalid_argument``.
 
-   .. cpp:function:: void set_border_style(BorderStyle style)
+   .. cpp:member:: ControlVisualRole visual_role
 
-      Sets :cpp:func:`border_style <gui_forms::Panel::border_style>`; see the property's description above.
+      Which themed surface the panel paints: :cpp:enumerator:`ControlVisualRole::panel <gui_forms::ControlVisualRole::panel>`,
+      :cpp:enumerator:`ControlVisualRole::window <gui_forms::ControlVisualRole::window>` or :cpp:enumerator:`ControlVisualRole::card <gui_forms::ControlVisualRole::card>`. Any other role
+      throws ``std::invalid_argument``.
 
    .. cpp:function:: Color background() const
 
       The fill colour. Until you call :cpp:func:`set_background <gui_forms::Panel::set_background>` it comes from the
-      theme's surface for :cpp:func:`visual_role <gui_forms::Panel::visual_role>`. :cpp:func:`clear_background <gui_forms::Panel::clear_background>` returns to the
+      theme's surface for :cpp:member:`visual_role <gui_forms::Panel::visual_role>`. :cpp:func:`clear_background <gui_forms::Panel::clear_background>` returns to the
       theme.
 
    .. cpp:function:: void set_background(Color color)
@@ -202,16 +206,6 @@ gui_forms::Panel
 
       Whether :cpp:func:`set_style <gui_forms::Panel::set_style>` has replaced the theme's colours.
 
-   .. cpp:function:: ControlVisualRole visual_role() const noexcept
-
-      Which themed surface the panel paints: :cpp:enumerator:`ControlVisualRole::panel <gui_forms::ControlVisualRole::panel>`,
-      :cpp:enumerator:`ControlVisualRole::window <gui_forms::ControlVisualRole::window>` or :cpp:enumerator:`ControlVisualRole::card <gui_forms::ControlVisualRole::card>`. Any other role
-      throws ``std::invalid_argument``.
-
-   .. cpp:function:: void set_visual_role(ControlVisualRole role)
-
-      Sets :cpp:func:`visual_role <gui_forms::Panel::visual_role>`; see the property's description above.
-
    .. cpp:function:: Parts parts() const
 
 
@@ -225,6 +219,8 @@ gui_forms::Panel
    .. cpp:function:: void clear_style()
 
       Removes the :cpp:func:`set_style <gui_forms::Panel::set_style>` override.
+
+   .. cpp:function:: static const std::array<PropertyEntry, panel_property_count>& panel_property_entries() noexcept
 
 
    .. rubric:: Extension points
@@ -268,3 +264,9 @@ gui_forms::Panel
       *Protected.*
 
       Whether a theme rule selects a primitive for the face (G3): then the rule, not the recipe, decides what the face draws.
+
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
+   .. cpp:member:: constexpr std::size_t panel_property_count
+
+      Panel's property table: ScrollableControl's entries, then its own. Default: ``ScrollableControl::scrollable_control_property_count + 1U``.

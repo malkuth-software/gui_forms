@@ -33,6 +33,8 @@ Related types
      - A run of whole days, first to last inclusive; the time of day is zero.
    * - :cpp:class:`CalendarDimensions <gui_forms::CalendarDimensions>`
      - How many months the calendar shows: columns by rows, at most twelve.
+   * - :cpp:class:`CalendarDimensionsCapability <gui_forms::CalendarDimensionsCapability>`
+     - The months shown, as columns by rows; one to twelve months in all.
    * - :cpp:class:`DateTimeFormatProvider <gui_forms::DateTimeFormatProvider>`
      - DateTimeFormatProvider is an immutable caller-substitutable vocabulary and pattern bundle for DateTimePicker formatting.
    * - :cpp:class:`DateTimePicker::Parts <gui_forms::DateTimePicker::Parts>`
@@ -41,6 +43,10 @@ Related types
      -  
    * - :cpp:class:`DateTimeValue <gui_forms::DateTimeValue>`
      - DateTimeValue is DateTimePicker's timezone-free civil date/time value.
+   * - :cpp:class:`FirstDayOfWeekCapability <gui_forms::FirstDayOfWeekCapability>`
+     - The weekday each week row starts on.
+   * - :cpp:class:`MaxSelectionCountCapability <gui_forms::MaxSelectionCountCapability>`
+     - The most days a selection may hold; zero throws std::out_of_range.
    * - :cpp:class:`MonthCalendar::Day <gui_forms::MonthCalendar::Day>`
      -  
    * - :cpp:class:`MonthCalendar::DayParts <gui_forms::MonthCalendar::DayParts>`
@@ -55,12 +61,24 @@ Related types
      -  
    * - :cpp:class:`MonthCalendar::WeekParts <gui_forms::MonthCalendar::WeekParts>`
      -  
+   * - :cpp:class:`MonthCalendarCapabilities <gui_forms::MonthCalendarCapabilities>`
+     - Every MonthCalendar capability, in the order the declaring class takes them.
+   * - :cpp:class:`MonthCalendarFormatProviderCapability <gui_forms::MonthCalendarFormatProviderCapability>`
+     - Month and day names and the "Today:" date pattern.
+   * - :cpp:class:`ScrollChangeCapability <gui_forms::ScrollChangeCapability>`
+     - Months an arrow scrolls; zero (the default) scrolls by the number of months shown.
+   * - :cpp:class:`ShowTodayCapability <gui_forms::ShowTodayCapability>`
+     - Whether the "Today:" line is shown below the months.
+   * - :cpp:class:`ShowTodayCircleCapability <gui_forms::ShowTodayCircleCapability>`
+     - Whether today's day publishes the current state and its marker part.
+   * - :cpp:class:`ShowWeekNumbersCapability <gui_forms::ShowWeekNumbersCapability>`
+     - Week numbers beside each row: week 1 is the week that holds 1 January (Windows Forms' FirstDay rule), weeks starting on first_day_of_week.
 
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: CalendarDateRange final
 
-   ``#include <gui_forms/controls/panel/month_calendar/month_calendar.hpp>``
+   ``#include <gui_forms/controls/panel/month_calendar/calendar_values/calendar_values.hpp>``
 
    A run of whole days, first to last inclusive; the time of day is zero.
 
@@ -72,7 +90,7 @@ Related types
 
 .. cpp:struct:: CalendarDimensions final
 
-   ``#include <gui_forms/controls/panel/month_calendar/month_calendar.hpp>``
+   ``#include <gui_forms/controls/panel/month_calendar/calendar_values/calendar_values.hpp>``
 
    How many months the calendar shows: columns by rows, at most twelve.
 
@@ -83,6 +101,21 @@ Related types
    .. cpp:member:: std::uint32_t rows
 
       Default: ``{1U}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CalendarDimensionsCapability
+
+   ``#include <gui_forms/controls/panel/month_calendar/month_calendar_capabilities/month_calendar_capabilities.hpp>``
+
+   The months shown, as columns by rows; one to twelve months in all.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CalendarDimensionsCapability& capability, CalendarDimensions incoming)
+
+   .. cpp:member:: PropertyCell<CalendarDimensions, CalendarDimensionsCapability<Declaring>> calendar_dimensions
 
 .. cpp:namespace:: gui_forms
 
@@ -211,6 +244,40 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> FirstDayOfWeekCapability
+
+   ``#include <gui_forms/controls/panel/month_calendar/month_calendar_capabilities/month_calendar_capabilities.hpp>``
+
+   The weekday each week row starts on.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(FirstDayOfWeekCapability& capability, CalendarWeekday incoming)
+
+   .. cpp:member:: PropertyCell<CalendarWeekday, FirstDayOfWeekCapability<Declaring>> first_day_of_week
+
+      Default: ``{CalendarWeekday::sunday}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MaxSelectionCountCapability
+
+   ``#include <gui_forms/controls/panel/month_calendar/month_calendar_capabilities/month_calendar_capabilities.hpp>``
+
+   The most days a selection may hold; zero throws std::out_of_range.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MaxSelectionCountCapability& capability, std::uint32_t incoming)
+
+   .. cpp:member:: PropertyCell<std::uint32_t, MaxSelectionCountCapability<Declaring>> max_selection_count
+
+      Default: ``{7U}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: MonthCalendar::Day final
 
    ``#include <gui_forms/controls/panel/month_calendar/month_calendar.hpp>``
@@ -309,6 +376,139 @@ Related types
 
    .. cpp:member:: PartGeometry week_label
 
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MonthCalendarCapabilities : public ShowTodayCapability<Declaring>, public ShowTodayCircleCapability<Declaring>, public ShowWeekNumbersCapability<Declaring>, public FirstDayOfWeekCapability<Declaring>, public CalendarDimensionsCapability<Declaring>, public MaxSelectionCountCapability<Declaring>, public ScrollChangeCapability<Declaring>, public MonthCalendarFormatProviderCapability<Declaring>, public FontCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/month_calendar/month_calendar_capabilities/month_calendar_capabilities.hpp>``
+
+   Every MonthCalendar capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: MonthCalendarCapabilities()
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: bool show_today
+
+      Whether the "Today:" line is shown below the months.
+
+   .. cpp:member:: bool show_today_circle
+
+      Whether today's day publishes the current state and its marker part.
+
+   .. cpp:member:: bool show_week_numbers
+
+      Week numbers beside each row: week 1 is the week that holds 1 January (Windows Forms' FirstDay rule), weeks starting on first_day_of_week.
+
+   .. cpp:member:: CalendarWeekday first_day_of_week
+
+      The weekday each week row starts on.
+
+   .. cpp:member:: CalendarDimensions calendar_dimensions
+
+      The months shown, as columns by rows; one to twelve months in all.
+
+   .. cpp:member:: std::uint32_t max_selection_count
+
+      The most days a selection may hold; zero throws std::out_of_range.
+
+   .. cpp:member:: std::uint32_t scroll_change
+
+      Months an arrow scrolls; zero (the default) scrolls by the number of months shown.
+
+   .. cpp:member:: DateTimeFormatProvider format_provider
+
+      Month and day names and the "Today:" date pattern.
+
+   .. cpp:member:: FontSpec font
+
+      The font of the control's text (Font).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MonthCalendarFormatProviderCapability
+
+   ``#include <gui_forms/controls/panel/month_calendar/month_calendar_capabilities/month_calendar_capabilities.hpp>``
+
+   Month and day names and the "Today:" date pattern.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MonthCalendarFormatProviderCapability& capability, DateTimeFormatProvider incoming)
+
+   .. cpp:member:: PropertyCell<DateTimeFormatProvider, MonthCalendarFormatProviderCapability<Declaring>> format_provider
+
+      Default: ``{DateTimeFormatProvider::english_united_states()}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ScrollChangeCapability
+
+   ``#include <gui_forms/controls/panel/month_calendar/month_calendar_capabilities/month_calendar_capabilities.hpp>``
+
+   Months an arrow scrolls; zero (the default) scrolls by the number of months shown.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ScrollChangeCapability& capability, std::uint32_t incoming)
+
+   .. cpp:member:: PropertyCell<std::uint32_t, ScrollChangeCapability<Declaring>> scroll_change
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ShowTodayCapability
+
+   ``#include <gui_forms/controls/panel/month_calendar/month_calendar_capabilities/month_calendar_capabilities.hpp>``
+
+   Whether the "Today:" line is shown below the months.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ShowTodayCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ShowTodayCapability<Declaring>> show_today
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ShowTodayCircleCapability
+
+   ``#include <gui_forms/controls/panel/month_calendar/month_calendar_capabilities/month_calendar_capabilities.hpp>``
+
+   Whether today's day publishes the current state and its marker part.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ShowTodayCircleCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ShowTodayCircleCapability<Declaring>> show_today_circle
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ShowWeekNumbersCapability
+
+   ``#include <gui_forms/controls/panel/month_calendar/month_calendar_capabilities/month_calendar_capabilities.hpp>``
+
+   Week numbers beside each row: week 1 is the week that holds 1 January (Windows Forms' FirstDay rule), weeks starting on first_day_of_week.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ShowWeekNumbersCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ShowWeekNumbersCapability<Declaring>> show_week_numbers
+
 Enumerations
 ------------
 
@@ -316,7 +516,7 @@ Enumerations
 
 .. cpp:enum-class:: CalendarWeekday
 
-   ``#include <gui_forms/controls/panel/month_calendar/month_calendar.hpp>``
+   ``#include <gui_forms/controls/panel/month_calendar/calendar_values/calendar_values.hpp>``
 
    .. cpp:enumerator:: sunday
 

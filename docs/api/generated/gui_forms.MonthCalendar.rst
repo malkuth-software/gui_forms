@@ -7,7 +7,7 @@ gui_forms::MonthCalendar
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: MonthCalendar final : public Control
+.. cpp:class:: MonthCalendar final : public Control, public MonthCalendarCapabilities<MonthCalendar>
 
    ``#include <gui_forms/controls/panel/month_calendar/month_calendar.hpp>``
 
@@ -31,9 +31,40 @@ gui_forms::MonthCalendar
 
    :Properties:
 
+      **show_today** : ``bool``, default ``true``
+         Whether the "Today:" line is shown below the months.
+
+      **show_today_circle** : ``bool``, default ``true``
+         Whether today's day carries the current state and its marker part.
+
+      **show_week_numbers** : ``bool``, default ``false``
+         Whether each row of days has its week number: week 1 is the week that
+         holds 1 January, and weeks start on :cpp:member:`first_day_of_week <gui_forms::MonthCalendar::first_day_of_week>`.
+
+      **first_day_of_week** : ``CalendarWeekday``, default ``CalendarWeekday::sunday``
+         The weekday each row starts on.
+
+      **calendar_dimensions** : ``CalendarDimensions``, default 1 by 1
+         How many months are shown, as columns by rows. A zero dimension or more
+         than twelve months throws ``std::out_of_range``.
+
+      **max_selection_count** : ``std::uint32_t``, default ``7``
+         The most days a selection may hold. Zero throws ``std::out_of_range``;
+         lowering it shortens the selection.
+
+      **scroll_change** : ``std::uint32_t``, default ``0``
+         How many months an arrow scrolls; zero scrolls by the number of months
+         shown. More than 20000 throws ``std::out_of_range``.
+
+      **format_provider** : ``DateTimeFormatProvider``
+         The month and day names and the date pattern of the "Today:" line.
+
+      **font** : ``FontSpec``
+         The font of the titles, names and days.
+
       **selection_range** : ``CalendarDateRange``
          The selected run of days, first to last. :cpp:func:`set_selection_range <gui_forms::MonthCalendar::set_selection_range>` orders its
-         ends, keeps at most :cpp:func:`max_selection_count <gui_forms::MonthCalendar::max_selection_count>` days from the first and scrolls
+         ends, keeps at most :cpp:member:`max_selection_count <gui_forms::MonthCalendar::max_selection_count>` days from the first and scrolls
          the last into view; an invalid date or one outside :cpp:func:`min_date <gui_forms::MonthCalendar::min_date>` to
          :cpp:func:`max_date <gui_forms::MonthCalendar::max_date>` throws ``std::out_of_range``. :cpp:func:`set_date <gui_forms::MonthCalendar::set_date>` selects one day.
 
@@ -42,10 +73,6 @@ gui_forms::MonthCalendar
 
       **selection_end** : ``DateTimeValue``, read-only
          The last selected day.
-
-      **max_selection_count** : ``std::uint32_t``, default ``7``
-         The most days a selection may hold. Zero throws ``std::out_of_range``;
-         lowering it shortens the selection.
 
       **min_date** : ``DateTimeValue``, default 1 January 1753, read-only
          The first day that can be selected. :cpp:func:`set_range <gui_forms::MonthCalendar::set_range>` sets it with :cpp:func:`max_date <gui_forms::MonthCalendar::max_date>`;
@@ -63,35 +90,8 @@ gui_forms::MonthCalendar
       **today_date_set** : ``bool``, read-only
          Whether :cpp:func:`set_today_date <gui_forms::MonthCalendar::set_today_date>` has set today.
 
-      **show_today** : ``bool``, default ``true``
-         Whether the "Today:" line is shown below the months.
-
-      **show_today_circle** : ``bool``, default ``true``
-         Whether today's day carries the current state and its marker part.
-
-      **show_week_numbers** : ``bool``, default ``false``
-         Whether each row of days has its week number: week 1 is the week that
-         holds 1 January, and weeks start on :cpp:func:`first_day_of_week <gui_forms::MonthCalendar::first_day_of_week>`.
-
-      **first_day_of_week** : ``CalendarWeekday``, default ``CalendarWeekday::sunday``
-         The weekday each row starts on.
-
-      **calendar_dimensions** : ``CalendarDimensions``, default 1 by 1
-         How many months are shown, as columns by rows. A zero dimension or more
-         than twelve months throws ``std::out_of_range``.
-
-      **scroll_change** : ``std::uint32_t``, default ``0``
-         How many months an arrow scrolls; zero scrolls by the number of months
-         shown. More than 20000 throws ``std::out_of_range``.
-
       **first_displayed_month** : ``DateTimeValue``, read-only
          The first day of the first month shown.
-
-      **format_provider** : ``DateTimeFormatProvider``
-         The month and day names and the date pattern of the "Today:" line.
-
-      **font** : ``FontSpec``
-         The font of the titles, names and days.
 
       **bolded_dates** : ``std::span<const DateTimeValue>``
          Days shown in bold. :cpp:func:`set_bolded_dates <gui_forms::MonthCalendar::set_bolded_dates>`, :cpp:func:`add_bolded_date <gui_forms::MonthCalendar::add_bolded_date>`,
@@ -207,10 +207,50 @@ gui_forms::MonthCalendar
 
    .. rubric:: Properties
 
+   .. cpp:member:: bool show_today
+
+      Whether the "Today:" line is shown below the months.
+
+   .. cpp:member:: bool show_today_circle
+
+      Whether today's day carries the current state and its marker part.
+
+   .. cpp:member:: bool show_week_numbers
+
+      Whether each row of days has its week number: week 1 is the week that
+      holds 1 January, and weeks start on :cpp:member:`first_day_of_week <gui_forms::MonthCalendar::first_day_of_week>`.
+
+   .. cpp:member:: CalendarWeekday first_day_of_week
+
+      The weekday each row starts on.
+
+   .. cpp:member:: CalendarDimensions calendar_dimensions
+
+      How many months are shown, as columns by rows. A zero dimension or more
+      than twelve months throws ``std::out_of_range``.
+
+   .. cpp:member:: std::uint32_t max_selection_count
+
+      The most days a selection may hold. Zero throws ``std::out_of_range``;
+      lowering it shortens the selection.
+
+   .. cpp:member:: std::uint32_t scroll_change
+
+      How many months an arrow scrolls; zero scrolls by the number of months
+      shown. More than 20000 throws ``std::out_of_range``.
+
+   .. cpp:member:: DateTimeFormatProvider format_provider
+
+      The month and day names and the date pattern of the "Today:" line.
+
+   .. cpp:member:: FontSpec font
+
+      The font of the titles, names and days.
+
    .. cpp:function:: CalendarDateRange selection_range() const noexcept
 
       The selected run of days, first to last. :cpp:func:`set_selection_range <gui_forms::MonthCalendar::set_selection_range>` orders its
-      ends, keeps at most :cpp:func:`max_selection_count <gui_forms::MonthCalendar::max_selection_count>` days from the first and scrolls
+      ends, keeps at most :cpp:member:`max_selection_count <gui_forms::MonthCalendar::max_selection_count>` days from the first and scrolls
       the last into view; an invalid date or one outside :cpp:func:`min_date <gui_forms::MonthCalendar::min_date>` to
       :cpp:func:`max_date <gui_forms::MonthCalendar::max_date>` throws ``std::out_of_range``. :cpp:func:`set_date <gui_forms::MonthCalendar::set_date>` selects one day.
 
@@ -225,15 +265,6 @@ gui_forms::MonthCalendar
    .. cpp:function:: DateTimeValue selection_end() const noexcept
 
       The last selected day.
-
-   .. cpp:function:: std::uint32_t max_selection_count() const noexcept
-
-      The most days a selection may hold. Zero throws ``std::out_of_range``;
-      lowering it shortens the selection.
-
-   .. cpp:function:: void set_max_selection_count(std::uint32_t count)
-
-      Sets :cpp:func:`max_selection_count <gui_forms::MonthCalendar::max_selection_count>`; see the property's description above.
 
    .. cpp:function:: DateTimeValue min_date() const noexcept
 
@@ -259,76 +290,9 @@ gui_forms::MonthCalendar
 
       Whether :cpp:func:`set_today_date <gui_forms::MonthCalendar::set_today_date>` has set today.
 
-   .. cpp:function:: bool show_today() const noexcept
-
-      Whether the "Today:" line is shown below the months.
-
-   .. cpp:function:: void set_show_today(bool show)
-
-      Sets :cpp:func:`show_today <gui_forms::MonthCalendar::show_today>`; see the property's description above.
-
-   .. cpp:function:: bool show_today_circle() const noexcept
-
-      Whether today's day carries the current state and its marker part.
-
-   .. cpp:function:: void set_show_today_circle(bool show)
-
-      Sets :cpp:func:`show_today_circle <gui_forms::MonthCalendar::show_today_circle>`; see the property's description above.
-
-   .. cpp:function:: bool show_week_numbers() const noexcept
-
-      Whether each row of days has its week number: week 1 is the week that
-      holds 1 January, and weeks start on :cpp:func:`first_day_of_week <gui_forms::MonthCalendar::first_day_of_week>`.
-
-   .. cpp:function:: void set_show_week_numbers(bool show)
-
-      Sets :cpp:func:`show_week_numbers <gui_forms::MonthCalendar::show_week_numbers>`; see the property's description above.
-
-   .. cpp:function:: CalendarWeekday first_day_of_week() const noexcept
-
-      The weekday each row starts on.
-
-   .. cpp:function:: void set_first_day_of_week(CalendarWeekday day)
-
-      Sets :cpp:func:`first_day_of_week <gui_forms::MonthCalendar::first_day_of_week>`; see the property's description above.
-
-   .. cpp:function:: CalendarDimensions calendar_dimensions() const noexcept
-
-      How many months are shown, as columns by rows. A zero dimension or more
-      than twelve months throws ``std::out_of_range``.
-
-   .. cpp:function:: void set_calendar_dimensions(CalendarDimensions dimensions)
-
-      Sets :cpp:func:`calendar_dimensions <gui_forms::MonthCalendar::calendar_dimensions>`; see the property's description above.
-
-   .. cpp:function:: std::uint32_t scroll_change() const noexcept
-
-      How many months an arrow scrolls; zero scrolls by the number of months
-      shown. More than 20000 throws ``std::out_of_range``.
-
-   .. cpp:function:: void set_scroll_change(std::uint32_t months)
-
-      Sets :cpp:func:`scroll_change <gui_forms::MonthCalendar::scroll_change>`; see the property's description above.
-
    .. cpp:function:: DateTimeValue first_displayed_month() const noexcept
 
       The first day of the first month shown.
-
-   .. cpp:function:: const DateTimeFormatProvider& format_provider() const noexcept
-
-      The month and day names and the date pattern of the "Today:" line.
-
-   .. cpp:function:: void set_format_provider(DateTimeFormatProvider provider)
-
-      Sets :cpp:func:`format_provider <gui_forms::MonthCalendar::format_provider>`; see the property's description above.
-
-   .. cpp:function:: FontSpec font() const noexcept
-
-      The font of the titles, names and days.
-
-   .. cpp:function:: void set_font(FontSpec font)
-
-      Sets :cpp:func:`font <gui_forms::MonthCalendar::font>`; see the property's description above.
 
    .. cpp:function:: std::span<const DateTimeValue> bolded_dates() const noexcept
 
@@ -455,5 +419,15 @@ gui_forms::MonthCalendar
       *Protected.*
 
    .. cpp:function:: void publish_realized_item_geometry(std::size_t item, std::span<PartGeometry> geometry) const override
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_font_changed()
+
+      *Protected.*
+
+      on_<property>_changed runs after a changed write's touch and raises the change event; an override calls the base. coerce_<property> runs last before the compare and may rewrite the incoming value.
+
+   .. cpp:function:: virtual void coerce_font(FontSpec& incoming)
 
       *Protected.*

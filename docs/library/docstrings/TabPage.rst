@@ -37,7 +37,7 @@ Panel : The container behaviour a page inherits.
 Notes
 -----
 A new page has a white background and a one-pixel line border, set through
-the inherited `set_background` and `set_border_style`; change them as on any
+the inherited `set_background` and `border_style`; change them as on any
 panel.
 
 Add the page to a tab control with `TabControl::add_page`, not `add_child`,

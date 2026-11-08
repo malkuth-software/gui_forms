@@ -9,6 +9,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <string>
 #include <stdexcept>
 #include <thread>
 #include <variant>
@@ -463,10 +464,10 @@ void test_table_mixed_tracks_spans_and_lookup() {
     (*table).add_child(second);
     (*table).add_child(spanning);
     (*table).add_child(automatic);
-    (*table).set_cell_position(*first, {0U, 0U});
-    (*table).set_cell_position(*second, {1U, 0U});
-    (*table).set_cell_position(*spanning, {1U, 1U});
-    (*table).set_column_span(*spanning, 3U);
+    (*table).cell[*first] = GridCell{.row = 0U, .column = 0U};
+    (*table).cell[*second] = GridCell{.row = 0U, .column = 1U};
+    (*table).cell[*spanning] = GridCell{.row = 1U, .column = 1U};
+    (*table).column_span[*spanning] = 3U;
 
     const Rect spanning_preferred = (*spanning).requested_bounds();
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(table, Size{400.0, 160.0});
@@ -486,7 +487,7 @@ void test_table_mixed_tracks_spans_and_lookup() {
     require((*table).cell_position(*automatic) ==
                 std::optional(TableLayoutCellPosition{2U, 0U}) &&
                 (*table).control_from_position(3U, 1U) == spanning &&
-                (*table).column_span(*spanning) == 3U &&
+                (*table).column_span[*spanning].read() == 3U &&
                 (*spanning).requested_bounds() == spanning_preferred,
             "table lookup must expose automatic cells, span occupancy, and retained preferred bounds");
     require(!(*table).layout_overflowed() &&
@@ -543,7 +544,7 @@ void test_table_growth_hidden_children_and_fixed_overflow() {
         invalid_style_rejected = true;
     }
     try {
-        (*table).set_row_span(*first, 0U);
+        (*table).row_span[*first] = 0U;
     } catch (const std::out_of_range&) {
         invalid_span_rejected = true;
     }
@@ -870,11 +871,160 @@ void test_flow_auto_scroll_owns_viewport_and_input() {
 
 } // namespace
 
+// Whether writing `extent` columns to `child` is refused with `Refusal`.
+template <typename Refusal>
+bool column_span_refused(TableLayoutPanelCompat& table, const Control& child, std::uint32_t extent) {
+    try {
+        table.column_span[child] = extent;
+    } catch (const Refusal&) {
+        return true;
+    }
+    return false;
+}
+
+// Whether moving `child` to `cell` is refused with std::invalid_argument.
+bool cell_refused(TableLayoutPanelCompat& table, const Control& child, GridCell cell) {
+    try {
+        table.cell[child] = cell;
+    } catch (const std::invalid_argument&) {
+        return true;
+    }
+    return false;
+}
+
+void test_table_child_properties() {
+    std::shared_ptr<TableLayoutPanelCompat> table =
+        make_control<TableLayoutPanelCompat>(StableId("layout.table.child"));
+    (*table).set_column_count(3U);
+    (*table).set_row_count(3U);
+    std::shared_ptr<Button> header = sized_button("layout.table.child.header", 40.0, 20.0);
+    std::shared_ptr<Button> other = sized_button("layout.table.child.other", 40.0, 20.0);
+    std::shared_ptr<Button> automatic = sized_button("layout.table.child.automatic", 40.0, 20.0);
+    (*table).add_child(header);
+    (*table).add_child(other);
+    (*table).add_child(automatic);
+
+    const std::vector<gui_forms::PropertyDescriptor> provided = (*table).child_property_descriptors();
+    require(provided.size() == 3U && provided[0].name == "cell" && provided[1].name == "column_span" &&
+                provided[2].name == "row_span" && provided[0].kind == gui_forms::BindingValueKind::point,
+            "table child table: cell first, then the two spans");
+    require(!(*table).has_cell(*header) && (*table).column_span[*header].read() == 1U &&
+                !(*table).should_serialize_child_property(*header, "cell"),
+            "table: a child starts automatic with spans of 1");
+    require(column_span_refused<std::invalid_argument>(*table, *automatic, 2U) &&
+                (*table).spans().empty(),
+            "table: an automatic child cannot span");
+    (*table).column_span[*automatic] = 1U;
+
+    (*table).set_child_property_value(*header, "cell", gui_forms::BindingValue{gui_forms::Point{0.0, 0.0}});
+    (*table).set_child_property_value(*header, "column-span", gui_forms::BindingValue{std::uint64_t{2U}});
+    require((*table).has_cell(*header) && (*table).column_span[*header].read() == 2U &&
+                (*table).spans().size() == 1U &&
+                (*table).spans()[0] == GridSpan{std::string{}, GridCell{0U, 0U}, 1U, 2U} &&
+                (*table).should_serialize_child_property(*header, "cell"),
+            "table: name-keyed cell and span writes make an anonymous span at the cell");
+
+    require(cell_refused(*table, *other, GridCell{.row = 0U, .column = 1U}),
+            "table: a cell inside another child's span is refused");
+    (*table).cell[*other] = GridCell{.row = 2U, .column = 2U};
+    require(column_span_refused<std::out_of_range>(*table, *other, 64U) &&
+                column_span_refused<std::out_of_range>(*table, *other, 0U),
+            "table: a span past the track limit or of zero is refused");
+    (*table).row_span[*header] = 2U;
+    require(column_span_refused<std::invalid_argument>(*table, *header, 3U) == false,
+            "table: widening a span over free cells is admitted");
+    require((*table).spans()[0] == GridSpan{std::string{}, GridCell{0U, 0U}, 2U, 3U},
+            "table: the span holds both extents");
+    bool cover_refused = false;
+    try {
+        (*table).row_span[*other] = 1U;
+        (*table).column_span[*other] = 1U;
+        (*table).cell[*other] = GridCell{.row = 2U, .column = 0U};
+        (*table).row_span[*header] = 3U;
+    } catch (const std::invalid_argument&) {
+        cover_refused = true;
+    }
+    require(cover_refused && (*table).row_span[*header].read() == 2U,
+            "table: a span covering another child's cell is refused and leaves the span as it was");
+
+    (*table).cell[*header] = GridCell{.row = 0U, .column = 0U};
+    (*table).column_span[*header] = 2U;
+    (*table).cell[*header] = GridCell{.row = 0U, .column = 1U};
+    require((*table).spans().size() == 1U && (*table).spans()[0].anchor == GridCell{0U, 1U} &&
+                (*table).column_span[*header].read() == 2U,
+            "table: moving a child carries its span");
+    bool clear_refused = false;
+    try {
+        (*table).clear_cell(*header);
+    } catch (const std::invalid_argument&) {
+        clear_refused = true;
+    }
+    require(clear_refused && (*table).has_cell(*header), "table: a spanning child keeps its cell");
+    (*table).reset_child_property(*other, "cell");
+    require(!(*table).has_cell(*other), "table: resetting the cell makes the child automatic");
+
+    static_cast<void>((*table).remove_child((*header).runtime_id()));
+    require((*table).spans().empty(), "table: a leaving child's cell and span go with it");
+}
+
+// A text collection value of `items`, as a .form writes one.
+gui_forms::BindingValue text_items(std::vector<gui_forms::BindingValue> items) {
+    return gui_forms::BindingValue{gui_forms::make_property_collection("String", gui_forms::BindingValueKind::text,
+                                                                       std::move(items))};
+}
+
+// The text items of a collection value.
+std::vector<std::string> items_of(const gui_forms::BindingValue& value) {
+    std::vector<std::string> items{};
+    const gui_forms::PropertyCollectionValue& collection = std::get<gui_forms::PropertyCollectionValue>(value);
+    for (const gui_forms::BindingValue& item : gui_forms::property_collection_items(collection)) {
+        items.push_back(std::get<std::string>(item));
+    }
+    return items;
+}
+
+void test_panel_settings_as_properties() {
+    std::shared_ptr<TableLayoutPanelCompat> table =
+        make_control<TableLayoutPanelCompat>(StableId("layout.table.settings"));
+    (*table).set_property_value("column-styles", text_items({gui_forms::BindingValue{std::string{"absolute 140"}},
+                                                             gui_forms::BindingValue{std::string{"auto"}},
+                                                             gui_forms::BindingValue{std::string{"percent 1.5"}}}));
+    require((*table).column_count() == 3U && (*table).column_styles()[0] == TableLayoutStyle{TableSizeMode::absolute, 140.0} &&
+                (*table).column_styles()[2] == TableLayoutStyle{TableSizeMode::percent, 1.5},
+            "table settings: the column styles set the count and each style");
+    const std::optional<gui_forms::BindingValue> styles = (*table).property_value("column_styles");
+    require(styles && items_of(*styles) == std::vector<std::string>{"absolute 140", "auto", "percent 1.5"},
+            "table settings: the styles read back as their text");
+    (*table).set_property_value("row_count", gui_forms::BindingValue{std::uint64_t{2U}});
+    (*table).set_property_value("grow_style", gui_forms::BindingValue{std::int64_t{0}});
+    (*table).set_property_value("track_spacing", gui_forms::BindingValue{gui_forms::Size{4.0, 2.0}});
+    require((*table).row_count() == 2U && (*table).grow_style() == TableLayoutGrowStyle::fixed_size &&
+                (*table).track_spacing() == gui_forms::Size{4.0, 2.0},
+            "table settings: count, grow style and spacing by name");
+    bool malformed_refused = false;
+    try {
+        (*table).set_property_value("row_styles", text_items({gui_forms::BindingValue{std::string{"percent"}}}));
+    } catch (const std::invalid_argument&) {
+        malformed_refused = true;
+    }
+    require(malformed_refused && (*table).row_count() == 2U, "table settings: a malformed style is refused");
+
+    std::shared_ptr<FlowLayoutPanelCompat> flow = make_control<FlowLayoutPanelCompat>(StableId("layout.flow.settings"));
+    (*flow).set_property_value("flow-direction", gui_forms::BindingValue{std::int64_t{2}});
+    (*flow).set_property_value("wrap-contents", gui_forms::BindingValue{false});
+    (*flow).set_property_value("cross_alignment", gui_forms::BindingValue{std::int64_t{3}});
+    require((*flow).flow_direction() == FlowDirection::top_down && !(*flow).wrap_contents() &&
+                (*flow).cross_alignment() == FlowCrossAlignment::stretch,
+            "flow settings: direction, wrapping and alignment by name");
+}
+
 int main() {
     try {
         test_flow_auto_scroll_owns_viewport_and_input();
         test_margin_padding_validation_and_retained_slots();
         test_flow_break_child_property();
+        test_table_child_properties();
+        test_panel_settings_as_properties();
         test_flow_direction_break_visibility_and_resize();
         test_flow_item_spacing_is_explicit_bounded_layout_state();
         test_flow_auto_size_mode_preserves_authored_extent();

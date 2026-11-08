@@ -8,12 +8,19 @@
 #include "gui_forms/controls/scrollable_control/container_control/flex_panel/flex_panel.hpp"
 
 #include "../../scrollable_anatomy.hpp"
+#include "../layout_style_property.hpp"
 #include "../out_of_flow.hpp"
 
+#include "gui_forms/binding/property_table/property_table.hpp"
+#include "gui_forms/detail/bound_member_function.hpp"
+
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <limits>
 #include <stdexcept>
+#include <string>
+#include <string_view>
 #include <utility>
 
 namespace gui_forms {
@@ -159,9 +166,139 @@ constexpr ControlAnatomy flex_panel_anatomy{
     .custom_states = {},
 };
 
+// The item_style child property: a child's flex item settings as one CSS
+// inline style. Margin lengths stay the child's own margin, so only `auto`
+// margins are admitted.
+constexpr std::string_view item_style_name = "FlexPanel.item_style";
+
+const PropertyDescriptor& describe_item_style() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        PropertyDescriptor{"item_style", BindingValueKind::text, "Layout",
+                           "The child's flex item settings as a CSS inline style: flex-grow, flex-shrink, "
+                           "flex-basis, order, align-self, width, height, their minimums and maximums, auto "
+                           "margins, position and insets.",
+                           BindingValue{std::string{}}, invalidation::bounds},
+        PropertyOperations{true, true, true, false});
+    return descriptor;
+}
+
+std::string item_style_text(const FlexItemLayout& layout) {
+    const LayoutStyle base{};
+    LayoutStyle style = base;
+    style.flex_item = layout.flex;
+    style.alignment.align_self = layout.align_self;
+    layout_style_property::describe_item_box(layout, style);
+    std::string text = layout_style_property::describe(style, base);
+    return text;
+}
+
+BindingValue read_item_style(const Component& container, const Control& child) {
+    const FlexPanel& flex = static_cast<const FlexPanel&>(container);
+    std::string text = item_style_text(flex.item_layout(child));
+    return BindingValue{std::move(text)};
+}
+
+void write_item_style(Component& container, const Control& child, const BindingValue& value) {
+    FlexPanel& flex = static_cast<FlexPanel&>(container);
+    const LayoutStyle base{};
+    const LayoutStyle read = layout_style_property::read(std::get<std::string>(value), base, item_style_name);
+    LayoutStyle kept = base;
+    FlexItemLayout layout{};
+    layout.flex = read.flex_item;
+    layout.align_self = read.alignment.align_self;
+    kept.flex_item = read.flex_item;
+    kept.alignment.align_self = read.alignment.align_self;
+    layout_style_property::keep_item_box(read, kept, layout);
+    layout_style_property::require_admitted(read, kept, item_style_name,
+                                            "the child's margin lengths are its own margin");
+    flex.set_item_layout(child, layout);
+}
+
+void reset_item_style(Component& container, const Control& child) {
+    FlexPanel& flex = static_cast<FlexPanel&>(container);
+    flex.set_item_layout(child, FlexItemLayout{});
+}
+
+bool item_style_serialized(const Component& container, const Control& child) {
+    const FlexPanel& flex = static_cast<const FlexPanel&>(container);
+    const bool serialized = !(flex.item_layout(child) == FlexItemLayout{});
+    return serialized;
+}
+
 } // namespace
 
-FlexPanel::FlexPanel(StableId stable_id) : ContainerControl(std::move(stable_id)) {}
+FlexPanel::FlexPanel(StableId stable_id) : ContainerControl(std::move(stable_id)) {
+    register_panel_properties();
+}
+
+std::span<const ChildPropertyEntry> FlexPanel::child_property_table() const noexcept {
+    static constexpr std::array<ChildPropertyEntry, 1U> entries{{
+        {"item_style", &describe_item_style, &read_item_style, &write_item_style, &reset_item_style,
+         &item_style_serialized},
+    }};
+    return std::span<const ChildPropertyEntry>(entries);
+}
+
+void FlexPanel::register_panel_properties() {
+    PropertyDescriptor style_descriptor{"style", BindingValueKind::text, "Layout",
+                                        "The flex container's settings as a CSS inline style: flex-direction, "
+                                        "flex-wrap, justify-content, align-content, align-items and the gaps.",
+                                        BindingValue{std::string{}}, invalidation::bounds};
+    style_descriptor.bindable = false;
+    define_bindable_property({std::move(style_descriptor),
+                              detail::BoundMemberFunction<BindingValue (FlexPanel::*)() const>(
+                                  *this, &FlexPanel::style_property),
+                              detail::BoundMemberFunction<void (FlexPanel::*)(const BindingValue&)>(
+                                  *this, &FlexPanel::set_style_property),
+                              {}, {}, {}});
+}
+
+BindingValue FlexPanel::style_property() const {
+    const LayoutStyle base{};
+    LayoutStyle style = base;
+    style.flex.direction = direction_;
+    style.flex.wrap = wrap_;
+    style.alignment.justify_content = justify_content_;
+    style.alignment.align_content = align_content_;
+    style.alignment.align_items = align_items_;
+    style.row_gap = row_gap_;
+    style.column_gap = column_gap_;
+    std::string text = layout_style_property::describe(style, base);
+    return BindingValue{std::move(text)};
+}
+
+// Every value is checked before the first setter runs, so a refused style
+// leaves the panel as it was.
+void FlexPanel::set_style_property(const BindingValue& value) {
+    require_mutable();
+    constexpr std::string_view name = "FlexPanel.style";
+    const LayoutStyle base{};
+    const LayoutStyle read = layout_style_property::read(std::get<std::string>(value), base, name);
+    LayoutStyle kept = base;
+    kept.flex = read.flex;
+    kept.alignment.justify_content = read.alignment.justify_content;
+    kept.alignment.align_content = read.alignment.align_content;
+    kept.alignment.align_items = read.alignment.align_items;
+    kept.row_gap = read.row_gap;
+    kept.column_gap = read.column_gap;
+    layout_style_property::require_admitted(read, kept, name, "");
+    const bool admitted = read.flex.direction <= FlexDirection::column_reverse &&
+                          read.flex.wrap <= FlexWrap::wrap_reverse &&
+                          admitted_content_alignment(read.alignment.justify_content) &&
+                          read.alignment.justify_content <= LayoutAlignment::space_evenly &&
+                          admitted_content_alignment(read.alignment.align_content) &&
+                          read.alignment.align_content <= LayoutAlignment::space_evenly &&
+                          admitted_items_alignment(read.alignment.align_items) && admitted_gap(read.row_gap) &&
+                          admitted_gap(read.column_gap);
+    if (!admitted) throw std::invalid_argument("FlexPanel.style holds a value flex containers do not admit");
+    set_flex_direction(read.flex.direction);
+    set_flex_wrap(read.flex.wrap);
+    set_justify_content(read.alignment.justify_content);
+    set_align_content(read.alignment.align_content);
+    set_align_items(read.alignment.align_items);
+    set_row_gap(read.row_gap);
+    set_column_gap(read.column_gap);
+}
 
 void FlexPanel::set_flex_direction(FlexDirection direction) {
     require_mutable();

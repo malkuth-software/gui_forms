@@ -300,7 +300,7 @@ std::shared_ptr<ScaledPanel> make_navigation(ProductRefs& refs) {
     (*panel).add_at(refs.nav_up, {77, 6, 30, 28});
     std::shared_ptr<gui_forms::Panel> well = std::make_shared<Panel>(StableId("fm.path.breadcrumb"));
     (*well).set_background(paper);
-    (*well).set_border_style(BorderStyle::sunken);
+    (*well).border_style = BorderStyle::sunken;
     (*panel).add_at(well, {112, 6, 860, 28});
     const char* crumbs[] = {"quentin", "›", "Work", "›", "Projects"};
     double x = 120;
@@ -567,27 +567,27 @@ std::shared_ptr<CriteriaSurfacePanel> make_criteria_surface(ProductRefs& refs) {
     (*action_title).margin = {6, 1, 3, 0};
     (*action_title).dock = DockStyle::fill;
     (*actions).add_child(action_title);
-    (*actions).set_cell_position(*action_title, {0, 0});
+    (*actions).cell[*action_title] = GridCell{.row = 0, .column = 0};
     refs.criteria_add = button("fm.criteria.add", "+ module", {0, 0, 78, 27},
                                ButtonVisualStyle::standard);
     (*refs.criteria_add).margin = {2, 1, 2, 1};
     (*refs.criteria_add).dock = DockStyle::fill;
     (*actions).add_child(refs.criteria_add);
-    (*actions).set_cell_position(*refs.criteria_add, {1, 0});
+    (*actions).cell[*refs.criteria_add] = GridCell{.row = 0, .column = 1};
     refs.criteria_action_state = label(
         "fm.criteria.actions.state", "1 expensive change staged",
         {0, 0, 120, 27}, {FontRole::content, 8.0, 600, false});
     (*refs.criteria_action_state).margin = {6, 1, 3, 0};
     (*refs.criteria_action_state).dock = DockStyle::fill;
     (*actions).add_child(refs.criteria_action_state);
-    (*actions).set_cell_position(*refs.criteria_action_state, {0, 1});
+    (*actions).cell[*refs.criteria_action_state] = GridCell{.row = 1, .column = 0};
     refs.criteria_apply = button("fm.criteria.apply", "Apply 1", {0, 0, 78, 27},
                                  ButtonVisualStyle::accent);
     (*refs.criteria_apply).set_default_button(true);
     (*refs.criteria_apply).margin = {2, 1, 2, 1};
     (*refs.criteria_apply).dock = DockStyle::fill;
     (*actions).add_child(refs.criteria_apply);
-    (*actions).set_cell_position(*refs.criteria_apply, {1, 1});
+    (*actions).cell[*refs.criteria_apply] = GridCell{.row = 1, .column = 1};
     refs.criteria_progress = make_control<ProgressBar>(
         StableId("fm.criteria.progress"));
     (*refs.criteria_progress).set_range(0.0, 100.0);
@@ -600,8 +600,8 @@ std::shared_ptr<CriteriaSurfacePanel> make_criteria_surface(ProductRefs& refs) {
     (*refs.criteria_progress).margin = {5, 0, 5, 1};
     (*refs.criteria_progress).dock = DockStyle::fill;
     (*actions).add_child(refs.criteria_progress);
-    (*actions).set_cell_position(*refs.criteria_progress, {0, 2});
-    (*actions).set_column_span(*refs.criteria_progress, 2);
+    (*actions).cell[*refs.criteria_progress] = GridCell{.row = 2, .column = 0};
+    (*actions).column_span[*refs.criteria_progress] = 2;
     (*rack).set_action_content(actions, 170.0);
     refs.criteria_rack = rack;
     (*surface).rack = rack;
@@ -799,7 +799,7 @@ std::shared_ptr<MasterDetailView> make_dna_surface(ProductRefs& refs) {
         {}, {FontRole::control, 18.0, 700, false, 0.32});
     (*refs.dna_heading).dock = DockStyle::fill;
     (*detail).add_child(refs.dna_heading);
-    (*detail).set_cell_position(*refs.dna_heading, {0U, 0U});
+    (*detail).cell[*refs.dna_heading] = GridCell{.row = 0U, .column = 0U};
 
     std::shared_ptr<ReviewCard> evidence = review_card(
         "fm.review.dna.evidence", "Evidence and constraints",
@@ -808,7 +808,7 @@ std::shared_ptr<MasterDetailView> make_dna_surface(ProductRefs& refs) {
     (*evidence).dock = DockStyle::fill;
     (*evidence).margin = {0.0, 5.0, 0.0, 5.0};
     (*detail).add_child(evidence);
-    (*detail).set_cell_position(*evidence, {0U, 1U});
+    (*detail).cell[*evidence] = GridCell{.row = 1U, .column = 0U};
 
     std::shared_ptr<ReviewCard> consequences = review_card(
         "fm.review.dna.consequences", "Consequences",
@@ -817,7 +817,7 @@ std::shared_ptr<MasterDetailView> make_dna_surface(ProductRefs& refs) {
     (*consequences).dock = DockStyle::fill;
     (*consequences).margin = {0.0, 5.0, 0.0, 5.0};
     (*detail).add_child(consequences);
-    (*detail).set_cell_position(*consequences, {0U, 2U});
+    (*detail).cell[*consequences] = GridCell{.row = 2U, .column = 0U};
 
     std::shared_ptr<ReviewCard> verdict = review_card(
         "fm.review.dna.verdict", "Current verdict",
@@ -827,7 +827,7 @@ std::shared_ptr<MasterDetailView> make_dna_surface(ProductRefs& refs) {
     (*verdict).margin = {0.0, 5.0, 0.0, 5.0};
     refs.dna_verdict_card = verdict;
     (*detail).add_child(verdict);
-    (*detail).set_cell_position(*verdict, {0U, 3U});
+    (*detail).cell[*verdict] = GridCell{.row = 3U, .column = 0U};
 
     static_cast<void>((*view).set_master(master));
     static_cast<void>((*view).set_detail(detail));
@@ -877,7 +877,7 @@ std::shared_ptr<Panel> make_selection_pane(ProductRefs& refs) {
     (*pane).set_background(Color::rgba(235, 240, 246));
     std::shared_ptr<gui_forms::Panel> caption = std::make_shared<Panel>(StableId("fm.selection.caption.material"));
     (*caption).set_background(Color::rgba(201, 212, 229));
-    (*caption).set_border_style(BorderStyle::raised);
+    (*caption).border_style = BorderStyle::raised;
     (*caption).margin = Insets{};
     (*caption).set_requested_bounds({0, 0, 288, 27});
     (*caption).dock = DockStyle::top;
@@ -1005,7 +1005,7 @@ std::shared_ptr<SplitContainer> make_workspace(ProductRefs& refs) {
 std::shared_ptr<ScaledPanel> make_status(ProductRefs& refs) {
     std::shared_ptr<gui_forms::ScaledPanel> panel = std::make_shared<ScaledPanel>(StableId("fm.status"), Size{1450,24});
     (*panel).set_background(Color::rgba(231,237,246));
-    (*panel).set_border_style(BorderStyle::raised);
+    (*panel).border_style = BorderStyle::raised;
     refs.status_summary = label("fm.status.summary", "1 selected · 2.8 MB · 14 objects", {8,1,590,22}, {FontRole::content,9.5,400,false});
     (*panel).add_at(refs.status_summary, {8,1,590,22});
     refs.status_authority = label("fm.status.authority", "Local navigation ready · index 86 current", {660,1,520,22}, {FontRole::content,9.5,600,false});
@@ -1404,7 +1404,7 @@ private:
     void build_overlay() {
         content_ = make_control<PathMatrixContent>(StableId("fm.path.matrix"));
         (*content_).set_background(Color::rgba(229, 234, 235));
-        (*content_).set_border_style(BorderStyle::raised);
+        (*content_).border_style = BorderStyle::raised;
         (*content_).accessible_name = "Complete path matrix";
         (*content_).key_preview = detail::BoundMemberFunction<
             void (PathMatrixController::*)(KeyEvent&)>(
@@ -1424,7 +1424,7 @@ private:
         current_ = make_control<ScaledPanel>(
             StableId("fm.path.matrix.current"), Size{840.0, 60.0});
         (*current_).set_background(Color::rgba(251, 248, 237));
-        (*current_).set_border_style(BorderStyle::sunken);
+        (*current_).border_style = BorderStyle::sunken;
         (*current_).accessible_name = "Current full path";
         const FixturePath& current = FixtureCatalogue::instance().current_path_stack();
         double x = 8.0;
@@ -1513,7 +1513,7 @@ private:
                 StableId("fm.path.matrix.recent." + path.id), Size{830.0, 49.0});
             (*row).set_background(path.available ? Color::rgba(255, 255, 255)
                                                : Color::rgba(238, 238, 235));
-            (*row).set_border_style(BorderStyle::line);
+            (*row).border_style = BorderStyle::line;
             (*row).accessible_name = path.path;
             (*row).accessible_description = path.available
                 ? "Recent fixture path" : "Recent stored path · source volume offline";
@@ -3786,7 +3786,7 @@ std::unique_ptr<gui_forms::Window> make_product_window() {
         (*bands[row]).dock = DockStyle::fill;
         (*bands[row]).set_requested_bounds({0, 0, 1450, band_heights[row]});
         (*root).add_child(bands[row]);
-        (*root).set_cell_position(*bands[row], {0,row});
+        (*root).cell[*bands[row]] = GridCell{.row = static_cast<std::uint32_t>(row), .column = 0U};
     }
     std::unique_ptr<gui_forms::Window> window = std::make_unique<Window>(root, Size{1450,850});
     (*window).perform_layout();

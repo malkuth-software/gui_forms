@@ -13,6 +13,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <new>
 #include <stdexcept>
 #include <string>
@@ -304,9 +305,62 @@ void test_ten_thousand_children_counts() {
 
 } // namespace
 
+
+// The `style` property and the `item_style` child property (study 10,
+// section 6): CSS inline styles read by the layout style reader, read back
+// in the reader's spelling, and refused whole for any declaration the panel
+// does not carry.
+void test_style_properties() {
+    std::shared_ptr<FlexPanel> flex = make_control<FlexPanel>(StableId("flex.style"));
+    std::shared_ptr<Button> item = make_control<Button>(StableId("flex.style.item"), "Item");
+    (*flex).add_child(item);
+    (*flex).set_property_value("style", BindingValue{std::string{
+        "flex-direction: column; flex-wrap: wrap; align-items: center; row-gap: 6px"}});
+    require((*flex).flex_direction() == FlexDirection::column && (*flex).flex_wrap() == FlexWrap::wrap &&
+                (*flex).align_items() == LayoutAlignment::center &&
+                (*flex).row_gap() == LengthPercentage{LogicalLength{6.0}, 0.0},
+            "flex style: direction, wrap, alignment and gap applied");
+    const std::optional<BindingValue> text = (*flex).property_value("style");
+    std::shared_ptr<FlexPanel> copy = make_control<FlexPanel>(StableId("flex.style.copy"));
+    require(text.has_value(), "flex style: reads back");
+    (*copy).set_property_value("style", *text);
+    require((*copy).flex_direction() == FlexDirection::column && (*copy).flex_wrap() == FlexWrap::wrap &&
+                (*copy).align_items() == LayoutAlignment::center && (*copy).row_gap() == (*flex).row_gap(),
+            "flex style: the text read back gives the same settings");
+    bool item_field_refused = false;
+    try {
+        (*flex).set_property_value("style", BindingValue{std::string{"flex-grow: 1"}});
+    } catch (const std::invalid_argument&) {
+        item_field_refused = true;
+    }
+    bool error_refused = false;
+    try {
+        (*flex).set_property_value("style", BindingValue{std::string{"flex-direction: sideways"}});
+    } catch (const std::invalid_argument&) {
+        error_refused = true;
+    }
+    require(item_field_refused && error_refused && (*flex).flex_direction() == FlexDirection::column,
+            "flex style: an item field and a bad value are refused and change nothing");
+    (*flex).set_child_property_value(*item, "item_style", BindingValue{std::string{"flex-grow: 2; margin-left: auto"}});
+    const FlexItemLayout layout = (*flex).item_layout(*item);
+    require(layout.flex.grow == FlexFactor{2.0} && layout.auto_margin.left, "flex item style: grow and auto margin");
+    const std::optional<BindingValue> item_text = (*flex).child_property_value(*item, "item_style");
+    require(item_text.has_value() && std::get<std::string>(*item_text).find("flex-grow: 2") != std::string::npos,
+            "flex item style: reads back as text");
+    bool margin_refused = false;
+    try {
+        (*flex).set_child_property_value(*item, "item_style", BindingValue{std::string{"margin-top: 3px"}});
+    } catch (const std::invalid_argument&) {
+        margin_refused = true;
+    }
+    require(margin_refused && (*flex).item_layout(*item) == layout,
+            "flex item style: a margin length is refused and changes nothing");
+}
+
 int main() {
     try {
         test_row_grows_and_stretches();
+        test_style_properties();
         test_item_records_validate_and_reconcile();
         test_nested_columns_size_from_content();
         test_documented_examples();

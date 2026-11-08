@@ -55,6 +55,10 @@ class FlexPanel final : public ContainerControl {
 public:
     explicit FlexPanel(StableId stable_id);
 
+    // The child property it provides: item_style, the item layout as one
+    // CSS inline style (margin lengths stay the child's own margin).
+    [[nodiscard]] std::span<const ChildPropertyEntry> child_property_table() const noexcept override;
+
     [[nodiscard]] FlexDirection flex_direction() const noexcept { return direction_; }
     void set_flex_direction(FlexDirection direction);
     [[nodiscard]] FlexWrap flex_wrap() const noexcept { return wrap_; }
@@ -107,6 +111,12 @@ protected:
     [[nodiscard]] Size measure_intrinsic(const LayoutConstraint& constraint) override;
 
 private:
+    // The `style` property (study 10, section 6): the container settings
+    // as one CSS inline style, read by the layout style reader.
+    void register_panel_properties();
+    [[nodiscard]] BindingValue style_property() const;
+    void set_style_property(const BindingValue& value);
+
     struct ItemRecord final {
         FlexItemLayout layout{};
         // The layout pass that last found the child, for reconciliation.

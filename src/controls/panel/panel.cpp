@@ -5,6 +5,7 @@
 #include "gui_forms/window.hpp"
 #include "panel_anatomy.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
 #include <array>
@@ -30,19 +31,6 @@ std::shared_ptr<const PropertyEnumDescriptor> border_style_enum() {
 
 Panel::Panel(StableId stable_id) : ScrollableControl(std::move(stable_id)) {
     set_paint_plane(PaintPlane::backplane);
-    PropertyDescriptor border_style;
-    border_style.name = "border_style";
-    border_style.kind = BindingValueKind::enumeration;
-    border_style.category = "Appearance";
-    // A property grid starts with a line, so the descriptor states no default.
-    border_style.description = "The panel's border: none, a line, sunken or raised.";
-    border_style.invalidation_effects = Dirty::paint;
-    border_style.bindable = false;
-    border_style.enumeration = border_style_enum();
-    define_bindable_property({
-        std::move(border_style),
-        detail::EnumerationPropertyGetter<Panel, BorderStyle>(*this, &Panel::border_style, border_style_enum()),
-        detail::EnumerationPropertySetter<Panel, BorderStyle>(*this, &Panel::set_border_style), {}, {}, {}});
 }
 
 std::optional<Color> Panel::face_colour() const noexcept {
@@ -53,24 +41,6 @@ std::optional<Color> Panel::face_colour() const noexcept {
     const bool high_contrast = attached != nullptr && (*attached).presentation_settings().high_contrast;
     if (high_contrast) return std::nullopt;
     return own;
-}
-
-void Panel::set_border_style(BorderStyle style) {
-    require_mutable();
-    switch (style) {
-    case BorderStyle::none:
-    case BorderStyle::line:
-    case BorderStyle::sunken:
-    case BorderStyle::raised:
-        break;
-    default:
-        throw std::invalid_argument("Panel border style is invalid");
-    }
-    if (border_style_ == style) {
-        return;
-    }
-    border_style_ = style;
-    invalidate(Dirty::paint | Dirty::semantics);
 }
 
 void Panel::set_background(Color color) {
@@ -115,20 +85,20 @@ Color Panel::background() const {
     SurfaceMaterial assembled{};
     if (rule_face_material(assembled)) return material_ground(assembled);
     const ControlVisualRecipe& recipe = effective_theme().resolve(
-        visual_role_, visual_context());
+        visual_role.read(), visual_context());
     return material_ground(recipe.material);
 }
 
 PartPaint Panel::face_part(Rect bounds) const noexcept {
     PartPaint face;
-    face.family = visual_role_;
+    face.family = visual_role.read();
     face.role = PartRole::face;
     face.bounds = bounds;
     face.key = PartKey{"face", {}, {}};
-    if (border_style_ == BorderStyle::sunken) {
+    if (border_style.read() == BorderStyle::sunken) {
         face.family = ControlVisualRole::editor;
         face.role = PartRole::well;
-    } else if (border_style_ == BorderStyle::raised) {
+    } else if (border_style.read() == BorderStyle::raised) {
         face.family = ControlVisualRole::button;
     }
     return face;
@@ -177,18 +147,6 @@ void Panel::clear_style() {
     invalidate(Dirty::style | Dirty::paint | Dirty::semantics);
 }
 
-void Panel::set_visual_role(ControlVisualRole role) {
-    require_mutable();
-    if (role != ControlVisualRole::window && role != ControlVisualRole::panel &&
-        role != ControlVisualRole::card) {
-        throw std::invalid_argument(
-            "panel visual role must be window, panel, or card");
-    }
-    if (visual_role_ == role) return;
-    visual_role_ = role;
-    invalidate(Dirty::style | Dirty::paint | Dirty::semantics);
-}
-
 Rect Panel::local_bounds() const noexcept {
     const Rect arranged = committed_arranged_bounds();
     return {0.0, 0.0, arranged.width, arranged.height};
@@ -206,9 +164,9 @@ void Panel::paint_panel(Painter& painter, Rect bounds) const {
     if (face_ground) face.authored_background = *face_ground;
     if (!face_ground && style_override_) face.authored_background = background();
     paint_part(painter, *this, face);
-    if (border_style_ != BorderStyle::line) return;
+    if (border_style.read() != BorderStyle::line) return;
     PartPaint rule;
-    rule.family = visual_role_;
+    rule.family = visual_role.read();
     rule.role = PartRole::keyline;
     const double right = std::max(0.0, bounds.width - 1.0);
     const double bottom = std::max(0.0, bounds.height - 1.0);
@@ -225,12 +183,12 @@ void Panel::paint_panel(Painter& painter, Rect bounds) const {
 }
 
 bool Panel::paint_depends_on_size() const noexcept {
-    if (border_style_ != BorderStyle::none || hscroll() || vscroll()) return true;
+    if (border_style.read() != BorderStyle::none || hscroll() || vscroll()) return true;
     if (background_override_ || style_override_) return false;
     // A rule's material may read the face's box (relative corners).
     if (face_selected_by_rule()) return true;
     const bool invariant = surface_material_size_invariant(
-        effective_theme().resolve(visual_role_, visual_context()).material);
+        effective_theme().resolve(visual_role.read(), visual_context()).material);
     return !invariant;
 }
 
@@ -242,7 +200,7 @@ Insets Panel::visual_outsets() const noexcept {
     SurfaceMaterial assembled{};
     if (rule_face_material(assembled)) return surface_material_visual_outsets(assembled);
     return surface_material_visual_outsets(
-        effective_theme().resolve(visual_role_, visual_context()).material);
+        effective_theme().resolve(visual_role.read(), visual_context()).material);
 }
 
 void Panel::on_paint(Painter& painter, Rect) {
@@ -260,7 +218,7 @@ void Panel::on_paint(Painter& painter, Rect) {
     } else if (rule_face_material(assembled)) {
         opaque = surface_material_opaque(assembled);
     } else if (!face_selected_by_rule()) {
-        opaque = surface_material_opaque(effective_theme().resolve(visual_role_, visual_context()).material);
+        opaque = surface_material_opaque(effective_theme().resolve(visual_role.read(), visual_context()).material);
     }
     // A panel its theme declares clear draws its face from the theme's
     // transparent background and covers nothing; an overridden face is the
@@ -278,7 +236,6 @@ SemanticDescriptor Panel::semantic_descriptor() const {
                          !descriptor.description.empty();
     return descriptor;
 }
-
 
 namespace {
 
@@ -300,7 +257,7 @@ Panel::Parts Panel::panel_parts() const {
     Parts record;
     record.scrollable = scrollable_parts();
     record.face = PartGeometry::from_bounds(bounds);
-    if (border_style_ != BorderStyle::none) {
+    if (border_style.read() != BorderStyle::none) {
         record.edge = PartGeometry::from_bounds(bounds);
     }
     return record;
@@ -320,5 +277,87 @@ Panel::Parts Panel::parts() const {
     read_parts(anatomy(), panel_detail::extra_fields, published.parts(), record);
     return record;
 }
+
+// property_codemod begin Panel (tools/property_families/panel.json; generated, do not edit)
+
+namespace {
+
+PropertyDescriptor panel_border_style_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "border_style";
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.category = "Appearance";
+    descriptor.description = "The panel's border: none, a line, sunken or raised.";
+    descriptor.invalidation_effects = Dirty::paint;
+    descriptor.bindable = false;
+    descriptor.enumeration = border_style_enum();
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_panel_border_style() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        panel_border_style_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+} // namespace
+
+PropertyType PropertyValueTraits<BorderStyle>::type() {
+    return PropertyType{BindingValueKind::enumeration, false, border_style_enum()};
+}
+
+BindingValue PropertyValueTraits<BorderStyle>::to_binding(BorderStyle value) {
+    PropertyDescriptor descriptor;
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.enumeration = border_style_enum();
+    const std::optional<BindingValue> converted =
+        convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
+    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    return *converted;
+}
+
+BorderStyle PropertyValueTraits<BorderStyle>::from_binding(const BindingValue& value) {
+    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
+    return static_cast<BorderStyle>(choice.value);
+}
+
+const std::array<PropertyEntry, Panel::panel_property_count>& Panel::panel_property_entries() noexcept {
+    static constexpr std::array<PropertyEntry, 1U> own{{
+        {"border_style", &describe_panel_border_style,
+         &read_cell_entry<Panel, decltype(&Panel::border_style), &Panel::border_style>,
+         &write_cell_entry<Panel, decltype(&Panel::border_style), &Panel::border_style>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+    }};
+    static_assert(property_names_distinct(own), "Panel's property table names a property twice");
+    static const std::array<PropertyEntry, panel_property_count> entries =
+        join_property_tables(ScrollableControl::scrollable_control_property_entries(), own);
+    return entries;
+}
+
+std::span<const PropertyEntry> Panel::property_table() const noexcept {
+    const std::array<PropertyEntry, panel_property_count>& entries = panel_property_entries();
+    return std::span<const PropertyEntry>(entries);
+}
+
+void Panel::prepare_write(const decltype(border_style)&, BorderStyle& incoming) {
+    require_mutable();
+    if (incoming != BorderStyle::none && incoming != BorderStyle::line && incoming != BorderStyle::sunken && incoming != BorderStyle::raised) throw std::invalid_argument("Panel border style is invalid");
+}
+
+void Panel::written(const decltype(border_style)&) {
+    invalidate(Dirty::paint | Dirty::semantics);
+}
+
+void Panel::prepare_write(const decltype(visual_role)&, ControlVisualRole& incoming) {
+    require_mutable();
+    if (incoming != ControlVisualRole::window && incoming != ControlVisualRole::panel && incoming != ControlVisualRole::card) throw std::invalid_argument("panel visual role must be window, panel, or card");
+}
+
+void Panel::written(const decltype(visual_role)&) {
+    invalidate(Dirty::style | Dirty::paint | Dirty::semantics);
+}
+
+// property_codemod end Panel
 
 } // namespace gui_forms

@@ -1,5 +1,10 @@
 #include "pages.hpp"
 
+#include "states-and-diagnostics_form.hpp"
+
+#include <array>
+#include <vector>
+
 namespace gui_forms::gallery::pages {
 
 class StatesPage;
@@ -29,8 +34,9 @@ private:
     DispatcherStep step_{};
 };
 
-// Owns the states page: the border/lifecycle specimens, the MetricsView card
-// and the UI dispatcher demonstration whose three buttons bind Commands.
+// Owns the states page: the controls demo/pages/states-and-diagnostics.form
+// describes and their behaviour (the border and lifecycle specimens, the
+// DiagnosticsCard and the UI dispatcher whose three buttons bind Commands).
 class StatesPage final : public gui_forms::Component {
 public:
     StatesPage(const std::shared_ptr<Surface>& body,
@@ -42,8 +48,10 @@ public:
     void run_step(DispatcherStep step);
 
 private:
-    void build_specimens(const std::shared_ptr<Surface>& body);
-    void build_dispatcher(const std::shared_ptr<Surface>& body);
+    void mount_document(const std::shared_ptr<Surface>& body);
+    void build_diagnostics();
+    void build_specimens();
+    void build_dispatcher();
     void on_post();
     void on_cancel();
     void on_invoke_from_worker();
@@ -54,6 +62,8 @@ private:
     Command post_{};
     Command cancel_{};
     Command invoke_{};
+    // Declared after the Commands its buttons bind, so it is released first.
+    StatesDocument<StatesPage> document_{};
     std::shared_ptr<Label> status_;
     std::vector<DispatchOperation> operations_;
     std::thread worker_;
@@ -69,114 +79,67 @@ void PostedStep::operator()() const {
 StatesPage::StatesPage(const std::shared_ptr<Surface>& body,
                        const std::shared_ptr<PageContext>& context) {
     static_cast<void>(context);
-    (*body).add_at(label("gallery.states.heading", "STATES AND DIAGNOSTICS", 22.0, 700,
-                         shell_blue_dark), {24.0, 18.0, 560.0, 34.0});
-    (*body).add_at(label("gallery.states.lead",
-                         "Focus, disabled, checked, indeterminate, visited, border, and runtime accounting.",
-                         12.0, 400, muted), {26.0, 52.0, 900.0, 24.0});
-    build_specimens(body);
-    build_dispatcher(body);
+    document_.initialize_component(*this);
+    mount_document(body);
+    build_specimens();
+    build_diagnostics();
+    build_dispatcher();
 }
 
 StatesPage::~StatesPage() {
     if (worker_.joinable()) worker_.join();
 }
 
-void StatesPage::build_specimens(const std::shared_ptr<Surface>& body) {
-    const std::array<std::pair<BorderStyle, std::string_view>, 4> borders{{
-        {BorderStyle::none, "No border"}, {BorderStyle::line, "Line"},
-        {BorderStyle::sunken, "Sunken"}, {BorderStyle::raised, "Raised"},
-    }};
-    for (std::size_t index = 0; index < borders.size(); ++index) {
-        std::shared_ptr<Panel> panel = make_control<Panel>(
-            StableId("gallery.states.border." + std::to_string(index)));
-        (*panel).set_background(index % 2U == 0U ? paper : Color::rgba(230, 238, 245));
-        (*panel).set_border_style(borders[index].first);
-        (*body).add_at(panel, {24.0 + static_cast<double>(index) * 232.0,
-                               98.0, 210.0, 104.0});
-        std::shared_ptr<Label> caption = label(
-            "gallery.states.border.caption." + std::to_string(index),
-            std::string(borders[index].second), 12.0, 600, shell_blue_dark);
-        (*caption).set_requested_bounds({16.0, 18.0, 170.0, 24.0});
-        (*panel).add_child(caption);
-        std::shared_ptr<Label> state = label(
-            "gallery.states.border.state." + std::to_string(index),
-            "Retained panel", 11.0, 400, muted);
-        (*state).set_requested_bounds({16.0, 52.0, 170.0, 24.0});
-        (*panel).add_child(state);
+// The document's root is a declared boundary only: its children move into
+// the shell's page body, where each is placed by its bounds in design
+// coordinates. The copy of the child list keeps the iteration valid while
+// the root shrinks.
+void StatesPage::mount_document(const std::shared_ptr<Surface>& body) {
+    Control& root = *document_.gallery_states_document;
+    const std::vector<Control::Ptr> children(root.children().begin(), root.children().end());
+    for (const Control::Ptr& child : children) {
+        Control::Ptr moved = root.remove_child((*child).runtime_id());
+        (*body).add_child(std::move(moved));
     }
+    (*document_.gallery_states_lifecycle).set_style(page_style());
+    (*document_.gallery_states_dispatcher).set_style(page_style());
+    status_ = document_.gallery_dispatcher_status;
+}
 
-    std::shared_ptr<LayoutGroup> lifecycle = group(
-        "gallery.states.lifecycle", "Lifecycle and interaction states", {450.0, 240.0});
-    (*body).add_at(lifecycle, {24.0, 226.0, 450.0, 240.0});
-    std::shared_ptr<CheckBox> checked =
-        make_control<CheckBox>(StableId("gallery.states.checked"), "Checked");
-    (*checked).set_checked(true);
-    (*lifecycle).add_at(checked, {24.0, 42.0, 180.0, 28.0});
-    std::shared_ptr<CheckBox> indeterminate = make_control<CheckBox>(
-        StableId("gallery.states.indeterminate"), "Indeterminate");
-    (*indeterminate).set_three_state(true);
-    (*indeterminate).set_check_state(CheckState::indeterminate);
-    (*lifecycle).add_at(indeterminate, {24.0, 82.0, 180.0, 28.0});
-    std::shared_ptr<Button> unavailable = make_control<Button>(
-        StableId("gallery.states.unavailable"), "Unavailable action");
-    (*unavailable).enabled = false;
-    (*lifecycle).add_at(unavailable, {230.0, 42.0, 180.0, 34.0});
-    std::shared_ptr<LinkLabel> visited = make_control<LinkLabel>(
-        StableId("gallery.states.visited"), "Visited link state");
-    (*visited).set_visited(true);
-    (*lifecycle).add_at(visited, {230.0, 88.0, 180.0, 28.0});
-    std::shared_ptr<Label> cursor_note = label(
-        "gallery.states.cursor",
-        "Cursor roles: arrow · text · hand · resize · wait · forbidden",
-        11.0, 400, muted);
-    (*lifecycle).add_at(cursor_note, {24.0, 142.0, 390.0, 42.0});
-
-    std::shared_ptr<DiagnosticsCard> diagnostics =
-        make_control<DiagnosticsCard>(StableId("gallery.states.diagnostics"));
-    (*diagnostics).set_title("RETAINED RUNTIME");
+// The retained-runtime card (a MetricsView): its title and colours.
+void StatesPage::build_diagnostics() {
+    DiagnosticsCard& diagnostics = *document_.gallery_states_diagnostics;
+    diagnostics.set_title("RETAINED RUNTIME");
     BasicControlStyle diagnostics_style = page_style();
     diagnostics_style.text = Color::rgba(28, 39, 50);
     diagnostics_style.face = Color::rgba(175, 203, 221);
     diagnostics_style.face_light = Color::rgba(226, 238, 246);
     diagnostics_style.accent = green;
-    (*diagnostics).set_style(diagnostics_style);
-    (*body).add_at(diagnostics, {494.0, 226.0, 460.0, 240.0});
+    diagnostics.set_style(diagnostics_style);
 }
 
-void StatesPage::build_dispatcher(const std::shared_ptr<Surface>& body) {
-    std::shared_ptr<LayoutGroup> dispatcher = group(
-        "gallery.states.dispatcher", "UI dispatcher · posted, bounded, cancellable",
-        {930.0, 134.0});
-    (*body).add_at(dispatcher, {24.0, 488.0, 930.0, 134.0});
+// The panels' border styles are in the document; their alternating
+// backgrounds are the page's.
+void StatesPage::build_specimens() {
+    const std::array<std::shared_ptr<Panel>, 4> panels{
+        document_.gallery_states_border_0, document_.gallery_states_border_1,
+        document_.gallery_states_border_2, document_.gallery_states_border_3};
+    for (std::size_t index = 0; index < panels.size(); ++index) {
+        (*panels[index]).set_background(index % 2U == 0U ? paper : Color::rgba(230, 238, 245));
+    }
+    (*document_.gallery_states_visited).set_visited(true);
+}
 
+void StatesPage::build_dispatcher() {
     post_.set_text("Post A · B · C → D");
     post_.set_description("Post three callbacks; one of them posts a fourth");
     cancel_.set_text("Post then cancel");
     cancel_.set_description("Post one callback and cancel it before dispatch");
     invoke_.set_text("Worker Invoke");
     invoke_.set_description("Block a worker thread on a synchronous UI invocation");
-
-    std::shared_ptr<Button> post =
-        make_control<Button>(StableId("gallery.dispatcher.post"), "Post A · B · C → D");
-    (*post).set_visual_style(ButtonVisualStyle::accent);
-    (*post).bind(post_);
-    std::shared_ptr<Button> cancel =
-        make_control<Button>(StableId("gallery.dispatcher.cancel"), "Post then cancel");
-    (*cancel).bind(cancel_);
-    std::shared_ptr<Button> invoke =
-        make_control<Button>(StableId("gallery.dispatcher.invoke"), "Worker Invoke");
-    (*invoke).bind(invoke_);
-    (*dispatcher).add_at(post, {22.0, 40.0, 174.0, 36.0});
-    (*dispatcher).add_at(cancel, {208.0, 40.0, 154.0, 36.0});
-    (*dispatcher).add_at(invoke, {374.0, 40.0, 170.0, 36.0});
-    status_ = label("gallery.dispatcher.status",
-                    "Ready · BeginInvoke never executes inside the click callback",
-                    11.0, 600, green);
-    (*status_).set_text_wrapping(TextWrapping::word);
-    (*status_).set_vertical_alignment(VerticalAlignment::near);
-    (*dispatcher).add_at(status_, {566.0, 36.0, 328.0, 58.0});
-
+    (*document_.gallery_dispatcher_post).bind(post_);
+    (*document_.gallery_dispatcher_cancel).bind(cancel_);
+    (*document_.gallery_dispatcher_invoke).bind(invoke_);
     on(post_.invoked(), *this, &StatesPage::on_post);
     on(cancel_.invoked(), *this, &StatesPage::on_cancel);
     on(invoke_.invoked(), *this, &StatesPage::on_invoke_from_worker);
