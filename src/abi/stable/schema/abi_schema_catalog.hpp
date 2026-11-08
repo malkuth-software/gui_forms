@@ -27,6 +27,7 @@
 #include "gui_forms/components/thread_exception_dialog/thread_exception_dialog.hpp"
 #include "gui_forms/components/tool_tip/tool_tip.hpp"
 #include "gui_forms/controls/backstage_view/backstage_view.hpp"
+#include "gui_forms/controls/badge/badge.hpp"
 #include "gui_forms/controls/binding_navigator/binding_navigator.hpp"
 #include "gui_forms/controls/button_base/button/button.hpp"
 #include "gui_forms/controls/button_base/button/drop_down_button/drop_down_button.hpp"
@@ -128,7 +129,7 @@
 
 namespace gui_forms::abi1 {
 
-inline constexpr std::array<SchemaCatalogEntry, 117> schema_catalog{{
+inline constexpr std::array<SchemaCatalogEntry, 118> schema_catalog{{
     {"button_base", "ButtonBase", &describe_type<ButtonBase>, &create_type<ButtonBase>, &is_exact_type<ButtonBase>},
     {"button", "Button", &describe_type<Button>, &create_type<Button>, &is_exact_type<Button>},
     {"drop_down_button", "DropDownButton", &describe_type<DropDownButton>, &create_type<DropDownButton>, &is_exact_type<DropDownButton>},
@@ -140,6 +141,7 @@ inline constexpr std::array<SchemaCatalogEntry, 117> schema_catalog{{
     {"rich_text_box", "RichTextBox", &describe_type<RichTextBox>, &create_type<RichTextBox>, &is_exact_type<RichTextBox>},
     {"label", "Label", &describe_type<Label>, &create_type<Label>, &is_exact_type<Label>},
     {"text_block", "TextBlock", &describe_type<TextBlock>, &create_type<TextBlock>, &is_exact_type<TextBlock>},
+    {"badge", "Badge", &describe_type<Badge>, &create_type<Badge>, &is_exact_type<Badge>},
     {"picture_box", "PictureBox", &describe_type<PictureBox>, &create_type<PictureBox>, &is_exact_type<PictureBox>},
     {"progress_bar", "ProgressBar", &describe_type<ProgressBar>, &create_type<ProgressBar>, &is_exact_type<ProgressBar>},
     {"sweep_scope", "SweepScope", &describe_type<SweepScope>, &create_type<SweepScope>, &is_exact_type<SweepScope>},

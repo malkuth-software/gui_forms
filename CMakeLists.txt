@@ -754,6 +754,7 @@ add_library(gui_forms_controls STATIC
     src/controls/panel/picture_box/picture_box.cpp
     src/controls/label/label.cpp
     src/controls/text_block/text_block.cpp
+    src/controls/badge/badge.cpp
     src/controls/button_base/button_base.cpp
     src/controls/button_base/button/button.cpp
     src/controls/button_base/button/drop_down_button/drop_down_button.cpp
@@ -3466,6 +3467,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_component_capabilities_tests tests/component_capabilities_tests.cpp)
     target_link_libraries(gui_forms_component_capabilities_tests PRIVATE gui_forms_controls gui_forms_host_headless)
     add_test(NAME gui_forms_component_capabilities_tests COMMAND gui_forms_component_capabilities_tests)
+    add_executable(gui_forms_display_controls_tests tests/display_controls_tests.cpp)
+    target_link_libraries(gui_forms_display_controls_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_display_controls_tests COMMAND gui_forms_display_controls_tests)
     add_executable(gui_forms_auto_complete_tests tests/auto_complete_tests.cpp)
     target_link_libraries(gui_forms_auto_complete_tests PRIVATE gui_forms_controls gui_forms_host_headless)
     add_test(NAME gui_forms_auto_complete_tests COMMAND gui_forms_auto_complete_tests)

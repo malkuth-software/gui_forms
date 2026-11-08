@@ -27,6 +27,7 @@
 #include "gui_forms/components/thread_exception_dialog/thread_exception_dialog.hpp"
 #include "gui_forms/components/tool_tip/tool_tip.hpp"
 #include "gui_forms/controls/backstage_view/backstage_view.hpp"
+#include "gui_forms/controls/badge/badge.hpp"
 #include "gui_forms/controls/binding_navigator/binding_navigator.hpp"
 #include "gui_forms/controls/button_base/button/button.hpp"
 #include "gui_forms/controls/button_base/button/drop_down_button/drop_down_button.hpp"
@@ -128,7 +129,7 @@
 
 namespace gui_forms::form_compiler {
 
-inline constexpr std::array<FormCatalogEntry, 117> form_catalog{{
+inline constexpr std::array<FormCatalogEntry, 118> form_catalog{{
     {"button_base", "ButtonBase", "gui_forms/controls/button_base/button_base.hpp", &add_catalog_type<ButtonBase>},
     {"button", "Button", "gui_forms/controls/button_base/button/button.hpp", &add_catalog_type<Button>},
     {"drop_down_button", "DropDownButton", "gui_forms/controls/button_base/button/drop_down_button/drop_down_button.hpp", &add_catalog_type<DropDownButton>},
@@ -140,6 +141,7 @@ inline constexpr std::array<FormCatalogEntry, 117> form_catalog{{
     {"rich_text_box", "RichTextBox", "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp", &add_catalog_type<RichTextBox>},
     {"label", "Label", "gui_forms/controls/label/label.hpp", &add_catalog_type<Label>},
     {"text_block", "TextBlock", "gui_forms/controls/text_block/text_block.hpp", &add_catalog_type<TextBlock>},
+    {"badge", "Badge", "gui_forms/controls/badge/badge.hpp", &add_catalog_type<Badge>},
     {"picture_box", "PictureBox", "gui_forms/controls/panel/picture_box/picture_box.hpp", &add_catalog_type<PictureBox>},
     {"progress_bar", "ProgressBar", "gui_forms/controls/range_control/progress_bar/progress_bar.hpp", &add_catalog_type<ProgressBar>},
     {"sweep_scope", "SweepScope", "gui_forms/controls/instruments/sweep_scope/sweep_scope.hpp", &add_catalog_type<SweepScope>},

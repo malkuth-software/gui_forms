@@ -117,6 +117,16 @@ void example() {
 }
 }  // namespace doc_example_BackstageView_1
 
+namespace doc_example_Badge_1 {
+void example() {
+    std::shared_ptr<gf::Badge> unread = gf::make_control<gf::Badge>(gf::StableId("inbox.unread"));
+    (*unread).maximum = 9U;
+    (*unread).count = 12U;
+    (*unread).accessible_name = "12 unread messages";
+    // unread->display_text() is "9+"
+}
+}  // namespace doc_example_Badge_1
+
 namespace doc_example_Binding_1 {
 void example() {
     std::shared_ptr<gf::Panel> root = gf::make_control<gf::Panel>(gf::StableId("form"));
@@ -4276,6 +4286,7 @@ int main() {
     failures += run("AutoCompleteStringCollection example 1", &doc_example_AutoCompleteStringCollection_1::example);
     failures += run("BackgroundWorker example 1", &doc_example_BackgroundWorker_1::example);
     failures += run("BackstageView example 1", &doc_example_BackstageView_1::example);
+    failures += run("Badge example 1", &doc_example_Badge_1::example);
     failures += run("Binding example 1", &doc_example_Binding_1::example);
     failures += run("Binding example 2", &doc_example_Binding_2::example);
     failures += run("BindingContext example 1", &doc_example_BindingContext_1::example);

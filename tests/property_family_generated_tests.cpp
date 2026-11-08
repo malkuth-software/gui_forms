@@ -3,6 +3,7 @@
 // stores (read back), an equal write raises nothing, and a changed write
 // raises the change event once (property-capabilities study, section 15.2).
 #include "gui_forms/gui_forms.hpp"
+#include "gui_forms/controls/badge/badge.hpp"
 #include "gui_forms/controls/button_base/button/button.hpp"
 #include "gui_forms/controls/data_grid_view/data_grid_view.hpp"
 #include "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp"
@@ -82,6 +83,42 @@ void test_anchored_overlay_layer_properties() {
         const bool sample = !(*control).dismiss_on_escape.read();
         (*control).dismiss_on_escape = sample;
         expect((*control).dismiss_on_escape.read() == sample, "AnchoredOverlayLayer.dismiss_on_escape: a write stores");
+    }
+}
+
+void test_badge_properties() {
+    std::shared_ptr<Badge> control = make_control<Badge>(StableId("generated.badge"));
+    {
+        const std::uint32_t sample = std::uint32_t{7U};
+        (*control).count = sample;
+        expect((*control).count.read() == sample, "Badge.count: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("count");
+        expect(by_name && *by_name == PropertyValueTraits<std::uint32_t>::to_binding(sample),
+               "Badge.count: the table reads the cell");
+    }
+    {
+        const std::uint32_t sample = std::uint32_t{9U};
+        (*control).maximum = sample;
+        expect((*control).maximum.read() == sample, "Badge.maximum: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("maximum");
+        expect(by_name && *by_name == PropertyValueTraits<std::uint32_t>::to_binding(sample),
+               "Badge.maximum: the table reads the cell");
+    }
+    {
+        const BadgeMode sample = BadgeMode::dot;
+        (*control).mode = sample;
+        expect((*control).mode.read() == sample, "Badge.mode: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("mode");
+        expect(by_name && *by_name == PropertyValueTraits<BadgeMode>::to_binding(sample),
+               "Badge.mode: the table reads the cell");
+    }
+    {
+        const bool sample = !(*control).show_zero.read();
+        (*control).show_zero = sample;
+        expect((*control).show_zero.read() == sample, "Badge.show_zero: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("show_zero");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "Badge.show_zero: the table reads the cell");
     }
 }
 
@@ -1145,6 +1182,7 @@ void test_tree_view_properties() {
 
 int main() {
     test_anchored_overlay_layer_properties();
+    test_badge_properties();
     test_breadcrumb_trail_properties();
     test_button_base_properties();
     test_card_properties();

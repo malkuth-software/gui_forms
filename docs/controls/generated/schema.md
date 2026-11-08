@@ -358,6 +358,20 @@ Properties beyond every control's: `font` (font), `line_height` (number), `text`
 |---|---|
 | `text_changed` | `std::string` |
 
+## `badge` (Badge, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `chip` | chip |  |  |
+| `label` | label |  |  |
+
+States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`. Application-defined: `dot`.
+
+Properties beyond every control's: `count` (unsigned_integer), `maximum` (unsigned_integer), `mode` (enumeration), `show_zero` (boolean).
+
+Interactions beyond every control's: none.
+
 ## `picture_box` (PictureBox, control)
 
 | Part | Role | Reuses | Own states |

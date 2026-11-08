@@ -129,6 +129,17 @@
       "doc": "api/generated/gui_forms.TextBlock.rst"
     },
     {
+      "id": "badge",
+      "type": "Badge",
+      "header": "gui_forms/controls/badge/badge.hpp",
+      "category": "Information display",
+      "purpose": "Small count or dot: the count, or its maximum and + past it, in an accent pill; a zero count hides unless show_zero; dot mode marks something new without a number.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": null,
+      "doc": "api/generated/gui_forms.Badge.rst"
+    },
+    {
       "id": "picture_box",
       "type": "PictureBox",
       "header": "gui_forms/controls/panel/picture_box/picture_box.hpp",

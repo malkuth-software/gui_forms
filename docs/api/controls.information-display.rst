@@ -15,6 +15,8 @@ Labels, images, progress and review cards.
      - Read-only text that names, describes or reports something.
    * - :cpp:class:`TextBlock <gui_forms::TextBlock>`
      - Read-only text laid out as CSS lays out the text of a block, for use inside the layout panels.
+   * - :cpp:class:`Badge <gui_forms::Badge>`
+     - A small count or dot, such as the number of unread messages beside a mailbox.
    * - :cpp:class:`PictureBox <gui_forms::PictureBox>`
      - A box that displays one image from its window's image registry.
    * - :cpp:class:`ProgressBar <gui_forms::ProgressBar>`
@@ -29,6 +31,7 @@ Labels, images, progress and review cards.
 
    generated/gui_forms.Label
    generated/gui_forms.TextBlock
+   generated/gui_forms.Badge
    generated/gui_forms.PictureBox
    generated/gui_forms.ProgressBar
    generated/gui_forms.SweepScope
@@ -41,6 +44,18 @@ Related types
    :class: autosummary longtable
    :widths: 35 65
 
+   * - :cpp:class:`Badge::Parts <gui_forms::Badge::Parts>`
+     - Stage T1 anatomy, as dot members (see Control::Parts).
+   * - :cpp:class:`BadgeCapabilities <gui_forms::BadgeCapabilities>`
+     - Every Badge capability, in the order the declaring class takes them.
+   * - :cpp:class:`BadgeCountCapability <gui_forms::BadgeCountCapability>`
+     - The number the badge shows in count mode; zero hides the chip unless show_zero is set.
+   * - :cpp:class:`BadgeMaximumCapability <gui_forms::BadgeMaximumCapability>`
+     - The largest count shown as it is (99 by default); a larger count shows the maximum followed by "+".
+   * - :cpp:class:`BadgeModeCapability <gui_forms::BadgeModeCapability>`
+     - Whether the badge shows a count chip or a dot without text.
+   * - :cpp:class:`BadgeShowZeroCapability <gui_forms::BadgeShowZeroCapability>`
+     - Whether a zero count still shows its chip; off by default.
    * - :cpp:class:`Label::Parts <gui_forms::Label::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts); its states are Control's.
    * - :cpp:class:`PictureBox::Parts <gui_forms::PictureBox::Parts>`
@@ -87,6 +102,113 @@ Related types
      - Stage T1 anatomy, as dot members (see Control::Parts); its states are Control's.
    * - :cpp:class:`WovenStripe <gui_forms::WovenStripe>`
      - One woven stripe: warp (along the bar) or weft (across it), where it lies, how wide, which colour and the fraction at which it weaves in.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: Badge::Parts final
+
+   ``#include <gui_forms/controls/badge/badge.hpp>``
+
+   Stage T1 anatomy, as dot members (see Control::Parts). ``chip`` is the drawn pill or dot and ``label`` the text inside it; both are absent while the badge is hidden, and ``label`` in dot mode.
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry chip
+
+   .. cpp:member:: PartGeometry label
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> BadgeCapabilities : public BadgeCountCapability<Declaring>, public BadgeMaximumCapability<Declaring>, public BadgeModeCapability<Declaring>, public BadgeShowZeroCapability<Declaring>
+
+   ``#include <gui_forms/controls/badge/badge_capabilities/badge_capabilities.hpp>``
+
+   Every Badge capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::uint32_t count
+
+      The number the badge shows in count mode; zero hides the chip unless show_zero is set.
+
+   .. cpp:member:: std::uint32_t maximum
+
+      The largest count shown as it is (99 by default); a larger count shows the maximum followed by "+". Zero throws std::invalid_argument.
+
+   .. cpp:member:: BadgeMode mode
+
+      Whether the badge shows a count chip or a dot without text.
+
+   .. cpp:member:: bool show_zero
+
+      Whether a zero count still shows its chip; off by default.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> BadgeCountCapability
+
+   ``#include <gui_forms/controls/badge/badge_capabilities/badge_capabilities.hpp>``
+
+   The number the badge shows in count mode; zero hides the chip unless show_zero is set.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(BadgeCountCapability& capability, std::uint32_t incoming)
+
+   .. cpp:member:: PropertyCell<std::uint32_t, BadgeCountCapability<Declaring>> count
+
+      Default: ``{0U}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> BadgeMaximumCapability
+
+   ``#include <gui_forms/controls/badge/badge_capabilities/badge_capabilities.hpp>``
+
+   The largest count shown as it is (99 by default); a larger count shows the maximum followed by "+". Zero throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(BadgeMaximumCapability& capability, std::uint32_t incoming)
+
+   .. cpp:member:: PropertyCell<std::uint32_t, BadgeMaximumCapability<Declaring>> maximum
+
+      Default: ``{99U}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> BadgeModeCapability
+
+   ``#include <gui_forms/controls/badge/badge_capabilities/badge_capabilities.hpp>``
+
+   Whether the badge shows a count chip or a dot without text.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(BadgeModeCapability& capability, BadgeMode incoming)
+
+   .. cpp:member:: PropertyCell<BadgeMode, BadgeModeCapability<Declaring>> mode
+
+      Default: ``{BadgeMode::count}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> BadgeShowZeroCapability
+
+   ``#include <gui_forms/controls/badge/badge_capabilities/badge_capabilities.hpp>``
+
+   Whether a zero count still shows its chip; off by default.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(BadgeShowZeroCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, BadgeShowZeroCapability<Declaring>> show_zero
 
 .. cpp:namespace:: gui_forms
 
@@ -526,6 +648,16 @@ Related types
 
 Enumerations
 ------------
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: BadgeMode
+
+   ``#include <gui_forms/controls/badge/badge_values/badge_values.hpp>``
+
+   .. cpp:enumerator:: count
+
+   .. cpp:enumerator:: dot
 
 .. cpp:namespace:: gui_forms
 
