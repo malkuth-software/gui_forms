@@ -145,10 +145,10 @@ void test_error_semantics_geometry_rtl_and_lifetime() {
     const ImageLoadResult image = fixture.window.load_bgra32_premultiplied(
         1U, 1U, 4U, pixel);
     require(static_cast<bool>(image), "fixture must register a provider icon image");
-    errors.set_icon(image.image);
-    require(errors.icon() == image.image,
+    errors.icon = image.image;
+    require(errors.icon.read() == image.image,
             "ErrorProvider must retain a validated portable ImageId override");
-    errors.set_blink_style(ErrorBlinkStyle::never_blink);
+    errors.blink_style = ErrorBlinkStyle::never_blink;
     errors.set_error(fixture.target, "Server address is not reachable");
     fixture.window.perform_layout();
 
@@ -197,15 +197,15 @@ void test_error_semantics_geometry_rtl_and_lifetime() {
 
     errors.set_icon_alignment(fixture.target, ErrorIconAlignment::top_left);
     errors.set_icon_padding(fixture.target, 4.0);
-    errors.set_icon_size(24.0);
+    errors.icon_size = 24.0;
     ErrorProviderSnapshot left = errors.snapshot();
     require(left.icons.front().bounds.right() <= target_bounds.x - 4.0 &&
                 left.icons.front().bounds.width == 24.0 &&
-                errors.icon_size() == 24.0,
+                errors.icon_size.read() == 24.0,
             "left alignment, padding, and explicit icon size must shape retained geometry");
     bool rejected_icon_size = false;
     try {
-        errors.set_icon_size(2.0);
+        errors.icon_size = 2.0;
     } catch (const std::invalid_argument&) {
         rejected_icon_size = true;
     }
@@ -214,7 +214,7 @@ void test_error_semantics_geometry_rtl_and_lifetime() {
     int direction_changes = 0;
     SubscriptionToken direction = errors.right_to_left_changed().subscribe(
         test_support::IncrementWhenTrue<int>(direction_changes));
-    errors.set_right_to_left(true);
+    errors.right_to_left = true;
     ErrorProviderSnapshot mirrored = errors.snapshot();
     require(mirrored.icons.front().bounds.x >= target_bounds.right() &&
                 direction_changes == 1,
@@ -245,7 +245,7 @@ void test_error_semantics_geometry_rtl_and_lifetime() {
 void test_error_blink_is_bounded_occlusion_aware_and_reduced_motion_safe() {
     Fixture fixture;
     ErrorProvider errors(fixture.window);
-    errors.set_blink_rate(50ms);
+    errors.blink_rate = 50ms;
     errors.set_error(fixture.target, "Transient validation failure");
     require(errors.snapshot().icons.front().blink_active && fixture.window.next_wake(),
             "changed-error blinking must use a scheduled blink timer");
@@ -288,10 +288,10 @@ void test_error_blink_is_bounded_occlusion_aware_and_reduced_motion_safe() {
                 !fixture.window.next_wake(),
             "BlinkIfDifferentError must finish after a bounded deterministic sequence");
 
-    errors.set_blink_style(ErrorBlinkStyle::always_blink);
+    errors.blink_style = ErrorBlinkStyle::always_blink;
     require(errors.snapshot().icons.front().blink_active,
             "AlwaysBlink must retain its blink timer while visible");
-    errors.set_blink_style(ErrorBlinkStyle::never_blink);
+    errors.blink_style = ErrorBlinkStyle::never_blink;
     require(!errors.snapshot().icons.front().blink_active &&
                 !fixture.window.next_wake(),
             "NeverBlink must synchronously revoke scheduled work");
@@ -361,8 +361,8 @@ void test_multiple_providers_and_disposal_cleanup() {
     Fixture fixture;
     std::unique_ptr<gui_forms::ErrorProvider> first = std::make_unique<ErrorProvider>(fixture.window);
     std::unique_ptr<gui_forms::ErrorProvider> second = std::make_unique<ErrorProvider>(fixture.window);
-    (*first).set_blink_style(ErrorBlinkStyle::never_blink);
-    (*second).set_blink_style(ErrorBlinkStyle::never_blink);
+    (*first).blink_style = ErrorBlinkStyle::never_blink;
+    (*second).blink_style = ErrorBlinkStyle::never_blink;
     (*first).set_error(fixture.target, "First validation channel");
     (*second).set_error(fixture.target, "Second validation channel");
     const SemanticSnapshot both_snapshot = fixture.window.semantic_snapshot();

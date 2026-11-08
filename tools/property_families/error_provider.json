@@ -1,0 +1,175 @@
+{
+  "family": "ErrorProvider",
+  "step": "M-S8",
+  "declaring": "ErrorProvider",
+  "header": "include/gui_forms/components/error_provider/error_provider.hpp",
+  "source": "src/controls/guidance/error_provider/error_provider.cpp",
+  "capabilities_header": "include/gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp",
+  "shared": [],
+  "includes": [
+    "gui_forms/binding/types/binding_contract_types.hpp",
+    "gui_forms/components/error_provider/error_provider_values/error_provider_values.hpp",
+    "gui_forms/types.hpp",
+    "<chrono>",
+    "<memory>",
+    "<optional>"
+  ],
+  "mutation_check": null,
+  "properties": [
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "icon_size",
+      "capability": "ErrorProviderIconSize",
+      "value": "double",
+      "initial": "16.0",
+      "hooks": "hand",
+      "hand": [
+        "written refreshes every icon"
+      ],
+      "effects": null,
+      "comment": "The icon's side in logical units, 8 to 64. A size outside that, or not finite, throws std::invalid_argument.",
+      "getter": "icon_size",
+      "setter": "set_icon_size",
+      "field": "icon_size_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "blink_rate",
+      "capability": "ErrorProviderBlinkRate",
+      "value": "std::chrono::milliseconds",
+      "initial": "250",
+      "hooks": "hand",
+      "hand": [
+        "written refreshes every icon"
+      ],
+      "effects": null,
+      "comment": "The blink interval, 50 ms to 1 minute (std::invalid_argument otherwise).",
+      "getter": "blink_rate",
+      "setter": "set_blink_rate",
+      "field": "blink_rate_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "blink_style",
+      "capability": "ErrorProviderBlinkStyle",
+      "value": "ErrorBlinkStyle",
+      "initial": "ErrorBlinkStyle::blink_if_different_error",
+      "hooks": "hand",
+      "hand": [
+        "written refreshes every icon, restarting blinks"
+      ],
+      "effects": null,
+      "comment": "When an icon blinks (see ErrorBlinkStyle). An unknown style throws std::invalid_argument.",
+      "getter": "blink_style",
+      "setter": "set_blink_style",
+      "field": "blink_style_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "right_to_left",
+      "capability": "ErrorProviderRightToLeft",
+      "value": "bool",
+      "hooks": "hand",
+      "hand": [
+        "written refreshes every icon and raises right_to_left_changed"
+      ],
+      "effects": null,
+      "comment": "Whether icon alignments are mirrored. A change raises right_to_left_changed.",
+      "getter": "right_to_left",
+      "setter": "set_right_to_left",
+      "field": "right_to_left_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "icon",
+      "capability": "ErrorProviderIcon",
+      "value": "std::optional<ImageId>",
+      "hooks": "hand",
+      "hand": [
+        "written refreshes every icon"
+      ],
+      "effects": null,
+      "comment": "The icon image, or none for the stock glyph. An image that is not live in the provider's window throws std::invalid_argument.",
+      "getter": "icon",
+      "setter": "set_icon",
+      "field": "icon_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "data_source",
+      "capability": "ErrorProviderDataSource",
+      "value": "std::shared_ptr<BindingSource>",
+      "storage": "view",
+      "field": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto the weak data_source_: an equal write updates the binding, and the source's disposal resets the field"
+      ],
+      "effects": null,
+      "comment": "The binding source whose errors the provider shows, or null; held weakly. A source that is not live or belongs to another window throws std::invalid_argument. An unchanged write updates the binding.",
+      "getter": "data_source",
+      "setter": "set_data_source"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "data_member",
+      "capability": "ErrorProviderDataMember",
+      "value": "std::string",
+      "hooks": "hand",
+      "hand": [
+        "prepare canonicalizes the name",
+        "written clears the bound errors, raises data_member_changed and updates the binding"
+      ],
+      "effects": null,
+      "comment": "The member of the data source whose errors the provider shows, canonicalized; empty for the source's own. A name that is not valid UTF-8 throws std::invalid_argument.",
+      "getter": "data_member",
+      "setter": "set_data_member",
+      "field": "data_member_"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "error, icon_alignment, icon_padding",
+      "reason": "per-target operations (section 4)"
+    },
+    {
+      "name": "tag",
+      "reason": "under review with Control::set_tag (decision M-S/4)"
+    }
+  ]
+}

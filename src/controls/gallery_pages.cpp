@@ -479,7 +479,7 @@ void initialize_gallery_runtime(Window& window) {
     (*(*context).tooltips).reshow_delay = 90ms;
     (*(*context).tooltips).auto_pop_delay = 4000ms;
     (*(*context).tooltips).show_always = true;
-    (*(*context).error_provider).set_blink_style(ErrorBlinkStyle::never_blink);
+    (*(*context).error_provider).blink_style = ErrorBlinkStyle::never_blink;
     (*(*context).error_provider).bind_to_data_and_errors((*context).binding_source);
     (*(*context).error_provider).set_error(
         (*context).provider_error_target,

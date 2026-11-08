@@ -257,15 +257,15 @@ void test_on_validation_binding_and_error_provider_share_focus_transaction() {
     const std::shared_ptr<Binding> binding = (*fixture.editor).data_bindings().add(
         "Text", source, "Amount", options);
     ErrorProvider errors(fixture.window);
-    errors.set_blink_style(ErrorBlinkStyle::never_blink);
+    errors.blink_style = ErrorBlinkStyle::never_blink;
     errors.bind_to_data_and_errors(source);
     require(errors.error(*fixture.editor) ==
                 "Amount is outside the recommended range.",
             "current-record errors must project through bindings onto their retained targets");
-    errors.set_data_member("profile");
+    errors.data_member = "profile";
     require(errors.error(*fixture.editor) == "Profile amount requires review.",
             "ErrorProvider DataMember must select a scoped retained error path");
-    errors.set_data_member({});
+    errors.data_member = std::string{};
 
     require(fixture.window.request_focus(fixture.editor),
             "bound editor must focus");
@@ -288,7 +288,7 @@ void test_on_validation_binding_and_error_provider_share_focus_transaction() {
     require((*source).move_next() && errors.error(*fixture.editor).empty(),
             "currency movement must replace stale record validation adornments");
     (*source).dispose();
-    require(!errors.has_errors() && !errors.data_source(),
+    require(!errors.has_errors() && !errors.data_source.read(),
             "source disposal must synchronously revoke bound provider state");
     static_cast<void>(binding);
 }

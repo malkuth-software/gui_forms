@@ -83,8 +83,24 @@ Related types
      - The workspace setting for opening an auto-hidden panel's flyout from its side tab; hover_or_click by default.
    * - :cpp:class:`ErrorIconSnapshot <gui_forms::ErrorIconSnapshot>`
      - ErrorIconSnapshot is a read-only diagnostic record for one target: stable identity, message, exact glyph bounds, target availability, overlay presentation, blink activity, and current phase visibility.
+   * - :cpp:class:`ErrorProviderBlinkRateCapability <gui_forms::ErrorProviderBlinkRateCapability>`
+     - The blink interval, 50 ms to 1 minute (std::invalid_argument otherwise).
+   * - :cpp:class:`ErrorProviderBlinkStyleCapability <gui_forms::ErrorProviderBlinkStyleCapability>`
+     - When an icon blinks (see ErrorBlinkStyle).
+   * - :cpp:class:`ErrorProviderCapabilities <gui_forms::ErrorProviderCapabilities>`
+     - Every ErrorProvider capability, in the order the declaring class takes them.
    * - :cpp:class:`ErrorProviderChange <gui_forms::ErrorProviderChange>`
      - ErrorProviderChange is the post-commit payload for a target error transition, carrying stable identity and the current message, which is empty once the error is cleared.
+   * - :cpp:class:`ErrorProviderDataMemberCapability <gui_forms::ErrorProviderDataMemberCapability>`
+     - The member of the data source whose errors the provider shows, canonicalized; empty for the source's own.
+   * - :cpp:class:`ErrorProviderDataSourceCapability <gui_forms::ErrorProviderDataSourceCapability>`
+     - The binding source whose errors the provider shows, or null; held weakly.
+   * - :cpp:class:`ErrorProviderIconCapability <gui_forms::ErrorProviderIconCapability>`
+     - The icon image, or none for the stock glyph.
+   * - :cpp:class:`ErrorProviderIconSizeCapability <gui_forms::ErrorProviderIconSizeCapability>`
+     - The icon's side in logical units, 8 to 64.
+   * - :cpp:class:`ErrorProviderRightToLeftCapability <gui_forms::ErrorProviderRightToLeftCapability>`
+     - Whether icon alignments are mirrored.
    * - :cpp:class:`ErrorProviderSnapshot <gui_forms::ErrorProviderSnapshot>`
      - ErrorProviderSnapshot is a deterministic provider diagnostic aggregate containing every mapped icon record plus authoritative live-error and presented-overlay counts.
    * - :cpp:class:`HelpProviderSnapshot <gui_forms::HelpProviderSnapshot>`
@@ -333,6 +349,79 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> ErrorProviderBlinkRateCapability
+
+   ``#include <gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>``
+
+   The blink interval, 50 ms to 1 minute (std::invalid_argument otherwise).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ErrorProviderBlinkRateCapability& capability, std::chrono::milliseconds incoming)
+
+   .. cpp:member:: PropertyCell<std::chrono::milliseconds, ErrorProviderBlinkRateCapability<Declaring>> blink_rate
+
+      Default: ``{250}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ErrorProviderBlinkStyleCapability
+
+   ``#include <gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>``
+
+   When an icon blinks (see ErrorBlinkStyle). An unknown style throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ErrorProviderBlinkStyleCapability& capability, ErrorBlinkStyle incoming)
+
+   .. cpp:member:: PropertyCell<ErrorBlinkStyle, ErrorProviderBlinkStyleCapability<Declaring>> blink_style
+
+      Default: ``{ErrorBlinkStyle::blink_if_different_error}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ErrorProviderCapabilities : public ErrorProviderIconSizeCapability<Declaring>, public ErrorProviderBlinkRateCapability<Declaring>, public ErrorProviderBlinkStyleCapability<Declaring>, public ErrorProviderRightToLeftCapability<Declaring>, public ErrorProviderIconCapability<Declaring>, public ErrorProviderDataSourceCapability<Declaring>, public ErrorProviderDataMemberCapability<Declaring>
+
+   ``#include <gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>``
+
+   Every ErrorProvider capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: double icon_size
+
+      The icon's side in logical units, 8 to 64. A size outside that, or not finite, throws std::invalid_argument.
+
+   .. cpp:member:: std::chrono::milliseconds blink_rate
+
+      The blink interval, 50 ms to 1 minute (std::invalid_argument otherwise).
+
+   .. cpp:member:: ErrorBlinkStyle blink_style
+
+      When an icon blinks (see ErrorBlinkStyle). An unknown style throws std::invalid_argument.
+
+   .. cpp:member:: bool right_to_left
+
+      Whether icon alignments are mirrored. A change raises right_to_left_changed.
+
+   .. cpp:member:: std::optional<ImageId> icon
+
+      The icon image, or none for the stock glyph. An image that is not live in the provider's window throws std::invalid_argument.
+
+   .. cpp:member:: std::shared_ptr<BindingSource> data_source
+
+      The binding source whose errors the provider shows, or null; held weakly. A source that is not live or belongs to another window throws std::invalid_argument. An unchanged write updates the binding.
+
+   .. cpp:member:: std::string data_member
+
+      The member of the data source whose errors the provider shows, canonicalized; empty for the source's own. A name that is not valid UTF-8 throws std::invalid_argument.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ErrorProviderChange final
 
    ``#include <gui_forms/components/error_provider/error_provider.hpp>``
@@ -344,6 +433,85 @@ Related types
    .. cpp:member:: std::string error
 
       The target's new message; empty when its error was cleared.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ErrorProviderDataMemberCapability
+
+   ``#include <gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>``
+
+   The member of the data source whose errors the provider shows, canonicalized; empty for the source's own. A name that is not valid UTF-8 throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ErrorProviderDataMemberCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, ErrorProviderDataMemberCapability<Declaring>> data_member
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ErrorProviderDataSourceCapability
+
+   ``#include <gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>``
+
+   The binding source whose errors the provider shows, or null; held weakly. A source that is not live or belongs to another window throws std::invalid_argument. An unchanged write updates the binding.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ErrorProviderDataSourceCapability& capability, std::shared_ptr<BindingSource> incoming)
+
+   .. cpp:function:: static std::shared_ptr<BindingSource> read(const ErrorProviderDataSourceCapability& capability)
+
+   .. cpp:member:: PropertyView<std::shared_ptr<BindingSource>, ErrorProviderDataSourceCapability<Declaring>> data_source
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ErrorProviderIconCapability
+
+   ``#include <gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>``
+
+   The icon image, or none for the stock glyph. An image that is not live in the provider's window throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ErrorProviderIconCapability& capability, std::optional<ImageId> incoming)
+
+   .. cpp:member:: PropertyCell<std::optional<ImageId>, ErrorProviderIconCapability<Declaring>> icon
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ErrorProviderIconSizeCapability
+
+   ``#include <gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>``
+
+   The icon's side in logical units, 8 to 64. A size outside that, or not finite, throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ErrorProviderIconSizeCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, ErrorProviderIconSizeCapability<Declaring>> icon_size
+
+      Default: ``{16.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ErrorProviderRightToLeftCapability
+
+   ``#include <gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>``
+
+   Whether icon alignments are mirrored. A change raises right_to_left_changed.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ErrorProviderRightToLeftCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ErrorProviderRightToLeftCapability<Declaring>> right_to_left
 
 .. cpp:namespace:: gui_forms
 
@@ -747,7 +915,7 @@ Enumerations
 
 .. cpp:enum-class:: ErrorBlinkStyle
 
-   ``#include <gui_forms/components/error_provider/error_provider.hpp>``
+   ``#include <gui_forms/components/error_provider/error_provider_values/error_provider_values.hpp>``
 
    .. cpp:enumerator:: blink_if_different_error
 

@@ -7,6 +7,7 @@
 #include "gui_forms/control.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <array>
 #include <algorithm>
@@ -246,57 +247,62 @@ double ErrorProvider::icon_padding(const Control& target) const {
     return entry ? (*entry).padding : 0.0;
 }
 
-void ErrorProvider::set_icon_size(double size) {
+void ErrorProvider::prepare_write(const decltype(icon_size)&, double& incoming) {
     require_access("ErrorProvider icon-size mutation");
-    if (!std::isfinite(size) || size < 8.0 || size > 64.0) {
+    if (!std::isfinite(incoming) || incoming < 8.0 || incoming > 64.0) {
         throw std::invalid_argument(
             "ErrorProvider icon size must be finite and between 8 and 64");
     }
-    if (icon_size_ == size) return;
-    icon_size_ = size;
+}
+
+void ErrorProvider::written(const decltype(icon_size)&) {
     refresh_all_visuals(false);
 }
 
-void ErrorProvider::set_blink_rate(std::chrono::milliseconds rate) {
+void ErrorProvider::prepare_write(const decltype(blink_rate)&, std::chrono::milliseconds& incoming) {
     require_access("ErrorProvider blink-rate mutation");
-    if (rate < std::chrono::milliseconds(50) ||
-        rate > std::chrono::minutes(1)) {
+    if (incoming < std::chrono::milliseconds(50) ||
+        incoming > std::chrono::minutes(1)) {
         throw std::invalid_argument(
             "GUI.Forms ErrorProvider blink rate must be between 50 ms and 1 minute");
     }
-    if (blink_rate_ == rate) return;
-    blink_rate_ = rate;
+}
+
+void ErrorProvider::written(const decltype(blink_rate)&) {
     refresh_all_visuals(false);
 }
 
-void ErrorProvider::set_blink_style(ErrorBlinkStyle style) {
+void ErrorProvider::prepare_write(const decltype(blink_style)&, ErrorBlinkStyle& incoming) {
     require_access("ErrorProvider blink-style mutation");
-    if (!valid_blink_style(style)) {
+    if (!valid_blink_style(incoming)) {
         throw std::invalid_argument("GUI.Forms ErrorProvider blink style is invalid");
     }
-    if (blink_style_ == style) return;
-    blink_style_ = style;
+}
+
+void ErrorProvider::written(const decltype(blink_style)&) {
     refresh_all_visuals(true);
 }
 
-void ErrorProvider::set_right_to_left(bool value) {
+void ErrorProvider::prepare_write(const decltype(right_to_left)&, bool&) {
     require_access("ErrorProvider direction mutation");
-    if (right_to_left_ == value) return;
-    right_to_left_ = value;
-    refresh_all_visuals(false);
-    right_to_left_changed_.emit(value);
 }
 
-void ErrorProvider::set_icon(std::optional<ImageId> icon_value) {
+void ErrorProvider::written(const decltype(right_to_left)&) {
+    refresh_all_visuals(false);
+    right_to_left_changed_.emit(right_to_left.read());
+}
+
+void ErrorProvider::prepare_write(const decltype(icon)&, std::optional<ImageId>& incoming) {
     require_access("ErrorProvider icon mutation");
     Window* owner = bound_window();
-    if (icon_value && ((*icon_value).value == 0U || !owner ||
-                       !(*owner).image_resources().find(*icon_value))) {
+    if (incoming && ((*incoming).value == 0U || !owner ||
+                     !(*owner).image_resources().find(*incoming))) {
         throw std::invalid_argument(
             "GUI.Forms ErrorProvider icon must identify a live Window image");
     }
-    if (icon_ == icon_value) return;
-    icon_ = icon_value;
+}
+
+void ErrorProvider::written(const decltype(icon)&) {
     refresh_all_visuals(false);
 }
 
@@ -305,7 +311,9 @@ std::shared_ptr<Control> ErrorProvider::container_control() const noexcept {
     return owner ? (*owner).root() : std::shared_ptr<Control>{};
 }
 
-void ErrorProvider::set_data_source(std::shared_ptr<BindingSource> source) {
+// data_source is a view onto the weak data_source_: an unchanged write
+// updates the binding, and source_disposed resets the field.
+void ErrorProvider::write_view(const decltype(data_source)&, std::shared_ptr<BindingSource> source) {
     require_access("ErrorProvider data-source mutation");
     if (data_source_.lock() == source) {
         update_binding();
@@ -340,6 +348,10 @@ void ErrorProvider::set_data_source(std::shared_ptr<BindingSource> source) {
     update_binding();
 }
 
+std::shared_ptr<BindingSource> ErrorProvider::read_view(const decltype(data_source)&) const {
+    return data_source_.lock();
+}
+
 void ErrorProvider::source_list_changed(const BindingListChange&) {
     update_binding();
 }
@@ -371,24 +383,26 @@ void ErrorProvider::append_unique_error(
     }
 }
 
-void ErrorProvider::set_data_member(std::string member) {
+// The name is canonicalized before the comparison.
+void ErrorProvider::prepare_write(const decltype(data_member)&, std::string& incoming) {
     require_access("ErrorProvider data-member mutation");
-    if (!validate_utf8(member).valid()) {
+    if (!validate_utf8(incoming).valid()) {
         throw std::invalid_argument(
             "GUI.Forms ErrorProvider data member must be valid UTF-8");
     }
-    if (!member.empty()) member = canonical_binding_name(member);
-    if (data_member_ == member) return;
-    data_member_ = std::move(member);
+    if (!incoming.empty()) incoming = canonical_binding_name(incoming);
+}
+
+void ErrorProvider::written(const decltype(data_member)&) {
     binding_errors_.clear();
-    data_member_changed_.emit(data_member_);
+    data_member_changed_.emit(data_member.read());
     update_binding();
 }
 
 void ErrorProvider::bind_to_data_and_errors(
     std::shared_ptr<BindingSource> source, std::string member) {
-    set_data_member(std::move(member));
-    set_data_source(std::move(source));
+    data_member = std::move(member);
+    data_source = std::move(source);
 }
 
 void ErrorProvider::clear_bound_errors() noexcept {
@@ -444,9 +458,9 @@ void ErrorProvider::update_binding() {
         aggregate.target = target;
         append_unique_error(aggregate.errors, (*source).current_error({}));
         std::string field = (*binding).data_member();
-        if (!data_member_.empty()) field = data_member_ + "." + field;
+        if (!data_member.read().empty()) field = data_member.read() + "." + field;
         std::string record_error = (*source).current_error(field);
-        if (record_error.empty() && !data_member_.empty()) {
+        if (record_error.empty() && !data_member.read().empty()) {
             record_error = (*source).current_error((*binding).data_member());
         }
         append_unique_error(aggregate.errors, std::move(record_error));
@@ -521,24 +535,24 @@ Rect ErrorProvider::icon_bounds(const Entry& entry) const noexcept {
     if (!target || !owner) return {};
     const Rect anchor = (*target).absolute_bounds();
     ErrorIconAlignment alignment = entry.alignment;
-    if (right_to_left_) alignment = mirrored_alignment(alignment);
+    if (right_to_left.read()) alignment = mirrored_alignment(alignment);
     const bool left = alignment == ErrorIconAlignment::top_left ||
                       alignment == ErrorIconAlignment::middle_left ||
                       alignment == ErrorIconAlignment::bottom_left;
-    double x = left ? anchor.x - icon_size_ - entry.padding
+    double x = left ? anchor.x - icon_size.read() - entry.padding
                     : anchor.right() + entry.padding;
     double y = anchor.y;
     if (alignment == ErrorIconAlignment::middle_left ||
         alignment == ErrorIconAlignment::middle_right) {
-        y = anchor.y + (anchor.height - icon_size_) * 0.5;
+        y = anchor.y + (anchor.height - icon_size.read()) * 0.5;
     } else if (alignment == ErrorIconAlignment::bottom_left ||
                alignment == ErrorIconAlignment::bottom_right) {
-        y = anchor.bottom() - icon_size_;
+        y = anchor.bottom() - icon_size.read();
     }
     const Size client = (*owner).client_size();
-    x = std::clamp(x, 0.0, std::max(0.0, client.width - icon_size_));
-    y = std::clamp(y, 0.0, std::max(0.0, client.height - icon_size_));
-    return {x, y, icon_size_, icon_size_};
+    x = std::clamp(x, 0.0, std::max(0.0, client.width - icon_size.read()));
+    y = std::clamp(y, 0.0, std::max(0.0, client.height - icon_size.read()));
+    return {x, y, icon_size.read(), icon_size.read()};
 }
 
 void ErrorProvider::position_visual(Entry& entry) {
@@ -577,8 +591,8 @@ void ErrorProvider::refresh_visual(Entry& entry, bool error_changed) {
         entry.glyph = make_control<ErrorGlyph>(StableId(prefix + ".glyph"));
         (*entry.glyph).set_requested_bounds(icon_bounds(entry));
         (*entry.glyph).set_error(entry.error);
-        (*entry.glyph).set_icon(icon_);
-        (*entry.glyph).configure_blink(blink_style_, blink_rate_, true);
+        (*entry.glyph).set_icon(icon.read());
+        (*entry.glyph).configure_blink(blink_style.read(), blink_rate.read(), true);
         (*entry.layer).add_child(entry.glyph);
         OverlayToken overlay = (*owner).open_overlay(
             target, entry.layer, OverlayOptions{.require_enabled_owner = false});
@@ -588,8 +602,8 @@ void ErrorProvider::refresh_visual(Entry& entry, bool error_changed) {
     }
 
     (*entry.glyph).set_error(entry.error);
-    (*entry.glyph).set_icon(icon_);
-    (*entry.glyph).configure_blink(blink_style_, blink_rate_, error_changed);
+    (*entry.glyph).set_icon(icon.read());
+    (*entry.glyph).configure_blink(blink_style.read(), blink_rate.read(), error_changed);
     (*entry.glyph).tool_tip_text = entry.error;
     position_visual(entry);
 }
@@ -687,5 +701,9 @@ void ErrorProvider::append_interactions(std::vector<InteractionDeclaration>& int
     Component::append_interactions(interactions);
     interactions.insert(interactions.end(), error_provider_interactions.begin(), error_provider_interactions.end());
 }
+
+// property_codemod begin ErrorProvider (tools/property_families/error_provider.json; generated, do not edit)
+
+// property_codemod end ErrorProvider
 
 } // namespace gui_forms

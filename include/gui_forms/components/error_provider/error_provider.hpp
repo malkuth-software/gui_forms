@@ -1,8 +1,10 @@
 #pragma once
 
 #include "gui_forms/component.hpp"
+#include "gui_forms/components/error_provider/error_provider_values/error_provider_values.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/types.hpp"
+#include "gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp"
 
 #include <any>
 #include <chrono>
@@ -29,12 +31,6 @@ class Window;
 namespace detail {
 struct WindowLifetime;
 }
-
-enum class ErrorBlinkStyle : std::uint8_t {
-    blink_if_different_error,
-    always_blink,
-    never_blink,
-};
 
 enum class ErrorIconAlignment : std::uint8_t {
     top_left,
@@ -71,7 +67,7 @@ struct ErrorProviderSnapshot final {
 // target semantic node while each visible target owns an independent overlay
 // glyph. Blink work uses the Window frame scheduler, so occlusion and reduced
 // motion suppress wakeups rather than running a provider-local loop.
-class ErrorProvider final : public Component {
+class ErrorProvider final : public Component, public ErrorProviderCapabilities<ErrorProvider> {
 public:
     explicit ErrorProvider(Window& window);
     ~ErrorProvider() override;
@@ -87,36 +83,13 @@ public:
     [[nodiscard]] ErrorIconAlignment icon_alignment(const Control& target) const;
     void set_icon_padding(const std::shared_ptr<Control>& target, double padding);
     [[nodiscard]] double icon_padding(const Control& target) const;
-    [[nodiscard]] double icon_size() const noexcept { return icon_size_; }
-    void set_icon_size(double size);
 
-    [[nodiscard]] std::chrono::milliseconds blink_rate() const noexcept {
-        return blink_rate_;
-    }
-    void set_blink_rate(std::chrono::milliseconds rate);
-    [[nodiscard]] ErrorBlinkStyle blink_style() const noexcept {
-        return blink_style_;
-    }
-    void set_blink_style(ErrorBlinkStyle style);
-
-    [[nodiscard]] bool right_to_left() const noexcept { return right_to_left_; }
-    void set_right_to_left(bool value);
     [[nodiscard]] Event<bool>& right_to_left_changed() noexcept {
         return right_to_left_changed_;
     }
 
-    [[nodiscard]] std::optional<ImageId> icon() const noexcept { return icon_; }
-    void set_icon(std::optional<ImageId> icon);
     [[nodiscard]] std::shared_ptr<Control> container_control() const noexcept;
 
-    [[nodiscard]] std::shared_ptr<BindingSource> data_source() const noexcept {
-        return data_source_.lock();
-    }
-    void set_data_source(std::shared_ptr<BindingSource> source);
-    [[nodiscard]] const std::string& data_member() const noexcept {
-        return data_member_;
-    }
-    void set_data_member(std::string member);
     void bind_to_data_and_errors(std::shared_ptr<BindingSource> source,
                                  std::string member = {});
     void update_binding();
@@ -183,16 +156,35 @@ private:
     Event<> data_source_changed_;
     Event<const std::string&> data_member_changed_;
     std::weak_ptr<BindingSource> data_source_;
-    std::string data_member_;
     std::unordered_map<std::uint64_t, std::weak_ptr<Control>> bound_targets_;
     BindingErrorMap binding_errors_;
     std::any tag_;
-    std::chrono::milliseconds blink_rate_{250};
-    ErrorBlinkStyle blink_style_{ErrorBlinkStyle::blink_if_different_error};
-    std::optional<ImageId> icon_;
-    double icon_size_{16.0};
-    bool right_to_left_{};
     std::uint64_t provider_id_{};
+    // property_codemod begin ErrorProvider (tools/property_families/error_provider.json; generated, do not edit)
+private:
+    friend struct ErrorProviderIconSizeCapability<ErrorProvider>;
+    friend struct ErrorProviderBlinkRateCapability<ErrorProvider>;
+    friend struct ErrorProviderBlinkStyleCapability<ErrorProvider>;
+    friend struct ErrorProviderRightToLeftCapability<ErrorProvider>;
+    friend struct ErrorProviderIconCapability<ErrorProvider>;
+    friend struct ErrorProviderDataSourceCapability<ErrorProvider>;
+    friend struct ErrorProviderDataMemberCapability<ErrorProvider>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(icon_size)& cell, double& incoming);
+    void written(const decltype(icon_size)& cell);
+    void prepare_write(const decltype(blink_rate)& cell, std::chrono::milliseconds& incoming);
+    void written(const decltype(blink_rate)& cell);
+    void prepare_write(const decltype(blink_style)& cell, ErrorBlinkStyle& incoming);
+    void written(const decltype(blink_style)& cell);
+    void prepare_write(const decltype(right_to_left)& cell, bool& incoming);
+    void written(const decltype(right_to_left)& cell);
+    void prepare_write(const decltype(icon)& cell, std::optional<ImageId>& incoming);
+    void written(const decltype(icon)& cell);
+    void write_view(const decltype(data_source)& cell, std::shared_ptr<BindingSource> incoming);
+    [[nodiscard]] std::shared_ptr<BindingSource> read_view(const decltype(data_source)& cell) const;
+    void prepare_write(const decltype(data_member)& cell, std::string& incoming);
+    void written(const decltype(data_member)& cell);
+    // property_codemod end ErrorProvider
 };
 
 } // namespace gui_forms
