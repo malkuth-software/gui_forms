@@ -14,6 +14,7 @@
 #include "../../../core/damage/device_damage/device_damage.hpp"
 #include "../../../render/skia/raster/skia_raster.hpp"
 #include "../../../core/host/frame_capture/frame_capture.hpp"
+#include "../../../core/application/splashscreen_surface.hpp"
 #include "../compositor/macos_compositor.hpp"
 #include "../../posix/fonts/sealed_pages_posix.hpp"
 
@@ -4315,3 +4316,5 @@ int run_macos(std::unique_ptr<Window> model, MacHostOptions options) {
 #include "macos_application_run.inc"
 
 } // namespace gui_forms::host
+
+#include "macos_splashscreen.inc"

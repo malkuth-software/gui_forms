@@ -1,5 +1,6 @@
 #include "gui_forms/application.hpp"
 #include "../../core/application/application_state.hpp"
+#include "../../core/application/splashscreen_surface.hpp"
 
 #include <atomic>
 #include <utility>
@@ -354,6 +355,20 @@ struct WindowingEnded final {
     std::shared_ptr<detail::ApplicationRunState> run{};
     void operator()() const noexcept { detail::detach_run_windowing(*run); }
 };
+}
+
+// The platform half of the splashscreen: validated and checked against the
+// one that shows before the host is asked for a window.
+SplashscreenResult Splashscreen::show(SplashscreenOptions options) {
+    SplashscreenResult checked = Splashscreen::show_on(options, nullptr);
+    if (checked.error != SplashscreenError::unsupported) return checked;
+    std::unique_ptr<detail::SplashscreenSurface> surface{};
+#if defined(GUI_FORMS_APPLICATION_MACOS) || defined(GUI_FORMS_APPLICATION_WINDOWS) || \
+    defined(GUI_FORMS_APPLICATION_LINUX)
+    surface = host::open_platform_splashscreen(options.size);
+#endif
+    SplashscreenResult result = Splashscreen::show_on(std::move(options), std::move(surface));
+    return result;
 }
 
 HostCapabilities Application::capabilities() {

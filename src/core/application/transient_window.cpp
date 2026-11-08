@@ -102,15 +102,17 @@ bool TransientWindow::show(const Control::Ptr& content, const Rect desktop) {
     const bool framed = handle.request_frame(desktop).accepted();
     const bool shown = framed && handle.show().accepted();
     if (!shown) {
-        detach_content();
         static_cast<void>(handle.hide());
+        shown_ = false;
+        detach_content();
         return false;
     }
+    shown_ = true;
     return true;
 }
 
 bool TransientWindow::move(const Rect desktop) {
-    if (!content_ || !connected() || !desktop_rect_valid(desktop)) return false;
+    if (!shown_ || !content_ || !connected() || !desktop_rect_valid(desktop)) return false;
     (*content_).set_requested_bounds(Rect{0.0, 0.0, desktop.width, desktop.height});
     const ApplicationWindowHandle& handle = (*record_).handle();
     const bool framed = handle.request_frame(desktop).accepted();
@@ -118,9 +120,14 @@ bool TransientWindow::move(const Rect desktop) {
 }
 
 void TransientWindow::hide() noexcept {
-    if (!content_) return;
-    // Hidden first, so the emptied window is never presented.
+    if (!shown_) return;
+    shown_ = false;
     if (connected()) static_cast<void>((*record_).handle().hide());
+}
+
+void TransientWindow::clear() noexcept {
+    // Hidden first, so the emptied window is never presented.
+    hide();
     detach_content();
 }
 

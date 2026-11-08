@@ -1,6 +1,7 @@
 #include "linux_host_internal.hpp"
 #include "../../../core/host/frame_capture/frame_capture.hpp"
 #include "../../../core/damage/device_damage/device_damage.hpp"
+#include "../../../core/application/splashscreen_surface.hpp"
 #include "../../posix/fonts/sealed_pages_posix.hpp"
 #include "gui_forms/live_surface.hpp"
 #include "gui_forms/text/types/text_types.hpp"
@@ -1621,8 +1622,13 @@ HostServiceStatus NativeWindow::request_frame(Rect content) {
   XFlush(runtime.display);
   return {};
 }
+#include "linux_splashscreen.inc"
 } // namespace gui_forms::host::linux_detail
 namespace gui_forms::host {
+std::unique_ptr<gui_forms::detail::SplashscreenSurface> open_platform_splashscreen(const Size size) {
+  std::unique_ptr<gui_forms::detail::SplashscreenSurface> surface = linux_detail::open_x11_splashscreen(size);
+  return surface;
+}
 // accessibility: ATK/AT-SPI publication of the semantic tree, including
 // AtkText, verified by the AT-SPI client tests over a fixture and the
 // Gallery (stage A). ATK is a required dependency of this host.

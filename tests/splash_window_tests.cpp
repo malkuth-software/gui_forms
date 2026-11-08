@@ -3,14 +3,23 @@
 // window that takes no input: the tooltip presenter shows its bubble in one
 // kept per window (warm standby), opened hidden on first use and shown,
 // moved and hidden after that; a run that cannot open one shows the overlay
-// as before. The allocations of a warm show are counted by this executable's
-// own operator new (a test-only replacement, never in a library).
+// as before. A warm show allocates nothing: counted by this executable's
+// own operator new (a test-only replacement, never in a library), with the
+// headless host's trace (formatted on the heap) turned off.
+//
+// Also here: menus on warm Popup windows (each panel in the owner's Popup
+// of its depth, keys through the owner, closed by an outside click), and the
+// splashscreen shown before Application::create on a headless surface,
+// handing over to the run's first window.
 
 #include "gui_forms/application.hpp"
+#include "gui_forms/commands.hpp"
+#include "gui_forms/components/context_menu/context_menu.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/host.hpp"
 #include "gui_forms/window.hpp"
 #include "application/headless_application.hpp"
+#include "application/headless_splashscreen.hpp"
 
 #include <chrono>
 #include <cstdint>
@@ -133,7 +142,11 @@ void a_warm_show_reuses_the_window() {
     (*desk.model).show_tool_tip(desk.anchor, std::chrono::milliseconds(0));
     const std::optional<HostWindowId> first = desk.splash();
     (*desk.model).hide_tool_tip();
-    // The second show measures the warm path; the third repeats it.
+    // One more round settles the text engine's and the lines' storage.
+    (*desk.model).show_tool_tip(desk.anchor, std::chrono::milliseconds(0));
+    (*desk.model).hide_tool_tip();
+    desk.windowing().set_tracing(false);
+    // The rounds after measure the warm path.
     std::uint64_t warm[2]{};
     for (int round = 0; round < 2; ++round) {
         counted_allocations = 0U;
@@ -146,9 +159,9 @@ void a_warm_show_reuses_the_window() {
         require(desk.windowing().native_visible(*first), "and it is visible");
         (*desk.model).hide_tool_tip();
     }
-    std::printf("splash warm tooltip show: %llu and %llu allocations (headless host trace included)\n",
-                static_cast<unsigned long long>(warm[0]), static_cast<unsigned long long>(warm[1]));
-    require(warm[0] == warm[1], "a warm show allocates the same each time");
+    std::printf("splash warm tooltip show: %llu and %llu allocations\n", static_cast<unsigned long long>(warm[0]),
+                static_cast<unsigned long long>(warm[1]));
+    require(warm[0] == 0U && warm[1] == 0U, "a warm show allocates nothing");
 }
 
 void falls_back_to_the_overlay() {
@@ -213,6 +226,119 @@ void admission_rules() {
                 !host_transient_is_splash(HostTransientKind::popup),
             "the kinds are named and classified");
 }
+// The context menu's commands, kept alive by the test.
+struct MenuCommands final {
+    std::shared_ptr<Command> open = std::make_shared<Command>("file.open", "Open");
+    std::shared_ptr<Command> icons = std::make_shared<Command>("view.icons", "Icons");
+    std::shared_ptr<Command> list = std::make_shared<Command>("view.list", "List");
+};
+
+std::vector<MenuItemSpec> menu_items(const MenuCommands& commands) {
+    std::vector<MenuItemSpec> items;
+    items.emplace_back("open", MenuItemKind::command, commands.open);
+    std::vector<MenuItemSpec> view;
+    view.emplace_back("view.icons", MenuItemKind::radio, commands.icons);
+    view.emplace_back("view.list", MenuItemKind::radio, commands.list);
+    items.emplace_back("view", MenuItemKind::submenu, std::shared_ptr<Command>{}, "View", std::move(view));
+    return items;
+}
+
+KeyEvent key_down(std::uint32_t key) {
+    KeyEvent event{};
+    event.action = KeyAction::down;
+    event.physical_key = key;
+    return event;
+}
+
+std::size_t visible_popups(Desk& desk) {
+    std::size_t count = 0U;
+    const std::vector<HostWindowId> order = desk.windowing().z_order();
+    for (const HostWindowId id : order) {
+        if (id != desk.main.id() && desk.windowing().native_visible(id)) ++count;
+    }
+    return count;
+}
+
+void menu_panels_show_in_popup_windows() {
+    Desk desk;
+    MenuCommands commands;
+    ContextMenu menu("desk.menu");
+    menu.set_items(menu_items(commands));
+    desk.windowing().clear_trace();
+    menu.show(desk.anchor, Point{40.0, 40.0}, MenuOpenMode::keyboard);
+    require(menu.is_open(), "the menu opens");
+    require(visible_popups(desk) == 1U, "its panel shows in one Popup window");
+    const std::string& trace = desk.windowing().trace();
+    require(contains(trace, "transient=popup") && contains(trace, "focus=passive"),
+            "a menu panel is a passive Popup");
+    require((*desk.model).focused_control() == (*desk.model).find("desk.menu.overlay.layer"),
+            "the owner keeps the focus, on the menu's layer");
+    // Keys go through the owner to the panel's Popup: Down then Right opens
+    // the submenu in the Popup of depth 1.
+    require((*desk.model).dispatch_key(key_down(PhysicalKey::down)), "Down reaches the panel");
+    require((*desk.model).dispatch_key(key_down(PhysicalKey::right)), "Right reaches the panel");
+    require(visible_popups(desk) == 2U, "the submenu shows in a second Popup window");
+    require((*desk.model).dispatch_key(key_down(PhysicalKey::escape)), "Escape reaches the panel");
+    require(!menu.is_open() && visible_popups(desk) == 0U, "Escape closes the menu and hides its Popups");
+    const std::size_t kept = desk.windowing().window_count();
+    menu.show(desk.anchor, Point{40.0, 40.0}, MenuOpenMode::pointer);
+    require(desk.windowing().window_count() == kept && visible_popups(desk) == 1U,
+            "the next opening reuses the kept Popup windows");
+    // A click in the owner, outside the panels, closes the menu.
+    PointerEvent press{};
+    press.action = PointerAction::down;
+    press.button = PointerButton::primary;
+    press.position = Point{600.0, 500.0};
+    static_cast<void>((*desk.model).dispatch_pointer(press));
+    require(!menu.is_open() && visible_popups(desk) == 0U, "an outside click closes the menu");
+}
+
+void menu_falls_back_to_the_overlay() {
+    Desk desk;
+    desk.windowing().set_popup_windows(false);
+    MenuCommands commands;
+    ContextMenu menu("desk.menu");
+    menu.set_items(menu_items(commands));
+    menu.show(desk.anchor, Point{40.0, 40.0}, MenuOpenMode::keyboard);
+    require(menu.is_open() && desk.windowing().window_count() == 1U, "without Popup windows it opens as an overlay");
+    require((*desk.model).focused_control() == (*desk.model).find("desk.menu.overlay.row.open"),
+            "the overlay's first command takes the focus");
+    menu.close();
+}
+
+void splashscreen_shows_and_hands_over() {
+    const std::shared_ptr<host::HeadlessSplashscreenRecord> record = std::make_shared<host::HeadlessSplashscreenRecord>();
+    SplashscreenOptions options{};
+    options.title = "Fixture";
+    options.status = "Starting";
+    SplashscreenResult shown =
+        Splashscreen::show_on(options, std::make_unique<host::HeadlessSplashscreenSurface>(record));
+    require(static_cast<bool>(shown) && (*record).presented == 1U, "the splashscreen shows its first frame");
+    Splashscreen& splashscreen = *shown.splashscreen;
+    require(splashscreen.set_status("Loading the theme") == SplashscreenError::none &&
+                (*record).status == "Loading the theme" && (*record).presented == 2U,
+            "a status change presents a frame at once");
+    require(splashscreen.set_progress(0.5) == SplashscreenError::none && (*record).progress == 0.5 &&
+                (*record).presented == 3U,
+            "a progress change presents a frame at once");
+    require(splashscreen.set_progress(1.5) == SplashscreenError::invalid_argument && (*record).progress == 0.5,
+            "a progress outside [0, 1] is refused");
+    const SplashscreenResult second =
+        Splashscreen::show_on(options, std::make_unique<host::HeadlessSplashscreenSurface>(nullptr));
+    require(second.error == SplashscreenError::already_shown, "one splashscreen at a time");
+    {
+        // The run's first window takes over.
+        Desk desk;
+        require(!splashscreen.shown() && (*record).closed, "the first window of the run closes it");
+    }
+    require(splashscreen.set_status("Done") == SplashscreenError::none && (*record).presented == 3U,
+            "after the handover a status change presents nothing");
+    SplashscreenOptions bad{};
+    bad.size = Size{40.0, 40.0};
+    const SplashscreenResult refused =
+        Splashscreen::show_on(bad, std::make_unique<host::HeadlessSplashscreenSurface>(nullptr));
+    require(refused.error == SplashscreenError::invalid_argument, "a size out of range is refused");
+}
 } // namespace
 
 int main() {
@@ -223,6 +349,9 @@ int main() {
         closes_with_its_control();
         survives_the_host_closing_it();
         admission_rules();
+        menu_panels_show_in_popup_windows();
+        menu_falls_back_to_the_overlay();
+        splashscreen_shows_and_hands_over();
     } catch (const std::exception& error) {
         std::cerr << "splash window test failed: " << error.what() << '\n';
         return 1;

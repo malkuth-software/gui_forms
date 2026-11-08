@@ -51,6 +51,9 @@ public:
     // True by default; tests turn it off to see the overlay fallback.
     [[nodiscard]] bool supports_splash_windows() const noexcept override;
     void set_splash_windows(bool supported) noexcept { splash_windows_ = supported; }
+    // Popup windows, true by default; tests turn them off to see menus fall
+    // back to overlays.
+    void set_popup_windows(bool supported) noexcept { popup_windows_ = supported; }
 
     // Replaces the simulated monitors (desktop logical units). An empty
     // list is ignored.
@@ -71,6 +74,10 @@ public:
 
     [[nodiscard]] const std::string& trace() const noexcept { return trace_; }
     void clear_trace() noexcept { trace_.clear(); }
+    // Whether showing, hiding, framing and raising a window append to the
+    // trace (on by default). An allocation count of those operations turns
+    // it off: each line is formatted on the heap.
+    void set_tracing(bool tracing) noexcept { tracing_ = tracing; }
     void note(std::string_view line);
     // Native state, for assertions. Empty for an unknown window.
     [[nodiscard]] std::optional<Rect> native_content(HostWindowId window) const;
@@ -131,7 +138,9 @@ private:
     std::vector<NativeWindow> natives_;
     std::vector<HostWindowId> order_;
     std::string trace_;
+    bool tracing_{true};
     bool splash_windows_{true};
+    bool popup_windows_{true};
 };
 
 // A deterministic multi-window application for tests: Application::run's

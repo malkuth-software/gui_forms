@@ -213,6 +213,12 @@ Related types
      - MacHostOptions declares initial native window title, geometry, display scale, and run policy.
    * - :cpp:class:`MacHostServiceOptions <gui_forms::host::MacHostServiceOptions>`
      - MacHostServiceOptions injects bounded dialog, tooltip, clipboard, and semantic-sound services into an AppKit session.
+   * - :cpp:class:`Splashscreen <gui_forms::Splashscreen>`
+     - One shown splashscreen, owned by the program.
+   * - :cpp:class:`SplashscreenOptions <gui_forms::SplashscreenOptions>`
+     - A splashscreen (owner, 2026-11-08: APP_WINDOW_RULES_DESIGN Part S; a Splash of kind splashscreen) shown before Application::create, while the program loads: a borderless window centred on the primary monitor that takes no input, painted by a minimal path of its own (a filled face, the title, one status line and an optional progress bar, drawn with the bundled control face through the host's CPU raster; no theme, controls or layout), so that it shows before the theme is compiled.
+   * - :cpp:class:`SplashscreenResult <gui_forms::SplashscreenResult>`
+     -  
    * - :cpp:class:`ThemeChoice <gui_forms::ThemeChoice>`
      -  
    * - :cpp:class:`ThemeCommandLine <gui_forms::ThemeCommandLine>`
@@ -2473,6 +2479,92 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:class:: Splashscreen final
+
+   ``#include <gui_forms/application/splashscreen/splashscreen.hpp>``
+
+   One shown splashscreen, owned by the program. Its window closes when it is destroyed, when close() is called, or (the handover) when the first window of Application::run is ready; after that the setters change its text and do nothing more. Each setter presents the new frame at once, without a run loop. Main thread only (the thread that later runs the application). Link GUIForms::Application for show.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool shown() const noexcept
+
+   .. cpp:function:: const SplashscreenOptions& options() const noexcept
+
+   .. cpp:function:: std::uint64_t frames() const noexcept
+
+      Frames presented, the first included.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static SplashscreenResult show(SplashscreenOptions options)
+
+   .. cpp:function:: void close() noexcept
+
+   .. cpp:function:: static SplashscreenResult show_on(SplashscreenOptions options, std::unique_ptr<detail::SplashscreenSurface> surface)
+
+      Shows :cpp:func:`options <gui_forms::Splashscreen::options>` through ``surface`` (a host's or a test's): the portable half of show, which supplies the platform's surface.
+
+   .. cpp:function:: SplashscreenError set_status(std::string_view status)
+
+      invalid_argument for text that is not UTF-8 or too long, or a progress outside [0, 1], changing nothing.
+
+   .. cpp:function:: SplashscreenError set_progress(std::optional<double> progress)
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: SplashscreenOptions final
+
+   ``#include <gui_forms/application/splashscreen/splashscreen.hpp>``
+
+   A splashscreen (owner, 2026-11-08: APP_WINDOW_RULES_DESIGN Part S; a Splash of kind splashscreen) shown before Application::create, while the program loads: a borderless window centred on the primary monitor that takes no input, painted by a minimal path of its own (a filled face, the title, one status line and an optional progress bar, drawn with the bundled control face through the host's CPU raster; no theme, controls or layout), so that it shows before the theme is compiled.
+
+   .. cpp:member:: constexpr std::size_t maximum_text_bytes
+
+      Default: ``512U``.
+
+   .. cpp:member:: Size size
+
+      Logical units; each extent 160 to 1600. Default: ``{440.0, 240.0}``.
+
+   .. cpp:member:: std::string title
+
+      UTF-8, at most maximum_text_bytes each.
+
+   .. cpp:member:: std::string status
+
+   .. cpp:member:: std::optional<double> progress
+
+      In [0, 1]; none shows no bar.
+
+   .. cpp:member:: Color background
+
+      Default: ``{Color::rgba(250, 252, 255)}``.
+
+   .. cpp:member:: Color foreground
+
+      Default: ``{Color::rgba(31, 37, 44)}``.
+
+   .. cpp:member:: Color accent
+
+      Default: ``{Color::rgba(0, 103, 192)}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: SplashscreenResult final
+
+   ``#include <gui_forms/application/splashscreen/splashscreen.hpp>``
+
+   .. cpp:member:: SplashscreenError error
+
+      Default: ``{SplashscreenError::none}``.
+
+   .. cpp:member:: std::unique_ptr<Splashscreen> splashscreen
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ThemeChoice final
 
    ``#include <gui_forms/application/user_themes/user_themes.hpp>``
@@ -3442,6 +3534,20 @@ Enumerations
    .. cpp:enumerator:: standard
 
    .. cpp:enumerator:: transparent_full_size_content
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: SplashscreenError
+
+   ``#include <gui_forms/application/splashscreen/splashscreen.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: invalid_argument
+
+   .. cpp:enumerator:: already_shown
+
+   .. cpp:enumerator:: unsupported
 
 .. cpp:namespace:: gui_forms
 

@@ -71,6 +71,7 @@ class OverlayAttachment;
 class AcceleratorAttachment;
 class RecordingPainter;
 class ToolTipPresenter;
+class PopupStandby;
 class ToolTipRoute;
 class ToastPresenter;
 class SubSurfaceToolTipRequester;
@@ -1198,6 +1199,7 @@ private:
     friend class detail::ToolTipPresenter;
     // Uses request_tool_tip_wake for a toast's duration.
     friend class detail::ToastPresenter;
+    friend class detail::PopupStandby;
     friend class detail::SubSurfaceToolTipRequester;
     friend class detail::WindowAlerts;
     friend class detail::SubSurfaceAlertRequester;

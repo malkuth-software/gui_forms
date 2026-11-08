@@ -1,6 +1,10 @@
 // The creation-cost gate (APP_WINDOW_RULES_DESIGN K.2): the time and heap
 // allocations of making a bare window, a popup from its owner and a form
-// window of 22 controls with handlers, measured in interleaved rounds.
+// window of 22 controls with handlers, measured in interleaved rounds; and,
+// in one headless reference run made before measuring (Part S, D3: the core
+// cost; the host's own show is recorded apart), showing and hiding a warm
+// tooltip Splash and a warm Popup window, and showing a cold splashscreen
+// (before Application::create, on the headless surface) and closing it.
 //
 //   gui_forms_creation_benchmark [--rounds N] [--joined]            prints the costs
 //   benchmarks/creation/creation_gate.py record BENCHMARK MANIFEST  writes the baseline
@@ -21,6 +25,8 @@
 #include "gui_forms/application.hpp"
 #include "gui_forms/gui_forms.hpp"
 #include "creation_form_form.hpp"
+#include "application/headless_application.hpp"
+#include "application/headless_splashscreen.hpp"
 
 #include <algorithm>
 #include <array>
@@ -123,16 +129,24 @@ enum class CreationCase : std::uint8_t {
     bare_window,
     popup,
     form_window,
+    warm_tooltip,
+    warm_popup,
+    cold_splashscreen,
 };
 
-constexpr std::array<CreationCase, 3> creation_cases{CreationCase::bare_window, CreationCase::popup,
-                                                     CreationCase::form_window};
+constexpr std::size_t creation_case_count = 6U;
+constexpr std::array<CreationCase, creation_case_count> creation_cases{
+    CreationCase::bare_window,  CreationCase::popup,      CreationCase::form_window,
+    CreationCase::warm_tooltip, CreationCase::warm_popup, CreationCase::cold_splashscreen};
 
 std::string_view case_name(CreationCase creation_case) {
     switch (creation_case) {
     case CreationCase::bare_window: return "bare_window";
     case CreationCase::popup: return "popup";
     case CreationCase::form_window: return "form_window";
+    case CreationCase::warm_tooltip: return "warm_tooltip";
+    case CreationCase::warm_popup: return "warm_popup";
+    case CreationCase::cold_splashscreen: return "cold_splashscreen";
     default: return "unknown";
     }
 }
@@ -249,11 +263,91 @@ Sample measure_form_window(const std::shared_ptr<ApplicationResources>& resource
     return sample;
 }
 
-Sample measure(CreationCase creation_case, const std::shared_ptr<ApplicationResources>& resources) {
+struct KeepReady final {
+    Window** model{};
+    void operator()(Window& window, ApplicationWindowHandle) const { *model = &window; }
+};
+
+// One headless reference run, made before any measurement and kept for the
+// program's life: the primary window "main" with a control that has a
+// tooltip, and a detached panel for the Popup. The headless host's trace is
+// off, as it formats each line on the heap.
+class WarmRun final {
+public:
+    WarmRun() {
+        std::vector<ApplicationWindow> windows;
+        ApplicationWindow primary{};
+        primary.stable_id = "main";
+        const std::shared_ptr<Panel> root = make_control<Panel>(StableId("creation.run"));
+        anchor_ = make_control<Button>(StableId("creation.run.anchor"));
+        (*anchor_).set_requested_bounds(Rect{10.0, 10.0, 80.0, 24.0});
+        (*anchor_).tool_tip_text = "Saves the document";
+        (*root).add_child(anchor_);
+        primary.model = std::make_unique<Window>(root, bare_size);
+        primary.options.title = "main";
+        primary.options.initial_size = bare_size;
+        primary.options.ready = KeepReady{&model_};
+        windows.push_back(std::move(primary));
+        application_ = std::make_unique<host::HeadlessApplication>(std::move(windows));
+        (*model_).perform_layout();
+        (*application_).windowing().set_tracing(false);
+        popup_content_ = make_control<Panel>(StableId("creation.run.popup"));
+    }
+
+    Window& model() const { return *model_; }
+    const Control::Ptr& anchor() const noexcept { return anchor_; }
+    const Control::Ptr& popup_content() const noexcept { return popup_content_; }
+
+private:
+    Window* model_{};
+    Control::Ptr anchor_{};
+    Control::Ptr popup_content_{};
+    std::unique_ptr<host::HeadlessApplication> application_{};
+};
+
+// The tooltip shown (without a timeout) and hidden in its kept Splash.
+Sample measure_warm_tooltip(WarmRun& run) {
+    Measurement measurement;
+    run.model().show_tool_tip(run.anchor(), std::chrono::milliseconds(0));
+    run.model().hide_tool_tip();
+    const Sample sample = measurement.finish();
+    return sample;
+}
+
+// A panel shown and hidden in the window's kept Popup of slot 0.
+Sample measure_warm_popup(WarmRun& run) {
+    Measurement measurement;
+    static_cast<void>(run.model().show_popup_window(0U, run.popup_content(), Rect{20.0, 20.0, 240.0, 160.0}));
+    run.model().hide_popup_window(0U);
+    const Sample sample = measurement.finish();
+    return sample;
+}
+
+// A splashscreen shown on a new headless surface, given a status and
+// closed: the portable cost of showing one before Application::create.
+Sample measure_cold_splashscreen() {
+    SplashscreenOptions options{};
+    options.title = "Creation";
+    options.status = "Starting";
+    Measurement measurement;
+    SplashscreenResult shown = Splashscreen::show_on(
+        std::move(options), std::make_unique<host::HeadlessSplashscreenSurface>(nullptr));
+    if (shown) {
+        static_cast<void>((*shown.splashscreen).set_status("Loading"));
+        (*shown.splashscreen).close();
+    }
+    const Sample sample = measurement.finish();
+    return sample;
+}
+
+Sample measure(CreationCase creation_case, const std::shared_ptr<ApplicationResources>& resources, WarmRun& run) {
     switch (creation_case) {
     case CreationCase::bare_window: return measure_bare_window();
     case CreationCase::popup: return measure_popup();
     case CreationCase::form_window: return measure_form_window(resources);
+    case CreationCase::warm_tooltip: return measure_warm_tooltip(run);
+    case CreationCase::warm_popup: return measure_warm_popup(run);
+    case CreationCase::cold_splashscreen: return measure_cold_splashscreen();
     default: return Sample{};
     }
 }
@@ -265,14 +359,18 @@ double percentile(std::vector<double>& values, double fraction) {
 }
 
 // One run: a warm-up round, then `rounds` rounds of every case in turn.
-std::array<CaseCost, 3> run(std::size_t rounds, const std::shared_ptr<ApplicationResources>& resources) {
-    for (const CreationCase creation_case : creation_cases) static_cast<void>(measure(creation_case, resources));
-    std::array<std::vector<double>, 3> times{};
-    std::array<CaseCost, 3> costs{};
+std::array<CaseCost, creation_case_count> run(std::size_t rounds,
+                                              const std::shared_ptr<ApplicationResources>& resources,
+                                              WarmRun& warm) {
+    for (const CreationCase creation_case : creation_cases) {
+        static_cast<void>(measure(creation_case, resources, warm));
+    }
+    std::array<std::vector<double>, creation_case_count> times{};
+    std::array<CaseCost, creation_case_count> costs{};
     for (std::vector<double>& case_times : times) case_times.reserve(rounds);
     for (std::size_t round = 0U; round < rounds; ++round) {
         for (std::size_t index = 0U; index < creation_cases.size(); ++index) {
-            const Sample sample = measure(creation_cases[index], resources);
+            const Sample sample = measure(creation_cases[index], resources, warm);
             times[index].push_back(sample.nanoseconds);
             costs[index].allocations = std::max(costs[index].allocations, sample.allocations);
             costs[index].bytes = std::max(costs[index].bytes, sample.bytes);
@@ -287,11 +385,11 @@ std::array<CaseCost, 3> run(std::size_t rounds, const std::shared_ptr<Applicatio
     return costs;
 }
 
-void print_costs(const std::array<CaseCost, 3>& costs, bool joined) {
+void print_costs(const std::array<CaseCost, creation_case_count>& costs, bool joined) {
     for (std::size_t index = 0U; index < creation_cases.size(); ++index) {
         std::string name(case_name(creation_cases[index]));
         if (joined) name += "_joined";
-        std::printf("%-12s median %10.0f ns  p10-p90 %9.0f ns  allocations %6llu  bytes %9llu\n", name.c_str(),
+        std::printf("%-18s median %10.0f ns  p10-p90 %9.0f ns  allocations %6llu  bytes %9llu\n", name.c_str(),
                     costs[index].median_nanoseconds, costs[index].spread_nanoseconds,
                     static_cast<unsigned long long>(costs[index].allocations),
                     static_cast<unsigned long long>(costs[index].bytes));
@@ -323,7 +421,10 @@ int main(int argc, char** argv) {
     }
     const std::shared_ptr<ApplicationResources> resources =
         joined ? (*created.application).resources() : std::make_shared<ApplicationResources>();
-    const std::array<CaseCost, 3> costs = run(rounds, resources);
+    // The headless run of the warm cases, made after the application (so
+    // that, joined, its window joins it) and before anything measured.
+    WarmRun warm{};
+    const std::array<CaseCost, creation_case_count> costs = run(rounds, resources, warm);
     print_costs(costs, joined);
     return 0;
 }

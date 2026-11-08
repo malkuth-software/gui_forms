@@ -23,11 +23,13 @@ struct TransientWindowOpening final {
 // SPLASH_STUDY D1): one popup-kind host window of a Splash or Popup kind,
 // opened hidden once and kept for its owner's life, presented through the
 // host's ordinary window path. Its small Window model holds one content
-// subtree at a time: show puts the content into the model's root, frames
-// the host window and shows it; hide hides it and takes the content out.
-// The content stays the caller's: it is a child of the root only while
-// shown. A show after the first, of content already made, makes no host
-// window and builds no model.
+// subtree at a time: show puts the content into the model's root (unless
+// it is there already), frames the host window and shows it; hide hides
+// the window and leaves the content in it, so that showing the same
+// content again attaches nothing (the warm show: no host window, no model,
+// no attachment). Showing other content takes the old content out first.
+// The content stays the caller's: it is a child of the root until other
+// content replaces it or this object goes.
 //
 // The host window closes when this object is destroyed, when its owner
 // window closes, or when the host destroys it; closed() is raised once
@@ -51,11 +53,13 @@ public:
     // Moves and resizes the window while it shows; false when nothing shows
     // or the host refused.
     [[nodiscard]] bool move(Rect desktop);
-    // Hides the window and detaches its content; nothing when hidden.
+    // Hides the window, leaving its content attached; nothing when hidden.
     void hide() noexcept;
+    // Takes the content out, hiding the window first when it shows.
+    void clear() noexcept;
 
     [[nodiscard]] bool connected() const noexcept;
-    [[nodiscard]] bool shown() const noexcept { return content_ != nullptr; }
+    [[nodiscard]] bool shown() const noexcept { return shown_; }
     // The window's model while it is open, else null.
     [[nodiscard]] Window* model() const noexcept;
     [[nodiscard]] HostWindowId id() const noexcept;
@@ -71,6 +75,7 @@ private:
     // The model's root (owned by the model; kept to add and remove content).
     Control::Ptr root_;
     Control::Ptr content_{};
+    bool shown_{};
 };
 
 } // namespace gui_forms::detail

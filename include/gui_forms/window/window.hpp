@@ -115,6 +115,29 @@ public:
     [[nodiscard]] NativePopupToken open_native_popup(const Control::Ptr& owner, const Control::Ptr& content,
                                                      Rect bounds, const NativePopupOptions& options);
 
+    // Warm Popup windows (owner, 2026-11-08: APP_WINDOW_RULES_DESIGN Part S;
+    // menus are Popups). Slot `slot` (below maximum_popup_windows; a menu
+    // uses its depth) is one passive popup-kind host window, opened hidden
+    // on the slot's first show and kept, hidden between shows, for this
+    // window's life. show_popup_window shows `content` (a live detached
+    // root) as its whole client at `bounds` (this window's client
+    // coordinates, kept inside the monitor's work area), replacing content
+    // already shown there; move_popup_window moves it; hide_popup_window
+    // hides it and takes the content out. A Popup never takes the focus:
+    // keys reach this window, and the control that opened the popup forwards
+    // them to popup_window_model(slot), the model while the slot shows (else
+    // null). False when the run cannot (no run, a host without popup
+    // windows, a host refusal): the caller opens an overlay instead.
+    // popup_window_closed() is raised with the slot when the host closes a
+    // slot that shows. std::out_of_range for a slot out of range. UI thread.
+    static constexpr std::size_t maximum_popup_windows = 8U;
+    [[nodiscard]] bool popup_windows_available() const;
+    [[nodiscard]] bool show_popup_window(std::size_t slot, const Control::Ptr& content, Rect bounds);
+    [[nodiscard]] bool move_popup_window(std::size_t slot, Rect bounds);
+    void hide_popup_window(std::size_t slot) noexcept;
+    [[nodiscard]] Window* popup_window_model(std::size_t slot) const noexcept;
+    [[nodiscard]] Event<std::size_t>& popup_window_closed();
+
     // The application this window joined, or null (none was current, or it
     // was destroyed first).
     [[nodiscard]] Application* application() const noexcept { return application_; }
@@ -171,6 +194,10 @@ private:
     Event<const ToastDismissal&> toast_dismissed_{};
     // Native popups opened by this window, numbering their stable ids.
     std::uint64_t native_popup_serial_{};
+    // The warm Popup windows, made on first use (popup_standby()). Shared
+    // so that its deleter is bound where it is made.
+    std::shared_ptr<detail::PopupStandby> popup_standby_{};
+    [[nodiscard]] detail::PopupStandby& popup_standby();
     // Called by HostSession: seeds the window's bindings with the host's
     // defaults unless they are seeded already.
     void install_host_key_map(const KeyMap& defaults);

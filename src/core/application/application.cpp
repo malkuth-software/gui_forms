@@ -1,4 +1,5 @@
 #include "application_state.hpp"
+#include "splashscreen_surface.hpp"
 #include "gui_forms/text/types/text_types.hpp"
 
 #include "gui_forms/resources/application_resources/application_resources.hpp"
@@ -130,6 +131,9 @@ bool primary_window_entry(const ApplicationWindow& entry) noexcept {
 
 void attach_application_window(SurfaceRoot& model, const std::shared_ptr<ApplicationWindowState>& state) noexcept {
     model.application_window_ = state;
+    // The first window of the run is ready: a splashscreen shown before
+    // Application::create hands over to it (its later windows find none).
+    hand_over_splashscreen();
 }
 
 void revoke_window_state(ApplicationWindowState& state) noexcept {

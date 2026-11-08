@@ -173,7 +173,9 @@ std::optional<ToolTipEvent> ToolTipPresenter::open(ToolTipOrigin origin, ToolTip
         return std::nullopt;
     }
     const ToolTipSettings& settings = window_.tool_tip_settings();
-    ToolTipLines lines{};
+    // The kept lines, so that a warm show breaks into storage it already
+    // has (the bubble swaps them with its own).
+    ToolTipLines& lines = transient_lines_;
     lines.font = (*control).effective_font(tool_tip_font);
     break_tool_tip_lines(*control, subject.text, settings.maximum_width, lines);
 

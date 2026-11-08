@@ -19,6 +19,7 @@
 #endif
 // The window's painter (stage SK3): the private Skia CPU raster.
 #include "skia_raster.hpp"
+#include "../../../core/application/splashscreen_surface.hpp"
 
 #include "gui_forms/engine/part_raster/part_raster.hpp"
 #include "gui_forms/live_surface.hpp"
@@ -3702,5 +3703,7 @@ int run_windows_application(std::vector<WindowsApplicationWindow> windows,
     if (capture_failed) return 6;
     return static_cast<int>(message.wParam);
 }
+
+#include "windows_splashscreen.inc"
 
 } // namespace gui_forms::host

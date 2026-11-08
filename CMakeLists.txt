@@ -231,7 +231,9 @@ add_library(gui_forms_core STATIC
     src/core/application/application.cpp
     src/core/application/native_popup.cpp
     src/core/application/transient_window.cpp
+    src/core/application/splashscreen.cpp
     src/core/window/native_popup/native_popup_window.cpp
+    src/core/window/native_popup/popup_standby.cpp
     src/core/application/window_frame_drag.cpp
     src/core/application/workspace_transaction.cpp
     src/core/animation/animation_timeline/animation_timeline.cpp
@@ -2287,7 +2289,8 @@ target_link_libraries(gui_forms_shadow_frames_benchmark PRIVATE gui_forms_core)
 # for; run in Release on the M4.
 if(GUI_FORMS_BUILD_FORM_COMPILER)
     add_executable(gui_forms_creation_benchmark EXCLUDE_FROM_ALL benchmarks/creation_benchmark.cpp)
-    target_link_libraries(gui_forms_creation_benchmark PRIVATE gui_forms_controls)
+    target_link_libraries(gui_forms_creation_benchmark PRIVATE gui_forms_controls gui_forms_host_headless)
+    target_include_directories(gui_forms_creation_benchmark PRIVATE src/host/headless)
     gui_forms_add_form(gui_forms_creation_benchmark benchmarks/creation/creation_form.form
         CLASS CreationSettingsForm NAMESPACE form_generated)
 endif()
