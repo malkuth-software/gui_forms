@@ -4,8 +4,11 @@
 #include "gui_forms/window/native_popup/native_popup.hpp"
 
 #include <cmath>
+#include <cstdint>
+#include <cwchar>
 #include <iostream>
 #include <stdexcept>
+#include <string>
 #include <thread>
 
 #if defined(_WIN32)
@@ -21,6 +24,9 @@
 namespace {
 using namespace gui_forms;
 void require(bool condition, const char* message) {
+    if (!condition) throw std::runtime_error(message);
+}
+void require(bool condition, const std::string& message) {
     if (!condition) throw std::runtime_error(message);
 }
 std::unique_ptr<Window> make_window() {
@@ -274,18 +280,54 @@ struct RuntimeWindowsProbe final {
     bool native_styles{};
     bool native_owner{};
     bool native_placed{};
+    // Every window of this thread the main window owns, described for a
+    // failed check (class, styles); empty when the check passed.
+    std::string native_windows{};
 };
 #if defined(_WIN32)
-// The popup windows of this thread that `owner` owns: WS_POPUP windows.
+// The popup windows of this thread that `owner` owns: WS_POPUP windows of
+// the owner's own window class. The class matters: the system's own
+// windows, such as the thread's default IME window ("IME", WS_POPUP, owned
+// by the thread's active top-level window), are owned popups too.
 struct PopupWindows final {
     HWND owner{};
+    wchar_t owner_class[128]{};
     HWND found[4]{};
     std::size_t count{};
+    // Every window `owner` owns, for the diagnostic.
+    std::string listed{};
 };
+// `name` (a window class name, NUL-terminated) as ASCII, other characters '?'.
+std::string ascii_name(const wchar_t* name) {
+    std::string text;
+    for (std::size_t index = 0U; name[index] != L'\0'; ++index) {
+        const wchar_t unit = name[index];
+        const bool ascii = unit >= 0x20 && unit < 0x7f;
+        text.push_back(ascii ? static_cast<char>(unit) : '?');
+    }
+    return text;
+}
+std::string hex_value(LONG_PTR value) {
+    constexpr char digits[] = "0123456789abcdef";
+    const std::uint64_t bits = static_cast<std::uint64_t>(static_cast<std::uint32_t>(value));
+    std::string text = "0x";
+    for (int shift = 28; shift >= 0; shift -= 4) {
+        const std::uint64_t digit = (bits >> static_cast<unsigned>(shift)) & 0xfU;
+        text.push_back(digits[digit]);
+    }
+    return text;
+}
 BOOL CALLBACK collect_popup_window(HWND window, LPARAM context) {
     PopupWindows& popups = *reinterpret_cast<PopupWindows*>(context);
+    if (GetWindow(window, GW_OWNER) != popups.owner) return TRUE;
+    wchar_t class_name[128]{};
+    const int length = GetClassNameW(window, class_name, 128);
     const LONG_PTR style = GetWindowLongPtrW(window, GWL_STYLE);
-    const bool popup = (style & WS_POPUP) != 0 && GetWindow(window, GW_OWNER) == popups.owner;
+    const LONG_PTR extended = GetWindowLongPtrW(window, GWL_EXSTYLE);
+    popups.listed += " [class " + ascii_name(class_name) + " style " + hex_value(style) + " ex " +
+                     hex_value(extended) + "]";
+    const bool ours = length > 0 && std::wcscmp(class_name, popups.owner_class) == 0;
+    const bool popup = ours && (style & WS_POPUP) != 0;
     if (popup && popups.count < 4U) {
         popups.found[popups.count] = window;
         popups.count = popups.count + 1U;
@@ -298,9 +340,14 @@ BOOL CALLBACK collect_popup_window(HWND window, LPARAM context) {
 void check_native_popup(RuntimeWindowsProbe& state, HWND owner, Rect bounds) {
     PopupWindows popups{};
     popups.owner = owner;
+    static_cast<void>(GetClassNameW(owner, popups.owner_class, 128));
     EnumThreadWindows(GetCurrentThreadId(), &collect_popup_window, reinterpret_cast<LPARAM>(&popups));
     state.native_checked = popups.count == 1U;
-    if (!state.native_checked) return;
+    if (!state.native_checked) {
+        state.native_windows = "found " + std::to_string(popups.count) + " of class " +
+                               ascii_name(popups.owner_class) + "; owned:" + popups.listed;
+        return;
+    }
     const HWND popup = popups.found[0];
     const LONG_PTR style = GetWindowLongPtrW(popup, GWL_STYLE);
     const LONG_PTR extended = GetWindowLongPtrW(popup, GWL_EXSTYLE);
@@ -458,7 +505,7 @@ void check_runtime_windows() {
     require(probe.passive_surface == NativePopupSurface::native && probe.passive_refusal == NativePopupRefusal::none,
             "a passive popup opens a native window");
     require(probe.native_owner, "the main window is found");
-    require(probe.native_checked, "the main window owns exactly one popup window");
+    require(probe.native_checked, "the main window owns exactly one popup window: " + probe.native_windows);
     require(probe.native_styles, "the popup window is an undecorated, non-activating tool");
     require(probe.native_placed, "the popup sits at the owner's client origin plus its bounds");
     require(probe.focus_surface == NativePopupSurface::native, "a focus-taking popup opens a native window");
@@ -496,8 +543,7 @@ void check_shutdown() {
     const ApplicationResult late = Application::run(make_window());
     require(late.error == ApplicationError::after_shutdown, "run after shutdown accepted");
 }
-}
-int main() {
+void run_checks() {
 #if defined(_WIN32)
     check_direct_title_lifetime();
     check_character_normalization();
@@ -540,4 +586,17 @@ int main() {
     check_runtime_windows();
     check_shutdown();
     std::cout << "portable application API: native attach, cancel/retry, close, expiry, recursion, exception containment, runtime windows and shutdown passed\n";
+}
+} // namespace
+
+int main() {
+    // A failed check is reported and fails the test; it never leaves main
+    // as an uncaught exception (which aborts the process on Windows).
+    try {
+        run_checks();
+    } catch (const std::exception& error) {
+        std::cerr << "application native tests FAILED: " << error.what() << '\n';
+        return 1;
+    }
+    return 0;
 }
