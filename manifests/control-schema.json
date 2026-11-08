@@ -15,7 +15,7 @@
     "semantic_roles": ["generic", "group", "static_text", "button", "check_box", "radio_button", "link", "text_box", "list", "list_item", "check_list_item", "combo_box", "slider", "scroll_bar", "progress_bar", "image", "tab_group", "tab", "split_pane", "numeric_field", "tool_tip", "date_picker", "calendar", "date_cell", "property_grid", "property_group", "property_row", "menu_bar", "menu_bar_item", "menu", "menu_item", "separator", "toolbar", "radio_group", "split_button", "menu_button", "pane", "tab_panel", "tree", "tree_item", "table", "row", "cell", "column_header", "row_header", "tree_grid", "dialog", "status_bar", "live_region", "meter", "toggle_switch", "search_box"],
     "semantic_actions": ["focus", "press", "select", "increment", "decrement", "expand", "collapse", "show_menu", "set_value", "close"],
     "semantic_states": ["enabled", "visible", "focusable", "focused", "selected", "checked", "mixed", "read_only", "expanded", "busy", "protected_content", "invalid", "checkable", "multiselectable"],
-    "semantic_fields": ["position_in_set", "set_size", "has_popup", "controlled_panel", "orientation", "level", "modal", "row_index", "column_index", "row_count", "column_count", "access_key", "small_step", "large_step", "text_selection", "multiline", "tool_tip"]
+    "semantic_fields": ["position_in_set", "set_size", "has_popup", "controlled_panel", "orientation", "level", "modal", "row_index", "column_index", "row_count", "column_count", "access_key", "small_step", "large_step", "text_selection", "multiline", "tool_tip", "announces_on_appearance"]
   },
   "engine": {
     "version": "0.3",

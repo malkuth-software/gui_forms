@@ -450,10 +450,9 @@ void walk_toast(Window& window, Report& report) {
     }
     window.perform_layout();
     const SemanticSnapshot snapshot = window.semantic_snapshot();
-    const SemanticNode* toast = nullptr;
-    for (const SemanticNode& root : snapshot.roots) {
-        if (toast == nullptr) toast = find_prefixed(root.children, "gallery.notices.toast.");
-    }
+    // The toast's overlay publishes it as a root of its own, so the roots
+    // are searched too, not only their children.
+    const SemanticNode* toast = find_prefixed(snapshot.roots, "gallery.notices.toast.");
     if (toast == nullptr) {
         fail(report, toast_page, "gallery.notices.toast", "the shown toast publishes no node");
     } else if ((*toast).role != SemanticRole::live_region || (*toast).name != "Message archived." ||

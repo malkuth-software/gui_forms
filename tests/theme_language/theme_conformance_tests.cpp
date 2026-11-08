@@ -583,6 +583,9 @@ void check_refusal_leaves_nothing(const Fixture& fixture) {
     ThemeCompileOptions options{};
     options.controls = controls;
     options.published_values = published;
+    // The registry the direct compile checks effect names against (EP-3),
+    // so an unknown effect (E417) is refused as a package too.
+    options.effects = &built_in_effect_registry();
     const ThemePackage running_package =
         package_of("running", "button::part(face) { background-image: url(\"resource:icon.check\") }");
     const ThemeCompileResult running = compile_theme_package(running_package, library, registry, options);
