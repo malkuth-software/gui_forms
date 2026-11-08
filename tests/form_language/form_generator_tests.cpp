@@ -773,9 +773,10 @@ void test_capability_assignment() {
                            "decltype((*made.app_root).area)>(gui_forms::BindingValue{std::string(\"side\")});") !=
                 std::string::npos,
             "capabilities: a grid area is assigned through the parent's child view");
-    require(generated.find("(*made.app_note).set_property_value(\"text\", "
-                           "gui_forms::BindingValue{std::string(\"Note\")});") != std::string::npos,
-            "capabilities: a label's text, not yet on a capability, is written by name");
+    require(generated.find("(*made.app_note).text = gui_forms::assigned_property_value<"
+                           "decltype((*made.app_note).text)>(gui_forms::BindingValue{std::string(\"Note\")});") !=
+                std::string::npos,
+            "capabilities: a label's text is assigned through its cell");
     require(generated.find("(*made.app_root).set_child_property_value(*made.app_note, \"cell\"") !=
                 std::string::npos,
             "capabilities: a grid cell, which converts through a named write, is written by name");
