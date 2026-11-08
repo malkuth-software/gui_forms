@@ -498,6 +498,34 @@ Properties beyond every control's: `effect` (text), `effect_input` (enumeration)
 | `value_changed` | `double` |
 | `scroll` | `RangeScrollEvent` |
 
+## `progress_ring` (ProgressRing, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `track` | track |  |  |
+| `fill` | fill |  |  |
+| `activity` | activity |  |  |
+
+States: `normal`, `enabled`, `disabled`, `reduced_motion`. Application-defined: `indeterminate`.
+
+Properties beyond every control's: `indeterminate` (boolean), `maximum` (number), `value` (number).
+
+Interactions beyond every control's: none.
+
+## `spinner` (Spinner, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `activity` | activity |  |  |
+
+States: `normal`, `enabled`, `disabled`, `reduced_motion`.
+
+Properties beyond every control's: `active` (boolean).
+
+Interactions beyond every control's: none.
+
 ## `sweep_scope` (SweepScope, control)
 
 | Part | Role | Reuses | Own states |

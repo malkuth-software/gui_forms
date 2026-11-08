@@ -11,6 +11,8 @@
 #include "gui_forms/controls/label/label.hpp"
 #include "gui_forms/controls/text_block/text_block.hpp"
 #include "gui_forms/controls/badge/badge.hpp"
+#include "gui_forms/controls/progress_ring/progress_ring.hpp"
+#include "gui_forms/controls/spinner/spinner.hpp"
 #include "gui_forms/controls/info_banner/info_banner.hpp"
 #include "gui_forms/controls/empty_state/empty_state.hpp"
 #include "gui_forms/controls/toast/toast.hpp"

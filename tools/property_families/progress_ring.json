@@ -1,0 +1,122 @@
+{
+  "family": "ProgressRing",
+  "step": "W-4",
+  "declaring": "ProgressRing",
+  "header": "include/gui_forms/controls/progress_ring/progress_ring.hpp",
+  "source": "src/controls/progress_ring/progress_ring.cpp",
+  "capabilities_header": "include/gui_forms/controls/progress_ring/progress_ring_capabilities/progress_ring_capabilities.hpp",
+  "base": "Control",
+  "shared": [],
+  "includes": [],
+  "not_properties": [],
+  "test": {
+    "type": "ProgressRing",
+    "include": "gui_forms/controls/progress_ring/progress_ring.hpp"
+  },
+  "properties": [
+    {
+      "name": "value",
+      "capability": "ProgressRingValue",
+      "value": "double",
+      "initial": "0.0",
+      "comment": "The progress, from 0 to maximum; a value outside that range is drawn clamped to it. Not finite throws std::invalid_argument.",
+      "getter": "value",
+      "setter": "set_value",
+      "clear": null,
+      "field": "value_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": {
+        "kind": "number",
+        "category": "Behavior",
+        "description": "The progress, from 0 to maximum.",
+        "default": "BindingValue{0.0}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": true,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "hand": [],
+      "sample": "25.0",
+      "prepare": [
+        "if (!std::isfinite(incoming)) throw std::invalid_argument(\"ProgressRing value must be finite\");"
+      ]
+    },
+    {
+      "name": "maximum",
+      "capability": "ProgressRingMaximum",
+      "value": "double",
+      "initial": "100.0",
+      "comment": "The value of a full ring (100 by default). Not finite or not above zero throws std::invalid_argument.",
+      "getter": "maximum",
+      "setter": "set_maximum",
+      "clear": null,
+      "field": "maximum_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": {
+        "kind": "number",
+        "category": "Behavior",
+        "description": "The value of a full ring.",
+        "default": "BindingValue{100.0}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "hand": [],
+      "sample": "50.0",
+      "prepare": [
+        "if (!std::isfinite(incoming) || incoming <= 0.0) {",
+        "    throw std::invalid_argument(\"ProgressRing maximum must be finite and greater than zero\");",
+        "}"
+      ]
+    },
+    {
+      "name": "indeterminate",
+      "capability": "ProgressRingIndeterminate",
+      "value": "bool",
+      "initial": "false",
+      "comment": "Whether the ring shows activity without an amount: a turning arc instead of the value.",
+      "getter": "indeterminate",
+      "setter": "set_indeterminate",
+      "clear": null,
+      "field": "indeterminate_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": {
+        "kind": "boolean",
+        "category": "Behavior",
+        "description": "Whether the ring turns instead of showing the value.",
+        "default": "BindingValue{false}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": true,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [],
+      "sample": "true"
+    }
+  ]
+}

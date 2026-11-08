@@ -1,0 +1,98 @@
+/* The Gallery's spinners-and-rings page (W-4): Spinner at three sizes and
+   ProgressRing determinate at several values and indeterminate.
+   gui_forms_add_form() compiles this document into
+   spinners-and-rings_form.hpp at build time.
+
+   gallery.spinners-and-rings.document is a declared boundary only: the
+   page moves its children into the shell's page body (a 1000 x 660 design
+   surface), where each is placed by its bounds in design coordinates.
+   Behaviour stays in the page (src/controls/gallery/pages/
+   spinners-and-rings.cpp): the check boxes that start and stop the
+   spinners and turn the last ring indeterminate, and the Command that
+   advances the stepped ring. Both controls turn on the window's motion
+   clock and stand still under reduced motion. */
+scaled-panel gallery.spinners-and-rings.document {
+  design-size: 1000 660;
+
+  label gallery.spinners-and-rings.heading {
+    text: "SPINNERS AND RINGS";
+    classes: "heading" "page-title";
+    bounds: 24 18 620 34;
+  }
+  label gallery.spinners-and-rings.lead {
+    text: "Work under way without an amount, and progress around a ring; both stand still under reduced motion.";
+    classes: "muted" "body";
+    bounds: 26 52 920 24;
+  }
+
+  scaled-group-box gallery.spinners.group {
+    text: "Spinner · indeterminate, at three sizes";
+    classes: "paper" "group-caption";
+    design-size: 450 240;
+    bounds: 24 92 450 240;
+    spinner gallery.spinners.small {
+      accessible-name: "Loading, small";
+      bounds: 40 60 16 16;
+    }
+    spinner gallery.spinners.medium {
+      accessible-name: "Loading";
+      bounds: 110 52 32 32;
+    }
+    spinner gallery.spinners.large {
+      accessible-name: "Loading, large";
+      bounds: 200 36 64 64;
+    }
+    check-box gallery.spinners.active {
+      text: "Active";
+      checked: true;
+      bounds: 40 160 200 24;
+    }
+  }
+
+  scaled-group-box gallery.rings.group {
+    text: "ProgressRing · determinate and indeterminate";
+    classes: "paper" "group-caption";
+    design-size: 930 280;
+    bounds: 24 352 930 280;
+    progress-ring gallery.rings.empty {
+      accessible-name: "Not started";
+      value: 0;
+      bounds: 40 52 64 64;
+    }
+    progress-ring gallery.rings.quarter {
+      accessible-name: "A quarter done";
+      value: 25;
+      bounds: 140 52 64 64;
+    }
+    progress-ring gallery.rings.most {
+      accessible-name: "Most done";
+      value: 80;
+      bounds: 240 52 64 64;
+    }
+    progress-ring gallery.rings.full {
+      accessible-name: "Done";
+      value: 100;
+      bounds: 340 52 64 64;
+    }
+    progress-ring gallery.rings.stepped {
+      accessible-name: "Stepped progress";
+      value: 10;
+      bounds: 500 40 88 88;
+    }
+    button gallery.rings.advance {
+      text: "Advance";
+      visual-style: command;
+      bounds: 620 64 140 32;
+    }
+    progress-ring gallery.rings.busy {
+      accessible-name: "Working";
+      indeterminate: true;
+      bounds: 40 160 64 64;
+    }
+    check-box gallery.rings.indeterminate {
+      text: "Indeterminate";
+      checked: true;
+      bounds: 140 180 200 24;
+    }
+  }
+}

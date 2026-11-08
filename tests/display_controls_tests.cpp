@@ -1,6 +1,6 @@
 // W-4 controls: Badge, InfoBanner, EmptyState, the segmented ChoiceGroup
-// presentation, Toast with its window presenter, ToggleSwitch and
-// SearchField. Each test covers the control's behaviour, its refusals, its
+// presentation, Toast with its window presenter, ToggleSwitch, SearchField,
+// Spinner and ProgressRing. Each test covers the control's behaviour, its refusals, its
 // semantics, its published parts and states, and the capability cases: a
 // write stores, an equal write does nothing, and a write from another
 // thread is refused before anything is compared or stored.
@@ -15,6 +15,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <span>
@@ -1029,6 +1030,170 @@ void test_search_field_busy_motion() {
             "turning busy off withdraws the strip and its motion");
 }
 
+
+// Writes a spinner's active flag from another thread and records whether
+// it was refused.
+struct OtherThreadActive final {
+    Spinner* spinner{};
+    bool* refused{};
+    void operator()() const {
+        try {
+            (*spinner).active = false;
+        } catch (const std::logic_error&) {
+            *refused = true;
+        }
+    }
+};
+
+// Spinner: busy semantics while active, nothing while inactive; its turn
+// runs on the motion clock one dot per step while drawn, drops off when not
+// drawn, stands still at twelve o'clock under reduced motion, and leaves
+// the clock when deactivated.
+void test_spinner() {
+    const std::shared_ptr<Spinner> loose = make_control<Spinner>(StableId("display.spinner.loose"));
+    require((*loose).active.read() && (*loose).measure(Size{200.0, 200.0}) == (Size{24.0, 24.0}),
+            "a spinner is active and measures 24 units square");
+    const SemanticDescriptor busy = (*loose).semantic_descriptor();
+    require(busy.role == SemanticRole::progress_bar && busy.exposed && has_semantic_state(busy.states, SemanticState::busy) &&
+                !busy.numeric_value,
+            "an active spinner is a busy progress bar without a value");
+    require(!(*loose).hit_test_local(Point{4.0, 4.0}), "a spinner takes no pointer input");
+
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("display.spinner.root"));
+    const std::shared_ptr<Spinner> spinner = make_control<Spinner>(StableId("display.spinner"));
+    (*spinner).set_requested_bounds(Rect{10.0, 10.0, 48.0, 48.0});
+    (*root).add_child(spinner);
+    ManualTime time;
+    Window window(root, Size{200.0, 100.0});
+    window.motion_clock().set_time_source(&time);
+    window.perform_layout();
+    MotionClock& clock = window.motion_clock();
+    require((*spinner).parts().activity.present, "an active spinner publishes its activity part");
+    require(!clock.control_ambient(*spinner), "a spinner not drawn yet is not on the clock");
+    const Rect bounds{0.0, 0.0, 48.0, 48.0};
+    NullPainter first;
+    (*spinner).on_paint(first, bounds);
+    require(clock.control_ambient(*spinner) && (*spinner).moving() && window.next_wake().has_value() &&
+                (*spinner).phase() == 0U,
+            "a drawn spinner turns on the motion clock from twelve o'clock");
+    advance(window, time, std::chrono::milliseconds(100));
+    require((*spinner).phase() == 1U, "one step period moves the lit run one dot");
+    NullPainter second;
+    (*spinner).on_paint(second, bounds);
+    advance(window, time, std::chrono::milliseconds(250));
+    require((*spinner).phase() == 3U, "the phase follows the elapsed time, a dot per 100 ms");
+    advance(window, time, std::chrono::milliseconds(100));
+    advance(window, time, std::chrono::milliseconds(100));
+    require(!clock.control_ambient(*spinner), "a spinner not drawn between frames drops off the clock");
+
+    set_reduced_motion(window, true);
+    NullPainter still;
+    (*spinner).on_paint(still, bounds);
+    require(!clock.control_ambient(*spinner) && (*spinner).phase() == 0U,
+            "under reduced motion the ring stands still at twelve o'clock");
+    require(has_semantic_state((*spinner).semantic_descriptor().states, SemanticState::busy),
+            "a still spinner is still busy");
+    require((*spinner).anatomy_states().contains(AnatomyState::reduced_motion), "the reduced_motion state is published");
+    set_reduced_motion(window, false);
+    NullPainter again;
+    (*spinner).on_paint(again, bounds);
+    require(clock.control_ambient(*spinner), "with motion allowed again the next paint turns it");
+
+    (*spinner).active = false;
+    window.perform_layout();
+    const SemanticDescriptor idle = (*spinner).semantic_descriptor();
+    require(!clock.control_ambient(*spinner) && !idle.exposed && !has_semantic_state(idle.states, SemanticState::busy),
+            "deactivating withdraws the turn and the busy node");
+    require(!(*spinner).parts().activity.present, "an inactive spinner publishes no activity part");
+
+    bool refused = false;
+    std::thread worker(OtherThreadActive{spinner.get(), &refused});
+    worker.join();
+    require(refused && !(*spinner).active.read(), "an active write from another thread is refused");
+}
+
+// ProgressRing: the lit dots follow value over maximum, clamped; bad values
+// are refused; semantics carry the value, or busy while indeterminate,
+// whose run turns on the motion clock and stands still under reduced
+// motion.
+void test_progress_ring() {
+    const std::shared_ptr<ProgressRing> loose = make_control<ProgressRing>(StableId("display.ring.loose"));
+    require((*loose).fraction() == 0.0 && (*loose).lit_dots() == 0U, "an empty ring lights nothing");
+    (*loose).value = 25.0;
+    require((*loose).fraction() == 0.25 && (*loose).lit_dots() == 10U, "a quarter lights a quarter of the dots");
+    (*loose).value = 0.5;
+    require((*loose).lit_dots() == 1U, "a positive value lights at least one dot");
+    (*loose).value = 1000.0;
+    require((*loose).fraction() == 1.0 && (*loose).lit_dots() == ProgressRing::dot_count, "past maximum the ring is full");
+    (*loose).value = -5.0;
+    require((*loose).lit_dots() == 0U, "below zero the ring is empty");
+    bool refused_maximum = false;
+    try {
+        (*loose).maximum = 0.0;
+    } catch (const std::invalid_argument&) {
+        refused_maximum = true;
+    }
+    require(refused_maximum && (*loose).maximum.read() == 100.0, "a maximum of zero is refused");
+    bool refused_value = false;
+    try {
+        (*loose).value = std::numeric_limits<double>::quiet_NaN();
+    } catch (const std::invalid_argument&) {
+        refused_value = true;
+    }
+    require(refused_value && (*loose).value.read() == -5.0, "a value that is not finite is refused");
+    (*loose).maximum = 50.0;
+    (*loose).value = 20.0;
+    const SemanticDescriptor amount = (*loose).semantic_descriptor();
+    require(amount.role == SemanticRole::progress_bar && amount.exposed && amount.numeric_value == 20.0 &&
+                amount.minimum_value == 0.0 && amount.maximum_value == 50.0 && amount.value == "20" &&
+                !has_semantic_state(amount.states, SemanticState::busy),
+            "a determinate ring publishes its value and range");
+
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("display.ring.root"));
+    const std::shared_ptr<ProgressRing> ring = make_control<ProgressRing>(StableId("display.ring"));
+    (*ring).set_requested_bounds(Rect{10.0, 10.0, 64.0, 64.0});
+    (*ring).value = 40.0;
+    (*root).add_child(ring);
+    ManualTime time;
+    Window window(root, Size{200.0, 100.0});
+    window.motion_clock().set_time_source(&time);
+    window.perform_layout();
+    MotionClock& clock = window.motion_clock();
+    const ProgressRing::Parts determinate = (*ring).parts();
+    require(determinate.track.present && determinate.fill.present && !determinate.activity.present,
+            "a determinate ring publishes its track and fill");
+    const Rect bounds{0.0, 0.0, 64.0, 64.0};
+    NullPainter painted;
+    (*ring).on_paint(painted, bounds);
+    require(!clock.control_ambient(*ring), "a determinate ring is off the motion clock");
+
+    const std::optional<CustomStateIndex> turning = find_custom_state((*ring).anatomy(), "indeterminate");
+    require(turning && !(*ring).anatomy_states().contains(*turning), "determinate is not the indeterminate state");
+    (*ring).indeterminate = true;
+    window.perform_layout();
+    require((*ring).anatomy_states().contains(*turning), "indeterminate publishes its state");
+    const ProgressRing::Parts spinning = (*ring).parts();
+    require(spinning.activity.present && !spinning.fill.present, "an indeterminate ring publishes its activity part");
+    const SemanticDescriptor busy = (*ring).semantic_descriptor();
+    require(has_semantic_state(busy.states, SemanticState::busy) && !busy.numeric_value,
+            "an indeterminate ring is busy without a value");
+    NullPainter first;
+    (*ring).on_paint(first, bounds);
+    require(clock.control_ambient(*ring) && (*ring).moving(), "a drawn indeterminate ring turns on the motion clock");
+    advance(window, time, std::chrono::milliseconds(90));
+    require((*ring).phase() == 3U, "the run moves a dot per 30 ms");
+    set_reduced_motion(window, true);
+    NullPainter still;
+    (*ring).on_paint(still, bounds);
+    require(!clock.control_ambient(*ring) && (*ring).phase() == 0U,
+            "under reduced motion the run stands still at twelve o'clock");
+    set_reduced_motion(window, false);
+    (*ring).indeterminate = false;
+    NullPainter settled;
+    (*ring).on_paint(settled, bounds);
+    require(!clock.control_ambient(*ring) && (*ring).parts().fill.present, "turning determinate again leaves the clock");
+}
+
 } // namespace
 
 int main() {
@@ -1048,6 +1213,8 @@ int main() {
     test_search_field_in_window();
     test_toggle_switch_motion();
     test_search_field_busy_motion();
+    test_spinner();
+    test_progress_ring();
     std::cout << "display control tests passed\n";
     return EXIT_SUCCESS;
 }

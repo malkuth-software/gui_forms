@@ -206,6 +206,28 @@
       "doc": "api/generated/gui_forms.ProgressBar.rst"
     },
     {
+      "id": "progress_ring",
+      "type": "ProgressRing",
+      "header": "gui_forms/controls/progress_ring/progress_ring.hpp",
+      "category": "Information display",
+      "purpose": "Circular progress indicator of forty dots: lit in proportion to value over maximum, or a turning run while indeterminate, on the window's frame clock with reduced motion honoured.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": "spinners-and-rings",
+      "doc": "api/generated/gui_forms.ProgressRing.rst"
+    },
+    {
+      "id": "spinner",
+      "type": "Spinner",
+      "header": "gui_forms/controls/spinner/spinner.hpp",
+      "category": "Information display",
+      "purpose": "Indeterminate busy indicator: a ring of twelve dots, three lit, turning while active on the window's frame clock; still under reduced motion; busy to assistive technology.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": "spinners-and-rings",
+      "doc": "api/generated/gui_forms.Spinner.rst"
+    },
+    {
       "id": "sweep_scope",
       "type": "SweepScope",
       "header": "gui_forms/controls/instruments/sweep_scope/sweep_scope.hpp",

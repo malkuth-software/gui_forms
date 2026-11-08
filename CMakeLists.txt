@@ -772,6 +772,9 @@ add_library(gui_forms_controls STATIC
     src/controls/badge/badge.cpp
     src/controls/info_banner/info_banner.cpp
     src/controls/empty_state/empty_state.cpp
+    src/controls/spinner/spinner.cpp
+    src/controls/progress_ring/progress_ring.cpp
+    src/controls/progress_ring/ring_dots.cpp
     src/controls/toast/toast.cpp
     src/controls/button_base/button_base.cpp
     src/controls/button_base/button/button.cpp
@@ -1609,6 +1612,7 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         src/controls/gallery/pages/notices-and-badges.cpp
         src/controls/gallery/pages/input-and-rules.cpp
         src/controls/gallery/pages/theme-settings.cpp
+        src/controls/gallery/pages/spinners-and-rings.cpp
     )
     add_library(gui_forms_gallery_model STATIC
         src/controls/gallery_controls.cpp
@@ -1685,6 +1689,8 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         CLASS InputAndRulesDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/theme-settings.form
         CLASS ThemeSettingsDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/spinners-and-rings.form
+        CLASS SpinnersAndRingsDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/control-spectrum.form
         CLASS ControlSpectrumDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/retained-layout-panels.form
@@ -1717,6 +1723,7 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
             demo/pages/semantic-feedback.form demo/pages/control-spectrum.form
             demo/pages/notices-and-badges.form
             demo/pages/input-and-rules.form demo/pages/theme-settings.form
+            demo/pages/spinners-and-rings.form
             demo/pages/retained-layout-panels.form demo/pages/responsive-layouts.form
             demo/pages/css-layout-panels.form
             demo/pages/checked-collections.form demo/pages/choices-and-sections.form
@@ -4241,6 +4248,7 @@ if(GUI_FORMS_BUILD_TESTS)
             tests/gallery_pages/notices-and-badges_tests.cpp
             tests/gallery_pages/input-and-rules_tests.cpp
             tests/gallery_pages/theme-settings_tests.cpp
+            tests/gallery_pages/spinners-and-rings_tests.cpp
             tests/gallery_pages/anatomy_coverage_tests.cpp
             tests/gallery_pages/schema_export_tests.cpp
         )

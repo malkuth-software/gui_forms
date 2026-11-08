@@ -60,6 +60,7 @@
 #include "gui_forms/controls/panel/token_box/token_box.hpp"
 #include "gui_forms/controls/panel/tree_list_view/tree_list_view.hpp"
 #include "gui_forms/controls/panel/tree_view/tree_view.hpp"
+#include "gui_forms/controls/progress_ring/progress_ring.hpp"
 #include "gui_forms/controls/quick_access_toolbar/quick_access_toolbar.hpp"
 #include "gui_forms/controls/range_control/progress_bar/progress_bar.hpp"
 #include "gui_forms/controls/range_control/scroll_bar/scroll_bar.hpp"
@@ -83,6 +84,7 @@
 #include "gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat.hpp"
 #include "gui_forms/controls/scrollable_control/scrollable_control.hpp"
 #include "gui_forms/controls/search_field/search_field.hpp"
+#include "gui_forms/controls/spinner/spinner.hpp"
 #include "gui_forms/controls/splitter/splitter.hpp"
 #include "gui_forms/controls/text_block/text_block.hpp"
 #include "gui_forms/controls/tool_strip/tool_strip.hpp"
@@ -1665,6 +1667,34 @@ void test_progress_bar_properties() {
     }
 }
 
+void test_progress_ring_properties() {
+    std::shared_ptr<ProgressRing> control = make_control<ProgressRing>(StableId("generated.progressring"));
+    {
+        const double sample = 25.0;
+        (*control).value = sample;
+        expect((*control).value.read() == sample, "ProgressRing.value: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("value");
+        expect(by_name && *by_name == PropertyValueTraits<double>::to_binding(sample),
+               "ProgressRing.value: the table reads the cell");
+    }
+    {
+        const double sample = 50.0;
+        (*control).maximum = sample;
+        expect((*control).maximum.read() == sample, "ProgressRing.maximum: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("maximum");
+        expect(by_name && *by_name == PropertyValueTraits<double>::to_binding(sample),
+               "ProgressRing.maximum: the table reads the cell");
+    }
+    {
+        const bool sample = true;
+        (*control).indeterminate = sample;
+        expect((*control).indeterminate.read() == sample, "ProgressRing.indeterminate: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("indeterminate");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "ProgressRing.indeterminate: the table reads the cell");
+    }
+}
+
 void test_property_grid_properties() {
     std::shared_ptr<PropertyGrid> control = make_control<PropertyGrid>(StableId("generated.propertygrid"));
 }
@@ -1971,6 +2001,18 @@ void test_search_field_properties() {
         const std::optional<BindingValue> by_name = (*control).property_value("busy");
         expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
                "SearchField.busy: the table reads the cell");
+    }
+}
+
+void test_spinner_properties() {
+    std::shared_ptr<Spinner> control = make_control<Spinner>(StableId("generated.spinner"));
+    {
+        const bool sample = false;
+        (*control).active = sample;
+        expect((*control).active.read() == sample, "Spinner.active: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("active");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "Spinner.active: the table reads the cell");
     }
 }
 
@@ -2559,6 +2601,7 @@ int main() {
     test_panel_properties();
     test_picture_box_properties();
     test_progress_bar_properties();
+    test_progress_ring_properties();
     test_property_grid_properties();
     test_property_list_properties();
     test_quick_access_toolbar_properties();
@@ -2577,6 +2620,7 @@ int main() {
     test_scroll_bar_properties();
     test_scrollable_control_properties();
     test_search_field_properties();
+    test_spinner_properties();
     test_split_container_properties();
     test_splitter_properties();
     test_splitter_panel_properties();
