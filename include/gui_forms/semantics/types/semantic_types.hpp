@@ -25,7 +25,12 @@ namespace gui_forms {
 // decision DK-51). meter (W-5; the 0.5 closure's ruling 2 admits the
 // instrument vocabulary only) is a read-only reading within a known range,
 // such as a level, a gauge or a scope: unlike progress_bar it measures, it
-// does not report a task's progress. `count` is not a role; it sizes tables
+// does not report a task's progress. toggle_switch (W-4; a ToggleSwitch,
+// on or off at once, named so because `switch` is a C++ keyword) and
+// search_box (W-4; a SearchField, a text box whose text is a query) are
+// specialisations: a host without a mapping of its own publishes them as
+// their fallbacks, check_box and text_box (semantic_role_fallback), and
+// both act as their fallbacks do. `count` is not a role; it sizes tables
 // over the roles.
 enum class SemanticRole : std::uint8_t {
     generic, group, static_text, button, check_box, radio_button, link,
@@ -35,11 +40,22 @@ enum class SemanticRole : std::uint8_t {
     property_group, property_row, menu_bar, menu_bar_item, menu, menu_item,
     separator, toolbar, radio_group, split_button, menu_button, pane,
     tab_panel, tree, tree_item, table, row, cell, column_header, row_header,
-    tree_grid, dialog, status_bar, live_region, meter,
+    tree_grid, dialog, status_bar, live_region, meter, toggle_switch, search_box,
     count,
 };
 
 inline constexpr std::size_t semantic_role_count = static_cast<std::size_t>(SemanticRole::count);
+
+// The role `role` specialises, which a host without a mapping for `role`
+// publishes, and whose behaviour (patterns, interfaces, checked value and
+// text) `role` shares: check_box for toggle_switch, text_box for
+// search_box. Every other role is its own fallback.
+[[nodiscard]] constexpr SemanticRole semantic_role_fallback(SemanticRole role) noexcept {
+    if (role == SemanticRole::toggle_switch) return SemanticRole::check_box;
+    if (role == SemanticRole::search_box) return SemanticRole::text_box;
+    // Every other role is its own fallback.
+    return role;
+}
 
 enum class SemanticState : std::uint32_t {
     none = 0,

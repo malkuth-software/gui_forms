@@ -194,7 +194,8 @@ bool semantic_has_action(const SemanticNode& node, SemanticAction action) noexce
 }
 
 bool checkable_role(SemanticRole role) noexcept {
-    const bool check = role == SemanticRole::check_box || role == SemanticRole::check_list_item;
+    const SemanticRole acting = semantic_role_fallback(role);
+    const bool check = acting == SemanticRole::check_box || acting == SemanticRole::check_list_item;
     return check;
 }
 

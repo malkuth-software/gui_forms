@@ -176,7 +176,8 @@ bool is_button_role(SemanticRole role) noexcept {
 }
 
 bool is_check_role(SemanticRole role) noexcept {
-    const bool check = role == SemanticRole::check_box || role == SemanticRole::check_list_item;
+    const SemanticRole acting = semantic_role_fallback(role);
+    const bool check = acting == SemanticRole::check_box || acting == SemanticRole::check_list_item;
     return check;
 }
 
@@ -236,6 +237,8 @@ LONG expected_role(SemanticRole role) noexcept {
     case SemanticRole::status_bar: return ROLE_SYSTEM_STATUSBAR;
     case SemanticRole::live_region: return ROLE_SYSTEM_GROUPING;
     case SemanticRole::meter: return ROLE_SYSTEM_PROGRESSBAR;
+    case SemanticRole::toggle_switch: return ROLE_SYSTEM_CHECKBUTTON;
+    case SemanticRole::search_box: return ROLE_SYSTEM_TEXT;
     case SemanticRole::count: return ROLE_SYSTEM_GROUPING;
     }
     return ROLE_SYSTEM_GROUPING;

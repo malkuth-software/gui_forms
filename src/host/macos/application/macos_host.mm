@@ -734,12 +734,16 @@ NSString* native_accessibility_role(SemanticRole role) {
     case SemanticRole::group: return NSAccessibilityGroupRole;
     case SemanticRole::static_text: return NSAccessibilityStaticTextRole;
     case SemanticRole::button: return NSAccessibilityButtonRole;
-    case SemanticRole::check_box: return NSAccessibilityCheckBoxRole;
+    // A switch is a check box with AppKit's switch subrole.
+    case SemanticRole::check_box:
+    case SemanticRole::toggle_switch: return NSAccessibilityCheckBoxRole;
     case SemanticRole::radio_button: return NSAccessibilityRadioButtonRole;
     case SemanticRole::toolbar: return NSAccessibilityToolbarRole;
     case SemanticRole::radio_group: return NSAccessibilityRadioGroupRole;
     case SemanticRole::link: return NSAccessibilityLinkRole;
+    // A search box is a text field with AppKit's search-field subrole.
     case SemanticRole::text_box:
+    case SemanticRole::search_box:
     case SemanticRole::numeric_field: return NSAccessibilityTextFieldRole;
     case SemanticRole::list: return NSAccessibilityListRole;
     case SemanticRole::list_item: return NSAccessibilityRowRole;
@@ -1095,7 +1099,8 @@ static void announce_live_region(GUIFormsView* owner, const std::string& text) {
 
 // Whether `node` publishes text ranges.
 static bool publishes_text_ranges(const SemanticNode& node) noexcept {
-    const bool text = node.role == SemanticRole::text_box && node.text_selection.has_value() &&
+    const bool text = gui_forms::semantic_role_fallback(node.role) == SemanticRole::text_box &&
+                      node.text_selection.has_value() &&
                       node.runtime_id != 0U && !gui_forms::is_virtual_semantic_runtime_id(node.runtime_id) &&
                       !gui_forms::has_semantic_state(node.states, SemanticState::protected_content);
     return text;
@@ -1385,8 +1390,11 @@ static bool contains_live_region(const SemanticNode& node) {
 // ARIA tab panels with this one. A tab is a radio button with AppKit's
 // tab-button subrole, as NSTabView's tabs are.
 // A tree item is an outline row; a dialog, a status bar and a live region
-// carry WebKit's subroles for them.
+// carry WebKit's subroles for them. A switch and a search box carry
+// AppKit's own.
 - (NSString*)accessibilitySubrole {
+    if (_node.role == SemanticRole::toggle_switch) return NSAccessibilitySwitchSubrole;
+    if (_node.role == SemanticRole::search_box) return NSAccessibilitySearchFieldSubrole;
     if (_node.role == SemanticRole::tab_panel) return @"AXTabPanel";
     if (_node.role == SemanticRole::tab) return NSAccessibilityTabButtonSubrole;
     if (_node.role == SemanticRole::tree_item) return NSAccessibilityOutlineRowSubrole;
@@ -1452,9 +1460,10 @@ static bool contains_live_region(const SemanticNode& node) {
     return @[ close ];
 }
 - (id)accessibilityValue {
-    if (_node.role == SemanticRole::check_box ||
-        _node.role == SemanticRole::check_list_item ||
-        _node.role == SemanticRole::radio_button) {
+    const SemanticRole acting = gui_forms::semantic_role_fallback(_node.role);
+    if (acting == SemanticRole::check_box ||
+        acting == SemanticRole::check_list_item ||
+        acting == SemanticRole::radio_button) {
         if (gui_forms::has_semantic_state(_node.states, SemanticState::mixed)) {
             return @2;
         }

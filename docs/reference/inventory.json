@@ -223026,7 +223026,7 @@
       "kind": "enum",
       "header": "gui_forms/semantics/types/semantic_types.hpp",
       "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-      "line": 98,
+      "line": 115,
       "declaration": "enum class SemanticAction : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -223044,7 +223044,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 99,
+          "line": 116,
           "page": "gui-forms-semanticaction-focus-gui-forms-semanticaction-e18c1e314c.html"
         },
         {
@@ -223059,7 +223059,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 99,
+          "line": 116,
           "page": "gui-forms-semanticaction-press-gui-forms-semanticaction-7e3f420664.html"
         },
         {
@@ -223074,7 +223074,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 99,
+          "line": 116,
           "page": "gui-forms-semanticaction-select-gui-forms-semanticaction-cc86cce723.html"
         },
         {
@@ -223089,7 +223089,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 99,
+          "line": 116,
           "page": "gui-forms-semanticaction-increment-gui-forms-semanticaction-e242067ca0.html"
         },
         {
@@ -223104,7 +223104,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 99,
+          "line": 116,
           "page": "gui-forms-semanticaction-decrement-gui-forms-semanticaction-c69fe66c39.html"
         },
         {
@@ -223119,7 +223119,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 99,
+          "line": 116,
           "page": "gui-forms-semanticaction-expand-gui-forms-semanticaction-c43ff788ba.html"
         },
         {
@@ -223134,7 +223134,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 99,
+          "line": 116,
           "page": "gui-forms-semanticaction-collapse-gui-forms-semanticaction-e24ffeb5b8.html"
         },
         {
@@ -223149,7 +223149,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 99,
+          "line": 116,
           "page": "gui-forms-semanticaction-show-menu-gui-forms-semanticaction-286873b5c4.html"
         },
         {
@@ -223164,7 +223164,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 100,
+          "line": 117,
           "page": "gui-forms-semanticaction-set-value-gui-forms-semanticaction-66a354ea34.html"
         },
         {
@@ -223179,7 +223179,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 100,
+          "line": 117,
           "page": "gui-forms-semanticaction-close-gui-forms-semanticaction-9ba5908421.html"
         },
         {
@@ -223194,7 +223194,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 101,
+          "line": 118,
           "page": "gui-forms-semanticaction-count-gui-forms-semanticaction-2347d8a590.html"
         }
       ],
@@ -223208,7 +223208,7 @@
       "kind": "struct",
       "header": "gui_forms/semantics/types/semantic_types.hpp",
       "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-      "line": 217,
+      "line": 234,
       "declaration": "struct SemanticDescriptor final",
       "comment": "",
       "access": "public",
@@ -223226,7 +223226,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 218,
+          "line": 235,
           "page": "gui-forms-semanticdescriptor-role-semanticrole-852b1166e6.html"
         },
         {
@@ -223241,7 +223241,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 219,
+          "line": 236,
           "page": "gui-forms-semanticdescriptor-name-std-string-1ec133a1f2.html"
         },
         {
@@ -223256,7 +223256,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 220,
+          "line": 237,
           "page": "gui-forms-semanticdescriptor-value-std-string-dfeed99f4b.html"
         },
         {
@@ -223271,7 +223271,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 221,
+          "line": 238,
           "page": "gui-forms-semanticdescriptor-description-std-string-ddb97004c2.html"
         },
         {
@@ -223286,7 +223286,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 222,
+          "line": 239,
           "page": "gui-forms-semanticdescriptor-numeric-value-std-optional-double-433cc7d402.html"
         },
         {
@@ -223301,7 +223301,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 223,
+          "line": 240,
           "page": "gui-forms-semanticdescriptor-minimum-value-std-optional-double-1567b782e8.html"
         },
         {
@@ -223316,7 +223316,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 224,
+          "line": 241,
           "page": "gui-forms-semanticdescriptor-maximum-value-std-optional-double-cbb778dcab.html"
         },
         {
@@ -223331,7 +223331,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 225,
+          "line": 242,
           "page": "gui-forms-semanticdescriptor-position-in-set-std-optional-std-size-t-c5698e94c5.html"
         },
         {
@@ -223346,7 +223346,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 226,
+          "line": 243,
           "page": "gui-forms-semanticdescriptor-set-size-std-optional-std-size-t-c4bc175ab2.html"
         },
         {
@@ -223361,7 +223361,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 227,
+          "line": 244,
           "page": "gui-forms-semanticdescriptor-has-popup-bool-29c9646f58.html"
         },
         {
@@ -223376,7 +223376,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 228,
+          "line": 245,
           "page": "gui-forms-semanticdescriptor-controlled-panel-std-string-b32bf2211e.html"
         },
         {
@@ -223391,7 +223391,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 229,
+          "line": 246,
           "page": "gui-forms-semanticdescriptor-orientation-std-optional-semanticorientation-a89cccb676.html"
         },
         {
@@ -223406,7 +223406,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 230,
+          "line": 247,
           "page": "gui-forms-semanticdescriptor-level-std-optional-std-size-t-bd0af6b674.html"
         },
         {
@@ -223421,7 +223421,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 231,
+          "line": 248,
           "page": "gui-forms-semanticdescriptor-modal-bool-a7f727c0d6.html"
         },
         {
@@ -223436,7 +223436,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 232,
+          "line": 249,
           "page": "gui-forms-semanticdescriptor-row-index-std-optional-std-size-t-c111dd8f7d.html"
         },
         {
@@ -223451,7 +223451,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 233,
+          "line": 250,
           "page": "gui-forms-semanticdescriptor-column-index-std-optional-std-size-t-e9adc548da.html"
         },
         {
@@ -223466,7 +223466,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 234,
+          "line": 251,
           "page": "gui-forms-semanticdescriptor-row-count-std-optional-std-size-t-c34399f8a2.html"
         },
         {
@@ -223481,7 +223481,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 235,
+          "line": 252,
           "page": "gui-forms-semanticdescriptor-column-count-std-optional-std-size-t-5d3aa48b34.html"
         },
         {
@@ -223496,7 +223496,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 236,
+          "line": 253,
           "page": "gui-forms-semanticdescriptor-access-key-std-string-589f5c179d.html"
         },
         {
@@ -223511,7 +223511,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 237,
+          "line": 254,
           "page": "gui-forms-semanticdescriptor-small-step-std-optional-double-7a398d93a1.html"
         },
         {
@@ -223526,7 +223526,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 238,
+          "line": 255,
           "page": "gui-forms-semanticdescriptor-large-step-std-optional-double-3e7716af72.html"
         },
         {
@@ -223541,7 +223541,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 239,
+          "line": 256,
           "page": "gui-forms-semanticdescriptor-text-selection-std-optional-semantictextselection-9e3168b939.html"
         },
         {
@@ -223556,7 +223556,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 240,
+          "line": 257,
           "page": "gui-forms-semanticdescriptor-multiline-bool-649bf75d46.html"
         },
         {
@@ -223571,7 +223571,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 241,
+          "line": 258,
           "page": "gui-forms-semanticdescriptor-states-semanticstate-5207c31523.html"
         },
         {
@@ -223586,7 +223586,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 242,
+          "line": 259,
           "page": "gui-forms-semanticdescriptor-actions-std-vector-semanticaction-7a17d1ad64.html"
         },
         {
@@ -223601,7 +223601,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 243,
+          "line": 260,
           "page": "gui-forms-semanticdescriptor-exposed-bool-f5910ddf73.html"
         },
         {
@@ -223616,7 +223616,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 244,
+          "line": 261,
           "page": "gui-forms-semanticdescriptor-include-descendants-bool-fee4480889.html"
         }
       ],
@@ -224108,7 +224108,7 @@
       "kind": "struct",
       "header": "gui_forms/semantics/types/semantic_types.hpp",
       "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-      "line": 247,
+      "line": 264,
       "declaration": "struct SemanticNode final",
       "comment": "",
       "access": "public",
@@ -224126,7 +224126,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 248,
+          "line": 265,
           "page": "gui-forms-semanticnode-runtime-id-std-uint64-t-d00b397ca9.html"
         },
         {
@@ -224141,7 +224141,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 249,
+          "line": 266,
           "page": "gui-forms-semanticnode-stable-id-std-string-073237cb67.html"
         },
         {
@@ -224156,7 +224156,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 250,
+          "line": 267,
           "page": "gui-forms-semanticnode-role-semanticrole-75a90f4723.html"
         },
         {
@@ -224171,7 +224171,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 251,
+          "line": 268,
           "page": "gui-forms-semanticnode-name-std-string-7adc0e2ad6.html"
         },
         {
@@ -224186,7 +224186,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 252,
+          "line": 269,
           "page": "gui-forms-semanticnode-value-std-string-3d27dc511f.html"
         },
         {
@@ -224201,7 +224201,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 253,
+          "line": 270,
           "page": "gui-forms-semanticnode-description-std-string-ba5a174b02.html"
         },
         {
@@ -224216,7 +224216,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 254,
+          "line": 271,
           "page": "gui-forms-semanticnode-numeric-value-std-optional-double-de7b1fc605.html"
         },
         {
@@ -224231,7 +224231,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 255,
+          "line": 272,
           "page": "gui-forms-semanticnode-minimum-value-std-optional-double-bcc3781547.html"
         },
         {
@@ -224246,7 +224246,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 256,
+          "line": 273,
           "page": "gui-forms-semanticnode-maximum-value-std-optional-double-74786eb2e7.html"
         },
         {
@@ -224261,7 +224261,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 257,
+          "line": 274,
           "page": "gui-forms-semanticnode-position-in-set-std-optional-std-size-t-adba373d3d.html"
         },
         {
@@ -224276,7 +224276,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 258,
+          "line": 275,
           "page": "gui-forms-semanticnode-set-size-std-optional-std-size-t-8dda228156.html"
         },
         {
@@ -224291,7 +224291,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 259,
+          "line": 276,
           "page": "gui-forms-semanticnode-has-popup-bool-72bf3cf8c4.html"
         },
         {
@@ -224306,7 +224306,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 260,
+          "line": 277,
           "page": "gui-forms-semanticnode-controlled-panel-std-string-1957f7cad6.html"
         },
         {
@@ -224321,7 +224321,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 261,
+          "line": 278,
           "page": "gui-forms-semanticnode-orientation-std-optional-semanticorientation-4792d29252.html"
         },
         {
@@ -224336,7 +224336,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 262,
+          "line": 279,
           "page": "gui-forms-semanticnode-level-std-optional-std-size-t-9992d2a354.html"
         },
         {
@@ -224351,7 +224351,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 263,
+          "line": 280,
           "page": "gui-forms-semanticnode-modal-bool-28d08081bd.html"
         },
         {
@@ -224366,7 +224366,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 264,
+          "line": 281,
           "page": "gui-forms-semanticnode-row-index-std-optional-std-size-t-01819424b2.html"
         },
         {
@@ -224381,7 +224381,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 265,
+          "line": 282,
           "page": "gui-forms-semanticnode-column-index-std-optional-std-size-t-8125e57555.html"
         },
         {
@@ -224396,7 +224396,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 266,
+          "line": 283,
           "page": "gui-forms-semanticnode-row-count-std-optional-std-size-t-f2bf5d8ad0.html"
         },
         {
@@ -224411,7 +224411,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 267,
+          "line": 284,
           "page": "gui-forms-semanticnode-column-count-std-optional-std-size-t-eb18385cf8.html"
         },
         {
@@ -224426,7 +224426,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 268,
+          "line": 285,
           "page": "gui-forms-semanticnode-access-key-std-string-f28f31c513.html"
         },
         {
@@ -224441,7 +224441,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 269,
+          "line": 286,
           "page": "gui-forms-semanticnode-small-step-std-optional-double-6fbdf5802d.html"
         },
         {
@@ -224456,7 +224456,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 270,
+          "line": 287,
           "page": "gui-forms-semanticnode-large-step-std-optional-double-d28fd27b1b.html"
         },
         {
@@ -224471,7 +224471,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 271,
+          "line": 288,
           "page": "gui-forms-semanticnode-text-selection-std-optional-semantictextselection-72c70be7e9.html"
         },
         {
@@ -224486,7 +224486,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 272,
+          "line": 289,
           "page": "gui-forms-semanticnode-multiline-bool-e4b7f2e158.html"
         },
         {
@@ -224501,7 +224501,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 276,
+          "line": 293,
           "page": "gui-forms-semanticnode-tool-tip-std-string-5fc2fcad7c.html"
         },
         {
@@ -224516,7 +224516,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 277,
+          "line": 294,
           "page": "gui-forms-semanticnode-bounds-rect-c0d3e0312e.html"
         },
         {
@@ -224531,7 +224531,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 278,
+          "line": 295,
           "page": "gui-forms-semanticnode-states-semanticstate-775436cc2a.html"
         },
         {
@@ -224546,7 +224546,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 279,
+          "line": 296,
           "page": "gui-forms-semanticnode-actions-std-vector-semanticaction-02441684d3.html"
         },
         {
@@ -224561,7 +224561,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 280,
+          "line": 297,
           "page": "gui-forms-semanticnode-children-std-vector-semanticnode-81ecbb0b09.html"
         }
       ],
@@ -224575,7 +224575,7 @@
       "kind": "enum",
       "header": "gui_forms/semantics/types/semantic_types.hpp",
       "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-      "line": 108,
+      "line": 125,
       "declaration": "enum class SemanticOrientation : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -224593,7 +224593,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 108,
+          "line": 125,
           "page": "gui-forms-semanticorientation-horizontal-gui-forms-semanticorientation-80735af9ce.html"
         },
         {
@@ -224608,7 +224608,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 108,
+          "line": 125,
           "page": "gui-forms-semanticorientation-vertical-gui-forms-semanticorientation-86bdb360cc.html"
         }
       ],
@@ -224622,7 +224622,7 @@
       "kind": "enum",
       "header": "gui_forms/semantics/types/semantic_types.hpp",
       "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-      "line": 30,
+      "line": 35,
       "declaration": "enum class SemanticRole : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -224640,7 +224640,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 31,
+          "line": 36,
           "page": "gui-forms-semanticrole-generic-gui-forms-semanticrole-fa22ca1c01.html"
         },
         {
@@ -224655,7 +224655,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 31,
+          "line": 36,
           "page": "gui-forms-semanticrole-group-gui-forms-semanticrole-3e1b333a9c.html"
         },
         {
@@ -224670,7 +224670,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 31,
+          "line": 36,
           "page": "gui-forms-semanticrole-static-text-gui-forms-semanticrole-1a6949207b.html"
         },
         {
@@ -224685,7 +224685,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 31,
+          "line": 36,
           "page": "gui-forms-semanticrole-button-gui-forms-semanticrole-5a8ee8b092.html"
         },
         {
@@ -224700,7 +224700,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 31,
+          "line": 36,
           "page": "gui-forms-semanticrole-check-box-gui-forms-semanticrole-9863d33f4b.html"
         },
         {
@@ -224715,7 +224715,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 31,
+          "line": 36,
           "page": "gui-forms-semanticrole-radio-button-gui-forms-semanticrole-92f5388011.html"
         },
         {
@@ -224730,7 +224730,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 31,
+          "line": 36,
           "page": "gui-forms-semanticrole-link-gui-forms-semanticrole-74f14814e6.html"
         },
         {
@@ -224745,7 +224745,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 32,
+          "line": 37,
           "page": "gui-forms-semanticrole-text-box-gui-forms-semanticrole-0a89230c13.html"
         },
         {
@@ -224760,7 +224760,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 32,
+          "line": 37,
           "page": "gui-forms-semanticrole-list-gui-forms-semanticrole-c9294107ec.html"
         },
         {
@@ -224775,7 +224775,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 32,
+          "line": 37,
           "page": "gui-forms-semanticrole-list-item-gui-forms-semanticrole-a863256c11.html"
         },
         {
@@ -224790,7 +224790,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 32,
+          "line": 37,
           "page": "gui-forms-semanticrole-check-list-item-gui-forms-semanticrole-47e9c5de7b.html"
         },
         {
@@ -224805,7 +224805,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 32,
+          "line": 37,
           "page": "gui-forms-semanticrole-combo-box-gui-forms-semanticrole-976970dd01.html"
         },
         {
@@ -224820,7 +224820,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 32,
+          "line": 37,
           "page": "gui-forms-semanticrole-slider-gui-forms-semanticrole-62fbae88b3.html"
         },
         {
@@ -224835,7 +224835,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 33,
+          "line": 38,
           "page": "gui-forms-semanticrole-scroll-bar-gui-forms-semanticrole-5bd5ec14d6.html"
         },
         {
@@ -224850,7 +224850,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 33,
+          "line": 38,
           "page": "gui-forms-semanticrole-progress-bar-gui-forms-semanticrole-56a4798f70.html"
         },
         {
@@ -224865,7 +224865,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 33,
+          "line": 38,
           "page": "gui-forms-semanticrole-image-gui-forms-semanticrole-84c5f1daca.html"
         },
         {
@@ -224880,7 +224880,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 33,
+          "line": 38,
           "page": "gui-forms-semanticrole-tab-group-gui-forms-semanticrole-f112c7dac5.html"
         },
         {
@@ -224895,7 +224895,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 33,
+          "line": 38,
           "page": "gui-forms-semanticrole-tab-gui-forms-semanticrole-9d56860309.html"
         },
         {
@@ -224910,7 +224910,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 33,
+          "line": 38,
           "page": "gui-forms-semanticrole-split-pane-gui-forms-semanticrole-d897c5be67.html"
         },
         {
@@ -224925,7 +224925,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 34,
+          "line": 39,
           "page": "gui-forms-semanticrole-numeric-field-gui-forms-semanticrole-4504e6284b.html"
         },
         {
@@ -224940,7 +224940,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 34,
+          "line": 39,
           "page": "gui-forms-semanticrole-tool-tip-gui-forms-semanticrole-1a8d3d9791.html"
         },
         {
@@ -224955,7 +224955,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 34,
+          "line": 39,
           "page": "gui-forms-semanticrole-date-picker-gui-forms-semanticrole-5d81d4b34f.html"
         },
         {
@@ -224970,7 +224970,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 34,
+          "line": 39,
           "page": "gui-forms-semanticrole-calendar-gui-forms-semanticrole-4b071bdd5f.html"
         },
         {
@@ -224985,7 +224985,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 34,
+          "line": 39,
           "page": "gui-forms-semanticrole-date-cell-gui-forms-semanticrole-640c53e2c8.html"
         },
         {
@@ -225000,7 +225000,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 34,
+          "line": 39,
           "page": "gui-forms-semanticrole-property-grid-gui-forms-semanticrole-34adc5a302.html"
         },
         {
@@ -225015,7 +225015,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 35,
+          "line": 40,
           "page": "gui-forms-semanticrole-property-group-gui-forms-semanticrole-6fffbd143f.html"
         },
         {
@@ -225030,7 +225030,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 35,
+          "line": 40,
           "page": "gui-forms-semanticrole-property-row-gui-forms-semanticrole-bbf2ef1684.html"
         },
         {
@@ -225045,7 +225045,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 35,
+          "line": 40,
           "page": "gui-forms-semanticrole-menu-bar-gui-forms-semanticrole-a8a7fae10d.html"
         },
         {
@@ -225060,7 +225060,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 35,
+          "line": 40,
           "page": "gui-forms-semanticrole-menu-bar-item-gui-forms-semanticrole-bb12cf542d.html"
         },
         {
@@ -225075,7 +225075,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 35,
+          "line": 40,
           "page": "gui-forms-semanticrole-menu-gui-forms-semanticrole-2115fcdd7c.html"
         },
         {
@@ -225090,7 +225090,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 35,
+          "line": 40,
           "page": "gui-forms-semanticrole-menu-item-gui-forms-semanticrole-676ac0210d.html"
         },
         {
@@ -225105,7 +225105,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 36,
+          "line": 41,
           "page": "gui-forms-semanticrole-separator-gui-forms-semanticrole-56ff8fb31e.html"
         },
         {
@@ -225120,7 +225120,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 36,
+          "line": 41,
           "page": "gui-forms-semanticrole-toolbar-gui-forms-semanticrole-394b64a4fe.html"
         },
         {
@@ -225135,7 +225135,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 36,
+          "line": 41,
           "page": "gui-forms-semanticrole-radio-group-gui-forms-semanticrole-701866ec69.html"
         },
         {
@@ -225150,7 +225150,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 36,
+          "line": 41,
           "page": "gui-forms-semanticrole-split-button-gui-forms-semanticrole-204aca25f0.html"
         },
         {
@@ -225165,7 +225165,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 36,
+          "line": 41,
           "page": "gui-forms-semanticrole-menu-button-gui-forms-semanticrole-f0b2502984.html"
         },
         {
@@ -225180,7 +225180,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 36,
+          "line": 41,
           "page": "gui-forms-semanticrole-pane-gui-forms-semanticrole-1dc946de1d.html"
         },
         {
@@ -225195,7 +225195,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 37,
+          "line": 42,
           "page": "gui-forms-semanticrole-tab-panel-gui-forms-semanticrole-9364b3de0b.html"
         },
         {
@@ -225210,7 +225210,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 37,
+          "line": 42,
           "page": "gui-forms-semanticrole-tree-gui-forms-semanticrole-2f7ca09f29.html"
         },
         {
@@ -225225,7 +225225,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 37,
+          "line": 42,
           "page": "gui-forms-semanticrole-tree-item-gui-forms-semanticrole-66a236cffe.html"
         },
         {
@@ -225240,7 +225240,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 37,
+          "line": 42,
           "page": "gui-forms-semanticrole-table-gui-forms-semanticrole-463af985d4.html"
         },
         {
@@ -225255,7 +225255,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 37,
+          "line": 42,
           "page": "gui-forms-semanticrole-row-gui-forms-semanticrole-e208bb2e6f.html"
         },
         {
@@ -225270,7 +225270,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 37,
+          "line": 42,
           "page": "gui-forms-semanticrole-cell-gui-forms-semanticrole-222ebb825c.html"
         },
         {
@@ -225285,7 +225285,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 37,
+          "line": 42,
           "page": "gui-forms-semanticrole-column-header-gui-forms-semanticrole-e87bc729e4.html"
         },
         {
@@ -225300,7 +225300,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 37,
+          "line": 42,
           "page": "gui-forms-semanticrole-row-header-gui-forms-semanticrole-99c30f4038.html"
         },
         {
@@ -225315,7 +225315,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 38,
+          "line": 43,
           "page": "gui-forms-semanticrole-tree-grid-gui-forms-semanticrole-717ec8431e.html"
         },
         {
@@ -225330,7 +225330,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 38,
+          "line": 43,
           "page": "gui-forms-semanticrole-dialog-gui-forms-semanticrole-194853dc55.html"
         },
         {
@@ -225345,7 +225345,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 38,
+          "line": 43,
           "page": "gui-forms-semanticrole-status-bar-gui-forms-semanticrole-41028491dc.html"
         },
         {
@@ -225360,7 +225360,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 38,
+          "line": 43,
           "page": "gui-forms-semanticrole-live-region-gui-forms-semanticrole-8e178badf3.html"
         },
         {
@@ -225375,8 +225375,38 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 38,
+          "line": 43,
           "page": "gui-forms-semanticrole-meter-gui-forms-semanticrole-5efe455e2b.html"
+        },
+        {
+          "id": "gui_forms::SemanticRole::toggle_switch|gui_forms::SemanticRole",
+          "name": "toggle_switch",
+          "type": "gui_forms::SemanticRole",
+          "namespace": "gui_forms::SemanticRole",
+          "kind": "EnumConstantDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "toggle_switch",
+          "comment": "",
+          "header": "gui_forms/semantics/types/semantic_types.hpp",
+          "source": "include/gui_forms/semantics/types/semantic_types.hpp",
+          "line": 43,
+          "page": "gui-forms-semanticrole-toggle-switch-gui-forms-semanticrole-ddfe482d7a.html"
+        },
+        {
+          "id": "gui_forms::SemanticRole::search_box|gui_forms::SemanticRole",
+          "name": "search_box",
+          "type": "gui_forms::SemanticRole",
+          "namespace": "gui_forms::SemanticRole",
+          "kind": "EnumConstantDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "search_box",
+          "comment": "",
+          "header": "gui_forms/semantics/types/semantic_types.hpp",
+          "source": "include/gui_forms/semantics/types/semantic_types.hpp",
+          "line": 43,
+          "page": "gui-forms-semanticrole-search-box-gui-forms-semanticrole-c680cd1705.html"
         },
         {
           "id": "gui_forms::SemanticRole::count|gui_forms::SemanticRole",
@@ -225390,7 +225420,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 39,
+          "line": 44,
           "page": "gui-forms-semanticrole-count-gui-forms-semanticrole-98301739c6.html"
         }
       ],
@@ -225404,7 +225434,7 @@
       "kind": "struct",
       "header": "gui_forms/semantics/types/semantic_types.hpp",
       "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-      "line": 283,
+      "line": 300,
       "declaration": "struct SemanticSnapshot final",
       "comment": "",
       "access": "public",
@@ -225422,7 +225452,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 284,
+          "line": 301,
           "page": "gui-forms-semanticsnapshot-generation-std-uint64-t-7427ffc008.html"
         },
         {
@@ -225437,7 +225467,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 285,
+          "line": 302,
           "page": "gui-forms-semanticsnapshot-node-count-std-size-t-2612dae906.html"
         },
         {
@@ -225452,7 +225482,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 286,
+          "line": 303,
           "page": "gui-forms-semanticsnapshot-roots-std-vector-semanticnode-4253d3357b.html"
         },
         {
@@ -225467,7 +225497,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 287,
+          "line": 304,
           "page": "gui-forms-semanticsnapshot-to-json-std-string-const-d8b773eb16.html"
         }
       ],
@@ -225481,7 +225511,7 @@
       "kind": "enum",
       "header": "gui_forms/semantics/types/semantic_types.hpp",
       "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-      "line": 44,
+      "line": 61,
       "declaration": "enum class SemanticState : std::uint32_t",
       "comment": "",
       "access": "public",
@@ -225499,7 +225529,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 45,
+          "line": 62,
           "page": "gui-forms-semanticstate-none-gui-forms-semanticstate-09c26ad6c2.html"
         },
         {
@@ -225514,7 +225544,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 46,
+          "line": 63,
           "page": "gui-forms-semanticstate-enabled-gui-forms-semanticstate-74f124f660.html"
         },
         {
@@ -225529,7 +225559,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 47,
+          "line": 64,
           "page": "gui-forms-semanticstate-visible-gui-forms-semanticstate-3385bdb9f7.html"
         },
         {
@@ -225544,7 +225574,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 51,
+          "line": 68,
           "page": "gui-forms-semanticstate-focusable-gui-forms-semanticstate-75a07721e4.html"
         },
         {
@@ -225559,7 +225589,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 52,
+          "line": 69,
           "page": "gui-forms-semanticstate-focused-gui-forms-semanticstate-7c202df1b6.html"
         },
         {
@@ -225574,7 +225604,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 53,
+          "line": 70,
           "page": "gui-forms-semanticstate-selected-gui-forms-semanticstate-9c38d9833c.html"
         },
         {
@@ -225589,7 +225619,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 54,
+          "line": 71,
           "page": "gui-forms-semanticstate-checked-gui-forms-semanticstate-5c6dc734f5.html"
         },
         {
@@ -225604,7 +225634,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 55,
+          "line": 72,
           "page": "gui-forms-semanticstate-mixed-gui-forms-semanticstate-97099c2724.html"
         },
         {
@@ -225619,7 +225649,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 56,
+          "line": 73,
           "page": "gui-forms-semanticstate-read-only-gui-forms-semanticstate-e3165440dd.html"
         },
         {
@@ -225634,7 +225664,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 57,
+          "line": 74,
           "page": "gui-forms-semanticstate-expanded-gui-forms-semanticstate-58375ba851.html"
         },
         {
@@ -225649,7 +225679,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 58,
+          "line": 75,
           "page": "gui-forms-semanticstate-busy-gui-forms-semanticstate-d6dbbc6bcb.html"
         },
         {
@@ -225664,7 +225694,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 59,
+          "line": 76,
           "page": "gui-forms-semanticstate-protected-content-gui-forms-semanticstate-13379c2e86.html"
         },
         {
@@ -225679,7 +225709,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 60,
+          "line": 77,
           "page": "gui-forms-semanticstate-invalid-gui-forms-semanticstate-ff909cad43.html"
         },
         {
@@ -225694,7 +225724,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 65,
+          "line": 82,
           "page": "gui-forms-semanticstate-checkable-gui-forms-semanticstate-06da698111.html"
         },
         {
@@ -225709,7 +225739,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 66,
+          "line": 83,
           "page": "gui-forms-semanticstate-multiselectable-gui-forms-semanticstate-df6d164b6a.html"
         }
       ],
@@ -225723,7 +225753,7 @@
       "kind": "struct",
       "header": "gui_forms/semantics/types/semantic_types.hpp",
       "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-      "line": 135,
+      "line": 152,
       "declaration": "struct SemanticTextGrapheme final",
       "comment": "",
       "access": "public",
@@ -225741,7 +225771,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 136,
+          "line": 153,
           "page": "gui-forms-semantictextgrapheme-range-textrange-utf8offset-cbf2c5125a.html"
         },
         {
@@ -225756,7 +225786,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 137,
+          "line": 154,
           "page": "gui-forms-semantictextgrapheme-line-lineindex-f734bd90a1.html"
         },
         {
@@ -225771,7 +225801,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 138,
+          "line": 155,
           "page": "gui-forms-semantictextgrapheme-bounds-rect-f15e28fd3f.html"
         }
       ],
@@ -225785,7 +225815,7 @@
       "kind": "struct",
       "header": "gui_forms/semantics/types/semantic_types.hpp",
       "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-      "line": 147,
+      "line": 164,
       "declaration": "struct SemanticTextLayout final",
       "comment": "",
       "access": "public",
@@ -225803,7 +225833,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 148,
+          "line": 165,
           "page": "gui-forms-semantictextlayout-lines-std-vector-semantictextline-3ac292cbaf.html"
         },
         {
@@ -225818,7 +225848,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 149,
+          "line": 166,
           "page": "gui-forms-semantictextlayout-graphemes-std-vector-semantictextgrapheme-273ffdeaca.html"
         },
         {
@@ -225833,7 +225863,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 150,
+          "line": 167,
           "page": "gui-forms-semantictextlayout-word-starts-std-vector-utf8offset-8bdcd34b1e.html"
         },
         {
@@ -225848,7 +225878,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 152,
+          "line": 169,
           "page": "gui-forms-semantictextlayout-clear-void-noexcept-19b3d64071.html"
         }
       ],
@@ -225862,7 +225892,7 @@
       "kind": "struct",
       "header": "gui_forms/semantics/types/semantic_types.hpp",
       "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-      "line": 127,
+      "line": 144,
       "declaration": "struct SemanticTextLine final",
       "comment": "",
       "access": "public",
@@ -225880,7 +225910,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 128,
+          "line": 145,
           "page": "gui-forms-semantictextline-range-textrange-utf8offset-2867c81e6c.html"
         },
         {
@@ -225895,7 +225925,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 129,
+          "line": 146,
           "page": "gui-forms-semantictextline-bounds-rect-7077fb395f.html"
         }
       ],
@@ -225909,7 +225939,7 @@
       "kind": "enum",
       "header": "gui_forms/semantics/types/semantic_types.hpp",
       "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-      "line": 162,
+      "line": 179,
       "declaration": "enum class SemanticTextResult : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -225927,7 +225957,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 163,
+          "line": 180,
           "page": "gui-forms-semantictextresult-done-gui-forms-semantictextresult-230366e056.html"
         },
         {
@@ -225942,7 +225972,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 166,
+          "line": 183,
           "page": "gui-forms-semantictextresult-stale-identity-gui-forms-semantictextresult-00f8a19c8b.html"
         },
         {
@@ -225957,7 +225987,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 168,
+          "line": 185,
           "page": "gui-forms-semantictextresult-during-paint-gui-forms-semantictextresult-b8d3cb4779.html"
         },
         {
@@ -225972,7 +226002,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 171,
+          "line": 188,
           "page": "gui-forms-semantictextresult-outside-focus-scope-gui-forms-semantictextresult-43d811409c.html"
         },
         {
@@ -225987,7 +226017,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 174,
+          "line": 191,
           "page": "gui-forms-semantictextresult-no-text-gui-forms-semantictextresult-03fe4cabcb.html"
         },
         {
@@ -226002,7 +226032,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 177,
+          "line": 194,
           "page": "gui-forms-semantictextresult-off-boundary-gui-forms-semantictextresult-ce2dbdfa67.html"
         }
       ],
@@ -226016,7 +226046,7 @@
       "kind": "struct",
       "header": "gui_forms/semantics/types/semantic_types.hpp",
       "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-      "line": 113,
+      "line": 130,
       "declaration": "struct SemanticTextSelection final",
       "comment": "",
       "access": "public",
@@ -226034,7 +226064,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 114,
+          "line": 131,
           "page": "gui-forms-semantictextselection-anchor-utf8offset-7555feadaa.html"
         },
         {
@@ -226049,7 +226079,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 115,
+          "line": 132,
           "page": "gui-forms-semantictextselection-caret-utf8offset-f74ec3036a.html"
         }
       ],
@@ -226063,7 +226093,7 @@
       "kind": "enum",
       "header": "gui_forms/semantics/types/semantic_types.hpp",
       "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-      "line": 183,
+      "line": 200,
       "declaration": "enum class SemanticTextUnit : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -226081,7 +226111,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 184,
+          "line": 201,
           "page": "gui-forms-semantictextunit-character-gui-forms-semantictextunit-34bd117ae9.html"
         },
         {
@@ -226096,7 +226126,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 185,
+          "line": 202,
           "page": "gui-forms-semantictextunit-word-gui-forms-semantictextunit-1654c9cc59.html"
         },
         {
@@ -226111,7 +226141,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 186,
+          "line": 203,
           "page": "gui-forms-semantictextunit-line-gui-forms-semantictextunit-45fff8283b.html"
         },
         {
@@ -226126,7 +226156,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 187,
+          "line": 204,
           "page": "gui-forms-semantictextunit-paragraph-gui-forms-semantictextunit-c5266d01f4.html"
         },
         {
@@ -226141,7 +226171,7 @@
           "comment": "",
           "header": "gui_forms/semantics/types/semantic_types.hpp",
           "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-          "line": 188,
+          "line": 205,
           "page": "gui-forms-semantictextunit-document-gui-forms-semantictextunit-22ef433490.html"
         }
       ],
@@ -290890,7 +290920,7 @@
       "comment": "",
       "header": "gui_forms/semantics/types/semantic_types.hpp",
       "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-      "line": 307,
+      "line": 324,
       "page": "gui-forms-fill-semantic-text-boundaries-void-const-semantictextlayout-std-string-view-semantictextunit-std-vec-fb380ffc2c.html"
     },
     {
@@ -291823,7 +291853,7 @@
       "comment": "",
       "header": "gui_forms/semantics/types/semantic_types.hpp",
       "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-      "line": 88,
+      "line": 105,
       "page": "gui-forms-has-semantic-state-bool-semanticstate-semanticstate-noexcept-0054190673.html"
     },
     {
@@ -292650,7 +292680,7 @@
       "comment": "",
       "header": "gui_forms/semantics/types/semantic_types.hpp",
       "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-      "line": 330,
+      "line": 347,
       "page": "gui-forms-is-virtual-semantic-runtime-id-bool-std-uint64-t-noexcept-07d68f8b2e.html"
     },
     {
@@ -299815,7 +299845,7 @@
       "comment": "",
       "header": "gui_forms/semantics/types/semantic_types.hpp",
       "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-      "line": 116,
+      "line": 133,
       "page": "gui-forms-operator-bool-const-gui-forms-semantictextselection-const-gui-forms-semantictextselection-noexcept-0a5668d9ed.html",
       "associated_type": "gui_forms::SemanticTextSelection"
     },
@@ -301593,7 +301623,7 @@
       "comment": "",
       "header": "gui_forms/semantics/types/semantic_types.hpp",
       "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-      "line": 83,
+      "line": 100,
       "page": "gui-forms-operator-semanticstate-semanticstate-semanticstate-noexcept-791e6dea64.html"
     },
     {
@@ -301905,7 +301935,7 @@
       "comment": "",
       "header": "gui_forms/semantics/types/semantic_types.hpp",
       "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-      "line": 78,
+      "line": 95,
       "page": "gui-forms-operator-semanticstate-semanticstate-semanticstate-noexcept-f639db1c69.html"
     },
     {
@@ -304533,7 +304563,7 @@
       "comment": "",
       "header": "gui_forms/semantics/types/semantic_types.hpp",
       "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-      "line": 291,
+      "line": 308,
       "page": "gui-forms-semantic-action-name-const-char-semanticaction-noexcept-eb809ff3ef.html"
     },
     {
@@ -304569,7 +304599,7 @@
       "comment": "",
       "header": "gui_forms/semantics/types/semantic_types.hpp",
       "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-      "line": 312,
+      "line": 329,
       "page": "gui-forms-semantic-field-names-std-span-const-char-const-noexcept-1c7993dcd9.html"
     },
     {
@@ -304590,8 +304620,29 @@
       "comment": "",
       "header": "gui_forms/semantics/types/semantic_types.hpp",
       "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-      "line": 292,
+      "line": 309,
       "page": "gui-forms-semantic-orientation-name-const-char-semanticorientation-noexcept-10be15675d.html"
+    },
+    {
+      "id": "gui_forms::semantic_role_fallback|SemanticRole (SemanticRole) noexcept",
+      "name": "semantic_role_fallback",
+      "type": "SemanticRole (SemanticRole) noexcept",
+      "namespace": "gui_forms",
+      "kind": "FunctionDecl",
+      "access": "public",
+      "parameters": [
+        {
+          "name": "role",
+          "type": "SemanticRole",
+          "declaration": "SemanticRole role"
+        }
+      ],
+      "declaration": "[[nodiscard]] constexpr SemanticRole semantic_role_fallback(SemanticRole role) noexcept",
+      "comment": "",
+      "header": "gui_forms/semantics/types/semantic_types.hpp",
+      "source": "include/gui_forms/semantics/types/semantic_types.hpp",
+      "line": 53,
+      "page": "gui-forms-semantic-role-fallback-semanticrole-semanticrole-noexcept-3ca9b5dfe3.html"
     },
     {
       "id": "gui_forms::semantic_role_name|const char *(SemanticRole) noexcept",
@@ -304611,7 +304662,7 @@
       "comment": "",
       "header": "gui_forms/semantics/types/semantic_types.hpp",
       "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-      "line": 290,
+      "line": 307,
       "page": "gui-forms-semantic-role-name-const-char-semanticrole-noexcept-8429c5c3b9.html"
     },
     {
@@ -304632,7 +304683,7 @@
       "comment": "",
       "header": "gui_forms/semantics/types/semantic_types.hpp",
       "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-      "line": 310,
+      "line": 327,
       "page": "gui-forms-semantic-state-name-const-char-semanticstate-noexcept-333a9fe1ae.html"
     },
     {
@@ -304653,7 +304704,7 @@
       "comment": "",
       "header": "gui_forms/semantics/types/semantic_types.hpp",
       "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-      "line": 293,
+      "line": 310,
       "page": "gui-forms-semantic-text-result-name-const-char-semantictextresult-noexcept-6b73adf45e.html"
     },
     {
@@ -304674,7 +304725,7 @@
       "comment": "",
       "header": "gui_forms/semantics/types/semantic_types.hpp",
       "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-      "line": 294,
+      "line": 311,
       "page": "gui-forms-semantic-text-unit-name-const-char-semantictextunit-noexcept-45caec7779.html"
     },
     {
@@ -306108,7 +306159,7 @@
       "comment": "",
       "header": "gui_forms/semantics/types/semantic_types.hpp",
       "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-      "line": 322,
+      "line": 339,
       "page": "gui-forms-virtual-semantic-runtime-id-std-uint64-t-std-string-view-noexcept-2029d0cfb9.html"
     },
     {
@@ -309719,7 +309770,7 @@
       "comment": "",
       "header": "gui_forms/semantics/types/semantic_types.hpp",
       "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-      "line": 104,
+      "line": 121,
       "page": "gui-forms-semantic-action-count-const-std-size-t-078e5dcaec.html"
     },
     {
@@ -309734,7 +309785,7 @@
       "comment": "",
       "header": "gui_forms/semantics/types/semantic_types.hpp",
       "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-      "line": 42,
+      "line": 47,
       "page": "gui-forms-semantic-role-count-const-std-size-t-06df5216ac.html"
     },
     {
@@ -309749,7 +309800,7 @@
       "comment": "",
       "header": "gui_forms/semantics/types/semantic_types.hpp",
       "source": "include/gui_forms/semantics/types/semantic_types.hpp",
-      "line": 70,
+      "line": 87,
       "page": "gui-forms-semantic-states-const-semanticstate-14-146a538c9c.html"
     },
     {

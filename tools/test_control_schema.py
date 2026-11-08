@@ -101,7 +101,12 @@ public:
         # W-5: the instrument part roles and the meter semantic role, appended.
         vocabulary = cs.load_schema()["vocabulary"]
         self.assertEqual(vocabulary["part_roles"][-3:], ["plot", "graticule", "trace"])
-        self.assertEqual(vocabulary["semantic_roles"][-1], "meter")
+        self.assertIn("meter", vocabulary["semantic_roles"])
+
+    def test_the_vocabulary_lists_the_specialised_roles(self) -> None:
+        # W-4: the switch and search roles, appended after meter.
+        vocabulary = cs.load_schema()["vocabulary"]
+        self.assertEqual(vocabulary["semantic_roles"][-3:], ["meter", "toggle_switch", "search_box"])
 
     def test_the_vocabulary_lists_the_docking_atoms(self) -> None:
         schema = cs.load_schema()

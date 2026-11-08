@@ -67,10 +67,14 @@ AtkRole native_role(SemanticRole role) {
     switch (role) {
     case SemanticRole::button: return ATK_ROLE_PUSH_BUTTON;
     case SemanticRole::check_box: case SemanticRole::check_list_item: return ATK_ROLE_CHECK_BOX;
+    // ATK has no switch role; GTK publishes its switch as a toggle button.
+    case SemanticRole::toggle_switch: return ATK_ROLE_TOGGLE_BUTTON;
     case SemanticRole::radio_button: return ATK_ROLE_RADIO_BUTTON;
     case SemanticRole::toolbar: return ATK_ROLE_TOOL_BAR;
     case SemanticRole::radio_group: return ATK_ROLE_PANEL;
-    case SemanticRole::text_box: return ATK_ROLE_ENTRY;
+    // ATK has no search role: a search box is an entry, its fallback.
+    case SemanticRole::text_box:
+    case SemanticRole::search_box: return ATK_ROLE_ENTRY;
     case SemanticRole::numeric_field: return ATK_ROLE_SPIN_BUTTON;
     case SemanticRole::list: return ATK_ROLE_LIST;
     case SemanticRole::list_item: return ATK_ROLE_LIST_ITEM;
@@ -167,14 +171,15 @@ StateBits state_bits(const SemanticNode& node) {
     for (const StateMapping& mapping : state_mappings) {
         if (has_semantic_state(node.states, mapping.source)) bits |= state_bit(mapping.target);
     }
-    if (node.role == SemanticRole::text_box && !has_semantic_state(node.states, SemanticState::read_only)) {
+    const SemanticRole acting = semantic_role_fallback(node.role);
+    if (acting == SemanticRole::text_box && !has_semantic_state(node.states, SemanticState::read_only)) {
         bits |= state_bit(ATK_STATE_EDITABLE);
     }
-    if (node.role == SemanticRole::text_box) {
+    if (acting == SemanticRole::text_box) {
         bits |= state_bit(node.multiline ? ATK_STATE_MULTI_LINE : ATK_STATE_SINGLE_LINE);
     }
-    if (node.role == SemanticRole::check_box || node.role == SemanticRole::check_list_item ||
-        node.role == SemanticRole::radio_button) {
+    if (acting == SemanticRole::check_box || acting == SemanticRole::check_list_item ||
+        acting == SemanticRole::radio_button) {
         bits |= state_bit(ATK_STATE_CHECKABLE);
     }
     if (has_semantic_state(node.states, SemanticState::expanded) || has_action(node.actions, SemanticAction::expand) ||
@@ -236,8 +241,9 @@ void order_actions(const std::vector<SemanticAction>& semantic, std::vector<Sema
 unsigned interface_flags(const SemanticNode& node) {
     unsigned flags = 0U;
     if (!node.actions.empty()) flags |= action_interface;
-    if (node.numeric_value || (!node.value.empty() && node.role != SemanticRole::text_box)) flags |= value_interface;
-    if (node.role == SemanticRole::text_box) flags |= text_interface;
+    const bool text = semantic_role_fallback(node.role) == SemanticRole::text_box;
+    if (node.numeric_value || (!node.value.empty() && !text)) flags |= value_interface;
+    if (text) flags |= text_interface;
     return flags;
 }
 

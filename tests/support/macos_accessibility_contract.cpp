@@ -22,11 +22,13 @@ const char* expected_ax_role(SemanticRole role) {
     case SemanticRole::static_text: return "AXStaticText";
     case SemanticRole::button: return "AXButton";
     case SemanticRole::check_box: return "AXCheckBox";
+    case SemanticRole::toggle_switch: return "AXCheckBox";
     case SemanticRole::radio_button: return "AXRadioButton";
     case SemanticRole::toolbar: return "AXToolbar";
     case SemanticRole::radio_group: return "AXRadioGroup";
     case SemanticRole::link: return "AXLink";
     case SemanticRole::text_box: return "AXTextField";
+    case SemanticRole::search_box: return "AXTextField";
     case SemanticRole::numeric_field: return "AXTextField";
     case SemanticRole::list: return "AXList";
     case SemanticRole::list_item: return "AXRow";
@@ -76,6 +78,8 @@ const char* expected_ax_role(SemanticRole role) {
 }
 
 const char* expected_ax_subrole(SemanticRole role) {
+    if (role == SemanticRole::toggle_switch) return "AXSwitch";
+    if (role == SemanticRole::search_box) return "AXSearchField";
     if (role == SemanticRole::tab_panel) return "AXTabPanel";
     if (role == SemanticRole::tab) return "AXTabButton";
     if (role == SemanticRole::tree_item) return "AXOutlineRow";
@@ -86,9 +90,10 @@ const char* expected_ax_subrole(SemanticRole role) {
 }
 
 std::string expected_ax_value(const SemanticNode& node) {
-    if (node.role == SemanticRole::check_box ||
-        node.role == SemanticRole::check_list_item ||
-        node.role == SemanticRole::radio_button) {
+    const SemanticRole acting = semantic_role_fallback(node.role);
+    if (acting == SemanticRole::check_box ||
+        acting == SemanticRole::check_list_item ||
+        acting == SemanticRole::radio_button) {
         if (has_semantic_state(node.states, SemanticState::mixed)) return "2";
         return has_semantic_state(node.states, SemanticState::checked) ? "1" : "0";
     }
@@ -137,7 +142,8 @@ AccessibilityProjection expected_ax_projection(const SemanticNode& node) {
     expected.row_count = node.row_count ? static_cast<long long>(*node.row_count) : 0;
     expected.column_count = node.column_count ? static_cast<long long>(*node.column_count) : 0;
     expected.modal = node.modal;
-    const bool text_ranges = node.role == SemanticRole::text_box && node.text_selection.has_value() &&
+    const bool text_ranges = semantic_role_fallback(node.role) == SemanticRole::text_box &&
+                             node.text_selection.has_value() &&
                              !has_semantic_state(node.states, SemanticState::protected_content);
     if (text_ranges) {
         const SemanticTextSelection selection = *node.text_selection;

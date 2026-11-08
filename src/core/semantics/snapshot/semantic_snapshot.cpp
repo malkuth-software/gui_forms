@@ -163,6 +163,8 @@ const char* semantic_role_name(SemanticRole role) noexcept {
     case SemanticRole::status_bar: return "status_bar";
     case SemanticRole::live_region: return "live_region";
     case SemanticRole::meter: return "meter";
+    case SemanticRole::toggle_switch: return "toggle_switch";
+    case SemanticRole::search_box: return "search_box";
     case SemanticRole::count: return "generic";
     }
     return "generic";

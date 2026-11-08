@@ -863,7 +863,8 @@ void raise_text_event(const std::shared_ptr<SemanticSource>& source, SemanticEle
 } // namespace
 
 bool text_pattern(const SemanticNode& node) noexcept {
-    const bool text = node.role == SemanticRole::text_box && node.text_selection.has_value() &&
+    const bool text = semantic_role_fallback(node.role) == SemanticRole::text_box &&
+                      node.text_selection.has_value() &&
                       control_backed(node) &&
                       !has_semantic_state(node.states, SemanticState::protected_content);
     return text;

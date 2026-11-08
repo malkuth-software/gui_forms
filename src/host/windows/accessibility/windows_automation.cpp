@@ -102,7 +102,7 @@ bool range_value_pattern(const SemanticNode& node) noexcept {
 bool value_pattern(const SemanticNode& node) noexcept {
     if (node.numeric_value.has_value()) return false;
     const bool value = semantic_has_action(node, SemanticAction::set_value) ||
-                       node.role == SemanticRole::text_box;
+                       semantic_role_fallback(node.role) == SemanticRole::text_box;
     return value;
 }
 
@@ -230,6 +230,10 @@ CONTROLTYPEID control_type(SemanticRole role) noexcept {
     case SemanticRole::live_region: return UIA_GroupControlTypeId;
     // UIA has no meter control type; a meter reads as a progress bar.
     case SemanticRole::meter: return UIA_ProgressBarControlTypeId;
+    // A switch is a button with the Toggle pattern (checkable_role), as
+    // WinUI's ToggleSwitch is; a search box is an edit that names itself.
+    case SemanticRole::toggle_switch: return UIA_ButtonControlTypeId;
+    case SemanticRole::search_box: return UIA_EditControlTypeId;
     case SemanticRole::count: return UIA_GroupControlTypeId;
     }
     return UIA_GroupControlTypeId;
@@ -592,6 +596,10 @@ HRESULT UiaElement::property_value(const SemanticNode& client, const SemanticLoc
     switch (property) {
     case UIA_ControlTypePropertyId:
         set_int(out, control_type(node.role));
+        return S_OK;
+    case UIA_LocalizedControlTypePropertyId:
+        // Empty leaves UI Automation the control type's own name.
+        if (node.role == SemanticRole::search_box) return set_text(out, "search box");
         return S_OK;
     case UIA_NamePropertyId: return set_text(out, node.name);
     case UIA_AutomationIdPropertyId: return set_text(out, node.stable_id);

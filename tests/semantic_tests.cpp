@@ -595,6 +595,22 @@ void test_stage_a_vocabulary_reaches_the_snapshot() {
             "the snapshot's JSON carries every stage A field");
 }
 
+// A node of a given role, exposed.
+class RoleProbe final : public Control {
+public:
+    RoleProbe(StableId stable_id, SemanticRole role) : Control(std::move(stable_id)), role_(role) {}
+    [[nodiscard]] SemanticDescriptor semantic_descriptor() const override {
+        SemanticDescriptor descriptor;
+        descriptor.role = role_;
+        descriptor.name = "Probe";
+        descriptor.exposed = true;
+        return descriptor;
+    }
+
+private:
+    SemanticRole role_;
+};
+
 // A read-only reading within a range, as an instrument publishes one.
 class MeterProbe final : public Control {
 public:
@@ -616,10 +632,46 @@ public:
 // The instrument vocabulary (W-5): the meter role has its name, comes after
 // every earlier role (names are only added), and reaches the snapshot with
 // its reading and range.
+// The specialised roles (W-4): appended after meter with their names; each
+// falls back to the role it specialises, and every other role to itself.
+void test_specialised_roles() {
+    require(std::string_view(semantic_role_name(SemanticRole::toggle_switch)) == "toggle_switch" &&
+                std::string_view(semantic_role_name(SemanticRole::search_box)) == "search_box",
+            "the switch and search roles have their names");
+    const std::size_t meter = static_cast<std::size_t>(SemanticRole::meter);
+    require(static_cast<std::size_t>(SemanticRole::toggle_switch) == meter + 1U &&
+                static_cast<std::size_t>(SemanticRole::search_box) + 1U == semantic_role_count,
+            "the switch and search roles are appended after meter");
+    require(semantic_role_fallback(SemanticRole::toggle_switch) == SemanticRole::check_box &&
+                semantic_role_fallback(SemanticRole::search_box) == SemanticRole::text_box,
+            "a switch falls back to a check box, a search box to a text box");
+    bool own = true;
+    for (std::size_t index = 0U; index < semantic_role_count; ++index) {
+        const SemanticRole role = static_cast<SemanticRole>(index);
+        const bool specialised = role == SemanticRole::toggle_switch || role == SemanticRole::search_box;
+        if (!specialised && semantic_role_fallback(role) != role) own = false;
+    }
+    require(own, "every other role is its own fallback");
+    std::shared_ptr<Panel> root = make_control<Panel>(StableId("special.root"));
+    std::shared_ptr<RoleProbe> toggle =
+        make_control<RoleProbe>(StableId("special.switch"), SemanticRole::toggle_switch);
+    std::shared_ptr<RoleProbe> search =
+        make_control<RoleProbe>(StableId("special.search"), SemanticRole::search_box);
+    (*toggle).set_requested_bounds({0, 0, 40, 20});
+    (*search).set_requested_bounds({0, 20, 80, 20});
+    (*root).add_child(toggle);
+    (*root).add_child(search);
+    Window window(root, {100, 50});
+    const std::string json = window.semantic_snapshot().to_json();
+    require(json.find("\"role\":\"toggle_switch\"") != std::string::npos &&
+                json.find("\"role\":\"search_box\"") != std::string::npos,
+            "the snapshot's JSON names both roles");
+}
+
 void test_meter_role_reaches_the_snapshot() {
     require(std::string_view(semantic_role_name(SemanticRole::meter)) == "meter",
             "the meter role has its name");
-    require(static_cast<std::size_t>(SemanticRole::meter) + 1U == semantic_role_count,
+    require(static_cast<std::size_t>(SemanticRole::meter) == static_cast<std::size_t>(SemanticRole::live_region) + 1U,
             "the meter role is appended after live_region");
     std::shared_ptr<Panel> root = make_control<Panel>(StableId("meter.root"));
     std::shared_ptr<MeterProbe> meter = make_control<MeterProbe>(StableId("meter.level"));
@@ -851,6 +903,7 @@ int main() {
         test_hidden_focus_is_published_on_the_composite();
         test_stage_a_vocabulary_reaches_the_snapshot();
         test_meter_role_reaches_the_snapshot();
+        test_specialised_roles();
         test_semantics_enforce_ui_thread();
         std::cout << "gui_forms_semantic_tests: all tests passed\n";
         return EXIT_SUCCESS;
