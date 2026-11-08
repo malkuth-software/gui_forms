@@ -1,0 +1,178 @@
+{
+  "family": "RichTextBox",
+  "step": "B3",
+  "declaring": "RichTextBox",
+  "header": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
+  "source": "src/controls/panel/rich_text_box/rich_text_box.cpp",
+  "capabilities_header": "include/gui_forms/controls/panel/rich_text_box/rich_text_box_capabilities/rich_text_box_capabilities.hpp",
+  "base": "Panel",
+  "shared": [
+    "FontCapability"
+  ],
+  "includes": [
+    "gui_forms/types.hpp"
+  ],
+  "properties": [
+    {
+      "name": "text",
+      "capability": "RichTextBoxText",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The plain text (Text): the source's blocks with the markup removed, joined by line feeds (markdown_plain_text); a view onto the parsed document. A write replaces the document with markdown that reads back as that text (punctuation escaped, each line feed a hard line break; leading white space on a line and trailing line feeds are not kept), clears the history and raises content_changed, text_changed when the plain text changes, then selection_changed. Throws std::invalid_argument for invalid UTF-8 and std::length_error past maximum_bytes.",
+      "getter": "text",
+      "setter": "set_text",
+      "clear": null,
+      "field": null,
+      "event": "text_changed_",
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": {
+        "kind": "text",
+        "category": "Appearance",
+        "description": "The plain text of the document.",
+        "default": "BindingValue{std::string{}}",
+        "effects": "invalidation::text_content",
+        "subtree": false,
+        "bindable": true,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "a view onto plain_text_; write_view escapes the text into markdown and adopts it"
+      ],
+      "storage": "view"
+    },
+    {
+      "name": "read_only",
+      "capability": "RichTextBoxReadOnly",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether the user may select and copy but not change the document (ReadOnly); a view onto the editing engine.",
+      "getter": "read_only",
+      "setter": "set_read_only",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto the editing engine"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "word_wrap",
+      "capability": "RichTextBoxWordWrap",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Lines wrap at the box's width (WordWrap, the default); without wrapping a line is one row and the box scrolls horizontally.",
+      "getter": "word_wrap",
+      "setter": "set_word_wrap",
+      "clear": null,
+      "field": "word_wrap_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "written drops the wrap width and the sideways scroll"
+      ],
+      "effects": null
+    },
+    {
+      "name": "accepts_tab",
+      "capability": "RichTextBoxAcceptsTab",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether Tab inserts a tab (AcceptsTab); off (the default), Tab moves the focus.",
+      "getter": "accepts_tab",
+      "setter": "set_accepts_tab",
+      "clear": null,
+      "field": "accepts_tab_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": null
+    },
+    {
+      "name": "control_bar_visible",
+      "capability": "RichTextBoxControlBarVisible",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether the control bar is shown (the default). Its keys work without it. A change closes the heading menu.",
+      "getter": "control_bar_visible",
+      "setter": "set_control_bar_visible",
+      "clear": null,
+      "field": "control_bar_visible_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "written clears the bar's hot and pressed buttons, closes the heading menu and invalidates"
+      ],
+      "effects": null
+    },
+    {
+      "name": "font",
+      "capability": "Font",
+      "value": "FontSpec",
+      "initial": "FontRole::content, 12.0, 400, false",
+      "comment": "The body font. Headings scale it; code is set in the monospace role at its size. Throws std::invalid_argument for an invalid FontSpec.",
+      "getter": "font",
+      "setter": "set_font",
+      "clear": null,
+      "field": "font_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "shared FontCapability<RichTextBox>; prepare validates and marks the font as set from code"
+      ],
+      "effects": "Dirty::measure | Dirty::paint | Dirty::semantics",
+      "sample": "FontSpec{FontRole::content, 14.0, 400, false}"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "markdown / set_markdown",
+      "reason": "a document load (string_view source, history cleared), not a value; the source is the engine's text"
+    },
+    {
+      "name": "set_rtf / rtf",
+      "reason": "conversions with results, not values"
+    },
+    {
+      "name": "auto_scroll",
+      "reason": "ScrollableControl's cell; RichTextBox reacts through on_auto_scroll_changed"
+    },
+    {
+      "name": "selection / heading level",
+      "reason": "per-selection state and formatting operations"
+    }
+  ],
+  "test": {
+    "type": "RichTextBox",
+    "include": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp"
+  }
+}

@@ -12,6 +12,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -66,7 +67,7 @@ void source_and_plain_text() {
     RichTextBox& box = *fixture.box;
     require(box.markdown() == "## Title\n\nSome **bold** and *slanted* text.\n\n- one\n- two\n",
             "markdown() is the source");
-    require(box.text() == "Title\nSome bold and slanted text.\none\ntwo", "text() is the plain text");
+    require(box.text.read() == "Title\nSome bold and slanted text.\none\ntwo", "text() is the plain text");
     require(box.document().blocks.size() == 4U && box.document().blocks[0].kind == MarkdownBlockKind::heading,
             "the document is the parsed source");
     require(box.selection().caret == Utf8Offset(box.markdown().size()), "the caret starts at the end");
@@ -76,7 +77,7 @@ void source_and_plain_text() {
     SubscriptionToken text_token = box.text_changed().subscribe(RecordText{&texts});
     SubscriptionToken change_token = box.content_changed().subscribe(CountChanges{&changes});
     box.set_markdown("plain");
-    require(box.text() == "plain" && texts.size() == 1U && changes == 1U && !box.can_undo(),
+    require(box.text.read() == "plain" && texts.size() == 1U && changes == 1U && !box.can_undo(),
             "set_markdown replaces the source, raises both events and clears the history");
     select(box, 0U, 5U);
     require(box.toggle_bold() && box.markdown() == "**plain**" && changes == 2U && texts.size() == 1U,
@@ -87,12 +88,12 @@ void plain_text_as_markdown() {
     Fixture fixture = make_fixture({});
     RichTextBox& box = *fixture.box;
     const std::string plain = "a*b [c](d)\n# not a heading\n\n  indented\n1. not a list";
-    box.set_text(plain);
-    require(box.text() == plain, "set_text writes markdown that reads back as the text");
+    box.text = plain;
+    require(box.text.read() == plain, "set_text writes markdown that reads back as the text");
     require(box.document().blocks.size() == 1U && box.document().blocks[0].kind == MarkdownBlockKind::paragraph,
             "escaped text is one paragraph");
-    box.set_text("trailing\n\n");
-    require(box.text() == "trailing", "trailing line feeds are dropped");
+    box.text = "trailing\n\n";
+    require(box.text.read() == "trailing", "trailing line feeds are dropped");
 }
 
 void limits() {
@@ -126,7 +127,7 @@ void typing_and_undo() {
     Fixture fixture = make_fixture("Hello");
     Window& window = *fixture.window;
     RichTextBox& box = *fixture.box;
-    require(window.dispatch_text({" **you**"}) && box.markdown() == "Hello **you**" && box.text() == "Hello you",
+    require(window.dispatch_text({" **you**"}) && box.markdown() == "Hello **you**" && box.text.read() == "Hello you",
             "typed markup is source");
     require(box.undo() && box.markdown() == "Hello", "undo restores the source");
     require(box.redo() && box.markdown() == "Hello **you**", "redo applies it again");
@@ -269,7 +270,7 @@ void multi_paragraph_document() {
                 box.document().blocks[2].kind == MarkdownBlockKind::list_item &&
                 box.document().blocks[3].kind == MarkdownBlockKind::list_item,
             "the lines parse as a heading, a paragraph and two items");
-    require(box.text() == "Notes\n" + paragraph + "\none\ntwo", "the plain text has one line per block");
+    require(box.text.read() == "Notes\n" + paragraph + "\none\ntwo", "the plain text has one line per block");
     window.perform_layout();
     require(box.visual_line_count() >= 8U, "the long paragraph wraps onto more than one row");
     SemanticTextLayout layout{};
@@ -322,7 +323,7 @@ void links() {
             "the destination is typed");
     require(box.document().links.size() == 1U && box.document().links[0].target == "https://example.org",
             "the document holds the link");
-    require(box.text() == "see site", "the link's markup is not plain text");
+    require(box.text.read() == "see site", "the link's markup is not plain text");
     select(box, 6U, 6U);
     require(box.selection_format().link == RichTextFormatState::on, "the caret is in the link's text");
 
@@ -380,7 +381,7 @@ void control_bar() {
                 has_semantic_state(nodes[0].states, SemanticState::checked) &&
                 nodes[2].role == SemanticRole::menu_button && nodes[2].has_popup,
             "the buttons are published as buttons and a menu button");
-    box.set_control_bar_visible(false);
+    box.control_bar_visible = false;
     window.perform_layout();
     require(box.realized_item_count() == 0U && !box.parts().bar.present, "a hidden bar publishes nothing");
 }
@@ -389,7 +390,7 @@ void read_only() {
     Fixture fixture = make_fixture("fixed");
     Window& window = *fixture.window;
     RichTextBox& box = *fixture.box;
-    box.set_read_only(true);
+    box.read_only = true;
     box.select_all();
     require(!box.toggle_bold() && !box.set_heading_level(1U) && !box.toggle_bulleted_list() && !box.insert_link(),
             "read-only refuses the commands");
@@ -406,7 +407,7 @@ void rtf_round_trip() {
     require(box.rtf(rtf).succeeded() && !rtf.empty(), "the document is written as RTF");
     Fixture other = make_fixture({});
     const RtfConversionResult loaded = (*other.box).set_rtf(rtf);
-    require(loaded.succeeded() && (*other.box).text() == box.text() && !(*other.box).can_undo(),
+    require(loaded.succeeded() && (*other.box).text() == box.text.read() && !(*other.box).can_undo(),
             "RTF read back gives the same text and clears the history");
     const std::string before((*other.box).markdown());
     const std::string junk = "not rtf";
@@ -438,11 +439,58 @@ void semantics() {
     require(descriptor.role == SemanticRole::text_box && descriptor.value == "**a**" && descriptor.multiline,
             "the box publishes its source as a multiline text box");
     require(box.on_semantic_action(SemanticAction::set_value, "# b") && box.markdown() == "# b" &&
-                box.text() == "b",
+                box.text.read() == "b",
             "set_value replaces the source");
 }
 
 } // namespace
+
+// RichTextBox's properties are capabilities: text is a view onto the parsed
+// document, read_only onto the engine, and the rest cells whose hooks keep
+// the old setters' effects.
+void property_capabilities() {
+    Fixture fixture = make_fixture("**Draft**");
+    RichTextBox& box = *fixture.box;
+    std::vector<std::string> texts;
+    const SubscriptionToken text_token = box.text_changed().subscribe(box, RecordText{&texts});
+    box.text = "Plain *text*";
+    require(box.text.read() == "Plain *text*" && box.markdown() == "Plain \\*text\\*" && texts.size() == 1U &&
+                texts[0] == "Plain *text*",
+            "a text write escapes the markup and raises text_changed");
+    box.set_property_value("text", BindingValue{std::string("From the table")});
+    require(box.text.read() == "From the table" && texts.size() == 2U, "a table write runs the same hooks");
+    const std::optional<PropertyDescriptor> text_descriptor = box.property_descriptor("text");
+    require(text_descriptor && (*text_descriptor).change_notifications && (*text_descriptor).bindable,
+            "RichTextBox text is bindable and reports change notifications");
+    bool refused = false;
+    try {
+        box.text = std::string("\xFF");
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && box.text.read() == "From the table", "invalid UTF-8 text is refused");
+    static_cast<void>(text_token);
+
+    box.read_only = true;
+    require(box.read_only.read() && box.states().read_only, "read_only is a view onto the engine");
+    box.read_only = false;
+    box.word_wrap = false;
+    require(!box.word_wrap.read(), "word_wrap is a cell");
+    box.accepts_tab = true;
+    require(box.accepts_tab.read(), "accepts_tab is a cell");
+    box.control_bar_visible = false;
+    (*fixture.window).perform_layout();
+    require(!box.control_bar_visible.read() && !box.parts().bar.present, "hiding the bar removes it");
+    refused = false;
+    try {
+        box.font = FontSpec{FontRole::content, 0.0, 400, false};
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && box.font.read() == FontSpec{FontRole::content, 12.0, 400, false}, "an invalid font is refused");
+    box.font = FontSpec{FontRole::content, 14.0, 400, false};
+    require(box.font.read().size == 14.0, "a valid font is stored");
+}
 
 int main() {
     source_and_plain_text();
@@ -459,6 +507,7 @@ int main() {
     rtf_round_trip();
     selected_text_drawn_once();
     semantics();
+    property_capabilities();
     std::cout << "rich_text_box_tests passed\n";
     return 0;
 }

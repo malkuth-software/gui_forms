@@ -3084,7 +3084,7 @@ void example() {
     (*note).toggle_bold();
     std::vector<std::byte> rtf;
     const gf::RtfConversionResult saved = (*note).rtf(rtf);
-    // (*note).markdown() starts "**Draft** notes"; (*note).text() starts "Draft notes"
+    // (*note).markdown() starts "**Draft** notes"; (*note).text.read() starts "Draft notes"
 }
 }  // namespace doc_example_RichTextBox_1
 

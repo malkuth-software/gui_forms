@@ -91,6 +91,18 @@ Related types
      - Stage T1 anatomy, as dot members: TextBox's parts and the bar.
    * - :cpp:class:`RichTextBox::States <gui_forms::RichTextBox::States>`
      -  
+   * - :cpp:class:`RichTextBoxAcceptsTabCapability <gui_forms::RichTextBoxAcceptsTabCapability>`
+     - Whether Tab inserts a tab (AcceptsTab); off (the default), Tab moves the focus.
+   * - :cpp:class:`RichTextBoxCapabilities <gui_forms::RichTextBoxCapabilities>`
+     - Every RichTextBox capability, in the order the declaring class takes them.
+   * - :cpp:class:`RichTextBoxControlBarVisibleCapability <gui_forms::RichTextBoxControlBarVisibleCapability>`
+     - Whether the control bar is shown (the default).
+   * - :cpp:class:`RichTextBoxReadOnlyCapability <gui_forms::RichTextBoxReadOnlyCapability>`
+     - Whether the user may select and copy but not change the document (ReadOnly); a view onto the editing engine.
+   * - :cpp:class:`RichTextBoxTextCapability <gui_forms::RichTextBoxTextCapability>`
+     - The plain text (Text): the source's blocks with the markup removed, joined by line feeds (markdown_plain_text); a view onto the parsed document.
+   * - :cpp:class:`RichTextBoxWordWrapCapability <gui_forms::RichTextBoxWordWrapCapability>`
+     - Lines wrap at the box's width (WordWrap, the default); without wrapping a line is one row and the box scrolls horizontally.
    * - :cpp:class:`RichTextFormat <gui_forms::RichTextFormat>`
      - The markdown formatting at a RichTextBox's selection, as its control bar shows it.
    * - :cpp:class:`TextBox::Parts <gui_forms::TextBox::Parts>`
@@ -660,6 +672,129 @@ Related types
    .. cpp:member:: bool invalid
 
    .. cpp:member:: bool pending
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RichTextBoxAcceptsTabCapability
+
+   ``#include <gui_forms/controls/panel/rich_text_box/rich_text_box_capabilities/rich_text_box_capabilities.hpp>``
+
+   Whether Tab inserts a tab (AcceptsTab); off (the default), Tab moves the focus.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RichTextBoxAcceptsTabCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, RichTextBoxAcceptsTabCapability<Declaring>> accepts_tab
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RichTextBoxCapabilities : public RichTextBoxTextCapability<Declaring>, public RichTextBoxReadOnlyCapability<Declaring>, public RichTextBoxWordWrapCapability<Declaring>, public RichTextBoxAcceptsTabCapability<Declaring>, public RichTextBoxControlBarVisibleCapability<Declaring>, public FontCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/rich_text_box/rich_text_box_capabilities/rich_text_box_capabilities.hpp>``
+
+   Every RichTextBox capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: RichTextBoxCapabilities()
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string text
+
+      The plain text (Text): the source's blocks with the markup removed, joined by line feeds (markdown_plain_text); a view onto the parsed document. A write replaces the document with markdown that reads back as that text (punctuation escaped, each line feed a hard line break; leading white space on a line and trailing line feeds are not kept), clears the history and raises content_changed, text_changed when the plain text changes, then selection_changed. Throws std::invalid_argument for invalid UTF-8 and std::length_error past maximum_bytes.
+
+   .. cpp:member:: bool read_only
+
+      Whether the user may select and copy but not change the document (ReadOnly); a view onto the editing engine.
+
+   .. cpp:member:: bool word_wrap
+
+      Lines wrap at the box's width (WordWrap, the default); without wrapping a line is one row and the box scrolls horizontally.
+
+   .. cpp:member:: bool accepts_tab
+
+      Whether Tab inserts a tab (AcceptsTab); off (the default), Tab moves the focus.
+
+   .. cpp:member:: bool control_bar_visible
+
+      Whether the control bar is shown (the default). Its keys work without it. A change closes the heading menu.
+
+   .. cpp:member:: FontSpec font
+
+      The font of the control's text (Font).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RichTextBoxControlBarVisibleCapability
+
+   ``#include <gui_forms/controls/panel/rich_text_box/rich_text_box_capabilities/rich_text_box_capabilities.hpp>``
+
+   Whether the control bar is shown (the default). Its keys work without it. A change closes the heading menu.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RichTextBoxControlBarVisibleCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, RichTextBoxControlBarVisibleCapability<Declaring>> control_bar_visible
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RichTextBoxReadOnlyCapability
+
+   ``#include <gui_forms/controls/panel/rich_text_box/rich_text_box_capabilities/rich_text_box_capabilities.hpp>``
+
+   Whether the user may select and copy but not change the document (ReadOnly); a view onto the editing engine.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RichTextBoxReadOnlyCapability& capability, bool incoming)
+
+   .. cpp:function:: static bool read(const RichTextBoxReadOnlyCapability& capability)
+
+   .. cpp:member:: PropertyView<bool, RichTextBoxReadOnlyCapability<Declaring>> read_only
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RichTextBoxTextCapability
+
+   ``#include <gui_forms/controls/panel/rich_text_box/rich_text_box_capabilities/rich_text_box_capabilities.hpp>``
+
+   The plain text (Text): the source's blocks with the markup removed, joined by line feeds (markdown_plain_text); a view onto the parsed document. A write replaces the document with markdown that reads back as that text (punctuation escaped, each line feed a hard line break; leading white space on a line and trailing line feeds are not kept), clears the history and raises content_changed, text_changed when the plain text changes, then selection_changed. Throws std::invalid_argument for invalid UTF-8 and std::length_error past maximum_bytes.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RichTextBoxTextCapability& capability, std::string incoming)
+
+   .. cpp:function:: static std::string read(const RichTextBoxTextCapability& capability)
+
+   .. cpp:member:: PropertyView<std::string, RichTextBoxTextCapability<Declaring>> text
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RichTextBoxWordWrapCapability
+
+   ``#include <gui_forms/controls/panel/rich_text_box/rich_text_box_capabilities/rich_text_box_capabilities.hpp>``
+
+   Lines wrap at the box's width (WordWrap, the default); without wrapping a line is one row and the box scrolls horizontally.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RichTextBoxWordWrapCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, RichTextBoxWordWrapCapability<Declaring>> word_wrap
+
+      Default: ``{true}``.
 
 .. cpp:namespace:: gui_forms
 

@@ -11,6 +11,7 @@
 #include "gui_forms/controls/panel/masked_text_box/masked_text_box.hpp"
 #include "gui_forms/controls/panel/month_calendar/month_calendar.hpp"
 #include "gui_forms/controls/panel/panel.hpp"
+#include "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp"
 #include "gui_forms/controls/panel/scaled_panel/scaled_panel.hpp"
 #include "gui_forms/controls/panel/text_box/text_box.hpp"
 #include "gui_forms/controls/panel/token_box/token_box.hpp"
@@ -478,6 +479,30 @@ void test_panel_properties() {
     }
 }
 
+void test_rich_text_box_properties() {
+    std::shared_ptr<RichTextBox> control = make_control<RichTextBox>(StableId("generated.richtextbox"));
+    {
+        const bool sample = !(*control).word_wrap.read();
+        (*control).word_wrap = sample;
+        expect((*control).word_wrap.read() == sample, "RichTextBox.word_wrap: a write stores");
+    }
+    {
+        const bool sample = !(*control).accepts_tab.read();
+        (*control).accepts_tab = sample;
+        expect((*control).accepts_tab.read() == sample, "RichTextBox.accepts_tab: a write stores");
+    }
+    {
+        const bool sample = !(*control).control_bar_visible.read();
+        (*control).control_bar_visible = sample;
+        expect((*control).control_bar_visible.read() == sample, "RichTextBox.control_bar_visible: a write stores");
+    }
+    {
+        const FontSpec sample = FontSpec{FontRole::content, 14.0, 400, false};
+        (*control).font = sample;
+        expect((*control).font.read() == sample, "RichTextBox.font: a write stores");
+    }
+}
+
 void test_scaled_group_box_properties() {
     std::shared_ptr<ScaledGroupBox> control = make_control<ScaledGroupBox>(StableId("generated.scaledgroupbox"));
     {
@@ -645,6 +670,7 @@ int main() {
     test_masked_text_box_properties();
     test_month_calendar_properties();
     test_panel_properties();
+    test_rich_text_box_properties();
     test_scaled_group_box_properties();
     test_scaled_panel_properties();
     test_scrollable_control_properties();

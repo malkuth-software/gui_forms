@@ -48,21 +48,21 @@ constexpr double arrow_width = 12.0;
 } // namespace
 
 double RichTextBox::bar_height() const noexcept {
-    if (!control_bar_visible_) return 0.0;
-    const FontSpec font = text_font(font_);
-    const double height = std::max(24.0, std::round(font.size * 1.4) + 2.0 * bar_padding + 4.0);
+    if (!control_bar_visible.read()) return 0.0;
+    const FontSpec bar_font = text_font(font.read());
+    const double height = std::max(24.0, std::round(bar_font.size * 1.4) + 2.0 * bar_padding + 4.0);
     return height;
 }
 
 std::array<Rect, rich_text_bar_button_count> RichTextBox::bar_buttons() const {
     std::array<Rect, rich_text_bar_button_count> buttons{};
-    if (!control_bar_visible_) return buttons;
-    const FontSpec font = text_font(font_);
+    if (!control_bar_visible.read()) return buttons;
+    const FontSpec bar_font = text_font(font.read());
     const double height = bar_height() - 2.0 * bar_padding;
     double x = bar_padding + 1.0;
     for (std::size_t index = 0U; index < rich_text_bar_button_count; ++index) {
         const std::string_view label = bar_button_texts[index].label;
-        double width = resolve_text_layout_utf8(label, font).logical_size.width + 2.0 * button_inset;
+        double width = resolve_text_layout_utf8(label, bar_font).logical_size.width + 2.0 * button_inset;
         if (button_of(index) == RichTextBarButton::heading) width += arrow_width;
         width = std::max(width, height);
         buttons[index] = {x, bar_padding, width, height};
@@ -106,7 +106,7 @@ RichTextFormatState RichTextBox::bar_button_state(RichTextBarButton button, cons
 }
 
 std::size_t RichTextBox::realized_item_count() const {
-    const std::size_t count = control_bar_visible_ ? rich_text_bar_button_count : 0U;
+    const std::size_t count = control_bar_visible.read() ? rich_text_bar_button_count : 0U;
     return count;
 }
 
@@ -123,13 +123,13 @@ AnatomyStateSet RichTextBox::realized_item_anatomy_states(std::size_t item) cons
     const RichTextFormatState state = bar_button_state(button_of(item), format);
     if (state == RichTextFormatState::on) states.insert(AnatomyState::checked);
     if (state == RichTextFormatState::mixed) states.insert(AnatomyState::indeterminate);
-    if (read_only() || !enabled.read()) states.insert(AnatomyState::disabled);
+    if (read_only.read() || !enabled.read()) states.insert(AnatomyState::disabled);
     if (heading_menu_open_ && button_of(item) == RichTextBarButton::heading) states.insert(AnatomyState::open);
     return states;
 }
 
 void RichTextBox::paint_bar(Painter& painter) const {
-    if (!control_bar_visible_) return;
+    if (!control_bar_visible.read()) return;
     const Rect bounds = local_bounds();
     const double height = bar_height();
     PartPaint strip;
@@ -141,7 +141,7 @@ void RichTextBox::paint_bar(Painter& painter) const {
     strip.bounds = {1.0, height - 1.0, std::max(0.0, bounds.width - 2.0), 1.0};
     paint_part(painter, *this, strip);
     const std::array<Rect, rich_text_bar_button_count> buttons = bar_buttons();
-    const FontSpec font = text_font(font_);
+    const FontSpec bar_font = text_font(font.read());
     painter.save();
     painter.clip_rect({0.0, 0.0, bounds.width, height});
     for (std::size_t index = 0U; index < buttons.size(); ++index) {
@@ -163,7 +163,7 @@ void RichTextBox::paint_bar(Painter& painter) const {
             painter.end_group();
         }
         part.role = PartRole::label;
-        part.font = font;
+        part.font = bar_font;
         const RichTextBarButton kind = button_of(index);
         if (kind == RichTextBarButton::bold) part.font.weight = 700U;
         if (kind == RichTextBarButton::italic) part.font.italic = true;
@@ -227,7 +227,7 @@ bool RichTextBox::bar_pointer(PointerEvent& event, Point local) {
         if (local.y >= bar_height()) return false;
         if (window() != nullptr) static_cast<void>((*window()).request_focus(shared_from_this()));
         event.handled = true;
-        if (!under || read_only()) return true;
+        if (!under || read_only.read()) return true;
         if (button_of(*under) == RichTextBarButton::heading) {
             open_heading_menu();
             return true;
@@ -278,7 +278,7 @@ void RichTextBox::invoke_bar_button(RichTextBarButton button) {
 }
 
 void RichTextBox::open_heading_menu() {
-    if (!heading_menu_ || window() == nullptr || read_only()) return;
+    if (!heading_menu_ || window() == nullptr || read_only.read()) return;
     const RichTextFormat format = selection_format();
     // Mixed lines check no choice; a level past the menu's (4 to 6) neither.
     const std::optional<std::size_t> level = format.heading == RichTextFormatState::mixed
@@ -329,7 +329,7 @@ std::vector<SemanticNode> RichTextBox::semantic_virtual_children() const {
     const Rect absolute = absolute_bounds();
     const std::array<Rect, rich_text_bar_button_count> buttons = bar_buttons();
     const RichTextFormat format = selection_format();
-    const bool usable = enabled.read() && !read_only();
+    const bool usable = enabled.read() && !read_only.read();
     nodes.reserve(count);
     for (std::size_t index = 0U; index < count; ++index) {
         const RichTextBarButton button = button_of(index);
@@ -373,7 +373,7 @@ bool RichTextBox::on_semantic_child_action(std::string_view id, SemanticAction a
     const std::size_t count = realized_item_count();
     for (std::size_t index = 0U; index < count; ++index) {
         if (id != realized_item_stable_id(index)) continue;
-        if (!enabled.read() || read_only()) return false;
+        if (!enabled.read() || read_only.read()) return false;
         const RichTextBarButton button = button_of(index);
         const bool menu = button == RichTextBarButton::heading && action == SemanticAction::show_menu;
         if (action != SemanticAction::press && !menu) return false;

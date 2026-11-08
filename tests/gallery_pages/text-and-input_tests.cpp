@@ -114,7 +114,7 @@ void test_text_and_input(gui_forms::Window& window,
                 (*note).document().blocks[4].kind == MarkdownBlockKind::code_block &&
                 (*note).document().links.size() == 1U,
             "the rich text specimen shows its heading, paragraph, list and code block");
-    require((*note).text().starts_with("Release notes\nText may be bold, italic or code."),
+    require((*note).text.read().starts_with("Release notes\nText may be bold, italic or code."),
             "the rich text specimen's plain text has no markup");
 }
 

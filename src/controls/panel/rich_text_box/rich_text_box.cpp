@@ -10,6 +10,7 @@
 #include "gui_forms/host.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
 #include <array>
@@ -127,14 +128,6 @@ RichTextBox::RichTextBox(StableId stable_id, std::string_view markdown)
         *this, Delegate<const MenuItemInvocation&>::bind<RichTextBox, &RichTextBox::heading_chosen>(*this));
     heading_open_changed_ = (*heading_menu_).open_changed().subscribe(
         *this, Delegate<bool>::bind<RichTextBox, &RichTextBox::heading_menu_open_changed>(*this));
-    define_bindable_property({
-        {"text", BindingValueKind::text, "Appearance", "The plain text of the document.",
-         BindingValue{std::string{}}, invalidation::text_content},
-        detail::BoundMemberFunction<BindingValue (RichTextBox::*)() const>(*this, &RichTextBox::text_property_value),
-        detail::ConvertedPropertySetter<RichTextBox, std::string>(
-            *this, &RichTextBox::set_text_property, BindingValueKind::text,
-            "RichTextBox.Text binding requires text"),
-        detail::EventChangeConnector<const std::string&>(text_changed_), {}, {}});
 }
 
 RichTextBox::~RichTextBox() {
@@ -144,15 +137,6 @@ RichTextBox::~RichTextBox() {
 void RichTextBox::on_dispose() noexcept {
     if (heading_menu_) (*heading_menu_).dispose();
     Panel::on_dispose();
-}
-
-BindingValue RichTextBox::text_property_value() const {
-    const BindingValue result{plain_text_};
-    return result;
-}
-
-void RichTextBox::set_text_property(std::string text) {
-    set_text(text);
 }
 
 // -- the document ---------------------------------------------------------------
@@ -194,10 +178,17 @@ void RichTextBox::set_markdown(std::string_view markdown) {
     adopt(markdown);
 }
 
-void RichTextBox::set_text(std::string_view text) {
+// The plain text: a view onto the parsed document.
+std::string RichTextBox::read_view(const decltype(text)&) const {
+    std::string current = plain_text_;
+    return current;
+}
+
+// Writes the text as markdown that reads back as it, then adopts that source.
+void RichTextBox::write_view(const decltype(text)&, std::string incoming) {
     require_mutable();
-    if (!validate_utf8(text).valid()) throw std::invalid_argument("RichTextBox text is not valid UTF-8");
-    const std::string source = escaped_markdown(text);
+    if (!validate_utf8(incoming).valid()) throw std::invalid_argument("RichTextBox text is not valid UTF-8");
+    const std::string source = escaped_markdown(incoming);
     require_source(source);
     adopt(source);
 }
@@ -227,49 +218,49 @@ void RichTextBox::clear() {
 
 // -- settings -------------------------------------------------------------------
 
-bool RichTextBox::read_only() const noexcept {
+bool RichTextBox::read_view(const decltype(read_only)&) const {
     const bool result = (*editing_).read_only();
     return result;
 }
 
-void RichTextBox::set_read_only(bool read_only) {
+void RichTextBox::write_view(const decltype(read_only)&, bool incoming) {
     require_mutable();
-    if ((*editing_).read_only() == read_only) return;
-    (*editing_).set_read_only(read_only);
+    if ((*editing_).read_only() == incoming) return;
+    (*editing_).set_read_only(incoming);
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
-void RichTextBox::set_word_wrap(bool enabled) {
+void RichTextBox::prepare_write(const decltype(word_wrap)&, bool&) {
     require_mutable();
-    if (word_wrap_ == enabled) return;
-    word_wrap_ = enabled;
+}
+
+void RichTextBox::written(const decltype(word_wrap)&) {
     layout_width_ = -1.0;
     horizontal_offset_ = 0.0;
     reset_caret_blink();
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
 }
 
-void RichTextBox::set_accepts_tab(bool enabled) {
+void RichTextBox::prepare_write(const decltype(control_bar_visible)&, bool&) {
     require_mutable();
-    accepts_tab_ = enabled;
 }
 
-void RichTextBox::set_control_bar_visible(bool visible) {
-    require_mutable();
-    if (control_bar_visible_ == visible) return;
-    control_bar_visible_ = visible;
+void RichTextBox::written(const decltype(control_bar_visible)&) {
     hot_button_.reset();
     pressed_button_.reset();
     if (heading_menu_) (*heading_menu_).close();
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
 }
 
-void RichTextBox::set_font(FontSpec font) {
+// An invalid font is refused; a valid one is the box's own from now on,
+// even when it equals the current font.
+void RichTextBox::prepare_write(const decltype(font)&, FontSpec& incoming) {
     require_mutable();
-    if (!valid_font_spec(font)) throw std::invalid_argument("RichTextBox font specification is invalid");
+    if (!valid_font_spec(incoming)) throw std::invalid_argument("RichTextBox font specification is invalid");
     set_font_from_code(true);
-    if (font_ == font) return;
-    font_ = font;
+}
+
+void RichTextBox::written(const decltype(font)&) {
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
 }
 
@@ -432,15 +423,15 @@ void RichTextBox::on_key(KeyEvent& event) {
     if (!focused_ || !enabled.read() || event.action != KeyAction::down) return;
     const bool extend = includes(event.modifiers, Modifier::shift);
     const bool command = command_modifier(event.modifiers);
-    if (accepts_tab_ && event.physical_key == PhysicalKey::tab && !command) {
-        if (!read_only()) static_cast<void>(replace_selection("\t"));
+    if (accepts_tab.read() && event.physical_key == PhysicalKey::tab && !command) {
+        if (!read_only.read()) static_cast<void>(replace_selection("\t"));
         event.handled = true;
         return;
     }
     if (event.physical_key == PhysicalKey::enter) {
         // A composition is the input method's to commit. Enter continues a
         // list or a quote; Shift+Enter is a plain line feed.
-        if (!(*editing_).composing() && !read_only()) {
+        if (!(*editing_).composing() && !read_only.read()) {
             const bool continued = !extend && continue_list();
             if (!continued) static_cast<void>(replace_selection("\n"));
         }
@@ -494,7 +485,7 @@ void RichTextBox::on_pointer(PointerEvent& event) {
     const double local_x = event.position.x - absolute.x;
     const double local_y = event.position.y - absolute.y;
     const Point local{local_x, local_y};
-    if (!selecting_ && control_bar_visible_ && event.action != PointerAction::wheel && bar_pointer(event, local)) {
+    if (!selecting_ && control_bar_visible.read() && event.action != PointerAction::wheel && bar_pointer(event, local)) {
         return;
     }
     if (auto_scroll.read() && (!selecting_ || event.action == PointerAction::wheel)) {
@@ -674,17 +665,17 @@ SemanticDescriptor RichTextBox::semantic_descriptor() const {
     // are offsets into it.
     descriptor.value = std::string((*editing_).text());
     descriptor.description = accessible_description.read();
-    if (read_only()) descriptor.states |= SemanticState::read_only;
+    if (read_only.read()) descriptor.states |= SemanticState::read_only;
     descriptor.text_selection = SemanticTextSelection{.anchor = selection.anchor, .caret = selection.caret};
     descriptor.multiline = true;
     descriptor.actions = {SemanticAction::focus};
-    if (!read_only()) descriptor.actions.push_back(SemanticAction::set_value);
+    if (!read_only.read()) descriptor.actions.push_back(SemanticAction::set_value);
     descriptor.exposed = true;
     return descriptor;
 }
 
 bool RichTextBox::on_semantic_action(SemanticAction action, std::string_view value) {
-    if (action == SemanticAction::set_value && !read_only()) {
+    if (action == SemanticAction::set_value && !read_only.read()) {
         const Utf8Offset end = (*editing_).store().utf8_size();
         const bool replaced = (*editing_).replace(Utf8Offset(0U), end, value, TextEditKind::value);
         return replaced;
@@ -841,7 +832,7 @@ void RichTextBox::publish_part_geometry(std::span<PartGeometry> geometry) const 
         record.edge = panel.edge;
     }
     record.well = PartGeometry::from_bounds(bounds);
-    if (control_bar_visible_) {
+    if (control_bar_visible.read()) {
         record.bar = PartGeometry::from_bounds({1.0, 1.0, std::max(0.0, bounds.width - 2.0), bar_height() - 1.0});
     }
     const Rect viewport = text_rectangle();
@@ -898,7 +889,7 @@ std::vector<RichTextBox::Item> RichTextBox::realized_items() const {
 
 AnatomyStateSet RichTextBox::anatomy_states() const {
     AnatomyStateSet states = ScrollableControl::anatomy_states();
-    if (read_only()) states.insert(AnatomyState::read_only);
+    if (read_only.read()) states.insert(AnatomyState::read_only);
     if (visual_status() == ControlVisualStatus::invalid) {
         states.insert(AnatomyState::invalid);
     } else if (visual_status() == ControlVisualStatus::pending) {
@@ -913,5 +904,56 @@ void RichTextBox::append_interactions(std::vector<InteractionDeclaration>& inter
     Panel::append_interactions(interactions);
     interactions.insert(interactions.end(), rich_text_box_interactions.begin(), rich_text_box_interactions.end());
 }
+
+// property_codemod begin RichTextBox (tools/property_families/rich_text_box.json; generated, do not edit)
+
+namespace {
+
+PropertyDescriptor rich_text_box_text_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "text";
+    descriptor.kind = BindingValueKind::text;
+    descriptor.category = "Appearance";
+    descriptor.description = "The plain text of the document.";
+    descriptor.default_value = BindingValue{std::string{}};
+    descriptor.invalidation_effects = invalidation::text_content;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_rich_text_box_text() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        rich_text_box_text_descriptor(), PropertyOperations{true, true, false, true});
+    return descriptor;
+}
+
+} // namespace
+
+const std::array<PropertyEntry, RichTextBox::rich_text_box_property_count>& RichTextBox::rich_text_box_property_entries() noexcept {
+    static constexpr std::array<PropertyEntry, 1U> own{{
+        {"text", &describe_rich_text_box_text,
+         &read_cell_entry<RichTextBox, decltype(&RichTextBox::text), &RichTextBox::text>,
+         &write_cell_entry<RichTextBox, decltype(&RichTextBox::text), &RichTextBox::text>,
+         nullptr, nullptr, nullptr,
+         &connect_event_entry<RichTextBox, decltype(&RichTextBox::text_changed_), &RichTextBox::text_changed_>},
+    }};
+    static_assert(property_names_distinct(own), "RichTextBox's property table names a property twice");
+    static const std::array<PropertyEntry, rich_text_box_property_count> entries =
+        join_property_tables(Panel::panel_property_entries(), own);
+    return entries;
+}
+
+std::span<const PropertyEntry> RichTextBox::property_table() const noexcept {
+    const std::array<PropertyEntry, rich_text_box_property_count>& entries = rich_text_box_property_entries();
+    return std::span<const PropertyEntry>(entries);
+}
+
+void RichTextBox::prepare_write(const decltype(accepts_tab)&, bool&) {
+    require_mutable();
+}
+
+void RichTextBox::written(const decltype(accepts_tab)&) {
+}
+
+// property_codemod end RichTextBox
 
 } // namespace gui_forms

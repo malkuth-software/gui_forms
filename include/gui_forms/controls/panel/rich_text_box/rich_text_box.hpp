@@ -4,6 +4,7 @@
 #include "gui_forms/controls/panel/text_box/text_box.hpp"
 #include "gui_forms/scheduler.hpp"
 #include "gui_forms/text.hpp"
+#include "gui_forms/controls/panel/rich_text_box/rich_text_box_capabilities/rich_text_box_capabilities.hpp"
 
 #include <array>
 #include <cstddef>
@@ -82,7 +83,7 @@ struct RichTextFormat final {
 //
 // Positions are byte offsets into the source, on grapheme boundaries.
 // text() is the plain text (the markup removed); markdown() is the source.
-class RichTextBox final : public Panel {
+class RichTextBox final : public Panel, public RichTextBoxCapabilities<RichTextBox> {
 public:
     explicit RichTextBox(StableId stable_id, std::string_view markdown = {});
     ~RichTextBox() override;
@@ -93,14 +94,6 @@ public:
     // Throws std::invalid_argument for invalid UTF-8 and std::length_error
     // past maximum_bytes.
     void set_markdown(std::string_view markdown);
-    // The plain text: the source's blocks with the markup removed, joined by
-    // line feeds (markdown_plain_text).
-    [[nodiscard]] const std::string& text() const noexcept { return plain_text_; }
-    // Replaces the document with plain text, written as markdown that reads
-    // back as that text: punctuation escaped, each line feed a hard line
-    // break. Leading white space on a line and trailing line feeds are not
-    // kept. Throws as set_markdown does.
-    void set_text(std::string_view text);
     // Replaces the document with RTF converted to markdown (import_rtf) and
     // clears the history. A failure, or markdown past the box's limits
     // (limit_exceeded), leaves the box as it was.
@@ -115,23 +108,6 @@ public:
     // no bound of their own: a paragraph is one line of the source.
     static constexpr std::size_t maximum_bytes = 1024U * 1024U;
 
-    [[nodiscard]] bool read_only() const noexcept;
-    void set_read_only(bool read_only);
-    // Lines wrap at the box's width (the default); without wrapping a line is
-    // one row and the box scrolls horizontally.
-    [[nodiscard]] bool word_wrap() const noexcept { return word_wrap_; }
-    void set_word_wrap(bool enabled);
-    // Whether Tab inserts a tab; off (the default), Tab moves the focus.
-    [[nodiscard]] bool accepts_tab() const noexcept { return accepts_tab_; }
-    void set_accepts_tab(bool enabled);
-    // Whether the control bar is shown (the default). Its keys work without
-    // it.
-    [[nodiscard]] bool control_bar_visible() const noexcept { return control_bar_visible_; }
-    void set_control_bar_visible(bool visible);
-    // The body font. Headings scale it; code is set in the monospace role
-    // at its size. Throws std::invalid_argument for an invalid FontSpec.
-    [[nodiscard]] FontSpec font() const noexcept { return font_; }
-    void set_font(FontSpec font);
     void arrange(Rect final_bounds) override;
     [[nodiscard]] Point scroll_offset() const noexcept {
         if (auto_scroll.read()) return scroll_position();
@@ -438,17 +414,11 @@ private:
     };
     // One blink: toggles the caret and damages it.
     void toggle_caret();
-    [[nodiscard]] BindingValue text_property_value() const;
-    void set_text_property(std::string text);
 
     std::unique_ptr<EditingHost> editing_host_;
     std::unique_ptr<detail::TextEditingEngine> editing_;
     MarkdownDocument document_{};
     std::string plain_text_{};
-    FontSpec font_{FontRole::content, 12.0, 400, false};
-    bool word_wrap_{true};
-    bool accepts_tab_{};
-    bool control_bar_visible_{true};
     bool focused_{};
     bool selecting_{};
     bool caret_visible_{true};
@@ -498,6 +468,34 @@ private:
     static constexpr double text_left_ = 6.0;
     static constexpr double text_top_ = 4.0;
     static constexpr std::size_t maximum_chunk_graphemes_ = 64U;
+    // property_codemod begin RichTextBox (tools/property_families/rich_text_box.json; generated, do not edit)
+public:
+    // RichTextBox's property table: Panel's entries, then its own.
+    static constexpr std::size_t rich_text_box_property_count = Panel::panel_property_count + 1U;
+    [[nodiscard]] static const std::array<PropertyEntry, rich_text_box_property_count>& rich_text_box_property_entries() noexcept;
+    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
+
+private:
+    friend struct RichTextBoxTextCapability<RichTextBox>;
+    friend struct RichTextBoxReadOnlyCapability<RichTextBox>;
+    friend struct RichTextBoxWordWrapCapability<RichTextBox>;
+    friend struct RichTextBoxAcceptsTabCapability<RichTextBox>;
+    friend struct RichTextBoxControlBarVisibleCapability<RichTextBox>;
+    friend struct FontCapability<RichTextBox>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void write_view(const decltype(text)& cell, std::string incoming);
+    [[nodiscard]] std::string read_view(const decltype(text)& cell) const;
+    void write_view(const decltype(read_only)& cell, bool incoming);
+    [[nodiscard]] bool read_view(const decltype(read_only)& cell) const;
+    void prepare_write(const decltype(word_wrap)& cell, bool& incoming);
+    void written(const decltype(word_wrap)& cell);
+    void prepare_write(const decltype(accepts_tab)& cell, bool& incoming);
+    void written(const decltype(accepts_tab)& cell);
+    void prepare_write(const decltype(control_bar_visible)& cell, bool& incoming);
+    void written(const decltype(control_bar_visible)& cell);
+    void prepare_write(const decltype(font)& cell, FontSpec& incoming);
+    void written(const decltype(font)& cell);
+    // property_codemod end RichTextBox
 };
 
 } // namespace gui_forms
