@@ -50,6 +50,17 @@ std::size_t operation_count(const VisualControlInspection& control,
     return result;
 }
 
+// Whether the control's material was baked: one part raster and none of
+// the layers' fills, shadows or lines.
+bool baked(const VisualControlInspection& control) {
+    const bool one_raster = operation_count(control, VisualPaintOperation::draw_part_raster) == 1U;
+    const bool no_layers = operation_count(control, VisualPaintOperation::fill_linear_gradient_spread) == 0U &&
+                           operation_count(control, VisualPaintOperation::fill_radial_gradient) == 0U &&
+                           operation_count(control, VisualPaintOperation::draw_box_shadow) == 0U &&
+                           operation_count(control, VisualPaintOperation::draw_line) == 0U;
+    return one_raster && no_layers;
+}
+
 std::vector<const VisualPaintOperationSnapshot*> operations(
     const VisualControlInspection& control, VisualPaintOperation operation) {
     std::vector<const VisualPaintOperationSnapshot*> result;
@@ -120,16 +131,19 @@ void test_lab_trace_inspection_and_complexity() {
         snapshot.find("layered-material.live-state");
     require(watercolor && office && graphite && studio && live,
             "material lab must retain every named reference specimen");
+    // A material within the bake budget is one raster from the material
+    // kernel (one rasteriser, stage T4); past it, its layers.
     require((*watercolor).authored_material &&
                 (*(*watercolor).authored_material).keylines.size() == 2U &&
-                operation_count(*watercolor,
-                                VisualPaintOperation::fill_radial_gradient) == 3U &&
-                operation_count(*watercolor,
-                                VisualPaintOperation::draw_line) == 2U,
+                (baked(*watercolor) ||
+                 (operation_count(*watercolor,
+                                  VisualPaintOperation::fill_radial_gradient) == 3U &&
+                  operation_count(*watercolor,
+                                  VisualPaintOperation::draw_line) == 2U)),
             "Watercolor inspection must expose authored layers and committed keylines");
     const std::vector<const VisualPaintOperationSnapshot*> watercolor_lines =
         operations(*watercolor, VisualPaintOperation::draw_line);
-    require(watercolor_lines.size() == 2U &&
+    require(baked(*watercolor) || (watercolor_lines.size() == 2U &&
                 (*watercolor_lines[0]).color == Color::rgba(23, 45, 105) &&
                 (*watercolor_lines[0]).first == Point{0.0, 165.5} &&
                 (*watercolor_lines[0]).second == Point{380.0, 165.5} &&
@@ -138,21 +152,23 @@ void test_lab_trace_inspection_and_complexity() {
                 (*watercolor_lines[1]).first == Point{2.0, 163.5} &&
                 (*watercolor_lines[1]).second == Point{378.0, 163.5} &&
                 (*watercolor_lines[0]).command_index <
-                    (*watercolor_lines[1]).command_index,
+                    (*watercolor_lines[1]).command_index),
             "committed command inspection must preserve outer-before-inset authored keyline order and distinct geometry");
     require((*office).authored_material &&
-                operation_count(*office,
-                    VisualPaintOperation::fill_linear_gradient_spread) == 2U &&
-                operation_count(*office,
-                    VisualPaintOperation::draw_box_shadow) == 1U &&
-                operation_count(*office,
-                    VisualPaintOperation::draw_inset_box_shadow) == 1U,
+                (baked(*office) ||
+                 (operation_count(*office,
+                      VisualPaintOperation::fill_linear_gradient_spread) == 2U &&
+                  operation_count(*office,
+                      VisualPaintOperation::draw_box_shadow) == 1U &&
+                  operation_count(*office,
+                      VisualPaintOperation::draw_inset_box_shadow) == 1U)),
             "Office inspection must expose both gradient spreads and both shadow directions");
     require((*graphite).authored_material &&
-                operation_count(*graphite,
-                    VisualPaintOperation::fill_linear_gradient_spread) == 2U &&
-                operation_count(*graphite,
-                    VisualPaintOperation::draw_line) == 4U,
+                (baked(*graphite) ||
+                 (operation_count(*graphite,
+                      VisualPaintOperation::fill_linear_gradient_spread) == 2U &&
+                  operation_count(*graphite,
+                      VisualPaintOperation::draw_line) == 4U)),
             "Graphite inspection must expose its texture and edge-specific chassis keylines");
     require((*studio).authored_material &&
                 (*(*studio).authored_material).fills.front().image_mode ==

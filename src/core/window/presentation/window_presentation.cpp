@@ -8,6 +8,7 @@
 #include "../../display/chunk/display_chunk.hpp"
 #include "../../display/recording_painter/recording_painter.hpp"
 #include "../../display/replay/replay_display_chunk.hpp"
+#include "../../engine/primitives/material/material_raster.hpp"
 #include "../../theme_language/diagnostics/theme_diagnostics.hpp"
 #include "../overlay/overlay_attachment.hpp"
 
@@ -139,8 +140,9 @@ std::optional<ControlSnapshot> SurfaceRoot::snapshot_control(const Control::Ptr&
     const std::unique_ptr<PaintFramebuffer> framebuffer = create_framebuffer(logical, scale);
     if (!framebuffer) return std::nullopt;
     // Record: the subtree's planes, each in order, into one command list in
-    // the subtree's own coordinates.
-    detail::RecordingPainter candidate(text_metrics_provider_);
+    // the subtree's own coordinates, its materials baked at the snapshot's
+    // scale.
+    detail::RecordingPainter candidate(text_metrics_provider_, DeviceScale{scale});
     std::uint64_t visited_nodes = 0;
     std::uint64_t painted_controls = 0;
     std::uint64_t consumed_invalidations = 0;
@@ -233,10 +235,32 @@ void SurfaceRoot::abandon_paint(std::uint64_t generation_before) {
     }
 }
 
+namespace {
+
+// `rect` grown outward to whole device pixels at `scale`. A painted
+// rectangle covers whole pixels, so every drawing under its clip repaints
+// each pixel it touches entirely: a part raster's composite and an
+// anti-aliased fill agree there, and no partly covered pixel blends the new
+// frame with the old one.
+Rect device_aligned(Rect rect, double scale) noexcept {
+    if (rect.empty() || !std::isfinite(scale) || scale <= 0.0) return rect;
+    const double left = std::floor(rect.x * scale) / scale;
+    const double top = std::floor(rect.y * scale) / scale;
+    const double right = std::ceil((rect.x + rect.width) * scale) / scale;
+    const double bottom = std::ceil((rect.y + rect.height) * scale) / scale;
+    const Rect aligned{left, top, right - left, bottom - top};
+    return aligned;
+}
+
+} // namespace
+
 Rect SurfaceRoot::plane_paint_bounds(std::size_t index, Rect rectangle,
                                 bool explicit_request) const {
     if (explicit_request) return rectangle;
-    const Rect plane = Rect::intersection(plane_damage_[index].bounds(), rectangle);
+    // Plane damage grows to whole device pixels like the painted rectangle
+    // it is clipped to, so no plane paints part of a pixel it covers.
+    const Rect damage = device_aligned(plane_damage_[index].bounds(), scale_);
+    const Rect plane = Rect::intersection(damage, rectangle);
     return plane;
 }
 
@@ -271,16 +295,19 @@ bool nearly_touch(Rect left, Rect right) noexcept {
     return touching;
 }
 
-// Clips `input` to `window_bounds`, merges rectangles that overlap or nearly
-// touch until none do, and fills `merged`. A set larger than the damage
-// region's capacity collapses to its bounds, as DamageRegion does.
-void merge_paint_rectangles(std::span<const Rect> input, Rect window_bounds,
+// Clips `input` to `window_bounds`, each grown to whole device pixels at
+// `scale`, merges rectangles that overlap or nearly touch until none do,
+// and fills `merged`. A set larger than the damage region's capacity
+// collapses to its bounds, as DamageRegion does.
+void merge_paint_rectangles(std::span<const Rect> input, Rect window_bounds, double scale,
                             std::vector<Rect>& merged) {
     merged.clear();
     merged.reserve(input.size());
     for (std::size_t index = 0; index < input.size(); ++index) {
         const Rect clipped = Rect::intersection(input[index], window_bounds);
-        if (!clipped.empty()) merged.push_back(clipped);
+        if (clipped.empty()) continue;
+        const Rect aligned = Rect::intersection(device_aligned(clipped, scale), window_bounds);
+        merged.push_back(aligned);
     }
     bool changed = true;
     while (changed) {
@@ -382,12 +409,44 @@ void SurfaceRoot::paint_backplane_rectangle(detail::RecordingPainter& candidate,
         cleared.composite = PaintGroupComposite::copy;
         cleared.isolated = true;
         candidate.begin_group(cleared);
-        paint_surface_material(candidate, window_bounds, backplane);
+        paint_backplane_material(candidate, window_bounds, backplane);
         candidate.end_group();
     } else {
-        paint_surface_material(candidate, window_bounds, backplane);
+        paint_backplane_material(candidate, window_bounds, backplane);
     }
     candidate.restore();
+}
+
+void SurfaceRoot::paint_backplane_material(detail::RecordingPainter& candidate, const Rect window_bounds,
+                                           const SurfaceMaterial& backplane) {
+    const bool bakes = !window_bounds.empty() && valid_surface_material(backplane) && backplane.finish == 0.0 &&
+                       detail::material_painting(backplane) == detail::MaterialPainting::kernel;
+    if (!bakes) {
+        paint_surface_material(candidate, window_bounds, backplane);
+        return;
+    }
+    const std::optional<SurfaceMaterial> stripped = detail::material_as_painted(backplane);
+    const SurfaceMaterial& material = stripped ? *stripped : backplane;
+    const Size size{window_bounds.width, window_bounds.height};
+    const bool kept = backplane_baked_raster_ && *backplane_baked_material_ == material &&
+                      backplane_baked_size_ == size && (*backplane_baked_raster_).scale() == DeviceScale{scale_};
+    if (!kept) {
+        backplane_baked_raster_.reset();
+        backplane_baked_material_.reset();
+        const double outset = detail::material_raster_outset(material);
+        std::shared_ptr<const PartRaster> raster =
+            detail::bake_material_raster(material, size, DeviceScale{scale_}, outset);
+        if (!raster) {
+            paint_surface_material(candidate, window_bounds, backplane);
+            return;
+        }
+        backplane_baked_raster_ = std::move(raster);
+        backplane_baked_material_ = std::make_shared<const SurfaceMaterial>(material);
+        backplane_baked_size_ = size;
+        backplane_baked_outset_ = outset;
+    }
+    candidate.draw_baked_surface_material(window_bounds, backplane_baked_material_, backplane_baked_raster_,
+                                          backplane_baked_outset_);
 }
 
 std::size_t SurfaceRoot::covering_plane(const Rect rectangle, const bool explicit_request,
@@ -396,7 +455,8 @@ std::size_t SurfaceRoot::covering_plane(const Rect rectangle, const bool explici
         const std::size_t plane_index = index - 1U;
         // A plane paints the whole rectangle when asked to or when its
         // damage holds it (plane_paint_bounds).
-        const bool whole = explicit_request || plane_damage_[plane_index].bounds().contains(rectangle);
+        const bool whole =
+            explicit_request || device_aligned(plane_damage_[plane_index].bounds(), scale_).contains(rectangle);
         if (!whole) continue;
         path.clear();
         if (find_paint_cover(root_, rectangle, static_cast<PaintPlane>(plane_index), path)) return plane_index;
@@ -485,7 +545,7 @@ std::optional<PaintReceipt> SurfaceRoot::paint_rectangles(
 
     const Rect window_bounds{0.0, 0.0, client_size_.width, client_size_.height};
     std::vector<Rect>& painted = painted_rectangles_;
-    merge_paint_rectangles(rectangles, window_bounds, painted);
+    merge_paint_rectangles(rectangles, window_bounds, scale_, painted);
     if (painted.empty()) {
         return std::nullopt;
     }
@@ -518,7 +578,7 @@ std::optional<PaintReceipt> SurfaceRoot::paint_rectangles(
         // Application callbacks and retained chunk rebuilding record into a
         // complete candidate command list. No candidate command reaches the
         // host raster until every callback has returned successfully.
-        detail::RecordingPainter candidate(text_metrics_provider_);
+        detail::RecordingPainter candidate(text_metrics_provider_, DeviceScale{scale()});
         // A top-level retained surface owns an explicit backplane even when
         // its application root is a transparent layout container. Replaying
         // only children cannot erase pixels formerly occupied by an overlay

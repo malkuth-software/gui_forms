@@ -153504,7 +153504,7 @@
       "kind": "enum",
       "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
       "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-      "line": 29,
+      "line": 31,
       "declaration": "enum class MaterialBlendMode : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -153522,7 +153522,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 30,
+          "line": 32,
           "page": "gui-forms-materialblendmode-normal-gui-forms-materialblendmode-eff5b8cd0a.html"
         },
         {
@@ -153537,7 +153537,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 31,
+          "line": 33,
           "page": "gui-forms-materialblendmode-multiply-gui-forms-materialblendmode-d045ad69eb.html"
         },
         {
@@ -153552,7 +153552,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 32,
+          "line": 34,
           "page": "gui-forms-materialblendmode-screen-gui-forms-materialblendmode-00ab89be38.html"
         }
       ],
@@ -153566,7 +153566,7 @@
       "kind": "struct",
       "header": "gui_forms/surface_material/types/surface_material_types.hpp",
       "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-      "line": 27,
+      "line": 28,
       "declaration": "struct MaterialBorder final",
       "comment": "",
       "access": "public",
@@ -153584,7 +153584,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 28,
+          "line": 29,
           "page": "gui-forms-materialborder-color-color-6b5e38d336.html"
         },
         {
@@ -153599,7 +153599,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 29,
+          "line": 30,
           "page": "gui-forms-materialborder-width-double-7998fb7647.html"
         },
         {
@@ -153614,7 +153614,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 30,
+          "line": 31,
           "page": "gui-forms-materialborder-style-materialborderstyle-de212270a1.html"
         }
       ],
@@ -153628,7 +153628,7 @@
       "kind": "struct",
       "header": "gui_forms/surface_material/types/surface_material_types.hpp",
       "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-      "line": 174,
+      "line": 176,
       "declaration": "struct MaterialBorderEdges final",
       "comment": "",
       "access": "public",
@@ -153646,7 +153646,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 175,
+          "line": 177,
           "page": "gui-forms-materialborderedges-top-std-optional-materialborder-89e2483c87.html"
         },
         {
@@ -153661,7 +153661,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 176,
+          "line": 178,
           "page": "gui-forms-materialborderedges-right-std-optional-materialborder-03ba7dd09d.html"
         },
         {
@@ -153676,7 +153676,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 177,
+          "line": 179,
           "page": "gui-forms-materialborderedges-bottom-std-optional-materialborder-dd06f0c8c9.html"
         },
         {
@@ -153691,7 +153691,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 178,
+          "line": 180,
           "page": "gui-forms-materialborderedges-left-std-optional-materialborder-f663be4d01.html"
         },
         {
@@ -153727,7 +153727,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 179,
+          "line": 181,
           "page": "gui-forms-materialborderedges-from-parts-materialborderedges-const-materialborder-const-materialborder-const-m-b1d691c496.html"
         },
         {
@@ -153742,7 +153742,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 182,
+          "line": 184,
           "page": "gui-forms-materialborderedges-empty-bool-const-noexcept-c43c65f861.html"
         }
       ],
@@ -153756,7 +153756,7 @@
       "kind": "enum",
       "header": "gui_forms/surface_material/types/surface_material_types.hpp",
       "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-      "line": 21,
+      "line": 22,
       "declaration": "enum class MaterialBorderStyle : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -153774,7 +153774,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 22,
+          "line": 23,
           "page": "gui-forms-materialborderstyle-solid-gui-forms-materialborderstyle-0a457a09c9.html"
         },
         {
@@ -153789,7 +153789,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 23,
+          "line": 24,
           "page": "gui-forms-materialborderstyle-dashed-gui-forms-materialborderstyle-a095225c49.html"
         },
         {
@@ -153804,7 +153804,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 24,
+          "line": 25,
           "page": "gui-forms-materialborderstyle-dotted-gui-forms-materialborderstyle-de6c4a9495.html"
         }
       ],
@@ -154266,7 +154266,7 @@
       "kind": "enum",
       "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
       "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-      "line": 47,
+      "line": 49,
       "declaration": "enum class MaterialCoordinateSpace : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -154284,7 +154284,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 48,
+          "line": 50,
           "page": "gui-forms-materialcoordinatespace-normalized-gui-forms-materialcoordinatespace-9514731cba.html"
         },
         {
@@ -154299,7 +154299,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 48,
+          "line": 50,
           "page": "gui-forms-materialcoordinatespace-logical-gui-forms-materialcoordinatespace-55844413c8.html"
         }
       ],
@@ -154313,7 +154313,7 @@
       "kind": "struct",
       "header": "gui_forms/surface_material/types/surface_material_types.hpp",
       "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-      "line": 57,
+      "line": 58,
       "declaration": "struct MaterialCornerRadii final",
       "comment": "",
       "access": "public",
@@ -154331,7 +154331,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 58,
+          "line": 59,
           "page": "gui-forms-materialcornerradii-top-left-double-d60753c32c.html"
         },
         {
@@ -154346,7 +154346,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 59,
+          "line": 60,
           "page": "gui-forms-materialcornerradii-top-right-double-2fcb364693.html"
         },
         {
@@ -154361,7 +154361,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 60,
+          "line": 61,
           "page": "gui-forms-materialcornerradii-bottom-right-double-08d4cb5baa.html"
         },
         {
@@ -154376,7 +154376,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 61,
+          "line": 62,
           "page": "gui-forms-materialcornerradii-bottom-left-double-6de0094988.html"
         }
       ],
@@ -154782,7 +154782,7 @@
       "kind": "struct",
       "header": "gui_forms/surface_material/types/surface_material_types.hpp",
       "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-      "line": 43,
+      "line": 44,
       "declaration": "struct MaterialDropShadow final",
       "comment": "",
       "access": "public",
@@ -154800,7 +154800,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 44,
+          "line": 45,
           "page": "gui-forms-materialdropshadow-offset-point-c40100959a.html"
         },
         {
@@ -154815,7 +154815,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 45,
+          "line": 46,
           "page": "gui-forms-materialdropshadow-blur-radius-double-fe6d265d13.html"
         },
         {
@@ -154830,7 +154830,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 46,
+          "line": 47,
           "page": "gui-forms-materialdropshadow-color-color-75d34704d3.html"
         }
       ],
@@ -154844,7 +154844,7 @@
       "kind": "enum",
       "header": "gui_forms/surface_material/types/surface_material_types.hpp",
       "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-      "line": 121,
+      "line": 123,
       "declaration": "enum class MaterialEdge : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -154862,7 +154862,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 121,
+          "line": 123,
           "page": "gui-forms-materialedge-top-gui-forms-materialedge-c9727dfe95.html"
         },
         {
@@ -154877,7 +154877,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 121,
+          "line": 123,
           "page": "gui-forms-materialedge-right-gui-forms-materialedge-f3ba70d397.html"
         },
         {
@@ -154892,7 +154892,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 121,
+          "line": 123,
           "page": "gui-forms-materialedge-bottom-gui-forms-materialedge-3e3c9a1f9e.html"
         },
         {
@@ -154907,7 +154907,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 121,
+          "line": 123,
           "page": "gui-forms-materialedge-left-gui-forms-materialedge-46469f42d4.html"
         }
       ],
@@ -155525,7 +155525,7 @@
       "kind": "enum",
       "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
       "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-      "line": 35,
+      "line": 37,
       "declaration": "enum class MaterialFillKind : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -155543,7 +155543,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 36,
+          "line": 38,
           "page": "gui-forms-materialfillkind-solid-gui-forms-materialfillkind-e526baa045.html"
         },
         {
@@ -155558,7 +155558,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 36,
+          "line": 38,
           "page": "gui-forms-materialfillkind-linear-gradient-gui-forms-materialfillkind-d1b41d5a9d.html"
         },
         {
@@ -155573,7 +155573,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 36,
+          "line": 38,
           "page": "gui-forms-materialfillkind-radial-gradient-gui-forms-materialfillkind-40b37ce4a1.html"
         },
         {
@@ -155588,7 +155588,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 36,
+          "line": 38,
           "page": "gui-forms-materialfillkind-image-gui-forms-materialfillkind-aefa0ce913.html"
         },
         {
@@ -155603,7 +155603,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 36,
+          "line": 38,
           "page": "gui-forms-materialfillkind-conic-gradient-gui-forms-materialfillkind-ac79a3f919.html"
         },
         {
@@ -155618,7 +155618,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 38,
+          "line": 40,
           "page": "gui-forms-materialfillkind-procedural-gui-forms-materialfillkind-ba210273f9.html"
         }
       ],
@@ -155632,7 +155632,7 @@
       "kind": "struct",
       "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
       "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-      "line": 56,
+      "line": 58,
       "declaration": "struct MaterialFillLayer final",
       "comment": "",
       "access": "public",
@@ -155650,7 +155650,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 57,
+          "line": 59,
           "page": "gui-forms-materialfilllayer-kind-materialfillkind-1979665f6b.html"
         },
         {
@@ -155665,7 +155665,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 58,
+          "line": 60,
           "page": "gui-forms-materialfilllayer-coordinate-space-materialcoordinatespace-bced65eed2.html"
         },
         {
@@ -155680,7 +155680,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 59,
+          "line": 61,
           "page": "gui-forms-materialfilllayer-linear-geometry-materiallineargeometry-50edbed896.html"
         },
         {
@@ -155695,7 +155695,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 60,
+          "line": 62,
           "page": "gui-forms-materialfilllayer-angle-degrees-double-7fd64735fe.html"
         },
         {
@@ -155710,7 +155710,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 61,
+          "line": 63,
           "page": "gui-forms-materialfilllayer-color-color-95c5e91b1c.html"
         },
         {
@@ -155725,7 +155725,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 62,
+          "line": 64,
           "page": "gui-forms-materialfilllayer-start-point-a7fd553e85.html"
         },
         {
@@ -155740,7 +155740,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 63,
+          "line": 65,
           "page": "gui-forms-materialfilllayer-end-point-2e5dfaa44f.html"
         },
         {
@@ -155755,7 +155755,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 64,
+          "line": 66,
           "page": "gui-forms-materialfilllayer-center-point-2126c07089.html"
         },
         {
@@ -155770,7 +155770,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 65,
+          "line": 67,
           "page": "gui-forms-materialfilllayer-radii-size-18925de4de.html"
         },
         {
@@ -155785,7 +155785,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 66,
+          "line": 68,
           "page": "gui-forms-materialfilllayer-stops-std-vector-gradientstop-0ef36f8d32.html"
         },
         {
@@ -155800,7 +155800,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 67,
+          "line": 69,
           "page": "gui-forms-materialfilllayer-spread-gradientspreadmode-c27fcc8d2a.html"
         },
         {
@@ -155815,7 +155815,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 68,
+          "line": 70,
           "page": "gui-forms-materialfilllayer-image-imageid-cbf7f5dfe1.html"
         },
         {
@@ -155830,7 +155830,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 69,
+          "line": 71,
           "page": "gui-forms-materialfilllayer-image-pixel-size-size-a2fa33d58a.html"
         },
         {
@@ -155845,7 +155845,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 70,
+          "line": 72,
           "page": "gui-forms-materialfilllayer-image-slice-insets-0a0827fdb8.html"
         },
         {
@@ -155860,7 +155860,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 71,
+          "line": 73,
           "page": "gui-forms-materialfilllayer-image-scale-double-806756f1a3.html"
         },
         {
@@ -155875,7 +155875,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 72,
+          "line": 74,
           "page": "gui-forms-materialfilllayer-opacity-double-56df0e21b3.html"
         },
         {
@@ -155890,7 +155890,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 73,
+          "line": 75,
           "page": "gui-forms-materialfilllayer-image-mode-materialimagemode-8407463bb6.html"
         },
         {
@@ -155905,7 +155905,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 81,
+          "line": 83,
           "page": "gui-forms-materialfilllayer-image-anchor-point-9fa810f94a.html"
         },
         {
@@ -155920,7 +155920,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 82,
+          "line": 84,
           "page": "gui-forms-materialfilllayer-image-offset-point-f967c213d2.html"
         },
         {
@@ -155935,7 +155935,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 83,
+          "line": 85,
           "page": "gui-forms-materialfilllayer-period-degrees-double-5e5019aef6.html"
         },
         {
@@ -155950,7 +155950,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 84,
+          "line": 86,
           "page": "gui-forms-materialfilllayer-blend-materialblendmode-6fc64b8dc4.html"
         },
         {
@@ -155965,7 +155965,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 86,
+          "line": 88,
           "page": "gui-forms-materialfilllayer-procedural-proceduralfill-9d8393c8ce.html"
         },
         {
@@ -155986,7 +155986,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 88,
+          "line": 90,
           "page": "gui-forms-materialfilllayer-solid-materialfilllayer-color-ebd6943eaa.html"
         },
         {
@@ -156027,7 +156027,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 89,
+          "line": 91,
           "page": "gui-forms-materialfilllayer-linear-materialfilllayer-point-point-std-vector-gradientstop-materialcoordinatespa-ddedd4778c.html"
         },
         {
@@ -156058,7 +156058,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 93,
+          "line": 95,
           "page": "gui-forms-materialfilllayer-linear-css-angle-materialfilllayer-double-std-vector-gradientstop-gradientspreadmo-6546167d83.html"
         },
         {
@@ -156094,7 +156094,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 96,
+          "line": 98,
           "page": "gui-forms-materialfilllayer-linear-css-angle-materialfilllayer-double-const-gradientstop-std-size-t-gradientsp-f0274ec500.html"
         },
         {
@@ -156140,7 +156140,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 100,
+          "line": 102,
           "page": "gui-forms-materialfilllayer-linear-materialfilllayer-point-point-const-gradientstop-std-size-t-materialcoordin-96efb413a6.html"
         },
         {
@@ -156176,7 +156176,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 105,
+          "line": 107,
           "page": "gui-forms-materialfilllayer-repeating-linear-materialfilllayer-point-point-std-vector-gradientstop-materialcoo-ef16f1c98b.html"
         },
         {
@@ -156217,7 +156217,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 108,
+          "line": 110,
           "page": "gui-forms-materialfilllayer-repeating-linear-materialfilllayer-point-point-const-gradientstop-std-size-t-mater-ea95739cd6.html"
         },
         {
@@ -156253,7 +156253,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 112,
+          "line": 114,
           "page": "gui-forms-materialfilllayer-radial-materialfilllayer-point-size-std-vector-gradientstop-materialcoordinatespac-96788cac72.html"
         },
         {
@@ -156294,7 +156294,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 115,
+          "line": 117,
           "page": "gui-forms-materialfilllayer-radial-materialfilllayer-point-size-const-gradientstop-std-size-t-materialcoordina-8eccce3687.html"
         },
         {
@@ -156330,7 +156330,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 119,
+          "line": 121,
           "page": "gui-forms-materialfilllayer-repeating-radial-materialfilllayer-point-size-std-vector-gradientstop-materialcoor-c355f872d1.html"
         },
         {
@@ -156366,7 +156366,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 122,
+          "line": 124,
           "page": "gui-forms-materialfilllayer-conic-materialfilllayer-point-double-std-vector-gradientstop-materialcoordinatespa-f5347d12a5.html"
         },
         {
@@ -156407,7 +156407,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 125,
+          "line": 127,
           "page": "gui-forms-materialfilllayer-repeating-conic-materialfilllayer-point-double-double-std-vector-gradientstop-mate-eb5eb82afb.html"
         },
         {
@@ -156438,7 +156438,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 129,
+          "line": 131,
           "page": "gui-forms-materialfilllayer-stretched-image-materialfilllayer-imageid-size-double-d9495e92ee.html"
         },
         {
@@ -156474,7 +156474,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 131,
+          "line": 133,
           "page": "gui-forms-materialfilllayer-tiled-image-materialfilllayer-imageid-size-double-double-eb23705668.html"
         },
         {
@@ -156515,7 +156515,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 135,
+          "line": 137,
           "page": "gui-forms-materialfilllayer-nine-patch-materialfilllayer-imageid-size-insets-double-double-4da4c1ab0b.html"
         },
         {
@@ -156541,7 +156541,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 139,
+          "line": 141,
           "page": "gui-forms-materialfilllayer-procedural-pattern-materialfilllayer-const-proceduralfill-double-52317c40eb.html"
         }
       ],
@@ -156555,7 +156555,7 @@
       "kind": "struct",
       "header": "gui_forms/surface_material/types/surface_material_types.hpp",
       "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-      "line": 109,
+      "line": 111,
       "declaration": "struct MaterialGlow final",
       "comment": "",
       "access": "public",
@@ -156573,7 +156573,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 110,
+          "line": 112,
           "page": "gui-forms-materialglow-color-color-fcafd58993.html"
         },
         {
@@ -156588,7 +156588,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 111,
+          "line": 113,
           "page": "gui-forms-materialglow-blur-radius-double-ca8714f796.html"
         },
         {
@@ -156603,7 +156603,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 112,
+          "line": 114,
           "page": "gui-forms-materialglow-spread-double-709124b4d7.html"
         },
         {
@@ -156618,7 +156618,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 113,
+          "line": 115,
           "page": "gui-forms-materialglow-placement-materialglowplacement-6f2f353434.html"
         }
       ],
@@ -156632,7 +156632,7 @@
       "kind": "enum",
       "header": "gui_forms/surface_material/types/surface_material_types.hpp",
       "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-      "line": 91,
+      "line": 92,
       "declaration": "enum class MaterialGlowPlacement : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -156650,7 +156650,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 91,
+          "line": 92,
           "page": "gui-forms-materialglowplacement-under-gui-forms-materialglowplacement-e6fa59b6c4.html"
         },
         {
@@ -156665,7 +156665,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 91,
+          "line": 92,
           "page": "gui-forms-materialglowplacement-over-gui-forms-materialglowplacement-8438fc25b1.html"
         }
       ],
@@ -156679,7 +156679,7 @@
       "kind": "enum",
       "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
       "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-      "line": 44,
+      "line": 46,
       "declaration": "enum class MaterialImageMode : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -156697,7 +156697,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 45,
+          "line": 47,
           "page": "gui-forms-materialimagemode-stretch-gui-forms-materialimagemode-5545435c7b.html"
         },
         {
@@ -156712,7 +156712,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 45,
+          "line": 47,
           "page": "gui-forms-materialimagemode-tile-gui-forms-materialimagemode-0fe3934ba9.html"
         },
         {
@@ -156727,7 +156727,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 45,
+          "line": 47,
           "page": "gui-forms-materialimagemode-nine-patch-gui-forms-materialimagemode-3cacd89899.html"
         },
         {
@@ -156742,7 +156742,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 45,
+          "line": 47,
           "page": "gui-forms-materialimagemode-single-gui-forms-materialimagemode-20ad4cded8.html"
         }
       ],
@@ -157004,7 +157004,7 @@
       "kind": "struct",
       "header": "gui_forms/surface_material/types/surface_material_types.hpp",
       "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-      "line": 126,
+      "line": 128,
       "declaration": "struct MaterialKeyline final",
       "comment": "",
       "access": "public",
@@ -157022,7 +157022,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 127,
+          "line": 129,
           "page": "gui-forms-materialkeyline-edge-materialedge-0e244fcf63.html"
         },
         {
@@ -157037,7 +157037,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 128,
+          "line": 130,
           "page": "gui-forms-materialkeyline-color-color-f30dfc4a38.html"
         },
         {
@@ -157052,7 +157052,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 129,
+          "line": 131,
           "page": "gui-forms-materialkeyline-width-double-8c05b2d7dc.html"
         },
         {
@@ -157067,7 +157067,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 130,
+          "line": 132,
           "page": "gui-forms-materialkeyline-inset-double-99b45c36d1.html"
         }
       ],
@@ -157081,7 +157081,7 @@
       "kind": "enum",
       "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
       "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-      "line": 50,
+      "line": 52,
       "declaration": "enum class MaterialLinearGeometry : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -157099,7 +157099,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 51,
+          "line": 53,
           "page": "gui-forms-materiallineargeometry-endpoints-gui-forms-materiallineargeometry-14b788dd16.html"
         },
         {
@@ -157114,7 +157114,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
           "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-          "line": 51,
+          "line": 53,
           "page": "gui-forms-materiallineargeometry-css-angle-gui-forms-materiallineargeometry-bcd72bd5cf.html"
         }
       ],
@@ -157373,7 +157373,7 @@
       "kind": "struct",
       "header": "gui_forms/surface_material/types/surface_material_types.hpp",
       "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-      "line": 158,
+      "line": 160,
       "declaration": "struct MaterialReflection final",
       "comment": "",
       "access": "public",
@@ -157391,7 +157391,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 159,
+          "line": 161,
           "page": "gui-forms-materialreflection-edge-materialedge-1bd2edc169.html"
         },
         {
@@ -157406,7 +157406,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 160,
+          "line": 162,
           "page": "gui-forms-materialreflection-gap-double-558b869582.html"
         },
         {
@@ -157421,7 +157421,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 161,
+          "line": 163,
           "page": "gui-forms-materialreflection-reach-double-4b13c7a2af.html"
         },
         {
@@ -157436,7 +157436,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 162,
+          "line": 164,
           "page": "gui-forms-materialreflection-start-opacity-double-60443daf4d.html"
         },
         {
@@ -157451,7 +157451,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 163,
+          "line": 165,
           "page": "gui-forms-materialreflection-end-opacity-double-04b5fe5306.html"
         },
         {
@@ -157466,7 +157466,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 164,
+          "line": 166,
           "page": "gui-forms-materialreflection-source-materialreflectionsource-bcbd089724.html"
         }
       ],
@@ -157480,7 +157480,7 @@
       "kind": "enum",
       "header": "gui_forms/surface_material/types/surface_material_types.hpp",
       "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-      "line": 138,
+      "line": 140,
       "declaration": "enum class MaterialReflectionSource : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -157498,7 +157498,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 142,
+          "line": 144,
           "page": "gui-forms-materialreflectionsource-face-gui-forms-materialreflectionsource-e59485f40d.html"
         },
         {
@@ -157513,7 +157513,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 146,
+          "line": 148,
           "page": "gui-forms-materialreflectionsource-backplane-gui-forms-materialreflectionsource-5885d222f2.html"
         }
       ],
@@ -157527,7 +157527,7 @@
       "kind": "struct",
       "header": "gui_forms/surface_material/types/surface_material_types.hpp",
       "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-      "line": 70,
+      "line": 71,
       "declaration": "struct MaterialShadow final",
       "comment": "",
       "access": "public",
@@ -157545,7 +157545,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 71,
+          "line": 72,
           "page": "gui-forms-materialshadow-offset-point-bfb6946334.html"
         },
         {
@@ -157560,7 +157560,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 72,
+          "line": 73,
           "page": "gui-forms-materialshadow-blur-radius-double-e1845e283f.html"
         },
         {
@@ -157575,7 +157575,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 73,
+          "line": 74,
           "page": "gui-forms-materialshadow-spread-double-bdf71c6ba4.html"
         },
         {
@@ -157590,7 +157590,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 74,
+          "line": 75,
           "page": "gui-forms-materialshadow-color-color-9afc4f2f69.html"
         },
         {
@@ -157605,7 +157605,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 75,
+          "line": 76,
           "page": "gui-forms-materialshadow-inset-bool-cbe840af18.html"
         }
       ],
@@ -182584,7 +182584,7 @@
       "kind": "struct",
       "header": "gui_forms/types/painter/painter.hpp",
       "source": "include/gui_forms/types/painter/painter.hpp",
-      "line": 74,
+      "line": 75,
       "declaration": "struct PaintGroup final",
       "comment": "",
       "access": "public",
@@ -182602,7 +182602,7 @@
           "comment": "",
           "header": "gui_forms/types/painter/painter.hpp",
           "source": "include/gui_forms/types/painter/painter.hpp",
-          "line": 75,
+          "line": 76,
           "page": "gui-forms-paintgroup-bounds-rect-ad13e72bfa.html"
         },
         {
@@ -182617,7 +182617,7 @@
           "comment": "",
           "header": "gui_forms/types/painter/painter.hpp",
           "source": "include/gui_forms/types/painter/painter.hpp",
-          "line": 76,
+          "line": 77,
           "page": "gui-forms-paintgroup-opacity-double-0cc0260038.html"
         },
         {
@@ -182632,7 +182632,7 @@
           "comment": "",
           "header": "gui_forms/types/painter/painter.hpp",
           "source": "include/gui_forms/types/painter/painter.hpp",
-          "line": 77,
+          "line": 78,
           "page": "gui-forms-paintgroup-composite-paintgroupcomposite-4913a54505.html"
         },
         {
@@ -182647,7 +182647,7 @@
           "comment": "",
           "header": "gui_forms/types/painter/painter.hpp",
           "source": "include/gui_forms/types/painter/painter.hpp",
-          "line": 78,
+          "line": 79,
           "page": "gui-forms-paintgroup-isolated-bool-5c23b693a8.html"
         }
       ],
@@ -182661,7 +182661,7 @@
       "kind": "enum",
       "header": "gui_forms/types/painter/painter.hpp",
       "source": "include/gui_forms/types/painter/painter.hpp",
-      "line": 54,
+      "line": 55,
       "declaration": "enum class PaintGroupComposite : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -182679,7 +182679,7 @@
           "comment": "",
           "header": "gui_forms/types/painter/painter.hpp",
           "source": "include/gui_forms/types/painter/painter.hpp",
-          "line": 54,
+          "line": 55,
           "page": "gui-forms-paintgroupcomposite-source-over-gui-forms-paintgroupcomposite-da6b5b5190.html"
         },
         {
@@ -182694,7 +182694,7 @@
           "comment": "",
           "header": "gui_forms/types/painter/painter.hpp",
           "source": "include/gui_forms/types/painter/painter.hpp",
-          "line": 54,
+          "line": 55,
           "page": "gui-forms-paintgroupcomposite-plus-gui-forms-paintgroupcomposite-52a9bcdc58.html"
         },
         {
@@ -182709,7 +182709,7 @@
           "comment": "",
           "header": "gui_forms/types/painter/painter.hpp",
           "source": "include/gui_forms/types/painter/painter.hpp",
-          "line": 54,
+          "line": 55,
           "page": "gui-forms-paintgroupcomposite-multiply-gui-forms-paintgroupcomposite-10319b7e8f.html"
         },
         {
@@ -182724,7 +182724,7 @@
           "comment": "",
           "header": "gui_forms/types/painter/painter.hpp",
           "source": "include/gui_forms/types/painter/painter.hpp",
-          "line": 54,
+          "line": 55,
           "page": "gui-forms-paintgroupcomposite-screen-gui-forms-paintgroupcomposite-deae4c6595.html"
         },
         {
@@ -182739,7 +182739,7 @@
           "comment": "",
           "header": "gui_forms/types/painter/painter.hpp",
           "source": "include/gui_forms/types/painter/painter.hpp",
-          "line": 54,
+          "line": 55,
           "page": "gui-forms-paintgroupcomposite-copy-gui-forms-paintgroupcomposite-6054d83adb.html"
         }
       ],
@@ -183241,7 +183241,7 @@
       "kind": "class",
       "header": "gui_forms/types/painter/painter.hpp",
       "source": "include/gui_forms/types/painter/painter.hpp",
-      "line": 86,
+      "line": 87,
       "declaration": "class Painter : public TextMetricsProvider",
       "comment": "",
       "access": "public",
@@ -183261,7 +183261,7 @@
           "comment": "",
           "header": "gui_forms/types/painter/painter.hpp",
           "source": "include/gui_forms/types/painter/painter.hpp",
-          "line": 88,
+          "line": 89,
           "page": "gui-forms-painter-painter-void-noexcept-8ddb94880d.html"
         },
         {
@@ -183282,7 +183282,7 @@
           "comment": "",
           "header": "gui_forms/types/painter/painter.hpp",
           "source": "include/gui_forms/types/painter/painter.hpp",
-          "line": 99,
+          "line": 100,
           "page": "gui-forms-painter-begin-group-void-const-paintgroup-eb09e96bb5.html"
         },
         {
@@ -183297,7 +183297,7 @@
           "comment": "",
           "header": "gui_forms/types/painter/painter.hpp",
           "source": "include/gui_forms/types/painter/painter.hpp",
-          "line": 100,
+          "line": 101,
           "page": "gui-forms-painter-end-group-void-00271e02ca.html"
         },
         {
@@ -183323,7 +183323,7 @@
           "comment": "",
           "header": "gui_forms/types/painter/painter.hpp",
           "source": "include/gui_forms/types/painter/painter.hpp",
-          "line": 103,
+          "line": 104,
           "page": "gui-forms-painter-create-framebuffer-std-unique-ptr-paintframebuffer-size-double-aecc3e6a38.html"
         },
         {
@@ -183359,7 +183359,7 @@
           "comment": "",
           "header": "gui_forms/types/painter/painter.hpp",
           "source": "include/gui_forms/types/painter/painter.hpp",
-          "line": 107,
+          "line": 108,
           "page": "gui-forms-painter-draw-prepared-text-preparedtextpaintresult-const-preparedtextlayout-const-layoutauthority-co-1627d3589a.html"
         },
         {
@@ -183374,7 +183374,7 @@
           "comment": "",
           "header": "gui_forms/types/painter/painter.hpp",
           "source": "include/gui_forms/types/painter/painter.hpp",
-          "line": 110,
+          "line": 111,
           "page": "gui-forms-painter-save-void-60c43963cc.html"
         },
         {
@@ -183389,7 +183389,7 @@
           "comment": "",
           "header": "gui_forms/types/painter/painter.hpp",
           "source": "include/gui_forms/types/painter/painter.hpp",
-          "line": 111,
+          "line": 112,
           "page": "gui-forms-painter-restore-void-7d385ffc0c.html"
         },
         {
@@ -183410,7 +183410,7 @@
           "comment": "",
           "header": "gui_forms/types/painter/painter.hpp",
           "source": "include/gui_forms/types/painter/painter.hpp",
-          "line": 112,
+          "line": 113,
           "page": "gui-forms-painter-translate-void-point-f799fff640.html"
         },
         {
@@ -183431,7 +183431,7 @@
           "comment": "",
           "header": "gui_forms/types/painter/painter.hpp",
           "source": "include/gui_forms/types/painter/painter.hpp",
-          "line": 113,
+          "line": 114,
           "page": "gui-forms-painter-clip-rect-void-rect-288ec77517.html"
         },
         {
@@ -183457,7 +183457,7 @@
           "comment": "",
           "header": "gui_forms/types/painter/painter.hpp",
           "source": "include/gui_forms/types/painter/painter.hpp",
-          "line": 117,
+          "line": 118,
           "page": "gui-forms-painter-clip-rounded-rect-void-rect-double-3f7b84f30e.html"
         },
         {
@@ -183483,7 +183483,7 @@
           "comment": "",
           "header": "gui_forms/types/painter/painter.hpp",
           "source": "include/gui_forms/types/painter/painter.hpp",
-          "line": 122,
+          "line": 123,
           "page": "gui-forms-painter-clip-rounded-rect-corners-void-rect-paintcornerradii-ed64f5c863.html"
         },
         {
@@ -183509,7 +183509,7 @@
           "comment": "",
           "header": "gui_forms/types/painter/painter.hpp",
           "source": "include/gui_forms/types/painter/painter.hpp",
-          "line": 123,
+          "line": 124,
           "page": "gui-forms-painter-fill-rect-void-rect-color-6e57f49d47.html"
         },
         {
@@ -183540,7 +183540,7 @@
           "comment": "",
           "header": "gui_forms/types/painter/painter.hpp",
           "source": "include/gui_forms/types/painter/painter.hpp",
-          "line": 124,
+          "line": 125,
           "page": "gui-forms-painter-fill-rounded-rect-void-rect-double-color-6d45f0385c.html"
         },
         {
@@ -183571,7 +183571,7 @@
           "comment": "",
           "header": "gui_forms/types/painter/painter.hpp",
           "source": "include/gui_forms/types/painter/painter.hpp",
-          "line": 125,
+          "line": 126,
           "page": "gui-forms-painter-stroke-rect-void-rect-color-double-b2872b8fbb.html"
         },
         {
@@ -183607,7 +183607,7 @@
           "comment": "",
           "header": "gui_forms/types/painter/painter.hpp",
           "source": "include/gui_forms/types/painter/painter.hpp",
-          "line": 126,
+          "line": 127,
           "page": "gui-forms-painter-stroke-rounded-rect-void-rect-double-color-double-48541948ab.html"
         },
         {
@@ -183643,7 +183643,7 @@
           "comment": "",
           "header": "gui_forms/types/painter/painter.hpp",
           "source": "include/gui_forms/types/painter/painter.hpp",
-          "line": 128,
+          "line": 129,
           "page": "gui-forms-painter-fill-linear-gradient-void-rect-point-point-std-span-const-gradientstop-64b0396a31.html"
         },
         {
@@ -183684,7 +183684,7 @@
           "comment": "",
           "header": "gui_forms/types/painter/painter.hpp",
           "source": "include/gui_forms/types/painter/painter.hpp",
-          "line": 131,
+          "line": 132,
           "page": "gui-forms-painter-fill-linear-gradient-spread-void-rect-point-point-std-span-const-gradientstop-gradientspread-82f8034b1d.html"
         },
         {
@@ -183720,7 +183720,7 @@
           "comment": "",
           "header": "gui_forms/types/painter/painter.hpp",
           "source": "include/gui_forms/types/painter/painter.hpp",
-          "line": 134,
+          "line": 135,
           "page": "gui-forms-painter-fill-radial-gradient-void-rect-point-size-std-span-const-gradientstop-45c87c8a42.html"
         },
         {
@@ -183766,7 +183766,7 @@
           "comment": "",
           "header": "gui_forms/types/painter/painter.hpp",
           "source": "include/gui_forms/types/painter/painter.hpp",
-          "line": 139,
+          "line": 140,
           "page": "gui-forms-painter-draw-box-shadow-void-rect-double-point-double-double-color-553ee7769f.html"
         },
         {
@@ -183817,7 +183817,7 @@
           "comment": "",
           "header": "gui_forms/types/painter/painter.hpp",
           "source": "include/gui_forms/types/painter/painter.hpp",
-          "line": 144,
+          "line": 145,
           "page": "gui-forms-painter-draw-retained-box-shadow-void-rect-double-point-double-double-color-const-std-shared-ptr-ret-5d39cb6cfc.html"
         },
         {
@@ -183863,7 +183863,7 @@
           "comment": "",
           "header": "gui_forms/types/painter/painter.hpp",
           "source": "include/gui_forms/types/painter/painter.hpp",
-          "line": 150,
+          "line": 151,
           "page": "gui-forms-painter-draw-inset-box-shadow-void-rect-double-point-double-double-color-a1eb065db0.html"
         },
         {
@@ -183899,7 +183899,7 @@
           "comment": "",
           "header": "gui_forms/types/painter/painter.hpp",
           "source": "include/gui_forms/types/painter/painter.hpp",
-          "line": 153,
+          "line": 154,
           "page": "gui-forms-painter-draw-line-void-point-point-color-double-4c0ec2be44.html"
         },
         {
@@ -183935,7 +183935,7 @@
           "comment": "",
           "header": "gui_forms/types/painter/painter.hpp",
           "source": "include/gui_forms/types/painter/painter.hpp",
-          "line": 154,
+          "line": 155,
           "page": "gui-forms-painter-draw-text-utf8-void-point-std-string-view-fontspec-color-7416929961.html"
         },
         {
@@ -183976,7 +183976,7 @@
           "comment": "",
           "header": "gui_forms/types/painter/painter.hpp",
           "source": "include/gui_forms/types/painter/painter.hpp",
-          "line": 161,
+          "line": 162,
           "page": "gui-forms-painter-draw-retained-text-utf8-void-point-std-string-view-fontspec-color-const-std-shared-ptr-retai-ebed3a69b2.html"
         },
         {
@@ -184017,7 +184017,7 @@
           "comment": "",
           "header": "gui_forms/types/painter/painter.hpp",
           "source": "include/gui_forms/types/painter/painter.hpp",
-          "line": 171,
+          "line": 172,
           "page": "gui-forms-painter-draw-turned-text-utf8-void-point-std-string-view-fontspec-color-textorientation-de40e19aaf.html"
         },
         {
@@ -184043,7 +184043,7 @@
           "comment": "",
           "header": "gui_forms/types/painter/painter.hpp",
           "source": "include/gui_forms/types/painter/painter.hpp",
-          "line": 176,
+          "line": 177,
           "page": "gui-forms-painter-measure-text-utf8-size-std-string-view-fontspec-774c941839.html"
         },
         {
@@ -184069,7 +184069,7 @@
           "comment": "",
           "header": "gui_forms/types/painter/painter.hpp",
           "source": "include/gui_forms/types/painter/painter.hpp",
-          "line": 187,
+          "line": 188,
           "page": "gui-forms-painter-resolve-text-layout-utf8-resolvedtextlayout-std-string-view-fontspec-401da8b2d8.html"
         },
         {
@@ -184100,7 +184100,7 @@
           "comment": "",
           "header": "gui_forms/types/painter/painter.hpp",
           "source": "include/gui_forms/types/painter/painter.hpp",
-          "line": 193,
+          "line": 194,
           "page": "gui-forms-painter-draw-image-void-imageid-rect-double-fbc9fbf303.html"
         },
         {
@@ -184131,7 +184131,7 @@
           "comment": "",
           "header": "gui_forms/types/painter/painter.hpp",
           "source": "include/gui_forms/types/painter/painter.hpp",
-          "line": 199,
+          "line": 200,
           "page": "gui-forms-painter-draw-live-surface-void-std-shared-ptr-livesurface-rect-double-178b1368f4.html"
         },
         {
@@ -184162,7 +184162,7 @@
           "comment": "",
           "header": "gui_forms/types/painter/painter.hpp",
           "source": "include/gui_forms/types/painter/painter.hpp",
-          "line": 215,
+          "line": 216,
           "page": "gui-forms-painter-draw-part-raster-void-const-std-shared-ptr-const-partraster-point-double-d2761d2ea3.html"
         },
         {
@@ -184193,8 +184193,70 @@
           "comment": "",
           "header": "gui_forms/types/painter/painter.hpp",
           "source": "include/gui_forms/types/painter/painter.hpp",
-          "line": 225,
+          "line": 226,
           "page": "gui-forms-painter-draw-part-raster-scaled-void-const-std-shared-ptr-const-partraster-rect-double-45c637c3e1.html"
+        },
+        {
+          "id": "gui_forms::Painter::draw_surface_material|void (Rect, const SurfaceMaterial &)",
+          "name": "draw_surface_material",
+          "type": "void (Rect, const SurfaceMaterial &)",
+          "namespace": "gui_forms::Painter",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [
+            {
+              "name": "bounds",
+              "type": "Rect",
+              "declaration": "Rect bounds"
+            },
+            {
+              "name": "material",
+              "type": "const SurfaceMaterial &",
+              "declaration": "const SurfaceMaterial& material"
+            }
+          ],
+          "declaration": "virtual void draw_surface_material(Rect bounds, const SurfaceMaterial& material)",
+          "comment": "",
+          "header": "gui_forms/types/painter/painter.hpp",
+          "source": "include/gui_forms/types/painter/painter.hpp",
+          "line": 237,
+          "page": "gui-forms-painter-draw-surface-material-void-rect-const-surfacematerial-eca7070fd7.html"
+        },
+        {
+          "id": "gui_forms::Painter::draw_baked_surface_material|void (Rect, const std::shared_ptr<const SurfaceMaterial> &, const std::shared_ptr<const PartRaster> &, double)",
+          "name": "draw_baked_surface_material",
+          "type": "void (Rect, const std::shared_ptr<const SurfaceMaterial> &, const std::shared_ptr<const PartRaster> &, double)",
+          "namespace": "gui_forms::Painter",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [
+            {
+              "name": "bounds",
+              "type": "Rect",
+              "declaration": "Rect bounds"
+            },
+            {
+              "name": "material",
+              "type": "const std::shared_ptr<const SurfaceMaterial> &",
+              "declaration": "const std::shared_ptr<const SurfaceMaterial>& material"
+            },
+            {
+              "name": "raster",
+              "type": "const std::shared_ptr<const PartRaster> &",
+              "declaration": "const std::shared_ptr<const PartRaster>& raster"
+            },
+            {
+              "name": "outset",
+              "type": "double",
+              "declaration": "double outset"
+            }
+          ],
+          "declaration": "virtual void draw_baked_surface_material(Rect bounds, const std::shared_ptr<const SurfaceMaterial>& material, const std::shared_ptr<const PartRaster>& raster, double outset)",
+          "comment": "",
+          "header": "gui_forms/types/painter/painter.hpp",
+          "source": "include/gui_forms/types/painter/painter.hpp",
+          "line": 245,
+          "page": "gui-forms-painter-draw-baked-surface-material-void-rect-const-std-shared-ptr-const-surfacematerial-const-std-s-a36e6f4339.html"
         },
         {
           "id": "gui_forms::Painter::draw_image_region|void (ImageId, Rect, Rect, double)",
@@ -184229,7 +184291,7 @@
           "comment": "",
           "header": "gui_forms/types/painter/painter.hpp",
           "source": "include/gui_forms/types/painter/painter.hpp",
-          "line": 231,
+          "line": 251,
           "page": "gui-forms-painter-draw-image-region-void-imageid-rect-rect-double-cdb551d69a.html"
         },
         {
@@ -184270,7 +184332,7 @@
           "comment": "",
           "header": "gui_forms/types/painter/painter.hpp",
           "source": "include/gui_forms/types/painter/painter.hpp",
-          "line": 234,
+          "line": 254,
           "page": "gui-forms-painter-draw-image-region-sampled-void-imageid-rect-rect-imagesampling-double-c6f9c87f9e.html"
         },
         {
@@ -184316,7 +184378,7 @@
           "comment": "",
           "header": "gui_forms/types/painter/painter.hpp",
           "source": "include/gui_forms/types/painter/painter.hpp",
-          "line": 240,
+          "line": 260,
           "page": "gui-forms-painter-fill-image-pattern-void-imageid-size-rect-size-imagepatternwrap-double-eb4fec2aa2.html"
         }
       ],
@@ -211968,7 +212030,7 @@
       "kind": "struct",
       "header": "gui_forms/types/painter/painter.hpp",
       "source": "include/gui_forms/types/painter/painter.hpp",
-      "line": 31,
+      "line": 32,
       "declaration": "struct RetainedDrawCache final",
       "comment": "",
       "access": "public",
@@ -211986,7 +212048,7 @@
           "comment": "",
           "header": "gui_forms/types/painter/painter.hpp",
           "source": "include/gui_forms/types/painter/painter.hpp",
-          "line": 32,
+          "line": 33,
           "page": "gui-forms-retaineddrawcache-memo-std-unique-ptr-retaineddrawmemo-c0a490687a.html"
         }
       ],
@@ -212000,7 +212062,7 @@
       "kind": "class",
       "header": "gui_forms/types/painter/painter.hpp",
       "source": "include/gui_forms/types/painter/painter.hpp",
-      "line": 26,
+      "line": 27,
       "declaration": "class RetainedDrawMemo",
       "comment": "",
       "access": "public",
@@ -212018,7 +212080,7 @@
           "comment": "",
           "header": "gui_forms/types/painter/painter.hpp",
           "source": "include/gui_forms/types/painter/painter.hpp",
-          "line": 28,
+          "line": 29,
           "page": "gui-forms-retaineddrawmemo-retaineddrawmemo-void-3a01f6380c.html"
         }
       ],
@@ -246683,7 +246745,7 @@
       "kind": "struct",
       "header": "gui_forms/surface_material/types/surface_material_types.hpp",
       "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-      "line": 193,
+      "line": 195,
       "declaration": "struct SurfaceMaterial final",
       "comment": "",
       "access": "public",
@@ -246701,7 +246763,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 194,
+          "line": 196,
           "page": "gui-forms-surfacematerial-maximum-fill-layers-const-std-size-t-09bb10bfa7.html"
         },
         {
@@ -246716,7 +246778,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 195,
+          "line": 197,
           "page": "gui-forms-surfacematerial-maximum-shadows-const-std-size-t-1eb0d9d8db.html"
         },
         {
@@ -246731,7 +246793,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 196,
+          "line": 198,
           "page": "gui-forms-surfacematerial-maximum-keylines-const-std-size-t-8d3d071ede.html"
         },
         {
@@ -246746,7 +246808,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 197,
+          "line": 199,
           "page": "gui-forms-surfacematerial-maximum-glows-const-std-size-t-23c6e3fe6b.html"
         },
         {
@@ -246761,7 +246823,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 200,
+          "line": 202,
           "page": "gui-forms-surfacematerial-maximum-glow-reach-const-double-8409bd5380.html"
         },
         {
@@ -246776,7 +246838,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 204,
+          "line": 206,
           "page": "gui-forms-surfacematerial-maximum-filter-reach-const-double-6a402b87d3.html"
         },
         {
@@ -246791,7 +246853,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 207,
+          "line": 209,
           "page": "gui-forms-surfacematerial-maximum-reflection-reach-const-double-df254b7ef4.html"
         },
         {
@@ -246806,7 +246868,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 208,
+          "line": 210,
           "page": "gui-forms-surfacematerial-fills-std-vector-materialfilllayer-2fee6d5769.html"
         },
         {
@@ -246821,7 +246883,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 210,
+          "line": 212,
           "page": "gui-forms-surfacematerial-shadows-std-vector-materialshadow-8a4e0456cb.html"
         },
         {
@@ -246836,7 +246898,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 211,
+          "line": 213,
           "page": "gui-forms-surfacematerial-glows-std-vector-materialglow-49d90b27b8.html"
         },
         {
@@ -246851,7 +246913,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 212,
+          "line": 214,
           "page": "gui-forms-surfacematerial-border-std-optional-materialborder-77e5c7ac0d.html"
         },
         {
@@ -246866,7 +246928,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 213,
+          "line": 215,
           "page": "gui-forms-surfacematerial-border-edges-materialborderedges-d78bfe408d.html"
         },
         {
@@ -246881,7 +246943,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 214,
+          "line": 216,
           "page": "gui-forms-surfacematerial-keylines-std-vector-materialkeyline-a34d70f6c2.html"
         },
         {
@@ -246896,7 +246958,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 215,
+          "line": 217,
           "page": "gui-forms-surfacematerial-corner-radius-double-9bb36940e0.html"
         },
         {
@@ -246911,7 +246973,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 220,
+          "line": 222,
           "page": "gui-forms-surfacematerial-corner-radii-std-optional-materialcornerradii-27179209b2.html"
         },
         {
@@ -246926,7 +246988,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 227,
+          "line": 229,
           "page": "gui-forms-surfacematerial-colour-filter-materialcolourfilter-3c2998340a.html"
         },
         {
@@ -246941,7 +247003,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 228,
+          "line": 230,
           "page": "gui-forms-surfacematerial-drop-shadow-std-optional-materialdropshadow-ae7b389c96.html"
         },
         {
@@ -246956,7 +247018,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 231,
+          "line": 233,
           "page": "gui-forms-surfacematerial-filter-blur-double-23ee0d72b9.html"
         },
         {
@@ -246971,7 +247033,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 236,
+          "line": 238,
           "page": "gui-forms-surfacematerial-finish-double-479aca5fdf.html"
         },
         {
@@ -246986,7 +247048,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 243,
+          "line": 245,
           "page": "gui-forms-surfacematerial-mask-std-optional-materialfilllayer-e635e62812.html"
         },
         {
@@ -247001,7 +247063,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 246,
+          "line": 248,
           "page": "gui-forms-surfacematerial-reflection-std-optional-materialreflection-bee590d8db.html"
         },
         {
@@ -247047,7 +247109,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 247,
+          "line": 249,
           "page": "gui-forms-surfacematerial-from-parts-surfacematerial-const-materialfilllayer-std-size-t-const-materialshadow-s-5229ff6b91.html"
         },
         {
@@ -247098,7 +247160,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 251,
+          "line": 253,
           "page": "gui-forms-surfacematerial-from-parts-surfacematerial-const-materialfilllayer-std-size-t-const-materialshadow-s-40605e5a42.html"
         },
         {
@@ -247159,7 +247221,7 @@
           "comment": "",
           "header": "gui_forms/surface_material/types/surface_material_types.hpp",
           "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-          "line": 256,
+          "line": 258,
           "page": "gui-forms-surfacematerial-from-parts-surfacematerial-const-materialfilllayer-std-size-t-const-materialshadow-s-e8b7b98f7d.html"
         }
       ],
@@ -303880,7 +303942,11 @@
       "comment": "",
       "header": "gui_forms/surface_root/surface_root.hpp",
       "source": "include/gui_forms/surface_root/surface_root.hpp",
+<<<<<<< HEAD
       "line": 2150,
+=======
+      "line": 1908,
+>>>>>>> 0c6ff9a2 (One rasteriser: paint surface materials through the engine's kernel)
       "page": "gui-forms-attach-application-window-void-gui-forms-surfaceroot-const-std-shared-ptr-detail-applicationwindowst-b9975a8edd.html",
       "associated_type": "gui_forms::SurfaceRoot"
     },
@@ -314848,7 +314914,7 @@
       "comment": "",
       "header": "gui_forms/surface_material/types/surface_material_types.hpp",
       "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-      "line": 31,
+      "line": 32,
       "page": "gui-forms-operator-bool-const-gui-forms-materialborder-const-gui-forms-materialborder-noexcept-1e37768303.html",
       "associated_type": "gui_forms::MaterialBorder"
     },
@@ -314875,7 +314941,7 @@
       "comment": "",
       "header": "gui_forms/surface_material/types/surface_material_types.hpp",
       "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-      "line": 185,
+      "line": 187,
       "page": "gui-forms-operator-bool-const-gui-forms-materialborderedges-const-gui-forms-materialborderedges-noexcept-1776586a87.html",
       "associated_type": "gui_forms::MaterialBorderEdges"
     },
@@ -314956,7 +315022,7 @@
       "comment": "",
       "header": "gui_forms/surface_material/types/surface_material_types.hpp",
       "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-      "line": 62,
+      "line": 63,
       "page": "gui-forms-operator-bool-const-gui-forms-materialcornerradii-const-gui-forms-materialcornerradii-noexcept-ebee1498e7.html",
       "associated_type": "gui_forms::MaterialCornerRadii"
     },
@@ -315010,7 +315076,7 @@
       "comment": "",
       "header": "gui_forms/surface_material/types/surface_material_types.hpp",
       "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-      "line": 47,
+      "line": 48,
       "page": "gui-forms-operator-bool-const-gui-forms-materialdropshadow-const-gui-forms-materialdropshadow-noexcept-a52fc06dc0.html",
       "associated_type": "gui_forms::MaterialDropShadow"
     },
@@ -315037,7 +315103,7 @@
       "comment": "",
       "header": "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
       "source": "include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp",
-      "line": 141,
+      "line": 143,
       "page": "gui-forms-operator-bool-const-gui-forms-materialfilllayer-const-gui-forms-materialfilllayer-noexcept-noexcept--87ba92a0f9.html",
       "associated_type": "gui_forms::MaterialFillLayer"
     },
@@ -315064,7 +315130,7 @@
       "comment": "",
       "header": "gui_forms/surface_material/types/surface_material_types.hpp",
       "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-      "line": 114,
+      "line": 116,
       "page": "gui-forms-operator-bool-const-gui-forms-materialglow-const-gui-forms-materialglow-noexcept-05fb1f03a8.html",
       "associated_type": "gui_forms::MaterialGlow"
     },
@@ -315145,7 +315211,7 @@
       "comment": "",
       "header": "gui_forms/surface_material/types/surface_material_types.hpp",
       "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-      "line": 131,
+      "line": 133,
       "page": "gui-forms-operator-bool-const-gui-forms-materialkeyline-const-gui-forms-materialkeyline-noexcept-f315e351da.html",
       "associated_type": "gui_forms::MaterialKeyline"
     },
@@ -315172,7 +315238,7 @@
       "comment": "",
       "header": "gui_forms/surface_material/types/surface_material_types.hpp",
       "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-      "line": 165,
+      "line": 167,
       "page": "gui-forms-operator-bool-const-gui-forms-materialreflection-const-gui-forms-materialreflection-noexcept-1bb1e66259.html",
       "associated_type": "gui_forms::MaterialReflection"
     },
@@ -315199,7 +315265,7 @@
       "comment": "",
       "header": "gui_forms/surface_material/types/surface_material_types.hpp",
       "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-      "line": 76,
+      "line": 77,
       "page": "gui-forms-operator-bool-const-gui-forms-materialshadow-const-gui-forms-materialshadow-noexcept-9a22fd24a1.html",
       "associated_type": "gui_forms::MaterialShadow"
     },
@@ -316738,7 +316804,7 @@
       "comment": "",
       "header": "gui_forms/surface_material/types/surface_material_types.hpp",
       "source": "include/gui_forms/surface_material/types/surface_material_types.hpp",
-      "line": 262,
+      "line": 264,
       "page": "gui-forms-operator-bool-const-gui-forms-surfacematerial-const-gui-forms-surfacematerial-noexcept-noexcept-left-bd476f44a7.html",
       "associated_type": "gui_forms::SurfaceMaterial"
     },
@@ -326223,7 +326289,7 @@
       "comment": "",
       "header": "gui_forms/types/painter/painter.hpp",
       "source": "include/gui_forms/types/painter/painter.hpp",
-      "line": 84,
+      "line": 85,
       "page": "gui-forms-maximum-paint-group-depth-const-std-size-t-9b4588b38c.html"
     },
     {

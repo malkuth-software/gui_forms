@@ -2853,7 +2853,7 @@ Types
 
    ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
 
-   A soft coloured emission of the material's box (E9-C): the box grown by ``spread`` on every side and blurred by ``blur_radius`` (σ = blur_radius / 2, as a shadow's), centred on the box. The engine's material bake adds it as light, each premultiplied channel at most 1: - ``under``, to the outer shadows beneath it, with the fills drawn over it. paint_surface_material composites it as an outer shadow at no offset after the outer shadows, which differs only where it lies over a shadow. - ``over``, to the finished face (after its keylines), within the box's coverage. paint_surface_material composites it as an outer shadow at no offset, clipped to the face, after the keylines; that is source-over, not added, so the built-in path's over glow is the dimmer of the two. Its reach, spread + 2 × blur_radius (where its blur is below one 8-bit step), is at most SurfaceMaterial::maximum_glow_reach in both placements, so that an under glow stays within the part's granted overflow; an over glow lies within the box and needs no overflow.
+   A soft coloured emission of the material's box (E9-C): the box grown by ``spread`` on every side and blurred by ``blur_radius`` (σ = blur_radius / 2, as a shadow's), centred on the box. The engine's material bake adds it as light, each premultiplied channel at most 1: - ``under``, to the outer shadows beneath it, with the fills drawn over it. - ``over``, to the finished face (after its keylines), within the box's coverage. paint_surface_material adds them so too where it bakes through the kernel. A minimal painter's layers composite each as an outer shadow at no offset (an over glow clipped to the face, after the keylines): that is source-over, not added, so its under glow differs where it lies over a shadow and its over glow is the dimmer. Its reach, spread + 2 × blur_radius (where its blur is below one 8-bit step), is at most SurfaceMaterial::maximum_glow_reach in both placements, so that an under glow stays within the part's granted overflow; an over glow lies within the box and needs no overflow.
 
    .. cpp:member:: Color color
 
@@ -3393,6 +3393,14 @@ Types
    .. cpp:function:: virtual void draw_part_raster_scaled(const std::shared_ptr<const PartRaster>& raster, Rect destination, double opacity = 1.0)
 
       Composites a part raster shown at another size (E7r): the raster is stretched over ``destination``, in logical units, whose corners the painter places on the device pixels nearest them. Each device pixel samples the raster bilinearly through the same shared blend, so every host writes the same bytes. The engine shows a part this way while its presentational scale moves, and bakes it sharp at its size once the scale rests. Otherwise as draw_part_raster; the base implementation draws nothing.
+
+   .. cpp:function:: virtual void draw_surface_material(Rect bounds, const SurfaceMaterial& material)
+
+      Draws a valid, unfinished ``material`` over ``bounds`` (paint_surface_material calls it after its checks). Painters that can composite part rasters draw it as one (stage T4, owner 2026-11-07: one rasteriser): the theme engine's material kernel bakes it at the painter's display scale and the raster goes on the device pixels nearest the box grown by its outsets, so a material looks the same whether a rule selects it as a part's face or a control paints it. The base implementation, a minimal painter's fallback, draws its layers as fills, strokes and shadows, in the kernel's order.
+
+   .. cpp:function:: virtual void draw_baked_surface_material(Rect bounds, const std::shared_ptr<const SurfaceMaterial>& material, const std::shared_ptr<const PartRaster>& raster, double outset)
+
+      The replay of a material a recording baked: ``raster``, made at the recording's display scale, covers ``bounds`` grown by ``outset`` logical units on every side. A painter at that scale composites it as draw_part_raster does; one at another scale, or one that cannot composite rasters, draws the material as draw_surface_material does. The base implementation calls draw_surface_material. ``material`` is shared read-only with the recording; null draws nothing.
 
    .. cpp:function:: virtual void draw_image_region(ImageId image, Rect source, Rect destination, double opacity = 1.0)
 

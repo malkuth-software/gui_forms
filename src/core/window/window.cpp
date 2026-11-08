@@ -4028,7 +4028,7 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
                              (*(*control).display_chunk_).logical_bounds() != logical_bounds;
         if (rebuild) {
             (*control).clear_dirty(Dirty::paint);
-            detail::RecordingPainter recorder(text_metrics_provider_);
+            detail::RecordingPainter recorder(text_metrics_provider_, DeviceScale{scale()});
             recorder.inherit_caches((*control).display_chunk_);
             // Declared after the recorder it names, so it is destroyed
             // first and the mark never outlives it.

@@ -15,9 +15,10 @@ namespace gui_forms {
 // across, one every two widths. Each runs along the border's centre line
 // from the top-left corner's end, clockwise, and its period is stretched
 // so that a whole number of dashes or dots goes round. The engine's
-// material primitive draws them on a uniform border; the built-in path,
-// paint_surface_material, draws every border solid, and so does the
-// engine on a single edge (MaterialBorderEdges).
+// material kernel draws them on a uniform border, for a part's face and for
+// paint_surface_material where it bakes; a minimal painter's layers draw
+// every border solid, and the kernel draws a single edge
+// (MaterialBorderEdges) solid.
 enum class MaterialBorderStyle : std::uint8_t {
     solid,
     dashed,
@@ -95,13 +96,14 @@ enum class MaterialGlowPlacement : std::uint8_t { under, over };
 // as a shadow's), centred on the box. The engine's material bake adds it
 // as light, each premultiplied channel at most 1:
 // - `under`, to the outer shadows beneath it, with the fills drawn over
-//   it. paint_surface_material composites it as an outer shadow at no
-//   offset after the outer shadows, which differs only where it lies over
-//   a shadow.
+//   it.
 // - `over`, to the finished face (after its keylines), within the box's
-//   coverage. paint_surface_material composites it as an outer shadow at no
-//   offset, clipped to the face, after the keylines; that is source-over,
-//   not added, so the built-in path's over glow is the dimmer of the two.
+//   coverage.
+// paint_surface_material adds them so too where it bakes through the
+// kernel. A minimal painter's layers composite each as an outer shadow at
+// no offset (an over glow clipped to the face, after the keylines): that is
+// source-over, not added, so its under glow differs where it lies over a
+// shadow and its over glow is the dimmer.
 // Its reach, spread + 2 × blur_radius (where its blur is below one 8-bit
 // step), is at most SurfaceMaterial::maximum_glow_reach in both
 // placements, so that an under glow stays within the part's granted

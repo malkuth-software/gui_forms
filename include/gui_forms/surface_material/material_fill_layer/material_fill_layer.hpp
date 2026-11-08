@@ -15,17 +15,19 @@ namespace gui_forms {
 // with spread `repeat`. A radial gradient repeats or reflects its stops
 // past its radii with spread `repeat` or `reflect` (E9.6).
 //
-// The engine's material primitive draws both exactly. The built-in path,
-// paint_surface_material, draws a repeating radial gradient padded and a
-// conic gradient as a solid of its first stop: a theme that needs them
-// selects the material primitive for the part.
+// The engine's material kernel draws both exactly, and so does
+// paint_surface_material wherever its painter composites part rasters (the
+// recording and Skia painters bake through the kernel). A minimal painter's
+// layers (Painter::draw_surface_material's base) draw a repeating radial
+// gradient padded and a conic gradient as a solid of its first stop.
 // How a fill layer joins the layers beneath it (E9.6, CSS
 // `background-blend-mode`): source-over, multiply or screen, on
 // premultiplied colour. A material whose fills all use `normal` draws them
 // as before; one with another mode first gathers its fills into one face,
 // apart from the shadows beneath, as CSS blends background layers only with
-// one another. The built-in path, paint_surface_material, draws every
-// layer source-over.
+// one another. paint_surface_material blends them so too where it bakes
+// through the kernel; a minimal painter's layers draw every layer
+// source-over.
 enum class MaterialBlendMode : std::uint8_t {
     normal,
     multiply,

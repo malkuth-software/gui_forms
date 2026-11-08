@@ -156,6 +156,15 @@ public:
     // As draw_part_raster, stretched over `destination` (E7r scale motion).
     void draw_part_raster_scaled(const std::shared_ptr<const PartRaster>& raster, Rect destination,
                                  double opacity) override;
+    // The material kernel's raster of `material` (material_raster.hpp),
+    // baked at the canvas's scale for this draw and composited as a part
+    // raster; the layers where the canvas is rotated or skewed, its two
+    // scales differ, or the kernel does not bake the material.
+    void draw_surface_material(Rect bounds, const SurfaceMaterial& material) override;
+    // The recorded raster where it was made at the canvas's scale, else as
+    // draw_surface_material.
+    void draw_baked_surface_material(Rect bounds, const std::shared_ptr<const SurfaceMaterial>& material,
+                                     const std::shared_ptr<const PartRaster>& raster, double outset) override;
     // Internal host seam: keep the coverage promise and sampled pixels in the
     // same read lease through rasterization, even during producer reconfigure.
     [[nodiscard]] bool draw_live_surface_frame(const LiveSurfaceFrame& frame,

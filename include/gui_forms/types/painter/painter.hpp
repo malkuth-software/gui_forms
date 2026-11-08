@@ -18,6 +18,7 @@ class PartRaster;
 class PreparedTextLayout;
 struct LayoutAuthority;
 struct PreparedTextPaintResult;
+struct SurfaceMaterial;
 
 // Renderer-derived data for one retained draw command, such as shaped text.
 // The command's recording owns it: a Window creates it when a control
@@ -224,6 +225,25 @@ public:
     // draws nothing.
     virtual void draw_part_raster_scaled(const std::shared_ptr<const PartRaster>& raster, Rect destination,
                                          double opacity = 1.0);
+    // Draws a valid, unfinished `material` over `bounds`
+    // (paint_surface_material calls it after its checks). Painters that can
+    // composite part rasters draw it as one (stage T4, owner 2026-11-07: one
+    // rasteriser): the theme engine's material kernel bakes it at the
+    // painter's display scale and the raster goes on the device pixels
+    // nearest the box grown by its outsets, so a material looks the same
+    // whether a rule selects it as a part's face or a control paints it.
+    // The base implementation, a minimal painter's fallback, draws its
+    // layers as fills, strokes and shadows, in the kernel's order.
+    virtual void draw_surface_material(Rect bounds, const SurfaceMaterial& material);
+    // The replay of a material a recording baked: `raster`, made at the
+    // recording's display scale, covers `bounds` grown by `outset` logical
+    // units on every side. A painter at that scale composites it as
+    // draw_part_raster does; one at another scale, or one that cannot
+    // composite rasters, draws the material as draw_surface_material does.
+    // The base implementation calls draw_surface_material.
+    // `material` is shared read-only with the recording; null draws nothing.
+    virtual void draw_baked_surface_material(Rect bounds, const std::shared_ptr<const SurfaceMaterial>& material,
+                                             const std::shared_ptr<const PartRaster>& raster, double outset);
     // Source-region replay is the renderer-neutral primitive behind image
     // strips, texture fills, and nine-patch materials. `source` is expressed
     // in source-image pixels. Minimal painters may preserve coherence by

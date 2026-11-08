@@ -1712,6 +1712,11 @@ private:
     // candidate, in a copy group when the window starts clear.
     void paint_backplane_rectangle(detail::RecordingPainter& candidate, Rect rectangle,
                                    const SurfaceMaterial& backplane, bool starts_clear);
+    // Draws the backplane material over the window: its kept kernel raster
+    // (baked again when the material, size or scale changed), else its
+    // layers (paint_surface_material).
+    void paint_backplane_material(detail::RecordingPainter& candidate, Rect window_bounds,
+                                  const SurfaceMaterial& backplane);
     // The last plane in which a control covers the whole of `rectangle`
     // (find_paint_cover, `path` its scratch), or paint_plane_count.
     [[nodiscard]] std::size_t covering_plane(Rect rectangle, bool explicit_request,
@@ -1847,6 +1852,15 @@ private:
     // same; released when the painter changes.
     std::unique_ptr<PaintFramebuffer> backplane_framebuffer_{};
     double backplane_framebuffer_scale_{};
+    // The backplane material's kernel raster (one rasteriser, stage T4),
+    // kept from paint to paint: the window bakes it once for its material,
+    // client size and scale, and every painted rectangle composites it
+    // under its clip. Null until a backplane is baked, and while the
+    // material is drawn as layers (material_raster.hpp).
+    std::shared_ptr<const SurfaceMaterial> backplane_baked_material_{};
+    std::shared_ptr<const PartRaster> backplane_baked_raster_{};
+    Size backplane_baked_size_{};
+    double backplane_baked_outset_{};
     Event<const PresentationSettings&> presentation_changed_;
     std::shared_ptr<const Theme> theme_;
     // Set while theme_ is GUI.Forms' own in place of the application's.

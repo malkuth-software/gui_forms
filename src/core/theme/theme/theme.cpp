@@ -4,6 +4,7 @@
 #include "gui_forms/window/window.hpp"
 
 #include "forced_high_contrast.hpp"
+#include "material_layers.hpp"
 #include "theme_access.hpp"
 #include "../theme_compiler/theme_source_record.hpp"
 
@@ -1059,8 +1060,6 @@ bool valid_surface_material(const SurfaceMaterial& material) noexcept {
 
 void paint_surface_material(Painter& painter, Rect bounds,
                             const SurfaceMaterial& material) {
-    // Material replay deliberately stays in authored order; recording painters
-    // retain these calls while terminal CPU painters realize the same sequence.
     if (bounds.empty() || !valid_surface_material(material)) return;
     // A finished material (E9.6) draws as the material it describes.
     if (material.finish > 0.0) {
@@ -1068,6 +1067,17 @@ void paint_surface_material(Painter& painter, Rect bounds,
         paint_surface_material(painter, bounds, finished);
         return;
     }
+    // The painter chooses how: a raster from the material kernel where it
+    // composites part rasters, else the layers below.
+    painter.draw_surface_material(bounds, material);
+}
+
+namespace detail {
+
+// The layers in the material kernel's order (material_primitive.hpp): outer
+// shadows and under glows, the fills clipped to the rounded box, inset
+// shadows, the border ring, its single edges, keylines and over glows.
+void paint_material_layers(Painter& painter, Rect bounds, const SurfaceMaterial& material) {
     for (const MaterialShadow& shadow : material.shadows) {
         if (!shadow.inset) {
             painter.draw_box_shadow(
@@ -1151,6 +1161,8 @@ void paint_surface_material(Painter& painter, Rect bounds,
         painter.restore();
     }
 }
+
+} // namespace detail
 
 Insets surface_material_visual_outsets(const SurfaceMaterial& material) noexcept {
     Insets result = box_shadow_visual_outsets(material.shadows);

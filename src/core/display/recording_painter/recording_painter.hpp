@@ -12,6 +12,12 @@ class RecordingPainter final : public Painter {
 public:
     explicit RecordingPainter(TextMetricsProvider* text_metrics = nullptr)
         : text_metrics_(text_metrics) {}
+    // A recording to be replayed at `raster_scale`, the display scale its
+    // window or snapshot draws at: draw_surface_material bakes a material
+    // there as a part raster (material_raster.hpp). Without one it records
+    // the material's layers.
+    RecordingPainter(TextMetricsProvider* text_metrics, DeviceScale raster_scale)
+        : text_metrics_(text_metrics), raster_scale_(raster_scale) {}
     void save() override;
     void restore() override;
     void translate(Point offset) override;
@@ -63,6 +69,17 @@ public:
                           double opacity) override;
     void draw_part_raster_scaled(const std::shared_ptr<const PartRaster>& raster, Rect destination,
                                  double opacity) override;
+    // With a raster scale, records the material kernel's raster of
+    // `material` (MaterialPainting::kernel) as draw_part_raster, at the box's
+    // origin less the raster's outset; the k-th such raster reuses the
+    // previous chunk's k-th (inherit_caches) when that one was baked from an
+    // equal material over a box of the same size at the same scale. Else, or
+    // where the bake is refused, records the layers.
+    void draw_surface_material(Rect bounds, const SurfaceMaterial& material) override;
+    // Records the baked material again as it was recorded, at any scale:
+    // the replay that reads it decides.
+    void draw_baked_surface_material(Rect bounds, const std::shared_ptr<const SurfaceMaterial>& material,
+                                     const std::shared_ptr<const PartRaster>& raster, double outset) override;
     // Records the group. One begun deeper than maximum_paint_group_depth is
     // refused by name: it is recorded as save() and clip_rect(bounds), drawn
     // without isolation, and counted in group_refusals(). end_group throws
@@ -101,7 +118,9 @@ public:
     // it replaces: the k-th horizontal text command recorded takes the cache
     // of the previous chunk's k-th horizontal text command when both draw
     // the same text in the same font, and the k-th box shadow takes the
-    // previous k-th box shadow's cache when every parameter matches. A
+    // previous k-th box shadow's cache when every parameter matches (and
+    // the k-th material raster the previous k-th's raster, as
+    // draw_surface_material says). A
     // control repainted every frame (an animation) then shapes and
     // rasterizes its unchanged text, and blurs its unchanged shadows, once
     // rather than every frame. Called before the first command; the
@@ -125,8 +144,12 @@ private:
     std::shared_ptr<const DisplayChunk> previous_;
     std::vector<std::size_t> previous_text_;
     std::vector<std::size_t> previous_shadows_;
+    std::vector<std::size_t> previous_materials_;
     std::size_t text_ordinal_{};
     std::size_t shadow_ordinal_{};
+    std::size_t material_ordinal_{};
+    // The display scale draw_surface_material bakes at, or none.
+    std::optional<DeviceScale> raster_scale_{};
     std::uint64_t save_depth_{};
     Point origin_{};
     // A clip outside any save, which stays in force to the end.

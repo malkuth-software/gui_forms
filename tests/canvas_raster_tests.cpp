@@ -34,6 +34,9 @@ void compare(ImageSampling sampling, double zoom, double scale, bool edited) {
     (*canvas).set_view(zoom, {470.3, 480.7});
     const Size size{180, 150};
     Window window(canvas, size);
+    // The window is told its device scale, as a host does: painted
+    // rectangles grow to whole pixels of that scale.
+    window.set_scale(scale);
     window.perform_layout();
     render::SkiaRaster tiled;
     require(tiled.resize(size, scale));

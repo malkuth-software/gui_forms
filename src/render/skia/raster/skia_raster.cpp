@@ -14,6 +14,8 @@
 #include "../../../core/image/resource_pixels.hpp"
 #include "../../../core/image/png_writer.hpp"
 #include "../../../core/damage/device_damage/device_damage.hpp"
+#include "../../../core/engine/primitives/material/material_raster.hpp"
+#include "../../../core/theme/theme/material_layers.hpp"
 
 #include "include/core/SkCanvas.h"
 #include "include/core/SkBlurTypes.h"
@@ -1867,6 +1869,35 @@ void SkiaRaster::draw_part_raster_scaled(const std::shared_ptr<const PartRaster>
     SkCanvas* const canvas = (*impl_).canvas();
     if (canvas == nullptr || !raster) return;
     static_cast<void>((*impl_).composite_part_scaled(*canvas, *raster, destination, opacity));
+}
+
+void SkiaRaster::draw_surface_material(const Rect bounds, const SurfaceMaterial& authored) {
+    SkCanvas* const canvas = (*impl_).canvas();
+    if (canvas == nullptr) return;
+    const SkMatrix matrix = (*canvas).getTotalMatrix();
+    const bool uniform = matrix.isScaleTranslate() && matrix.getScaleX() == matrix.getScaleY();
+    if (!uniform || detail::material_painting(authored) == detail::MaterialPainting::layers) {
+        detail::paint_material_layers(*this, bounds, authored);
+        return;
+    }
+    const std::optional<SurfaceMaterial> stripped = detail::material_as_painted(authored);
+    const SurfaceMaterial& material = stripped ? *stripped : authored;
+    const double outset = detail::material_raster_outset(material);
+    const DeviceScale scale{static_cast<double>(matrix.getScaleX())};
+    const std::shared_ptr<const PartRaster> raster =
+        detail::bake_material_raster(material, Size{bounds.width, bounds.height}, scale, outset);
+    const Point origin{bounds.x - outset, bounds.y - outset};
+    if (raster && (*impl_).composite_part(*canvas, *raster, origin, 1.0)) return;
+    detail::paint_material_layers(*this, bounds, authored);
+}
+
+void SkiaRaster::draw_baked_surface_material(const Rect bounds, const std::shared_ptr<const SurfaceMaterial>& material,
+                                             const std::shared_ptr<const PartRaster>& raster, const double outset) {
+    SkCanvas* const canvas = (*impl_).canvas();
+    if (canvas == nullptr || !material) return;
+    const Point origin{bounds.x - outset, bounds.y - outset};
+    if (raster && (*impl_).composite_part(*canvas, *raster, origin, 1.0)) return;
+    draw_surface_material(bounds, *material);
 }
 
 void SkiaRaster::draw_live_surface(const std::shared_ptr<LiveSurface> surface,

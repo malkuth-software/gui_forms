@@ -274,6 +274,7 @@ add_library(gui_forms_core STATIC
     src/core/engine/primitives/material/material_image.cpp
     src/core/engine/primitives/material/image_variant.cpp
     src/core/engine/primitives/material/material_primitive.cpp
+    src/core/engine/primitives/material/material_raster.cpp
     src/core/engine/primitives/material/overlay_shadow_primitive.cpp
     src/core/engine/primitives/procedural/procedural_pattern.cpp
     src/core/engine/primitives/light/sheen_primitive.cpp
@@ -286,6 +287,7 @@ add_library(gui_forms_core STATIC
     src/core/engine/primitives/kernel/pixel_kernel.cpp
     src/core/engine/part_shape/part_shape.cpp
     src/core/engine/part_table/engine_part_table.cpp
+    src/core/engine/part_table/slice_assembly.cpp
     src/core/engine/part_raster/part_raster.cpp
     src/core/engine/theme_engine/theme_engine.cpp
     src/core/engine/theme_rules/theme_rules.cpp
@@ -4670,6 +4672,9 @@ if(GUI_FORMS_BUILD_TESTS)
         add_executable(gui_forms_part_composite_identity_tests tests/part_composite_identity_tests.cpp)
         target_link_libraries(gui_forms_part_composite_identity_tests PRIVATE gui_forms_controls gui_forms_skia)
         add_test(NAME gui_forms_part_composite_identity_tests COMMAND gui_forms_part_composite_identity_tests)
+        add_executable(gui_forms_surface_material_kernel_tests tests/surface_material_kernel_tests.cpp)
+        target_link_libraries(gui_forms_surface_material_kernel_tests PRIVATE gui_forms_controls gui_forms_skia)
+        add_test(NAME gui_forms_surface_material_kernel_tests COMMAND gui_forms_surface_material_kernel_tests)
         if(TARGET gui_forms_text_engine)
             add_executable(gui_forms_text_identity_raster_tests tests/text_identity_raster_tests.cpp)
             target_link_libraries(gui_forms_text_identity_raster_tests PRIVATE gui_forms_controls gui_forms_skia)

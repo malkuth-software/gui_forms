@@ -109,6 +109,13 @@ void replay_command(const DisplayCommand& command, Painter& painter) {
             command.live_surface, command.rect, command.scalar);
         return;
     case DisplayOperation::draw_part_raster:
+        if (command.surface_material) {
+            // A baked material: its box lies `outset` inside the raster.
+            const double outset = command.secondary_scalar;
+            const Rect box{command.first.x + outset, command.first.y + outset, command.second.x, command.second.y};
+            painter.draw_baked_surface_material(box, command.surface_material, command.part_raster, outset);
+            return;
+        }
         painter.draw_part_raster(command.part_raster, command.first, command.scalar);
         return;
     case DisplayOperation::draw_part_raster_scaled:

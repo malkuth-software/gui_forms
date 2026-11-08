@@ -1,5 +1,7 @@
 #include "recording_painter.hpp"
 #include "../../text/prepared/prepared_storage.hpp"
+#include "../../engine/primitives/material/material_raster.hpp"
+#include "../../theme/theme/material_layers.hpp"
 #include <cmath>
 #include <new>
 
@@ -37,8 +39,10 @@ bool same_cached_drawing(const DisplayCommand& previous, const DisplayCommand& r
 void RecordingPainter::inherit_caches(std::shared_ptr<const DisplayChunk> previous) {
     previous_text_.clear();
     previous_shadows_.clear();
+    previous_materials_.clear();
     text_ordinal_ = 0U;
     shadow_ordinal_ = 0U;
+    material_ordinal_ = 0U;
     previous_ = std::move(previous);
     if (!previous_) return;
     const std::vector<DisplayCommand>& commands = (*previous_).commands();
@@ -49,6 +53,8 @@ void RecordingPainter::inherit_caches(std::shared_ptr<const DisplayChunk> previo
             previous_text_.push_back(index);
         } else if (command.operation == DisplayOperation::draw_box_shadow) {
             previous_shadows_.push_back(index);
+        } else if (command.operation == DisplayOperation::draw_part_raster && command.surface_material) {
+            previous_materials_.push_back(index);
         }
     }
 }
@@ -397,6 +403,65 @@ void RecordingPainter::draw_part_raster(const std::shared_ptr<const PartRaster>&
                     static_cast<double>(extent.height) / scale};
     command.scalar = opacity;
     commands_.push_back(std::move(command));
+}
+
+void RecordingPainter::draw_surface_material(Rect bounds, const SurfaceMaterial& authored) {
+    if (!raster_scale_ || material_painting(authored) == MaterialPainting::layers) {
+        paint_material_layers(*this, bounds, authored);
+        return;
+    }
+    const std::optional<SurfaceMaterial> stripped = material_as_painted(authored);
+    const SurfaceMaterial& material = stripped ? *stripped : authored;
+    const Size box{bounds.width, bounds.height};
+    // The previous chunk's raster at this ordinal, when it was baked from
+    // the same material over a box of the same size at the same scale.
+    std::shared_ptr<const PartRaster> raster{};
+    std::shared_ptr<const SurfaceMaterial> kept{};
+    const std::size_t at = material_ordinal_;
+    ++material_ordinal_;
+    if (previous_ && at < previous_materials_.size()) {
+        const DisplayCommand& previous = (*previous_).commands()[previous_materials_[at]];
+        const bool same = previous.part_raster && (*previous.part_raster).scale() == *raster_scale_ &&
+                          previous.second.x == box.width && previous.second.y == box.height &&
+                          *previous.surface_material == material;
+        if (same) {
+            raster = previous.part_raster;
+            kept = previous.surface_material;
+        }
+    }
+    const double outset = material_raster_outset(material);
+    if (!raster) {
+        raster = bake_material_raster(material, box, *raster_scale_, outset);
+        if (!raster) {
+            paint_material_layers(*this, bounds, authored);
+            return;
+        }
+        kept = std::make_shared<const SurfaceMaterial>(material);
+    }
+    draw_part_raster(raster, Point{bounds.x - outset, bounds.y - outset}, 1.0);
+    DisplayCommand& recorded = commands_.back();
+    recorded.surface_material = std::move(kept);
+    recorded.second = Point{box.width, box.height};
+    recorded.secondary_scalar = outset;
+}
+
+void RecordingPainter::draw_baked_surface_material(Rect bounds,
+                                                   const std::shared_ptr<const SurfaceMaterial>& material,
+                                                   const std::shared_ptr<const PartRaster>& raster,
+                                                   double outset) {
+    if (!material) return;
+    if (!raster) {
+        draw_surface_material(bounds, *material);
+        return;
+    }
+    // Counted as a material raster, so the ones recorded after it pair with
+    // the previous chunk's in order.
+    ++material_ordinal_;
+    draw_part_raster(raster, Point{bounds.x - outset, bounds.y - outset}, 1.0);
+    DisplayCommand& recorded = commands_.back();
+    recorded.surface_material = material;
+    recorded.second = Point{bounds.width, bounds.height};
+    recorded.secondary_scalar = outset;
 }
 
 void RecordingPainter::draw_part_raster_scaled(const std::shared_ptr<const PartRaster>& raster, Rect destination,

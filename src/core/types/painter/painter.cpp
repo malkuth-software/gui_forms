@@ -1,6 +1,7 @@
 #include "gui_forms/types.hpp"
 #include "gui_forms/paint_framebuffer.hpp"
 #include "gui_forms/prepared_text/types/prepared_text_types.hpp"
+#include "../../theme/theme/material_layers.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -253,6 +254,15 @@ void Painter::draw_part_raster(const std::shared_ptr<const PartRaster>&, Point, 
 
 void Painter::draw_part_raster_scaled(const std::shared_ptr<const PartRaster>&, Rect, double) {
     // Deliberately inert, as draw_part_raster.
+}
+
+void Painter::draw_surface_material(Rect bounds, const SurfaceMaterial& material) {
+    detail::paint_material_layers(*this, bounds, material);
+}
+
+void Painter::draw_baked_surface_material(Rect bounds, const std::shared_ptr<const SurfaceMaterial>& material,
+                                          const std::shared_ptr<const PartRaster>&, double) {
+    if (material) draw_surface_material(bounds, *material);
 }
 
 void Painter::begin_group(const PaintGroup& group) {
