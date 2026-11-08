@@ -177,29 +177,23 @@ private:
 };
 
 // The form's handlers.
+// The program side of the form: one rule action, armed on each button.
 class FormOwner final {
 public:
-    void apply(ButtonBase&) { ++clicks; }
-    void reset(ButtonBase&) { ++clicks; }
-    void help(ButtonBase&) { ++clicks; }
-    void accept(ButtonBase&) { ++clicks; }
-    void dismiss(ButtonBase&) { ++clicks; }
+    static void clicked(FormOwner& owner, const RuleFiring& firing) {
+        static_cast<void>(firing);
+        ++owner.clicks;
+    }
     int clicks{};
 };
 
 using CreationForm = form_generated::CreationSettingsForm<FormOwner>;
 
-// The buttons' handlers, connected in program logic (a form names no
-// program code, E816). The tokens keep the connections; the caller declares
-// them after the form, so they end first.
-void connect_handlers(CreationForm& form, FormOwner& owner, std::vector<SubscriptionToken>& connections) {
-    using Clicked = Delegate<ButtonBase&>;
-    connections.push_back((*form.creation_apply).clicked().subscribe(Clicked::bind<FormOwner, &FormOwner::apply>(owner)));
-    connections.push_back((*form.creation_reset).clicked().subscribe(Clicked::bind<FormOwner, &FormOwner::reset>(owner)));
-    connections.push_back((*form.creation_help).clicked().subscribe(Clicked::bind<FormOwner, &FormOwner::help>(owner)));
-    connections.push_back((*form.creation_ok).clicked().subscribe(Clicked::bind<FormOwner, &FormOwner::accept>(owner)));
-    connections.push_back(
-        (*form.creation_cancel).clicked().subscribe(Clicked::bind<FormOwner, &FormOwner::dismiss>(owner)));
+// Arms FormOwner::clicked on `button`'s clicked interaction; a refusal is a
+// defect of the benchmark.
+void arm_click(RuleSet& rules, Button& button, FormOwner& owner) {
+    const RuleAddResult added = on(rules, trigger::interaction(button, button.clicked()), owner, &FormOwner::clicked);
+    if (added.refusal != RuleRefusal::none) std::abort();
 }
 
 constexpr Size bare_size{640.0, 480.0};
@@ -239,14 +233,18 @@ Sample measure_form_window(const std::shared_ptr<ApplicationResources>& resource
     FormOwner owner{};
     std::optional<CreationForm> form;
     std::optional<Window> window;
-    std::vector<SubscriptionToken> connections;
-    connections.reserve(5U);
     Measurement measurement;
     form.emplace();
     (*form).initialize_component(owner);
-    connect_handlers(*form, owner, connections);
     window.emplace((*form).root_control(), CreationForm::window_client_size.value_or(bare_size), resources);
     (*form).attach_buttons(*window);
+    // The five button rules the form's handler references used to be.
+    RuleSet& rules = (*window).rules();
+    arm_click(rules, *(*form).creation_apply, owner);
+    arm_click(rules, *(*form).creation_reset, owner);
+    arm_click(rules, *(*form).creation_help, owner);
+    arm_click(rules, *(*form).creation_ok, owner);
+    arm_click(rules, *(*form).creation_cancel, owner);
     const Sample sample = measurement.finish();
     return sample;
 }

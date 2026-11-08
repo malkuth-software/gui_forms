@@ -324,7 +324,7 @@ std::unique_ptr<Window> make_gallery()
     std::unique_ptr<gui_forms::Window> window =
         std::make_unique<Window>(std::move(shell.root), gallery_default_size);
     if ((*window).application() == nullptr) select_gallery_theme(*window);
-    (*tree.context).window = window.get();
+    (*tree.context).attach(*window);
     (*tree.context).synchronize("gallery.initial");
     const ImageLoadResult status_badge =
         (*window).load_png(std::as_bytes(std::span{assets::validated_status_png}));
