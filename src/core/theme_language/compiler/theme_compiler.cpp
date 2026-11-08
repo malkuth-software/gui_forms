@@ -393,6 +393,9 @@ private:
     // Whether a node is an inline style's, in a theme compiled for it
     // (ThemeCompileInput::inline_definitions_from).
     [[nodiscard]] bool in_inline_segment(std::size_t node_index) const noexcept;
+    // Whether a rule's node is the base sheet's, in a program compiled onto
+    // the GUI.Forms base (ThemeCompileInput::base_origin_end).
+    [[nodiscard]] bool in_base_origin(std::size_t node_index) const noexcept;
     // The number a definition declared at `declaration` goes by (P12b):
     // an inline style's from inline_definition_base, a theme's its node.
     [[nodiscard]] std::uint32_t definition_number(std::uint32_t declaration) const noexcept;
@@ -596,6 +599,9 @@ private:
     // compiled for it (P12b), 0 for none.
     std::uint32_t source_position_{};
     std::uint32_t segment_node_{};
+    // The first style rule node after the base sheet, with base_origin_end;
+    // every node before it is the base's.
+    std::uint32_t base_node_{};
     // Whether the sheet names a custom property at all: only then can an
     // inline style's definitions vary its rules, and only then are its
     // rules given their source positions (P12b).
@@ -660,6 +666,15 @@ CompileOutcome CompilePass::run() {
             if (all[index].kind != SyntaxNodeKind::style_rule) continue;
             const ByteOffset at = tokens_.tokens[all[index].tokens.first.value].offset;
             if (at.value >= *input_.inline_definitions_from) segment_node_ = index;
+        }
+    }
+    base_node_ = static_cast<std::uint32_t>(tree_.nodes.size());
+    if (input_.base_origin_end) {
+        const std::vector<SyntaxNode>& all = tree_.nodes;
+        for (std::uint32_t index = 1U; index < all.size() && base_node_ == all.size(); ++index) {
+            if (all[index].kind != SyntaxNodeKind::style_rule) continue;
+            const ByteOffset at = tokens_.tokens[all[index].tokens.first.value].offset;
+            if (at.value >= *input_.base_origin_end) base_node_ = index;
         }
     }
     motion_.keyframes.clear();
@@ -977,6 +992,10 @@ bool CompilePass::in_inline_segment(std::size_t node_index) const noexcept {
     return segment_node_ != 0U && node_index >= segment_node_;
 }
 
+bool CompilePass::in_base_origin(std::size_t node_index) const noexcept {
+    return input_.base_origin_end.has_value() && node_index < base_node_;
+}
+
 std::uint32_t CompilePass::definition_number(std::uint32_t declaration) const noexcept {
     // An inline style numbers its own definitions by their nodes; written
     // after a theme, its first rule's node stands for its own first rule's
@@ -1110,6 +1129,9 @@ bool CompilePass::emit_definitions(std::span<const LoweredSelector> selectors, b
             rule.level = important ? CascadeLevel::important_inline_style : CascadeLevel::inline_style;
         }
         if (input_.user_theme) rule.level = important ? CascadeLevel::important_user_theme : CascadeLevel::user_theme;
+        if (in_base_origin(source_position_)) {
+            rule.level = important ? CascadeLevel::important_base_sheet : CascadeLevel::base_sheet;
+        }
         if (!(selector.specificity == rule_specificity(selector.selector))) rule.specificity = selector.specificity;
         rule.scoped_definitions = definitions;
         rule.source_position = positions_ ? source_position_ : 0U;
@@ -3372,6 +3394,9 @@ bool CompilePass::emit_rule(const EmittedRule& emitted, std::uint32_t at) {
         }
         if (input_.user_theme) {
             rule.level = emitted.important ? CascadeLevel::important_user_theme : CascadeLevel::user_theme;
+        }
+        if (in_base_origin(source_position_)) {
+            rule.level = emitted.important ? CascadeLevel::important_base_sheet : CascadeLevel::base_sheet;
         }
         // A given specificity only where CSS's differs from the engine's
         // own count of the selector (EC2: an `:is()` argument's).

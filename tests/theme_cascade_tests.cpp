@@ -159,8 +159,8 @@ void specificity_and_ties() {
     many.part = "face";
     many.states.push_back(AnatomyState::hot);
     const RuleSpecificity counted = rule_specificity(many);
-    require(counted.classes == 2U && counted.parts == 2U && counted.states == 1U && counted.ids == 0U,
-            "the part's name and role count one each, and each state one");
+    require(counted.classes == 3U && counted.types == 2U && counted.ids == 0U,
+            "each class and state counts in the class column, the part's name and role one each as types");
     require(rule_specificity(by_class("a")) < rule_specificity(by_id("x")) && rule_specificity(by_type()) <
                                                                                 rule_specificity(by_class("a")),
             "an ID outranks any number of classes, a class outranks a type");
@@ -180,12 +180,13 @@ void specificity_and_ties() {
     require(amplitude_of(rules.resolve(face_of("x", none))) == 0.4, "among equals, the later rule wins");
 
     // A given specificity (EC2) stands in for the selector's: the type rule
-    // given a class and a type beats the later class rule with a state, and
+    // given two classes and a type beats the later class rule with a state
+    // (two in the class column, as CSS counts a pseudo-class), and
     // a class rule may then carry no class of its own.
     ThemeRuleSheet given{};
     ThemeRule lifted = rule("lifted", CascadeLevel::class_rule, by_type(), bulge(0.3));
     RuleSpecificity of_class{};
-    of_class.classes = 1U;
+    of_class.classes = 2U;
     of_class.types = 1U;
     lifted.specificity = of_class;
     given.rules.push_back(lifted);

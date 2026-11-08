@@ -1,5 +1,5 @@
 compiled
-rule 0 class_rule class=unused
+rule 0 theme_sheet class=unused
   label .unused
   transition opacity curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
     state when= target=1

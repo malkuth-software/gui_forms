@@ -303,7 +303,7 @@ Types
    * - :cpp:class:`RuleSelector <gui_forms::RuleSelector>`
      -  
    * - :cpp:class:`RuleSpecificity <gui_forms::RuleSpecificity>`
-     - A selector's specificity: the stable ID, the classes, the control type, the part (its name or role, one each) and the states, compared in that order (T2 plan, E4).
+     - A selector's specificity, CSS's three columns compared in order: the stable ID; the classes and the states (pseudo-classes); the control type or surface and the part (its name or role, one each, as pseudo-elements).
    * - :cpp:class:`ScopedCondition <gui_forms::ScopedCondition>`
      - A copy's condition: the part's winning definition of ``name`` is ``definition``, or, for custom_property_undefined, no definition matches.
    * - :cpp:class:`ScopedDefinition <gui_forms::ScopedDefinition>`
@@ -4417,17 +4417,13 @@ Types
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
 
-   A selector's specificity: the stable ID, the classes, the control type, the part (its name or role, one each) and the states, compared in that order (T2 plan, E4).
+   A selector's specificity, CSS's three columns compared in order: the stable ID; the classes and the states (pseudo-classes); the control type or surface and the part (its name or role, one each, as pseudo-elements).
 
    .. cpp:member:: std::uint32_t ids
 
    .. cpp:member:: std::uint32_t classes
 
    .. cpp:member:: std::uint32_t types
-
-   .. cpp:member:: std::uint32_t parts
-
-   .. cpp:member:: std::uint32_t states
 
 .. cpp:namespace:: gui_forms
 
@@ -5242,6 +5238,8 @@ Enumerations
 
    .. cpp:enumerator:: built_in
 
+   .. cpp:enumerator:: base_sheet
+
    .. cpp:enumerator:: user_theme
 
    .. cpp:enumerator:: theme_sheet
@@ -5251,6 +5249,8 @@ Enumerations
    .. cpp:enumerator:: stable_id_rule
 
    .. cpp:enumerator:: inline_style
+
+   .. cpp:enumerator:: important_base_sheet
 
    .. cpp:enumerator:: important_user_theme
 

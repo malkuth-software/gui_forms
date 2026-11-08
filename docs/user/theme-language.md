@@ -85,8 +85,16 @@ are no combinators.
 
 `:not()`, `:where()`, `:has()`, attribute selectors, combinators and `&`
 are errors. An unknown control type, part, state or pseudo-class is a
-warning that drops the rule. Specificity counts stable IDs, then classes,
-control types, parts and states.
+warning that drops the rule. Specificity is CSS's: stable IDs, then
+classes and states (pseudo-classes) together, then control types and parts
+(the part's name and role, as pseudo-elements). So `button:hover` beats
+`.primary`, as in CSS.
+
+A package compiled onto the GUI.Forms base (`ThemeBase::gui_forms`) sits
+above the base sheet as CSS's author origin sits above the user-agent
+origin: every rule of the package beats every rule of the base, whatever
+the specificity, and the base's `!important` declarations lose to the
+package's. The base alone is the program's own sheet.
 
 `window` and `popup` select a surface, not a control: a top-level window,
 an owned window or a floating panel in its own window is a `window`; a

@@ -44,7 +44,10 @@ bool class_character(char character) noexcept {
 }
 
 bool authored(CascadeLevel level) noexcept {
-    const bool authored_level = level == CascadeLevel::theme_sheet || level == CascadeLevel::class_rule ||
+    // The base levels hold the GUI.Forms base sheet under a program's
+    // packages (selector step 1); they are a program theme's too.
+    const bool base = level == CascadeLevel::base_sheet || level == CascadeLevel::important_base_sheet;
+    const bool authored_level = base || level == CascadeLevel::theme_sheet || level == CascadeLevel::class_rule ||
                                 level == CascadeLevel::stable_id_rule || level == CascadeLevel::inline_style ||
                                 level == CascadeLevel::important_theme_sheet ||
                                 level == CascadeLevel::important_inline_style;
@@ -173,11 +176,13 @@ std::uint64_t declared_input_bits(const PrimitiveDescriptor& descriptor) noexcep
 std::string_view cascade_level_name(CascadeLevel level) noexcept {
     switch (level) {
     case CascadeLevel::built_in: return "built_in";
+    case CascadeLevel::base_sheet: return "base_sheet";
     case CascadeLevel::user_theme: return "user_theme";
     case CascadeLevel::theme_sheet: return "theme_sheet";
     case CascadeLevel::class_rule: return "class_rule";
     case CascadeLevel::stable_id_rule: return "stable_id_rule";
     case CascadeLevel::inline_style: return "inline_style";
+    case CascadeLevel::important_base_sheet: return "important_base_sheet";
     case CascadeLevel::important_user_theme: return "important_user_theme";
     case CascadeLevel::important_theme_sheet: return "important_theme_sheet";
     case CascadeLevel::forced_high_contrast: return "forced_high_contrast";
@@ -199,14 +204,15 @@ bool valid_style_class_name(std::string_view name) noexcept {
 RuleSpecificity rule_specificity(const RuleSelector& selector) noexcept {
     RuleSpecificity result{};
     result.ids = selector.stable_id.empty() ? 0U : 1U;
-    result.classes = static_cast<std::uint32_t>(selector.classes.size());
-    // A surface selector counts as a type selector, as CSS's `window` would.
+    // Each class and each state, as CSS counts classes and pseudo-classes.
+    result.classes = static_cast<std::uint32_t>(selector.classes.size() + selector.states.size());
+    // A surface selector counts as a type selector, as CSS's `window` would;
+    // the part's name and role each as a pseudo-element.
     const bool typed = !selector.control_type.empty() || selector.surface != SurfaceKind::none;
-    result.types = typed ? 1U : 0U;
+    const std::uint32_t type = typed ? 1U : 0U;
     const std::uint32_t named = selector.part.empty() ? 0U : 1U;
     const std::uint32_t role = selector.role ? 1U : 0U;
-    result.parts = named + role;
-    result.states = static_cast<std::uint32_t>(selector.states.size());
+    result.types = type + named + role;
     return result;
 }
 

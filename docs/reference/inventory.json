@@ -10772,7 +10772,7 @@
       "kind": "struct",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 590,
+      "line": 597,
       "declaration": "struct AmbientEffect final",
       "comment": "",
       "access": "public",
@@ -10790,7 +10790,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 591,
+          "line": 598,
           "page": "gui-forms-ambienteffect-period-frameinterval-20e3ef6018.html"
         },
         {
@@ -10805,7 +10805,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 592,
+          "line": 599,
           "page": "gui-forms-ambienteffect-frames-per-second-double-4cd0899300.html"
         },
         {
@@ -10820,7 +10820,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 593,
+          "line": 600,
           "page": "gui-forms-ambienteffect-pose-frameinterval-46fb54bbcf.html"
         }
       ],
@@ -20098,7 +20098,7 @@
       "kind": "struct",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 302,
+      "line": 309,
       "declaration": "struct BackdropDeclaration final",
       "comment": "",
       "access": "public",
@@ -20116,7 +20116,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 303,
+          "line": 310,
           "page": "gui-forms-backdropdeclaration-maximum-steps-const-std-size-t-3ddd2ec966.html"
         },
         {
@@ -20131,7 +20131,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 306,
+          "line": 313,
           "page": "gui-forms-backdropdeclaration-steps-std-array-backdropstep-maximum-steps-aabb8c13f2.html"
         },
         {
@@ -20146,7 +20146,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 307,
+          "line": 314,
           "page": "gui-forms-backdropdeclaration-length-std-size-t-9e6901cac9.html"
         }
       ],
@@ -20347,7 +20347,7 @@
       "kind": "struct",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 290,
+      "line": 297,
       "declaration": "struct BackdropStep final",
       "comment": "",
       "access": "public",
@@ -20365,7 +20365,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 291,
+          "line": 298,
           "page": "gui-forms-backdropstep-kind-backdropstepkind-019ded5ce8.html"
         },
         {
@@ -20380,7 +20380,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 292,
+          "line": 299,
           "page": "gui-forms-backdropstep-amount-double-def8ebe2c3.html"
         },
         {
@@ -20395,7 +20395,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 293,
+          "line": 300,
           "page": "gui-forms-backdropstep-colour-color-983b88e523.html"
         },
         {
@@ -20410,7 +20410,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 294,
+          "line": 301,
           "page": "gui-forms-backdropstep-origin-colourorigin-b684041cf5.html"
         }
       ],
@@ -20424,7 +20424,7 @@
       "kind": "enum",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 285,
+      "line": 292,
       "declaration": "enum class BackdropStepKind : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -20442,7 +20442,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 285,
+          "line": 292,
           "page": "gui-forms-backdropstepkind-blur-gui-forms-backdropstepkind-f4646061e0.html"
         },
         {
@@ -20457,7 +20457,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 285,
+          "line": 292,
           "page": "gui-forms-backdropstepkind-saturate-gui-forms-backdropstepkind-dade7437b3.html"
         },
         {
@@ -20472,7 +20472,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 285,
+          "line": 292,
           "page": "gui-forms-backdropstepkind-tint-gui-forms-backdropstepkind-973bd7aecf.html"
         }
       ],
@@ -34931,7 +34931,7 @@
       "kind": "enum",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 50,
+      "line": 60,
       "declaration": "enum class CascadeLevel : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -34949,8 +34949,23 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 51,
+          "line": 61,
           "page": "gui-forms-cascadelevel-built-in-gui-forms-cascadelevel-979394c33b.html"
+        },
+        {
+          "id": "gui_forms::CascadeLevel::base_sheet|gui_forms::CascadeLevel",
+          "name": "base_sheet",
+          "type": "gui_forms::CascadeLevel",
+          "namespace": "gui_forms::CascadeLevel",
+          "kind": "EnumConstantDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "base_sheet",
+          "comment": "",
+          "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
+          "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
+          "line": 62,
+          "page": "gui-forms-cascadelevel-base-sheet-gui-forms-cascadelevel-974d008176.html"
         },
         {
           "id": "gui_forms::CascadeLevel::user_theme|gui_forms::CascadeLevel",
@@ -34964,7 +34979,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 52,
+          "line": 63,
           "page": "gui-forms-cascadelevel-user-theme-gui-forms-cascadelevel-1e024e6fb0.html"
         },
         {
@@ -34979,7 +34994,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 53,
+          "line": 64,
           "page": "gui-forms-cascadelevel-theme-sheet-gui-forms-cascadelevel-689fa3e27d.html"
         },
         {
@@ -34994,7 +35009,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 54,
+          "line": 65,
           "page": "gui-forms-cascadelevel-class-rule-gui-forms-cascadelevel-2c9f41258b.html"
         },
         {
@@ -35009,7 +35024,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 55,
+          "line": 66,
           "page": "gui-forms-cascadelevel-stable-id-rule-gui-forms-cascadelevel-cf6bc8e02b.html"
         },
         {
@@ -35024,8 +35039,23 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 56,
+          "line": 67,
           "page": "gui-forms-cascadelevel-inline-style-gui-forms-cascadelevel-4d879c9dc0.html"
+        },
+        {
+          "id": "gui_forms::CascadeLevel::important_base_sheet|gui_forms::CascadeLevel",
+          "name": "important_base_sheet",
+          "type": "gui_forms::CascadeLevel",
+          "namespace": "gui_forms::CascadeLevel",
+          "kind": "EnumConstantDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "important_base_sheet",
+          "comment": "",
+          "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
+          "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
+          "line": 68,
+          "page": "gui-forms-cascadelevel-important-base-sheet-gui-forms-cascadelevel-ca19b9207a.html"
         },
         {
           "id": "gui_forms::CascadeLevel::important_user_theme|gui_forms::CascadeLevel",
@@ -35039,7 +35069,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 57,
+          "line": 69,
           "page": "gui-forms-cascadelevel-important-user-theme-gui-forms-cascadelevel-099dd1596b.html"
         },
         {
@@ -35054,7 +35084,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 58,
+          "line": 70,
           "page": "gui-forms-cascadelevel-important-theme-sheet-gui-forms-cascadelevel-609fe6ac2f.html"
         },
         {
@@ -35069,7 +35099,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 59,
+          "line": 71,
           "page": "gui-forms-cascadelevel-forced-high-contrast-gui-forms-cascadelevel-5856a669f9.html"
         },
         {
@@ -35084,7 +35114,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 60,
+          "line": 72,
           "page": "gui-forms-cascadelevel-important-inline-style-gui-forms-cascadelevel-01e85ce509.html"
         },
         {
@@ -35099,7 +35129,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 61,
+          "line": 73,
           "page": "gui-forms-cascadelevel-count-gui-forms-cascadelevel-c570898690.html"
         }
       ],
@@ -40822,7 +40852,7 @@
       "kind": "struct",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 264,
+      "line": 271,
       "declaration": "struct ColourOrigin final",
       "comment": "",
       "access": "public",
@@ -40840,7 +40870,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 265,
+          "line": 272,
           "page": "gui-forms-colourorigin-source-coloursource-d6e215ad3f.html"
         },
         {
@@ -40855,7 +40885,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 266,
+          "line": 273,
           "page": "gui-forms-colourorigin-role-colourrole-5c4d57dbe6.html"
         },
         {
@@ -40870,7 +40900,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 267,
+          "line": 274,
           "page": "gui-forms-colourorigin-side-colourroleside-7198cc7db7.html"
         }
       ],
@@ -40884,7 +40914,7 @@
       "kind": "enum",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 325,
+      "line": 332,
       "declaration": "enum class ColourPosition : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -40902,7 +40932,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 325,
+          "line": 332,
           "page": "gui-forms-colourposition-none-gui-forms-colourposition-0b76ceb710.html"
         },
         {
@@ -40917,7 +40947,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 325,
+          "line": 332,
           "page": "gui-forms-colourposition-fill-gui-forms-colourposition-a2deb48af9.html"
         },
         {
@@ -40932,7 +40962,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 325,
+          "line": 332,
           "page": "gui-forms-colourposition-edge-gui-forms-colourposition-b2969e654b.html"
         },
         {
@@ -40947,7 +40977,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 325,
+          "line": 332,
           "page": "gui-forms-colourposition-text-gui-forms-colourposition-2269d78fcc.html"
         }
       ],
@@ -40961,7 +40991,7 @@
       "kind": "enum",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 213,
+      "line": 220,
       "declaration": "enum class ColourRole : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -40979,7 +41009,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 214,
+          "line": 221,
           "page": "gui-forms-colourrole-ink-on-paper-gui-forms-colourrole-99de19e28e.html"
         },
         {
@@ -40994,7 +41024,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 215,
+          "line": 222,
           "page": "gui-forms-colourrole-muted-ink-on-paper-gui-forms-colourrole-5bbd71daf7.html"
         },
         {
@@ -41009,7 +41039,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 216,
+          "line": 223,
           "page": "gui-forms-colourrole-ink-on-soft-paper-gui-forms-colourrole-a54d03eddd.html"
         },
         {
@@ -41024,7 +41054,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 217,
+          "line": 224,
           "page": "gui-forms-colourrole-ink-on-chrome-gui-forms-colourrole-2a386e009d.html"
         },
         {
@@ -41039,7 +41069,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 218,
+          "line": 225,
           "page": "gui-forms-colourrole-ink-on-chrome-low-gui-forms-colourrole-c1b740940e.html"
         },
         {
@@ -41054,7 +41084,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 219,
+          "line": 226,
           "page": "gui-forms-colourrole-ink-on-near-white-stock-gui-forms-colourrole-99104594c4.html"
         },
         {
@@ -41069,7 +41099,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 220,
+          "line": 227,
           "page": "gui-forms-colourrole-selection-ink-on-selection-gui-forms-colourrole-2fafdd099d.html"
         },
         {
@@ -41084,7 +41114,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 221,
+          "line": 228,
           "page": "gui-forms-colourrole-ink-on-gold-gui-forms-colourrole-0e56d88e1f.html"
         },
         {
@@ -41099,7 +41129,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 222,
+          "line": 229,
           "page": "gui-forms-colourrole-on-accent-on-accent-gui-forms-colourrole-4af564ee05.html"
         },
         {
@@ -41114,7 +41144,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 223,
+          "line": 230,
           "page": "gui-forms-colourrole-signal-on-paper-gui-forms-colourrole-34cadd0e82.html"
         },
         {
@@ -41129,7 +41159,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 224,
+          "line": 231,
           "page": "gui-forms-colourrole-success-on-paper-gui-forms-colourrole-dcd4236461.html"
         },
         {
@@ -41144,7 +41174,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 225,
+          "line": 232,
           "page": "gui-forms-colourrole-pending-ink-on-tint-gui-forms-colourrole-da759212b8.html"
         },
         {
@@ -41159,7 +41189,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 226,
+          "line": 233,
           "page": "gui-forms-colourrole-invalid-ink-on-tint-gui-forms-colourrole-e2e9387c41.html"
         },
         {
@@ -41174,7 +41204,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 227,
+          "line": 234,
           "page": "gui-forms-colourrole-disabled-ink-on-chrome-gui-forms-colourrole-6a562fa031.html"
         },
         {
@@ -41189,7 +41219,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 228,
+          "line": 235,
           "page": "gui-forms-colourrole-disabled-ink-on-paper-gui-forms-colourrole-5a66606e24.html"
         },
         {
@@ -41204,7 +41234,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 229,
+          "line": 236,
           "page": "gui-forms-colourrole-phosphor-on-instrument-black-gui-forms-colourrole-fa682f9064.html"
         },
         {
@@ -41219,7 +41249,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 230,
+          "line": 237,
           "page": "gui-forms-colourrole-command-link-ink-on-paper-gui-forms-colourrole-987f2b3857.html"
         },
         {
@@ -41234,7 +41264,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 231,
+          "line": 238,
           "page": "gui-forms-colourrole-chrome-highlight-gui-forms-colourrole-2022a6d53f.html"
         },
         {
@@ -41249,7 +41279,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 232,
+          "line": 239,
           "page": "gui-forms-colourrole-chrome-gui-forms-colourrole-e7a226d607.html"
         },
         {
@@ -41264,7 +41294,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 233,
+          "line": 240,
           "page": "gui-forms-colourrole-chrome-middle-gui-forms-colourrole-7bf1f0b40c.html"
         },
         {
@@ -41279,7 +41309,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 234,
+          "line": 241,
           "page": "gui-forms-colourrole-chrome-low-gui-forms-colourrole-0f948badde.html"
         },
         {
@@ -41294,7 +41324,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 235,
+          "line": 242,
           "page": "gui-forms-colourrole-ordinary-line-gui-forms-colourrole-81c7777fb2.html"
         },
         {
@@ -41309,7 +41339,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 236,
+          "line": 243,
           "page": "gui-forms-colourrole-dark-line-gui-forms-colourrole-bb7d91b795.html"
         },
         {
@@ -41324,7 +41354,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 237,
+          "line": 244,
           "page": "gui-forms-colourrole-shadow-gui-forms-colourrole-2096fbb971.html"
         },
         {
@@ -41339,7 +41369,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 238,
+          "line": 245,
           "page": "gui-forms-colourrole-selection-line-gui-forms-colourrole-cb1542561b.html"
         },
         {
@@ -41354,7 +41384,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 239,
+          "line": 246,
           "page": "gui-forms-colourrole-focus-gui-forms-colourrole-f89ac7c37a.html"
         },
         {
@@ -41369,7 +41399,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 240,
+          "line": 247,
           "page": "gui-forms-colourrole-count-gui-forms-colourrole-de1e15558f.html"
         }
       ],
@@ -41383,7 +41413,7 @@
       "kind": "enum",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 254,
+      "line": 261,
       "declaration": "enum class ColourRoleSide : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -41401,7 +41431,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 254,
+          "line": 261,
           "page": "gui-forms-colourroleside-foreground-gui-forms-colourroleside-2b41be72a7.html"
         },
         {
@@ -41416,7 +41446,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 254,
+          "line": 261,
           "page": "gui-forms-colourroleside-background-gui-forms-colourroleside-a0699325ad.html"
         }
       ],
@@ -41545,7 +41575,7 @@
       "kind": "enum",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 262,
+      "line": 269,
       "declaration": "enum class ColourSource : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -41563,7 +41593,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 262,
+          "line": 269,
           "page": "gui-forms-coloursource-none-gui-forms-coloursource-7d1bc83526.html"
         },
         {
@@ -41578,7 +41608,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 262,
+          "line": 269,
           "page": "gui-forms-coloursource-literal-gui-forms-coloursource-566b718956.html"
         },
         {
@@ -41593,7 +41623,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 262,
+          "line": 269,
           "page": "gui-forms-coloursource-role-gui-forms-coloursource-0871e09ee8.html"
         }
       ],
@@ -45760,7 +45790,7 @@
       "kind": "class",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 1272,
+      "line": 1279,
       "declaration": "class CompiledThemeRules final",
       "comment": "",
       "access": "public",
@@ -45778,7 +45808,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1274,
+          "line": 1281,
           "page": "gui-forms-compiledthemerules-compiledthemerules-void-6e77dc6536.html"
         },
         {
@@ -45799,7 +45829,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1275,
+          "line": 1282,
           "page": "gui-forms-compiledthemerules-compiledthemerules-void-const-compiledthemerules-09d2c8bcd5.html"
         },
         {
@@ -45820,7 +45850,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1276,
+          "line": 1283,
           "page": "gui-forms-compiledthemerules-operator-compiledthemerules-const-compiledthemerules-cce07d52eb.html"
         },
         {
@@ -45841,7 +45871,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1277,
+          "line": 1284,
           "page": "gui-forms-compiledthemerules-compiledthemerules-void-compiledthemerules-noexcept-3bb1d7329b.html"
         },
         {
@@ -45862,7 +45892,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1278,
+          "line": 1285,
           "page": "gui-forms-compiledthemerules-operator-compiledthemerules-compiledthemerules-noexcept-97e2fb7331.html"
         },
         {
@@ -45877,7 +45907,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1279,
+          "line": 1286,
           "page": "gui-forms-compiledthemerules-compiledthemerules-void-noexcept-9bf29be383.html"
         },
         {
@@ -45903,7 +45933,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1282,
+          "line": 1289,
           "page": "gui-forms-compiledthemerules-compile-compiledthemerules-const-themerulesheet-const-primitiveregistry-e8fbf71136.html"
         },
         {
@@ -45929,7 +45959,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1287,
+          "line": 1294,
           "page": "gui-forms-compiledthemerules-compile-with-built-in-compiledthemerules-const-themerulesheet-const-primitiveregi-7d58ffe1c5.html"
         },
         {
@@ -45960,7 +45990,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1299,
+          "line": 1306,
           "page": "gui-forms-compiledthemerules-compile-inline-compiledthemerules-const-themerulesheet-const-primitiveregistry-co-427ef39aba.html"
         },
         {
@@ -45986,7 +46016,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1309,
+          "line": 1316,
           "page": "gui-forms-compiledthemerules-compile-user-compiledthemerules-const-themerulesheet-const-primitiveregistry-6ea9d62a42.html"
         },
         {
@@ -46001,7 +46031,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1313,
+          "line": 1320,
           "page": "gui-forms-compiledthemerules-theme-serial-std-uint64-t-const-noexcept-efcf4eb99a.html"
         },
         {
@@ -46016,7 +46046,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1315,
+          "line": 1322,
           "page": "gui-forms-compiledthemerules-read-name-count-std-size-t-const-noexcept-baef343e7f.html"
         },
         {
@@ -46031,7 +46061,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1317,
+          "line": 1324,
           "page": "gui-forms-compiledthemerules-inline-style-bool-const-noexcept-84087fd3fa.html"
         },
         {
@@ -46046,7 +46076,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1319,
+          "line": 1326,
           "page": "gui-forms-compiledthemerules-user-theme-bool-const-noexcept-dad9a58e4d.html"
         },
         {
@@ -46061,7 +46091,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1321,
+          "line": 1328,
           "page": "gui-forms-compiledthemerules-built-in-rule-count-std-size-t-const-noexcept-46f003e74a.html"
         },
         {
@@ -46076,7 +46106,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1323,
+          "line": 1330,
           "page": "gui-forms-compiledthemerules-empty-bool-const-noexcept-9ff17a39fc.html"
         },
         {
@@ -46091,7 +46121,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1324,
+          "line": 1331,
           "page": "gui-forms-compiledthemerules-rule-count-std-size-t-const-noexcept-0fa733b143.html"
         },
         {
@@ -46106,7 +46136,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1327,
+          "line": 1334,
           "page": "gui-forms-compiledthemerules-scoped-name-count-std-size-t-const-noexcept-b55d464265.html"
         },
         {
@@ -46121,7 +46151,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1328,
+          "line": 1335,
           "page": "gui-forms-compiledthemerules-diagnostics-const-std-vector-rulediagnostic-const-noexcept-c62ab2652c.html"
         },
         {
@@ -46136,7 +46166,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1332,
+          "line": 1339,
           "page": "gui-forms-compiledthemerules-published-values-const-std-vector-std-string-const-noexcept-328a516237.html"
         },
         {
@@ -46157,7 +46187,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1335,
+          "line": 1342,
           "page": "gui-forms-compiledthemerules-published-value-input-std-optional-expressioninputindex-std-string-view-const-noe-019dde00a0.html"
         },
         {
@@ -46172,7 +46202,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1338,
+          "line": 1345,
           "page": "gui-forms-compiledthemerules-input-count-std-size-t-const-noexcept-63e5a78da3.html"
         },
         {
@@ -46193,7 +46223,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1485,
+          "line": 1492,
           "page": "gui-forms-compiledthemerules-resolve-recipe-fields-reciperesolution-const-partfacts-const-noexcept-4ed3fa1466.html"
         },
         {
@@ -46214,7 +46244,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1492,
+          "line": 1499,
           "page": "gui-forms-compiledthemerules-resolve-backdrop-const-backdropdeclaration-const-partfacts-const-noexcept-f0495012fb.html"
         },
         {
@@ -46235,7 +46265,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1500,
+          "line": 1507,
           "page": "gui-forms-compiledthemerules-resolve-resolution-const-partfacts-const-noexcept-1af375f1b2.html"
         },
         {
@@ -46250,7 +46280,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1507,
+          "line": 1514,
           "page": "gui-forms-compiledthemerules-serial-std-uint64-t-const-noexcept-53e827d989.html"
         }
       ],
@@ -46264,7 +46294,7 @@
       "kind": "struct",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 1387,
+      "line": 1394,
       "declaration": "struct CompiledPresentationState final",
       "comment": "",
       "access": "public",
@@ -46282,7 +46312,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1388,
+          "line": 1395,
           "page": "gui-forms-compiledthemerules-compiledpresentationstate-when-anatomystateset-b71791cc1c.html"
         },
         {
@@ -46297,7 +46327,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1389,
+          "line": 1396,
           "page": "gui-forms-compiledthemerules-compiledpresentationstate-target-double-3f9b5c3e52.html"
         },
         {
@@ -46312,7 +46342,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1390,
+          "line": 1397,
           "page": "gui-forms-compiledthemerules-compiledpresentationstate-enter-from-std-optional-double-5a300b24e5.html"
         },
         {
@@ -46327,7 +46357,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1391,
+          "line": 1398,
           "page": "gui-forms-compiledthemerules-compiledpresentationstate-stops-std-vector-motionstop-9c74ff5d75.html"
         },
         {
@@ -46342,7 +46372,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1392,
+          "line": 1399,
           "page": "gui-forms-compiledthemerules-compiledpresentationstate-target-em-double-070ff6b85f.html"
         },
         {
@@ -46357,7 +46387,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1393,
+          "line": 1400,
           "page": "gui-forms-compiledthemerules-compiledpresentationstate-enter-from-em-double-8521729f64.html"
         }
       ],
@@ -46371,7 +46401,7 @@
       "kind": "struct",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 1400,
+      "line": 1407,
       "declaration": "struct CompiledTransition final",
       "comment": "",
       "access": "public",
@@ -46389,7 +46419,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1401,
+          "line": 1408,
           "page": "gui-forms-compiledthemerules-compiledtransition-property-presentationproperty-366d7f9ea6.html"
         },
         {
@@ -46404,7 +46434,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1402,
+          "line": 1409,
           "page": "gui-forms-compiledthemerules-compiledtransition-parameter-std-size-t-6341d7bf2e.html"
         },
         {
@@ -46419,7 +46449,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1403,
+          "line": 1410,
           "page": "gui-forms-compiledthemerules-compiledtransition-states-std-vector-compiledpresentationstate-bd095d41ec.html"
         },
         {
@@ -46434,7 +46464,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1404,
+          "line": 1411,
           "page": "gui-forms-compiledthemerules-compiledtransition-curve-motioncurve-4f526c2021.html"
         },
         {
@@ -46449,7 +46479,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1405,
+          "line": 1412,
           "page": "gui-forms-compiledthemerules-compiledtransition-machine-std-size-t-c95abde0b9.html"
         },
         {
@@ -46464,7 +46494,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1407,
+          "line": 1414,
           "page": "gui-forms-compiledthemerules-compiledtransition-reads-em-bool-24c138180c.html"
         }
       ],
@@ -46478,7 +46508,7 @@
       "kind": "enum",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 1375,
+      "line": 1382,
       "declaration": "enum class Outcome : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -46496,7 +46526,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1377,
+          "line": 1384,
           "page": "gui-forms-compiledthemerules-outcome-primitive-gui-forms-compiledthemerules-outcome-e4d4628a98.html"
         },
         {
@@ -46511,7 +46541,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1379,
+          "line": 1386,
           "page": "gui-forms-compiledthemerules-outcome-no-rule-gui-forms-compiledthemerules-outcome-e5f0bcb13f.html"
         },
         {
@@ -46526,7 +46556,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1381,
+          "line": 1388,
           "page": "gui-forms-compiledthemerules-outcome-built-in-selected-gui-forms-compiledthemerules-outcome-f9bb9ac8e4.html"
         },
         {
@@ -46541,7 +46571,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1383,
+          "line": 1390,
           "page": "gui-forms-compiledthemerules-outcome-role-mismatch-gui-forms-compiledthemerules-outcome-2799602bec.html"
         }
       ],
@@ -46555,7 +46585,7 @@
       "kind": "struct",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 1345,
+      "line": 1352,
       "declaration": "struct PartFacts final",
       "comment": "",
       "access": "public",
@@ -46573,7 +46603,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1346,
+          "line": 1353,
           "page": "gui-forms-compiledthemerules-partfacts-control-type-std-string-view-85705f9797.html"
         },
         {
@@ -46588,7 +46618,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1347,
+          "line": 1354,
           "page": "gui-forms-compiledthemerules-partfacts-stable-id-std-string-view-da78ba04d8.html"
         },
         {
@@ -46603,7 +46633,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1348,
+          "line": 1355,
           "page": "gui-forms-compiledthemerules-partfacts-classes-std-span-const-std-string-7ca9f7c15e.html"
         },
         {
@@ -46618,7 +46648,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1350,
+          "line": 1357,
           "page": "gui-forms-compiledthemerules-partfacts-part-std-string-view-e8e2f11745.html"
         },
         {
@@ -46633,7 +46663,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1351,
+          "line": 1358,
           "page": "gui-forms-compiledthemerules-partfacts-role-partrole-8a6ac35b60.html"
         },
         {
@@ -46648,7 +46678,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1352,
+          "line": 1359,
           "page": "gui-forms-compiledthemerules-partfacts-states-anatomystateset-e744ed1480.html"
         },
         {
@@ -46663,7 +46693,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1355,
+          "line": 1362,
           "page": "gui-forms-compiledthemerules-partfacts-media-mediafacts-1803074ad6.html"
         },
         {
@@ -46678,7 +46708,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1359,
+          "line": 1366,
           "page": "gui-forms-compiledthemerules-partfacts-inline-rules-const-compiledthemerules-feb37a0b91.html"
         },
         {
@@ -46693,7 +46723,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1362,
+          "line": 1369,
           "page": "gui-forms-compiledthemerules-partfacts-user-rules-const-compiledthemerules-3f92afa94e.html"
         },
         {
@@ -46708,7 +46738,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1368,
+          "line": 1375,
           "page": "gui-forms-compiledthemerules-partfacts-forced-high-contrast-bool-e5ef976d93.html"
         },
         {
@@ -46723,7 +46753,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1371,
+          "line": 1378,
           "page": "gui-forms-compiledthemerules-partfacts-surface-surfacekind-4670bd8891.html"
         }
       ],
@@ -46737,7 +46767,7 @@
       "kind": "struct",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 1473,
+      "line": 1480,
       "declaration": "struct RecipeResolution final",
       "comment": "",
       "access": "public",
@@ -46755,7 +46785,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1474,
+          "line": 1481,
           "page": "gui-forms-compiledthemerules-reciperesolution-fields-std-array-const-recipedeclaration-recipe-field-count-2d2dad5246.html"
         },
         {
@@ -46770,7 +46800,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1478,
+          "line": 1485,
           "page": "gui-forms-compiledthemerules-reciperesolution-levels-std-array-cascadelevel-recipe-field-count-ca3db24f3f.html"
         },
         {
@@ -46785,7 +46815,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1479,
+          "line": 1486,
           "page": "gui-forms-compiledthemerules-reciperesolution-authored-bool-05aa46f9d9.html"
         }
       ],
@@ -46799,7 +46829,7 @@
       "kind": "struct",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 1410,
+      "line": 1417,
       "declaration": "struct Resolution final",
       "comment": "",
       "access": "public",
@@ -46817,7 +46847,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1411,
+          "line": 1418,
           "page": "gui-forms-compiledthemerules-resolution-outcome-outcome-6e18f9e16f.html"
         },
         {
@@ -46832,7 +46862,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1412,
+          "line": 1419,
           "page": "gui-forms-compiledthemerules-resolution-primitive-const-engineprimitive-9f68f3d64e.html"
         },
         {
@@ -46847,7 +46877,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1413,
+          "line": 1420,
           "page": "gui-forms-compiledthemerules-resolution-parameters-primitiveparameterblock-5da4fab373.html"
         },
         {
@@ -46862,7 +46892,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1416,
+          "line": 1423,
           "page": "gui-forms-compiledthemerules-resolution-level-cascadelevel-e0853f7078.html"
         },
         {
@@ -46877,7 +46907,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1420,
+          "line": 1427,
           "page": "gui-forms-compiledthemerules-resolution-expressions-std-array-const-engineexpression-maximum-primitive-paramet-9c6977efff.html"
         },
         {
@@ -46892,7 +46922,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1424,
+          "line": 1431,
           "page": "gui-forms-compiledthemerules-resolution-parameter-em-std-array-double-maximum-primitive-parameters-7ff900d4bd.html"
         },
         {
@@ -46907,7 +46937,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1425,
+          "line": 1432,
           "page": "gui-forms-compiledthemerules-resolution-parameters-read-em-bool-a09ffdb3ec.html"
         },
         {
@@ -46922,7 +46952,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1428,
+          "line": 1435,
           "page": "gui-forms-compiledthemerules-resolution-parameter-origins-std-array-colourorigin-maximum-primitive-parameters-f1b4b051d8.html"
         },
         {
@@ -46937,7 +46967,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1431,
+          "line": 1438,
           "page": "gui-forms-compiledthemerules-resolution-inputs-read-std-uint64-t-3979f65747.html"
         },
         {
@@ -46952,7 +46982,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1436,
+          "line": 1443,
           "page": "gui-forms-compiledthemerules-resolution-transitions-std-array-const-compiledtransition-maximum-part-transition-c688655a8b.html"
         },
         {
@@ -46967,7 +46997,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1437,
+          "line": 1444,
           "page": "gui-forms-compiledthemerules-resolution-transition-count-std-size-t-73be0c4ffa.html"
         },
         {
@@ -46982,7 +47012,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1439,
+          "line": 1446,
           "page": "gui-forms-compiledthemerules-resolution-ambient-const-ambienteffect-56b2926f8d.html"
         },
         {
@@ -46997,7 +47027,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1441,
+          "line": 1448,
           "page": "gui-forms-compiledthemerules-resolution-blend-partblend-48735946e7.html"
         },
         {
@@ -47012,7 +47042,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1444,
+          "line": 1451,
           "page": "gui-forms-compiledthemerules-resolution-font-fontdeclaration-946d2472f8.html"
         },
         {
@@ -47027,7 +47057,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1448,
+          "line": 1455,
           "page": "gui-forms-compiledthemerules-resolution-effect-std-string-view-a7b5b3e858.html"
         },
         {
@@ -47042,7 +47072,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1449,
+          "line": 1456,
           "page": "gui-forms-compiledthemerules-resolution-effect-declared-bool-fd8a075e94.html"
         },
         {
@@ -47057,7 +47087,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1453,
+          "line": 1460,
           "page": "gui-forms-compiledthemerules-resolution-effect-primary-std-optional-effectcolourdeclaration-c0fdf9afb8.html"
         },
         {
@@ -47072,7 +47102,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1454,
+          "line": 1461,
           "page": "gui-forms-compiledthemerules-resolution-effect-secondary-std-optional-effectcolourdeclaration-f7cc4241d1.html"
         },
         {
@@ -47087,7 +47117,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1459,
+          "line": 1466,
           "page": "gui-forms-compiledthemerules-resolution-materials-std-array-const-materialdeclaration-material-field-count-df143d58ae.html"
         },
         {
@@ -47102,7 +47132,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1460,
+          "line": 1467,
           "page": "gui-forms-compiledthemerules-resolution-materials-authored-bool-cd77a550fd.html"
         },
         {
@@ -47117,7 +47147,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1463,
+          "line": 1470,
           "page": "gui-forms-compiledthemerules-resolution-inline-serial-std-uint64-t-b4d0d06f30.html"
         },
         {
@@ -47132,7 +47162,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1466,
+          "line": 1473,
           "page": "gui-forms-compiledthemerules-resolution-user-serial-std-uint64-t-444309ddb8.html"
         }
       ],
@@ -97744,7 +97774,7 @@
       "kind": "struct",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 450,
+      "line": 457,
       "declaration": "struct EffectColourDeclaration final",
       "comment": "",
       "access": "public",
@@ -97762,7 +97792,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 451,
+          "line": 458,
           "page": "gui-forms-effectcolourdeclaration-colour-color-e76a05c55a.html"
         },
         {
@@ -97777,7 +97807,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 452,
+          "line": 459,
           "page": "gui-forms-effectcolourdeclaration-origin-colourorigin-0572f4e5eb.html"
         }
       ],
@@ -111304,7 +111334,7 @@
       "kind": "struct",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 484,
+      "line": 491,
       "declaration": "struct FontDeclaration final",
       "comment": "",
       "access": "public",
@@ -111322,7 +111352,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 485,
+          "line": 492,
           "page": "gui-forms-fontdeclaration-role-textrole-25c9e83091.html"
         },
         {
@@ -111337,7 +111367,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 486,
+          "line": 493,
           "page": "gui-forms-fontdeclaration-inherit-bool-f735912fc6.html"
         }
       ],
@@ -153457,7 +153487,7 @@
       "kind": "struct",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 850,
+      "line": 857,
       "declaration": "struct MaterialAssemblyContext final",
       "comment": "",
       "access": "public",
@@ -153475,7 +153505,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 851,
+          "line": 858,
           "page": "gui-forms-materialassemblycontext-em-double-5e3847442c.html"
         },
         {
@@ -153490,7 +153520,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 852,
+          "line": 859,
           "page": "gui-forms-materialassemblycontext-current-colour-color-bcac585a27.html"
         }
       ],
@@ -154390,7 +154420,7 @@
       "kind": "struct",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 741,
+      "line": 748,
       "declaration": "struct MaterialDeclaration final",
       "comment": "",
       "access": "public",
@@ -154408,7 +154438,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 742,
+          "line": 749,
           "page": "gui-forms-materialdeclaration-field-materialfield-5822f3616d.html"
         },
         {
@@ -154423,7 +154453,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 743,
+          "line": 750,
           "page": "gui-forms-materialdeclaration-initial-bool-d998a487fd.html"
         },
         {
@@ -154438,7 +154468,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 744,
+          "line": 751,
           "page": "gui-forms-materialdeclaration-fills-std-vector-materialfilllayer-34316f58f0.html"
         },
         {
@@ -154453,7 +154483,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 745,
+          "line": 752,
           "page": "gui-forms-materialdeclaration-gradients-std-vector-authoredgradient-454cd4ae0c.html"
         },
         {
@@ -154468,7 +154498,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 746,
+          "line": 753,
           "page": "gui-forms-materialdeclaration-blend-modes-std-vector-materialblendmode-2393ff5c76.html"
         },
         {
@@ -154483,7 +154513,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 747,
+          "line": 754,
           "page": "gui-forms-materialdeclaration-image-positions-std-vector-materialimageposition-71268c14af.html"
         },
         {
@@ -154498,7 +154528,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 748,
+          "line": 755,
           "page": "gui-forms-materialdeclaration-image-sizes-std-vector-materialimagesize-6f69cc42af.html"
         },
         {
@@ -154513,7 +154543,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 749,
+          "line": 756,
           "page": "gui-forms-materialdeclaration-image-repeats-std-vector-materialimagerepeat-9fdb435a29.html"
         },
         {
@@ -154528,7 +154558,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 750,
+          "line": 757,
           "page": "gui-forms-materialdeclaration-shadows-std-vector-materialshadow-f57e45014d.html"
         },
         {
@@ -154543,7 +154573,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 751,
+          "line": 758,
           "page": "gui-forms-materialdeclaration-glows-std-vector-materialglow-8ad22d7b3f.html"
         },
         {
@@ -154558,7 +154588,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 752,
+          "line": 759,
           "page": "gui-forms-materialdeclaration-glow-placements-std-vector-materialglowplacement-adea376a5f.html"
         },
         {
@@ -154573,7 +154603,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 753,
+          "line": 760,
           "page": "gui-forms-materialdeclaration-border-style-std-optional-materialborderstyle-0428e21c45.html"
         },
         {
@@ -154588,7 +154618,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 754,
+          "line": 761,
           "page": "gui-forms-materialdeclaration-edge-lines-materialedgelines-a65b8168ef.html"
         },
         {
@@ -154603,7 +154633,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 755,
+          "line": 762,
           "page": "gui-forms-materialdeclaration-border-image-std-optional-materialfilllayer-1bd5a3ce4d.html"
         },
         {
@@ -154618,7 +154648,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 756,
+          "line": 763,
           "page": "gui-forms-materialdeclaration-colour-color-4a887e9399.html"
         },
         {
@@ -154633,7 +154663,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 757,
+          "line": 764,
           "page": "gui-forms-materialdeclaration-keylines-std-vector-materialkeyline-dc16d7bb93.html"
         },
         {
@@ -154648,7 +154678,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 758,
+          "line": 765,
           "page": "gui-forms-materialdeclaration-number-double-9e55543a09.html"
         },
         {
@@ -154663,7 +154693,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 759,
+          "line": 766,
           "page": "gui-forms-materialdeclaration-relative-bool-56ca5e1bb5.html"
         },
         {
@@ -154678,7 +154708,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 760,
+          "line": 767,
           "page": "gui-forms-materialdeclaration-colour-filter-materialcolourfilter-209f4105eb.html"
         },
         {
@@ -154693,7 +154723,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 761,
+          "line": 768,
           "page": "gui-forms-materialdeclaration-drop-shadow-std-optional-materialdropshadow-4c84989086.html"
         },
         {
@@ -154708,7 +154738,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 762,
+          "line": 769,
           "page": "gui-forms-materialdeclaration-mask-std-optional-materialfilllayer-5607232329.html"
         },
         {
@@ -154723,7 +154753,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 763,
+          "line": 770,
           "page": "gui-forms-materialdeclaration-reflection-std-optional-materialreflection-5267683acc.html"
         },
         {
@@ -154738,7 +154768,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 765,
+          "line": 772,
           "page": "gui-forms-materialdeclaration-origin-colourorigin-a88636f10b.html"
         },
         {
@@ -154753,7 +154783,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 770,
+          "line": 777,
           "page": "gui-forms-materialdeclaration-em-lengths-std-vector-double-88b49d5f4b.html"
         },
         {
@@ -154768,7 +154798,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 774,
+          "line": 781,
           "page": "gui-forms-materialdeclaration-current-colours-std-vector-std-uint16-t-dcfa2edf13.html"
         }
       ],
@@ -154921,7 +154951,7 @@
       "kind": "enum",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 646,
+      "line": 653,
       "declaration": "enum class MaterialEdgeLines : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -154939,7 +154969,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 646,
+          "line": 653,
           "page": "gui-forms-materialedgelines-single-gui-forms-materialedgelines-531ec1ef48.html"
         },
         {
@@ -154954,7 +154984,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 646,
+          "line": 653,
           "page": "gui-forms-materialedgelines-double-line-gui-forms-materialedgelines-bd493686eb.html"
         },
         {
@@ -154969,7 +154999,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 646,
+          "line": 653,
           "page": "gui-forms-materialedgelines-groove-gui-forms-materialedgelines-00ba6c8eb8.html"
         },
         {
@@ -154984,7 +155014,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 646,
+          "line": 653,
           "page": "gui-forms-materialedgelines-ridge-gui-forms-materialedgelines-16376ad4f2.html"
         }
       ],
@@ -154998,7 +155028,7 @@
       "kind": "enum",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 663,
+      "line": 670,
       "declaration": "enum class MaterialField : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -155016,7 +155046,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 664,
+          "line": 671,
           "page": "gui-forms-materialfield-background-colour-gui-forms-materialfield-f5eef4d78e.html"
         },
         {
@@ -155031,7 +155061,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 665,
+          "line": 672,
           "page": "gui-forms-materialfield-fills-gui-forms-materialfield-adcffaa748.html"
         },
         {
@@ -155046,7 +155076,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 666,
+          "line": 673,
           "page": "gui-forms-materialfield-fill-blend-modes-gui-forms-materialfield-0258006c1b.html"
         },
         {
@@ -155061,7 +155091,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 667,
+          "line": 674,
           "page": "gui-forms-materialfield-fill-positions-gui-forms-materialfield-9271a5599b.html"
         },
         {
@@ -155076,7 +155106,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 668,
+          "line": 675,
           "page": "gui-forms-materialfield-fill-sizes-gui-forms-materialfield-395f2aa209.html"
         },
         {
@@ -155091,7 +155121,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 669,
+          "line": 676,
           "page": "gui-forms-materialfield-fill-repeats-gui-forms-materialfield-024491ef50.html"
         },
         {
@@ -155106,7 +155136,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 670,
+          "line": 677,
           "page": "gui-forms-materialfield-shadows-gui-forms-materialfield-4721518247.html"
         },
         {
@@ -155121,7 +155151,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 671,
+          "line": 678,
           "page": "gui-forms-materialfield-glows-gui-forms-materialfield-3e6c7c51eb.html"
         },
         {
@@ -155136,7 +155166,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 672,
+          "line": 679,
           "page": "gui-forms-materialfield-glow-placements-gui-forms-materialfield-af5647f2ad.html"
         },
         {
@@ -155151,7 +155181,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 673,
+          "line": 680,
           "page": "gui-forms-materialfield-border-top-style-gui-forms-materialfield-2004d93098.html"
         },
         {
@@ -155166,7 +155196,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 674,
+          "line": 681,
           "page": "gui-forms-materialfield-border-top-width-gui-forms-materialfield-c79f61c1ed.html"
         },
         {
@@ -155181,7 +155211,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 675,
+          "line": 682,
           "page": "gui-forms-materialfield-border-top-colour-gui-forms-materialfield-78bbe36804.html"
         },
         {
@@ -155196,7 +155226,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 676,
+          "line": 683,
           "page": "gui-forms-materialfield-border-right-style-gui-forms-materialfield-9ef679542d.html"
         },
         {
@@ -155211,7 +155241,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 677,
+          "line": 684,
           "page": "gui-forms-materialfield-border-right-width-gui-forms-materialfield-9187d2dbd0.html"
         },
         {
@@ -155226,7 +155256,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 678,
+          "line": 685,
           "page": "gui-forms-materialfield-border-right-colour-gui-forms-materialfield-636390239e.html"
         },
         {
@@ -155241,7 +155271,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 679,
+          "line": 686,
           "page": "gui-forms-materialfield-border-bottom-style-gui-forms-materialfield-cbdb860989.html"
         },
         {
@@ -155256,7 +155286,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 680,
+          "line": 687,
           "page": "gui-forms-materialfield-border-bottom-width-gui-forms-materialfield-44981d88f6.html"
         },
         {
@@ -155271,7 +155301,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 681,
+          "line": 688,
           "page": "gui-forms-materialfield-border-bottom-colour-gui-forms-materialfield-eacecaedbd.html"
         },
         {
@@ -155286,7 +155316,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 682,
+          "line": 689,
           "page": "gui-forms-materialfield-border-left-style-gui-forms-materialfield-a53597e5eb.html"
         },
         {
@@ -155301,7 +155331,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 683,
+          "line": 690,
           "page": "gui-forms-materialfield-border-left-width-gui-forms-materialfield-73319156e8.html"
         },
         {
@@ -155316,7 +155346,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 684,
+          "line": 691,
           "page": "gui-forms-materialfield-border-left-colour-gui-forms-materialfield-d1052e564b.html"
         },
         {
@@ -155331,7 +155361,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 685,
+          "line": 692,
           "page": "gui-forms-materialfield-border-image-gui-forms-materialfield-c1a223b841.html"
         },
         {
@@ -155346,7 +155376,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 686,
+          "line": 693,
           "page": "gui-forms-materialfield-keylines-gui-forms-materialfield-258f9aea9b.html"
         },
         {
@@ -155361,7 +155391,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 687,
+          "line": 694,
           "page": "gui-forms-materialfield-corner-top-left-gui-forms-materialfield-4e77c942d5.html"
         },
         {
@@ -155376,7 +155406,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 688,
+          "line": 695,
           "page": "gui-forms-materialfield-corner-top-right-gui-forms-materialfield-b37da11968.html"
         },
         {
@@ -155391,7 +155421,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 689,
+          "line": 696,
           "page": "gui-forms-materialfield-corner-bottom-right-gui-forms-materialfield-0c9dfbbd46.html"
         },
         {
@@ -155406,7 +155436,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 690,
+          "line": 697,
           "page": "gui-forms-materialfield-corner-bottom-left-gui-forms-materialfield-1940ce73fc.html"
         },
         {
@@ -155421,7 +155451,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 691,
+          "line": 698,
           "page": "gui-forms-materialfield-colour-filter-gui-forms-materialfield-087fdfe959.html"
         },
         {
@@ -155436,7 +155466,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 692,
+          "line": 699,
           "page": "gui-forms-materialfield-drop-shadow-gui-forms-materialfield-ea3e621096.html"
         },
         {
@@ -155451,7 +155481,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 693,
+          "line": 700,
           "page": "gui-forms-materialfield-filter-blur-gui-forms-materialfield-a42fd80b90.html"
         },
         {
@@ -155466,7 +155496,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 694,
+          "line": 701,
           "page": "gui-forms-materialfield-finish-gui-forms-materialfield-4b5941af04.html"
         },
         {
@@ -155481,7 +155511,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 695,
+          "line": 702,
           "page": "gui-forms-materialfield-mask-gui-forms-materialfield-e1e212db32.html"
         },
         {
@@ -155496,7 +155526,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 696,
+          "line": 703,
           "page": "gui-forms-materialfield-reflection-gui-forms-materialfield-cb0b05e95b.html"
         },
         {
@@ -155511,7 +155541,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 697,
+          "line": 704,
           "page": "gui-forms-materialfield-count-gui-forms-materialfield-e76afb2597.html"
         }
       ],
@@ -156756,7 +156786,7 @@
       "kind": "struct",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 624,
+      "line": 631,
       "declaration": "struct MaterialImagePosition final",
       "comment": "",
       "access": "public",
@@ -156774,7 +156804,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 625,
+          "line": 632,
           "page": "gui-forms-materialimageposition-across-boxlength-4ec12b1d85.html"
         },
         {
@@ -156789,7 +156819,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 626,
+          "line": 633,
           "page": "gui-forms-materialimageposition-down-boxlength-5e3e2c3f8a.html"
         }
       ],
@@ -156803,7 +156833,7 @@
       "kind": "enum",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 634,
+      "line": 641,
       "declaration": "enum class MaterialImageRepeat : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -156821,7 +156851,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 634,
+          "line": 641,
           "page": "gui-forms-materialimagerepeat-repeat-gui-forms-materialimagerepeat-1136c28d51.html"
         },
         {
@@ -156836,7 +156866,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 634,
+          "line": 641,
           "page": "gui-forms-materialimagerepeat-no-repeat-gui-forms-materialimagerepeat-59508f6e09.html"
         }
       ],
@@ -156850,7 +156880,7 @@
       "kind": "struct",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 613,
+      "line": 620,
       "declaration": "struct MaterialImageSize final",
       "comment": "",
       "access": "public",
@@ -156868,7 +156898,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 614,
+          "line": 621,
           "page": "gui-forms-materialimagesize-sizing-materialimagesizing-774923fe4b.html"
         },
         {
@@ -156883,7 +156913,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 615,
+          "line": 622,
           "page": "gui-forms-materialimagesize-length-boxlength-8ef614cea0.html"
         }
       ],
@@ -156897,7 +156927,7 @@
       "kind": "enum",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 611,
+      "line": 618,
       "declaration": "enum class MaterialImageSizing : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -156915,7 +156945,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 611,
+          "line": 618,
           "page": "gui-forms-materialimagesizing-natural-gui-forms-materialimagesizing-f9ea48561a.html"
         },
         {
@@ -156930,7 +156960,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 611,
+          "line": 618,
           "page": "gui-forms-materialimagesizing-width-gui-forms-materialimagesizing-d82e86ebb5.html"
         },
         {
@@ -156945,7 +156975,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 611,
+          "line": 618,
           "page": "gui-forms-materialimagesizing-height-gui-forms-materialimagesizing-2166754ec1.html"
         },
         {
@@ -156960,7 +156990,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 611,
+          "line": 618,
           "page": "gui-forms-materialimagesizing-cover-gui-forms-materialimagesizing-b00e9fea93.html"
         },
         {
@@ -156975,7 +157005,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 611,
+          "line": 618,
           "page": "gui-forms-materialimagesizing-contain-gui-forms-materialimagesizing-cc2a41fad1.html"
         },
         {
@@ -156990,7 +157020,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 611,
+          "line": 618,
           "page": "gui-forms-materialimagesizing-stretch-gui-forms-materialimagesizing-22b56d5ed4.html"
         }
       ],
@@ -157735,7 +157765,7 @@
       "kind": "struct",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 166,
+      "line": 173,
       "declaration": "struct MediaCondition final",
       "comment": "",
       "access": "public",
@@ -157753,7 +157783,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 168,
+          "line": 175,
           "page": "gui-forms-mediacondition-dark-scheme-std-optional-bool-722687eb08.html"
         },
         {
@@ -157768,7 +157798,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 170,
+          "line": 177,
           "page": "gui-forms-mediacondition-forced-colours-std-optional-bool-7373f60018.html"
         },
         {
@@ -157783,7 +157813,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 172,
+          "line": 179,
           "page": "gui-forms-mediacondition-reduced-motion-std-optional-bool-bad91a2595.html"
         },
         {
@@ -157798,7 +157828,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 174,
+          "line": 181,
           "page": "gui-forms-mediacondition-minimum-resolution-std-optional-double-e335f6cf91.html"
         },
         {
@@ -157813,7 +157843,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 175,
+          "line": 182,
           "page": "gui-forms-mediacondition-maximum-resolution-std-optional-double-c3b0fcac17.html"
         }
       ],
@@ -157827,7 +157857,7 @@
       "kind": "struct",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 143,
+      "line": 150,
       "declaration": "struct MediaFacts final",
       "comment": "",
       "access": "public",
@@ -157845,7 +157875,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 145,
+          "line": 152,
           "page": "gui-forms-mediafacts-dark-scheme-bool-b642c285ac.html"
         },
         {
@@ -157860,7 +157890,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 147,
+          "line": 154,
           "page": "gui-forms-mediafacts-forced-colours-bool-4741e5bf3a.html"
         },
         {
@@ -157875,7 +157905,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 149,
+          "line": 156,
           "page": "gui-forms-mediafacts-reduced-motion-bool-a7e8c5a889.html"
         },
         {
@@ -157890,7 +157920,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 151,
+          "line": 158,
           "page": "gui-forms-mediafacts-resolution-double-b5facabc68.html"
         }
       ],
@@ -185115,7 +185145,7 @@
       "kind": "enum",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 411,
+      "line": 418,
       "declaration": "enum class PartBlend : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -185133,7 +185163,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 411,
+          "line": 418,
           "page": "gui-forms-partblend-normal-gui-forms-partblend-24f8dc06a9.html"
         },
         {
@@ -185148,7 +185178,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 411,
+          "line": 418,
           "page": "gui-forms-partblend-multiply-gui-forms-partblend-ba34e6d72f.html"
         },
         {
@@ -185163,7 +185193,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 411,
+          "line": 418,
           "page": "gui-forms-partblend-screen-gui-forms-partblend-a8ae40a5d0.html"
         }
       ],
@@ -193756,7 +193786,7 @@
       "kind": "enum",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 495,
+      "line": 502,
       "declaration": "enum class PresentationProperty : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -193774,7 +193804,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 496,
+          "line": 503,
           "page": "gui-forms-presentationproperty-parameter-gui-forms-presentationproperty-f2fb3f8c42.html"
         },
         {
@@ -193789,7 +193819,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 497,
+          "line": 504,
           "page": "gui-forms-presentationproperty-opacity-gui-forms-presentationproperty-4caccfc1a5.html"
         },
         {
@@ -193804,7 +193834,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 498,
+          "line": 505,
           "page": "gui-forms-presentationproperty-scale-gui-forms-presentationproperty-1dffd91607.html"
         },
         {
@@ -193819,7 +193849,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 499,
+          "line": 506,
           "page": "gui-forms-presentationproperty-face-gui-forms-presentationproperty-c8f08b52e0.html"
         },
         {
@@ -193834,7 +193864,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 500,
+          "line": 507,
           "page": "gui-forms-presentationproperty-translate-x-gui-forms-presentationproperty-770794bf92.html"
         },
         {
@@ -193849,7 +193879,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 501,
+          "line": 508,
           "page": "gui-forms-presentationproperty-translate-y-gui-forms-presentationproperty-d65d48ee37.html"
         }
       ],
@@ -194030,7 +194060,7 @@
       "kind": "struct",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 542,
+      "line": 549,
       "declaration": "struct PresentationState final",
       "comment": "",
       "access": "public",
@@ -194048,7 +194078,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 543,
+          "line": 550,
           "page": "gui-forms-presentationstate-when-std-vector-anatomystate-f30ff562fb.html"
         },
         {
@@ -194063,7 +194093,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 544,
+          "line": 551,
           "page": "gui-forms-presentationstate-target-double-e9a96c2c97.html"
         },
         {
@@ -194078,7 +194108,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 545,
+          "line": 552,
           "page": "gui-forms-presentationstate-enter-from-std-optional-double-4d491114ac.html"
         },
         {
@@ -194093,7 +194123,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 546,
+          "line": 553,
           "page": "gui-forms-presentationstate-stops-std-vector-motionstop-ee7dc7edf0.html"
         },
         {
@@ -194108,7 +194138,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 547,
+          "line": 554,
           "page": "gui-forms-presentationstate-target-em-double-af77471a31.html"
         },
         {
@@ -194123,7 +194153,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 548,
+          "line": 555,
           "page": "gui-forms-presentationstate-enter-from-em-double-17d13a30bd.html"
         }
       ],
@@ -203434,7 +203464,7 @@
       "kind": "struct",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 563,
+      "line": 570,
       "declaration": "struct PropertyTransition final",
       "comment": "",
       "access": "public",
@@ -203452,7 +203482,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 564,
+          "line": 571,
           "page": "gui-forms-propertytransition-property-std-string-4d89c8c020.html"
         },
         {
@@ -203467,7 +203497,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 565,
+          "line": 572,
           "page": "gui-forms-propertytransition-states-std-vector-presentationstate-ed0d1f5779.html"
         },
         {
@@ -203482,7 +203512,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 566,
+          "line": 573,
           "page": "gui-forms-propertytransition-curve-motioncurve-6590117343.html"
         }
       ],
@@ -209107,7 +209137,7 @@
       "kind": "struct",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 957,
+      "line": 964,
       "declaration": "struct RecipeDeclaration final",
       "comment": "",
       "access": "public",
@@ -209125,7 +209155,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 958,
+          "line": 965,
           "page": "gui-forms-recipedeclaration-field-recipefield-350d4b882f.html"
         },
         {
@@ -209140,7 +209170,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 959,
+          "line": 966,
           "page": "gui-forms-recipedeclaration-initial-bool-773b9d4c11.html"
         },
         {
@@ -209155,7 +209185,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 960,
+          "line": 967,
           "page": "gui-forms-recipedeclaration-colour-color-b8260cf245.html"
         },
         {
@@ -209170,7 +209200,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 961,
+          "line": 968,
           "page": "gui-forms-recipedeclaration-number-double-467ad3fe87.html"
         },
         {
@@ -209185,7 +209215,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 962,
+          "line": 969,
           "page": "gui-forms-recipedeclaration-outline-style-recipeoutlinestyle-740cb6fd93.html"
         },
         {
@@ -209200,7 +209230,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 963,
+          "line": 970,
           "page": "gui-forms-recipedeclaration-shadowed-bool-2194e2e84e.html"
         },
         {
@@ -209215,7 +209245,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 964,
+          "line": 971,
           "page": "gui-forms-recipedeclaration-shadow-offset-point-85fe5dd9e3.html"
         },
         {
@@ -209230,7 +209260,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 965,
+          "line": 972,
           "page": "gui-forms-recipedeclaration-shadow-blur-double-37a4efbbe2.html"
         },
         {
@@ -209245,7 +209275,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 967,
+          "line": 974,
           "page": "gui-forms-recipedeclaration-origin-colourorigin-46813cff13.html"
         },
         {
@@ -209260,7 +209290,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 970,
+          "line": 977,
           "page": "gui-forms-recipedeclaration-em-lengths-std-vector-double-7f19bd7189.html"
         },
         {
@@ -209275,7 +209305,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 973,
+          "line": 980,
           "page": "gui-forms-recipedeclaration-inherit-bool-96c888016b.html"
         },
         {
@@ -209290,7 +209320,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 975,
+          "line": 982,
           "page": "gui-forms-recipedeclaration-current-colour-bool-f94786da43.html"
         },
         {
@@ -209305,7 +209335,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 976,
+          "line": 983,
           "page": "gui-forms-recipedeclaration-font-role-fontrole-7a79b66faf.html"
         },
         {
@@ -209320,7 +209350,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 977,
+          "line": 984,
           "page": "gui-forms-recipedeclaration-italic-bool-4c4abd61dc.html"
         }
       ],
@@ -209334,7 +209364,7 @@
       "kind": "enum",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 889,
+      "line": 896,
       "declaration": "enum class RecipeField : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -209352,7 +209382,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 891,
+          "line": 898,
           "page": "gui-forms-recipefield-text-gui-forms-recipefield-e2bf541796.html"
         },
         {
@@ -209367,7 +209397,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 895,
+          "line": 902,
           "page": "gui-forms-recipefield-outline-style-gui-forms-recipefield-a6c2622bb6.html"
         },
         {
@@ -209382,7 +209412,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 896,
+          "line": 903,
           "page": "gui-forms-recipefield-outline-colour-gui-forms-recipefield-2dfd612de0.html"
         },
         {
@@ -209397,7 +209427,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 897,
+          "line": 904,
           "page": "gui-forms-recipefield-outline-width-gui-forms-recipefield-8e6595df7c.html"
         },
         {
@@ -209412,7 +209442,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 898,
+          "line": 905,
           "page": "gui-forms-recipefield-outline-offset-gui-forms-recipefield-f8d5f899ed.html"
         },
         {
@@ -209427,7 +209457,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 901,
+          "line": 908,
           "page": "gui-forms-recipefield-text-shadow-gui-forms-recipefield-124ce1423e.html"
         },
         {
@@ -209442,7 +209472,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 907,
+          "line": 914,
           "page": "gui-forms-recipefield-font-family-gui-forms-recipefield-cb5a9f2ed4.html"
         },
         {
@@ -209457,7 +209487,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 908,
+          "line": 915,
           "page": "gui-forms-recipefield-font-size-gui-forms-recipefield-ea90a185c0.html"
         },
         {
@@ -209472,7 +209502,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 909,
+          "line": 916,
           "page": "gui-forms-recipefield-font-weight-gui-forms-recipefield-bb44a77cc4.html"
         },
         {
@@ -209487,7 +209517,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 910,
+          "line": 917,
           "page": "gui-forms-recipefield-font-style-gui-forms-recipefield-28304cb24e.html"
         },
         {
@@ -209502,7 +209532,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 911,
+          "line": 918,
           "page": "gui-forms-recipefield-letter-spacing-gui-forms-recipefield-b7d2fd693c.html"
         },
         {
@@ -209517,7 +209547,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 912,
+          "line": 919,
           "page": "gui-forms-recipefield-count-gui-forms-recipefield-0b2b90df82.html"
         }
       ],
@@ -209531,7 +209561,7 @@
       "kind": "enum",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 927,
+      "line": 934,
       "declaration": "enum class RecipeOutlineStyle : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -209549,7 +209579,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 927,
+          "line": 934,
           "page": "gui-forms-recipeoutlinestyle-ring-gui-forms-recipeoutlinestyle-a341fac64b.html"
         },
         {
@@ -209564,7 +209594,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 927,
+          "line": 934,
           "page": "gui-forms-recipeoutlinestyle-solid-gui-forms-recipeoutlinestyle-145c985edd.html"
         },
         {
@@ -209579,7 +209609,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 927,
+          "line": 934,
           "page": "gui-forms-recipeoutlinestyle-none-gui-forms-recipeoutlinestyle-347bb2c4af.html"
         },
         {
@@ -209594,7 +209624,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 927,
+          "line": 934,
           "page": "gui-forms-recipeoutlinestyle-dotted-gui-forms-recipeoutlinestyle-aada6b1a8d.html"
         }
       ],
@@ -225830,7 +225860,7 @@
       "kind": "struct",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 337,
+      "line": 344,
       "declaration": "struct RuleDeclaration final",
       "comment": "",
       "access": "public",
@@ -225848,7 +225878,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 338,
+          "line": 345,
           "page": "gui-forms-ruledeclaration-property-std-string-d371e9d1d8.html"
         },
         {
@@ -225863,7 +225893,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 339,
+          "line": 346,
           "page": "gui-forms-ruledeclaration-kind-rulevaluekind-808497e41a.html"
         },
         {
@@ -225878,7 +225908,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 340,
+          "line": 347,
           "page": "gui-forms-ruledeclaration-name-std-string-dfaedeaeaf.html"
         },
         {
@@ -225893,7 +225923,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 341,
+          "line": 348,
           "page": "gui-forms-ruledeclaration-number-double-ebbbd749c6.html"
         },
         {
@@ -225908,7 +225938,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 342,
+          "line": 349,
           "page": "gui-forms-ruledeclaration-colour-color-1e6e61f1ba.html"
         },
         {
@@ -225923,7 +225953,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 343,
+          "line": 350,
           "page": "gui-forms-ruledeclaration-program-std-vector-expressioninstruction-cd103f07b6.html"
         },
         {
@@ -225938,7 +225968,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 345,
+          "line": 352,
           "page": "gui-forms-ruledeclaration-origin-colourorigin-c4cbfa37b5.html"
         },
         {
@@ -225953,7 +225983,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 350,
+          "line": 357,
           "page": "gui-forms-ruledeclaration-number-em-double-7acd068c50.html"
         },
         {
@@ -225974,7 +226004,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 352,
+          "line": 359,
           "page": "gui-forms-ruledeclaration-primitive-ruledeclaration-std-string-view-e0b4651c28.html"
         },
         {
@@ -226000,7 +226030,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 353,
+          "line": 360,
           "page": "gui-forms-ruledeclaration-number-value-ruledeclaration-std-string-view-double-32c7fa2d93.html"
         },
         {
@@ -226026,7 +226056,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 354,
+          "line": 361,
           "page": "gui-forms-ruledeclaration-colour-value-ruledeclaration-std-string-view-color-c3dad62d71.html"
         },
         {
@@ -226052,7 +226082,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 356,
+          "line": 363,
           "page": "gui-forms-ruledeclaration-choice-value-ruledeclaration-std-string-view-std-string-view-0486ff0b1d.html"
         },
         {
@@ -226083,7 +226113,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 357,
+          "line": 364,
           "page": "gui-forms-ruledeclaration-expression-value-ruledeclaration-std-string-view-std-span-const-expressioninstructio-f438b46c21.html"
         }
       ],
@@ -226097,7 +226127,7 @@
       "kind": "struct",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 1255,
+      "line": 1262,
       "declaration": "struct RuleDiagnostic final",
       "comment": "",
       "access": "public",
@@ -226115,7 +226145,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1256,
+          "line": 1263,
           "page": "gui-forms-rulediagnostic-kind-rulediagnostickind-21a7d4eb42.html"
         },
         {
@@ -226130,7 +226160,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1259,
+          "line": 1266,
           "page": "gui-forms-rulediagnostic-rule-std-size-t-80ed98c286.html"
         },
         {
@@ -226145,7 +226175,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1260,
+          "line": 1267,
           "page": "gui-forms-rulediagnostic-label-std-string-36e99df410.html"
         },
         {
@@ -226160,7 +226190,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1262,
+          "line": 1269,
           "page": "gui-forms-rulediagnostic-property-std-string-37b2322f5c.html"
         },
         {
@@ -226175,7 +226205,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1264,
+          "line": 1271,
           "page": "gui-forms-rulediagnostic-expression-expressiondefect-ded61fe6c3.html"
         }
       ],
@@ -226189,7 +226219,7 @@
       "kind": "enum",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 1155,
+      "line": 1162,
       "declaration": "enum class RuleDiagnosticKind : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -226207,7 +226237,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1158,
+          "line": 1165,
           "page": "gui-forms-rulediagnostickind-needs-newer-engine-gui-forms-rulediagnostickind-650c649dbb.html"
         },
         {
@@ -226222,7 +226252,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1160,
+          "line": 1167,
           "page": "gui-forms-rulediagnostickind-level-not-authored-gui-forms-rulediagnostickind-3d50c251ac.html"
         },
         {
@@ -226237,7 +226267,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1163,
+          "line": 1170,
           "page": "gui-forms-rulediagnostickind-selector-missing-level-field-gui-forms-rulediagnostickind-754aef83b1.html"
         },
         {
@@ -226252,7 +226282,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1165,
+          "line": 1172,
           "page": "gui-forms-rulediagnostickind-selector-invalid-gui-forms-rulediagnostickind-9a575835ea.html"
         },
         {
@@ -226267,7 +226297,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1168,
+          "line": 1175,
           "page": "gui-forms-rulediagnostickind-unknown-primitive-gui-forms-rulediagnostickind-68cf97776a.html"
         },
         {
@@ -226282,7 +226312,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1169,
+          "line": 1176,
           "page": "gui-forms-rulediagnostickind-primitive-role-mismatch-gui-forms-rulediagnostickind-205120c9e3.html"
         },
         {
@@ -226297,7 +226327,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1170,
+          "line": 1177,
           "page": "gui-forms-rulediagnostickind-primitive-over-budget-gui-forms-rulediagnostickind-b5a542a9ba.html"
         },
         {
@@ -226312,7 +226342,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1171,
+          "line": 1178,
           "page": "gui-forms-rulediagnostickind-primitive-cost-unbounded-gui-forms-rulediagnostickind-4d509109f0.html"
         },
         {
@@ -226327,7 +226357,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1172,
+          "line": 1179,
           "page": "gui-forms-rulediagnostickind-primitive-value-not-a-name-gui-forms-rulediagnostickind-bb045d0794.html"
         },
         {
@@ -226342,7 +226372,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1173,
+          "line": 1180,
           "page": "gui-forms-rulediagnostickind-parameter-without-primitive-gui-forms-rulediagnostickind-1a7db88dab.html"
         },
         {
@@ -226357,7 +226387,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1174,
+          "line": 1181,
           "page": "gui-forms-rulediagnostickind-unknown-parameter-gui-forms-rulediagnostickind-042227bffc.html"
         },
         {
@@ -226372,7 +226402,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1175,
+          "line": 1182,
           "page": "gui-forms-rulediagnostickind-parameter-wrong-kind-gui-forms-rulediagnostickind-10cf36f8fc.html"
         },
         {
@@ -226387,7 +226417,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1176,
+          "line": 1183,
           "page": "gui-forms-rulediagnostickind-parameter-not-finite-gui-forms-rulediagnostickind-b1bbd2da0e.html"
         },
         {
@@ -226402,7 +226432,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1177,
+          "line": 1184,
           "page": "gui-forms-rulediagnostickind-parameter-out-of-range-gui-forms-rulediagnostickind-c60b422abc.html"
         },
         {
@@ -226417,7 +226447,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1178,
+          "line": 1185,
           "page": "gui-forms-rulediagnostickind-duplicate-declaration-gui-forms-rulediagnostickind-7b4230cfe3.html"
         },
         {
@@ -226432,7 +226462,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1182,
+          "line": 1189,
           "page": "gui-forms-rulediagnostickind-expression-invalid-gui-forms-rulediagnostickind-e02ee799af.html"
         },
         {
@@ -226447,7 +226477,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1183,
+          "line": 1190,
           "page": "gui-forms-rulediagnostickind-expression-reads-colour-gui-forms-rulediagnostickind-748673d72b.html"
         },
         {
@@ -226462,7 +226492,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1185,
+          "line": 1192,
           "page": "gui-forms-rulediagnostickind-rule-empty-gui-forms-rulediagnostickind-72d36d3815.html"
         },
         {
@@ -226477,7 +226507,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1189,
+          "line": 1196,
           "page": "gui-forms-rulediagnostickind-backdrop-invalid-gui-forms-rulediagnostickind-c3a2015dbe.html"
         },
         {
@@ -226492,7 +226522,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1197,
+          "line": 1204,
           "page": "gui-forms-rulediagnostickind-transition-property-unknown-gui-forms-rulediagnostickind-2555fc4c28.html"
         },
         {
@@ -226507,7 +226537,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1198,
+          "line": 1205,
           "page": "gui-forms-rulediagnostickind-transition-property-not-animated-gui-forms-rulediagnostickind-87fdc7e6f5.html"
         },
         {
@@ -226522,7 +226552,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1199,
+          "line": 1206,
           "page": "gui-forms-rulediagnostickind-transition-invalid-gui-forms-rulediagnostickind-89d6b287a4.html"
         },
         {
@@ -226537,7 +226567,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1203,
+          "line": 1210,
           "page": "gui-forms-rulediagnostickind-ambient-over-frame-cap-gui-forms-rulediagnostickind-f75f39aed2.html"
         },
         {
@@ -226552,7 +226582,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1204,
+          "line": 1211,
           "page": "gui-forms-rulediagnostickind-ambient-invalid-gui-forms-rulediagnostickind-caef778b55.html"
         },
         {
@@ -226567,7 +226597,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1207,
+          "line": 1214,
           "page": "gui-forms-rulediagnostickind-blend-invalid-gui-forms-rulediagnostickind-82021cc45e.html"
         },
         {
@@ -226582,7 +226612,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1210,
+          "line": 1217,
           "page": "gui-forms-rulediagnostickind-font-invalid-gui-forms-rulediagnostickind-888f064c37.html"
         },
         {
@@ -226597,7 +226627,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1214,
+          "line": 1221,
           "page": "gui-forms-rulediagnostickind-effect-invalid-gui-forms-rulediagnostickind-e3729f0940.html"
         },
         {
@@ -226612,7 +226642,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1218,
+          "line": 1225,
           "page": "gui-forms-rulediagnostickind-effect-colour-invalid-gui-forms-rulediagnostickind-a218bba910.html"
         },
         {
@@ -226627,7 +226657,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1223,
+          "line": 1230,
           "page": "gui-forms-rulediagnostickind-published-value-invalid-gui-forms-rulediagnostickind-59c83a1c9f.html"
         },
         {
@@ -226642,7 +226672,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1226,
+          "line": 1233,
           "page": "gui-forms-rulediagnostickind-material-field-invalid-gui-forms-rulediagnostickind-7cbf088208.html"
         },
         {
@@ -226657,7 +226687,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1229,
+          "line": 1236,
           "page": "gui-forms-rulediagnostickind-recipe-field-invalid-gui-forms-rulediagnostickind-bd7939556a.html"
         },
         {
@@ -226672,7 +226702,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1232,
+          "line": 1239,
           "page": "gui-forms-rulediagnostickind-recipe-field-on-part-gui-forms-rulediagnostickind-f447789ba7.html"
         },
         {
@@ -226687,7 +226717,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1235,
+          "line": 1242,
           "page": "gui-forms-rulediagnostickind-media-invalid-gui-forms-rulediagnostickind-460e092b97.html"
         },
         {
@@ -226702,7 +226732,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1239,
+          "line": 1246,
           "page": "gui-forms-rulediagnostickind-scoped-property-invalid-gui-forms-rulediagnostickind-a062b53195.html"
         },
         {
@@ -226717,7 +226747,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1242,
+          "line": 1249,
           "page": "gui-forms-rulediagnostickind-user-opacity-raised-gui-forms-rulediagnostickind-83d091d374.html"
         }
       ],
@@ -227050,7 +227080,7 @@
       "kind": "struct",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 99,
+      "line": 111,
       "declaration": "struct RuleSelector final",
       "comment": "",
       "access": "public",
@@ -227068,7 +227098,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 100,
+          "line": 112,
           "page": "gui-forms-ruleselector-control-type-std-string-75e8627c39.html"
         },
         {
@@ -227083,7 +227113,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 101,
+          "line": 113,
           "page": "gui-forms-ruleselector-stable-id-std-string-052297784e.html"
         },
         {
@@ -227098,7 +227128,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 102,
+          "line": 114,
           "page": "gui-forms-ruleselector-classes-std-vector-std-string-9404e91286.html"
         },
         {
@@ -227113,7 +227143,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 103,
+          "line": 115,
           "page": "gui-forms-ruleselector-part-std-string-6663bbfec8.html"
         },
         {
@@ -227128,7 +227158,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 104,
+          "line": 116,
           "page": "gui-forms-ruleselector-role-std-optional-partrole-6df9e8111d.html"
         },
         {
@@ -227143,7 +227173,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 105,
+          "line": 117,
           "page": "gui-forms-ruleselector-states-std-vector-anatomystate-32c92bd5c1.html"
         },
         {
@@ -227158,7 +227188,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 106,
+          "line": 118,
           "page": "gui-forms-ruleselector-surface-surfacekind-82f3b0e778.html"
         }
       ],
@@ -227462,7 +227492,7 @@
       "kind": "struct",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 118,
+      "line": 130,
       "declaration": "struct RuleSpecificity final",
       "comment": "",
       "access": "public",
@@ -227480,7 +227510,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 119,
+          "line": 131,
           "page": "gui-forms-rulespecificity-ids-std-uint32-t-56f009d20d.html"
         },
         {
@@ -227495,7 +227525,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 120,
+          "line": 132,
           "page": "gui-forms-rulespecificity-classes-std-uint32-t-e96cb8b96a.html"
         },
         {
@@ -227510,38 +227540,8 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 121,
+          "line": 133,
           "page": "gui-forms-rulespecificity-types-std-uint32-t-0d2a4fb6f3.html"
-        },
-        {
-          "id": "gui_forms::RuleSpecificity::parts|std::uint32_t",
-          "name": "parts",
-          "type": "std::uint32_t",
-          "namespace": "gui_forms::RuleSpecificity",
-          "kind": "FieldDecl",
-          "access": "public",
-          "parameters": [],
-          "declaration": "std::uint32_t parts{}",
-          "comment": "",
-          "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
-          "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 122,
-          "page": "gui-forms-rulespecificity-parts-std-uint32-t-711acec125.html"
-        },
-        {
-          "id": "gui_forms::RuleSpecificity::states|std::uint32_t",
-          "name": "states",
-          "type": "std::uint32_t",
-          "namespace": "gui_forms::RuleSpecificity",
-          "kind": "FieldDecl",
-          "access": "public",
-          "parameters": [],
-          "declaration": "std::uint32_t states{}",
-          "comment": "",
-          "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
-          "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 123,
-          "page": "gui-forms-rulespecificity-states-std-uint32-t-5aa8493192.html"
         }
       ],
       "page": "gui-forms-rulespecificity-a3b1b20998.html",
@@ -228117,7 +228117,7 @@
       "kind": "enum",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 196,
+      "line": 203,
       "declaration": "enum class RuleValueKind : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -228135,7 +228135,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 198,
+          "line": 205,
           "page": "gui-forms-rulevaluekind-name-gui-forms-rulevaluekind-5bbee676f0.html"
         },
         {
@@ -228150,7 +228150,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 199,
+          "line": 206,
           "page": "gui-forms-rulevaluekind-number-gui-forms-rulevaluekind-09f65bdbae.html"
         },
         {
@@ -228165,7 +228165,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 200,
+          "line": 207,
           "page": "gui-forms-rulevaluekind-colour-gui-forms-rulevaluekind-8b70251e73.html"
         },
         {
@@ -228180,7 +228180,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 203,
+          "line": 210,
           "page": "gui-forms-rulevaluekind-expression-gui-forms-rulevaluekind-f8eff62d78.html"
         }
       ],
@@ -229630,7 +229630,7 @@
       "kind": "struct",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 1064,
+      "line": 1071,
       "declaration": "struct ScopedCondition final",
       "comment": "",
       "access": "public",
@@ -229648,7 +229648,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1065,
+          "line": 1072,
           "page": "gui-forms-scopedcondition-name-std-string-decdf04a6b.html"
         },
         {
@@ -229663,7 +229663,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1066,
+          "line": 1073,
           "page": "gui-forms-scopedcondition-definition-std-uint32-t-96db13bf87.html"
         }
       ],
@@ -229677,7 +229677,7 @@
       "kind": "struct",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 1053,
+      "line": 1060,
       "declaration": "struct ScopedDefinition final",
       "comment": "",
       "access": "public",
@@ -229695,7 +229695,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1054,
+          "line": 1061,
           "page": "gui-forms-scopeddefinition-name-std-string-d8352e15ee.html"
         },
         {
@@ -229710,7 +229710,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1055,
+          "line": 1062,
           "page": "gui-forms-scopeddefinition-definition-std-uint32-t-cd16a9acc9.html"
         }
       ],
@@ -246683,7 +246683,7 @@
       "kind": "enum",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 97,
+      "line": 109,
       "declaration": "enum class SurfaceKind : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -246701,7 +246701,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 97,
+          "line": 109,
           "page": "gui-forms-surfacekind-none-gui-forms-surfacekind-d8f8c8ec5b.html"
         },
         {
@@ -246716,7 +246716,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 97,
+          "line": 109,
           "page": "gui-forms-surfacekind-window-gui-forms-surfacekind-8525aa4f97.html"
         },
         {
@@ -246731,7 +246731,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 97,
+          "line": 109,
           "page": "gui-forms-surfacekind-popup-gui-forms-surfacekind-7140ab8677.html"
         }
       ],
@@ -265282,7 +265282,7 @@
       "kind": "enum",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 463,
+      "line": 470,
       "declaration": "enum class TextRole : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -265300,7 +265300,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 463,
+          "line": 470,
           "page": "gui-forms-textrole-ui-gui-forms-textrole-a45c3c960d.html"
         },
         {
@@ -265315,7 +265315,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 463,
+          "line": 470,
           "page": "gui-forms-textrole-field-gui-forms-textrole-16ac75b19f.html"
         },
         {
@@ -265330,7 +265330,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 463,
+          "line": 470,
           "page": "gui-forms-textrole-caption-gui-forms-textrole-e3be43aa76.html"
         },
         {
@@ -265345,7 +265345,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 463,
+          "line": 470,
           "page": "gui-forms-textrole-heading-gui-forms-textrole-d1c7dee262.html"
         },
         {
@@ -265360,7 +265360,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 463,
+          "line": 470,
           "page": "gui-forms-textrole-title-gui-forms-textrole-0d45e52512.html"
         },
         {
@@ -265375,7 +265375,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 463,
+          "line": 470,
           "page": "gui-forms-textrole-monospace-gui-forms-textrole-0889c82091.html"
         },
         {
@@ -265390,7 +265390,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 463,
+          "line": 470,
           "page": "gui-forms-textrole-count-gui-forms-textrole-0e6fe217f4.html"
         }
       ],
@@ -269134,7 +269134,7 @@
       "kind": "struct",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 1073,
+      "line": 1080,
       "declaration": "struct ThemeRule final",
       "comment": "",
       "access": "public",
@@ -269152,7 +269152,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1074,
+          "line": 1081,
           "page": "gui-forms-themerule-label-std-string-ea8de2f36c.html"
         },
         {
@@ -269167,7 +269167,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1075,
+          "line": 1082,
           "page": "gui-forms-themerule-level-cascadelevel-a2b5e242a5.html"
         },
         {
@@ -269182,7 +269182,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1076,
+          "line": 1083,
           "page": "gui-forms-themerule-selector-ruleselector-6da6c5b435.html"
         },
         {
@@ -269197,7 +269197,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1077,
+          "line": 1084,
           "page": "gui-forms-themerule-specificity-std-optional-rulespecificity-3684cdf55f.html"
         },
         {
@@ -269212,7 +269212,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1078,
+          "line": 1085,
           "page": "gui-forms-themerule-declarations-std-vector-ruledeclaration-a3ffaf41eb.html"
         },
         {
@@ -269227,7 +269227,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1079,
+          "line": 1086,
           "page": "gui-forms-themerule-requires-engine-std-optional-engineversion-476e1a9229.html"
         },
         {
@@ -269242,7 +269242,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1080,
+          "line": 1087,
           "page": "gui-forms-themerule-transitions-std-vector-propertytransition-0d7b475238.html"
         },
         {
@@ -269257,7 +269257,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1081,
+          "line": 1088,
           "page": "gui-forms-themerule-ambient-std-optional-ambienteffect-bde192490d.html"
         },
         {
@@ -269272,7 +269272,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1082,
+          "line": 1089,
           "page": "gui-forms-themerule-materials-std-vector-materialdeclaration-23de64cdad.html"
         },
         {
@@ -269287,7 +269287,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1083,
+          "line": 1090,
           "page": "gui-forms-themerule-recipe-fields-std-vector-recipedeclaration-1aef871c48.html"
         },
         {
@@ -269302,7 +269302,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1085,
+          "line": 1092,
           "page": "gui-forms-themerule-media-mediacondition-f3813212c0.html"
         },
         {
@@ -269317,7 +269317,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1088,
+          "line": 1095,
           "page": "gui-forms-themerule-scoped-definitions-std-vector-scopeddefinition-1e62086068.html"
         },
         {
@@ -269332,7 +269332,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1089,
+          "line": 1096,
           "page": "gui-forms-themerule-scoped-conditions-std-vector-scopedcondition-9eae1ae3b2.html"
         },
         {
@@ -269347,7 +269347,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1097,
+          "line": 1104,
           "page": "gui-forms-themerule-reads-std-vector-std-string-dd23721b10.html"
         },
         {
@@ -269362,7 +269362,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1098,
+          "line": 1105,
           "page": "gui-forms-themerule-source-position-std-uint32-t-b9829a404f.html"
         },
         {
@@ -269377,7 +269377,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1100,
+          "line": 1107,
           "page": "gui-forms-themerule-backdrop-std-optional-backdropdeclaration-88d30db265.html"
         }
       ],
@@ -269391,7 +269391,7 @@
       "kind": "enum",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 69,
+      "line": 81,
       "declaration": "enum class ThemeRuleSet : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -269409,7 +269409,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 69,
+          "line": 81,
           "page": "gui-forms-themeruleset-program-gui-forms-themeruleset-b78fbaf309.html"
         },
         {
@@ -269424,7 +269424,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 69,
+          "line": 81,
           "page": "gui-forms-themeruleset-user-gui-forms-themeruleset-652f4af2f8.html"
         }
       ],
@@ -269438,7 +269438,7 @@
       "kind": "struct",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 1120,
+      "line": 1127,
       "declaration": "struct ThemeRuleSheet final",
       "comment": "",
       "access": "public",
@@ -269456,7 +269456,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1121,
+          "line": 1128,
           "page": "gui-forms-themerulesheet-requires-engine-engineversion-74472c6fbb.html"
         },
         {
@@ -269471,7 +269471,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1122,
+          "line": 1129,
           "page": "gui-forms-themerulesheet-rules-std-vector-themerule-f4c73aab57.html"
         },
         {
@@ -269486,7 +269486,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1123,
+          "line": 1130,
           "page": "gui-forms-themerulesheet-published-values-std-vector-std-string-cabc967df1.html"
         },
         {
@@ -269501,7 +269501,7 @@
           "comment": "",
           "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
           "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-          "line": 1127,
+          "line": 1134,
           "page": "gui-forms-themerulesheet-colour-schemes-std-optional-colourschemeset-792f65175b.html"
         }
       ],
@@ -303454,7 +303454,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 805,
+      "line": 812,
       "page": "gui-forms-add-material-em-void-materialdeclaration-double-noexcept-1c2e6374b5.html"
     },
     {
@@ -303480,7 +303480,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 994,
+      "line": 1001,
       "page": "gui-forms-add-recipe-em-void-recipedeclaration-double-noexcept-7fb6393807.html"
     },
     {
@@ -303838,7 +303838,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 859,
+      "line": 866,
       "page": "gui-forms-assemble-material-void-const-surfacematerial-const-std-array-const-materialdeclaration-material-fiel-97aefbd8ac.html"
     },
     {
@@ -303874,7 +303874,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 862,
+      "line": 869,
       "page": "gui-forms-assemble-material-void-const-surfacematerial-const-std-array-const-materialdeclaration-material-fiel-561301c772.html"
     },
     {
@@ -304052,7 +304052,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 320,
+      "line": 327,
       "page": "gui-forms-backdrop-declaration-valid-bool-const-backdropdeclaration-noexcept-595b7a4360.html"
     },
     {
@@ -304528,7 +304528,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 1690,
+      "line": 1697,
       "page": "gui-forms-built-in-theme-rules-const-themerulesheet-0522b5d705.html"
     },
     {
@@ -304715,7 +304715,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 64,
+      "line": 76,
       "page": "gui-forms-cascade-level-name-std-string-view-cascadelevel-noexcept-69c05f0d9b.html"
     },
     {
@@ -304844,7 +304844,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 248,
+      "line": 255,
       "page": "gui-forms-colour-role-from-name-std-optional-colourrole-std-string-view-noexcept-0dc66ee1e2.html"
     },
     {
@@ -304865,7 +304865,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 246,
+      "line": 253,
       "page": "gui-forms-colour-role-name-std-string-view-colourrole-noexcept-04561617e1.html"
     },
     {
@@ -304886,7 +304886,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 251,
+      "line": 258,
       "page": "gui-forms-colour-role-paired-bool-colourrole-noexcept-729f4bdcf1.html"
     },
     {
@@ -305849,7 +305849,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 998,
+      "line": 1005,
       "page": "gui-forms-current-colours-fit-bool-const-materialdeclaration-cbe9e6c5c1.html"
     },
     {
@@ -306982,7 +306982,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 1003,
+      "line": 1010,
       "page": "gui-forms-em-lengths-fit-bool-const-materialdeclaration-180b858ddd.html"
     },
     {
@@ -307003,7 +307003,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 1004,
+      "line": 1011,
       "page": "gui-forms-em-lengths-fit-bool-const-recipedeclaration-1066b71b13.html"
     },
     {
@@ -309696,7 +309696,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 810,
+      "line": 817,
       "page": "gui-forms-material-declaration-colours-void-const-materialdeclaration-std-vector-color-0d2e1ff025.html"
     },
     {
@@ -309722,7 +309722,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 800,
+      "line": 807,
       "page": "gui-forms-material-declaration-lengths-void-const-materialdeclaration-std-vector-double-5074655823.html"
     },
     {
@@ -309743,7 +309743,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 706,
+      "line": 713,
       "page": "gui-forms-material-field-colour-position-colourposition-materialfield-noexcept-3c32bdef45.html"
     },
     {
@@ -309764,7 +309764,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 702,
+      "line": 709,
       "page": "gui-forms-material-field-name-std-string-view-materialfield-noexcept-8d99b72577.html"
     },
     {
@@ -309785,7 +309785,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 879,
+      "line": 886,
       "page": "gui-forms-material-fields-read-box-bool-const-std-array-const-materialdeclaration-material-field-count-noexcep-60df2ff427.html"
     },
     {
@@ -309806,7 +309806,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 872,
+      "line": 879,
       "page": "gui-forms-material-fields-read-current-colour-bool-const-std-array-const-materialdeclaration-material-field-co-cda3af4956.html"
     },
     {
@@ -309827,7 +309827,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 868,
+      "line": 875,
       "page": "gui-forms-material-fields-read-em-bool-const-std-array-const-materialdeclaration-material-field-count-noexcept-357bd140fb.html"
     },
     {
@@ -309889,7 +309889,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 189,
+      "line": 196,
       "page": "gui-forms-media-condition-holds-bool-const-mediacondition-const-mediafacts-noexcept-2e4d5f45c6.html"
     },
     {
@@ -309910,7 +309910,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 185,
+      "line": 192,
       "page": "gui-forms-media-condition-unconditional-bool-const-mediacondition-noexcept-d6b735c453.html"
     },
     {
@@ -309931,7 +309931,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 187,
+      "line": 194,
       "page": "gui-forms-media-condition-valid-bool-const-mediacondition-noexcept-fd264b6e28.html"
     },
     {
@@ -311433,7 +311433,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 129,
+      "line": 138,
       "page": "gui-forms-operator-bool-gui-forms-rulespecificity-gui-forms-rulespecificity-noexcept-cfc4bbecac.html",
       "associated_type": "gui_forms::RuleSpecificity"
     },
@@ -311512,7 +311512,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 595,
+      "line": 602,
       "page": "gui-forms-operator-bool-const-gui-forms-ambienteffect-const-gui-forms-ambienteffect-noexcept-469200f8bf.html",
       "associated_type": "gui_forms::AmbientEffect"
     },
@@ -311728,7 +311728,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 309,
+      "line": 316,
       "page": "gui-forms-operator-bool-const-gui-forms-backdropdeclaration-const-gui-forms-backdropdeclaration-noexcept-4f015fdbce.html",
       "associated_type": "gui_forms::BackdropDeclaration"
     },
@@ -311782,7 +311782,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 296,
+      "line": 303,
       "page": "gui-forms-operator-bool-const-gui-forms-backdropstep-const-gui-forms-backdropstep-noexcept-030299fdf0.html",
       "associated_type": "gui_forms::BackdropStep"
     },
@@ -313321,7 +313321,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 454,
+      "line": 461,
       "page": "gui-forms-operator-bool-const-gui-forms-effectcolourdeclaration-const-gui-forms-effectcolourdeclaration-noexce-8621dc0ffb.html",
       "associated_type": "gui_forms::EffectColourDeclaration"
     },
@@ -315049,7 +315049,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 776,
+      "line": 783,
       "page": "gui-forms-operator-bool-const-gui-forms-materialdeclaration-const-gui-forms-materialdeclaration-noexcept-9df35afce0.html",
       "associated_type": "gui_forms::MaterialDeclaration"
     },
@@ -315157,7 +315157,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 627,
+      "line": 634,
       "page": "gui-forms-operator-bool-const-gui-forms-materialimageposition-const-gui-forms-materialimageposition-noexcept-6dda73dc0d.html",
       "associated_type": "gui_forms::MaterialImagePosition"
     },
@@ -315184,7 +315184,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 616,
+      "line": 623,
       "page": "gui-forms-operator-bool-const-gui-forms-materialimagesize-const-gui-forms-materialimagesize-noexcept-b0cdc88119.html",
       "associated_type": "gui_forms::MaterialImageSize"
     },
@@ -315292,7 +315292,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 177,
+      "line": 184,
       "page": "gui-forms-operator-bool-const-gui-forms-mediacondition-const-gui-forms-mediacondition-noexcept-d9c5a5b411.html",
       "associated_type": "gui_forms::MediaCondition"
     },
@@ -315319,7 +315319,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 153,
+      "line": 160,
       "page": "gui-forms-operator-bool-const-gui-forms-mediafacts-const-gui-forms-mediafacts-noexcept-3236efcf51.html",
       "associated_type": "gui_forms::MediaFacts"
     },
@@ -315832,7 +315832,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 550,
+      "line": 557,
       "page": "gui-forms-operator-bool-const-gui-forms-presentationstate-const-gui-forms-presentationstate-noexcept-ad05e10b7b.html",
       "associated_type": "gui_forms::PresentationState"
     },
@@ -316129,7 +316129,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 568,
+      "line": 575,
       "page": "gui-forms-operator-bool-const-gui-forms-propertytransition-const-gui-forms-propertytransition-noexcept-19c3f9399e.html",
       "associated_type": "gui_forms::PropertyTransition"
     },
@@ -316156,7 +316156,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 979,
+      "line": 986,
       "page": "gui-forms-operator-bool-const-gui-forms-recipedeclaration-const-gui-forms-recipedeclaration-noexcept-f2fd048215.html",
       "associated_type": "gui_forms::RecipeDeclaration"
     },
@@ -316480,7 +316480,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 361,
+      "line": 368,
       "page": "gui-forms-operator-bool-const-gui-forms-ruledeclaration-const-gui-forms-ruledeclaration-noexcept-8d23280ef7.html",
       "associated_type": "gui_forms::RuleDeclaration"
     },
@@ -316507,7 +316507,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 108,
+      "line": 120,
       "page": "gui-forms-operator-bool-const-gui-forms-ruleselector-const-gui-forms-ruleselector-noexcept-e48d6cdb58.html",
       "associated_type": "gui_forms::RuleSelector"
     },
@@ -316561,7 +316561,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 1068,
+      "line": 1075,
       "page": "gui-forms-operator-bool-const-gui-forms-scopedcondition-const-gui-forms-scopedcondition-noexcept-812eb41411.html",
       "associated_type": "gui_forms::ScopedCondition"
     },
@@ -316588,7 +316588,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 1057,
+      "line": 1064,
       "page": "gui-forms-operator-bool-const-gui-forms-scopeddefinition-const-gui-forms-scopeddefinition-noexcept-83dd99e4d7.html",
       "associated_type": "gui_forms::ScopedDefinition"
     },
@@ -317209,7 +317209,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 1102,
+      "line": 1109,
       "page": "gui-forms-operator-bool-const-gui-forms-themerule-const-gui-forms-themerule-noexcept-72ea5a6cf3.html",
       "associated_type": "gui_forms::ThemeRule"
     },
@@ -317236,7 +317236,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 1129,
+      "line": 1136,
       "page": "gui-forms-operator-bool-const-gui-forms-themerulesheet-const-gui-forms-themerulesheet-noexcept-87c2852a31.html",
       "associated_type": "gui_forms::ThemeRuleSheet"
     },
@@ -317641,7 +317641,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 269,
+      "line": 276,
       "page": "gui-forms-operator-bool-gui-forms-colourorigin-gui-forms-colourorigin-noexcept-b517027f82.html",
       "associated_type": "gui_forms::ColourOrigin"
     },
@@ -317992,7 +317992,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 488,
+      "line": 495,
       "page": "gui-forms-operator-bool-gui-forms-fontdeclaration-gui-forms-fontdeclaration-noexcept-2db18c80cb.html",
       "associated_type": "gui_forms::FontDeclaration"
     },
@@ -318262,7 +318262,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 125,
+      "line": 135,
       "page": "gui-forms-operator-bool-gui-forms-rulespecificity-gui-forms-rulespecificity-noexcept-ead7764e9f.html",
       "associated_type": "gui_forms::RuleSpecificity"
     },
@@ -320471,7 +320471,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 1008,
+      "line": 1015,
       "page": "gui-forms-recipe-declaration-admitted-bool-const-recipedeclaration-noexcept-5b5f0354e1.html"
     },
     {
@@ -320497,7 +320497,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 992,
+      "line": 999,
       "page": "gui-forms-recipe-declaration-lengths-void-const-recipedeclaration-std-vector-double-411cce627a.html"
     },
     {
@@ -320518,7 +320518,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 921,
+      "line": 928,
       "page": "gui-forms-recipe-field-colour-position-colourposition-recipefield-noexcept-1f943af497.html"
     },
     {
@@ -320539,7 +320539,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 918,
+      "line": 925,
       "page": "gui-forms-recipe-field-name-std-string-view-recipefield-noexcept-e0a7786233.html"
     },
     {
@@ -321262,7 +321262,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 1245,
+      "line": 1252,
       "page": "gui-forms-rule-diagnostic-name-std-string-view-rulediagnostickind-noexcept-f2f7476269.html"
     },
     {
@@ -321304,7 +321304,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 138,
+      "line": 145,
       "page": "gui-forms-rule-specificity-rulespecificity-const-ruleselector-noexcept-2120bdb0c8.html"
     },
     {
@@ -321772,7 +321772,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 814,
+      "line": 821,
       "page": "gui-forms-set-material-current-colour-void-materialdeclaration-color-noexcept-06f03587f2.html"
     },
     {
@@ -321798,7 +321798,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 812,
+      "line": 819,
       "page": "gui-forms-set-material-declaration-colours-void-materialdeclaration-std-span-const-color-noexcept-ee589675db.html"
     },
     {
@@ -321824,7 +321824,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 803,
+      "line": 810,
       "page": "gui-forms-set-material-declaration-lengths-void-materialdeclaration-std-span-const-double-noexcept-4b7d2de423.html"
     },
     {
@@ -321886,7 +321886,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 993,
+      "line": 1000,
       "page": "gui-forms-set-recipe-declaration-lengths-void-recipedeclaration-std-span-const-double-noexcept-b178cc74ac.html"
     },
     {
@@ -322458,7 +322458,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 471,
+      "line": 478,
       "page": "gui-forms-text-role-from-name-std-optional-textrole-std-string-view-noexcept-a38b4999e5.html"
     },
     {
@@ -322479,7 +322479,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 469,
+      "line": 476,
       "page": "gui-forms-text-role-name-std-string-view-textrole-noexcept-32f266cc03.html"
     },
     {
@@ -323240,7 +323240,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 73,
+      "line": 85,
       "page": "gui-forms-valid-style-class-name-bool-std-string-view-noexcept-644eb77f0f.html"
     },
     {
@@ -324459,7 +324459,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 1149,
+      "line": 1156,
       "page": "gui-forms-animated-keyframe-levels-const-std-size-t-e1eebd218f.html"
     },
     {
@@ -324519,7 +324519,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 422,
+      "line": 429,
       "page": "gui-forms-blend-property-const-std-string-view-3f5968aa6d.html"
     },
     {
@@ -324534,7 +324534,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 194,
+      "line": 201,
       "page": "gui-forms-built-in-primitive-name-const-std-string-view-7192dfe715.html"
     },
     {
@@ -324594,7 +324594,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 243,
+      "line": 250,
       "page": "gui-forms-colour-role-count-const-std-size-t-6c2c59e3fa.html"
     },
     {
@@ -324654,7 +324654,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 1038,
+      "line": 1045,
       "page": "gui-forms-custom-property-undefined-const-std-uint32-t-9c09a1c078.html"
     },
     {
@@ -324879,7 +324879,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 435,
+      "line": 442,
       "page": "gui-forms-effect-none-name-const-std-string-view-84a50011ca.html"
     },
     {
@@ -324894,7 +324894,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 445,
+      "line": 452,
       "page": "gui-forms-effect-primary-property-const-std-string-view-5b9319a6d4.html"
     },
     {
@@ -324909,7 +324909,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 434,
+      "line": 441,
       "page": "gui-forms-effect-property-const-std-string-view-10a93337c8.html"
     },
     {
@@ -324924,7 +324924,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 446,
+      "line": 453,
       "page": "gui-forms-effect-secondary-property-const-std-string-view-af39bbee60.html"
     },
     {
@@ -324984,7 +324984,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 396,
+      "line": 403,
       "page": "gui-forms-face-property-const-std-string-view-6b055f94b3.html"
     },
     {
@@ -325074,7 +325074,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 479,
+      "line": 486,
       "page": "gui-forms-font-inherit-name-const-std-string-view-6bc8727977.html"
     },
     {
@@ -325089,7 +325089,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 478,
+      "line": 485,
       "page": "gui-forms-font-property-const-std-string-view-ef9b033e1c.html"
     },
     {
@@ -325209,7 +325209,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 1051,
+      "line": 1058,
       "page": "gui-forms-inline-definition-base-const-std-uint32-t-9a23eaaff5.html"
     },
     {
@@ -325419,7 +325419,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 700,
+      "line": 707,
       "page": "gui-forms-material-field-count-const-std-size-t-5a799aa2b8.html"
     },
     {
@@ -325434,7 +325434,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 578,
+      "line": 585,
       "page": "gui-forms-maximum-ambient-frames-per-second-const-double-ed134415fd.html"
     },
     {
@@ -325449,7 +325449,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 1153,
+      "line": 1160,
       "page": "gui-forms-maximum-ambient-loop-frames-const-std-size-t-886f44e792.html"
     },
     {
@@ -325464,7 +325464,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 579,
+      "line": 586,
       "page": "gui-forms-maximum-ambient-window-fraction-const-double-0ad11abf7f.html"
     },
     {
@@ -325479,7 +325479,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 1141,
+      "line": 1148,
       "page": "gui-forms-maximum-animated-operations-per-frame-const-std-uint64-t-19f0190964.html"
     },
     {
@@ -325524,7 +325524,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 287,
+      "line": 294,
       "page": "gui-forms-maximum-backdrop-blur-const-double-1a24e2d667.html"
     },
     {
@@ -325539,7 +325539,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 288,
+      "line": 295,
       "page": "gui-forms-maximum-backdrop-saturation-const-double-cdd239a250.html"
     },
     {
@@ -326274,7 +326274,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 1140,
+      "line": 1147,
       "page": "gui-forms-maximum-operations-per-device-pixel-const-std-uint32-t-fbf28a4678.html"
     },
     {
@@ -326319,7 +326319,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 508,
+      "line": 515,
       "page": "gui-forms-maximum-part-transitions-const-std-size-t-c9cbe41d58.html"
     },
     {
@@ -326379,7 +326379,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 507,
+      "line": 514,
       "page": "gui-forms-maximum-presentation-states-const-std-size-t-a776737175.html"
     },
     {
@@ -326394,7 +326394,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 383,
+      "line": 390,
       "page": "gui-forms-maximum-presentational-scale-const-double-bf418beb21.html"
     },
     {
@@ -326409,7 +326409,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 408,
+      "line": 415,
       "page": "gui-forms-maximum-presentational-translate-const-double-f824b13c42.html"
     },
     {
@@ -326589,7 +326589,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 1046,
+      "line": 1053,
       "page": "gui-forms-maximum-read-custom-properties-const-std-size-t-f05239122f.html"
     },
     {
@@ -326604,7 +326604,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 933,
+      "line": 940,
       "page": "gui-forms-maximum-recipe-outline-offset-const-double-7c324b2fa4.html"
     },
     {
@@ -326619,7 +326619,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 932,
+      "line": 939,
       "page": "gui-forms-maximum-recipe-outline-width-const-double-517fdc7368.html"
     },
     {
@@ -326694,7 +326694,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 940,
+      "line": 947,
       "page": "gui-forms-maximum-rule-font-size-const-double-62fee04158.html"
     },
     {
@@ -326709,7 +326709,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 942,
+      "line": 949,
       "page": "gui-forms-maximum-rule-font-weight-const-double-930889c634.html"
     },
     {
@@ -326754,7 +326754,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 1042,
+      "line": 1049,
       "page": "gui-forms-maximum-scoped-custom-properties-const-std-size-t-adc13e6b7c.html"
     },
     {
@@ -326769,7 +326769,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 934,
+      "line": 941,
       "page": "gui-forms-maximum-text-shadow-blur-const-double-ce8a5be897.html"
     },
     {
@@ -326784,7 +326784,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 935,
+      "line": 942,
       "page": "gui-forms-maximum-text-shadow-offset-const-double-788269a7db.html"
     },
     {
@@ -326934,7 +326934,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 382,
+      "line": 389,
       "page": "gui-forms-minimum-presentational-scale-const-double-13859f2b6e.html"
     },
     {
@@ -326964,7 +326964,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 939,
+      "line": 946,
       "page": "gui-forms-minimum-rule-font-size-const-double-98ee20d8d0.html"
     },
     {
@@ -326979,7 +326979,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 941,
+      "line": 948,
       "page": "gui-forms-minimum-rule-font-weight-const-double-7c8b3b32c5.html"
     },
     {
@@ -327114,7 +327114,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 372,
+      "line": 379,
       "page": "gui-forms-opacity-property-const-std-string-view-558d3a070c.html"
     },
     {
@@ -327294,7 +327294,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 193,
+      "line": 200,
       "page": "gui-forms-primitive-property-const-std-string-view-0b7ad49b7a.html"
     },
     {
@@ -327324,7 +327324,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 915,
+      "line": 922,
       "page": "gui-forms-recipe-field-count-const-std-size-t-644cb0e3ff.html"
     },
     {
@@ -327369,7 +327369,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 381,
+      "line": 388,
       "page": "gui-forms-scale-property-const-std-string-view-35b5db1cd0.html"
     },
     {
@@ -327489,7 +327489,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 1253,
+      "line": 1260,
       "page": "gui-forms-sheet-diagnostic-const-std-size-t-4eca58acd2.html"
     },
     {
@@ -327504,7 +327504,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 465,
+      "line": 472,
       "page": "gui-forms-text-role-count-const-std-size-t-3e5d487175.html"
     },
     {
@@ -327534,7 +327534,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 406,
+      "line": 413,
       "page": "gui-forms-translate-x-property-const-std-string-view-fffc5840a0.html"
     },
     {
@@ -327549,7 +327549,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 407,
+      "line": 414,
       "page": "gui-forms-translate-y-property-const-std-string-view-7cc910c230.html"
     },
     {
@@ -327969,7 +327969,7 @@
       "comment": "",
       "header": "gui_forms/engine/theme_rules/theme_rules.hpp",
       "source": "include/gui_forms/engine/theme_rules/theme_rules.hpp",
-      "line": 1249,
+      "line": 1256,
       "page": "gui-forms-user-theme-minimum-opacity-const-double-09e4957130.html"
     },
     {

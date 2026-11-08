@@ -47,13 +47,25 @@ namespace gui_forms {
 // `!important` ones above the program's ordinary declarations and below
 // its `!important` ones. A user theme's rules are a set of their own
 // (CompiledThemeRules::compile_user, PartFacts::user_rules).
+//
+// The base levels (selector step 1, owner ruling of 2026-11-08) hold the
+// GUI.Forms base sheet when a program's packages are compiled onto it, as
+// CSS's user-agent origin: its ordinary declarations below every user and
+// program declaration whatever their specificity, and its `!important`
+// ones below the user theme's and the program's.
+//
+// `class_rule` and `stable_id_rule` are for rules written as data: the
+// theme language puts every sheet rule at `theme_sheet`, where its CSS
+// specificity alone orders it (selector step 1).
 enum class CascadeLevel : std::uint8_t {
     built_in,
+    base_sheet,
     user_theme,
     theme_sheet,
     class_rule,
     stable_id_rule,
     inline_style,
+    important_base_sheet,
     important_user_theme,
     important_theme_sheet,
     forced_high_contrast,
@@ -112,26 +124,21 @@ struct RuleSelector final {
     }
 };
 
-// A selector's specificity: the stable ID, the classes, the control type,
-// the part (its name or role, one each) and the states, compared in that
-// order (T2 plan, E4).
+// A selector's specificity, CSS's three columns compared in order: the
+// stable ID; the classes and the states (pseudo-classes); the control type
+// or surface and the part (its name or role, one each, as pseudo-elements).
 struct RuleSpecificity final {
     std::uint32_t ids{};
     std::uint32_t classes{};
     std::uint32_t types{};
-    std::uint32_t parts{};
-    std::uint32_t states{};
 
     friend constexpr bool operator==(RuleSpecificity left, RuleSpecificity right) noexcept {
-        return left.ids == right.ids && left.classes == right.classes && left.types == right.types &&
-               left.parts == right.parts && left.states == right.states;
+        return left.ids == right.ids && left.classes == right.classes && left.types == right.types;
     }
     friend constexpr bool operator<(RuleSpecificity left, RuleSpecificity right) noexcept {
         if (left.ids != right.ids) return left.ids < right.ids;
         if (left.classes != right.classes) return left.classes < right.classes;
-        if (left.types != right.types) return left.types < right.types;
-        if (left.parts != right.parts) return left.parts < right.parts;
-        return left.states < right.states;
+        return left.types < right.types;
     }
 };
 

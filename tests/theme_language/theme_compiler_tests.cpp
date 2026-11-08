@@ -169,7 +169,7 @@ PropertyTransition still(std::string_view property, double target) {
 ThemeRule face_rule(std::string label, std::string stable_id) {
     ThemeRule rule{};
     rule.label = std::move(label);
-    rule.level = CascadeLevel::stable_id_rule;
+    rule.level = CascadeLevel::theme_sheet;
     rule.selector.stable_id = std::move(stable_id);
     rule.selector.part = "face";
     return rule;
@@ -459,7 +459,7 @@ void test_properties() {
     if (listed.sheet.rules.size() == 3U) {
         const ThemeRule& first = listed.sheet.rules[0];
         const ThemeRule& third = listed.sheet.rules[2];
-        require(first.selector.classes == std::vector<std::string>{"a"} && first.level == CascadeLevel::class_rule &&
+        require(first.selector.classes == std::vector<std::string>{"a"} && first.level == CascadeLevel::theme_sheet &&
                     !first.specificity && first.label == ".a, .b:is(.c, .d)",
                 "each expanded selector is one rule with the rule's label");
         require(third.selector.classes == (std::vector<std::string>{"b", "d"}) && !third.specificity &&
@@ -473,7 +473,7 @@ void test_properties() {
         const ThemeRule& own = given.sheet.rules[0];
         const ThemeRule& lifted = given.sheet.rules[1];
         require(!own.specificity && lifted.specificity && (*lifted.specificity).ids == 1U &&
-                    lifted.level == CascadeLevel::stable_id_rule,
+                    lifted.level == CascadeLevel::theme_sheet,
                 "an :is() gives its most specific argument's, given only where the selector's own differs");
     }
 }

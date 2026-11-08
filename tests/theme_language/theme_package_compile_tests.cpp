@@ -401,10 +401,26 @@ void test_application_theme() {
         const std::shared_ptr<Pad> pad = make_control<Pad>(StableId("pad"));
         const ResolvedControlRecipe recipe = resolved(*both.theme(), *pad);
         require(recipe.recipe().focus_width == 5.0, "the later package overrides");
+        // The base sheet is CSS's user-agent origin under the packages
+        // (selector step 1): its rules at the base levels, theirs above.
+        const std::vector<ThemeRule>& rules = (*both.theme()).definition().rules.rules;
+        std::size_t base_rules = 0U;
+        for (const ThemeRule& rule : rules) {
+            if (rule.level == CascadeLevel::base_sheet || rule.level == CascadeLevel::important_base_sheet) ++base_rules;
+        }
+        require(base_rules > 0U && !rules.empty() && rules.back().level == CascadeLevel::theme_sheet,
+                "the base's rules at the base levels, the packages' at the sheet's");
     }
     const ThemeCompileResult alone = compile_theme_packages(std::span<const ThemePackage>{}, library, images, onto);
     require(alone.succeeded() && alone.diagnostics().empty() && (*alone.theme()).id() == "gui-forms",
             "no package gives gui-forms alone");
+    if (alone.succeeded()) {
+        bool own = true;
+        for (const ThemeRule& rule : (*alone.theme()).definition().rules.rules) {
+            if (rule.level == CascadeLevel::base_sheet || rule.level == CascadeLevel::important_base_sheet) own = false;
+        }
+        require(own, "alone, the base is the program's own sheet");
+    }
     const ThemeCompileResult plain =
         compile_theme_packages(std::span<const ThemePackage>{}, library, images, options());
     require(plain.succeeded() && (*plain.theme()).id() == (*default_theme()).id() &&

@@ -45,7 +45,9 @@ struct Compilation final {
 };
 
 // Compiles `text`; a compiled sheet must be one the engine accepts whole.
-Compilation compile(std::string_view text) {
+// With `base_end`, the text before that byte is the GUI.Forms base sheet
+// (ThemeCompileInput::base_origin_end).
+Compilation compile(std::string_view text, std::optional<std::uint32_t> base_end = std::nullopt) {
     const PrimitiveRegistry& registry = builtin_primitive_registry();
     ThemeSource source{};
     source.file = "test.theme.css";
@@ -57,6 +59,7 @@ Compilation compile(std::string_view text) {
                             .resources = {},
                             .images = {},
                             .requires_engine = current_engine_version};
+    input.base_origin_end = base_end;
     ThemeCompiler compiler{};
     ThemeDiagnosticList diagnostics{};
     Compilation result{};
@@ -127,7 +130,7 @@ void test_split() {
         const ThemeRule& important = split.sheet.rules[0];
         const ThemeRule& ordinary = split.sheet.rules[1];
         require(important.level == CascadeLevel::important_theme_sheet &&
-                    ordinary.level == CascadeLevel::stable_id_rule,
+                    ordinary.level == CascadeLevel::theme_sheet,
                 "the important declarations at the important level, the rest at the selector's");
         require(important.selector == ordinary.selector && important.label == ordinary.label &&
                     important.media == ordinary.media,
@@ -287,10 +290,61 @@ void test_levels() {
 
 } // namespace
 
+// CSS's specificity and the base sheet as CSS's user-agent origin
+// (selector step 1).
+void test_origins() {
+    // A pseudo-class counts with the classes: `:hover::role(face)` (0,1,1)
+    // beats the later `.loud` (0,1,0), where a class once beat any state.
+    const Compilation hovered = compile(":hover::role(face) { primitive: bulge; amplitude: 0.8 }\n"
+                                        ".loud { primitive: bulge; amplitude: 0.3 }");
+    require(compiled_clean(hovered), "the specificity sheet compiles");
+    const CompiledThemeRules by_specificity = CompiledThemeRules::compile(hovered.sheet, builtin_primitive_registry());
+    const std::array<std::string, 1> classes{{"loud"}};
+    CompiledThemeRules::PartFacts hot{};
+    hot.stable_id = "a";
+    hot.classes = classes;
+    hot.role = PartRole::face;
+    hot.states.insert(AnatomyState::hot);
+    require(amplitude_of(by_specificity.resolve(hot)) == 0.8, "a state and a part beat a class alone");
+    require(amplitude_of(face_of(by_specificity)) == 0.3, "without the state, the class rule");
+    for (const ThemeRule& rule : hovered.sheet.rules) {
+        require(rule.level == CascadeLevel::theme_sheet, "every sheet rule at the sheet's level");
+    }
+
+    // The base's rules lose to every rule after it, whatever the
+    // specificity; its important ones beat ordinary rules, and lose to
+    // important ones after it.
+    const std::string_view base = "#a.loud::role(face) { primitive: bulge; amplitude: 0.9 }\n";
+    const std::string under = std::string(base) + "* { primitive: bulge; amplitude: 0.4 }";
+    const Compilation layered = compile(under, static_cast<std::uint32_t>(base.size()));
+    require(compiled_clean(layered) && layered.sheet.rules.size() == 2U, "the layered sheet compiles");
+    if (layered.sheet.rules.size() == 2U) {
+        require(layered.sheet.rules[0].level == CascadeLevel::base_sheet &&
+                    layered.sheet.rules[1].level == CascadeLevel::theme_sheet,
+                "the base's rule at the base level, the package's at the sheet's");
+    }
+    const CompiledThemeRules origins = CompiledThemeRules::compile(layered.sheet, builtin_primitive_registry());
+    require(amplitude_of(face_of(origins)) == 0.4, "the package's universal rule beats the base's stable-ID rule");
+    const std::string_view important_base = "#a { primitive: bulge !important; amplitude: 0.9 !important }\n";
+    const std::string over = std::string(important_base) + "* { primitive: bulge; amplitude: 0.4 }";
+    const Compilation raised = compile(over, static_cast<std::uint32_t>(important_base.size()));
+    require(compiled_clean(raised) && !raised.sheet.rules.empty() &&
+                raised.sheet.rules[0].level == CascadeLevel::important_base_sheet,
+            "the base's important declarations at the important base level");
+    const CompiledThemeRules raised_rules = CompiledThemeRules::compile(raised.sheet, builtin_primitive_registry());
+    require(amplitude_of(face_of(raised_rules)) == 0.9, "the base's important rule beats an ordinary rule");
+    const std::string both = std::string(important_base) + "* { primitive: bulge !important; amplitude: 0.4 !important }";
+    const Compilation contested = compile(both, static_cast<std::uint32_t>(important_base.size()));
+    const CompiledThemeRules contested_rules =
+        CompiledThemeRules::compile(contested.sheet, builtin_primitive_registry());
+    require(amplitude_of(face_of(contested_rules)) == 0.4, "an important rule after the base beats the base's");
+}
+
 int main() {
     test_split();
     test_e1_cascade();
     test_levels();
+    test_origins();
     if (failures != 0) {
         std::cerr << failures << " failure(s)\n";
         return 1;

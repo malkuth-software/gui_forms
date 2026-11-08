@@ -15,11 +15,11 @@ rule 3 theme_sheet part=face
   label ::part(face)
   transition opacity curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
     state when= target=0.95
-rule 4 stable_id_rule id=player-play
+rule 4 theme_sheet id=player-play
   label #player-play
   transition opacity curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
     state when= target=0.7
-rule 5 class_rule type=button class=primary class=wide
+rule 5 theme_sheet type=button class=primary class=wide
   label button.primary.wide
   transition opacity curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
     state when= target=0.6

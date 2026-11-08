@@ -358,8 +358,7 @@ std::string rule_text(std::size_t index, const ThemeRule& rule) {
     if (rule.specificity) {
         const RuleSpecificity& given = *rule.specificity;
         text += "  specificity " + std::to_string(given.ids) + "," + std::to_string(given.classes) + "," +
-                std::to_string(given.types) + "," + std::to_string(given.parts) + "," + std::to_string(given.states) +
-                "\n";
+                std::to_string(given.types) + "\n";
     }
     if (rule.requires_engine) {
         text += "  requires " + std::to_string((*rule.requires_engine).major) + "." +

@@ -2,7 +2,7 @@ compiled
 rule 0 theme_sheet *
   label :root
   defines --lift #2
-rule 1 class_rule type=button class=loud
+rule 1 theme_sheet type=button class=loud
   label button.loud
   defines --lift #5
 rule 2 important_theme_sheet type=button class=quiet

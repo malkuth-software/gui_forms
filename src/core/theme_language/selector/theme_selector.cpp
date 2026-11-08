@@ -78,8 +78,6 @@ template <std::size_t Count>
     sum.ids = left.ids + right.ids;
     sum.classes = left.classes + right.classes;
     sum.types = left.types + right.types;
-    sum.parts = left.parts + right.parts;
-    sum.states = left.states + right.states;
     return sum;
 }
 
@@ -88,18 +86,10 @@ template <std::size_t Count>
 [[nodiscard]] RuleSpecificity specificity_of(SimpleKind kind) noexcept {
     RuleSpecificity one{};
     if (kind == SimpleKind::stable_id) one.ids = 1U;
-    if (kind == SimpleKind::style_class) one.classes = 1U;
+    if (kind == SimpleKind::style_class || kind == SimpleKind::state) one.classes = 1U;
     if (kind == SimpleKind::control_type || kind == SimpleKind::surface) one.types = 1U;
-    if (kind == SimpleKind::part || kind == SimpleKind::role) one.parts = 1U;
-    if (kind == SimpleKind::state) one.states = 1U;
+    if (kind == SimpleKind::part || kind == SimpleKind::role) one.types = 1U;
     return one;
-}
-
-// The level a theme-sheet rule takes from its specificity (README, E1).
-[[nodiscard]] CascadeLevel level_of(RuleSpecificity specificity) noexcept {
-    if (specificity.ids != 0U) return CascadeLevel::stable_id_rule;
-    if (specificity.classes != 0U) return CascadeLevel::class_rule;
-    return CascadeLevel::theme_sheet;
 }
 
 // The surface a registered name selects, or none: `window` and `popup`
@@ -687,7 +677,9 @@ bool SelectorPass::materialize(const Alternative& alternative, RuleSpecificity s
     }
     emitted_bytes_ += bytes;
     lowered.specificity = specificity;
-    lowered.level = level_of(specificity);
+    // Every theme-sheet rule at one level, ordered there by its CSS
+    // specificity alone (selector step 1).
+    lowered.level = CascadeLevel::theme_sheet;
     if (!dropped_) output_.push_back(std::move(lowered));
     ++emitted_;
     return true;

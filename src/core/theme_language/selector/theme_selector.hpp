@@ -47,9 +47,9 @@ struct LoweringBudget final {
 [[nodiscard]] std::size_t lowered_selector_bytes(const RuleSelector& selector) noexcept;
 
 // One selector of a rule, expanded: the engine's selector, the specificity
-// CSS gives it (with `:is()`, its most specific argument's, EC2), and the
-// cascade level that specificity puts a theme-sheet rule at (a stable ID
-// at stable_id_rule, else a class at class_rule, else theme_sheet).
+// CSS gives it (with `:is()`, its most specific argument's, EC2), and its
+// cascade level: theme_sheet, where specificity alone orders the rules,
+// as CSS's does (selector step 1).
 struct LoweredSelector final {
     RuleSelector selector{};
     RuleSpecificity specificity{};

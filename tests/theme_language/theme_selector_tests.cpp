@@ -135,14 +135,12 @@ Lowering lower(std::string_view selectors, std::size_t budget = maximum_rules) {
     return result;
 }
 
-RuleSpecificity specificity(std::uint32_t ids, std::uint32_t classes, std::uint32_t types, std::uint32_t parts,
-                            std::uint32_t states) {
+// CSS's three columns: stable IDs; classes and states; types and parts.
+RuleSpecificity specificity(std::uint32_t ids, std::uint32_t classes, std::uint32_t types) {
     RuleSpecificity result{};
     result.ids = ids;
     result.classes = classes;
     result.types = types;
-    result.parts = parts;
-    result.states = states;
     return result;
 }
 
@@ -160,7 +158,7 @@ LoweredSelector lower_one(std::string_view selectors) {
 
 void test_forms() {
     const LoweredSelector type = lower_one("track-bar");
-    require(type.selector.control_type == "track_bar" && type.specificity == specificity(0U, 0U, 1U, 0U, 0U) &&
+    require(type.selector.control_type == "track_bar" && type.specificity == specificity(0U, 0U, 1U) &&
                 type.level == CascadeLevel::theme_sheet,
             "a control type, written kebab-case");
 
@@ -170,19 +168,19 @@ void test_forms() {
             "any control");
 
     const LoweredSelector id = lower_one("#player-play");
-    require(id.selector.stable_id == "player-play" && id.specificity == specificity(1U, 0U, 0U, 0U, 0U) &&
-                id.level == CascadeLevel::stable_id_rule,
-            "a stable ID keeps its spelling, at the stable-ID level");
+    require(id.selector.stable_id == "player-play" && id.specificity == specificity(1U, 0U, 0U) &&
+                id.level == CascadeLevel::theme_sheet,
+            "a stable ID keeps its spelling, at the sheet level");
 
     const LoweredSelector style_class = lower_one(".primary");
     require(style_class.selector.classes == std::vector<std::string>{"primary"} &&
-                style_class.specificity == specificity(0U, 1U, 0U, 0U, 0U) &&
-                style_class.level == CascadeLevel::class_rule,
-            "a class, at the class level");
+                style_class.specificity == specificity(0U, 1U, 0U) &&
+                style_class.level == CascadeLevel::theme_sheet,
+            "a class, at the sheet level");
 
     const LoweredSelector part = lower_one("button::part(face)");
     require(part.selector.control_type == "button" && part.selector.part == "face" &&
-                part.specificity == specificity(0U, 0U, 1U, 1U, 0U),
+                part.specificity == specificity(0U, 0U, 2U),
             "a part of a control type");
 
     const LoweredSelector item_part = lower_one("list-view::part(row)");
@@ -193,12 +191,12 @@ void test_forms() {
             "a part without a type, declared by some type");
 
     const LoweredSelector role = lower_one("::role(face)");
-    require(role.selector.role == PartRole::face && role.specificity == specificity(0U, 0U, 0U, 1U, 0U),
+    require(role.selector.role == PartRole::face && role.specificity == specificity(0U, 0U, 1U),
             "a part role");
 
     const LoweredSelector custom = lower_one("button:state(drop-accepted)");
     require(custom.selector.states == std::vector<AnatomyState>{AnatomyState::drop_accepted} &&
-                custom.specificity == specificity(0U, 0U, 1U, 0U, 1U),
+                custom.specificity == specificity(0U, 1U, 1U),
             "a published state through :state()");
 
     struct StandardCase final {
@@ -223,19 +221,19 @@ void test_forms() {
     for (const StandardCase& entry : standard) {
         const LoweredSelector lowered = lower_one(entry.selector);
         require(lowered.selector.states == std::vector<AnatomyState>{entry.state} &&
-                    lowered.specificity == specificity(0U, 0U, 1U, 0U, 1U),
+                    lowered.specificity == specificity(0U, 1U, 1U),
                 std::string("a standard pseudo-class: ") + std::string(entry.selector));
     }
 
     const LoweredSelector full = lower_one("button#save.primary.loud::part(face):hover:active");
     require(full.selector.stable_id == "save" && full.selector.classes.size() == 2U &&
-                full.selector.states.size() == 2U && full.specificity == specificity(1U, 2U, 1U, 1U, 2U) &&
-                full.level == CascadeLevel::stable_id_rule,
+                full.selector.states.size() == 2U && full.specificity == specificity(1U, 4U, 2U) &&
+                full.level == CascadeLevel::theme_sheet,
             "every simple selector in one compound");
 
     const LoweredSelector repeated = lower_one(".a.a:hover:hover");
     require(repeated.selector.classes.size() == 1U && repeated.selector.states.size() == 1U &&
-                repeated.specificity == specificity(0U, 2U, 0U, 0U, 2U),
+                repeated.specificity == specificity(0U, 4U, 0U),
             "a repeated class or state is kept once and counted as written, as CSS counts it");
 
     const LoweredSelector commented = lower_one("button/* a */:hover");
@@ -252,8 +250,8 @@ void test_expansion() {
         require(either.selectors[0].selector.states == std::vector<AnatomyState>{AnatomyState::hot} &&
                     either.selectors[1].selector.states == std::vector<AnatomyState>{AnatomyState::focus_visible},
                 "in argument order");
-        require(either.selectors[0].specificity == specificity(0U, 0U, 1U, 1U, 1U) &&
-                    either.selectors[1].specificity == specificity(0U, 0U, 1U, 1U, 1U),
+        require(either.selectors[0].specificity == specificity(0U, 1U, 2U) &&
+                    either.selectors[1].specificity == specificity(0U, 1U, 2U),
                 "each with the type, the part and one state");
     }
 
@@ -261,23 +259,23 @@ void test_expansion() {
     require(most.outcome == SelectorOutcome::lowered && most.selectors.size() == 2U, "an ID and a type");
     if (most.selectors.size() == 2U) {
         require(most.selectors[1].selector.control_type == "button" && most.selectors[1].selector.stable_id.empty() &&
-                    most.selectors[1].specificity == specificity(1U, 0U, 0U, 0U, 0U) &&
-                    most.selectors[1].level == CascadeLevel::stable_id_rule,
+                    most.selectors[1].specificity == specificity(1U, 0U, 0U) &&
+                    most.selectors[1].level == CascadeLevel::theme_sheet,
                 "each argument takes the most specific argument's specificity and its level (EC2)");
     }
 
     const Lowering list = lower("button, check-box::part(check):checked");
     require(list.outcome == SelectorOutcome::lowered && list.selectors.size() == 2U, "a selector list");
     if (list.selectors.size() == 2U) {
-        require(list.selectors[0].specificity == specificity(0U, 0U, 1U, 0U, 0U) &&
-                    list.selectors[1].specificity == specificity(0U, 0U, 1U, 1U, 1U),
+        require(list.selectors[0].specificity == specificity(0U, 0U, 1U) &&
+                    list.selectors[1].specificity == specificity(0U, 1U, 2U),
                 "each selector of a list has its own specificity (R2-15)");
     }
 
     const Lowering nested = lower(":is(:is(.a, .b), .c.d)");
     require(nested.outcome == SelectorOutcome::lowered && nested.selectors.size() == 3U, "nested :is()");
     if (nested.selectors.size() == 3U) {
-        require(nested.selectors[0].specificity == specificity(0U, 2U, 0U, 0U, 0U) &&
+        require(nested.selectors[0].specificity == specificity(0U, 2U, 0U) &&
                     nested.selectors[0].selector.classes == std::vector<std::string>{"a"},
                 "the outer :is() counts its most specific argument, .c.d");
     }

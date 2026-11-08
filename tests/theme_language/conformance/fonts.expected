@@ -8,7 +8,7 @@ rule 0 theme_sheet type=button
   recipe font_weight colour=#000000ff number=700 outline=0
   recipe font_style colour=#000000ff number=0 outline=0 italic
   recipe letter_spacing colour=#000000ff number=0 outline=0 em=[0.05]
-rule 1 stable_id_rule id=field
+rule 1 theme_sheet id=field
   label #field
   recipe font_family colour=#000000ff number=0 outline=0 role=2
   recipe font_size colour=#000000ff number=0 outline=0 em=[1.25]

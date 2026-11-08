@@ -83,6 +83,10 @@ struct ThemeCompileInput final {
     // at `important_user_theme` for its `!important` declarations, its
     // selectors ordered by specificity within the level.
     bool user_theme{};
+    // A program's packages compiled onto the GUI.Forms base (selector step
+    // 1): the byte offset where the base sheet's text ends. Rules starting
+    // before it are at the base levels, as CSS's user-agent origin.
+    std::optional<std::uint32_t> base_origin_end{};
     // The host's colour hints, which env() reads when the sheet is
     // compiled (T4 theme variants); empty, every env() reads its fallback.
     SystemColourHints system_colours{};

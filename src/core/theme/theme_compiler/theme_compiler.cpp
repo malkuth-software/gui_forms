@@ -402,6 +402,13 @@ ThemeCompileResult compile_closure(std::span<const VerifiedThemePack* const> roo
         loaded.push_back(resource);
         held.push_back(lease);
     }
+    // Packages compiled onto the GUI.Forms base: the base sheet is CSS's
+    // user-agent origin under them (selector step 1). Alone, it is the
+    // program's own sheet.
+    std::optional<std::uint32_t> base_origin_end{};
+    if (onto_gui_forms && set == ThemeRuleSet::program && segments.size() > 1U) {
+        base_origin_end = static_cast<std::uint32_t>(segments[1].start);
+    }
     const theme_language::ThemeSource source{.file = closure_file, .text = text};
     const PrimitiveRegistry& registry = builtin_primitive_registry();
     const theme_language::ThemeCompileInput input{.source = source,
@@ -412,6 +419,7 @@ ThemeCompileResult compile_closure(std::span<const VerifiedThemePack* const> roo
                                                   .images = loaded,
                                                   .requires_engine = requires_engine,
                                                   .user_theme = set == ThemeRuleSet::user,
+                                                  .base_origin_end = base_origin_end,
                                                   .system_colours = options.system_colours};
     // The base's recipes, some 100 KB held out of line.
     std::unique_ptr<ThemeDefinition> definition(new ThemeDefinition(

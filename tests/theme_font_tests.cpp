@@ -161,15 +161,15 @@ void test_resolution() {
     const std::size_t style = static_cast<std::size_t>(FontField::style);
     require(resolved.themed[family] && resolved.levels[family] == CascadeLevel::theme_sheet,
             "provenance: the family from the type rule");
-    require(resolved.themed[weight] && resolved.levels[weight] == CascadeLevel::stable_id_rule,
-            "provenance: the weight from the stable-ID rule");
+    require(resolved.themed[weight] && resolved.levels[weight] == CascadeLevel::theme_sheet,
+            "provenance: the weight from a sheet rule (the stable-ID rule)");
     require(!resolved.themed[style], "provenance: an unset field is the control's own");
 
     window.perform_layout();
     (*label).set_classes({"quiet"});
     require(((*label).dirty() & Dirty::measure) == Dirty::measure, "a class that changes the font is a layout change");
     require((*label).resolved_text_font(own).font.italic, "the class rule's style");
-    require((*label).resolved_text_font(own).levels[style] == CascadeLevel::class_rule, "provenance: a class rule");
+    require((*label).resolved_text_font(own).levels[style] == CascadeLevel::theme_sheet, "provenance: a sheet rule (the class rule)");
 
     (*label).font = FontSpec{FontRole::content, 11.0, 400, false};
     const ResolvedFont coded = (*label).resolved_text_font((*label).resolved_font());
