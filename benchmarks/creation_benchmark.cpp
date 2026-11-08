@@ -189,6 +189,19 @@ public:
 
 using CreationForm = form_generated::CreationSettingsForm<FormOwner>;
 
+// The buttons' handlers, connected in program logic (a form names no
+// program code, E816). The tokens keep the connections; the caller declares
+// them after the form, so they end first.
+void connect_handlers(CreationForm& form, FormOwner& owner, std::vector<SubscriptionToken>& connections) {
+    using Clicked = Delegate<ButtonBase&>;
+    connections.push_back((*form.creation_apply).clicked().subscribe(Clicked::bind<FormOwner, &FormOwner::apply>(owner)));
+    connections.push_back((*form.creation_reset).clicked().subscribe(Clicked::bind<FormOwner, &FormOwner::reset>(owner)));
+    connections.push_back((*form.creation_help).clicked().subscribe(Clicked::bind<FormOwner, &FormOwner::help>(owner)));
+    connections.push_back((*form.creation_ok).clicked().subscribe(Clicked::bind<FormOwner, &FormOwner::accept>(owner)));
+    connections.push_back(
+        (*form.creation_cancel).clicked().subscribe(Clicked::bind<FormOwner, &FormOwner::dismiss>(owner)));
+}
+
 constexpr Size bare_size{640.0, 480.0};
 
 // The window and an empty root.
@@ -226,9 +239,12 @@ Sample measure_form_window(const std::shared_ptr<ApplicationResources>& resource
     FormOwner owner{};
     std::optional<CreationForm> form;
     std::optional<Window> window;
+    std::vector<SubscriptionToken> connections;
+    connections.reserve(5U);
     Measurement measurement;
     form.emplace();
     (*form).initialize_component(owner);
+    connect_handlers(*form, owner, connections);
     window.emplace((*form).root_control(), CreationForm::window_client_size.value_or(bare_size), resources);
     (*form).attach_buttons(*window);
     const Sample sample = measurement.finish();

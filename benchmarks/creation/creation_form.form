@@ -27,10 +27,10 @@ form creation.settings {
       domain-up-down creation.view.band { items: "HF" "VHF" "UHF"; tab-index: 5; }
       list-box creation.view.modes { items: "AM" "FM" "Wide FM" "USB" "LSB"; tab-index: 6; }
     }
-    button creation.apply { text: "Apply"; tab-index: 7; on-clicked: apply; }
-    button creation.reset { text: "Reset"; tab-index: 8; on-clicked: reset; }
-    button creation.help { text: "Help"; tab-index: 9; on-clicked: help; }
-    button creation.ok { text: "OK"; tab-index: 10; on-clicked: accept; }
-    button creation.cancel { text: "Cancel"; tab-index: 11; on-clicked: dismiss; }
+    button creation.apply { text: "Apply"; tab-index: 7; }
+    button creation.reset { text: "Reset"; tab-index: 8; }
+    button creation.help { text: "Help"; tab-index: 9; }
+    button creation.ok { text: "OK"; tab-index: 10; }
+    button creation.cancel { text: "Cancel"; tab-index: 11; }
   }
 }
