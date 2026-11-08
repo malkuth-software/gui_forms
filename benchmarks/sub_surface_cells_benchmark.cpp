@@ -13,8 +13,13 @@
 //       cells_on_sub_surface off and on (the grid's headers, layout and
 //       resolution stay on the UI thread either way).
 //   M2  update to publish: redraw_all until the frame tagged with its epoch
-//       is published (the input path itself is measured once the grid is
-//       wired, part 2).
+//       is published; and the input path on the real grid (cells on its
+//       region): a click on a cell, and a key moving the current cell, each
+//       dispatched through the window, to the publication of the epoch its
+//       paint sent and to the 60 Hz present tick that shows that frame
+//       paired (input to photon, the display's scanout excluded). Inputs
+//       land at phases spread over the refresh. Target: the present that
+//       shows it within one display frame of the input.
 //   M4  agreement while scrolling: pairing waits and unpaired presentations
 //       at the present ticks (target: no unpaired presentation).
 //   M5  publish interval spread while scrolling at 60 Hz.
@@ -387,6 +392,99 @@ void scrolling_on_sub_surface(std::size_t steps, Spread& ui_cost, Spread& publis
     return result;
 }
 
+// M2's input path: which input, and what it measured.
+enum class GridInput : std::uint8_t { click, key };
+
+struct InputPath final {
+    Spread to_publish{};
+    Spread to_present{};
+    // Inputs whose frame was presented within one refresh of the input.
+    std::size_t within_frame{};
+};
+
+// The point of the data cell in display column 2, `row` rows below the
+// first displayed one: past the row headers and clear of the column
+// headers (the 40-unit offset leaves room for any header height in use).
+[[nodiscard]] Point cell_point(std::size_t row) noexcept {
+    const Point point{column_width * 2.5, 40.0 + row_height * (static_cast<double>(row) + 0.5)};
+    return point;
+}
+
+void click_at(Window& window, Point point) {
+    PointerEvent down{PointerAction::down, PointerButton::primary, point};
+    down.click_count = 1U;
+    static_cast<void>(window.dispatch_pointer(down));
+    PointerEvent up{PointerAction::up, PointerButton::primary, point};
+    static_cast<void>(window.dispatch_pointer(up));
+}
+
+// M2 on the real grid: each step presents the previous frame, waits until a
+// phase of the refresh, dispatches the input (a click on another row's
+// cell, or Down and Up in turn), flushes and paints the window as a host
+// would, then waits for the region's epoch and presents at the next tick.
+[[nodiscard]] InputPath input_to_photon(GridInput input, std::size_t steps) {
+    render::SkiaRaster raster;
+    std::shared_ptr<DataGridView> grid = make_grid();
+    (*grid).cells_on_sub_surface = true;
+    Window window(grid, Size{region_width + 40.0, region_height + 60.0});
+    window.set_framebuffer_painter(&raster);
+    window.flush();
+    PresentPath path(window, raster);
+    path.paint();
+    const std::shared_ptr<SubSurfaceHost> host = std::dynamic_pointer_cast<SubSurfaceHost>((*grid).children()[0]);
+    require(static_cast<bool>(host), "the grid's region is its first child");
+    const std::shared_ptr<LiveSurface> surface = (*host).live_surface();
+    static_cast<void>(wait_for_tag(*surface, (*host).content_epoch()));
+    // The first click gives the grid focus and a current cell for the keys.
+    click_at(window, cell_point(0U));
+    window.flush();
+    path.paint();
+    static_cast<void>(wait_for_tag(*surface, (*host).content_epoch()));
+    std::vector<double> publish_samples;
+    std::vector<double> present_samples;
+    publish_samples.reserve(steps);
+    present_samples.reserve(steps);
+    std::size_t within_frame = 0U;
+    Clock::time_point tick = Clock::now() + refresh;
+    for (std::size_t step = 0U; step < steps; ++step) {
+        std::this_thread::sleep_until(tick);
+        static_cast<void>(path.present(tick));
+        // Sixteen phases across the refresh, in a fixed stride.
+        const std::chrono::nanoseconds phase = refresh * static_cast<std::int64_t>((step * 7U) % 16U) / 16;
+        std::this_thread::sleep_until(tick + phase);
+        const std::uint64_t before = (*host).content_epoch();
+        const Clock::time_point start = Clock::now();
+        if (input == GridInput::click) {
+            // Rows 1 to 20 in turn: never the row the last click chose.
+            click_at(window, cell_point(1U + step % 20U));
+        } else {
+            KeyEvent event{KeyAction::down, (step % 2U) == 0U ? PhysicalKey::down : PhysicalKey::up};
+            static_cast<void>(window.dispatch_key(event));
+        }
+        window.flush();
+        path.paint();
+        const std::uint64_t epoch = (*host).content_epoch();
+        require(epoch > before, "the input's paint sent the region a new epoch");
+        static_cast<void>(wait_for_tag(*surface, epoch));
+        const Clock::time_point published = Clock::now();
+        // The next present tick on the 60 Hz grid shows it paired.
+        while (tick <= published) tick += refresh;
+        std::this_thread::sleep_until(tick);
+        static_cast<void>(path.present(tick));
+        require((*surface).snapshot().content_tag >= epoch, "the present shows the input's epoch");
+        const Clock::duration to_present = tick - start;
+        publish_samples.push_back(milliseconds(published - start));
+        present_samples.push_back(milliseconds(to_present));
+        if (to_present <= refresh) ++within_frame;
+        tick += refresh;
+    }
+    InputPath result{};
+    result.to_publish = spread_of(publish_samples);
+    result.to_present = spread_of(present_samples);
+    result.within_frame = within_frame;
+    return result;
+}
+
 // Posted to the sub-surface: raises a flag the UI thread spins on.
 class RaiseFlag final {
 public:
@@ -489,6 +587,15 @@ int main(int argc, char** argv) {
     report("M5 publish interval at 60 Hz", intervals);
     const Spread to_publish = update_to_publish(steps / 4U + 1U);
     report("M2 redraw_all to publish (full window)", to_publish);
+    const std::size_t input_steps = steps / 4U + 1U;
+    const InputPath clicks = input_to_photon(GridInput::click, input_steps);
+    report("M2 grid click to publish", clicks.to_publish);
+    report("M2 grid click to present (60 Hz ticks)", clicks.to_present);
+    std::printf("M2 grid clicks presented within one frame: %zu of %zu\n", clicks.within_frame, input_steps);
+    const InputPath keys = input_to_photon(GridInput::key, input_steps);
+    report("M2 grid key to publish", keys.to_publish);
+    report("M2 grid key to present (60 Hz ticks)", keys.to_present);
+    std::printf("M2 grid keys presented within one frame: %zu of %zu\n", keys.within_frame, input_steps);
 
     const DataGridViewCellsSnapshot sample = snapshot_from(0U, every_cell);
     const std::size_t snapshot_bytes = sizeof(DataGridViewCellsSnapshot) +
