@@ -7,7 +7,7 @@ gui_forms::PropertyGrid
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: PropertyGrid final : public Panel
+.. cpp:class:: PropertyGrid final : public Panel, public PropertyGridCapabilities<PropertyGrid>
 
    ``#include <gui_forms/controls/panel/property_grid/property_grid.hpp>``
 
@@ -35,6 +35,27 @@ gui_forms::PropertyGrid
 
    :Properties:
 
+      **property_sort** : ``PropertySort``
+         :cpp:enumerator:`PropertySort::categorized <gui_forms::PropertySort::categorized>`, the default, groups the rows by category
+         with the categories and the names within them in alphabetical order; a
+         property without a category goes under "Misc".
+         :cpp:enumerator:`PropertySort::alphabetical <gui_forms::PropertySort::alphabetical>` shows every row in one group titled
+         "PROPERTIES". Another value throws ``std::invalid_argument``. Changing it
+         rebuilds the rows.
+
+      **converter_registry** : ``std::shared_ptr<PropertyValueConverterRegistry>``
+         The converters that turn values into text and typed text into values.
+         The grid starts with ``PropertyValueConverterRegistry::create_default``.
+         Setting it to null throws ``std::invalid_argument``; setting another
+         registry rebuilds the rows.
+
+      **editor_registry** : ``std::shared_ptr<PropertyEditorRegistry>``
+         The factories that create editors for particular kinds of value. The
+         default from ``PropertyEditorRegistry::create_default`` creates a
+         :cpp:class:`NumericUpDown <gui_forms::NumericUpDown>` for numbers, a :cpp:class:`FlagsValueEditor <gui_forms::FlagsValueEditor>` for flags enumerations
+         and a :cpp:class:`ColorValueEditor <gui_forms::ColorValueEditor>` for colours. Setting it to null throws
+         ``std::invalid_argument``; setting another registry rebuilds the rows.
+
       **selected_object** : ``Control::Ptr``
          The first selected control, or null when nothing is selected. Setting it
          is the same as setting :cpp:func:`selected_objects <gui_forms::PropertyGrid::selected_objects>` to that one control, or to
@@ -51,29 +72,8 @@ gui_forms::PropertyGrid
          pointer, a disposed control or a control listed twice. Setting the same
          selection again only refreshes the rows.
 
-      **property_sort** : ``PropertySort``
-         :cpp:enumerator:`PropertySort::categorized <gui_forms::PropertySort::categorized>`, the default, groups the rows by category
-         with the categories and the names within them in alphabetical order; a
-         property without a category goes under "Misc".
-         :cpp:enumerator:`PropertySort::alphabetical <gui_forms::PropertySort::alphabetical>` shows every row in one group titled
-         "PROPERTIES". Another value throws ``std::invalid_argument``. Changing it
-         rebuilds the rows.
-
       **property_list** : ``std::shared_ptr<PropertyList>``, read-only
          The :cpp:class:`PropertyList <gui_forms::PropertyList>` that shows the rows.
-
-      **converter_registry** : ``std::shared_ptr<PropertyValueConverterRegistry>``
-         The converters that turn values into text and typed text into values.
-         The grid starts with ``PropertyValueConverterRegistry::create_default``.
-         Setting it to null throws ``std::invalid_argument``; setting another
-         registry rebuilds the rows.
-
-      **editor_registry** : ``std::shared_ptr<PropertyEditorRegistry>``
-         The factories that create editors for particular kinds of value. The
-         default from ``PropertyEditorRegistry::create_default`` creates a
-         :cpp:class:`NumericUpDown <gui_forms::NumericUpDown>` for numbers, a :cpp:class:`FlagsValueEditor <gui_forms::FlagsValueEditor>` for flags enumerations
-         and a :cpp:class:`ColorValueEditor <gui_forms::ColorValueEditor>` for colours. Setting it to null throws
-         ``std::invalid_argument``; setting another registry rebuilds the rows.
 
       **last_error** : ``std::optional<PropertyGridEditError>``, read-only
          The most recent rejected edit, or no value. A successful edit and a
@@ -142,6 +142,8 @@ gui_forms::PropertyGrid
         - Removes the item at an index from a collection property.
       * - :cpp:func:`move_collection_item <gui_forms::PropertyGrid::move_collection_item>`
         - Moves an item of a collection property from one index to another.
+      * - :cpp:func:`property_grid_property_entries <gui_forms::PropertyGrid::property_grid_property_entries>`
+        -  
       * - :cpp:func:`set_property_expanded <gui_forms::PropertyGrid::set_property_expanded>`
         - Shows or hides the rows for the parts of a compound property.
 
@@ -251,6 +253,30 @@ gui_forms::PropertyGrid
 
    .. rubric:: Properties
 
+   .. cpp:member:: PropertySort property_sort
+
+      :cpp:enumerator:`PropertySort::categorized <gui_forms::PropertySort::categorized>`, the default, groups the rows by category
+      with the categories and the names within them in alphabetical order; a
+      property without a category goes under "Misc".
+      :cpp:enumerator:`PropertySort::alphabetical <gui_forms::PropertySort::alphabetical>` shows every row in one group titled
+      "PROPERTIES". Another value throws ``std::invalid_argument``. Changing it
+      rebuilds the rows.
+
+   .. cpp:member:: std::shared_ptr<PropertyValueConverterRegistry> converter_registry
+
+      The converters that turn values into text and typed text into values.
+      The grid starts with ``PropertyValueConverterRegistry::create_default``.
+      Setting it to null throws ``std::invalid_argument``; setting another
+      registry rebuilds the rows.
+
+   .. cpp:member:: std::shared_ptr<PropertyEditorRegistry> editor_registry
+
+      The factories that create editors for particular kinds of value. The
+      default from ``PropertyEditorRegistry::create_default`` creates a
+      :cpp:class:`NumericUpDown <gui_forms::NumericUpDown>` for numbers, a :cpp:class:`FlagsValueEditor <gui_forms::FlagsValueEditor>` for flags enumerations
+      and a :cpp:class:`ColorValueEditor <gui_forms::ColorValueEditor>` for colours. Setting it to null throws
+      ``std::invalid_argument``; setting another registry rebuilds the rows.
+
    .. cpp:function:: Control::Ptr selected_object() const noexcept
 
       The first selected control, or null when nothing is selected. Setting it
@@ -277,45 +303,9 @@ gui_forms::PropertyGrid
 
       Sets :cpp:func:`selected_objects <gui_forms::PropertyGrid::selected_objects>`; see the property's description above.
 
-   .. cpp:function:: PropertySort property_sort() const noexcept
-
-      :cpp:enumerator:`PropertySort::categorized <gui_forms::PropertySort::categorized>`, the default, groups the rows by category
-      with the categories and the names within them in alphabetical order; a
-      property without a category goes under "Misc".
-      :cpp:enumerator:`PropertySort::alphabetical <gui_forms::PropertySort::alphabetical>` shows every row in one group titled
-      "PROPERTIES". Another value throws ``std::invalid_argument``. Changing it
-      rebuilds the rows.
-
-   .. cpp:function:: void set_property_sort(PropertySort sort)
-
-      Sets :cpp:func:`property_sort <gui_forms::PropertyGrid::property_sort>`; see the property's description above.
-
    .. cpp:function:: std::shared_ptr<PropertyList> property_list() const noexcept
 
       The :cpp:class:`PropertyList <gui_forms::PropertyList>` that shows the rows.
-
-   .. cpp:function:: std::shared_ptr<PropertyValueConverterRegistry> converter_registry() const noexcept
-
-      The converters that turn values into text and typed text into values.
-      The grid starts with ``PropertyValueConverterRegistry::create_default``.
-      Setting it to null throws ``std::invalid_argument``; setting another
-      registry rebuilds the rows.
-
-   .. cpp:function:: void set_converter_registry(std::shared_ptr<PropertyValueConverterRegistry> registry)
-
-      Sets :cpp:func:`converter_registry <gui_forms::PropertyGrid::converter_registry>`; see the property's description above.
-
-   .. cpp:function:: std::shared_ptr<PropertyEditorRegistry> editor_registry() const noexcept
-
-      The factories that create editors for particular kinds of value. The
-      default from ``PropertyEditorRegistry::create_default`` creates a
-      :cpp:class:`NumericUpDown <gui_forms::NumericUpDown>` for numbers, a :cpp:class:`FlagsValueEditor <gui_forms::FlagsValueEditor>` for flags enumerations
-      and a :cpp:class:`ColorValueEditor <gui_forms::ColorValueEditor>` for colours. Setting it to null throws
-      ``std::invalid_argument``; setting another registry rebuilds the rows.
-
-   .. cpp:function:: void set_editor_registry(std::shared_ptr<PropertyEditorRegistry> registry)
-
-      Sets :cpp:func:`editor_registry <gui_forms::PropertyGrid::editor_registry>`; see the property's description above.
 
    .. cpp:function:: std::optional<PropertyGridEditError> last_error() const
 
@@ -428,6 +418,8 @@ gui_forms::PropertyGrid
       Moves an item of a collection property from one index to another.
       Returns false, raising :cpp:func:`edit_failed <gui_forms::PropertyGrid::edit_failed>`, for an invalid index.
 
+   .. cpp:function:: static const std::array<PropertyEntry, property_grid_property_count>& property_grid_property_entries() noexcept
+
    .. cpp:function:: bool set_property_expanded(std::string_view property_name, bool expanded)
 
       Shows or hides the rows for the parts of a compound property. Returns
@@ -453,6 +445,12 @@ gui_forms::PropertyGrid
 
       *Protected.*
 
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
    .. cpp:member:: constexpr bool initialize_tree_after_construction
 
       Default: ``true``.
+
+   .. cpp:member:: constexpr std::size_t property_grid_property_count
+
+      PropertyGrid's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 1U``.

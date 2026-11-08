@@ -7,6 +7,7 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
 #include "../panel_anatomy.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <array>
 #include <algorithm>
@@ -1219,21 +1220,6 @@ PropertyGrid::PropertyGrid(StableId stable_id)
     border_style = BorderStyle::line;
     set_paint_plane(PaintPlane::control);
 
-    PropertyDescriptor property_sort;
-    property_sort.name = "property_sort";
-    property_sort.kind = BindingValueKind::enumeration;
-    property_sort.category = "Behavior";
-    property_sort.description = "Properties grouped by category, or alphabetical.";
-    property_sort.default_value = BindingValue{PropertyEnumValue{"property_sort", "categorized", 0}};
-    property_sort.invalidation_effects = Dirty::measure | Dirty::arrange | Dirty::paint;
-    property_sort.bindable = false;
-    property_sort.enumeration = property_sort_enum();
-    define_bindable_property({
-        std::move(property_sort),
-        detail::EnumerationPropertyGetter<PropertyGrid, PropertySort>(*this, &PropertyGrid::property_sort,
-                                                                      property_sort_enum()),
-        detail::EnumerationPropertySetter<PropertyGrid, PropertySort>(*this, &PropertyGrid::set_property_sort),
-        {}, {}, {}});
 }
 
 PropertyGrid::~PropertyGrid() = default;
@@ -1292,18 +1278,18 @@ void PropertyGrid::set_selected_objects(std::vector<Control::Ptr> objects) {
                    objects.empty() ? Control::Ptr{} : objects.front());
 }
 
-PropertySort PropertyGrid::property_sort() const noexcept {
+PropertySort PropertyGrid::read_view(const decltype(property_sort)&) const {
     return (*impl_).sort;
 }
 
-void PropertyGrid::set_property_sort(PropertySort sort) {
+void PropertyGrid::write_view(const decltype(property_sort)&, PropertySort incoming) {
     require_mutable();
-    if (sort != PropertySort::categorized &&
-        sort != PropertySort::alphabetical) {
+    if (incoming != PropertySort::categorized &&
+        incoming != PropertySort::alphabetical) {
         throw std::invalid_argument("PropertyGrid sort mode is invalid");
     }
-    if ((*impl_).sort == sort) return;
-    (*impl_).sort = sort;
+    if ((*impl_).sort == incoming) return;
+    (*impl_).sort = incoming;
     if (!(*impl_).list) initialize_control_tree();
     (*impl_).rebuild();
 }
@@ -1318,38 +1304,32 @@ std::shared_ptr<PropertyList> PropertyGrid::property_list() const noexcept {
     return (*impl_).list;
 }
 
-std::shared_ptr<PropertyValueConverterRegistry>
-PropertyGrid::converter_registry() const noexcept {
+std::shared_ptr<PropertyValueConverterRegistry> PropertyGrid::read_view(const decltype(converter_registry)&) const {
     return (*impl_).converters;
 }
 
-void PropertyGrid::set_converter_registry(
-    std::shared_ptr<PropertyValueConverterRegistry> registry) {
+void PropertyGrid::write_view(const decltype(converter_registry)&, std::shared_ptr<PropertyValueConverterRegistry> incoming) {
     require_mutable();
-    if (!registry) {
-        throw std::invalid_argument(
-            "PropertyGrid requires a converter registry");
+    if (!incoming) {
+        throw std::invalid_argument("PropertyGrid requires a converter registry");
     }
-    if ((*impl_).converters == registry) return;
-    (*impl_).converters = std::move(registry);
+    if ((*impl_).converters == incoming) return;
+    (*impl_).converters = std::move(incoming);
     if (!(*impl_).list) initialize_control_tree();
     (*impl_).rebuild();
 }
 
-std::shared_ptr<PropertyEditorRegistry>
-PropertyGrid::editor_registry() const noexcept {
+std::shared_ptr<PropertyEditorRegistry> PropertyGrid::read_view(const decltype(editor_registry)&) const {
     return (*impl_).editors;
 }
 
-void PropertyGrid::set_editor_registry(
-    std::shared_ptr<PropertyEditorRegistry> registry) {
+void PropertyGrid::write_view(const decltype(editor_registry)&, std::shared_ptr<PropertyEditorRegistry> incoming) {
     require_mutable();
-    if (!registry) {
-        throw std::invalid_argument(
-            "PropertyGrid requires an editor registry");
+    if (!incoming) {
+        throw std::invalid_argument("PropertyGrid requires an editor registry");
     }
-    if ((*impl_).editors == registry) return;
-    (*impl_).editors = std::move(registry);
+    if ((*impl_).editors == incoming) return;
+    (*impl_).editors = std::move(incoming);
     if (!(*impl_).list) initialize_control_tree();
     (*impl_).rebuild();
 }
@@ -1517,7 +1497,6 @@ void PropertyGrid::on_dispose() noexcept {
     Control::on_dispose();
 }
 
-
 namespace {
 
 // Its rows, modules and toolbars are child controls with their own anatomies.
@@ -1549,5 +1528,70 @@ void PropertyGrid::append_interactions(std::vector<InteractionDeclaration>& inte
     Panel::append_interactions(interactions);
     interactions.insert(interactions.end(), property_grid_interactions.begin(), property_grid_interactions.end());
 }
+
+// property_codemod begin PropertyGrid (tools/property_families/property_grid.json; generated, do not edit)
+
+namespace {
+
+PropertyDescriptor property_grid_property_sort_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "property_sort";
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.category = "Behavior";
+    descriptor.description = "Properties grouped by category, or alphabetical.";
+    descriptor.default_value = BindingValue{PropertyEnumValue{"property_sort", "categorized", 0}};
+    descriptor.invalidation_effects = Dirty::measure | Dirty::arrange | Dirty::paint;
+    descriptor.bindable = false;
+    descriptor.enumeration = property_sort_enum();
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_property_grid_property_sort() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        property_grid_property_sort_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+} // namespace
+
+PropertyType PropertyValueTraits<PropertySort>::type() {
+    return PropertyType{BindingValueKind::enumeration, false, property_sort_enum()};
+}
+
+BindingValue PropertyValueTraits<PropertySort>::to_binding(PropertySort value) {
+    PropertyDescriptor descriptor;
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.enumeration = property_sort_enum();
+    const std::optional<BindingValue> converted =
+        convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
+    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    return *converted;
+}
+
+PropertySort PropertyValueTraits<PropertySort>::from_binding(const BindingValue& value) {
+    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
+    return static_cast<PropertySort>(choice.value);
+}
+
+const std::array<PropertyEntry, PropertyGrid::property_grid_property_count>& PropertyGrid::property_grid_property_entries() noexcept {
+    static constexpr std::array<PropertyEntry, 1U> own{{
+        {"property_sort", &describe_property_grid_property_sort,
+         &read_cell_entry<PropertyGrid, decltype(&PropertyGrid::property_sort), &PropertyGrid::property_sort>,
+         &write_cell_entry<PropertyGrid, decltype(&PropertyGrid::property_sort), &PropertyGrid::property_sort>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+    }};
+    static_assert(property_names_distinct(own), "PropertyGrid's property table names a property twice");
+    static const std::array<PropertyEntry, property_grid_property_count> entries =
+        join_property_tables(Panel::panel_property_entries(), own);
+    return entries;
+}
+
+std::span<const PropertyEntry> PropertyGrid::property_table() const noexcept {
+    const std::array<PropertyEntry, property_grid_property_count>& entries = property_grid_property_entries();
+    return std::span<const PropertyEntry>(entries);
+}
+
+// property_codemod end PropertyGrid
 
 } // namespace gui_forms

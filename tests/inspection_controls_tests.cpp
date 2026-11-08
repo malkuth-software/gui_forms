@@ -747,7 +747,7 @@ void test_property_origins_and_metadata_driven_property_grid() {
                     PropertyValueOrigin::local,
             "non-browsable policy must not erase truthful local value authorship");
 
-    (*grid).set_property_sort(PropertySort::alphabetical);
+    (*grid).property_sort = PropertySort::alphabetical;
     require((*(*grid).property_list()).groups().size() == 1U &&
                 (*(*grid).property_list()).groups().front().title == "PROPERTIES" &&
                 (*grid).editor("Checked") != nullptr,
@@ -828,8 +828,8 @@ void test_instance_owned_converter_and_editor_registries() {
         StableId("inspection.services.target"));
     std::shared_ptr<gui_forms::PropertyGrid> grid = make_control<PropertyGrid>(StableId("inspection.services.grid"));
     (*grid).set_requested_bounds({0.0, 0.0, 420.0, 180.0});
-    (*grid).set_converter_registry(converters);
-    (*grid).set_editor_registry(editors);
+    (*grid).converter_registry = converters;
+    (*grid).editor_registry = editors;
     (*root).add_child(target);
     (*root).add_child(grid);
     (*grid).set_selected_object(target);
@@ -888,7 +888,7 @@ void test_nullable_standard_values_culture_and_nested_services() {
     std::shared_ptr<gui_forms::PropertyGrid> grid = make_control<PropertyGrid>(
         StableId("inspection.nullable.grid"));
     (*grid).set_requested_bounds({0.0, 0.0, 440.0, 260.0});
-    (*grid).set_converter_registry(converters);
+    (*grid).converter_registry = converters;
     (*root).add_child(target);
     (*root).add_child(grid);
     (*grid).set_selected_object(target);

@@ -651,8 +651,8 @@ public:
             controls.push_back((*candidate).control);
         }
         const std::vector<Control::Ptr> previous = (*grid).selected_objects();
-        const std::shared_ptr<PropertyValueConverterRegistry> previous_converters = (*grid).converter_registry();
-        const std::shared_ptr<PropertyEditorRegistry> previous_editors = (*grid).editor_registry();
+        const std::shared_ptr<PropertyValueConverterRegistry> previous_converters = (*grid).converter_registry.read();
+        const std::shared_ptr<PropertyEditorRegistry> previous_editors = (*grid).editor_registry.read();
         std::shared_ptr<PropertyValueConverterRegistry> converters =
             gui_forms::PropertyValueConverterRegistry::create_default();
         std::shared_ptr<PropertyEditorRegistry> editors = gui_forms::PropertyEditorRegistry::create_default();
@@ -665,13 +665,13 @@ public:
             }
         }
         try {
-            (*grid).set_converter_registry(converters);
-            (*grid).set_editor_registry(editors);
+            (*grid).converter_registry = converters;
+            (*grid).editor_registry = editors;
             (*grid).set_selected_objects(std::move(controls));
         } catch (...) {
             try {
-                (*grid).set_converter_registry(previous_converters);
-                (*grid).set_editor_registry(previous_editors);
+                (*grid).converter_registry = previous_converters;
+                (*grid).editor_registry = previous_editors;
                 (*grid).set_selected_objects(previous);
             } catch (...) {
                 throw std::runtime_error(
@@ -844,9 +844,9 @@ public:
             return fail(GF_ERROR_WRONG_HANDLE_KIND,
                         "PropertyGrid sort requires a PropertyGrid handle");
         }
-        (*grid).set_property_sort(property_sort == 1U
+        (*grid).property_sort = property_sort == 1U
             ? gui_forms::PropertySort::alphabetical
-            : gui_forms::PropertySort::categorized);
+            : gui_forms::PropertySort::categorized;
         emit_changed(grid_handle, record);
         return GF_OK;
     }
@@ -868,7 +868,7 @@ public:
             return fail(GF_ERROR_WRONG_HANDLE_KIND,
                         "PropertyGrid sort requires a PropertyGrid handle");
         }
-        *property_sort = (*grid).property_sort() ==
+        *property_sort = (*grid).property_sort.read() ==
                 gui_forms::PropertySort::alphabetical
             ? 1U : 3U;
         return GF_OK;

@@ -1,0 +1,109 @@
+{
+  "family": "PropertyGrid",
+  "step": "B6",
+  "declaring": "PropertyGrid",
+  "header": "include/gui_forms/controls/panel/property_grid/property_grid.hpp",
+  "source": "src/controls/panel/property_grid/property_grid.cpp",
+  "capabilities_header": "include/gui_forms/controls/panel/property_grid/property_grid_capabilities/property_grid_capabilities.hpp",
+  "base": "Panel",
+  "shared": [],
+  "includes": [
+    "gui_forms/inspection/inspection_types.hpp",
+    "gui_forms/inspection/property_editor_registry/property_editor_registry.hpp",
+    "gui_forms/inspection/property_value_converter_registry/property_value_converter_registry.hpp"
+  ],
+  "properties": [
+    {
+      "name": "property_sort",
+      "capability": "PropertyGridPropertySort",
+      "value": "PropertySort",
+      "initial": null,
+      "comment": "How the rows are ordered (PropertySort): grouped by category (the default) or alphabetical; a view onto the grid's projection. A change rebuilds the rows.",
+      "getter": "property_sort",
+      "setter": "set_property_sort",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": {
+        "kind": "enumeration",
+        "category": "Behavior",
+        "description": "Properties grouped by category, or alphabetical.",
+        "default": "BindingValue{PropertyEnumValue{\"property_sort\", \"categorized\", 0}}",
+        "effects": "Dirty::measure | Dirty::arrange | Dirty::paint",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": "property_sort_enum()",
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "a view onto the projection's sort; write_view validates and rebuilds"
+      ],
+      "storage": "view"
+    },
+    {
+      "name": "converter_registry",
+      "capability": "PropertyGridConverterRegistry",
+      "value": "std::shared_ptr<PropertyValueConverterRegistry>",
+      "initial": null,
+      "comment": "The value converters the grid's editors use; a view onto the projection. Never null (std::invalid_argument); a change rebuilds the rows.",
+      "getter": "converter_registry",
+      "setter": "set_converter_registry",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto the projection's converters; write_view refuses null and rebuilds"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "editor_registry",
+      "capability": "PropertyGridEditorRegistry",
+      "value": "std::shared_ptr<PropertyEditorRegistry>",
+      "initial": null,
+      "comment": "The editors the grid installs per property type; a view onto the projection. Never null (std::invalid_argument); a change rebuilds the rows.",
+      "getter": "editor_registry",
+      "setter": "set_editor_registry",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto the projection's editors; write_view refuses null and rebuilds"
+      ],
+      "effects": null,
+      "storage": "view"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "selected_object",
+      "reason": "retained observed controls; stays methods (selected_object_changed)"
+    },
+    {
+      "name": "property_expanded",
+      "reason": "per-property state with a name argument"
+    }
+  ],
+  "test": {
+    "type": "PropertyGrid",
+    "include": "gui_forms/controls/panel/property_grid/property_grid.hpp"
+  }
+}

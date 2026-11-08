@@ -128,8 +128,16 @@ Related types
      - PropertyEditorRegistry is an instance-owned canonical service map from explicit editor names or value-kind defaults to retained-control factories.
    * - :cpp:class:`PropertyEditorRequest <gui_forms::PropertyEditorRequest>`
      - PropertyEditorRequest is the complete immutable input to an editor factory: stable control identity, property path, inert descriptor, typed value, writeability, and top-level/compound position.
+   * - :cpp:class:`PropertyGridCapabilities <gui_forms::PropertyGridCapabilities>`
+     - Every PropertyGrid capability, in the order the declaring class takes them.
+   * - :cpp:class:`PropertyGridConverterRegistryCapability <gui_forms::PropertyGridConverterRegistryCapability>`
+     - The value converters the grid's editors use; a view onto the projection.
    * - :cpp:class:`PropertyGridEditError <gui_forms::PropertyGridEditError>`
      - PropertyGridEditError carries exact property path, attempted representation, and failure message after a rejected or rolled-back edit.
+   * - :cpp:class:`PropertyGridEditorRegistryCapability <gui_forms::PropertyGridEditorRegistryCapability>`
+     - The editors the grid installs per property type; a view onto the projection.
+   * - :cpp:class:`PropertyGridPropertySortCapability <gui_forms::PropertyGridPropertySortCapability>`
+     - How the rows are ordered (PropertySort): grouped by category (the default) or alphabetical; a view onto the grid's projection.
    * - :cpp:class:`PropertyGridValueChange <gui_forms::PropertyGridValueChange>`
      - PropertyGridValueChange is the post-transaction typed publication for a property edit or reset, including authoritative origin.
    * - :cpp:class:`PropertyGroupChange <gui_forms::PropertyGroupChange>`
@@ -915,6 +923,46 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> PropertyGridCapabilities : public PropertyGridPropertySortCapability<Declaring>, public PropertyGridConverterRegistryCapability<Declaring>, public PropertyGridEditorRegistryCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/property_grid/property_grid_capabilities/property_grid_capabilities.hpp>``
+
+   Every PropertyGrid capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: PropertySort property_sort
+
+      How the rows are ordered (PropertySort): grouped by category (the default) or alphabetical; a view onto the grid's projection. A change rebuilds the rows.
+
+   .. cpp:member:: std::shared_ptr<PropertyValueConverterRegistry> converter_registry
+
+      The value converters the grid's editors use; a view onto the projection. Never null (std::invalid_argument); a change rebuilds the rows.
+
+   .. cpp:member:: std::shared_ptr<PropertyEditorRegistry> editor_registry
+
+      The editors the grid installs per property type; a view onto the projection. Never null (std::invalid_argument); a change rebuilds the rows.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PropertyGridConverterRegistryCapability
+
+   ``#include <gui_forms/controls/panel/property_grid/property_grid_capabilities/property_grid_capabilities.hpp>``
+
+   The value converters the grid's editors use; a view onto the projection. Never null (std::invalid_argument); a change rebuilds the rows.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PropertyGridConverterRegistryCapability& capability, std::shared_ptr<PropertyValueConverterRegistry> incoming)
+
+   .. cpp:function:: static std::shared_ptr<PropertyValueConverterRegistry> read(const PropertyGridConverterRegistryCapability& capability)
+
+   .. cpp:member:: PropertyView<std::shared_ptr<PropertyValueConverterRegistry>, PropertyGridConverterRegistryCapability<Declaring>> converter_registry
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: PropertyGridEditError final
 
    ``#include <gui_forms/inspection/inspection_types.hpp>``
@@ -926,6 +974,40 @@ Related types
    .. cpp:member:: std::string attempted_value
 
    .. cpp:member:: std::string message
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PropertyGridEditorRegistryCapability
+
+   ``#include <gui_forms/controls/panel/property_grid/property_grid_capabilities/property_grid_capabilities.hpp>``
+
+   The editors the grid installs per property type; a view onto the projection. Never null (std::invalid_argument); a change rebuilds the rows.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PropertyGridEditorRegistryCapability& capability, std::shared_ptr<PropertyEditorRegistry> incoming)
+
+   .. cpp:function:: static std::shared_ptr<PropertyEditorRegistry> read(const PropertyGridEditorRegistryCapability& capability)
+
+   .. cpp:member:: PropertyView<std::shared_ptr<PropertyEditorRegistry>, PropertyGridEditorRegistryCapability<Declaring>> editor_registry
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PropertyGridPropertySortCapability
+
+   ``#include <gui_forms/controls/panel/property_grid/property_grid_capabilities/property_grid_capabilities.hpp>``
+
+   How the rows are ordered (PropertySort): grouped by category (the default) or alphabetical; a view onto the grid's projection. A change rebuilds the rows.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PropertyGridPropertySortCapability& capability, PropertySort incoming)
+
+   .. cpp:function:: static PropertySort read(const PropertyGridPropertySortCapability& capability)
+
+   .. cpp:member:: PropertyView<PropertySort, PropertyGridPropertySortCapability<Declaring>> property_sort
 
 .. cpp:namespace:: gui_forms
 
