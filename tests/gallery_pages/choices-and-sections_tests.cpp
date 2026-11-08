@@ -61,6 +61,14 @@ void test_choices_and_sections(gui_forms::Window& window) {
     require((*ring).selected_index() == 1 && (*chips).selected_index() == 1 &&
                 observer.changes == 1 && observer.activations == 1,
             "a user click must change the shared Value once and activate once");
+    // The labelled row is the segmented presentation (W-4); the glyph row
+    // keeps the buttons.
+    window.perform_layout();
+    require((*ring).presentation.read() == ChoiceGroupPresentation::segmented &&
+                (*ring).parts().selection.present &&
+                (*ring).parts().selection.bounds == (*ring).item(1).committed_arranged_bounds() &&
+                (*chips).presentation.read() == ChoiceGroupPresentation::buttons && !(*chips).parts().track.present,
+            "the segmented row draws its indicator behind the chosen segment");
     require((*review).record.read().title == "Review: Staged" &&
                 (*review).record.read().disposition == ReviewDisposition::accepted &&
                 (*card_body).text().find("Staged") != std::string::npos &&

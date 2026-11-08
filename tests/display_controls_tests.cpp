@@ -1,9 +1,11 @@
-// W-4 display controls: Badge, InfoBanner and EmptyState. Each test covers the control's behaviour, its refusals, its
+// W-4 controls: Badge, InfoBanner, EmptyState and the segmented
+// ChoiceGroup presentation. Each test covers the control's behaviour, its refusals, its
 // semantics, its published parts and states, and the capability cases: a
 // write stores, an equal write does nothing, and a write from another
 // thread is refused before anything is compared or stored.
 
 #include "gui_forms/gui_forms.hpp"
+#include "gui_forms/controls/collections/choice_group.hpp"
 
 #include <cmath>
 #include <cstdint>
@@ -317,6 +319,84 @@ void test_empty_state() {
     require(detached == compose && !(*compose).parent(), "clearing the action returns it detached");
 }
 
+// Writes a choice group's presentation from another thread and records
+// whether it was refused.
+struct OtherThreadPresentation final {
+    ChoiceGroup* group{};
+    bool* refused{};
+    void operator()() const {
+        try {
+            (*group).presentation = ChoiceGroupPresentation::buttons;
+        } catch (const std::logic_error&) {
+            *refused = true;
+        }
+    }
+};
+
+void test_segmented_choice_group() {
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("display.segments.root"));
+    std::shared_ptr<ChoiceGroup> group = make_control<ChoiceGroup>(StableId("display.segments"));
+    (*group).set_requested_bounds(Rect{0.0, 0.0, 302.0, 32.0});
+    (*group).set_items({ChoiceItem{.id = 1, .label = "Day"}, ChoiceItem{.id = 2, .label = "Week"},
+                        ChoiceItem{.id = 3, .label = "Month"}});
+    (*root).add_child(group);
+    Window window(root, Size{400.0, 100.0});
+    window.perform_layout();
+
+    const std::optional<CustomStateIndex> segmented = find_custom_state((*group).anatomy(), "segmented");
+    require(segmented && !(*group).anatomy_states().contains(*segmented), "buttons are not the segmented state");
+    require((*group).item(0).committed_arranged_bounds().x == 0.0, "buttons start at the group's edge");
+    require(!(*group).parts().track.present && !(*group).parts().selection.present,
+            "the buttons presentation publishes no track or selection");
+
+    (*group).presentation = ChoiceGroupPresentation::segmented;
+    window.perform_layout();
+    require((*group).anatomy_states().contains(*segmented), "the segmented presentation publishes its state");
+    const Rect first = (*group).item(0).committed_arranged_bounds();
+    const Rect second = (*group).item(1).committed_arranged_bounds();
+    require(first.x == 2.0 && first.y == 2.0 && first.width == 99.0 && first.height == 28.0 && second.x == 101.0,
+            "segments share the track inside its inset");
+    require((*group).parts().track.present && !(*group).parts().selection.present,
+            "a segmented group with nothing selected publishes its track and no selection");
+
+    (*group).set_selected_index(1);
+    window.perform_layout();
+    const ChoiceGroup::Parts chosen = (*group).parts();
+    require(chosen.selection.present && chosen.selection.bounds == second,
+            "the selection indicator lies behind the selected segment");
+    const SemanticDescriptor described = (*group).semantic_descriptor();
+    const SemanticDescriptor segment = (*group).item(1).semantic_descriptor();
+    require(described.role == SemanticRole::radio_group && segment.role == SemanticRole::radio_button &&
+                has_semantic_state(segment.states, SemanticState::checked),
+            "segments keep the radio-group semantics");
+
+    KeyEvent right{};
+    right.action = KeyAction::down;
+    right.physical_key = PhysicalKey::right;
+    (*group).on_key(right);
+    window.perform_layout();
+    require(right.handled && (*group).selected_index() == 2 &&
+                (*group).parts().selection.bounds == (*group).item(2).committed_arranged_bounds(),
+            "the arrow keys move the selection and the indicator follows");
+
+    const std::optional<BindingValue> by_name = (*group).property_value("presentation");
+    require(by_name && *by_name == BindingValue{PropertyEnumValue{"choice_group_presentation", "segmented", 1}},
+            "the table reads the presentation cell");
+
+    bool refused = false;
+    std::thread worker(OtherThreadPresentation{group.get(), &refused});
+    worker.join();
+    require(refused && (*group).presentation.read() == ChoiceGroupPresentation::segmented,
+            "a presentation write from another thread is refused");
+
+    (*group).set_property_value("presentation",
+                                BindingValue{PropertyEnumValue{"choice_group_presentation", "buttons", 0}});
+    window.perform_layout();
+    require((*group).item(0).committed_arranged_bounds().x == 0.0 && !(*group).parts().selection.present &&
+                (*group).selected_index() == 2,
+            "back to buttons, the items fill the group again and the selection is kept");
+}
+
 } // namespace
 
 int main() {
@@ -326,6 +406,7 @@ int main() {
     test_info_banner_closing();
     test_info_banner_actuator_action_and_threads();
     test_empty_state();
+    test_segmented_choice_group();
     std::cout << "display control tests passed\n";
     return EXIT_SUCCESS;
 }

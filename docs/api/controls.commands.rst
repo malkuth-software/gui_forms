@@ -50,6 +50,12 @@ Related types
      - Every ButtonBase capability, in the order the declaring class takes them.
    * - :cpp:class:`ButtonUseMnemonicCapability <gui_forms::ButtonUseMnemonicCapability>`
      - Whether an ampersand in the text marks the access key (UseMnemonic).
+   * - :cpp:class:`ChoiceGroup::Parts <gui_forms::ChoiceGroup::Parts>`
+     - Stage T1 anatomy, as dot members: Panel's parts, then the segmented presentation's track (the whole strip) and selection (the indicator behind the selected segment).
+   * - :cpp:class:`ChoiceGroupCapabilities <gui_forms::ChoiceGroupCapabilities>`
+     - Every ChoiceGroup capability, in the order the declaring class takes them.
+   * - :cpp:class:`ChoiceGroupPresentationCapability <gui_forms::ChoiceGroupPresentationCapability>`
+     - How the choices are drawn: a row of buttons (the default) or a segmented control with a selection indicator behind the selected segment.
    * - :cpp:class:`ChoiceItem <gui_forms::ChoiceItem>`
      -  
    * - :cpp:class:`CommandItem <gui_forms::CommandItem>`
@@ -241,6 +247,52 @@ Related types
    .. cpp:member:: PropertyCell<bool, ButtonUseMnemonicCapability<Declaring>> use_mnemonic
 
       Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ChoiceGroup::Parts final
+
+   ``#include <gui_forms/controls/collections/choice_group.hpp>``
+
+   Stage T1 anatomy, as dot members: Panel's parts, then the segmented presentation's track (the whole strip) and selection (the indicator behind the selected segment). Both are absent in the buttons presentation, and the selection while nothing is selected.
+
+   .. cpp:member:: Panel::Parts panel
+
+   .. cpp:member:: PartGeometry track
+
+   .. cpp:member:: PartGeometry selection
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ChoiceGroupCapabilities : public ChoiceGroupPresentationCapability<Declaring>
+
+   ``#include <gui_forms/controls/collections/choice_group_capabilities/choice_group_capabilities.hpp>``
+
+   Every ChoiceGroup capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: ChoiceGroupPresentation presentation
+
+      How the choices are drawn: a row of buttons (the default) or a segmented control with a selection indicator behind the selected segment. Selection, keyboard and semantics are the same in both.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ChoiceGroupPresentationCapability
+
+   ``#include <gui_forms/controls/collections/choice_group_capabilities/choice_group_capabilities.hpp>``
+
+   How the choices are drawn: a row of buttons (the default) or a segmented control with a selection indicator behind the selected segment. Selection, keyboard and semantics are the same in both.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ChoiceGroupPresentationCapability& capability, ChoiceGroupPresentation incoming)
+
+   .. cpp:member:: PropertyCell<ChoiceGroupPresentation, ChoiceGroupPresentationCapability<Declaring>> presentation
+
+      Default: ``{ChoiceGroupPresentation::buttons}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -521,6 +573,16 @@ Enumerations
    .. cpp:enumerator:: accent
 
    .. cpp:enumerator:: command
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ChoiceGroupPresentation
+
+   ``#include <gui_forms/controls/collections/choice_group_values/choice_group_values.hpp>``
+
+   .. cpp:enumerator:: buttons
+
+   .. cpp:enumerator:: segmented
 
 .. cpp:namespace:: gui_forms
 

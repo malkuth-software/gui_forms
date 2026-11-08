@@ -1036,10 +1036,12 @@ Properties beyond every control's: none.
 | `focus` | focus |  |  |
 | `face` | face |  |  |
 | `edge` | edge |  |  |
+| `track` | track |  |  |
+| `selection` | selection |  |  |
 
-States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
+States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`. Application-defined: `segmented`.
 
-Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration).
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `presentation` (enumeration).
 
 | Interaction | Payload |
 |---|---|

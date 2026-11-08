@@ -1,16 +1,37 @@
 #include "gui_forms/controls/collections/choice_group.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "gui_forms/text.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
 #include "../panel/panel_anatomy.hpp"
 
 #include <array>
 #include <algorithm>
+#include <cstddef>
 #include <limits>
+#include <memory>
 #include <stdexcept>
+#include <string>
 #include <utility>
 
 namespace gui_forms {
 namespace {
+// The ChoiceGroupPresentation enumeration, numbered as declared. Static
+// storage; any thread may read it.
+std::shared_ptr<const PropertyEnumDescriptor> choice_group_presentation_enum() {
+    static const std::shared_ptr<const PropertyEnumDescriptor> value =
+        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+            "choice_group_presentation", {{"buttons", 0}, {"segmented", 1}}, false});
+    return value;
+}
+
+// The space between a segmented group's track and its segments, in logical
+// units.
+constexpr double segment_inset = 2.0;
+
+// One item. In the buttons presentation it paints as a command button; as
+// a segment it paints only its label (and a hover wash and focus ring) in
+// the choice family, over the group's track and selection indicator.
 class ChoiceButton final : public Button {
 public:
     explicit ChoiceButton(StableId id) : Button(std::move(id)) {}
@@ -20,12 +41,49 @@ public:
         if (selected()) descriptor.states |= SemanticState::checked;
         return descriptor;
     }
+    [[nodiscard]] bool segment() const noexcept { return segment_; }
+    void set_segment(bool segment) {
+        if (segment_ == segment) return;
+        segment_ = segment;
+        invalidate(Dirty::paint);
+    }
+    void on_paint(Painter& painter, Rect local_damage) override {
+        if (!segment_) {
+            Button::on_paint(painter, local_damage);
+            return;
+        }
+        const Rect bounds = local_bounds();
+        const AnatomyStateSet states = anatomy_states();
+        // The selected segment shows the group's indicator; another shows a
+        // wash while hot or pressed.
+        if (!selected() && (hovered_visual() || pressed_visual())) {
+            PartPaint wash{.role = PartRole::face, .bounds = bounds, .states = states,
+                           .family = ControlVisualRole::choice};
+            paint_part(painter, *this, wash);
+        }
+        const std::string shown = text.read();
+        PartPaint label{.role = PartRole::label, .bounds = bounds, .states = states,
+                        .family = ControlVisualRole::choice};
+        label.text = shown;
+        label.font = text_font(font.read());
+        label.alignment = PartTextAlignment::center;
+        paint_part(painter, *this, label);
+        if (focus_cue_visible() && bounds.width > 4.0 && bounds.height > 4.0) {
+            PartPaint ring{.role = PartRole::focus, .bounds = {1.5, 1.5, bounds.width - 3.0, bounds.height - 3.0},
+                           .states = states, .family = ControlVisualRole::choice};
+            ring.states.insert(AnatomyState::focus_visible);
+            paint_part(painter, *this, ring);
+        }
+    }
+
+private:
+    bool segment_{};
 };
 } // namespace
 
 struct ChoiceGroup::Entry final {
     int id{};
-    std::shared_ptr<Button> button{};
+    std::shared_ptr<ChoiceButton> button{};
     SubscriptionToken click{};
     SubscriptionToken enabled{};
     SubscriptionToken visible{};
@@ -186,9 +244,10 @@ void ChoiceGroup::set_items(std::vector<ChoiceItem> items) {
         }
         for (std::size_t index = 0U; index < (*next).items.size(); ++index) {
             const ChoiceItem& value = (*next).items[index];
-            Button& button = *(*(*next).entries[index]).button;
+            ChoiceButton& button = *(*(*next).entries[index]).button;
             const std::string text = value.glyph.empty() ? value.label : value.glyph + " " + value.label;
             button.text = text;
+            button.set_segment(presentation.read() == ChoiceGroupPresentation::segmented);
             button.set_image(value.image);
             button.accessible_name = value.accessible_name.empty() ? value.label : value.accessible_name;
             button.tab_index = static_cast<std::uint32_t>(index);
@@ -228,15 +287,62 @@ void ChoiceGroup::activate_item(const int id) {
         return;
     }
 }
+Rect ChoiceGroup::segment_bounds(std::size_t index, std::size_t count, Size size) const noexcept {
+    if (count == 0U) return Rect{};
+    const double inner_width = std::max(0.0, size.width - 2.0 * segment_inset);
+    const double inner_height = std::max(0.0, size.height - 2.0 * segment_inset);
+    const double width = inner_width / static_cast<double>(count);
+    const Rect segment{segment_inset + static_cast<double>(index) * width, segment_inset, width, inner_height};
+    return segment;
+}
+
+// Nothing while the group is not segmented or nothing is selected.
+Rect ChoiceGroup::selection_bounds() const {
+    const int selected = selected_index();
+    if (presentation.read() != ChoiceGroupPresentation::segmented || !revision_ || selected < 0) return Rect{};
+    const std::size_t count = (*revision_).entries.size();
+    if (static_cast<std::size_t>(selected) >= count) return Rect{};
+    const Rect client = client_rectangle();
+    const Rect indicator = segment_bounds(static_cast<std::size_t>(selected), count, Size{client.width, client.height});
+    return indicator;
+}
+
+// Buttons share the width equally across the whole height; segments share
+// the track inside its inset.
 void ChoiceGroup::arrange(const Rect bounds) {
     arrange_self(bounds);
     const std::shared_ptr<Revision> revision = revision_;
     if (!revision || (*revision).entries.empty()) return;
-    const double width = bounds.width / static_cast<double>((*revision).entries.size());
-    for (std::size_t index = 0U; index < (*revision).entries.size(); ++index) {
-        set_child_layout((*(*revision).entries[index]).button,
-            {static_cast<double>(index) * width, 0.0, width, bounds.height});
+    const std::size_t count = (*revision).entries.size();
+    const bool segmented = presentation.read() == ChoiceGroupPresentation::segmented;
+    const Rect client = client_rectangle();
+    const double width = client.width / static_cast<double>(count);
+    for (std::size_t index = 0U; index < count; ++index) {
+        const Rect slot = segmented ? segment_bounds(index, count, Size{client.width, client.height})
+                                    : Rect{static_cast<double>(index) * width, 0.0, width, client.height};
+        set_child_layout((*(*revision).entries[index]).button, slot);
     }
+}
+
+// The segmented presentation draws the track over Panel's face, then the
+// selection indicator behind the selected segment; the segments paint
+// their labels over both.
+void ChoiceGroup::on_paint(Painter& painter, Rect local_damage) {
+    Panel::on_paint(painter, local_damage);
+    if (presentation.read() != ChoiceGroupPresentation::segmented) return;
+    const AnatomyStateSet states = anatomy_states();
+    PartPaint track{.role = PartRole::track, .bounds = local_bounds(), .states = states,
+                    .family = ControlVisualRole::choice};
+    paint_part(painter, *this, track);
+    const Rect indicator = selection_bounds();
+    if (indicator.empty()) return;
+    PartPaint selection{.role = PartRole::selection, .bounds = indicator, .states = states,
+                        .family = ControlVisualRole::choice};
+    selection.states.insert(AnatomyState::selected);
+    // A keyed part, so that the engine may move the indicator between
+    // segments (and does not when motion is reduced).
+    selection.key = PartKey{"selection", {}, {}};
+    paint_part(painter, *this, selection);
 }
 void ChoiceGroup::on_key_bubble(KeyEvent& event) { on_key(event); }
 void ChoiceGroup::on_key(KeyEvent& event) {
@@ -270,21 +376,79 @@ SemanticDescriptor ChoiceGroup::semantic_descriptor() const {
     return descriptor;
 }
 
-
 namespace {
 
-// Its members are child controls, which publish their own anatomies.
+// The segmented presentation's parts after Panel's. The items are child
+// controls, which publish their own anatomies.
+constexpr std::array<PartField<ChoiceGroup::Parts>, 2> segmented_fields{{
+    {.declaration = {.name = "track", .role = PartRole::track, .composed_from = {}},
+     .member = &ChoiceGroup::Parts::track},
+    {.declaration = {.name = "selection", .role = PartRole::selection, .composed_from = {}},
+     .member = &ChoiceGroup::Parts::selection},
+}};
+
+constexpr std::array<PartDeclaration, panel_detail::parts.size() + 2U> choice_group_parts =
+    joined_declarations(panel_detail::parts, part_declarations(segmented_fields));
+
+// "segmented" names the segmented presentation for a theme's selectors
+// (`:family(choice):state(segmented)`).
+constexpr std::array<CustomStateDeclaration, 1> choice_group_custom_states{{
+    {.name = "segmented"},
+}};
+constexpr CustomStateIndex segmented_state{0U};
+
 constexpr ControlAnatomy choice_group_anatomy{
     .control_id = "choice_group",
-    .parts = panel_detail::parts,
+    .parts = choice_group_parts,
     .states = scrollable_detail::states,
-    .custom_states = {},
+    .custom_states = choice_group_custom_states,
 };
 
 } // namespace
 
 const ControlAnatomy& ChoiceGroup::anatomy() const noexcept {
     return choice_group_anatomy;
+}
+
+AnatomyStateSet ChoiceGroup::anatomy_states() const {
+    AnatomyStateSet states = Panel::anatomy_states();
+    if (presentation.read() == ChoiceGroupPresentation::segmented) states.insert(segmented_state);
+    return states;
+}
+
+void ChoiceGroup::publish_part_geometry(std::span<PartGeometry> geometry) const {
+    Panel::publish_part_geometry(geometry);
+    Parts record;
+    if (presentation.read() == ChoiceGroupPresentation::segmented) {
+        record.track = PartGeometry::from_bounds(local_bounds());
+        record.selection = PartGeometry::from_bounds(selection_bounds());
+    }
+    write_parts(anatomy(), segmented_fields, record, geometry);
+}
+
+ChoiceGroup::Parts ChoiceGroup::parts() const {
+    Parts record;
+    record.panel = Panel::parts();
+    const PartGeometryBuffer published = published_part_geometry();
+    read_parts(anatomy(), segmented_fields, published.parts(), record);
+    return record;
+}
+
+void ChoiceGroup::prepare_write(const decltype(presentation)&, ChoiceGroupPresentation&) {
+    require_mutable();
+}
+
+// Each item switches between button and segment painting; the items are
+// arranged again into their new slots.
+void ChoiceGroup::written(const decltype(presentation)&) {
+    const bool segmented = presentation.read() == ChoiceGroupPresentation::segmented;
+    const std::shared_ptr<Revision> revision = revision_;
+    if (revision) {
+        for (const std::shared_ptr<Entry>& entry : (*revision).entries) {
+            (*(*entry).button).set_segment(segmented);
+        }
+    }
+    invalidate(Dirty::layout | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
 namespace {
@@ -301,5 +465,70 @@ void ChoiceGroup::append_interactions(std::vector<InteractionDeclaration>& inter
     Panel::append_interactions(interactions);
     interactions.insert(interactions.end(), choice_group_interactions.begin(), choice_group_interactions.end());
 }
+
+// property_codemod begin ChoiceGroup (tools/property_families/choice_group.json; generated, do not edit)
+
+namespace {
+
+PropertyDescriptor choice_group_presentation_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "presentation";
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.category = "Appearance";
+    descriptor.description = "How the choices are drawn: buttons or a segmented control.";
+    descriptor.default_value = BindingValue{PropertyEnumValue{"choice_group_presentation", "buttons", 0}};
+    descriptor.invalidation_effects = Dirty::layout | Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.enumeration = choice_group_presentation_enum();
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_choice_group_presentation() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        choice_group_presentation_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+} // namespace
+
+PropertyType PropertyValueTraits<ChoiceGroupPresentation>::type() {
+    return PropertyType{BindingValueKind::enumeration, false, choice_group_presentation_enum()};
+}
+
+BindingValue PropertyValueTraits<ChoiceGroupPresentation>::to_binding(ChoiceGroupPresentation value) {
+    PropertyDescriptor descriptor;
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.enumeration = choice_group_presentation_enum();
+    const std::optional<BindingValue> converted =
+        convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
+    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    return *converted;
+}
+
+ChoiceGroupPresentation PropertyValueTraits<ChoiceGroupPresentation>::from_binding(const BindingValue& value) {
+    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
+    return static_cast<ChoiceGroupPresentation>(choice.value);
+}
+
+const std::array<PropertyEntry, ChoiceGroup::choice_group_property_count>& ChoiceGroup::choice_group_property_entries() noexcept {
+    static constexpr std::array<PropertyEntry, 1U> own{{
+        {"presentation", &describe_choice_group_presentation,
+         &read_cell_entry<ChoiceGroup, decltype(&ChoiceGroup::presentation), &ChoiceGroup::presentation>,
+         &write_cell_entry<ChoiceGroup, decltype(&ChoiceGroup::presentation), &ChoiceGroup::presentation>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+    }};
+    static_assert(property_names_distinct(own), "ChoiceGroup's property table names a property twice");
+    static const std::array<PropertyEntry, choice_group_property_count> entries =
+        join_property_tables(Panel::panel_property_entries(), own);
+    return entries;
+}
+
+std::span<const PropertyEntry> ChoiceGroup::property_table() const noexcept {
+    const std::array<PropertyEntry, choice_group_property_count>& entries = choice_group_property_entries();
+    return std::span<const PropertyEntry>(entries);
+}
+
+// property_codemod end ChoiceGroup
 
 } // namespace gui_forms

@@ -5,6 +5,7 @@
 #include "gui_forms/gui_forms.hpp"
 #include "gui_forms/controls/badge/badge.hpp"
 #include "gui_forms/controls/button_base/button/button.hpp"
+#include "gui_forms/controls/collections/choice_group.hpp"
 #include "gui_forms/controls/data_grid_view/data_grid_view.hpp"
 #include "gui_forms/controls/empty_state/empty_state.hpp"
 #include "gui_forms/controls/info_banner/info_banner.hpp"
@@ -262,6 +263,18 @@ void test_checked_list_box_properties() {
         const double sample = 18.0;
         (*control).indicator_size = sample;
         expect((*control).indicator_size.read() == sample, "CheckedListBox.indicator_size: a write stores");
+    }
+}
+
+void test_choice_group_properties() {
+    std::shared_ptr<ChoiceGroup> control = make_control<ChoiceGroup>(StableId("generated.choicegroup"));
+    {
+        const ChoiceGroupPresentation sample = ChoiceGroupPresentation::segmented;
+        (*control).presentation = sample;
+        expect((*control).presentation.read() == sample, "ChoiceGroup.presentation: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("presentation");
+        expect(by_name && *by_name == PropertyValueTraits<ChoiceGroupPresentation>::to_binding(sample),
+               "ChoiceGroup.presentation: the table reads the cell");
     }
 }
 
@@ -1253,6 +1266,7 @@ int main() {
     test_button_base_properties();
     test_card_properties();
     test_checked_list_box_properties();
+    test_choice_group_properties();
     test_color_value_editor_properties();
     test_combo_box_properties();
     test_correspondence_view_properties();

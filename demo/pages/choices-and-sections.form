@@ -32,6 +32,7 @@ scaled-panel gallery.choices.document {
     classes: "paper" "group-caption";
     choice-group gallery.choices.ring {
       accessible-name: "Deployment ring";
+      presentation: segmented;
       bounds: 20 38 480 32;
     }
     choice-group gallery.choices.ring-chips {

@@ -20,6 +20,19 @@ id
 
 Properties
 ----------
+presentation : default ``ChoiceGroupPresentation::buttons``
+    How the choices are drawn. ``buttons`` is a row of separate buttons,
+    the chosen one drawn selected. ``segmented`` is a segmented control:
+    one track (part ``track``), the items as segments inside a 2-unit
+    inset, and a selection indicator (part ``selection``) behind the
+    chosen segment; the group then carries the custom state ``segmented``.
+    Selection, keyboard and semantics are the same in both. The indicator
+    is a keyed part, so the theme's engine may move it between segments,
+    and does not when motion is reduced.
+parts
+    The published part geometry: Panel's parts, then ``track`` and
+    ``selection``, which are absent in the buttons presentation (and the
+    selection while nothing is chosen).
 items
     The choices, in display order. Empty by default. Item IDs must be
     unique and every text valid UTF-8, or `set_items` throws

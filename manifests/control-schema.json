@@ -2562,10 +2562,12 @@
         {"name": "scroll_corner", "role": "face", "composed_from": null, "states": []},
         {"name": "focus", "role": "focus", "composed_from": null, "states": []},
         {"name": "face", "role": "face", "composed_from": null, "states": []},
-        {"name": "edge", "role": "edge", "composed_from": null, "states": []}
+        {"name": "edge", "role": "edge", "composed_from": null, "states": []},
+        {"name": "track", "role": "track", "composed_from": null, "states": []},
+        {"name": "selection", "role": "selection", "composed_from": null, "states": []}
       ],
       "states": ["normal", "pressed", "captured", "enabled", "disabled", "focused", "focus_visible"],
-      "custom_states": [],
+      "custom_states": ["segmented"],
       "item_systems": [],
       "properties": [
         {"name": "accessible_description", "kind": "text", "category": "Accessibility", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
@@ -2597,6 +2599,7 @@
         {"name": "minimum_size", "kind": "size", "category": "Layout", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "name", "kind": "text", "category": "Design", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
         {"name": "padding", "kind": "insets", "category": "Layout", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
+        {"name": "presentation", "kind": "enumeration", "category": "Appearance", "enumeration": "choice_group_presentation", "choices": ["buttons", "segmented"], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "tab_index", "kind": "unsigned_integer", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "tab_stop", "kind": "boolean", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "tool_tip_text", "kind": "text", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},

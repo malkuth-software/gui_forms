@@ -1,0 +1,63 @@
+{
+  "family": "ChoiceGroup",
+  "step": "W-4",
+  "declaring": "ChoiceGroup",
+  "header": "include/gui_forms/controls/collections/choice_group.hpp",
+  "source": "src/controls/collections/choice_group.cpp",
+  "capabilities_header": "include/gui_forms/controls/collections/choice_group_capabilities/choice_group_capabilities.hpp",
+  "base": "Panel",
+  "shared": [],
+  "includes": [
+    "gui_forms/controls/collections/choice_group_values/choice_group_values.hpp"
+  ],
+  "properties": [
+    {
+      "name": "presentation",
+      "capability": "ChoiceGroupPresentation",
+      "value": "ChoiceGroupPresentation",
+      "initial": "ChoiceGroupPresentation::buttons",
+      "comment": "How the choices are drawn: a row of buttons (the default) or a segmented control with a selection indicator behind the selected segment. Selection, keyboard and semantics are the same in both.",
+      "getter": "presentation",
+      "setter": "set_presentation",
+      "clear": null,
+      "field": "presentation_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": {
+        "kind": "enumeration",
+        "category": "Appearance",
+        "description": "How the choices are drawn: buttons or a segmented control.",
+        "default": "BindingValue{PropertyEnumValue{\"choice_group_presentation\", \"buttons\", 0}}",
+        "effects": "Dirty::layout | Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": "choice_group_presentation_enum()",
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "the written hook switches each item between button and segment painting and arranges again"
+      ],
+      "sample": "ChoiceGroupPresentation::segmented"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "items",
+      "reason": "a collection replaced whole by set_items; stays a method until M-S"
+    },
+    {
+      "name": "selected_index",
+      "reason": "its Value<int> selection is the change source (G14); stays a method until M-S"
+    }
+  ],
+  "test": {
+    "type": "ChoiceGroup",
+    "include": "gui_forms/controls/collections/choice_group.hpp"
+  }
+}
