@@ -127,6 +127,8 @@
 #include "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp"
 #include "gui_forms/surface_material/procedural_fill/procedural_fill.hpp"
 #include "gui_forms/surface_material/types/surface_material_types.hpp"
+#include "gui_forms/surface_root/sub_surface/sub_surface.hpp"
+#include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/theme/owner_draw/owner_draw.hpp"
 #include "gui_forms/timer/timer/timer.hpp"
@@ -791,6 +793,17 @@ struct EnumerationChoices<SplitCollapseOrigin> {
 };
 
 template <>
+struct EnumerationChoices<SubSurfaceState> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 4> choices{{
+        {"starting", static_cast<std::int64_t>(SubSurfaceState::starting)},
+        {"running", static_cast<std::int64_t>(SubSurfaceState::running)},
+        {"stopped", static_cast<std::int64_t>(SubSurfaceState::stopped)},
+        {"failed", static_cast<std::int64_t>(SubSurfaceState::failed)},
+    }};
+};
+
+template <>
 struct EnumerationChoices<TabControlAction> {
     static constexpr bool flags = false;
     static constexpr std::array<EnumerationChoice, 4> choices{{
@@ -977,6 +990,7 @@ void append_field(EventFields& fields, std::string_view name, const PageInvocati
 void append_field(EventFields& fields, std::string_view name, const PagePinRequest& value);
 void read_field(EventFields& fields, std::string_view name, PagePinRequest& value);
 void append_field(EventFields& fields, std::string_view name, const PointerEvent& value);
+void append_field(EventFields& fields, std::string_view name, const PointerSettings& value);
 void append_field(EventFields& fields, std::string_view name, const PresentationSettings& value);
 void append_field(EventFields& fields, std::string_view name, const ProceduralFill& value);
 void append_field(EventFields& fields, std::string_view name, const PropertyEditorInputError& value);
@@ -1006,6 +1020,7 @@ void append_field(EventFields& fields, std::string_view name, const SemanticFeed
 void append_field(EventFields& fields, std::string_view name, const SplitChangeEvent& value);
 void append_field(EventFields& fields, std::string_view name, const SplitterMoveEvent& value);
 void read_field(EventFields& fields, std::string_view name, SplitterMoveEvent& value);
+void append_field(EventFields& fields, std::string_view name, const SubSurfaceStopped& value);
 void append_field(EventFields& fields, std::string_view name, const SurfaceMaterial& value);
 void append_field(EventFields& fields, std::string_view name, const TabControlCancelEvent& value);
 void read_field(EventFields& fields, std::string_view name, TabControlCancelEvent& value);
@@ -2142,6 +2157,19 @@ inline void append_field(EventFields& fields, std::string_view name, const Point
     fields.leave(prefix);
 }
 
+inline void append_field(EventFields& fields, std::string_view name, const PointerSettings& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "drag_width", value.drag_width);
+    append_field(fields, "drag_height", value.drag_height);
+    append_field(fields, "drag_origin", value.drag_origin);
+    append_field(fields, "hover_milliseconds", value.hover_milliseconds);
+    append_field(fields, "hover_width", value.hover_width);
+    append_field(fields, "hover_height", value.hover_height);
+    append_field(fields, "hover_origin", value.hover_origin);
+    append_field(fields, "native_hover", value.native_hover);
+    fields.leave(prefix);
+}
+
 inline void append_field(EventFields& fields, std::string_view name, const PresentationSettings& value) {
     const EventFieldPrefix prefix = fields.enter(name);
     append_field(fields, "text_scale", value.text_scale);
@@ -2152,6 +2180,7 @@ inline void append_field(EventFields& fields, std::string_view name, const Prese
     append_field(fields, "reduced_transparency", value.reduced_transparency);
     append_field(fields, "double_click_milliseconds", value.double_click_milliseconds);
     append_field(fields, "double_click_origin", value.double_click_origin);
+    append_field(fields, "pointer", value.pointer);
     append_field(fields, "colour_scheme", value.colour_scheme);
     fields.leave(prefix);
 }
@@ -2383,6 +2412,13 @@ inline void read_field(EventFields& fields, std::string_view name, SplitterMoveE
     const EventFieldPrefix prefix = fields.enter(name);
     read_field(fields, "pointer", value.pointer);
     read_field(fields, "split_position", value.split_position);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const SubSurfaceStopped& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "state", value.state);
+    append_field(fields, "failure", value.failure);
     fields.leave(prefix);
 }
 
@@ -4164,6 +4200,15 @@ inline SubscriptionToken connect_page_strip_page_pin_requested(Component& source
     return token;
 }
 
+inline SubscriptionToken connect_sub_surface_host_pairing_missed(Component& source, const EventSink& sink) {
+    SubSurfaceHost* typed = dynamic_cast<SubSurfaceHost*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).pairing_missed(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_ribbon_color_picker_palette_open_changed(Component& source, const EventSink& sink) {
     RibbonColorPicker* typed = dynamic_cast<RibbonColorPicker*>(&source);
     if (typed == nullptr) {
@@ -4744,6 +4789,15 @@ inline SubscriptionToken connect_navigation_pane_state_changed(Component& source
     return token;
 }
 
+inline SubscriptionToken connect_sub_surface_host_stopped(Component& source, const EventSink& sink) {
+    SubSurfaceHost* typed = dynamic_cast<SubSurfaceHost*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).stopped(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_tool_strip_container_strip_moved(Component& source, const EventSink& sink) {
     ToolStripContainer* typed = dynamic_cast<ToolStripContainer*>(&source);
     if (typed == nullptr) {
@@ -5100,7 +5154,7 @@ inline SubscriptionToken connect_control_visible_changed(Component& source, cons
 }
 
 // By interaction name, then the most derived declaring type first.
-inline constexpr std::array<EventConnector, 276> event_connectors{{
+inline constexpr std::array<EventConnector, 278> event_connectors{{
     {"action_invoked", "Toast", &connect_toast_action_invoked},
     {"activated", "Card", &connect_card_activated},
     {"activated", "ChoiceGroup", &connect_choice_group_activated},
@@ -5274,6 +5328,7 @@ inline constexpr std::array<EventConnector, 276> event_connectors{{
     {"page_drag_started", "PageStrip", &connect_page_strip_page_drag_started},
     {"page_invoked", "PageStrip", &connect_page_strip_page_invoked},
     {"page_pin_requested", "PageStrip", &connect_page_strip_page_pin_requested},
+    {"pairing_missed", "SubSurfaceHost", &connect_sub_surface_host_pairing_missed},
     {"palette_open_changed", "RibbonColorPicker", &connect_ribbon_color_picker_palette_open_changed},
     {"parse", "Binding", &connect_binding_parse},
     {"pin_changed", "CorrespondenceView", &connect_correspondence_view_pin_changed},
@@ -5338,6 +5393,7 @@ inline constexpr std::array<EventConnector, 276> event_connectors{{
     {"splitter_moving", "Splitter", &connect_splitter_splitter_moving},
     {"state_changed", "Command", &connect_command_state_changed},
     {"state_changed", "NavigationPane", &connect_navigation_pane_state_changed},
+    {"stopped", "SubSurfaceHost", &connect_sub_surface_host_stopped},
     {"strip_moved", "ToolStripContainer", &connect_tool_strip_container_strip_moved},
     {"text_changed", "ComboBox", &connect_combo_box_text_changed},
     {"text_changed", "GroupBox", &connect_group_box_text_changed},
