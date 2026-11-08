@@ -85,10 +85,16 @@ gui_forms_add_form(my_app forms/settings.form CLASS SettingsWindow NAMESPACE my_
 #include "settings_form.hpp"   // generated: <stem>_form.hpp in the build tree
 
 my_app::Settings settings{};   // the model, declared before the window
-my_app::SettingsWindow window(settings);
-window.settings_ok;            // a std::shared_ptr<gui_forms::Button> member
+std::unique_ptr<my_app::SettingsWindow> window = std::make_unique<my_app::SettingsWindow>(settings);
+(*window).settings_ok;         // a std::shared_ptr<gui_forms::Button> member
 my_app::SettingsWindow::window_title;   // "Settings"
+gui_forms::ApplicationResult result = application.run(std::move(window));   // the run owns the window
 ```
+
+`run` takes the window by `std::unique_ptr`: the run owns it until the
+window closes. A test that only drives the model constructs the window on
+the stack instead (`my_app::SettingsWindow window(settings);`) and never
+runs it.
 
 - **Members.** Each control and component is a public member named after its
   stable ID, with dots and hyphens turned into underscores
