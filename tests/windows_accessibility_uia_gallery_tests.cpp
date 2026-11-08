@@ -42,6 +42,7 @@
 #include "gallery_page_specs.hpp"
 #include "gui_forms/gui_forms.hpp"
 #include "gui_forms/platform/windows_host.hpp"
+#include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
 #include "support/windows_own_window.hpp"
 
 #include <windows.h>
@@ -50,6 +51,7 @@
 
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -499,9 +501,12 @@ struct PreparePage final {
     std::string_view page;
     PageExpectation* expectation{};
     bool freeze{};
+    // The page is already selected (wait_for_sub_surfaces ran after it was
+    // shown): selecting it again could rebuild it, sub-surfaces included.
+    bool selected{};
     void operator()() const {
         PageExpectation& out = *expectation;
-        out.shown = show_page(*window, page);
+        out.shown = selected || show_page(*window, page);
         if (!out.shown) return;
         (*window).perform_layout();
         if (freeze) {
@@ -534,6 +539,29 @@ struct PreparePage final {
                            out.client.children[index]);
         }
     }
+};
+
+// Whether every started SubSurfaceHost in `control`'s subtree has published
+// its tree's semantics, which the host stitches in as its virtual children.
+// A host's thread publishes after its first configuration (a layout with a
+// size), and the snapshot reaches the UI thread as posted work: until then
+// the window's snapshot shows the host with no children, while the provider
+// the client reads a moment later already has them.
+bool sub_surfaces_published(const Control::Ptr& control) {
+    const std::shared_ptr<SubSurfaceHost> host = std::dynamic_pointer_cast<SubSurfaceHost>(control);
+    if (host != nullptr && (*host).started() && (*host).semantic_virtual_children().empty()) return false;
+    const std::span<const Control::Ptr> children = (*control).children();
+    for (const Control::Ptr& child : children) {
+        if (!sub_surfaces_published(child)) return false;
+    }
+    return true;
+}
+
+// Reads sub_surfaces_published for the window's tree, on the UI thread.
+struct ReadSubSurfaces final {
+    Window* window{};
+    bool* published{};
+    void operator()() const { *published = sub_surfaces_published((*window).root()); }
 };
 
 // -- the comparison ------------------------------------------------------------
@@ -1840,6 +1868,26 @@ void on_ui_thread(const WindowDispatcher& dispatcher, std::function<void()> work
     }
 }
 
+// Waits on the client thread, between turns of the UI thread's message loop
+// (which delivers the posted snapshots), until the shown page's started
+// sub-surfaces have published their semantics. Throws when they have not
+// within sub_surface_wait.
+constexpr std::chrono::seconds sub_surface_wait{10};
+
+void wait_for_sub_surfaces(const ClientRun& run, std::string_view page) {
+    const std::chrono::steady_clock::time_point limit = std::chrono::steady_clock::now() + sub_surface_wait;
+    bool published = false;
+    while (true) {
+        on_ui_thread(run.dispatcher, std::function<void()>(ReadSubSurfaces{run.window, &published}));
+        if (published) return;
+        if (std::chrono::steady_clock::now() >= limit) {
+            throw std::runtime_error("the sub-surfaces of the page " + std::string(page) +
+                                     " published no semantics");
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    }
+}
+
 // The element at a path of child positions below the window element (only
 // GUI.Forms children at the window level).
 ElementReference element_at(IUIAutomationTreeWalker& walker, IUIAutomationElement& window,
@@ -1948,9 +1996,17 @@ void perform_job(ClientRun& run, IUIAutomationTreeWalker& walker, IUIAutomationE
 void compare_page(ClientRun& run, IUIAutomation& automation, IUIAutomationTreeWalker& walker,
                   IUIAutomationCacheRequest& cache_request, IUIAutomationElement& window_element,
                   std::string_view page) {
+    // Shown unfrozen first: a sub-surface publishes its semantics only after
+    // a layout configures it, and they arrive as posted work, so the
+    // expectation waits for them (S5 stitches them in as the host's
+    // children on both sides).
+    PageExpectation shown;
+    on_ui_thread(run.dispatcher, std::function<void()>(PreparePage{run.window, run.hwnd, page, &shown}));
+    if (!shown.shown) throw std::runtime_error("a Gallery page cannot be selected: " + std::string(page));
+    wait_for_sub_surfaces(run, page);
     PageExpectation expectation;
-    on_ui_thread(run.dispatcher, std::function<void()>(PreparePage{run.window, run.hwnd, page, &expectation, true}));
-    if (!expectation.shown) throw std::runtime_error("a Gallery page cannot be selected: " + std::string(page));
+    on_ui_thread(run.dispatcher,
+                 std::function<void()>(PreparePage{run.window, run.hwnd, page, &expectation, true, true}));
     const bool cached = page != live_page;
     ElementReference cached_window;
     if (cached) {
