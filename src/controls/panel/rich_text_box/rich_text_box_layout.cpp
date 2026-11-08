@@ -344,7 +344,7 @@ void RichTextBox::place_row(const RowRequest& request, double& y) {
 }
 
 void RichTextBox::rebuild_rows(double width) {
-    const FontSpec font = text_font(font.read());
+    const FontSpec font = text_font((*this).font.read());
     const Window* owner = window();
     const double scale = owner == nullptr ? 1.0 : (*owner).scale();
     const TextMetricsProvider* provider = owner == nullptr ? nullptr : (*owner).text_metrics_provider();
@@ -403,7 +403,7 @@ void RichTextBox::set_scroll(Point position) {
 void RichTextBox::ensure_layout() {
     const Rect bounds = local_bounds();
     const Size client{bounds.width, bounds.height};
-    const FontSpec font = text_font(font.read());
+    const FontSpec font = text_font((*this).font.read());
     const Window* owner = window();
     const double scale = owner == nullptr ? 1.0 : (*owner).scale();
     const TextMetricsProvider* provider = owner == nullptr ? nullptr : (*owner).text_metrics_provider();

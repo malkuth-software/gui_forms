@@ -407,7 +407,7 @@ void rtf_round_trip() {
     require(box.rtf(rtf).succeeded() && !rtf.empty(), "the document is written as RTF");
     Fixture other = make_fixture({});
     const RtfConversionResult loaded = (*other.box).set_rtf(rtf);
-    require(loaded.succeeded() && (*other.box).text() == box.text.read() && !(*other.box).can_undo(),
+    require(loaded.succeeded() && (*other.box).text.read() == box.text.read() && !(*other.box).can_undo(),
             "RTF read back gives the same text and clears the history");
     const std::string before((*other.box).markdown());
     const std::string junk = "not rtf";
