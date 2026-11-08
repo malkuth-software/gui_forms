@@ -2,6 +2,8 @@
 
 #include "gui_forms/components/context_menu/context_menu.hpp"
 #include "gui_forms/controls/tool_strip/tool_strip.hpp"
+#include "gui_forms/controls/quick_access_toolbar/quick_access_toolbar_values/quick_access_toolbar_values.hpp"
+#include "gui_forms/controls/quick_access_toolbar/quick_access_toolbar_capabilities/quick_access_toolbar_capabilities.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -12,12 +14,6 @@
 #include <vector>
 
 namespace gui_forms {
-
-// Where the toolbar sits: on the ribbon's tab row beside the File tab, or in
-// its own row below the ribbon (owner decision RB-12). The toolbar only
-// records the choice; whoever places the toolbar applies it (the Ribbon
-// does not host the toolbar yet).
-enum class QuickAccessToolbarPlacement : std::uint8_t { above_ribbon, below_ribbon };
 
 // One command the toolbar may show. Every declared command is listed, with a
 // check, in the customize menu; `shown` is whether the toolbar shows it
@@ -53,7 +49,7 @@ struct QuickAccessToolbarPlacementChange final {
 // and item anatomy; it admits only command buttons (commands only, D2-2), and
 // set_items with any other item throws std::invalid_argument. The
 // application declares commands with set_commands instead.
-class QuickAccessToolbar final : public ToolStrip {
+class QuickAccessToolbar final : public ToolStrip, public QuickAccessToolbarCapabilities<QuickAccessToolbar> {
 public:
     // The most commands the toolbar may declare.
     static constexpr std::size_t maximum_commands = 20U;
@@ -87,11 +83,6 @@ public:
     // customized when that changes anything. Throws std::out_of_range for an
     // undeclared ID.
     void set_command_shown(std::string_view command_id, bool shown);
-
-    [[nodiscard]] QuickAccessToolbarPlacement placement() const noexcept { return placement_; }
-    // Records the placement and emits placement_changed when it changes.
-    // Throws std::invalid_argument for a value outside the enumeration.
-    void set_placement(QuickAccessToolbarPlacement placement);
 
     // Opens the customize menu below the customize button, or closes it.
     bool show_customize_menu(MenuOpenMode mode = MenuOpenMode::keyboard);
@@ -166,12 +157,18 @@ private:
     std::unique_ptr<ContextMenu> menu_{};
     SubscriptionToken menu_invoked_{};
     SubscriptionToken menu_changed_{};
-    QuickAccessToolbarPlacement placement_{QuickAccessToolbarPlacement::above_ribbon};
     bool customize_hot_{};
     bool customize_open_{};
     bool focused_{};
     Event<const QuickAccessToolbarCustomization&> customized_{};
     Event<const QuickAccessToolbarPlacementChange&> placement_changed_{};
+    // property_codemod begin QuickAccessToolbar (tools/property_families/quick_access_toolbar.json; generated, do not edit)
+private:
+    friend struct QuickAccessToolbarPlacementPropertyCapability<QuickAccessToolbar>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(placement)& cell, QuickAccessToolbarPlacement& incoming);
+    void written(const decltype(placement)& cell);
+    // property_codemod end QuickAccessToolbar
 };
 
 } // namespace gui_forms

@@ -1,0 +1,52 @@
+{
+  "family": "BackstageView",
+  "step": "M-S8",
+  "declaring": "BackstageView",
+  "header": "include/gui_forms/controls/backstage_view/backstage_view.hpp",
+  "source": "src/controls/backstage_view/backstage_view.cpp",
+  "capabilities_header": "include/gui_forms/controls/backstage_view/backstage_view_capabilities/backstage_view_capabilities.hpp",
+  "base": "Control",
+  "shared": [],
+  "includes": [],
+  "test": {
+    "type": "BackstageView",
+    "include": "gui_forms/controls/backstage_view/backstage_view.hpp"
+  },
+  "properties": [
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "column_width",
+      "capability": "BackstageViewColumnWidth",
+      "value": "double",
+      "initial": "132.0",
+      "hooks": "generated",
+      "hand": [],
+      "effects": "Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "prepare": [
+        "if (!std::isfinite(incoming) || incoming < minimum_column || incoming > maximum_column) {",
+        "    throw std::invalid_argument(\"BackstageView column width must lie within 48 to 480\");",
+        "}"
+      ],
+      "comment": "The column's width in logical units at text scale 1 (132 by default). A width outside 48 to 480 throws std::invalid_argument.",
+      "sample": "200.0",
+      "getter": "column_width",
+      "setter": "set_column_width",
+      "field": "column_width_"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "items",
+      "reason": "wholesale collection replacement (section 4)"
+    },
+    {
+      "name": "selected_topic",
+      "reason": "G14 selection"
+    }
+  ]
+}

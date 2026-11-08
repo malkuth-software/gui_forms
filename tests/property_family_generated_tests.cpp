@@ -3,6 +3,7 @@
 // stores (read back), an equal write raises nothing, and a changed write
 // raises the change event once (property-capabilities study, section 15.2).
 #include "gui_forms/gui_forms.hpp"
+#include "gui_forms/controls/backstage_view/backstage_view.hpp"
 #include "gui_forms/controls/badge/badge.hpp"
 #include "gui_forms/controls/button_base/button/button.hpp"
 #include "gui_forms/controls/button_base/button/drop_down_button/drop_down_button.hpp"
@@ -55,6 +56,7 @@
 #include "gui_forms/controls/panel/token_box/token_box.hpp"
 #include "gui_forms/controls/panel/tree_list_view/tree_list_view.hpp"
 #include "gui_forms/controls/panel/tree_view/tree_view.hpp"
+#include "gui_forms/controls/quick_access_toolbar/quick_access_toolbar.hpp"
 #include "gui_forms/controls/raster_canvas/raster_canvas.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/container_control.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/split_container/split_container.hpp"
@@ -113,6 +115,15 @@ void test_anchored_overlay_layer_properties() {
         const bool sample = !(*control).dismiss_on_escape.read();
         (*control).dismiss_on_escape = sample;
         expect((*control).dismiss_on_escape.read() == sample, "AnchoredOverlayLayer.dismiss_on_escape: a write stores");
+    }
+}
+
+void test_backstage_view_properties() {
+    std::shared_ptr<BackstageView> control = make_control<BackstageView>(StableId("generated.backstageview"));
+    {
+        const double sample = 200.0;
+        (*control).column_width = sample;
+        expect((*control).column_width.read() == sample, "BackstageView.column_width: a write stores");
     }
 }
 
@@ -1378,6 +1389,15 @@ void test_property_list_properties() {
     std::shared_ptr<PropertyList> control = make_control<PropertyList>(StableId("generated.propertylist"));
 }
 
+void test_quick_access_toolbar_properties() {
+    std::shared_ptr<QuickAccessToolbar> control = make_control<QuickAccessToolbar>(StableId("generated.quickaccesstoolbar"));
+    {
+        const QuickAccessToolbarPlacement sample = QuickAccessToolbarPlacement::below_ribbon;
+        (*control).placement = sample;
+        expect((*control).placement.read() == sample, "QuickAccessToolbar.placement: a write stores");
+    }
+}
+
 void test_raster_canvas_properties() {
     std::shared_ptr<RasterCanvas> control = make_control<RasterCanvas>(StableId("generated.rastercanvas"));
     {
@@ -1939,6 +1959,7 @@ void test_typography_specimen_properties() {
 
 int main() {
     test_anchored_overlay_layer_properties();
+    test_backstage_view_properties();
     test_badge_properties();
     test_breadcrumb_trail_properties();
     test_button_base_properties();
@@ -1982,6 +2003,7 @@ int main() {
     test_picture_box_properties();
     test_property_grid_properties();
     test_property_list_properties();
+    test_quick_access_toolbar_properties();
     test_raster_canvas_properties();
     test_review_card_properties();
     test_rich_text_box_properties();

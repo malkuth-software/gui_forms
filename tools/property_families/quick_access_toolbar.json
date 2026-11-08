@@ -1,0 +1,51 @@
+{
+  "family": "QuickAccessToolbar",
+  "step": "M-S8",
+  "declaring": "QuickAccessToolbar",
+  "header": "include/gui_forms/controls/quick_access_toolbar/quick_access_toolbar.hpp",
+  "source": "src/controls/quick_access_toolbar/quick_access_toolbar.cpp",
+  "capabilities_header": "include/gui_forms/controls/quick_access_toolbar/quick_access_toolbar_capabilities/quick_access_toolbar_capabilities.hpp",
+  "base": "ToolStrip",
+  "shared": [],
+  "includes": [
+    "gui_forms/controls/quick_access_toolbar/quick_access_toolbar_values/quick_access_toolbar_values.hpp"
+  ],
+  "test": {
+    "type": "QuickAccessToolbar",
+    "include": "gui_forms/controls/quick_access_toolbar/quick_access_toolbar.hpp"
+  },
+  "properties": [
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "placement",
+      "capability": "QuickAccessToolbarPlacementProperty",
+      "value": "QuickAccessToolbarPlacement",
+      "initial": "QuickAccessToolbarPlacement::above_ribbon",
+      "hooks": "hand",
+      "hand": [
+        "written rebuilds the customize menu and emits placement_changed"
+      ],
+      "effects": null,
+      "comment": "Where the toolbar sits (see QuickAccessToolbarPlacement). A change rebuilds the customize menu and emits placement_changed. A value outside the enumeration throws std::invalid_argument.",
+      "sample": "QuickAccessToolbarPlacement::below_ribbon",
+      "getter": "placement",
+      "setter": "set_placement",
+      "field": "placement_"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "commands, shown_command_ids",
+      "reason": "wholesale collection replacement (section 4)"
+    },
+    {
+      "name": "command_shown",
+      "reason": "per-item operation"
+    }
+  ]
+}

@@ -86,6 +86,10 @@ Related types
      -  
    * - :cpp:class:`BackstageView::Parts <gui_forms::BackstageView::Parts>`
      - Stage T1 anatomy, as dot members; its states are Control's.
+   * - :cpp:class:`BackstageViewCapabilities <gui_forms::BackstageViewCapabilities>`
+     - Every BackstageView capability, in the order the declaring class takes them.
+   * - :cpp:class:`BackstageViewColumnWidthCapability <gui_forms::BackstageViewColumnWidthCapability>`
+     - The column's width in logical units at text scale 1 (132 by default).
    * - :cpp:class:`BindingNavigatorAddNew <gui_forms::BindingNavigatorAddNew>`
      - Raised by a BindingNavigator's add command.
    * - :cpp:class:`BindingNavigatorBindingSourceCapability <gui_forms::BindingNavigatorBindingSourceCapability>`
@@ -122,12 +126,16 @@ Related types
      - Whether an ampersand in an item's text marks its access key (Windows Forms' UseMnemonic; default true).
    * - :cpp:class:`QuickAccessToolbar::Parts <gui_forms::QuickAccessToolbar::Parts>`
      - Stage T1 anatomy, as dot members: ToolStrip's parts and the customize button.
+   * - :cpp:class:`QuickAccessToolbarCapabilities <gui_forms::QuickAccessToolbarCapabilities>`
+     - Every QuickAccessToolbar capability, in the order the declaring class takes them.
    * - :cpp:class:`QuickAccessToolbarCommand <gui_forms::QuickAccessToolbarCommand>`
      - One command the toolbar may show.
    * - :cpp:class:`QuickAccessToolbarCustomization <gui_forms::QuickAccessToolbarCustomization>`
      - The user showed or hid a command from the customize menu, or the application did through set_command_shown.
    * - :cpp:class:`QuickAccessToolbarPlacementChange <gui_forms::QuickAccessToolbarPlacementChange>`
      -  
+   * - :cpp:class:`QuickAccessToolbarPlacementPropertyCapability <gui_forms::QuickAccessToolbarPlacementPropertyCapability>`
+     - Where the toolbar sits (see QuickAccessToolbarPlacement).
    * - :cpp:class:`Ribbon::CommandItem <gui_forms::Ribbon::CommandItem>`
      -  
    * - :cpp:class:`Ribbon::CommandParts <gui_forms::Ribbon::CommandParts>`
@@ -360,6 +368,38 @@ Related types
    .. cpp:member:: PartGeometry page
 
    .. cpp:member:: PartGeometry focus
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> BackstageViewCapabilities : public BackstageViewColumnWidthCapability<Declaring>
+
+   ``#include <gui_forms/controls/backstage_view/backstage_view_capabilities/backstage_view_capabilities.hpp>``
+
+   Every BackstageView capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: double column_width
+
+      The column's width in logical units at text scale 1 (132 by default). A width outside 48 to 480 throws std::invalid_argument.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> BackstageViewColumnWidthCapability
+
+   ``#include <gui_forms/controls/backstage_view/backstage_view_capabilities/backstage_view_capabilities.hpp>``
+
+   The column's width in logical units at text scale 1 (132 by default). A width outside 48 to 480 throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(BackstageViewColumnWidthCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, BackstageViewColumnWidthCapability<Declaring>> column_width
+
+      Default: ``{132.0}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -689,6 +729,21 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> QuickAccessToolbarCapabilities : public QuickAccessToolbarPlacementPropertyCapability<Declaring>
+
+   ``#include <gui_forms/controls/quick_access_toolbar/quick_access_toolbar_capabilities/quick_access_toolbar_capabilities.hpp>``
+
+   Every QuickAccessToolbar capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: QuickAccessToolbarPlacement placement
+
+      Where the toolbar sits (see QuickAccessToolbarPlacement). A change rebuilds the customize menu and emits placement_changed. A value outside the enumeration throws std::invalid_argument.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: QuickAccessToolbarCommand final
 
    ``#include <gui_forms/controls/quick_access_toolbar/quick_access_toolbar.hpp>``
@@ -726,6 +781,23 @@ Related types
    .. cpp:member:: std::string toolbar_id
 
    .. cpp:member:: QuickAccessToolbarPlacement placement
+
+      Default: ``{QuickAccessToolbarPlacement::above_ribbon}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> QuickAccessToolbarPlacementPropertyCapability
+
+   ``#include <gui_forms/controls/quick_access_toolbar/quick_access_toolbar_capabilities/quick_access_toolbar_capabilities.hpp>``
+
+   Where the toolbar sits (see QuickAccessToolbarPlacement). A change rebuilds the customize menu and emits placement_changed. A value outside the enumeration throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(QuickAccessToolbarPlacementPropertyCapability& capability, QuickAccessToolbarPlacement incoming)
+
+   .. cpp:member:: PropertyCell<QuickAccessToolbarPlacement, QuickAccessToolbarPlacementPropertyCapability<Declaring>> placement
 
       Default: ``{QuickAccessToolbarPlacement::above_ribbon}``.
 
@@ -2045,7 +2117,7 @@ Enumerations
 
 .. cpp:enum-class:: QuickAccessToolbarPlacement
 
-   ``#include <gui_forms/controls/quick_access_toolbar/quick_access_toolbar.hpp>``
+   ``#include <gui_forms/controls/quick_access_toolbar/quick_access_toolbar_values/quick_access_toolbar_values.hpp>``
 
    .. cpp:enumerator:: above_ribbon
 

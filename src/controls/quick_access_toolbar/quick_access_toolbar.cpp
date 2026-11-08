@@ -6,6 +6,7 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
 #include <array>
@@ -49,7 +50,7 @@ QuickAccessToolbar::QuickAccessToolbar(StableId stable_id) : ToolStrip(std::move
     menu_changed_ = (*menu_).open_changed().subscribe(
         *this, Delegate<bool>::bind<QuickAccessToolbar, &QuickAccessToolbar::on_menu_open_changed>(*this));
     placement_command_ = std::make_shared<Command>(prefix + ".customize.placement",
-                                                   placement_row_text(placement_));
+                                                   placement_row_text(placement.read()));
     rebuild_menu();
 }
 
@@ -201,7 +202,7 @@ void QuickAccessToolbar::rebuild_menu() {
     if (!commands_.empty()) {
         menu_items_.emplace_back(std::string(stable_id().value()) + ".customize.separator", MenuItemKind::separator);
     }
-    (*placement_command_).set_text(placement_row_text(placement_));
+    (*placement_command_).set_text(placement_row_text(placement.read()));
     menu_items_.emplace_back((*placement_command_).stable_id(), MenuItemKind::command, placement_command_);
 }
 
@@ -211,16 +212,18 @@ const std::vector<MenuItemSpec>& QuickAccessToolbar::customize_menu_items() cons
 
 // -- placement -----------------------------------------------------------------
 
-void QuickAccessToolbar::set_placement(QuickAccessToolbarPlacement placement) {
+void QuickAccessToolbar::prepare_write(const decltype(placement)&, QuickAccessToolbarPlacement& incoming) {
     require_mutable();
-    if (placement != QuickAccessToolbarPlacement::above_ribbon &&
-        placement != QuickAccessToolbarPlacement::below_ribbon) {
+    if (incoming != QuickAccessToolbarPlacement::above_ribbon &&
+        incoming != QuickAccessToolbarPlacement::below_ribbon) {
         throw std::invalid_argument("QuickAccessToolbar placement is invalid");
     }
-    if (placement_ == placement) return;
-    placement_ = placement;
+}
+
+// The menu's placement row names the other placement; listeners follow.
+void QuickAccessToolbar::written(const decltype(placement)&) {
     rebuild_menu();
-    const QuickAccessToolbarPlacementChange change{std::string(stable_id().value()), placement_};
+    const QuickAccessToolbarPlacementChange change{std::string(stable_id().value()), placement.read()};
     placement_changed_.emit(change);
 }
 
@@ -277,10 +280,10 @@ void QuickAccessToolbar::on_menu_open_changed(bool open) {
 
 void QuickAccessToolbar::on_menu_invoked(const MenuItemInvocation& invocation) {
     if (invocation.item_id == (*placement_command_).stable_id()) {
-        const QuickAccessToolbarPlacement next = placement_ == QuickAccessToolbarPlacement::above_ribbon
+        const QuickAccessToolbarPlacement next = placement.read() == QuickAccessToolbarPlacement::above_ribbon
                                                      ? QuickAccessToolbarPlacement::below_ribbon
                                                      : QuickAccessToolbarPlacement::above_ribbon;
-        set_placement(next);
+        placement = next;
         return;
     }
     for (const QuickAccessToolbarCommand& declared : commands_) {
@@ -482,5 +485,9 @@ void QuickAccessToolbar::append_interactions(std::vector<InteractionDeclaration>
     interactions.insert(interactions.end(), quick_access_toolbar_interactions.begin(),
                         quick_access_toolbar_interactions.end());
 }
+
+// property_codemod begin QuickAccessToolbar (tools/property_families/quick_access_toolbar.json; generated, do not edit)
+
+// property_codemod end QuickAccessToolbar
 
 } // namespace gui_forms

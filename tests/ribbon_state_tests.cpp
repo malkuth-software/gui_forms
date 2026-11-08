@@ -111,7 +111,7 @@ void toolbar_capture_and_apply() {
 
     (*toolbar).set_command_shown("print", true);
     (*toolbar).set_command_shown("save", false);
-    (*toolbar).set_placement(QuickAccessToolbarPlacement::below_ribbon);
+    (*toolbar).placement = QuickAccessToolbarPlacement::below_ribbon;
     const RibbonState captured = capture_ribbon_state(*toolbar, true);
     const std::string saved = serialize_ribbon_state(captured);
 
@@ -124,7 +124,7 @@ void toolbar_capture_and_apply() {
     require(loaded.diagnostics.empty() && loaded.state.minimized, "the saved state loads");
     apply_ribbon_state(*restored, loaded.state);
     require((*restored).shown_command_ids() == (*toolbar).shown_command_ids() &&
-                (*restored).placement() == QuickAccessToolbarPlacement::below_ribbon,
+                (*restored).placement.read() == QuickAccessToolbarPlacement::below_ribbon,
             "applying the state restores the toolbar's commands, order and placement");
     const std::vector<ToolStrip::Item> items = (*restored).realized_items();
     require(items.size() == 2U && items[0].stable_id == "undo" && items[1].stable_id == "print",
