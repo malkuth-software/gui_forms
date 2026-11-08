@@ -89,7 +89,7 @@ void test_dates_and_calendar(gui_forms::Window& window) {
     click(window, window.find("gallery.date.commands.item.1"));
     require((*primary).value.read().day == 30U && (*commands).item(1).enabled.read() &&
                 (*std::dynamic_pointer_cast<Label>(window.find("gallery.date.status")))
-                        .text().find("Committed") != std::string::npos,
+                        .text.read().find("Committed") != std::string::npos,
             "the previous-day Command must move the bounded date and re-enable next day");
     (*primary).value = DateTimeValue{2026, 8U, 1U};
     require(!(*commands).item(0).enabled.read() && (*commands).item(1).enabled.read(),

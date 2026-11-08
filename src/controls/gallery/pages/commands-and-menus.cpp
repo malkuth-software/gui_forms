@@ -443,15 +443,15 @@ private:
     }
 
     void on_style_preview(const GalleryPreview& preview) {
-        (*gallery_status_).set_text("Previewing " + preview.item_id + " from " + preview.source_id);
+        (*gallery_status_).text = "Previewing " + preview.item_id + " from " + preview.source_id;
     }
 
     void on_style_cancel(const GalleryPreview& preview) {
-        (*gallery_status_).set_text("Preview of " + preview.item_id + " withdrawn");
+        (*gallery_status_).text = "Preview of " + preview.item_id + " withdrawn";
     }
 
     void on_style_value(const std::optional<std::string>& value) {
-        (*gallery_status_).set_text("Committed " + value.value_or(std::string("nothing")));
+        (*gallery_status_).text = "Committed " + value.value_or(std::string("nothing"));
     }
 
     // A ToolStripContainer: a strip in the top panel, a vertical strip in
@@ -547,94 +547,94 @@ private:
     }
 
     void on_ribbon_launcher(const RibbonDialogLaunch& launch) {
-        (*status_).set_text("Ribbon dialog launcher · " + launch.group_id);
+        (*status_).text = "Ribbon dialog launcher · " + launch.group_id;
     }
 
     // Shared application state.
     void on_dirty_changed(const bool dirty) {
         (*save_).set_enabled(dirty);
-        (*status_).set_text(dirty ? "Document modified · Save enabled on the bar, the menus, the button and Ctrl+S"
-                                  : "Document clean · Save disabled everywhere");
+        (*status_).text = dirty ? "Document modified · Save enabled on the bar, the menus, the button and Ctrl+S"
+                                  : "Document clean · Save disabled everywhere";
     }
 
     void on_wrap_changed(const bool wrap) {
         (*wrap_command_).set_checked(wrap);
-        (*status_).set_text(std::string("Word wrap ") + (wrap ? "on" : "off") +
-                            " · Value projected onto the check Command");
+        (*status_).text = std::string("Word wrap ") + (wrap ? "on" : "off") +
+                            " · Value projected onto the check Command";
     }
 
     // Command handlers; CommandInvocation names the surface that invoked.
     void on_new(const CommandInvocation& invocation) {
         dirty_.set(true);
-        (*status_).set_text("New document · invoked from " + invocation.source_id);
+        (*status_).text = "New document · invoked from " + invocation.source_id;
     }
 
     void on_save(const CommandInvocation& invocation) {
         ++saves_;
-        (*saves_label_).set_text("Saves: " + std::to_string(saves_));
+        (*saves_label_).text = "Saves: " + std::to_string(saves_);
         dirty_.set(false);
-        (*status_).set_text("Save #" + std::to_string(saves_) + " invoked from " +
-                            invocation.source_id + " · document clean again");
+        (*status_).text = "Save #" + std::to_string(saves_) + " invoked from " +
+                            invocation.source_id + " · document clean again";
     }
 
     void on_wrap_invoked(const CommandInvocation& invocation) {
         wrap_.set(!wrap_.get());
-        (*status_).set_text(std::string("Word wrap ") + (wrap_.get() ? "on" : "off") +
-                            " · toggled from " + invocation.source_id);
+        (*status_).text = std::string("Word wrap ") + (wrap_.get() ? "on" : "off") +
+                            " · toggled from " + invocation.source_id;
     }
 
     void on_view_mode(const int mode, const CommandInvocation& invocation) {
         (*icons_).set_checked(mode == 0);
         (*details_).set_checked(mode == 1);
-        (*status_).set_text(std::string("View ") + (mode == 0 ? "icons" : "details") +
-                            " · radio Commands checked from " + invocation.source_id);
+        (*status_).text = std::string("View ") + (mode == 0 ? "icons" : "details") +
+                            " · radio Commands checked from " + invocation.source_id;
     }
 
     void on_run(const CommandInvocation& invocation) {
-        (*status_).set_text("Run · split button primary region · " + invocation.source_id);
+        (*status_).text = "Run · split button primary region · " + invocation.source_id;
     }
 
     void on_run_option(const int option, const CommandInvocation& invocation) {
-        (*status_).set_text(std::string(option == 0 ? "Run verbose" : "Run and watch") +
-                            " · split button menu · " + invocation.source_id);
+        (*status_).text = std::string(option == 0 ? "Run verbose" : "Run and watch") +
+                            " · split button menu · " + invocation.source_id;
     }
 
     void on_export(const int format, const CommandInvocation& invocation) {
-        (*status_).set_text(std::string("Export ") + export_labels_[static_cast<std::size_t>(format)] +
-                            " · invoked from " + invocation.source_id);
+        (*status_).text = std::string("Export ") + export_labels_[static_cast<std::size_t>(format)] +
+                            " · invoked from " + invocation.source_id;
     }
 
     void on_quick_access_placement(const QuickAccessToolbarPlacementChange& change) {
         const bool below = change.placement == QuickAccessToolbarPlacement::below_ribbon;
-        (*quick_access_note_).set_text(std::string("The customize button lists each command with a check · placement: ") +
-                                       (below ? "below" : "above") + " the ribbon");
+        (*quick_access_note_).text = std::string("The customize button lists each command with a check · placement: ") +
+                                       (below ? "below" : "above") + " the ribbon";
     }
 
     void on_quick_access_customized(const QuickAccessToolbarCustomization& change) {
-        (*status_).set_text("Quick Access Toolbar · " + change.command_id + (change.shown ? " shown" : " hidden"));
+        (*status_).text = "Quick Access Toolbar · " + change.command_id + (change.shown ? " shown" : " hidden");
     }
 
     void on_about() {
-        (*status_).set_text("Commands and menus · MenuStrip, CommandBar, ContextMenu and "
-                            "DropDownButton all execute shared Command instances");
+        (*status_).text = "Commands and menus · MenuStrip, CommandBar, ContextMenu and "
+                            "DropDownButton all execute shared Command instances";
     }
 
     // Surface notifications: group events that survive item replacement.
     // The bound Command has already run; the bar reports the item afterwards.
     void on_bar_invoked(const CommandItem& bar_item) {
-        (*status_).set_text((*status_).text() + " · bar item " + bar_item.label);
+        (*status_).text = (*status_).text.read() + " · bar item " + bar_item.label;
     }
 
     void on_menu_invoked(const MenuStripInvocation& invocation) {
-        (*status_).set_text((*status_).text() + " · menu " + invocation.top_level_id);
+        (*status_).text = (*status_).text.read() + " · menu " + invocation.top_level_id;
     }
 
     void on_context_invoked(const MenuItemInvocation& invocation) {
-        (*status_).set_text((*status_).text() + " · context row " + invocation.item_id);
+        (*status_).text = (*status_).text.read() + " · context row " + invocation.item_id;
     }
 
     void on_context_open(const bool open) {
-        if (!open) (*status_).set_text("Context menu closed · invoker focus restored");
+        if (!open) (*status_).text = "Context menu closed · invoker focus restored";
     }
 
     void on_context_requested(ButtonBase& source) {

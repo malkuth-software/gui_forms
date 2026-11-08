@@ -48,16 +48,16 @@ private:
     }
 
     void on_share_changed(const double value) {
-        (*note_).set_text("Shared table value " + std::to_string(static_cast<int>(value)) +
+        (*note_).text = "Shared table value " + std::to_string(static_cast<int>(value)) +
                           " · slider and progress bar bind one Value<double>; authored bounds never become the "
-                          "parent-assigned slot.");
+                          "parent-assigned slot.";
     }
 
     void on_percent_one_changed(const bool checked) {
-        (*note_).set_text(checked ? "Percent · 1 share checked · the check box binds a Value<bool>; authored bounds "
+        (*note_).text = checked ? "Percent · 1 share checked · the check box binds a Value<bool>; authored bounds "
                                     "never become the parent-assigned slot."
                                   : "Percent · 1 share cleared · the check box binds a Value<bool>; authored bounds "
-                                    "never become the parent-assigned slot.");
+                                    "never become the parent-assigned slot.";
     }
 
     RetainedLayoutDocument<LayoutPanelsPage> document_{};

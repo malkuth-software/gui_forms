@@ -354,10 +354,9 @@ public:
         const std::shared_ptr<PageContext> context = context_.lock();
         if (!context || !(*context).binding_source || !(*context).binding_status) return;
         const BindingSourceSnapshot snapshot = (*(*context).binding_source).snapshot();
-        (*(*context).binding_status).set_text(
-            "Current " + std::to_string(snapshot.position + 1) + " / " +
+        (*(*context).binding_status).text = "Current " + std::to_string(snapshot.position + 1) + " / " +
             std::to_string(snapshot.count) + " · " + snapshot.current_stable_id +
-            " · text commits on validation · revision " + std::to_string(snapshot.revision));
+            " · text commits on validation · revision " + std::to_string(snapshot.revision);
     }
 
     // Bound value: -1 moves to the previous record, +1 to the next.
@@ -371,14 +370,14 @@ public:
     void help_requested(HelpRequestEvent& request) {
         const std::shared_ptr<PageContext> context = context_.lock();
         if (!context) return;
-        (*(*context).status).set_text("Help · " + request.help_string);
+        (*(*context).status).text = "Help · " + request.help_string;
         request.handled = true;
     }
 
     void ribbon_help_requested(const RibbonToolTipHelpRequest& request) {
         const std::shared_ptr<PageContext> context = context_.lock();
         if (!context) return;
-        (*(*context).status).set_text("Help topic · " + request.help_topic);
+        (*(*context).status).text = "Help topic · " + request.help_topic;
     }
 
     void toggle_provider_error() {
@@ -405,10 +404,9 @@ public:
         const double eased = 0.5 - std::cos(cycle * 6.283185307179586) * 0.5;
         (*(*context).timer_motion).set_design_bounds(
             *(*context).timer_motion_target, {14.0 + travel * eased, 39.0, 168.0, 34.0});
-        (*(*context).timer_status).set_text(
-            "Running · tick " + std::to_string((*context).timer_ticks) + " · " +
+        (*(*context).timer_status).text = "Running · tick " + std::to_string((*context).timer_ticks) + " · " +
             std::to_string(static_cast<int>((*(*context).ui_timer).interval().count())) +
-            " ms · UI thread");
+            " ms · UI thread";
     }
 
     void show_persistent_tooltip() {

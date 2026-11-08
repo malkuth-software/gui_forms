@@ -129,13 +129,13 @@ private:
         if ((*list_view_).insertion_mark().has_value()) {
             (*list_view_).clear_insertion_mark();
             (*mark_toggle_).text = "Show insertion mark";
-            (*status_).set_text("ListView insertion mark cleared");
+            (*status_).text = "ListView insertion mark cleared";
             return;
         }
         const bool shown = (*list_view_).show_insertion_mark({.index = 2U, .after = false});
         (*mark_toggle_).text = shown ? "Clear insertion mark" : "Show insertion mark";
-        (*status_).set_text(shown ? "ListView insertion mark before the third row · drop role"
-                                  : "ListView has no third row to mark");
+        (*status_).text = shown ? "ListView insertion mark before the third row · drop role"
+                                  : "ListView has no third row to mark";
     }
 
     void on_column_click(const ListViewColumnClick& click) {
@@ -143,29 +143,29 @@ private:
                                (*list_view_).sort_order() == ListViewSortOrder::ascending;
         (*list_view_).sort_items(click.column, ascending ? ListViewSortOrder::descending
                                                          : ListViewSortOrder::ascending);
-        (*status_).set_text("ListView sorted by " + click.column_id +
-                            (ascending ? " descending" : " ascending") + " · the application chose the order");
+        (*status_).text = "ListView sorted by " + click.column_id +
+                            (ascending ? " descending" : " ascending") + " · the application chose the order";
     }
 
     void on_list_view_checked(const ListViewItemCheck& check) {
-        (*status_).set_text("ListView item " + check.item_id + (check.new_value ? " checked" : " unchecked"));
+        (*status_).text = "ListView item " + check.item_id + (check.new_value ? " checked" : " unchecked");
     }
 
     void on_list_view_renamed(ListViewLabelEdit& edit) {
         if (!edit.label) {
-            (*status_).set_text("ListView rename of " + edit.item_id + " cancelled");
+            (*status_).text = "ListView rename of " + edit.item_id + " cancelled";
             return;
         }
-        (*status_).set_text("ListView item " + edit.item_id + " renamed to " + *edit.label);
+        (*status_).text = "ListView item " + edit.item_id + " renamed to " + *edit.label;
     }
 
     // Bound value 0/1 names the list; both lists share one handler.
     void on_item_checked(const int list, const std::size_t index, const CheckState state) {
-        (*status_).set_text(std::string(list == 0 ? "Deliberate" : "Immediate") + " item " +
+        (*status_).text = std::string(list == 0 ? "Deliberate" : "Immediate") + " item " +
                             std::to_string(index + 1U) + " committed " +
                             (state == CheckState::checked ? "checked"
                              : state == CheckState::indeterminate ? "mixed" : "unchecked") +
-                            " · selection unchanged");
+                            " · selection unchanged";
     }
 
     void on_command(const CommandItem& item) {

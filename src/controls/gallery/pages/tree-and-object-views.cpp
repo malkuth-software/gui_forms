@@ -428,24 +428,24 @@ private:
         const std::size_t folder = node_index(change.current_id);
         if (folder == no_parent) return;
         project_folder(folder);
-        (*status_).set_text("Folder " + node_path(folder) + " selected · " +
+        (*status_).text = "Folder " + node_path(folder) + " selected · " +
                             std::to_string((*objects_).items().size()) + " children · " +
-                            std::to_string((*ledger_).items().size()) + " files in the ledger");
+                            std::to_string((*ledger_).items().size()) + " files in the ledger";
     }
 
     void on_expansion_changed(const TreeExpansionChange& change) {
-        (*status_).set_text("Folder " + change.stable_id + (change.expanded ? " expanded" : " collapsed") +
-                            " · unrealized descendants keep their identity");
+        (*status_).text = "Folder " + change.stable_id + (change.expanded ? " expanded" : " collapsed") +
+                            " · unrealized descendants keep their identity";
     }
 
     void on_folder_activated(const std::string& stable_id) {
-        (*status_).set_text("Folder " + stable_id + " activated · Enter or double-click");
+        (*status_).text = "Folder " + stable_id + " activated · Enter or double-click";
     }
 
     // ObjectView
     void on_object_selected(const ObjectSelectionChange& change) {
-        (*status_).set_text(std::to_string(change.current_ids.size()) + " object(s) selected" +
-                            (change.current_id.empty() ? std::string() : " · primary " + change.current_id));
+        (*status_).text = std::to_string(change.current_ids.size()) + " object(s) selected" +
+                            (change.current_id.empty() ? std::string() : " · primary " + change.current_id);
     }
 
     void on_object_activated(const std::string& stable_id) {
@@ -453,25 +453,25 @@ private:
         if (index == no_parent) return;
         if (project[index].folder) {
             select_folder(index);
-            (*status_).set_text("Opened " + node_path(index) + " from the ObjectView");
+            (*status_).text = "Opened " + node_path(index) + " from the ObjectView";
             return;
         }
-        (*status_).set_text("File " + stable_id + " activated · " + std::string(project[index].note));
+        (*status_).text = "File " + stable_id + " activated · " + std::string(project[index].note);
     }
 
     void on_sort_requested(const ObjectDetailsSort& requested) {
         sort_ = requested;
         project_objects();
-        (*status_).set_text("Sorted by " + requested.column.value +
+        (*status_).text = "Sorted by " + requested.column.value +
                             (requested.direction == ObjectSortDirection::ascending ? " ascending"
-                                                                                   : " descending"));
+                                                                                   : " descending");
     }
 
     // CorrespondenceView
     void on_file_selected(const CorrespondenceSelectionChange& change) {
         if (change.current_id.empty()) return;
-        (*status_).set_text("Ledger entry " + change.current_id + " selected · " +
-                            node_path(node_index(change.current_id)));
+        (*status_).text = "Ledger entry " + change.current_id + " selected · " +
+                            node_path(node_index(change.current_id));
     }
 
     // A single click on a row both selects it and toggles the one pinned
@@ -479,19 +479,19 @@ private:
     // selection report above.
     void on_pin_changed(const CorrespondencePinChange& change) {
         if (change.current_id.empty()) {
-            (*status_).set_text("Pinned entry cleared · " + change.previous_id +
-                                " collapses back to its compact row");
+            (*status_).text = "Pinned entry cleared · " + change.previous_id +
+                                " collapses back to its compact row";
             return;
         }
-        (*status_).set_text("Pinned entry: " + change.current_id + " · " +
+        (*status_).text = "Pinned entry: " + change.current_id + " · " +
                             node_path(node_index(change.current_id)) +
-                            " · stays expanded while the pointer moves on");
+                            " · stays expanded while the pointer moves on";
     }
 
     void on_file_expansion(const CorrespondenceExpansionChange& change) {
         if (change.reason != CorrespondenceExpansionReason::hover_intent) return;
-        (*status_).set_text("Hover intent " + std::string(change.expanded ? "expanded " : "collapsed ") +
-                            change.stable_id);
+        (*status_).text = "Hover intent " + std::string(change.expanded ? "expanded " : "collapsed ") +
+                            change.stable_id;
     }
 
     void on_file_activated(const std::string& stable_id) {
@@ -499,7 +499,7 @@ private:
         if (index == no_parent) return;
         select_folder(project[index].parent);
         (*objects_).selected_id = stable_id;
-        (*status_).set_text("Ledger entry " + stable_id + " activated · its folder is now selected");
+        (*status_).text = "Ledger entry " + stable_id + " activated · its folder is now selected";
     }
 
     // BreadcrumbTrail
@@ -507,11 +507,11 @@ private:
         const std::size_t index = node_index(stable_id);
         if (index == no_parent) return;
         select_folder(index);
-        (*status_).set_text("Breadcrumb " + stable_id + " activated · tree selection follows");
+        (*status_).text = "Breadcrumb " + stable_id + " activated · tree selection follows";
     }
 
     void on_edit_started() {
-        (*status_).set_text("Editing the exact path · Enter commits, Escape cancels");
+        (*status_).text = "Editing the exact path · Enter commits, Escape cancels";
     }
 
     void on_edit_committed(const std::string& text) {
@@ -530,7 +530,7 @@ private:
                     }
                 }
                 if (found == no_parent) {
-                    (*status_).set_text("No folder at \"" + text + "\" · path left unchanged");
+                    (*status_).text = "No folder at \"" + text + "\" · path left unchanged";
                     return;
                 }
                 current = found;
@@ -539,10 +539,10 @@ private:
         }
         if (current == no_parent) return;
         select_folder(current);
-        (*status_).set_text("Path committed · " + node_path(current));
+        (*status_).text = "Path committed · " + node_path(current);
     }
 
-    void on_edit_cancelled() { (*status_).set_text("Path edit cancelled · segments restored"); }
+    void on_edit_cancelled() { (*status_).text = "Path edit cancelled · segments restored"; }
 
     [[nodiscard]] static std::string_view trim(std::string_view text) {
         while (!text.empty() && text.front() == ' ') text.remove_prefix(1);
@@ -554,23 +554,23 @@ private:
     void on_grid_value_changed(const DataGridViewCellEvent& event) {
         // A preview is installed by the Gallery's fixtures, not edited.
         if ((*grid_).columns()[event.column].kind == DataGridViewColumnKind::image) return;
-        (*status_).set_text("Grid cell " + event.row_id.value + "." +
+        (*status_).text = "Grid cell " + event.row_id.value + "." +
                             (*grid_).columns()[event.column].name + " is now \"" +
-                            (*grid_).cell_text(event.row, event.column) + "\"");
+                            (*grid_).cell_text(event.row, event.column) + "\"";
     }
 
     void on_grid_content_click(const DataGridViewCellEvent& event) {
         const DataGridViewColumnKind kind = (*grid_).columns()[event.column].kind;
         if (kind == DataGridViewColumnKind::image) {
-            (*status_).set_text("Preview " + (*grid_).cell_text(event.row, 0U) + " · an image cell's click");
+            (*status_).text = "Preview " + (*grid_).cell_text(event.row, 0U) + " · an image cell's click";
             return;
         }
         if (kind == DataGridViewColumnKind::link) {
-            (*status_).set_text("History of " + (*grid_).cell_text(event.row, 0U) + " · a link cell's click");
+            (*status_).text = "History of " + (*grid_).cell_text(event.row, 0U) + " · a link cell's click";
             return;
         }
         if (kind != DataGridViewColumnKind::button) return;
-        (*status_).set_text("Open " + (*grid_).cell_text(event.row, 0U) + " · a button cell's click");
+        (*status_).text = "Open " + (*grid_).cell_text(event.row, 0U) + " · a button cell's click";
     }
 
     // A header click sorts by that column, toggling the direction. The page
@@ -585,38 +585,38 @@ private:
         for (std::size_t index = 0; index < (*grid_).columns().size(); ++index) {
             (*grid_).set_column_sort_glyph(index, index == column ? next : DataGridViewSortDirection::none);
         }
-        (*status_).set_text("Grid sorted by " + (*grid_).columns()[column].name +
-                            (next == DataGridViewSortDirection::ascending ? " ascending" : " descending"));
+        (*status_).text = "Grid sorted by " + (*grid_).columns()[column].name +
+                            (next == DataGridViewSortDirection::ascending ? " ascending" : " descending");
     }
 
     // TreeListView
     void on_tree_list_selected(const TreeListSelectionChange& change) {
         if (!change.current_id) return;
-        (*status_).set_text("TreeListView node " + *change.current_id + " selected · " +
-                            node_path(node_index(*change.current_id)));
+        (*status_).text = "TreeListView node " + *change.current_id + " selected · " +
+                            node_path(node_index(*change.current_id));
     }
 
     void on_tree_list_sorted(const TreeListSortChange& change) {
         if (!change.column) {
-            (*status_).set_text("TreeListView back in fixture order");
+            (*status_).text = "TreeListView back in fixture order";
             return;
         }
-        (*status_).set_text("TreeListView siblings sorted by " +
+        (*status_).text = "TreeListView siblings sorted by " +
                             (*tree_list_).columns()[*change.column].text +
                             (change.order == TreeListSortOrder::ascending ? " ascending" : " descending") +
-                            " · every folder keeps its children");
+                            " · every folder keeps its children";
     }
 
     void on_tree_list_column_moved(const TreeListColumnMove& change) {
-        (*status_).set_text("TreeListView column " + (*tree_list_).columns()[change.column].text +
-                            " moved to position " + std::to_string(change.display_position + 1U));
+        (*status_).text = "TreeListView column " + (*tree_list_).columns()[change.column].text +
+                            " moved to position " + std::to_string(change.display_position + 1U);
     }
 
     // Value
     void on_view_mode_changed(const int mode) {
         (*objects_).view_mode = mode == 0 ? ObjectViewMode::icons : ObjectViewMode::details;
-        (*status_).set_text(std::string("ObjectView ") + (mode == 0 ? "icons" : "details") +
-                            " · one ChoiceGroup bound to a Value<int>");
+        (*status_).text = std::string("ObjectView ") + (mode == 0 ? "icons" : "details") +
+                            " · one ChoiceGroup bound to a Value<int>";
     }
 
     std::shared_ptr<BreadcrumbTrail> trail_;

@@ -179,8 +179,8 @@ void GalleryContext::synchronize(std::string_view cause)
     }
 
     (*document.gallery_command_status)
-        .set_text(drop_status.empty() ? "Portable core · Host 0.4 · reusable controls" : drop_status);
-    (*document.gallery_value_label).set_text(format_percent(state.progress_value));
+        .text = drop_status.empty() ? "Portable core · Host 0.4 · reusable controls" : drop_status;
+    (*document.gallery_value_label).text = format_percent(state.progress_value);
     // Diagnostics are live instrumentation, not a snapshot captured when the
     // panel opens: every retained interaction is observable on the next frame.
     const MetricsSnapshot metrics = (*window).metrics_snapshot();

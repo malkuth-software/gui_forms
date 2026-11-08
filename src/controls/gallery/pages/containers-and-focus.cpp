@@ -174,7 +174,7 @@ private:
         text += " · document: ";
         const std::optional<DockPanelId>& document = (*workspace_).active_document();
         text += document ? (*workspace_).panel_title(*document) : std::string("none");
-        (*document_.gallery_containers_docking_status).set_text(text);
+        (*document_.gallery_containers_docking_status).text = text;
     }
 
     // Input-only: the user clicked. The collapse state itself lives in the
@@ -195,8 +195,7 @@ private:
     }
 
     void on_user_loaded() {
-        (*document_.gallery_containers_user_status).set_text(
-            "UserControl · Loaded fired once · attachment committed");
+        (*document_.gallery_containers_user_status).text = "UserControl · Loaded fired once · attachment committed";
     }
 
     std::shared_ptr<Button> collapse_;

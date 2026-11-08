@@ -142,7 +142,7 @@ private:
         if (!(range.start == range.end)) {
             text += " to " + std::to_string(range.end.month) + "/" + std::to_string(range.end.day);
         }
-        (*month_status_).set_text(text);
+        (*month_status_).text = text;
     }
 
     // The commands' enabled state is the single authority their buttons show.
@@ -158,21 +158,21 @@ private:
     }
 
     void value_committed() {
-        (*status_).set_text("Committed · " + (*primary_).formatted_value() +
-                            " · retained focus restored");
+        (*status_).text = "Committed · " + (*primary_).formatted_value() +
+                            " · retained focus restored";
         project_commands();
     }
 
     void drop_down_changed(const bool expanded) {
-        (*status_).set_text(expanded
+        (*status_).text = expanded
             ? "Calendar open · arrows navigate · Enter commits · Esc cancels"
-            : "Calendar closed · overlay and focus scope revoked");
+            : "Calendar closed · overlay and focus scope revoked";
         project_commands();
     }
 
     void optional_checked(const bool checked) {
-        (*status_).set_text(checked ? "Optional date enabled · value retained"
-                                    : "Optional date unchecked · value retained but inactive");
+        (*status_).text = checked ? "Optional date enabled · value retained"
+                                    : "Optional date unchecked · value retained but inactive";
     }
 
     void previous_day() { (*primary_).value = add_days((*primary_).value.read(), -1); }

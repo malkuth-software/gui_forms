@@ -100,38 +100,38 @@ private:
     void on_style_button(const int index, ButtonBase& source) {
         static constexpr std::array<std::string_view, 4> names{
             "standard", "flat", "accent", "command"};
-        (*status_).set_text("Button " + std::string(names[static_cast<std::size_t>(index)]) +
+        (*status_).text = "Button " + std::string(names[static_cast<std::size_t>(index)]) +
                             " clicked · " + std::string(source.stable_id().value()) +
-                            " · pointer, Space, Enter and mnemonic converge on one click");
+                            " · pointer, Space, Enter and mnemonic converge on one click";
     }
 
     void on_default_action() {
-        (*status_).set_text("Default action clicked · the same validated path serves "
-                            "a Window accept button");
+        (*status_).text = "Default action clicked · the same validated path serves "
+                            "a Window accept button";
     }
 
     void on_check_changed(const int index, const bool checked) {
-        (*status_).set_text("Check box " + std::to_string(index + 1) +
+        (*status_).text = "Check box " + std::to_string(index + 1) +
                             (checked ? " checked" : " unchecked") +
-                            " · checked_changed reports every state change");
+                            " · checked_changed reports every state change";
     }
 
     void on_tri_state_changed(const CheckState state) {
-        (*status_).set_text(std::string("Three-state box now ") +
+        (*status_).text = std::string("Three-state box now ") +
                             (state == CheckState::checked ? "checked"
                              : state == CheckState::indeterminate ? "indeterminate"
-                                                                  : "unchecked"));
+                                                                  : "unchecked");
     }
 
     void on_radio_changed(const int index, const bool checked) {
         if (!checked) return;
-        (*status_).set_text("Radio " + std::to_string(index + 1) +
-                            " checked · its group mates unchecked themselves");
+        (*status_).text = "Radio " + std::to_string(index + 1) +
+                            " checked · its group mates unchecked themselves";
     }
 
     void on_sound_enabled_changed(const bool enabled) {
-        (*status_).set_text(enabled ? "Sound cues enabled · host playback at 0.72 gain"
-                                    : "Sound cues muted · visual meaning remains complete");
+        (*status_).text = enabled ? "Sound cues enabled · host playback at 0.72 gain"
+                                    : "Sound cues muted · visual meaning remains complete";
     }
 
     void on_cue_clicked(const int index, ButtonBase& source) {
@@ -147,9 +147,9 @@ private:
             result = (*services).play_sound_cue(
                 {cue, sound_enabled_.get() ? 0.72 : 0.0, static_cast<std::uint64_t>(stamp)});
         }
-        (*status_).set_text(std::string("Sound cue ") + host_sound_cue_name(cue) + " · " +
+        (*status_).text = std::string("Sound cue ") + host_sound_cue_name(cue) + " · " +
                             host_service_error_name(result.error) +
-                            " · visual meaning remains complete when muted");
+                            " · visual meaning remains complete when muted";
     }
 
     // Owns the document's controls; the shell's page body holds them too

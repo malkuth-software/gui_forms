@@ -98,7 +98,7 @@ private:
     }
 
     void publish_status() {
-        if (shared_) (*shared_).set_text(level_text_ + input_text_);
+        if (shared_) (*shared_).text = level_text_ + input_text_;
     }
 
     [[nodiscard]] static std::string source_name(const int source) {

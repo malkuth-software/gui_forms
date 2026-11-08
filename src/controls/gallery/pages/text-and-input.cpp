@@ -162,51 +162,51 @@ private:
 
     void search_requested(const std::string& query) {
         if (query.empty()) {
-            (*document_.gallery_text_search_status).set_text("Showing everything");
+            (*document_.gallery_text_search_status).text = "Showing everything";
             return;
         }
-        (*document_.gallery_text_search_status).set_text("Searching for \"" + query + "\"");
+        (*document_.gallery_text_search_status).text = "Searching for \"" + query + "\"";
     }
 
     void search_cleared() {
-        (*document_.gallery_text_search_status).set_text("Cleared");
+        (*document_.gallery_text_search_status).text = "Cleared";
     }
 
     void rich_link_clicked(const std::string& target) {
-        (*rich_status_).set_text("Link clicked: " + target);
+        (*rich_status_).text = "Link clicked: " + target;
     }
 
     void token_added(const Token& token) {
-        (*tokens_status_).set_text("Added \"" + token.text + "\" · recipients: " +
-                                   std::to_string((*recipients_).tokens().size()));
+        (*tokens_status_).text = "Added \"" + token.text + "\" · recipients: " +
+                                   std::to_string((*recipients_).tokens().size());
     }
 
     void token_removed(const Token& token) {
-        (*tokens_status_).set_text("Removed \"" + token.text + "\" · recipients: " +
-                                   std::to_string((*recipients_).tokens().size()));
+        (*tokens_status_).text = "Removed \"" + token.text + "\" · recipients: " +
+                                   std::to_string((*recipients_).tokens().size());
     }
 
     void completion_accepted(const std::string& text) {
-        (*complete_status_).set_text("Accepted \"" + text + "\"");
+        (*complete_status_).text = "Accepted \"" + text + "\"";
     }
 
     void masked_rejected(const MaskInputRejection& rejection) {
-        (*masked_status_).set_text("Telephone refused \"" + rejection.text + "\" at position " +
+        (*masked_status_).text = "Telephone refused \"" + rejection.text + "\" at position " +
                                    std::to_string(rejection.position.value()) + " · " +
-                                   std::string(mask_result_hint_name(rejection.hint)));
+                                   std::string(mask_result_hint_name(rejection.hint));
     }
 
     void masked_changed(const std::string& text) {
-        (*masked_status_).set_text("Telephone " + text +
-                                   ((*phone_).mask_completed() ? " · complete" : " · incomplete"));
+        (*masked_status_).text = "Telephone " + text +
+                                   ((*phone_).mask_completed() ? " · complete" : " · incomplete");
     }
 
     void refresh_state() {
         const TextSelection selection = (*primary_).selection();
-        (*state_).set_text("Selection: " + std::to_string(selection.start().value()) + ".." +
+        (*state_).text = "Selection: " + std::to_string(selection.start().value()) + ".." +
                            std::to_string(selection.end().value()) + " bytes · Undo: " +
                            ((*primary_).can_undo() ? "ready" : "clean") + " · Redo: " +
-                           ((*primary_).can_redo() ? "ready" : "clean"));
+                           ((*primary_).can_redo() ? "ready" : "clean");
         undo_.set_enabled((*primary_).can_undo());
         redo_.set_enabled((*primary_).can_redo());
     }
@@ -237,10 +237,9 @@ private:
     void on_redo() { static_cast<void>((*primary_).redo()); }
 
     void publish_clipboard_status(const std::string_view command, const bool accepted) {
-        (*clipboard_status_).set_text(
-            std::string("Clipboard ") + std::string(command) +
+        (*clipboard_status_).text = std::string("Clipboard ") + std::string(command) +
             (accepted ? " · accepted" : " · unavailable or empty") + " · " +
-            std::to_string((*primary_).text.read().size()) + " UTF-8 bytes retained");
+            std::to_string((*primary_).text.read().size()) + " UTF-8 bytes retained";
     }
 
     std::shared_ptr<TextBox> primary_;

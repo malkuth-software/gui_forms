@@ -136,17 +136,17 @@ private:
     }
 
     void describe_width(const double width) {
-        (*document_.gallery_responsive_width_value).set_text("Stage " + std::to_string(static_cast<int>(width)) +
+        (*document_.gallery_responsive_width_value).text = "Stage " + std::to_string(static_cast<int>(width)) +
                                   " px · minimum " +
                                   std::to_string(static_cast<int>(stage_minimum)) +
                                   " · maximum " +
-                                  std::to_string(static_cast<int>(stage_maximum)));
+                                  std::to_string(static_cast<int>(stage_maximum));
     }
 
     void describe_tracks() {
-        (*document_.gallery_responsive_tracks_status).set_text(inspector_protected_.get()
+        (*document_.gallery_responsive_tracks_status).text = inspector_protected_.get()
             ? "Inspector revealed · navigation (20) then activity (30) collapse first"
-            : "Automatic · inspector (10), navigation (20), activity (30) collapse in that order");
+            : "Automatic · inspector (10), navigation (20), activity (30) collapse in that order";
     }
 
     // The slider's state change (user or programmatic) narrows the stage. The
@@ -169,8 +169,8 @@ private:
     }
 
     void on_shelf_command(const int group, const CommandItem& item) {
-        (*document_.gallery_responsive_shelf_status).set_text("Shelf · " + std::string(shelf_names[static_cast<std::size_t>(group)]) +
-                                  " · " + item.label + " invoked");
+        (*document_.gallery_responsive_shelf_status).text = "Shelf · " + std::string(shelf_names[static_cast<std::size_t>(group)]) +
+                                  " · " + item.label + " invoked";
     }
 
     // Command authority stays with the page: the panel only reports which
@@ -183,15 +183,15 @@ private:
             if (!collapsed.empty()) collapsed += ", ";
             collapsed += group.stable_id;
         }
-        (*document_.gallery_responsive_shelf_status).set_text(collapsed.empty()
+        (*document_.gallery_responsive_shelf_status).text = collapsed.empty()
             ? "Shelf · More… · no collapsed group to overflow"
-            : "Shelf · More… · overflow holds " + collapsed);
+            : "Shelf · More… · overflow holds " + collapsed;
     }
 
     void on_folder_selected(const ListSelectionChange& change) {
         if (!change.active_index || *change.active_index >= folder_names.size()) return;
-        (*detail_text_).set_text(std::string(folder_names[*change.active_index]) +
-                                 " · detail pane follows the master selection");
+        (*detail_text_).text = std::string(folder_names[*change.active_index]) +
+                                 " · detail pane follows the master selection";
     }
 
     // State event from the view: enables exactly the navigation command that
@@ -199,12 +199,11 @@ private:
     void on_presentation_changed(const MasterDetailPresentationChange& change) {
         show_detail_.set_enabled(change.current == MasterDetailDisplayMode::master_only);
         show_master_.set_enabled(change.current == MasterDetailDisplayMode::detail_only);
-        (*document_.gallery_responsive_master_detail_status).set_text(
-            change.current == MasterDetailDisplayMode::side_by_side
+        (*document_.gallery_responsive_master_detail_status).text = change.current == MasterDetailDisplayMode::side_by_side
                 ? "Side by side · both roles visible · compact commands disabled"
                 : change.current == MasterDetailDisplayMode::master_only
                 ? "Compact · master only · Show detail enabled"
-                : "Compact · detail only · Show master enabled");
+                : "Compact · detail only · Show master enabled";
     }
 
     void on_show_detail() { (*document_.gallery_responsive_master_detail).show_detail(); }
@@ -219,11 +218,11 @@ private:
     }
 
     void on_scrolled(ScrollEvent& event) {
-        (*document_.gallery_responsive_scroll_status).set_text("Scroll · x " +
+        (*document_.gallery_responsive_scroll_status).text = "Scroll · x " +
                                    std::to_string(static_cast<int>(event.new_value)) +
                                    " of " +
                                    std::to_string(static_cast<int>(
-                                       (*document_.gallery_responsive_scroll).horizontal_scroll().maximum())));
+                                       (*document_.gallery_responsive_scroll).horizontal_scroll().maximum()));
     }
 
     ResponsiveLayoutsDocument<ResponsiveLayoutsPage> document_{};

@@ -127,7 +127,7 @@ private:
         const bool notify = (*document_.gallery_choices_switches_notify).checked.read();
         std::string report = deploy ? "Automatic deployment is on" : "Automatic deployment is off";
         if (notify) report += " · reviewers are notified";
-        (*document_.gallery_choices_switches_status).set_text(report);
+        (*document_.gallery_choices_switches_status).text = report;
     }
 
     void build_cards() {
@@ -147,12 +147,12 @@ private:
     // State: every change of the ring, from either ChoiceGroup or a setter.
     void ring_changed(const int index) {
         const std::string name = ring_name(index);
-        (*ring_status_).set_text("Ring " + name + " (index " + std::to_string(index) +
-                                 ") · user activations: " + std::to_string(activations_));
-        (*card_body_).set_text(index == 0 ? "Canary: 5 % of hosts for one hour, then review."
+        (*ring_status_).text = "Ring " + name + " (index " + std::to_string(index) +
+                                 ") · user activations: " + std::to_string(activations_);
+        (*card_body_).text = index == 0 ? "Canary: 5 % of hosts for one hour, then review."
                                : index == 1 ? "Staged: one region at a time, an hour each."
                                : index == 2 ? "Full: every host at once; rollback armed."
-                                            : "No ring chosen.");
+                                            : "No ring chosen.";
         ReviewRecord record;
         record.key = "ring." + name;
         record.title = "Review: " + name;
@@ -186,8 +186,8 @@ private:
         const std::size_t position = static_cast<std::size_t>(index);
         const std::string name = position < section_names.size()
             ? std::string(section_names[position]) : std::string("Section");
-        (*sections_status_).set_text(name + (expanded ? " open" : " closed") +
-                                     " · headers, Space and the toggles share one state");
+        (*sections_status_).text = name + (expanded ? " open" : " closed") +
+                                     " · headers, Space and the toggles share one state";
     }
 
     // Selection changes before activation is published; both project the
@@ -204,7 +204,7 @@ private:
             ? std::string("Click or press Space to select")
             : "activated " + std::to_string(card_activations_) +
                   (card_activations_ == 1 ? " time" : " times");
-        (*card_footer_).set_text((*card_).selected.read() ? "Selected · " + activations : activations);
+        (*card_footer_).text = (*card_).selected.read() ? "Selected · " + activations : activations;
     }
 
     [[nodiscard]] static std::string ring_name(const int index) {

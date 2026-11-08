@@ -154,24 +154,24 @@ private:
         static_cast<void>((*rack_).set_field_value(module_id, "tint", text));
         static_cast<void>((*rack_).set_field_validation(module_id, "tint", {}));
         (*preview_).set_background(value);
-        (*editor_status_).set_text("Tint committed " + text + " · projected to list, rack and preview");
+        (*editor_status_).text = "Tint committed " + text + " · projected to list, rack and preview";
     }
 
     void color_failed(const PropertyEditorInputError& error) {
-        (*editor_status_).set_text("Tint rejected \"" + error.attempted_value + "\" · " +
-                                   error.message);
+        (*editor_status_).text = "Tint rejected \"" + error.attempted_value + "\" · " +
+                                   error.message;
     }
 
     void flags_changed(const PropertyEnumValue& value) {
         edges_ = value;
         static_cast<void>((*properties_).set_value(edges_row, value.name));
-        (*editor_status_).set_text("Edges committed " + value.name + " (" +
-                                   std::to_string(value.value) + ") · projected to the list");
+        (*editor_status_).text = "Edges committed " + value.name + " (" +
+                                   std::to_string(value.value) + ") · projected to the list";
     }
 
     void flags_drop_down(const bool expanded) {
         if (expanded) {
-            (*editor_status_).set_text("Edges list open · Space toggles a bit · Esc closes");
+            (*editor_status_).text = "Edges list open · Space toggles a bit · Esc closes";
         }
     }
 
@@ -242,13 +242,13 @@ private:
         (*flags_).value = PropertyEnumValue{"Edges", "Top, Left", 3};
         flags_changed((*flags_).value.read());
         enabled_.set(true);
-        (*editor_status_).set_text("Record reset · programmatic setters emitted no user commits");
+        (*editor_status_).text = "Record reset · programmatic setters emitted no user commits";
     }
 
     void register_source() {
         Window* window = (*properties_).attached_window();
         if (window == nullptr) {
-            (*binding_status_).set_text("BindingContext needs the attached Window");
+            (*binding_status_).text = "BindingContext needs the attached Window";
             return;
         }
         if (!binding_context_) {
@@ -288,7 +288,7 @@ private:
             text += " · current " + snapshot.current_stable_id + " · position " +
                     std::to_string(snapshot.position);
         }
-        (*binding_status_).set_text(text + trace_);
+        (*binding_status_).text = text + trace_;
     }
 
     std::string name_{fixture_name};

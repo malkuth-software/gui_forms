@@ -41,7 +41,7 @@ public:
 private:
     void report(const std::string& text) {
         const std::shared_ptr<PageContext> context = context_.lock();
-        if (context && (*context).status) (*(*context).status).set_text(text);
+        if (context && (*context).status) (*(*context).status).text = text;
     }
 
     void on_toggle_left() {

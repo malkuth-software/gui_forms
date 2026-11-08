@@ -123,7 +123,7 @@ void TypographyPage::on_target_changed(const int index) {
     overlay.set_target_stable_id(target);
     inspector.refresh();
     overlay.refresh();
-    (*document_.gallery_typography_readout).set_text("Inspecting " + target);
+    (*document_.gallery_typography_readout).text = "Inspecting " + target;
 }
 
 void TypographyPage::on_diagnostics_changed(const bool visible) {

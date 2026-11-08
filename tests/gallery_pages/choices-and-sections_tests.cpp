@@ -94,7 +94,7 @@ void test_choices_and_sections(gui_forms::Window& window) {
     click(window, window.find("gallery.choices.sections.header.2"));
     require((*sections).expanded(1) && (*notes_toggle).checked() &&
                 (*std::dynamic_pointer_cast<Label>(window.find("gallery.choices.sections-status")))
-                        .text().find("Notes open") != std::string::npos,
+                        .text.read().find("Notes open") != std::string::npos,
             "clicking a section header must open it and check the bound toggle");
     click(window, notes_toggle);
     require(!(*sections).expanded(1) && !(*notes_toggle).checked(),
@@ -108,7 +108,7 @@ void test_choices_and_sections(gui_forms::Window& window) {
     require(!(*card).selected.read() && window.perform_semantic_action(
                 "gallery.choices.card", SemanticAction::press) && (*card).selected.read() &&
                 (*std::dynamic_pointer_cast<Label>(window.find("gallery.choices.card.footer")))
-                        .text().find("Selected") != std::string::npos,
+                        .text.read().find("Selected") != std::string::npos,
             "activating the Card must set its retained selection and report it");
 
     // The switches (W-4) turn over on a click and report through the status line.
