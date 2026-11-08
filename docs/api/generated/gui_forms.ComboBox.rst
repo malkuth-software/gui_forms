@@ -535,6 +535,24 @@ gui_forms::ComboBox
 
    .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
 
+   .. cpp:function:: virtual void on_selected_index_changed()
+
+      *Protected.*
+
+      on_<property>_changed runs after a changed write's store and touch and raises the change event; an override calls the base. Only the properties with a Windows Forms On<Property>Changed have one.
+
+   .. cpp:function:: virtual void on_text_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_font_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_drop_down_style_changed()
+
+      *Protected.*
+
    .. cpp:member:: constexpr std::size_t combo_box_property_count
 
       ComboBox's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 6U``.

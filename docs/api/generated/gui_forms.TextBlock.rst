@@ -262,6 +262,16 @@ gui_forms::TextBlock
 
    .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
 
+   .. cpp:function:: virtual void on_text_changed()
+
+      *Protected.*
+
+      on_<property>_changed runs after a changed write's store and touch and raises the change event; an override calls the base. Only the properties with a Windows Forms On<Property>Changed have one.
+
+   .. cpp:function:: virtual void on_font_changed()
+
+      *Protected.*
+
    .. cpp:member:: constexpr std::size_t text_block_property_count
 
       TextBlock's property table: Control's entries, then its own. Default: ``Control::control_property_count + 4U``.

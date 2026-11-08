@@ -812,6 +812,54 @@ public static unsafe class Layout
             failures += expect(output, "gf_application_table.state offset", (long)((byte*)&value.state - start), 24);
         }
         {
+            gf_rule_condition value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_rule_condition size", sizeof(gf_rule_condition), 32);
+            failures += expect(output, "gf_rule_condition.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_rule_condition.kind offset", (long)((byte*)&value.kind - start), 4);
+            failures += expect(output, "gf_rule_condition.object offset", (long)((byte*)&value.@object - start), 8);
+            failures += expect(output, "gf_rule_condition.physical_key offset", (long)((byte*)&value.physical_key - start), 16);
+            failures += expect(output, "gf_rule_condition.modifiers offset", (long)((byte*)&value.modifiers - start), 20);
+            failures += expect(output, "gf_rule_condition.negated offset", (long)((byte*)&value.negated - start), 24);
+            failures += expect(output, "gf_rule_condition.reserved offset", (long)((byte*)&value.reserved - start), 28);
+        }
+        {
+            gf_rule_action value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_rule_action size", sizeof(gf_rule_action), 48);
+            failures += expect(output, "gf_rule_action.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_rule_action.kind offset", (long)((byte*)&value.kind - start), 4);
+            failures += expect(output, "gf_rule_action.target offset", (long)((byte*)&value.target - start), 8);
+            failures += expect(output, "gf_rule_action.property offset", (long)((byte*)&value.property - start), 16);
+            failures += expect(output, "gf_rule_action.value offset", (long)((byte*)&value.value - start), 32);
+            failures += expect(output, "gf_rule_action.callback offset", (long)((byte*)&value.callback - start), 40);
+        }
+        {
+            gf_rule value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_rule size", sizeof(gf_rule), 72);
+            failures += expect(output, "gf_rule.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_rule.flags offset", (long)((byte*)&value.flags - start), 4);
+            failures += expect(output, "gf_rule.trigger offset", (long)((byte*)&value.trigger - start), 8);
+            failures += expect(output, "gf_rule.physical_key offset", (long)((byte*)&value.physical_key - start), 12);
+            failures += expect(output, "gf_rule.source offset", (long)((byte*)&value.source - start), 16);
+            failures += expect(output, "gf_rule.interaction offset", (long)((byte*)&value.interaction - start), 24);
+            failures += expect(output, "gf_rule.condition_count offset", (long)((byte*)&value.condition_count - start), 40);
+            failures += expect(output, "gf_rule.conditions offset", (long)((byte*)&value.conditions - start), 48);
+            failures += expect(output, "gf_rule.action_count offset", (long)((byte*)&value.action_count - start), 56);
+            failures += expect(output, "gf_rule.actions offset", (long)((byte*)&value.actions - start), 64);
+        }
+        {
+            gf_rules_table value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_rules_table size", sizeof(gf_rules_table), 32);
+            failures += expect(output, "gf_rules_table.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_rules_table.abi_minor offset", (long)((byte*)&value.abi_minor - start), 4);
+            failures += expect(output, "gf_rules_table.add offset", (long)((byte*)&value.add - start), 8);
+            failures += expect(output, "gf_rules_table.remove offset", (long)((byte*)&value.remove - start), 16);
+            failures += expect(output, "gf_rules_table.state offset", (long)((byte*)&value.state - start), 24);
+        }
+        {
             gf_windows_paint_endpoint_table value = default;
             byte* start = (byte*)&value;
             failures += expect(output, "gf_windows_paint_endpoint_table size", sizeof(gf_windows_paint_endpoint_table), 104);

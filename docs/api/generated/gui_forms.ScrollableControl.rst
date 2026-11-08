@@ -485,12 +485,6 @@ gui_forms::ScrollableControl
 
    .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
 
-   .. cpp:function:: virtual void coerce_auto_scroll(bool& incoming)
-
-      *Protected.*
-
-      on_<property>_changed runs after a changed write's touch and raises the change event; an override calls the base. coerce_<property> runs last before the compare and may rewrite the incoming value.
-
    .. cpp:member:: constexpr std::uint32_t scroll_state_auto_scrolling
 
       Default: ``1U``.

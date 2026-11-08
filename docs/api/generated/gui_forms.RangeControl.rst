@@ -315,6 +315,12 @@ gui_forms::RangeControl
 
    .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
 
+   .. cpp:function:: virtual void on_value_changed()
+
+      *Protected.*
+
+      on_<property>_changed runs after a changed write's store and touch and raises the change event; an override calls the base. Only the properties with a Windows Forms On<Property>Changed have one.
+
    .. cpp:member:: constexpr std::size_t range_control_property_count
 
       RangeControl's property table: Control's entries, then its own. Default: ``Control::control_property_count + 3U``.

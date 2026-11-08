@@ -250,6 +250,8 @@ Types
      - gf_properties_table, negotiated as GF_TABLE_PROPERTIES.
    * - :cpp:class:`PropertyGridTable <gui_forms::abi::PropertyGridTable>`
      - gf_property_grid_table, negotiated as GF_TABLE_PROPERTY_GRID.
+   * - :cpp:class:`RulesTable <gui_forms::abi::RulesTable>`
+     - gf_rules_table, negotiated as GF_TABLE_RULES.
    * - :cpp:class:`RuntimeTable <gui_forms::abi::RuntimeTable>`
      - gf_runtime_table, negotiated as GF_TABLE_RUNTIME.
    * - :cpp:class:`SchemaTable <gui_forms::abi::SchemaTable>`
@@ -3321,6 +3323,41 @@ Types
    .. cpp:function:: gf_status reset_property(gf_object grid, gf_utf8_view name, uint32_t* reset) const noexcept
 
    .. cpp:function:: gf_status activate_editor(gf_object grid, gf_utf8_view name, uint32_t* activated) const noexcept
+
+.. cpp:namespace:: gui_forms::abi
+
+.. cpp:class:: RulesTable
+
+   ``#include <gui_forms/c/gf_abi.hpp>``
+
+   gf_rules_table, negotiated as GF_TABLE_RULES.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: RulesTable() noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: const gf_rules_table& c_table() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static gf_status negotiate(RulesTable& output) noexcept
+
+      Negotiates the table at the header's version into output; a refusal leaves output serving nothing.
+
+   .. cpp:function:: static RulesTable adopt(const gf_rules_table& adopted_table) noexcept
+
+      A table the caller negotiated through gf_abi_get_table.
+
+   .. cpp:function:: gf_status add(gf_object window, const gf_rule* rule, gf_rule_token* token) const noexcept
+
+   .. cpp:function:: gf_status remove(gf_rule_token token) const noexcept
+
+   .. cpp:function:: gf_status state(gf_rule_token token, gf_rule_state* state) const noexcept
 
 .. cpp:namespace:: gui_forms::abi
 

@@ -1632,6 +1632,62 @@ private:
     gf_application_table table_;
 };
 
+// gf_rules_table, negotiated as GF_TABLE_RULES.
+class RulesTable {
+public:
+    RulesTable() noexcept : table_{} {}
+
+    // Negotiates the table at the header's version into output; a refusal
+    // leaves output serving nothing.
+    [[nodiscard]] static gf_status negotiate(RulesTable& output) noexcept {
+        gf_rules_table negotiated_table{};
+        const gf_status negotiated = gf_abi_get_table(GF_TABLE_RULES, GF_ABI_MAJOR, GF_ABI_MINOR,
+                                                      &negotiated_table, sizeof(negotiated_table));
+        if (negotiated != GF_STATUS_OK) {
+            output = RulesTable{};
+            return negotiated;
+        }
+        output.table_ = negotiated_table;
+        return GF_STATUS_OK;
+    }
+
+    // A table the caller negotiated through gf_abi_get_table.
+    [[nodiscard]] static RulesTable adopt(const gf_rules_table& adopted_table) noexcept {
+        RulesTable adopted;
+        adopted.table_ = adopted_table;
+        return adopted;
+    }
+
+    [[nodiscard]] const gf_rules_table& c_table() const noexcept { return table_; }
+
+    [[nodiscard]] gf_status add(gf_object window, const gf_rule* rule, gf_rule_token* token) const noexcept {
+        if (table_.struct_size < 16u || table_.add == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.add(window, rule, token);
+        return called;
+    }
+
+    [[nodiscard]] gf_status remove(gf_rule_token token) const noexcept {
+        if (table_.struct_size < 24u || table_.remove == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.remove(token);
+        return called;
+    }
+
+    [[nodiscard]] gf_status state(gf_rule_token token, gf_rule_state* state) const noexcept {
+        if (table_.struct_size < 32u || table_.state == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.state(token, state);
+        return called;
+    }
+
+private:
+    gf_rules_table table_;
+};
+
 // gf_windows_paint_endpoint_table, negotiated as GF_TABLE_WINDOWS_PAINT_ENDPOINT.
 class WindowsPaintEndpointTable {
 public:

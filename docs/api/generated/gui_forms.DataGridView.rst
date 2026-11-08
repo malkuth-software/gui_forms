@@ -1772,6 +1772,100 @@ gui_forms::DataGridView
 
       *Protected.*
 
+   .. cpp:function:: virtual void on_auto_size_columns_mode_changed()
+
+      *Protected.*
+
+      on_<property>_changed runs after a changed write's store and touch and raises the change event; an override calls the base. Only the properties with a Windows Forms On<Property>Changed have one.
+
+   .. cpp:function:: virtual void on_auto_size_rows_mode_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_allow_user_to_delete_rows_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_default_cell_style_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_rows_default_cell_style_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_alternating_rows_default_cell_style_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_column_headers_default_cell_style_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_row_headers_default_cell_style_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_grid_color_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_background_color_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_border_style_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_cell_border_style_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_column_headers_border_style_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_row_headers_border_style_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_column_headers_height_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_row_headers_width_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_font_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_read_only_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_allow_user_to_resize_columns_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_allow_user_to_resize_rows_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_allow_user_to_order_columns_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_multi_select_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_edit_mode_changed()
+
+      *Protected.*
+
    .. cpp:member:: constexpr bool initialize_tree_after_construction
 
       Default: ``true``.

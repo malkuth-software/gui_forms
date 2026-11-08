@@ -253,6 +253,20 @@ gui_forms::CheckBox
 
    .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
 
+   .. cpp:function:: virtual void on_check_state_changed()
+
+      *Protected.*
+
+      on_<property>_changed runs after a changed write's store and touch and raises the change event; an override calls the base. Only the properties with a Windows Forms On<Property>Changed have one.
+
+   .. cpp:function:: virtual void on_checked_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_appearance_changed()
+
+      *Protected.*
+
    .. cpp:member:: constexpr std::size_t check_box_property_count
 
       CheckBox's property table: ButtonBase's entries, then its own. Default: ``ButtonBase::button_base_property_count + 4U``.

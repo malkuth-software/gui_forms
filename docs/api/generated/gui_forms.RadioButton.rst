@@ -256,6 +256,12 @@ gui_forms::RadioButton
 
    .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
 
+   .. cpp:function:: virtual void on_checked_changed()
+
+      *Protected.*
+
+      on_<property>_changed runs after a changed write's store and touch and raises the change event; an override calls the base. Only the properties with a Windows Forms On<Property>Changed have one.
+
    .. cpp:member:: constexpr std::size_t radio_button_property_count
 
       RadioButton's property table: ButtonBase's entries, then its own. Default: ``ButtonBase::button_base_property_count + 3U``.

@@ -218,7 +218,7 @@ gui_forms::PictureBox
 
       *Protected.*
 
-      on_<property>_changed runs after a changed write's touch and raises the change event; an override calls the base. coerce_<property> runs last before the compare and may rewrite the incoming value.
+      on_<property>_changed runs after a changed write's store and touch and raises the change event; an override calls the base. Only the properties with a Windows Forms On<Property>Changed have one.
 
    .. cpp:member:: constexpr std::size_t picture_box_property_count
 

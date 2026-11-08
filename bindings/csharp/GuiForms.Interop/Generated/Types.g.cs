@@ -870,6 +870,58 @@ public unsafe struct gf_application_table
     public delegate* unmanaged[Cdecl]<gf_application_state*, gf_status> state;
 }
 
+/// <summary>gf_rule_condition (extensible, 32 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_rule_condition
+{
+    public uint struct_size;
+    public gf_rule_condition_kind kind;
+    public gf_object @object;
+    public uint physical_key;
+    public uint modifiers;
+    public uint negated;
+    public uint reserved;
+}
+
+/// <summary>gf_rule_action (extensible, 48 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_rule_action
+{
+    public uint struct_size;
+    public gf_rule_action_kind kind;
+    public gf_object target;
+    public gf_utf8_view property;
+    public gf_value* value;
+    public gf_callback* callback;
+}
+
+/// <summary>gf_rule (extensible, 72 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_rule
+{
+    public uint struct_size;
+    public gf_rule_flags flags;
+    public gf_rule_trigger_kind trigger;
+    public uint physical_key;
+    public gf_object source;
+    public gf_utf8_view interaction;
+    public ulong condition_count;
+    public gf_rule_condition* conditions;
+    public ulong action_count;
+    public gf_rule_action* actions;
+}
+
+/// <summary>gf_rules_table (table, 32 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_rules_table
+{
+    public uint struct_size;
+    public uint abi_minor;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_rule*, gf_rule_token*, gf_status> add;
+    public delegate* unmanaged[Cdecl]<gf_rule_token, gf_status> remove;
+    public delegate* unmanaged[Cdecl]<gf_rule_token, gf_rule_state*, gf_status> state;
+}
+
 /// <summary>gf_windows_paint_endpoint_table (table, 104 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_windows_paint_endpoint_table

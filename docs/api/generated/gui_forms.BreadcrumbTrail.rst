@@ -402,6 +402,12 @@ gui_forms::BreadcrumbTrail
 
       *Protected.*
 
+   .. cpp:function:: virtual void on_font_changed()
+
+      *Protected.*
+
+      on_<property>_changed runs after a changed write's store and touch and raises the change event; an override calls the base. Only the properties with a Windows Forms On<Property>Changed have one.
+
    .. cpp:member:: constexpr bool initialize_tree_after_construction
 
       Default: ``true``.

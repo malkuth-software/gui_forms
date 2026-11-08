@@ -765,6 +765,28 @@ gui_forms::TextBox
 
    .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
 
+   .. cpp:function:: virtual void on_text_changed()
+
+      *Protected.*
+
+      on_<property>_changed runs after a changed write's store and touch and raises the change event; an override calls the base. Only the properties with a Windows Forms On<Property>Changed have one.
+
+   .. cpp:function:: virtual void on_read_only_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_multiline_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_accepts_tab_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_font_changed()
+
+      *Protected.*
+
    .. cpp:member:: constexpr std::size_t maximum_multiline_bytes
 
       Provisional development bounds until cluster-position metrics replace prefix measurement. Validation/refusal never truncates source text. Default: ``1024U * 1024U``.

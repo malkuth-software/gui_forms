@@ -426,8 +426,4 @@ gui_forms::MonthCalendar
 
       *Protected.*
 
-      on_<property>_changed runs after a changed write's touch and raises the change event; an override calls the base. coerce_<property> runs last before the compare and may rewrite the incoming value.
-
-   .. cpp:function:: virtual void coerce_font(FontSpec& incoming)
-
-      *Protected.*
+      on_<property>_changed runs after a changed write's store and touch and raises the change event; an override calls the base. Only the properties with a Windows Forms On<Property>Changed have one.
