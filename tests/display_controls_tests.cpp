@@ -770,18 +770,20 @@ void test_toggle_switch() {
 // Records a search field's events in order.
 struct SearchRecorder final {
     std::vector<std::string> seen{};
+    // The subscriptions watch made; they end with the recorder.
+    std::vector<SubscriptionToken> tokens{};
     void on_text(const std::string& value) { seen.push_back("text:" + value); }
     void on_search(const std::string& query) { seen.push_back("search:" + query); }
     void on_cleared() { seen.push_back("cleared"); }
 };
 
 void watch(SearchField& field, SearchRecorder& recorder) {
-    const SubscriptionToken text_token = field.text_changed().subscribe(
-        Delegate<const std::string&>::bind<SearchRecorder, &SearchRecorder::on_text>(recorder));
-    const SubscriptionToken search_token = field.search_requested().subscribe(
-        Delegate<const std::string&>::bind<SearchRecorder, &SearchRecorder::on_search>(recorder));
-    const SubscriptionToken cleared_token =
-        field.cleared().subscribe(Delegate<>::bind<SearchRecorder, &SearchRecorder::on_cleared>(recorder));
+    recorder.tokens.push_back(field.text_changed().subscribe(
+        Delegate<const std::string&>::bind<SearchRecorder, &SearchRecorder::on_text>(recorder)));
+    recorder.tokens.push_back(field.search_requested().subscribe(
+        Delegate<const std::string&>::bind<SearchRecorder, &SearchRecorder::on_search>(recorder)));
+    recorder.tokens.push_back(
+        field.cleared().subscribe(Delegate<>::bind<SearchRecorder, &SearchRecorder::on_cleared>(recorder)));
 }
 
 void test_search_field_alone() {
