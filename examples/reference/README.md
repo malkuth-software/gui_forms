@@ -21,3 +21,9 @@ blocks, check no partial publication, and verify allocation/quota behavior.
 The three `reject_mixed_core_*` tests require CMake generation to reject direct,
 private static-adapter and interface-adapter combinations of Core and Application.
 See `docs/COMPILER_CACHE.md` for the consumer linking and runtime packaging rule.
+
+`mouse_events` drives the WinForms mouse events headless: an owning component
+hears a button's MouseDown, Click, MouseClick, activation and MouseUp in order,
+a panel's DoubleClick on the second release and a keyboard context request,
+and a consuming rule withholds the button's Click
+(`docs/user/mouse-events.md`).

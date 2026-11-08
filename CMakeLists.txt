@@ -2611,6 +2611,7 @@ if(GUI_FORMS_BUILD_TESTS)
         examples/reference/shared_state.cpp
         examples/reference/collection_state.cpp
         examples/reference/collection_gallery.cpp
+        examples/reference/mouse_events.cpp
     )
     target_link_libraries(gui_forms_reference_examples PRIVATE gui_forms_core)
 
@@ -3546,6 +3547,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_mouse_events_tests tests/mouse_events_tests.cpp)
     target_link_libraries(gui_forms_mouse_events_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_mouse_events_tests COMMAND gui_forms_mouse_events_tests)
+    add_executable(gui_forms_mouse_event_order_tests tests/mouse_event_order_tests.cpp)
+    target_link_libraries(gui_forms_mouse_event_order_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_mouse_event_order_tests COMMAND gui_forms_mouse_event_order_tests)
     add_executable(gui_forms_key_commands_tests tests/key_commands_tests.cpp)
     target_link_libraries(gui_forms_key_commands_tests PRIVATE gui_forms_controls gui_forms_host_headless)
     add_test(NAME gui_forms_key_commands_tests COMMAND gui_forms_key_commands_tests)

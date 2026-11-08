@@ -196,7 +196,8 @@ order, under `ControlStyles::standard_click` and `standard_double_click`; a
 button raises no double-click.
 
 A context request comes from the host only (`HostContextRequestEvent`, with a
-pointer or keyboard origin); the core has no key route of its own.
+pointer or keyboard origin); the core has no key route of its own. The
+events' order and use are in [Mouse events and context requests](mouse-events.md).
 
 | Host | Pointer | Keyboard |
 |---|---|---|

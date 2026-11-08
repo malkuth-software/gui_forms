@@ -25,6 +25,7 @@ layout
 painting-and-damage
 text-engine
 input-and-focus
+mouse-events
 values-commands-and-binding
 rules
 data-binding

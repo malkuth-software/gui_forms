@@ -45,6 +45,12 @@ Nonvisual providers observe pointer traffic without subclassing a target
 through the tokenized `pointer_observed` event. That is how `ToolTip` knows
 when to appear.
 
+Every control also raises the Windows Forms mouse events (`MouseDown`,
+`Click`, `MouseClick`, `DoubleClick`, `MouseUp`, `MouseHover` and the rest)
+and context-menu requests. The host supplies the click count. See
+[Mouse events and context requests](mouse-events.md) for their order, the
+click styles and what each host offers.
+
 ## Keyboard routing
 
 A key event goes first to the focused control's route hook, then up through

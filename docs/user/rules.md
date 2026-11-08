@@ -57,7 +57,8 @@ fires, and its actions run in the order listed.
   run before the control's own subscribers. A consuming one keeps the event
   from them, and a consumed Click also keeps a button from activating. The
   other control-event rules (hover, capture, focus, the context menu) run
-  when the control raises the event.
+  when the control raises the event. See
+  [Mouse events and context requests](mouse-events.md#rules-and-the-mouse-events).
 - **Adding or revoking during a firing.** A rule added by an action is first
   evaluated by the next occurrence. A rule revoked during a firing is not
   evaluated again, even later in the same occurrence.
