@@ -24,7 +24,7 @@ void test_theme_settings(gui_forms::Window& window) {
     const Control::Ptr restore = window.find("gallery.theme-settings.restore");
     require(themes && light && dark && high_contrast && this_window && preview_scope && preview && restore,
             "the theme-settings page publishes its choices by stable id");
-    require((*themes).items().size() == 7U, "the list offers the seven themes");
+    require((*themes).items.read().size() == 7U, "the list offers the seven themes");
     const std::string original((*window.resources()).program_theme().id());
 
     // Every window: the resources' theme changes.
