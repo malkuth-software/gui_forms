@@ -1255,7 +1255,11 @@ void user_theme_and_engine_input_reach_the_sub_surface() {
     std::uint64_t moves = 0U;
     const Point positions[2] = {Point{20.0 + 10.0, 40.0 + 10.0}, Point{20.0 + 30.0, 40.0 + 12.0}};
     for (std::uint64_t index = 0U; index < 2U; ++index) {
+        // Each move is posted once, the entering one too (its enter is not
+        // forwarded as a second move).
+        const std::uint64_t received = (*host).statistics().inputs_received;
         static_cast<void>(window.dispatch_pointer(pointer_move(positions[index])));
+        require((*host).statistics().inputs_received == received + 1U, "each move is posted to the sub-surface once");
         const std::chrono::steady_clock::time_point moved_limit = std::chrono::steady_clock::now() + wait_limit;
         while (moves <= index && std::chrono::steady_clock::now() < moved_limit) {
             {

@@ -265,6 +265,14 @@ void SubSurfaceHost::on_window_active_changed(bool) {
 
 void SubSurfaceHost::on_pointer(PointerEvent& event) {
     if (!thread_) return;
+    // The window sends an enter just before routing the move that caused
+    // it, at the same position: that move starts the sub-surface's own
+    // hover, so the enter is not forwarded (forwarded as a move it
+    // delivered every entering move twice).
+    if (event.action == PointerAction::enter) {
+        event.handled = true;
+        return;
+    }
     hold_capture_for(event);
     SubSurfaceInput input;
     input.kind = SubSurfaceInputKind::pointer;
@@ -272,9 +280,6 @@ void SubSurfaceHost::on_pointer(PointerEvent& event) {
     input.pointer.position = point_from_window(event.position);
     input.pointer.phase = EventPhase::target;
     input.pointer.handled = false;
-    // Entering the host is a move inside the sub-surface: its own hover
-    // starts there.
-    if (input.pointer.action == PointerAction::enter) input.pointer.action = PointerAction::move;
     const std::uint64_t sequence = (*thread_).post_input(input);
     event.handled = true;
     if (input.pointer.action != PointerAction::leave) return;
