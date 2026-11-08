@@ -4165,7 +4165,7 @@ void Control::on_dispose() noexcept {
 namespace {
 
 // The events Control adds to those of Component, in declaration order.
-constexpr std::array<InteractionDeclaration, 14> control_interactions{{
+constexpr std::array<InteractionDeclaration, 27> control_interactions{{
     {.name = "name_changed", .payload = "std::string", .mutable_payload = false},
     {.name = "visible_changed", .payload = "bool", .mutable_payload = false},
     {.name = "enabled_changed", .payload = "bool", .mutable_payload = false},
@@ -4177,6 +4177,19 @@ constexpr std::array<InteractionDeclaration, 14> control_interactions{{
     {.name = "initialization_completed", .payload = "Dirty, bool", .mutable_payload = false},
     {.name = "pointer_observed", .payload = "PointerEvent", .mutable_payload = false},
     {.name = "pointer_preview_observed", .payload = "PointerEvent", .mutable_payload = false},
+    {.name = "mouse_down", .payload = "MouseEventArgs", .mutable_payload = false},
+    {.name = "mouse_up", .payload = "MouseEventArgs", .mutable_payload = false},
+    {.name = "mouse_move", .payload = "MouseEventArgs", .mutable_payload = false},
+    {.name = "mouse_wheel", .payload = "MouseEventArgs", .mutable_payload = false},
+    {.name = "mouse_enter", .payload = "", .mutable_payload = false},
+    {.name = "mouse_hover", .payload = "", .mutable_payload = false},
+    {.name = "mouse_leave", .payload = "", .mutable_payload = false},
+    {.name = "mouse_capture_changed", .payload = "", .mutable_payload = false},
+    {.name = "click", .payload = "", .mutable_payload = false},
+    {.name = "mouse_click", .payload = "MouseEventArgs", .mutable_payload = false},
+    {.name = "double_click", .payload = "", .mutable_payload = false},
+    {.name = "mouse_double_click", .payload = "MouseEventArgs", .mutable_payload = false},
+    {.name = "context_menu_requested", .payload = "ContextMenuRequest", .mutable_payload = true},
     {.name = "focus_observed", .payload = "bool", .mutable_payload = false},
     {.name = "arranged_bounds_changed", .payload = "Rect", .mutable_payload = false},
     {.name = "help_requested", .payload = "HelpRequestEvent", .mutable_payload = true},
