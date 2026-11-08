@@ -648,6 +648,11 @@ Runtime::~Runtime() {
 Atom Runtime::atom(const char *name) const {
   return XInternAtom(display, name, False);
 }
+double Runtime::double_click_distance() const noexcept {
+  if (!input_settings)
+    return default_double_click_distance;
+  return (*input_settings).double_click_distance();
+}
 std::uint32_t Runtime::double_click_milliseconds() const noexcept {
   if (!input_settings)
     return default_double_click_milliseconds;
@@ -658,7 +663,8 @@ void Runtime::report_input_settings() {
   if (!input_settings)
     return;
   const HostInputSettingsEvent input{(*input_settings).double_click_milliseconds(),
-                                     (*input_settings).double_click_origin()};
+                                     (*input_settings).double_click_origin(),
+                                     (*input_settings).pointer_settings()};
   const std::vector<std::shared_ptr<NativeWindow>> snapshot = windows;
   for (std::size_t i = 0; i < snapshot.size(); ++i)
     if ((*snapshot[i]).session)
@@ -852,7 +858,8 @@ void NativeWindow::attach() {
   report_compositor_state();
   if (runtime.input_settings) {
     const HostInputSettingsEvent input{(*runtime.input_settings).double_click_milliseconds(),
-                                       (*runtime.input_settings).double_click_origin()};
+                                       (*runtime.input_settings).double_click_origin(),
+                                       (*runtime.input_settings).pointer_settings()};
     static_cast<void>(dispatch(input));
   }
   accessibility = std::make_unique<LinuxAccessibility>(runtime.display, xid, *entry.model, entry.options.title);
@@ -1103,24 +1110,24 @@ void NativeWindow::event(XEvent &event) {
         pointer.button = button == 1   ? PointerButton::primary
                          : button == 3 ? PointerButton::secondary
                                        : PointerButton::middle;
+        // X reports no click count: count it from the desktop's
+        // double-click time and distance (linux_input_rules.hpp). A
+        // release carries the count of the press it ends.
         if (event.type == ButtonPress) {
-          const double dx = pointer.position.x - last_click_position.x,
-                       dy = pointer.position.y - last_click_position.y;
-          click_count = button == last_click_button &&
-                                event.xbutton.time - last_click <
-                                    runtime.double_click_milliseconds() &&
-                                dx * dx + dy * dy < 25
-                            ? click_count % 3 + 1
-                            : 1;
-          last_click = event.xbutton.time;
-          last_click_button = button;
-          last_click_position = pointer.position;
+          static_cast<void>(next_click_count(
+              click_history, button, static_cast<std::uint32_t>(event.xbutton.time),
+              pointer.position, runtime.double_click_milliseconds(),
+              runtime.double_click_distance()));
         }
-        pointer.click_count = click_count;
+        pointer.click_count = click_history.count;
       }
     }
     pointer.modifiers = modifiers(state);
     static_cast<void>(dispatch(pointer));
+    // X has no context-menu event: the desktop convention is the right
+    // button's press, which the host reports after the press itself.
+    if (pointer.action == PointerAction::down && pointer.button == PointerButton::secondary)
+      static_cast<void>(dispatch(HostContextRequestEvent{ContextRequestOrigin::pointer, pointer.position}));
     const Control::Ptr captured = (*entry.model).captured_control();
     const Control::Ptr target = captured ? captured : (*entry.model).hit_test(pointer.position);
     static_cast<void>((*services).set_custom_cursor(
@@ -1144,6 +1151,14 @@ void NativeWindow::event(XEvent &event) {
       key.physical_key = key_usage(symbol);
     key.modifiers = modifiers(event.xkey.state);
     const HostDispatchResult result = dispatch(key);
+    // The Menu key and Shift+F10 the window left unhandled ask for a
+    // context menu (the desktop convention, emulated: X has no such event).
+    const bool context_key = event.type == KeyPress && !result.handled && !key.repeat &&
+                             requests_keyboard_context(key.physical_key, key.modifiers);
+    if (context_key) {
+      static_cast<void>(dispatch(HostContextRequestEvent{ContextRequestOrigin::keyboard, Point{}}));
+      return;
+    }
     if (event.type == KeyPress && !result.handled &&
         (event.xkey.state & (ControlMask | Mod1Mask | Mod4Mask)) == 0) {
       std::vector<char> bytes(128);

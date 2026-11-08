@@ -2,7 +2,7 @@
 // the PC convention's map; the headless host's reported map and its
 // installation in an attached window; a macOS-style host map binding Cmd+W,
 // reaching PageStrip and PageView; application rebinding over a host's
-// defaults and its restoration; the context-menu key beside Shift+F10;
+// defaults and its restoration; the keyboard context request;
 // refusals that leave the map unchanged.
 
 #include "gui_forms/application.hpp"
@@ -86,10 +86,6 @@ void pc_convention() {
                 !map.matches(KeyCommand::close_document, key(PhysicalKey::w, Modifier::meta)) &&
                 !map.matches(KeyCommand::close_document, key(PhysicalKey::f4, Modifier::control | Modifier::shift)),
             "the PC convention closes with Ctrl+F4 and exactly those modifiers");
-    require(map.matches(KeyCommand::context_menu, key(PhysicalKey::f10, Modifier::shift)) &&
-                map.matches(KeyCommand::context_menu, key(PhysicalKey::context_menu)) &&
-                !map.matches(KeyCommand::context_menu, key(PhysicalKey::f10)),
-            "the context menu is Shift+F10 or the context-menu key");
     require(map.matches(KeyCommand::cycle_forward, key(PhysicalKey::tab, Modifier::control)) &&
                 map.matches(KeyCommand::cycle_backward, key(PhysicalKey::tab, Modifier::control | Modifier::shift)) &&
                 map.matches(KeyCommand::next_tab, key(PhysicalKey::page_down, Modifier::control)) &&
@@ -264,14 +260,12 @@ void context_menu_key() {
     std::vector<PageContextMenuRequest> menus;
     SubscriptionToken menu_token = (*strip).page_context_menu_requested().subscribe(RecordContextMenu{&menus});
     require(window.request_focus(strip), "the strip takes focus");
-    require(window.dispatch_key(key(PhysicalKey::context_menu)) && menus.size() == 1U &&
+    require(window.dispatch_context_request(ContextRequestOrigin::keyboard, Point{}) && menus.size() == 1U &&
                 menus[0].page.value == "p0" && menus[0].cause == PageContextMenuCause::keyboard,
-            "the context-menu key asks for the keyboard's tab's menu");
-    require(window.dispatch_key(key(PhysicalKey::f10, Modifier::shift)) && menus.size() == 2U &&
-                menus[1].anchor == menus[0].anchor,
-            "Shift+F10 asks for the same menu at the same anchor");
-    require(!window.dispatch_key(key(PhysicalKey::context_menu, Modifier::control)) && menus.size() == 2U,
-            "the context-menu key with a modifier is not the command");
+            "a keyboard context request asks for the keyboard's tab's menu");
+    require(!window.dispatch_key(key(PhysicalKey::context_menu)) &&
+                !window.dispatch_key(key(PhysicalKey::f10, Modifier::shift)) && menus.size() == 1U,
+            "the keys themselves are the host's: the core binds none");
 }
 
 // One key map per application (owner decision DK-44): windows sharing one

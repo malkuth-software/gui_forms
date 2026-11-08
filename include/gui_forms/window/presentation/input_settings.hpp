@@ -21,63 +21,55 @@ enum class SettingOrigin : std::uint8_t {
 inline constexpr std::uint32_t default_double_click_milliseconds = 400U;
 inline constexpr std::uint32_t maximum_double_click_milliseconds = 5000U;
 
-// The gesture thresholds' library defaults (APP_WINDOW_RULES_DESIGN C.2,
-// FD-6 section 5), used where the host reports none. They are GUI.Forms'
-// own choices, kept here and nowhere else; no control keeps thresholds of
-// its own. Distances are in logical pixels along each axis from the press
-// point (a square, not a circle); durations are perceptual, in
+// The pointer settings' Windows-like defaults (owner's mouse-event rule,
+// 2026-11-08), used only where the host reports none: Windows' own
+// defaults for SM_CXDRAG, SM_CYDRAG, SPI_GETMOUSEHOVERTIME and the hover
+// rectangle. Distances in logical pixels, durations perceptual, in
 // milliseconds.
-inline constexpr double default_gesture_slop = 2.0;
-inline constexpr double default_drag_threshold = 4.0;
-inline constexpr std::uint32_t default_hold_milliseconds = 500U;
-// The largest distances and hold time a window takes.
-inline constexpr double maximum_gesture_distance = 64.0;
-inline constexpr std::uint32_t maximum_hold_milliseconds = 10000U;
+inline constexpr double default_drag_size = 4.0;
+inline constexpr std::uint32_t default_hover_milliseconds = 400U;
+inline constexpr double default_hover_size = 4.0;
+// The largest drag or hover rectangle side and hover time a window takes.
+inline constexpr double maximum_pointer_distance = 64.0;
+inline constexpr std::uint32_t maximum_hover_milliseconds = 10000U;
 
-// When the secondary button asks for a context menu: on its press (AppKit,
-// most X11 toolkits) or on its release over the same control (Win32). The
-// host reports its platform's choice; the library default is release.
-enum class ContextRequestEdge : std::uint8_t {
-    release,
-    press,
-};
+// The pointer settings controls and the window read (the WinForms
+// SystemInformation values), from the host where its platform offers them.
+// GUI.Forms recognizes no gestures: controls compare a press's movement
+// against the drag rectangle in their MouseMove and start a drag
+// themselves.
+// - drag_width, drag_height: the rectangle, centred on the press, the
+//   pointer must leave before a drag starts (SystemInformation.DragSize;
+//   Windows SM_CXDRAG/SM_CYDRAG, X11 XSettings Net/DndDragThreshold; macOS
+//   offers none, so its host leaves the default).
+// - hover_milliseconds, hover_width, hover_height: how long the pointer
+//   must rest within the hover rectangle before a control raises
+//   MouseHover (SystemInformation.MouseHoverTime and MouseHoverSize).
+// - native_hover: the host reports hover itself (HostHoverEvent, Windows
+//   WM_MOUSEHOVER); the window's own hover timer then stays off.
+struct PointerSettings final {
+    double drag_width{default_drag_size};
+    double drag_height{default_drag_size};
+    SettingOrigin drag_origin{SettingOrigin::default_value};
+    std::uint32_t hover_milliseconds{default_hover_milliseconds};
+    double hover_width{default_hover_size};
+    double hover_height{default_hover_size};
+    SettingOrigin hover_origin{SettingOrigin::default_value};
+    bool native_hover{};
 
-// The thresholds the window's gesture recognizer reads (C.2). Each value
-// carries where it came from: the host's own setting, or the library
-// default above.
-// - slop: how far the pointer may move from the press point and still
-//   count as a second click of a double-click, or as a hold.
-// - drag_threshold: how far the pointer must move, pressed, before a
-//   control that takes drag gestures starts a drag.
-// - hold_milliseconds: how long a press must rest within the slop to be a
-//   hold.
-// - context_request: the secondary button's edge that raises
-//   context_request.
-struct GestureSettings final {
-    double slop{default_gesture_slop};
-    SettingOrigin slop_origin{SettingOrigin::default_value};
-    double drag_threshold{default_drag_threshold};
-    SettingOrigin drag_threshold_origin{SettingOrigin::default_value};
-    std::uint32_t hold_milliseconds{default_hold_milliseconds};
-    SettingOrigin hold_origin{SettingOrigin::default_value};
-    ContextRequestEdge context_request{ContextRequestEdge::release};
-    SettingOrigin context_request_origin{SettingOrigin::default_value};
-
-    friend constexpr bool operator==(const GestureSettings& left,
-                                     const GestureSettings& right) noexcept {
-        return left.slop == right.slop && left.slop_origin == right.slop_origin &&
-               left.drag_threshold == right.drag_threshold &&
-               left.drag_threshold_origin == right.drag_threshold_origin &&
-               left.hold_milliseconds == right.hold_milliseconds &&
-               left.hold_origin == right.hold_origin &&
-               left.context_request == right.context_request &&
-               left.context_request_origin == right.context_request_origin;
+    friend constexpr bool operator==(const PointerSettings& left,
+                                     const PointerSettings& right) noexcept {
+        return left.drag_width == right.drag_width && left.drag_height == right.drag_height &&
+               left.drag_origin == right.drag_origin &&
+               left.hover_milliseconds == right.hover_milliseconds &&
+               left.hover_width == right.hover_width && left.hover_height == right.hover_height &&
+               left.hover_origin == right.hover_origin && left.native_hover == right.native_hover;
     }
 };
 
-// Whether every value lies in its range (each distance finite and between
-// 0 and maximum_gesture_distance, the hold time between 1 and
-// maximum_hold_milliseconds) and every origin and edge is in its enum.
-[[nodiscard]] bool valid_gesture_settings(const GestureSettings& settings) noexcept;
+// Whether every value lies in its range (each rectangle side finite and
+// between 0 and maximum_pointer_distance, the hover time between 1 and
+// maximum_hover_milliseconds) and every origin is in its enum.
+[[nodiscard]] bool valid_pointer_settings(const PointerSettings& settings) noexcept;
 
 } // namespace gui_forms

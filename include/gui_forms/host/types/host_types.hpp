@@ -564,16 +564,39 @@ struct HostCompositorEvent final {
 // The platform's input settings that controls read (stage W, ListView label
 // editing): reported after attach and again whenever the system setting
 // changes. The session copies them into the window's PresentationSettings
-// (double_click_milliseconds, double_click_origin and gestures), leaving
+// (double_click_milliseconds, double_click_origin and pointer), leaving
 // every other field as it is. An interval of 0 or above
-// maximum_double_click_milliseconds, or gesture settings that are not
-// valid_gesture_settings, are refused as invalid_payload. A host reports
-// the gesture values its platform has with origin host and leaves the
+// maximum_double_click_milliseconds, or pointer settings that are not
+// valid_pointer_settings, are refused as invalid_payload. A host reports
+// the pointer values its platform has with origin host and leaves the
 // others at their defaults (origin default_value).
 struct HostInputSettingsEvent final {
     std::uint32_t double_click_milliseconds{default_double_click_milliseconds};
     SettingOrigin double_click_origin{SettingOrigin::host};
-    GestureSettings gestures{};
+    PointerSettings pointer{};
+};
+
+// The platform asked for a context menu (owner's mouse-event rule): Windows
+// WM_CONTEXTMENU (after the right button's release, or Shift+F10 and the
+// Menu key), macOS menuForEvent: (the right button's press, or a
+// Control-click). The Linux host, whose platform has no such event,
+// emulates it: the right button's press, the Menu key and Shift+F10. A
+// pointer request carries the pointer's window position; a keyboard
+// request names none and goes to the focused control. The window raises
+// ContextMenuRequested from it (SurfaceRoot::dispatch_context_request).
+// A position that is not finite is refused as invalid_payload.
+struct HostContextRequestEvent final {
+    ContextRequestOrigin origin{ContextRequestOrigin::pointer};
+    Point position{};
+};
+
+// The pointer rested within the hover rectangle for the hover time, as the
+// platform measured it (Windows WM_MOUSEHOVER). Sent only by a host whose
+// input settings say native_hover; the window raises MouseHover on the
+// hovered control. A position that is not finite is refused as
+// invalid_payload.
+struct HostHoverEvent final {
+    Point position{};
 };
 
 using HostEventPayload = std::variant<
@@ -591,7 +614,9 @@ using HostEventPayload = std::variant<
     HostClosedEvent,
     HostShutdownEvent,
     HostCompositorEvent,
-    HostInputSettingsEvent>;
+    HostInputSettingsEvent,
+    HostContextRequestEvent,
+    HostHoverEvent>;
 
 struct HostEvent final {
     std::uint64_t sequence{};

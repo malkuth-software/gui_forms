@@ -434,6 +434,33 @@ gui_forms::Control
          Raised for each control on the route from the root to the target, during
          the preview pass, after that control's ``on_pointer_preview``.
 
+      **mouse_down** : ``Event<const MouseEventArgs&>``
+         The WinForms mouse events (owner's mouse-event rule, 2026-11-08). The window raises them on the UI thread in WinForms' order: MouseDown, then on the release over the pressed control Click and MouseClick (or, for a press the host counted as the second of a double-click on a control with ControlStyles::standard_double_click, DoubleClick and MouseDoubleClick), then MouseUp. Click needs ControlStyles::standard_click and is followed by on_activate. MouseEnter, MouseHover (once per entry, after the pointer rests within the hover rectangle for the hover time) and MouseLeave follow the pointer; MouseCaptureChanged is raised on the control losing the capture. The events are kept in a record made by the first accessor called, so a control nobody listens to stores none.
+
+      **mouse_up** : ``Event<const MouseEventArgs&>``
+
+      **mouse_move** : ``Event<const MouseEventArgs&>``
+
+      **mouse_wheel** : ``Event<const MouseEventArgs&>``
+
+      **mouse_enter** : ``Event<>``
+
+      **mouse_hover** : ``Event<>``
+
+      **mouse_leave** : ``Event<>``
+
+      **mouse_capture_changed** : ``Event<>``
+
+      **click** : ``Event<>``
+
+      **mouse_click** : ``Event<const MouseEventArgs&>``
+
+      **double_click** : ``Event<>``
+
+      **mouse_double_click** : ``Event<const MouseEventArgs&>``
+
+      **context_menu_requested** : ``Event<ContextMenuRequest&>``
+
       **focus_observed** : ``Event<bool>``
          Raised with ``true`` when the control gains focus and ``false`` when it loses
          it. When focus moves, the control losing it is told first.
@@ -1241,6 +1268,34 @@ gui_forms::Control
       Raised for each control on the route from the root to the target, during
       the preview pass, after that control's ``on_pointer_preview``.
 
+   .. cpp:function:: Event<const MouseEventArgs&>& mouse_down()
+
+      The WinForms mouse events (owner's mouse-event rule, 2026-11-08). The window raises them on the UI thread in WinForms' order: MouseDown, then on the release over the pressed control Click and MouseClick (or, for a press the host counted as the second of a double-click on a control with ControlStyles::standard_double_click, DoubleClick and MouseDoubleClick), then MouseUp. Click needs ControlStyles::standard_click and is followed by on_activate. MouseEnter, MouseHover (once per entry, after the pointer rests within the hover rectangle for the hover time) and MouseLeave follow the pointer; MouseCaptureChanged is raised on the control losing the capture. The events are kept in a record made by the first accessor called, so a control nobody listens to stores none.
+
+   .. cpp:function:: Event<const MouseEventArgs&>& mouse_up()
+
+   .. cpp:function:: Event<const MouseEventArgs&>& mouse_move()
+
+   .. cpp:function:: Event<const MouseEventArgs&>& mouse_wheel()
+
+   .. cpp:function:: Event<>& mouse_enter()
+
+   .. cpp:function:: Event<>& mouse_hover()
+
+   .. cpp:function:: Event<>& mouse_leave()
+
+   .. cpp:function:: Event<>& mouse_capture_changed()
+
+   .. cpp:function:: Event<>& click()
+
+   .. cpp:function:: Event<const MouseEventArgs&>& mouse_click()
+
+   .. cpp:function:: Event<>& double_click()
+
+   .. cpp:function:: Event<const MouseEventArgs&>& mouse_double_click()
+
+   .. cpp:function:: Event<ContextMenuRequest&>& context_menu_requested()
+
    .. cpp:function:: Event<bool>& focus_observed() noexcept
 
       Raised with ``true`` when the control gains focus and ``false`` when it loses
@@ -1683,13 +1738,9 @@ gui_forms::Control
       Called by the window when the primary button is pressed and released
       over the control. Buttons raise ``clicked`` from here.
 
-   .. cpp:function:: virtual void on_interaction(const InteractionEvent& event)
+   .. cpp:function:: virtual void on_context_menu_requested(ContextMenuRequest& request)
 
-      The window's gesture recognizer raised an interaction on this control (InteractionKind lists them and their order). It runs after the raw pointer event's route, on the UI thread; the base does nothing. A primary click is followed by on_activate.
-
-   .. cpp:function:: virtual bool accepts_drag_gestures() const noexcept
-
-      Whether a primary press moving past the drag threshold starts a drag gesture on this control (drag_start cancels its pending click). The base answers false, so a press that wanders still clicks when it is released over the control.
+      A context menu was asked for on this control (ContextMenuRequest), before the control's ContextMenuRequested subscribers. A control that shows its own menu sets ``request.handled``, which also stops the request reaching its ancestors. The base does nothing.
 
    .. cpp:function:: virtual const ControlAnatomy& anatomy() const noexcept
 

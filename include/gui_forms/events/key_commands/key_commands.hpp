@@ -54,9 +54,6 @@ enum class KeyCommand : std::uint8_t {
     // selects; otherwise docking's navigator (stage DK, phase D2).
     cycle_forward,
     cycle_backward,
-    // Shift+F10, or the context-menu key: the context menu of what has the
-    // keyboard (a tab's, or a docked panel's position menu, G2-1).
-    context_menu,
     // Docking's keys (G2-1, G7-1), which DockSite takes: Ctrl+F6 and Ctrl+Shift+F6
     // (next and previous document), Alt+F7 and Alt+Shift+F7 (next and
     // previous tool panel), Alt+Hyphen (the position menu), Escape in a tool
@@ -82,8 +79,8 @@ inline constexpr std::size_t key_command_count = static_cast<std::size_t>(KeyCom
 // lists it; "unknown" for a value outside the enumeration.
 [[nodiscard]] std::string_view key_command_name(KeyCommand command) noexcept;
 
-// The chords that invoke one command: at most two (Shift+F10 and the
-// context-menu key). Either may be empty; a binding with both empty leaves
+// The chords that invoke one command: at most two (Ctrl+F6 and its
+// macOS equivalent, say). Either may be empty; a binding with both empty leaves
 // the command without keys.
 struct KeyBinding final {
     KeyChord primary{};

@@ -82,7 +82,7 @@ gui_forms::SurfaceRoot
          :cpp:func:`set_presentation_overrides <gui_forms::SurfaceRoot::set_presentation_overrides>` stores the first override, and an empty
          record releases them, so a window without overrides stores nothing. A
          result outside the valid settings throws ``std::invalid_argument`` and
-         changes nothing. The double-click interval and the gesture settings are
+         changes nothing. The double-click interval and the pointer settings are
          the host's and have no override.
 
       **text_metrics_provider** : ``TextMetricsProvider*``
@@ -259,20 +259,19 @@ gui_forms::SurfaceRoot
          The control on which the primary button went down and has not yet been
          released, or null.
 
+      **hovered_control** : ``Control::Ptr``, read-only
+         The control the pointer is over, or null.
+
       **interaction_snapshot** : ``InteractionSnapshot``, read-only
-         A copy of the window's interaction state (:cpp:class:`InteractionSnapshot <gui_forms::InteractionSnapshot>`): the
-         held keys in press order with their press times, the modifiers, the
-         pointer and its buttons, the focused, captured, pressed and hovered
-         controls, and the gesture in progress. The window updates the state as
-         each pointer or key event arrives, before any control sees it, and makes
-         it on the first such event. Its gesture recognizer raises press,
-         release, click, double_click, hold, drag_start, drag, drag_end and
-         context_request (:cpp:enum:`InteractionKind <gui_forms::InteractionKind>`) on the pressed control through
-         ``Control::on_interaction``, after the event's route; a primary click is
-         followed by ``on_activate``. The thresholds are the presentation settings'
-         ``gestures`` (the host's where it reports them, otherwise the library
-         defaults). Losing the capture or the activation ends the gesture in
-         progress and raises nothing more for it.
+         A copy of the window's input state (:cpp:class:`InteractionSnapshot <gui_forms::InteractionSnapshot>`): the held
+         keys in press order with their press times, the modifiers, the pointer
+         and its buttons, the click count the host reported for the last press,
+         the focused, captured, pressed and hovered controls, and the hover
+         timing. The window updates the state as each pointer or key event
+         arrives, before any control sees it, and makes it on the first such
+         event. GUI.Forms recognizes no gestures and counts no clicks: the host
+         reports the click count, and controls raise the WinForms mouse events
+         (``Control::mouse_down`` and the rest) from it.
 
       **deferred_input_snapshot** : ``DeferredInputSnapshot``, read-only
          Returns fixed-capacity queue, delivery, compaction, rejection, abandonment, fault, and drain telemetry.
@@ -490,6 +489,10 @@ gui_forms::SurfaceRoot
         - Delivers a pointer event, as the host does for mouse, pen and touch input, and returns whether a control handled it.
       * - :cpp:func:`dispatch_key <gui_forms::SurfaceRoot::dispatch_key>`
         - Delivers a key event and returns whether anything handled it: the focused control, an accelerator, a dialog key or Tab traversal.
+      * - :cpp:func:`dispatch_context_request <gui_forms::SurfaceRoot::dispatch_context_request>`
+        - Offers a context-menu request (:cpp:class:`ContextMenuRequest <gui_forms::ContextMenuRequest>`) from the host's :cpp:class:`HostContextRequestEvent <gui_forms::HostContextRequestEvent>`: a pointer request to the control under the position (the captured control while one is), a keyboard request to the focused control, then to each ancestor until one handles it, through ``Control::on_context_menu_requested`` and its ``context_menu_requested`` subscribers.
+      * - :cpp:func:`dispatch_host_hover <gui_forms::SurfaceRoot::dispatch_host_hover>`
+        - The host's own hover report (:cpp:class:`HostHoverEvent <gui_forms::HostHoverEvent>`, where the pointer settings say ``native_hover``): raises MouseHover on the hovered control, once per entry.
       * - :cpp:func:`dispatch_text <gui_forms::SurfaceRoot::dispatch_text>`
         - Delivers text input to the focused control and returns whether it was handled.
       * - :cpp:func:`dispatch_drag <gui_forms::SurfaceRoot::dispatch_drag>`
@@ -527,7 +530,7 @@ gui_forms::SurfaceRoot
       * - :cpp:func:`set_command_target <gui_forms::SurfaceRoot::set_command_target>`
         - Names the :cpp:class:`CommandTarget <gui_forms::CommandTarget>` of one stage of the command routing chain: the active panel, the active document or the main window, or clears it with null.
       * - :cpp:func:`set_input_time_source <gui_forms::SurfaceRoot::set_input_time_source>`
-        - Installs the clock the interaction state reads (:cpp:class:`InputTimeSource <gui_forms::InputTimeSource>`), borrowed, or null for the steady clock.
+        - Installs the clock the input state reads (:cpp:class:`InputTimeSource <gui_forms::InputTimeSource>`), borrowed, or null for the steady clock.
       * - :cpp:func:`set_semantic_text_selection <gui_forms::SurfaceRoot::set_semantic_text_selection>`
         - Moves the text selection of the control with runtime identity ``control`` (A-T1); focus does not move.
 
@@ -615,7 +618,7 @@ gui_forms::SurfaceRoot
       :cpp:func:`set_presentation_overrides <gui_forms::SurfaceRoot::set_presentation_overrides>` stores the first override, and an empty
       record releases them, so a window without overrides stores nothing. A
       result outside the valid settings throws ``std::invalid_argument`` and
-      changes nothing. The double-click interval and the gesture settings are
+      changes nothing. The double-click interval and the pointer settings are
       the host's and have no override.
 
    .. cpp:function:: void set_presentation_overrides(const PresentationOverrides& overrides)
@@ -868,21 +871,21 @@ gui_forms::SurfaceRoot
       The control on which the primary button went down and has not yet been
       released, or null.
 
+   .. cpp:function:: Control::Ptr hovered_control() const noexcept
+
+      The control the pointer is over, or null.
+
    .. cpp:function:: InteractionSnapshot interaction_snapshot() const
 
-      A copy of the window's interaction state (:cpp:class:`InteractionSnapshot <gui_forms::InteractionSnapshot>`): the
-      held keys in press order with their press times, the modifiers, the
-      pointer and its buttons, the focused, captured, pressed and hovered
-      controls, and the gesture in progress. The window updates the state as
-      each pointer or key event arrives, before any control sees it, and makes
-      it on the first such event. Its gesture recognizer raises press,
-      release, click, double_click, hold, drag_start, drag, drag_end and
-      context_request (:cpp:enum:`InteractionKind <gui_forms::InteractionKind>`) on the pressed control through
-      ``Control::on_interaction``, after the event's route; a primary click is
-      followed by ``on_activate``. The thresholds are the presentation settings'
-      ``gestures`` (the host's where it reports them, otherwise the library
-      defaults). Losing the capture or the activation ends the gesture in
-      progress and raises nothing more for it.
+      A copy of the window's input state (:cpp:class:`InteractionSnapshot <gui_forms::InteractionSnapshot>`): the held
+      keys in press order with their press times, the modifiers, the pointer
+      and its buttons, the click count the host reported for the last press,
+      the focused, captured, pressed and hovered controls, and the hover
+      timing. The window updates the state as each pointer or key event
+      arrives, before any control sees it, and makes it on the first such
+      event. GUI.Forms recognizes no gestures and counts no clicks: the host
+      reports the click count, and controls raise the WinForms mouse events
+      (``Control::mouse_down`` and the rest) from it.
 
    .. cpp:function:: DeferredInputSnapshot deferred_input_snapshot() const noexcept
 
@@ -1329,6 +1332,24 @@ gui_forms::SurfaceRoot
       Delivers a key event and returns whether anything handled it: the
       focused control, an accelerator, a dialog key or Tab traversal.
 
+   .. cpp:function:: bool dispatch_context_request(ContextRequestOrigin origin, Point position)
+
+      Offers a context-menu request (:cpp:class:`ContextMenuRequest <gui_forms::ContextMenuRequest>`) from the host's
+      :cpp:class:`HostContextRequestEvent <gui_forms::HostContextRequestEvent>`: a pointer request to the control under the
+      position (the captured control while one is), a keyboard request to
+      the focused control, then to each ancestor until one handles it,
+      through ``Control::on_context_menu_requested`` and its
+      ``context_menu_requested`` subscribers. Returns whether one handled it.
+      The core makes no request of its own from keys: Windows reports
+      Shift+F10 and the Menu key, the Linux host emulates them, and macOS
+      reports its accessibility show-menu action.
+
+   .. cpp:function:: void dispatch_host_hover(Point position)
+
+      The host's own hover report (:cpp:class:`HostHoverEvent <gui_forms::HostHoverEvent>`, where the pointer
+      settings say ``native_hover``): raises MouseHover on the hovered control,
+      once per entry.
+
    .. cpp:function:: bool dispatch_text(TextInputEvent event)
 
       Delivers text input to the focused control and returns whether it was
@@ -1436,10 +1457,10 @@ gui_forms::SurfaceRoot
 
    .. cpp:function:: void set_input_time_source(const InputTimeSource* source) noexcept
 
-      Installs the clock the interaction state reads (:cpp:class:`InputTimeSource <gui_forms::InputTimeSource>`),
-      borrowed, or null for the steady clock. Tests install one to place presses in time;
-      its times must be in the domain the window is polled with, which wakes
-      a pending hold.
+      Installs the clock the input state reads (:cpp:class:`InputTimeSource <gui_forms::InputTimeSource>`), borrowed,
+      or null for the steady clock. Tests install one to place key presses
+      and hovers in time; its times must be in the domain the window is polled
+      with, which wakes a pending hover.
 
    .. cpp:function:: SemanticTextResult set_semantic_text_selection(RuntimeId control, SemanticTextSelection selection)
 

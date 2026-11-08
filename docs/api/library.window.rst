@@ -76,14 +76,10 @@ Related types
      - FramePollResult reports deadline, motion-clock, UI-timer, coalescing, callback-fault, reentrancy, damage, occlusion, and next-wake outcomes for one host poll.
    * - :cpp:class:`FrameRequestToken <gui_forms::FrameRequestToken>`
      - FrameRequestToken is move-only revocable ownership of one Window frame request, with destruction providing deterministic cancellation.
-   * - :cpp:class:`GestureSettings <gui_forms::GestureSettings>`
-     - The thresholds the window's gesture recognizer reads (C.2).
    * - :cpp:class:`HeldKey <gui_forms::HeldKey>`
      - One held physical key (a USB HID usage, PhysicalKey) and when it went down, in the window's input time (InputTimeSource).
    * - :cpp:class:`InputTimeSource <gui_forms::InputTimeSource>`
-     - Where the window's interaction state reads the time of an input event.
-   * - :cpp:class:`InteractionEvent <gui_forms::InteractionEvent>`
-     - One raised interaction, delivered to the gesture's control (Control::on_interaction) after the raw pointer event that caused it has finished its route.
+     - Where the window's input state reads the time of an input event (a held key's press time, the start of a hover).
    * - :cpp:class:`InteractionSnapshot <gui_forms::InteractionSnapshot>`
      - The state at the moment of the copy.
    * - :cpp:class:`KeyGesture <gui_forms::KeyGesture>`
@@ -104,6 +100,8 @@ Related types
      - PaintReceipt proves that one complete retained transaction replayed into a host backing surface at a specific content revision and surface epoch.
    * - :cpp:class:`PointerCaptureChange <gui_forms::PointerCaptureChange>`
      - PointerCaptureChange carries capture state, runtime/stable control identity, and pointer identity to host services.
+   * - :cpp:class:`PointerSettings <gui_forms::PointerSettings>`
+     - The pointer settings controls and the window read (the WinForms SystemInformation values), from the host where its platform offers them.
    * - :cpp:class:`PresentationAvailability <gui_forms::PresentationAvailability>`
      - The record a window publishes: the host's declaration and the live paint-lease snapshot.
    * - :cpp:class:`PresentationDeclaration <gui_forms::PresentationDeclaration>`
@@ -680,46 +678,6 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: GestureSettings final
-
-   ``#include <gui_forms/window/presentation/input_settings.hpp>``
-
-   The thresholds the window's gesture recognizer reads (C.2). Each value carries where it came from: the host's own setting, or the library default above. - slop: how far the pointer may move from the press point and still count as a second click of a double-click, or as a hold. - drag_threshold: how far the pointer must move, pressed, before a control that takes drag gestures starts a drag. - hold_milliseconds: how long a press must rest within the slop to be a hold. - context_request: the secondary button's edge that raises context_request.
-
-   .. cpp:member:: double slop
-
-      Default: ``{default_gesture_slop}``.
-
-   .. cpp:member:: SettingOrigin slop_origin
-
-      Default: ``{SettingOrigin::default_value}``.
-
-   .. cpp:member:: double drag_threshold
-
-      Default: ``{default_drag_threshold}``.
-
-   .. cpp:member:: SettingOrigin drag_threshold_origin
-
-      Default: ``{SettingOrigin::default_value}``.
-
-   .. cpp:member:: std::uint32_t hold_milliseconds
-
-      Default: ``{default_hold_milliseconds}``.
-
-   .. cpp:member:: SettingOrigin hold_origin
-
-      Default: ``{SettingOrigin::default_value}``.
-
-   .. cpp:member:: ContextRequestEdge context_request
-
-      Default: ``{ContextRequestEdge::release}``.
-
-   .. cpp:member:: SettingOrigin context_request_origin
-
-      Default: ``{SettingOrigin::default_value}``.
-
-.. cpp:namespace:: gui_forms
-
 .. cpp:struct:: HeldKey final
 
    ``#include <gui_forms/window/interaction/interaction_snapshot.hpp>``
@@ -734,9 +692,9 @@ Related types
 
 .. cpp:class:: InputTimeSource
 
-   ``#include <gui_forms/window/interaction/interaction_types.hpp>``
+   ``#include <gui_forms/window/interaction/interaction_snapshot.hpp>``
 
-   Where the window's interaction state reads the time of an input event. Steady-clock time unless a source is installed: tests install one so that intervals and hold times are measured from times they choose. Its times must be in the same domain as the times the window is polled with (SurfaceRoot::poll_frame_schedule), which wakes a pending hold.
+   Where the window's input state reads the time of an input event (a held key's press time, the start of a hover). Steady-clock time unless a source is installed: tests install one so that times are theirs. Its times must be in the same domain as the times the window is polled with (SurfaceRoot::poll_frame_schedule), which wakes a pending hover.
 
 
    .. rubric:: Extension points
@@ -745,41 +703,11 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: InteractionEvent final
-
-   ``#include <gui_forms/window/interaction/interaction_types.hpp>``
-
-   One raised interaction, delivered to the gesture's control (Control::on_interaction) after the raw pointer event that caused it has finished its route. ``position`` is the pointer's position now and ``origin`` the press position, both in window coordinates. ``click_count`` is 1 or 2 for click and double_click (2 for the second click of a double-click) and 0 otherwise. ``time`` is the recognizer's time (SurfaceRoot::set_input_time_source) when the interaction was raised.
-
-   .. cpp:member:: InteractionKind kind
-
-      Default: ``{InteractionKind::press}``.
-
-   .. cpp:member:: PointerButton button
-
-      Default: ``{PointerButton::none}``.
-
-   .. cpp:member:: Point position
-
-   .. cpp:member:: Point origin
-
-   .. cpp:member:: Modifier modifiers
-
-      Default: ``{Modifier::none}``.
-
-   .. cpp:member:: std::uint32_t pointer_id
-
-   .. cpp:member:: std::uint32_t click_count
-
-   .. cpp:member:: FrameTime time
-
-.. cpp:namespace:: gui_forms
-
 .. cpp:struct:: InteractionSnapshot final
 
    ``#include <gui_forms/window/interaction/interaction_snapshot.hpp>``
 
-   The state at the moment of the copy. The four controls are read from the window's own registries (focus, capture, press and hover), not kept a second time; a zero RuntimeId means none. The pointer fields hold the last pointer event the window dispatched; ``pointer_inside`` turns false on the pointer's leave. A window that has dispatched no input reports empty input fields.
+   The state at the moment of the copy. The four controls are read from the window's own registries (focus, capture, press and hover), not kept a second time; a zero RuntimeId means none. The pointer fields hold the last pointer event the window dispatched; ``pointer_inside`` turns false on the pointer's leave, and ``last_click_count`` is the click count the host reported for the last press. A window that has dispatched no input reports empty input fields.
 
    .. cpp:member:: std::vector<HeldKey> held_keys
 
@@ -801,6 +729,8 @@ Related types
 
    .. cpp:member:: bool middle_down
 
+   .. cpp:member:: std::uint32_t last_click_count
+
    .. cpp:member:: RuntimeId focused
 
    .. cpp:member:: RuntimeId captured
@@ -809,27 +739,11 @@ Related types
 
    .. cpp:member:: RuntimeId hovered
 
-   .. cpp:member:: GesturePhase gesture
+   .. cpp:member:: bool hover_raised
 
-      Default: ``{GesturePhase::none}``.
+      Whether MouseHover was raised on the hovered control since the pointer entered it, and whether the window's hover timer is armed.
 
-   .. cpp:member:: PointerButton gesture_button
-
-      Default: ``{PointerButton::none}``.
-
-   .. cpp:member:: RuntimeId gesture_control
-
-   .. cpp:member:: Point gesture_origin
-
-   .. cpp:member:: std::uint32_t gesture_click_count
-
-      2 while the press in progress is the second of a possible double-click, 1 for another primary press, 0 without one.
-
-   .. cpp:member:: std::uint64_t interactions_raised
-
-      Interactions raised over the window's life, and gestures cancelled by capture or activation loss.
-
-   .. cpp:member:: std::uint64_t gestures_cancelled
+   .. cpp:member:: bool hover_pending
 
 .. cpp:namespace:: gui_forms
 
@@ -1057,6 +971,44 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: PointerSettings final
+
+   ``#include <gui_forms/window/presentation/input_settings.hpp>``
+
+   The pointer settings controls and the window read (the WinForms SystemInformation values), from the host where its platform offers them. GUI.Forms recognizes no gestures: controls compare a press's movement against the drag rectangle in their MouseMove and start a drag themselves. - drag_width, drag_height: the rectangle, centred on the press, the pointer must leave before a drag starts (SystemInformation.DragSize; Windows SM_CXDRAG/SM_CYDRAG, X11 XSettings Net/DndDragThreshold; macOS offers none, so its host leaves the default). - hover_milliseconds, hover_width, hover_height: how long the pointer must rest within the hover rectangle before a control raises MouseHover (SystemInformation.MouseHoverTime and MouseHoverSize). - native_hover: the host reports hover itself (HostHoverEvent, Windows WM_MOUSEHOVER); the window's own hover timer then stays off.
+
+   .. cpp:member:: double drag_width
+
+      Default: ``{default_drag_size}``.
+
+   .. cpp:member:: double drag_height
+
+      Default: ``{default_drag_size}``.
+
+   .. cpp:member:: SettingOrigin drag_origin
+
+      Default: ``{SettingOrigin::default_value}``.
+
+   .. cpp:member:: std::uint32_t hover_milliseconds
+
+      Default: ``{default_hover_milliseconds}``.
+
+   .. cpp:member:: double hover_width
+
+      Default: ``{default_hover_size}``.
+
+   .. cpp:member:: double hover_height
+
+      Default: ``{default_hover_size}``.
+
+   .. cpp:member:: SettingOrigin hover_origin
+
+      Default: ``{SettingOrigin::default_value}``.
+
+   .. cpp:member:: bool native_hover
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: PresentationAvailability final
 
    ``#include <gui_forms/window/presentation/presentation_types.hpp>``
@@ -1114,7 +1066,7 @@ Related types
 
    ``#include <gui_forms/window/presentation/presentation_types.hpp>``
 
-   The presentation fields one window overrides (APP_WINDOW_RULES_DESIGN A.2): each set field wins over the window's own settings, which come from its application or its host; an unset field follows them. The double-click interval and the gesture settings are the host's alone and have no override.
+   The presentation fields one window overrides (APP_WINDOW_RULES_DESIGN A.2): each set field wins over the window's own settings, which come from its application or its host; an unset field follows them. The double-click interval and the pointer settings are the host's alone and have no override.
 
 
    .. rubric:: Properties
@@ -1173,9 +1125,9 @@ Related types
 
       Default: ``{SettingOrigin::default_value}``.
 
-   .. cpp:member:: GestureSettings gestures
+   .. cpp:member:: PointerSettings pointer
 
-      The gesture recognizer's thresholds (GestureSettings), from the host where it reports them (HostInputSettingsEvent), otherwise the library defaults. Like the double-click interval they are the host's alone.
+      The drag and hover rectangles and the hover time (PointerSettings), from the host where it reports them (HostInputSettingsEvent), otherwise the Windows-like defaults. Like the double-click interval they are the host's alone.
 
    .. cpp:member:: ColourScheme colour_scheme
 
@@ -1507,16 +1459,6 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:enum-class:: ContextRequestEdge
-
-   ``#include <gui_forms/window/presentation/input_settings.hpp>``
-
-   .. cpp:enumerator:: release
-
-   .. cpp:enumerator:: press
-
-.. cpp:namespace:: gui_forms
-
 .. cpp:enum-class:: DialogSurface
 
    ``#include <gui_forms/window/native_popup/native_popup.hpp>``
@@ -1590,44 +1532,6 @@ Enumerations
    .. cpp:enumerator:: explicit_close
 
    .. cpp:enumerator:: owner_unavailable
-
-.. cpp:namespace:: gui_forms
-
-.. cpp:enum-class:: GesturePhase
-
-   ``#include <gui_forms/window/interaction/interaction_snapshot.hpp>``
-
-   .. cpp:enumerator:: none
-
-   .. cpp:enumerator:: pressed
-
-   .. cpp:enumerator:: held
-
-   .. cpp:enumerator:: dragging
-
-.. cpp:namespace:: gui_forms
-
-.. cpp:enum-class:: InteractionKind
-
-   ``#include <gui_forms/window/interaction/interaction_types.hpp>``
-
-   .. cpp:enumerator:: press
-
-   .. cpp:enumerator:: release
-
-   .. cpp:enumerator:: click
-
-   .. cpp:enumerator:: double_click
-
-   .. cpp:enumerator:: hold
-
-   .. cpp:enumerator:: drag_start
-
-   .. cpp:enumerator:: drag
-
-   .. cpp:enumerator:: drag_end
-
-   .. cpp:enumerator:: context_request
 
 .. cpp:namespace:: gui_forms
 
@@ -1954,9 +1858,9 @@ Functions, constants and aliases
 
 ``#include <gui_forms/window/presentation/input_settings.hpp>``
 
-.. cpp:function:: bool valid_gesture_settings(const GestureSettings& settings) noexcept
+.. cpp:function:: bool valid_pointer_settings(const PointerSettings& settings) noexcept
 
-   Whether every value lies in its range (each distance finite and between 0 and maximum_gesture_distance, the hold time between 1 and maximum_hold_milliseconds) and every origin and edge is in its enum.
+   Whether every value lies in its range (each rectangle side finite and between 0 and maximum_pointer_distance, the hover time between 1 and maximum_hover_milliseconds) and every origin is in its enum.
 
 .. cpp:var:: constexpr std::uint32_t default_double_click_milliseconds
 
@@ -1966,23 +1870,23 @@ Functions, constants and aliases
 
    Value: ``5000U``.
 
-.. cpp:var:: constexpr double default_gesture_slop
+.. cpp:var:: constexpr double default_drag_size
 
-   The gesture thresholds' library defaults (APP_WINDOW_RULES_DESIGN C.2, FD-6 section 5), used where the host reports none. They are GUI.Forms' own choices, kept here and nowhere else; no control keeps thresholds of its own. Distances are in logical pixels along each axis from the press point (a square, not a circle); durations are perceptual, in milliseconds. Value: ``2.0``.
+   The pointer settings' Windows-like defaults (owner's mouse-event rule, 2026-11-08), used only where the host reports none: Windows' own defaults for SM_CXDRAG, SM_CYDRAG, SPI_GETMOUSEHOVERTIME and the hover rectangle. Distances in logical pixels, durations perceptual, in milliseconds. Value: ``4.0``.
 
-.. cpp:var:: constexpr double default_drag_threshold
+.. cpp:var:: constexpr std::uint32_t default_hover_milliseconds
+
+   Value: ``400U``.
+
+.. cpp:var:: constexpr double default_hover_size
 
    Value: ``4.0``.
 
-.. cpp:var:: constexpr std::uint32_t default_hold_milliseconds
+.. cpp:var:: constexpr double maximum_pointer_distance
 
-   Value: ``500U``.
+   The largest drag or hover rectangle side and hover time a window takes. Value: ``64.0``.
 
-.. cpp:var:: constexpr double maximum_gesture_distance
-
-   The largest distances and hold time a window takes. Value: ``64.0``.
-
-.. cpp:var:: constexpr std::uint32_t maximum_hold_milliseconds
+.. cpp:var:: constexpr std::uint32_t maximum_hover_milliseconds
 
    Value: ``10000U``.
 
@@ -1992,7 +1896,7 @@ Functions, constants and aliases
 
 .. cpp:function:: void validate_presentation_settings(const PresentationSettings& settings)
 
-   Throws std::invalid_argument for settings no window takes: a text scale outside 0.5 to 4.0 or not finite, a double-click interval outside 1 to maximum_double_click_milliseconds, gesture settings that are not valid_gesture_settings, or an origin or scheme outside its enum.
+   Throws std::invalid_argument for settings no window takes: a text scale outside 0.5 to 4.0 or not finite, a double-click interval outside 1 to maximum_double_click_milliseconds, pointer settings that are not valid_pointer_settings, or an origin or scheme outside its enum.
 
 .. cpp:function:: PresentationSettings overridden_presentation(PresentationSettings settings, const PresentationOverrides& overrides) noexcept
 

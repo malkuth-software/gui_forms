@@ -401,10 +401,11 @@ void context_menu_and_double_click() {
     static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::secondary, {252.0, 13.0}}));
     require(menus.size() == 1U, "a secondary press and release on different tabs ask nothing");
     require(window.request_focus(strip), "the strip takes focus");
-    require(window.dispatch_key(key(PhysicalKey::f10, Modifier::shift)), "Shift+F10 is taken");
+    require(window.dispatch_context_request(ContextRequestOrigin::keyboard, Point{}),
+            "a keyboard context request is taken");
     require(menus.size() == 2U && menus[1].page.value == "p0" && menus[1].cause == PageContextMenuCause::keyboard &&
                 near(menus[1].anchor.x, 2.0) && near(menus[1].anchor.y, 26.0),
-            "Shift+F10 asks for the keyboard's tab's menu at its corner by the content");
+            "a keyboard request asks for the keyboard's tab's menu at its corner by the content");
 
     PointerEvent first_press{PointerAction::down, PointerButton::primary, {252.0, 13.0}};
     static_cast<void>(window.dispatch_pointer(first_press));
@@ -431,7 +432,7 @@ void context_menu_and_double_click() {
             "a double click on the close button is a close, not a double click on the tab");
 }
 
-// Shift+F10 on a tab the scroll buttons moved out of view scrolls it back
+// A keyboard context request on a tab the scroll buttons moved out of view scrolls it back
 // and anchors its menu at its corner by the content.
 void keyboard_menu_on_a_scrolled_out_tab() {
     PageSet pages{};
@@ -446,7 +447,8 @@ void keyboard_menu_on_a_scrolled_out_tab() {
     window.perform_layout();
     const std::vector<PageId> before = (*strip).visible_pages();
     require(!before.empty() && before.front().value != "p0", "the keyboard's tab p0 is scrolled out of view");
-    require(window.dispatch_key(key(PhysicalKey::f10, Modifier::shift)), "Shift+F10 is taken");
+    require(window.dispatch_context_request(ContextRequestOrigin::keyboard, Point{}),
+            "a keyboard context request is taken");
     window.perform_layout();
     const std::vector<PageId> after = (*strip).visible_pages();
     require(!after.empty() && after.front().value == "p0", "the tab is scrolled back into view");

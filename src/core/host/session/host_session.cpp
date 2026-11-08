@@ -155,12 +155,26 @@ bool valid_drag_event(const DragEvent& event) noexcept {
 // second attach, after close authorization only the close, shutdown or a
 // passive deactivation or occlusion, once closed only shutdown, and nothing
 // after shutdown.
+// Whether a context-request or hover report names a finite position and a
+// known origin; every other payload passes.
+bool valid_pointer_report(const HostEventPayload& payload) noexcept {
+    if (const HostContextRequestEvent* request = std::get_if<HostContextRequestEvent>(&payload)) {
+        const bool origin = (*request).origin == ContextRequestOrigin::pointer ||
+                            (*request).origin == ContextRequestOrigin::keyboard;
+        return origin && std::isfinite((*request).position.x) && std::isfinite((*request).position.y);
+    }
+    if (const HostHoverEvent* hover = std::get_if<HostHoverEvent>(&payload)) {
+        return std::isfinite((*hover).position.x) && std::isfinite((*hover).position.y);
+    }
+    return true;
+}
+
 bool valid_input_settings(const HostInputSettingsEvent& input) noexcept {
     const bool interval = input.double_click_milliseconds != 0U &&
                           input.double_click_milliseconds <= maximum_double_click_milliseconds;
     const bool origin = input.double_click_origin == SettingOrigin::default_value ||
                         input.double_click_origin == SettingOrigin::host;
-    return interval && origin && valid_gesture_settings(input.gestures);
+    return interval && origin && valid_pointer_settings(input.pointer);
 }
 
 HostDispatchError lifecycle_refusal(HostLifecyclePhase phase, bool attach, bool shutdown,
@@ -336,8 +350,12 @@ void HostSession::DispatchVisitor::operator()(
         PresentationSettings settings = (*(*session).window_).presentation_base();
         settings.double_click_milliseconds = payload.double_click_milliseconds;
         settings.double_click_origin = payload.double_click_origin;
-        settings.gestures = payload.gestures;
+        settings.pointer = payload.pointer;
         (*(*session).window_).set_host_presentation(settings);
+    } else if constexpr (std::is_same_v<Payload, HostContextRequestEvent>) {
+        (*result).handled = (*(*session).window_).dispatch_context_request(payload.origin, payload.position);
+    } else if constexpr (std::is_same_v<Payload, HostHoverEvent>) {
+        (*(*session).window_).dispatch_host_hover(payload.position);
     }
 }
 
@@ -413,6 +431,12 @@ HostDispatchResult HostSession::dispatch(HostEvent event) {
         observed_.emit(event, result);
         return result;
     }
+    if (!valid_pointer_report(event.payload)) {
+        result.error = HostDispatchError::invalid_payload;
+        ++snapshot_.events_rejected;
+        observed_.emit(event, result);
+        return result;
+    }
     if (const HostInputSettingsEvent* input = std::get_if<HostInputSettingsEvent>(&event.payload);
         input != nullptr && !valid_input_settings(*input)) {
         result.error = HostDispatchError::invalid_payload;
@@ -427,7 +451,9 @@ HostDispatchResult HostSession::dispatch(HostEvent event) {
         (std::holds_alternative<PointerEvent>(event.payload) ||
          std::holds_alternative<KeyEvent>(event.payload) ||
          std::holds_alternative<TextInputEvent>(event.payload) ||
-         std::holds_alternative<DragEvent>(event.payload));
+         std::holds_alternative<DragEvent>(event.payload) ||
+         std::holds_alternative<HostContextRequestEvent>(event.payload) ||
+         std::holds_alternative<HostHoverEvent>(event.payload));
     if (modal_input) {
         ++snapshot_.modal_input_suppressions;
         observed_.emit(event, result);

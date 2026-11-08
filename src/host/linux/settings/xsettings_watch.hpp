@@ -1,8 +1,11 @@
 #pragma once
 // The X11 host's input settings (HostInputSettingsEvent): the double-click
-// interval from the screen's XSETTINGS manager (Net/DoubleClickTime), or
-// GUI.Forms' stated default where no manager runs. Xlib types stay here and
+// interval and distance and the drag threshold from the screen's XSETTINGS
+// manager (Net/DoubleClickTime, Net/DoubleClickDistance,
+// Net/DndDragThreshold), or the Windows-like defaults where no manager runs
+// or it has no such setting. Xlib types stay here and
 // in src/host/linux/.
+#include "../application/linux_input_rules.hpp"
 #include "gui_forms/window/presentation/input_settings.hpp"
 
 #include <X11/Xlib.h>
@@ -40,6 +43,16 @@ public:
   [[nodiscard]] SettingOrigin double_click_origin() const noexcept {
     return double_click_origin_;
   }
+  // How far, in pixels along each axis, a second press may land from the
+  // first and still count toward a double-click: the manager's
+  // Net/DoubleClickDistance when it has a usable one (0 to
+  // maximum_pointer_distance), otherwise default_double_click_distance.
+  [[nodiscard]] double double_click_distance() const noexcept { return double_click_distance_; }
+  // The pointer settings to report: the drag rectangle from the manager's
+  // Net/DndDragThreshold (a threshold of n is a rectangle 2n wide, origin
+  // host) when it has a usable one, otherwise the defaults. X11 reports no
+  // hover, so the window times it.
+  [[nodiscard]] const PointerSettings &pointer_settings() const noexcept { return pointer_settings_; }
 
 private:
   // Finds the manager with the server grabbed, selects its property and
@@ -59,6 +72,8 @@ private:
   ::Window owner_{};
   std::uint32_t double_click_milliseconds_{default_double_click_milliseconds};
   SettingOrigin double_click_origin_{SettingOrigin::default_value};
+  double double_click_distance_{default_double_click_distance};
+  PointerSettings pointer_settings_{};
 };
 
 } // namespace gui_forms::host::linux_detail

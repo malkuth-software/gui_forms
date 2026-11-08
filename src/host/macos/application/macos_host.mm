@@ -52,6 +52,8 @@ using gui_forms::HostCloseReason;
 using gui_forms::HostCloseRequest;
 using gui_forms::HostClipboardTextResult;
 using gui_forms::HostClosedEvent;
+using gui_forms::HostContextRequestEvent;
+using gui_forms::ContextRequestOrigin;
 using gui_forms::HostDispatchResult;
 using gui_forms::HostDialogChoice;
 using gui_forms::HostDialogOutcome;
@@ -943,6 +945,9 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
         _semanticAccessibilityElementsByStableId;
     BOOL _transparentFullSizeContent;
     std::vector<std::string> _windowDragRegionIds;
+    // A Control-click is AppKit's context-menu request, not a press: its
+    // drags and release are not dispatched either.
+    BOOL _controlClickInProgress;
     // Portable frame capture (capture_path host option). Completed once,
     // after the first presented frame whose dirty rect covers the view.
     std::string _frameCapturePath;
@@ -1013,6 +1018,12 @@ static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window)
                      stableId:(const std::string&)stableId
                         value:(NSString*)value;
 - (id)semanticAccessibilityElementForStableId:(NSString*)stableId;
+// macOS's own keyboard context request (owner's ruling, 2026-11-08): the
+// accessibility show-menu action (NSAccessibilityShowMenuAction, VoiceOver
+// VO+Shift+M) on an element with no menu of its own, reported to the
+// window as a keyboard HostContextRequestEvent after the element's control
+// took focus. Returns whether a control handled it.
+- (BOOL)dispatchKeyboardContextRequest;
 // The text queries of owner decision A-T1 for the control `control`
 // (Window::semantic_text_layout and Window::set_semantic_text_selection).
 // Each returns NO when the window has gone or the control refuses.
@@ -1507,10 +1518,18 @@ static bool contains_live_region(const SemanticNode& node) {
 }
 - (BOOL)accessibilityPerformShowMenu {
     if (_owner == nil) return NO;
-    const SemanticAction action = semantic_has_action(_node, SemanticAction::show_menu)
-        ? SemanticAction::show_menu : SemanticAction::expand;
-    if (!semantic_has_action(_node, action)) return NO;
-    return [self performNodeAction:action value:nil];
+    if (semantic_has_action(_node, SemanticAction::show_menu)) {
+        return [self performNodeAction:SemanticAction::show_menu value:nil];
+    }
+    if (semantic_has_action(_node, SemanticAction::expand)) {
+        return [self performNodeAction:SemanticAction::expand value:nil];
+    }
+    // No menu of the element's own: the show-menu action is macOS's
+    // keyboard context request for the element's control, which takes
+    // focus first so that the request reaches it.
+    if (!semantic_has_action(_node, SemanticAction::focus)) return NO;
+    if (![self performNodeAction:SemanticAction::focus value:nil]) return NO;
+    return [_owner dispatchKeyboardContextRequest];
 }
 - (BOOL)accessibilityPerformIncrement {
     if (_owner == nil || !semantic_has_action(_node, SemanticAction::increment)) return NO;
@@ -1698,7 +1717,8 @@ static bool contains_live_region(const SemanticNode& node) {
     }
     if (selector == @selector(accessibilityPerformShowMenu)) {
         return semantic_has_action(_node, SemanticAction::show_menu) ||
-               semantic_has_action(_node, SemanticAction::expand);
+               semantic_has_action(_node, SemanticAction::expand) ||
+               semantic_has_action(_node, SemanticAction::focus);
     }
     if (selector == @selector(accessibilityPerformIncrement)) {
         return semantic_has_action(_node, SemanticAction::increment);
@@ -3341,6 +3361,11 @@ void post_perform_close(NSWindow* window) {
 
 - (void)mouseDown:(NSEvent*)event {
     [self.window makeFirstResponder:self];
+    if ((event.modifierFlags & NSEventModifierFlagControl) != 0) {
+        _controlClickInProgress = YES;
+        static_cast<void>([self menuForEvent:event]);
+        return;
+    }
     if (event.buttonNumber == 0 && !_windowDragRegionIds.empty() && _model) {
         const GFPoint point = [self modelPointForEvent:event];
         const gui_forms::WindowChromeHit hit =
@@ -3355,11 +3380,42 @@ void post_perform_close(NSWindow* window) {
 }
 
 - (void)mouseUp:(NSEvent*)event {
+    if (_controlClickInProgress) {
+        _controlClickInProgress = NO;
+        return;
+    }
     [self dispatchPointerEvent:event action:PointerAction::up];
 }
 
 - (void)rightMouseDown:(NSEvent*)event {
     [self dispatchPointerEvent:event action:PointerAction::down];
+    // NSView's own rightMouseDown: asks menuForEvent: for the menu, which
+    // reports the context request (owner's mouse-event rule).
+    [super rightMouseDown:event];
+}
+
+// AppKit's context-menu request: the right button's press, or a
+// Control-click, reported to the window as a pointer HostContextRequestEvent.
+// GUI.Forms shows its own menus, so AppKit is given none.
+- (NSMenu*)menuForEvent:(NSEvent*)event {
+    if (!_model) return nil;
+    HostContextRequestEvent request{};
+    request.origin = ContextRequestOrigin::pointer;
+    request.position = [self modelPointForEvent:event];
+    static_cast<void>([self dispatchHostPayload:std::move(request)
+                               timestampNanoseconds:host_event_nanoseconds(event)]);
+    [self collectDamage];
+    return nil;
+}
+
+- (BOOL)dispatchKeyboardContextRequest {
+    if (!_model) return NO;
+    HostContextRequestEvent request{};
+    request.origin = ContextRequestOrigin::keyboard;
+    const HostDispatchResult result = [self dispatchHostPayload:std::move(request)
+                                           timestampNanoseconds:host_now_nanoseconds()];
+    [self collectDamage];
+    return result.handled;
 }
 
 - (void)rightMouseUp:(NSEvent*)event {
@@ -3379,6 +3435,7 @@ void post_perform_close(NSWindow* window) {
 }
 
 - (void)mouseDragged:(NSEvent*)event {
+    if (_controlClickInProgress) return;
     [self dispatchPointerEvent:event action:PointerAction::move];
 }
 

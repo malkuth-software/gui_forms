@@ -1886,6 +1886,21 @@ void PageStrip::on_pointer(PointerEvent& event) {
     }
 }
 
+// A keyboard context request (the host's: Windows' Shift+F10 and Menu key,
+// the Linux desktop's, macOS's show-menu action) asks for the keyboard's
+// tab's context menu. A pointer request is left to the strip's own
+// secondary-button handling.
+void PageStrip::on_context_menu_requested(ContextMenuRequest& request) {
+    if (request.origin != ContextRequestOrigin::keyboard || !focused_ || pages_ == nullptr ||
+        (*pages_).count() == 0U) {
+        return;
+    }
+    const std::size_t current = keyboard_position().value_or(0U);
+    const Point anchor = keyboard_menu_anchor(current);
+    request_context_menu(current, anchor, PageContextMenuCause::keyboard);
+    request.handled = true;
+}
+
 void PageStrip::on_key(KeyEvent& event) {
     if (!focused_ || event.action != KeyAction::down || pages_ == nullptr || (*pages_).count() == 0U) return;
     const std::size_t count = (*pages_).count();
@@ -1902,11 +1917,6 @@ void PageStrip::on_key(KeyEvent& event) {
         // Escape ends a live reorder with nothing moved; otherwise it is not
         // the strip's.
         if (!cancel_drag()) return;
-    } else if (keys.matches(KeyCommand::context_menu, event)) {
-        // Shift+F10 or the context-menu key asks for the keyboard's tab's
-        // context menu.
-        const Point anchor = keyboard_menu_anchor(current);
-        request_context_menu(current, anchor, PageContextMenuCause::keyboard);
     } else if (keys.matches(KeyCommand::close_document, event)) {
         // Ctrl+F4 (Cmd+W on macOS) closes the selected closable page (owner
         // decision DK-38); Delete closes nothing.

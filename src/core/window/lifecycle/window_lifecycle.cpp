@@ -32,6 +32,10 @@ bool known_setting_origin(SettingOrigin origin) noexcept {
     return origin == SettingOrigin::default_value || origin == SettingOrigin::host;
 }
 
+bool valid_pointer_distance(double distance) noexcept {
+    return std::isfinite(distance) && distance >= 0.0 && distance <= maximum_pointer_distance;
+}
+
 // The current application, when a window made on this thread may join it.
 Application* joinable_application() noexcept {
     Application* const current = Application::current();
@@ -310,20 +314,14 @@ bool SurfaceRoot::set_surface_scale(double scale) {
     return true;
 }
 
-bool valid_gesture_settings(const GestureSettings& settings) noexcept {
-    const bool slop = std::isfinite(settings.slop) && settings.slop >= 0.0 &&
-                      settings.slop <= maximum_gesture_distance;
-    const bool drag = std::isfinite(settings.drag_threshold) && settings.drag_threshold >= 0.0 &&
-                      settings.drag_threshold <= maximum_gesture_distance;
-    const bool hold = settings.hold_milliseconds != 0U &&
-                      settings.hold_milliseconds <= maximum_hold_milliseconds;
-    const bool edge = settings.context_request == ContextRequestEdge::release ||
-                      settings.context_request == ContextRequestEdge::press;
-    const bool origins = known_setting_origin(settings.slop_origin) &&
-                         known_setting_origin(settings.drag_threshold_origin) &&
-                         known_setting_origin(settings.hold_origin) &&
-                         known_setting_origin(settings.context_request_origin);
-    return slop && drag && hold && edge && origins;
+bool valid_pointer_settings(const PointerSettings& settings) noexcept {
+    const bool drag = valid_pointer_distance(settings.drag_width) && valid_pointer_distance(settings.drag_height);
+    const bool hover = settings.hover_milliseconds != 0U &&
+                       settings.hover_milliseconds <= maximum_hover_milliseconds &&
+                       valid_pointer_distance(settings.hover_width) &&
+                       valid_pointer_distance(settings.hover_height);
+    const bool origins = known_setting_origin(settings.drag_origin) && known_setting_origin(settings.hover_origin);
+    return drag && hover && origins;
 }
 
 void validate_presentation_settings(const PresentationSettings& settings) {
@@ -341,9 +339,9 @@ void validate_presentation_settings(const PresentationSettings& settings) {
         settings.double_click_origin != SettingOrigin::host) {
         throw std::invalid_argument("GUI.Forms double-click origin is not a SettingOrigin");
     }
-    if (!valid_gesture_settings(settings.gestures)) {
+    if (!valid_pointer_settings(settings.pointer)) {
         throw std::invalid_argument(
-            "GUI.Forms gesture settings are outside their ranges or enums");
+            "GUI.Forms pointer settings are outside their ranges or enums");
     }
     if (settings.colour_scheme != ColourScheme::light && settings.colour_scheme != ColourScheme::dark) {
         throw std::invalid_argument("GUI.Forms colour scheme is not a ColourScheme");
@@ -530,11 +528,8 @@ void SurfaceRoot::set_active(bool active) {
     if (active_ == active) return;
     if (!active && host_services_ != nullptr) { (*host_services_).revoke_cursor_interaction(); }
     // Keys and buttons released while the window was inactive never reach
-    // it: forget them, and end the gesture in progress silently.
-    if (!active && interaction_) {
-        (*interaction_).deactivated();
-        sync_hold_wake();
-    }
+    // it: forget them.
+    if (!active && interaction_) (*interaction_).deactivated();
     active_ = active;
     // The window's backplane material follows activation (E9-B).
     damage_backplane_readers(nullptr);

@@ -66,7 +66,7 @@ presentation_overrides
     `set_presentation_overrides` stores the first override, and an empty
     record releases them, so a window without overrides stores nothing. A
     result outside the valid settings throws `std::invalid_argument` and
-    changes nothing. The double-click interval and the gesture settings are
+    changes nothing. The double-click interval and the pointer settings are
     the host's and have no override.
 theme
     The theme every control inherits unless it has its own override.
@@ -83,19 +83,17 @@ active : default ``true``
 focused_control
     The control with keyboard focus, or null.
 interaction_snapshot
-    A copy of the window's interaction state (`InteractionSnapshot`): the
-    held keys in press order with their press times, the modifiers, the
-    pointer and its buttons, the focused, captured, pressed and hovered
-    controls, and the gesture in progress. The window updates the state as
-    each pointer or key event arrives, before any control sees it, and makes
-    it on the first such event. Its gesture recognizer raises press,
-    release, click, double_click, hold, drag_start, drag, drag_end and
-    context_request (`InteractionKind`) on the pressed control through
-    `Control::on_interaction`, after the event's route; a primary click is
-    followed by `on_activate`. The thresholds are the presentation settings'
-    `gestures` (the host's where it reports them, otherwise the library
-    defaults). Losing the capture or the activation ends the gesture in
-    progress and raises nothing more for it.
+    A copy of the window's input state (`InteractionSnapshot`): the held
+    keys in press order with their press times, the modifiers, the pointer
+    and its buttons, the click count the host reported for the last press,
+    the focused, captured, pressed and hovered controls, and the hover
+    timing. The window updates the state as each pointer or key event
+    arrives, before any control sees it, and makes it on the first such
+    event. GUI.Forms recognizes no gestures and counts no clicks: the host
+    reports the click count, and controls raise the WinForms mouse events
+    (`Control::mouse_down` and the rest) from it.
+hovered_control
+    The control the pointer is over, or null.
 focus_cue_visible : default ``false``
     Whether focus rectangles are shown. A key press turns them on; a primary
     pointer press turns them off without moving focus.
@@ -215,10 +213,24 @@ help_requested
 Methods
 -------
 set_input_time_source
-    Installs the clock the interaction state reads (`InputTimeSource`),
-    borrowed, or null for the steady clock. Tests install one to place presses in time;
-    its times must be in the domain the window is polled with, which wakes
-    a pending hold.
+    Installs the clock the input state reads (`InputTimeSource`), borrowed,
+    or null for the steady clock. Tests install one to place key presses
+    and hovers in time; its times must be in the domain the window is polled
+    with, which wakes a pending hover.
+dispatch_context_request
+    Offers a context-menu request (`ContextMenuRequest`) from the host's
+    `HostContextRequestEvent`: a pointer request to the control under the
+    position (the captured control while one is), a keyboard request to
+    the focused control, then to each ancestor until one handles it,
+    through `Control::on_context_menu_requested` and its
+    `context_menu_requested` subscribers. Returns whether one handled it.
+    The core makes no request of its own from keys: Windows reports
+    Shift+F10 and the Menu key, the Linux host emulates them, and macOS
+    reports its accessibility show-menu action.
+dispatch_host_hover
+    The host's own hover report (`HostHoverEvent`, where the pointer
+    settings say `native_hover`): raises MouseHover on the hovered control,
+    once per entry.
 begin_invoke
     Queues a callback to run on the root's thread in a later dispatch turn
     and returns a `DispatchOperation`; it may be called from any thread. The

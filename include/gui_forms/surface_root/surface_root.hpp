@@ -74,8 +74,7 @@ class WindowAlerts;
 class SubSurfaceAlertRequester;
 class MessageBoxHelpRoute;
 class InteractionState;
-struct InteractionBatch;
-struct InteractionHoldWake;
+struct InteractionHoverWake;
 
 } // namespace detail
 
@@ -879,6 +878,8 @@ public:
     // the usual caller.
     CommandRouteResult route_command(const CommandInvocation& invocation);
     [[nodiscard]] Control::Ptr pressed_control() const noexcept { return pressed_.lock(); }
+    // The control the pointer is over (the hover registry), or null.
+    [[nodiscard]] Control::Ptr hovered_control() const noexcept { return hovered_.lock(); }
 
     // During an active paint lease these return true when the input was
     // retained for posted delivery and false only when the fixed queue bound
@@ -886,15 +887,28 @@ public:
     // result.
     bool dispatch_pointer(PointerEvent event);
     bool dispatch_key(KeyEvent event);
-    // The window's interaction state (APP_WINDOW_RULES_DESIGN C.2), copied:
-    // held keys, modifiers, pointer and buttons, the focused, captured,
-    // pressed and hovered controls, and the gesture in progress. The state
-    // is updated as each pointer or key event arrives, before any control
-    // sees it; its gesture recognizer raises the window's interactions
-    // (InteractionKind) to controls through Control::on_interaction.
+    // A context-menu request (owner's mouse-event rule): from the host's
+    // HostContextRequestEvent, or a test. A pointer request goes to the
+    // control under `position` (window coordinates; the captured control
+    // while one is), a keyboard request to the focused control. The window
+    // offers the request (ContextMenuRequest) to that control, then to each
+    // ancestor until one handles it: each control's on_context_menu_requested
+    // and then its ContextMenuRequested subscribers. Returns whether one
+    // handled it. The core has no keyboard route of its own: a host whose
+    // platform offers no keyboard request sends none.
+    bool dispatch_context_request(ContextRequestOrigin origin, Point position);
+    // The host's own hover report (HostHoverEvent, with native_hover in the
+    // window's PointerSettings): raises MouseHover on the hovered control,
+    // once per entry.
+    void dispatch_host_hover(Point position);
+    // The window's input state (APP_WINDOW_RULES_DESIGN C.2), copied: held
+    // keys, modifiers, pointer and buttons, the host's last click count, the
+    // focused, captured, pressed and hovered controls and the hover timing.
+    // The state is updated as each pointer or key event arrives, before any
+    // control sees it.
     [[nodiscard]] InteractionSnapshot interaction_snapshot() const;
     // Borrows `source` (it must outlive its installation) as the clock the
-    // interaction state reads; null restores the steady clock.
+    // input state reads; null restores the steady clock.
     void set_input_time_source(const InputTimeSource* source) noexcept { input_time_source_ = source; }
     bool dispatch_text(TextInputEvent event);
     [[nodiscard]] DeferredInputSnapshot deferred_input_snapshot() const noexcept;
@@ -1135,24 +1149,28 @@ private:
     [[nodiscard]] FrameRequestToken request_tool_tip_wake(
         FrameTime deadline, std::function<void(FrameTime)> callback);
     // A one-shot wake at `deadline` on the UI thread, revoked by the token
-    // (the tooltip presenter's and the hold wake's common path).
+    // (the tooltip presenter's and the hover wake's common path).
     [[nodiscard]] FrameRequestToken request_one_shot_wake(
         FrameTime deadline, std::function<void(FrameTime)> callback);
-    // The interaction state, made on first use (a window that sees no input
+    // The input state, made on first use (a window that sees no input
     // allocates none).
     detail::InteractionState& interaction_state();
     [[nodiscard]] FrameTime input_now() const noexcept;
-    // Raises `batch`'s interactions on its control in order, each while the
-    // control stays eligible, a primary click followed by on_activate.
-    void deliver_interactions(const detail::InteractionBatch& batch);
-    // Arms or disconnects the hold wake to match the state.
-    void sync_hold_wake();
-    void interaction_hold_due(FrameTime now);
+    // Arms or disconnects the hover wake to match the state; the host's own
+    // hover (PointerSettings::native_hover) keeps it off.
+    void sync_hover_wake();
+    void interaction_hover_due(FrameTime now);
+    // Raises MouseHover on `control` when it is still eligible.
+    void raise_mouse_hover(const Control::Ptr& control);
     // dispatch_pointer's route of one event to its target: preview, target
-    // and bubble. Sets `accepted_press` to the control that accepted a
-    // press, where one did.
-    bool route_pointer(PointerEvent& event, Control::Ptr& accepted_press);
-    friend struct detail::InteractionHoldWake;
+    // and bubble. Sets `pressed_for_release` to the control a primary
+    // release ends the press of, and `target_out` to the event's target.
+    bool route_pointer(PointerEvent& event, Control::Ptr& pressed_for_release, Control::Ptr& target_out);
+    // Raises the WinForms mouse events for one routed pointer event on its
+    // target (Control's mouse_down and the rest), in WinForms' order.
+    void raise_mouse_events(const PointerEvent& event, const Control::Ptr& target,
+                            const Control::Ptr& pressed_for_release);
+    friend struct detail::InteractionHoverWake;
     friend class BackgroundWorker;
     friend class ToolTip;
     friend class RibbonToolTip;
@@ -1797,12 +1815,17 @@ private:
     std::array<std::weak_ptr<CommandTarget>, 3> command_targets_{};
     Control::WeakPtr pressed_;
     Control::WeakPtr hovered_;
-    // The interaction state (detail::InteractionState), made by the first
-    // pointer or key event; the clock it reads, borrowed (null for the
-    // steady clock); and the wake for a pending hold.
+    // The input state (detail::InteractionState), made by the first pointer
+    // or key event; the clock it reads, borrowed (null for the steady
+    // clock); and the wake for a pending hover.
     std::unique_ptr<detail::InteractionState> interaction_{};
     const InputTimeSource* input_time_source_{};
-    FrameRequestToken hold_wake_{};
+    FrameRequestToken hover_wake_{};
+    // While dispatch_pointer releases the capture for a primary release,
+    // the control losing it, whose MouseCaptureChanged is raised after its
+    // MouseUp, as WinForms raises it.
+    bool defer_capture_changed_{};
+    Control::WeakPtr deferred_capture_changed_{};
     Control::WeakPtr drag_target_;
     std::uint64_t drag_session_id_{};
     DragEffect drag_last_accepted_effect_{DragEffect::none};

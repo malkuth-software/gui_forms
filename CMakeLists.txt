@@ -1355,6 +1355,7 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
         src/host/posix/fonts/sealed_pages_posix.cpp
         src/host/linux/application/x11_windowing.cpp
         src/host/linux/settings/xsettings_parse.cpp
+        src/host/linux/application/linux_input_rules.cpp
         src/host/linux/settings/xsettings_watch.cpp
         src/host/linux/accessibility/linux_accessibility.cpp
         src/host/linux/services/linux_services.cpp
@@ -3539,9 +3540,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_application_instance_tests tests/application_instance_tests.cpp)
     target_link_libraries(gui_forms_application_instance_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_application_instance_tests COMMAND gui_forms_application_instance_tests)
-    add_executable(gui_forms_interaction_state_tests tests/interaction_state_tests.cpp)
-    target_link_libraries(gui_forms_interaction_state_tests PRIVATE gui_forms_controls)
-    add_test(NAME gui_forms_interaction_state_tests COMMAND gui_forms_interaction_state_tests)
+    add_executable(gui_forms_mouse_events_tests tests/mouse_events_tests.cpp)
+    target_link_libraries(gui_forms_mouse_events_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_mouse_events_tests COMMAND gui_forms_mouse_events_tests)
     add_executable(gui_forms_key_commands_tests tests/key_commands_tests.cpp)
     target_link_libraries(gui_forms_key_commands_tests PRIVATE gui_forms_controls gui_forms_host_headless)
     add_test(NAME gui_forms_key_commands_tests COMMAND gui_forms_key_commands_tests)
@@ -3550,6 +3551,12 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_xsettings_parse_tests
         tests/xsettings_parse_tests.cpp src/host/linux/settings/xsettings_parse.cpp)
     add_test(NAME gui_forms_xsettings_parse_tests COMMAND gui_forms_xsettings_parse_tests)
+    # The X11 host's computed click counts and context keys take plain
+    # values and no Xlib, so they are tested on every platform.
+    add_executable(gui_forms_linux_input_rules_tests
+        tests/linux_input_rules_tests.cpp src/host/linux/application/linux_input_rules.cpp)
+    target_include_directories(gui_forms_linux_input_rules_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    add_test(NAME gui_forms_linux_input_rules_tests COMMAND gui_forms_linux_input_rules_tests)
     add_executable(gui_forms_page_view_document_tests tests/page_view_document_tests.cpp)
     target_link_libraries(gui_forms_page_view_document_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_page_view_document_tests COMMAND gui_forms_page_view_document_tests)

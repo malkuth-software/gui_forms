@@ -1,17 +1,18 @@
 #include "interaction_state.hpp"
 
+#include <chrono>
 #include <cmath>
 
 namespace gui_forms::detail {
 
 namespace {
 
-// The larger of the two axis distances between `left` and `right`: the
-// thresholds bound a square around the press point (input_settings.hpp).
-double axis_distance(Point left, Point right) noexcept {
-    const double across = std::fabs(left.x - right.x);
-    const double down = std::fabs(left.y - right.y);
-    return across > down ? across : down;
+// Whether `position` lies within the hover rectangle (PointerSettings)
+// centred on `anchor`.
+bool within_hover(Point position, Point anchor, const PointerSettings& settings) noexcept {
+    const bool across = std::fabs(position.x - anchor.x) <= settings.hover_width * 0.5;
+    const bool down = std::fabs(position.y - anchor.y) <= settings.hover_height * 0.5;
+    return across && down;
 }
 
 FrameInterval milliseconds(std::uint32_t count) noexcept {
@@ -20,14 +21,6 @@ FrameInterval milliseconds(std::uint32_t count) noexcept {
 }
 
 } // namespace
-
-void InteractionBatch::append(const InteractionEvent& event) noexcept {
-    // The recognizer raises at most `capacity` per step by construction;
-    // a further one would be a recognizer defect and is dropped.
-    if (count == capacity) return;
-    events[count] = event;
-    ++count;
-}
 
 void InteractionState::note_pointer(const PointerEvent& event) noexcept {
     modifiers_ = event.modifiers;
@@ -38,6 +31,7 @@ void InteractionState::note_pointer(const PointerEvent& event) noexcept {
     // Only a press or release changes button state; one naming no button
     // changes none.
     if (!down && !up) return;
+    if (down) last_click_count_ = event.click_count;
     if (event.button == PointerButton::primary) primary_down_ = down;
     if (event.button == PointerButton::secondary) secondary_down_ = down;
     if (event.button == PointerButton::middle) middle_down_ = down;
@@ -69,136 +63,30 @@ void InteractionState::note_key(const KeyEvent& event, FrameTime now) noexcept {
     held_keys_[held_key_count_] = HeldKey{};
 }
 
-InteractionEvent InteractionState::make_event(InteractionKind kind, Point position,
-                                              FrameTime now) const noexcept {
-    InteractionEvent event{};
-    event.kind = kind;
-    event.button = button_;
-    event.position = position;
-    event.origin = origin_;
-    event.modifiers = modifiers_;
-    event.pointer_id = pointer_id_;
-    event.time = now;
-    return event;
+void InteractionState::hover_entered(const Control::Ptr& control, Point position, FrameTime now,
+                                     const PointerSettings& settings) noexcept {
+    hover_control_ = control;
+    hover_anchor_ = position;
+    hover_raised_ = false;
+    hover_deadline_ = now + milliseconds(settings.hover_milliseconds);
 }
 
-InteractionBatch InteractionState::pressed(const Control::Ptr& control, const PointerEvent& event,
-                                           FrameTime now, const PresentationSettings& settings) {
-    InteractionBatch batch{};
-    if (phase_ != GesturePhase::none || !control || event.button == PointerButton::none) return batch;
-    const GestureSettings& gestures = settings.gestures;
-    button_ = event.button;
-    control_ = control;
-    origin_ = event.position;
-    pointer_id_ = event.pointer_id;
-    pressed_at_ = now;
-    left_slop_ = false;
-    releasing_ = false;
-    context_raised_ = false;
-    slop_ = gestures.slop;
-    drag_threshold_ = gestures.drag_threshold;
-    phase_ = GesturePhase::pressed;
-    accepts_drag_ = false;
-    click_count_ = 0U;
-    if (button_ == PointerButton::primary) {
-        accepts_drag_ = (*control).accepts_drag_gestures();
-        hold_deadline_ = now + milliseconds(gestures.hold_milliseconds);
-        const Control::Ptr last_control = last_click_.control.lock();
-        const bool same_control = last_click_.valid && last_control == control;
-        const bool in_time = now - last_click_.pressed_at <= milliseconds(settings.double_click_milliseconds);
-        const bool in_slop = axis_distance(origin_, last_click_.origin) <= slop_;
-        click_count_ = same_control && in_time && in_slop ? 2U : 1U;
-    }
-    batch.control = control;
-    batch.append(make_event(InteractionKind::press, origin_, now));
-    if (button_ == PointerButton::secondary && gestures.context_request == ContextRequestEdge::press) {
-        context_raised_ = true;
-        batch.append(make_event(InteractionKind::context_request, origin_, now));
-    }
-    return batch;
+void InteractionState::hover_moved(Point position, FrameTime now, const PointerSettings& settings) noexcept {
+    if (hover_raised_ || within_hover(position, hover_anchor_, settings)) return;
+    hover_anchor_ = position;
+    hover_deadline_ = now + milliseconds(settings.hover_milliseconds);
 }
 
-InteractionBatch InteractionState::moved(const PointerEvent& event, FrameTime now) {
-    InteractionBatch batch{};
-    if (phase_ == GesturePhase::none) return batch;
-    const Control::Ptr control = control_.lock();
-    if (!control) return batch;
-    const double distance = axis_distance(event.position, origin_);
-    if (distance > slop_) left_slop_ = true;
-    if (button_ != PointerButton::primary || !accepts_drag_) return batch;
-    batch.control = control;
-    if (phase_ == GesturePhase::dragging) {
-        batch.append(make_event(InteractionKind::drag, event.position, now));
-    } else if (distance > drag_threshold_) {
-        phase_ = GesturePhase::dragging;
-        // A drag is not a click, nor the first click of a double-click.
-        click_count_ = 0U;
-        last_click_ = LastClick{};
-        batch.append(make_event(InteractionKind::drag_start, event.position, now));
-    }
-    return batch;
+bool InteractionState::hover_pending() const noexcept {
+    return !hover_raised_ && !hover_control_.expired();
 }
 
-InteractionBatch InteractionState::released(const PointerEvent& event, const Control::Ptr& released_over,
-                                            FrameTime now) {
-    InteractionBatch batch{};
-    releasing_ = false;
-    if (phase_ == GesturePhase::none || event.button != button_) return batch;
-    const Control::Ptr control = control_.lock();
-    if (!control) {
-        end_gesture();
-        return batch;
-    }
-    batch.control = control;
-    batch.append(make_event(InteractionKind::release, event.position, now));
-    const bool over = released_over == control;
-    if (phase_ == GesturePhase::dragging) {
-        batch.append(make_event(InteractionKind::drag_end, event.position, now));
-    } else if (button_ == PointerButton::primary && over) {
-        InteractionEvent click = make_event(InteractionKind::click, event.position, now);
-        click.click_count = click_count_;
-        batch.append(click);
-        if (click_count_ == 2U) {
-            InteractionEvent second = make_event(InteractionKind::double_click, event.position, now);
-            second.click_count = 2U;
-            batch.append(second);
-            last_click_ = LastClick{};
-        } else {
-            last_click_ = LastClick{control_, origin_, pressed_at_, true};
-        }
-    } else if (button_ == PointerButton::primary) {
-        last_click_ = LastClick{};
-    }
-    if (button_ == PointerButton::secondary && !context_raised_ && over) {
-        batch.append(make_event(InteractionKind::context_request, event.position, now));
-    }
-    end_gesture();
-    return batch;
-}
-
-bool InteractionState::hold_pending() const noexcept {
-    return phase_ == GesturePhase::pressed && button_ == PointerButton::primary && !left_slop_;
-}
-
-InteractionBatch InteractionState::hold_due(FrameTime now) {
-    InteractionBatch batch{};
-    if (!hold_pending() || now < hold_deadline_) return batch;
-    const Control::Ptr control = control_.lock();
-    if (!control) return batch;
-    phase_ = GesturePhase::held;
-    batch.control = control;
-    batch.append(make_event(InteractionKind::hold, pointer_position_, now));
-    return batch;
-}
-
-void InteractionState::capture_changed(const Control::Ptr& previous) noexcept {
-    if (releasing_) {
-        releasing_ = false;
-        return;
-    }
-    if (phase_ == GesturePhase::none || button_ != PointerButton::primary) return;
-    const Control::Ptr control = control_.lock();
-    if (!control || control == previous) cancel_gesture();
+Control::Ptr InteractionState::take_hover(FrameTime now, bool native) noexcept {
+    if (hover_raised_) return {};
+    if (!native && now < hover_deadline_) return {};
+    Control::Ptr control = hover_control_.lock();
+    if (control) hover_raised_ = true;
+    return control;
 }
 
 void InteractionState::deactivated() noexcept {
@@ -208,25 +96,6 @@ void InteractionState::deactivated() noexcept {
     primary_down_ = false;
     secondary_down_ = false;
     middle_down_ = false;
-    cancel_gesture();
-}
-
-void InteractionState::cancel_gesture() noexcept {
-    if (phase_ == GesturePhase::none) return;
-    ++gestures_cancelled_;
-    last_click_ = LastClick{};
-    end_gesture();
-}
-
-void InteractionState::end_gesture() noexcept {
-    phase_ = GesturePhase::none;
-    button_ = PointerButton::none;
-    control_.reset();
-    click_count_ = 0U;
-    left_slop_ = false;
-    releasing_ = false;
-    accepts_drag_ = false;
-    context_raised_ = false;
 }
 
 void InteractionState::fill_snapshot(InteractionSnapshot& snapshot) const {
@@ -238,14 +107,9 @@ void InteractionState::fill_snapshot(InteractionSnapshot& snapshot) const {
     snapshot.primary_down = primary_down_;
     snapshot.secondary_down = secondary_down_;
     snapshot.middle_down = middle_down_;
-    snapshot.gesture = phase_;
-    snapshot.gesture_button = button_;
-    const Control::Ptr control = control_.lock();
-    snapshot.gesture_control = control ? (*control).runtime_id() : RuntimeId{};
-    snapshot.gesture_origin = origin_;
-    snapshot.gesture_click_count = click_count_;
-    snapshot.interactions_raised = interactions_raised_;
-    snapshot.gestures_cancelled = gestures_cancelled_;
+    snapshot.last_click_count = last_click_count_;
+    snapshot.hover_raised = hover_raised_;
+    snapshot.hover_pending = hover_pending();
 }
 
 } // namespace gui_forms::detail

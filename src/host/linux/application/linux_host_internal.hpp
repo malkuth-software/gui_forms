@@ -239,10 +239,8 @@ public:
   DamageRegion damage;
   SubscriptionToken closing_token;
   std::uint64_t sequence{};
-  Time last_click{};
-  Point last_click_position{};
-  unsigned last_click_button{};
-  unsigned click_count{};
+  // The last press, for the computed click count (linux_input_rules.hpp).
+  LinuxClickHistory click_history{};
   std::vector<char> presentation;
   // Per tick, reused across ticks. Each surface's frame is taken once
   // (`live_frames`, holding its read lease until the tick is composed), with
@@ -298,6 +296,8 @@ public:
   // The interval click counting uses: the reported one, or the default
   // before the watch exists.
   [[nodiscard]] std::uint32_t double_click_milliseconds() const noexcept;
+  // The desktop's double-click distance (XSettingsWatch), or the default.
+  [[nodiscard]] double double_click_distance() const noexcept;
   void dispatch(XEvent &event);
   Atom atom(const char *name) const;
   Display *display{};

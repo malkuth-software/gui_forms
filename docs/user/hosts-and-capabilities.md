@@ -9,7 +9,7 @@ advertised protocol surface; some native integrations are not advertised yet.
 
 ## The host protocol
 
-`HostCapabilities` carries `protocol_version` (currently 10; one row per version in
+`HostCapabilities` carries `protocol_version` (currently 11; one row per version in
 `host_protocol_revisions`), a `platform`
 string, a bit set of `HostCapability` flags and the host's keyboard-command
 defaults (`key_map`, below). `Application::capabilities()`
@@ -169,7 +169,41 @@ application's own presentation settings stay as they are.
 | Linux X11 | the XSETTINGS manager's `Net/DoubleClickTime` | on the manager's property change, a new manager, or the manager's exit; without a manager, the 400 ms default, reported as a default |
 | Headless | a fixed test value, 500 ms (`host::headless_double_click_milliseconds`) | never |
 
-The X11 host also counts its own clicks with this interval.
+The record also carries `pointer` (`PointerSettings`, protocol version 11):
+the drag size a control compares a press's movement against before it starts
+drag-and-drop, and the hover time and rectangle for `MouseHover`, each with
+its origin. `native_hover` says the host reports hover itself
+(`HostHoverEvent`), which turns the window's own hover timer off.
+
+| Host | Drag size | Hover |
+|---|---|---|
+| Windows | `SM_CXDRAG`, `SM_CYDRAG` | `WM_MOUSEHOVER` (`TrackMouseEvent`), with `SPI_GETMOUSEHOVERTIME` and the hover rectangle reported |
+| macOS | none offered: the 4 by 4 default | the window's timer, 400 ms default |
+| Linux X11 | `Net/DndDragThreshold` (a rectangle twice the threshold) | the window's timer, 400 ms default |
+| Headless | the defaults | the window's timer |
+
+## Mouse events and context requests
+
+The core counts no clicks: every pointer press carries the host's click
+count. Windows reports it from `WM_*BUTTONDBLCLK` (`CS_DBLCLKS`), macOS
+from `NSEvent.clickCount`, and the X11 host computes it from each press's
+time and position against `Net/DoubleClickTime` and `Net/DoubleClickDistance`
+(2 pixels when the desktop offers none). Controls raise the WinForms event
+set (`MouseDown`, `Click`, `MouseClick`, `DoubleClick`, `MouseDoubleClick`,
+`MouseUp`, `MouseEnter`, `MouseHover`, `MouseLeave`, `MouseMove`,
+`MouseWheel`, `MouseCaptureChanged`, `ContextMenuRequested`) in WinForms'
+order, under `ControlStyles::standard_click` and `standard_double_click`; a
+button raises no double-click.
+
+A context request comes from the host only (`HostContextRequestEvent`, with a
+pointer or keyboard origin); the core has no key route of its own.
+
+| Host | Pointer | Keyboard |
+|---|---|---|
+| Windows | `WM_CONTEXTMENU` after the right button's release | `WM_CONTEXTMENU` (Shift+F10, the Menu key) |
+| macOS | `menuForEvent:` (right press, Control-click) | the accessibility show-menu action only (VoiceOver VO+Shift+M) |
+| Linux X11 | the right button's press, emulated by the host | the Menu key or Shift+F10, emulated by the host when no control handled the key |
+| Headless | `SurfaceRoot::dispatch_context_request` | the same |
 
 ## Keyboard-command defaults
 
@@ -177,7 +211,7 @@ Some keys differ by platform convention: closing a document is Ctrl+F4 on
 Windows and X11 desktops and Cmd+W on macOS. The core names such keys as
 keyboard commands (`KeyCommand`: `close_document`, `next_tab`,
 `previous_tab`, `move_tab_later`, `move_tab_earlier`, `cycle_forward`,
-`cycle_backward`, `context_menu`, and docking's `next_document`,
+`cycle_backward`, and docking's `next_document`,
 `previous_document`, `next_tool_panel`, `previous_tool_panel`,
 `position_menu`, `return_to_document`, `hide_tool_panel`,
 `maximize_document_area`, `move_panel`), and each host reports the keys its convention
@@ -196,18 +230,13 @@ attaches.
 | `next_tab`, `previous_tab` | Ctrl+PageDown, Ctrl+PageUp | the same |
 | `move_tab_later`, `move_tab_earlier` | Ctrl+Shift+PageDown, Ctrl+Shift+PageUp | the same |
 | `cycle_forward`, `cycle_backward` | Ctrl+Tab, Ctrl+Shift+Tab | the same |
-| `context_menu` | Shift+F10, or the context-menu key | the same |
 | docking's commands | Ctrl+F6, Ctrl+Shift+F6, Alt+F7, Alt+Shift+F7, Alt+Hyphen, Escape, Shift+Escape, Ctrl+Shift+F12, Ctrl+Alt+Shift+M (move) | the same |
 
-The context-menu key is `PhysicalKey::context_menu` (HID "Keyboard
-Application"): `VK_APPS` on Windows and the `Menu` keysym on X11. Apple
-keyboards have no such key; the macOS host maps the virtual key code a PC
-keyboard's key reports (0x6E), which has not been tested on a Mac.
-`PageStrip` and `PageView` use the tab commands, close and the context
-menu; `TabControl` uses the tab and cycle commands and leaves close and the
-context menu to the controls around it; `DockSite` uses docking's
-commands, the cycle commands (its navigator) and the context menu (a
-panel's position menu).
+`PageStrip` and `PageView` use the tab commands and close, and answer a
+keyboard context request with the tab menu; `TabControl` uses the tab and
+cycle commands and leaves close to the controls around it; `DockSite` uses
+docking's commands, the cycle commands (its navigator), and answers a
+keyboard context request with a panel's position menu.
 
 ## The three native hosts and the headless one
 

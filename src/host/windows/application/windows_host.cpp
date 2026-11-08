@@ -1601,6 +1601,7 @@ public:
             break;
         case WM_MOUSELEAVE:
             services_.revoke_cursor_interaction();
+            hover_tracked_ = {};
             break;
         case WM_PAINT:
             // A render wake remains coalesced until the host actually begins
@@ -1695,17 +1696,29 @@ public:
             SetFocus(hwnd_); pointer(message, PointerAction::down, wparam, lparam); return 0;
         case WM_LBUTTONDBLCLK: case WM_RBUTTONDBLCLK: case WM_MBUTTONDBLCLK:
             SetFocus(hwnd_); pointer(message, PointerAction::down, wparam, lparam); return 0;
-        case WM_LBUTTONUP: case WM_RBUTTONUP: case WM_MBUTTONUP:
+        case WM_LBUTTONUP: case WM_MBUTTONUP:
             pointer(message, PointerAction::up, wparam, lparam); return 0;
+        case WM_RBUTTONUP:
+            // DefWindowProc turns the right button's release into
+            // WM_CONTEXTMENU, Windows' own context request.
+            pointer(message, PointerAction::up, wparam, lparam);
+            return DefWindowProcW(hwnd_, message, wparam, lparam);
+        case WM_CONTEXTMENU: context_request(lparam); return 0;
+        case WM_MOUSEHOVER: hover(lparam); return 0;
         case WM_MOUSEWHEEL: wheel(wparam, lparam); return 0;
         case WM_SYSKEYDOWN:
             // Preserve the native close gesture. Swallowing all system keys
             // prevents DefWindowProc from producing the ordinary WM_CLOSE,
             // including its existing cancellation and owned-window policy.
             if (wparam == VK_F4 && (lparam & (1LL << 29)) != 0) break;
-            key(KeyAction::down, wparam, lparam); return 0;
-        case WM_KEYDOWN: key(KeyAction::down, wparam, lparam); return 0;
-        case WM_KEYUP: case WM_SYSKEYUP: key(KeyAction::up, wparam, lparam); return 0;
+            if (!key(KeyAction::down, wparam, lparam) && context_key(message, wparam)) break;
+            return 0;
+        case WM_KEYDOWN:
+            if (!key(KeyAction::down, wparam, lparam) && context_key(message, wparam)) break;
+            return 0;
+        case WM_KEYUP: case WM_SYSKEYUP:
+            if (!key(KeyAction::up, wparam, lparam) && context_key(message, wparam)) break;
+            return 0;
         case WM_CHAR: character(static_cast<wchar_t>(wparam)); return 0;
         case WM_GETOBJECT:
             if (static_cast<LONG>(lparam) == OBJID_CLIENT) { return accessibility_.object(wparam); }
@@ -2011,17 +2024,50 @@ private:
         return true;
     }
 
-    // The system's double-click interval (GetDoubleClickTime, which Windows
-    // keeps between 1 and 5000 milliseconds), reported after attach and on
-    // WM_SETTINGCHANGE whenever it differs from the last report.
+    // The system's input settings, reported after attach and on
+    // WM_SETTINGCHANGE whenever they differ from the last report: the
+    // double-click interval (GetDoubleClickTime, which Windows keeps between
+    // 1 and 5000 milliseconds), the drag rectangle (SM_CXDRAG, SM_CYDRAG) and
+    // the hover time and rectangle (SPI_GETMOUSEHOVERTIME, ..WIDTH,
+    // ..HEIGHT), the rectangles in logical pixels. Windows reports hover
+    // itself (WM_MOUSEHOVER), so native_hover is set.
     void report_input_settings() {
         const UINT read = GetDoubleClickTime();
         std::uint32_t interval = static_cast<std::uint32_t>(read);
         if (interval == 0U) interval = 1U;
         if (interval > maximum_double_click_milliseconds) interval = maximum_double_click_milliseconds;
-        if (interval == reported_double_click_milliseconds_) return;
-        const HostDispatchResult reported = dispatch(HostInputSettingsEvent{interval, SettingOrigin::host});
-        if (reported.accepted()) reported_double_click_milliseconds_ = interval;
+        HostInputSettingsEvent input{interval, SettingOrigin::host, PointerSettings{}};
+        PointerSettings& pointer = input.pointer;
+        pointer.drag_width = clamp_pointer_distance(GetSystemMetrics(SM_CXDRAG) / scale_);
+        pointer.drag_height = clamp_pointer_distance(GetSystemMetrics(SM_CYDRAG) / scale_);
+        pointer.drag_origin = SettingOrigin::host;
+        UINT hover_time = 0U;
+        UINT hover_width = 0U;
+        UINT hover_height = 0U;
+        const bool hover_read = SystemParametersInfoW(SPI_GETMOUSEHOVERTIME, 0U, &hover_time, 0U) != FALSE &&
+                                SystemParametersInfoW(SPI_GETMOUSEHOVERWIDTH, 0U, &hover_width, 0U) != FALSE &&
+                                SystemParametersInfoW(SPI_GETMOUSEHOVERHEIGHT, 0U, &hover_height, 0U) != FALSE;
+        if (hover_read) {
+            std::uint32_t hover = static_cast<std::uint32_t>(hover_time);
+            if (hover == 0U) hover = 1U;
+            if (hover > maximum_hover_milliseconds) hover = maximum_hover_milliseconds;
+            pointer.hover_milliseconds = hover;
+            pointer.hover_width = clamp_pointer_distance(static_cast<double>(hover_width) / scale_);
+            pointer.hover_height = clamp_pointer_distance(static_cast<double>(hover_height) / scale_);
+            pointer.hover_origin = SettingOrigin::host;
+        }
+        pointer.native_hover = true;
+        const bool unchanged = reported_input_settings_ &&
+                               (*reported_input_settings_).double_click_milliseconds == input.double_click_milliseconds &&
+                               (*reported_input_settings_).pointer == input.pointer;
+        if (unchanged) return;
+        const HostDispatchResult reported = dispatch(input);
+        if (reported.accepted()) reported_input_settings_ = input;
+    }
+
+    static double clamp_pointer_distance(double distance) noexcept {
+        if (!(distance >= 0.0)) return 0.0;
+        return distance > maximum_pointer_distance ? maximum_pointer_distance : distance;
     }
 
     void resize() {
@@ -2736,6 +2782,7 @@ private:
         }
         dispatch(std::move(event));
         synchronize_capture();
+        if (action == PointerAction::move) track_hover();
         if (!update_cursor(client_point(lparam))) apply_system_cursor(CursorKind::arrow);
         collect_damage();
     }
@@ -2753,14 +2800,68 @@ private:
         collect_damage();
     }
 
-    void key(KeyAction action, WPARAM wparam, LPARAM lparam) {
+    // Whether DefWindowProc should see a key the window left unhandled, so
+    // that it raises WM_CONTEXTMENU as Windows does: Shift+F10 and the Menu
+    // key (VK_APPS). Every other key stays the window's alone.
+    static bool context_key(UINT message, WPARAM wparam) noexcept {
+        const bool shift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
+        const bool shift_f10 = wparam == VK_F10 && shift && (message == WM_SYSKEYDOWN || message == WM_KEYDOWN);
+        const bool menu_key = wparam == VK_APPS;
+        return shift_f10 || menu_key;
+    }
+
+    // WM_CONTEXTMENU: a pointer request at its screen position, or a
+    // keyboard one (Shift+F10, the Menu key), which Windows marks with the
+    // position (-1, -1).
+    void context_request(LPARAM lparam) {
+        HostContextRequestEvent request{};
+        const int x = GET_X_LPARAM(lparam);
+        const int y = GET_Y_LPARAM(lparam);
+        if (x == -1 && y == -1) {
+            request.origin = ContextRequestOrigin::keyboard;
+        } else {
+            POINT point{x, y};
+            ScreenToClient(hwnd_, &point);
+            request.origin = ContextRequestOrigin::pointer;
+            request.position = {point.x / scale_, point.y / scale_};
+        }
+        dispatch(request);
+        collect_damage();
+    }
+
+    // WM_MOUSEHOVER: Windows measured the rest (SPI_GETMOUSEHOVERTIME within
+    // the hover rectangle); the window raises MouseHover on the hovered
+    // control. Tracking ends with it and is armed again when the pointer
+    // reaches another control (track_hover).
+    void hover(LPARAM lparam) {
+        hover_tracked_ = {};
+        dispatch(HostHoverEvent{client_point(lparam)});
+        collect_damage();
+    }
+
+    // Arms TrackMouseEvent's hover report for the control under the pointer
+    // once per control: each control raises MouseHover once per entry.
+    void track_hover() {
+        const Control::Ptr hovered = (*model_).hovered_control();
+        const RuntimeId current = hovered ? (*hovered).runtime_id() : RuntimeId{};
+        if (current == hover_tracked_ || current == RuntimeId{}) return;
+        TRACKMOUSEEVENT track{};
+        track.cbSize = sizeof(track);
+        track.dwFlags = TME_HOVER | TME_LEAVE;
+        track.hwndTrack = hwnd_;
+        track.dwHoverTime = HOVER_DEFAULT;
+        if (TrackMouseEvent(&track) != FALSE) hover_tracked_ = current;
+    }
+
+    bool key(KeyAction action, WPARAM wparam, LPARAM lparam) {
         KeyEvent event;
         event.action = action;
         event.physical_key = detail::physical_key_from_virtual_key(wparam);
         event.modifiers = modifiers();
         event.repeat = action == KeyAction::down && (lparam & (1LL << 30)) != 0;
-        dispatch(std::move(event));
+        const HostDispatchResult result = dispatch(std::move(event));
         collect_damage();
+        return result.handled;
     }
 
     void character(wchar_t character) {
@@ -3165,7 +3266,10 @@ private:
     double scale_{1.0};
     std::uint64_t next_sequence_{1};
     // The double-click interval last reported; 0 before the first report.
-    std::uint32_t reported_double_click_milliseconds_{};
+    std::optional<HostInputSettingsEvent> reported_input_settings_{};
+    // The control TrackMouseEvent's hover report is armed for (zero for
+    // none): each control raises MouseHover once per entry.
+    RuntimeId hover_tracked_{};
     std::uint64_t native_callback_faults_{};
     wchar_t pending_high_surrogate_{};
     bool render_dispatch_pending_{};

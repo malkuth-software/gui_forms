@@ -263,6 +263,7 @@ public:
     void on_paint(Painter& painter, Rect local_damage) override;
     void on_pointer(PointerEvent& event) override;
     void on_key(KeyEvent& event) override;
+    void on_context_menu_requested(ContextMenuRequest& request) override;
     void on_focus_changed(bool focused) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     [[nodiscard]] std::vector<SemanticNode> semantic_virtual_children() const override;

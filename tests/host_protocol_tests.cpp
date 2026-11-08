@@ -6,6 +6,7 @@
 #include <exception>
 #include <functional>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -1082,9 +1083,10 @@ struct PresentationChangeCounter final {
 };
 
 void test_input_settings_report_and_validation() {
-    require(host_protocol_revisions.size() == 3U && host_protocol_revisions[1].version == 9U &&
-                host_protocol_revisions[2].version == 10U && HostCapabilities::current_protocol_version == 10U,
-            "the compositor report is version 9 and the input settings version 10");
+    require(host_protocol_revisions.size() == 4U && host_protocol_revisions[1].version == 9U &&
+                host_protocol_revisions[2].version == 10U && host_protocol_revisions[3].version == 11U &&
+                HostCapabilities::current_protocol_version == 11U,
+            "the compositor report is version 9, the input settings 10 and the mouse conventions 11");
     const std::unique_ptr<Fixture> held_fixture = std::make_unique<Fixture>();
     Fixture& fixture = *held_fixture;
     const PresentationSettings initial = fixture.window.presentation_settings();
@@ -1158,6 +1160,35 @@ void test_input_settings_report_and_validation() {
             "an application's zero interval throws and changes nothing");
     require(host_event_name(HostEventPayload{HostInputSettingsEvent{}}) == std::string("input_settings"),
             "the event is named input_settings");
+
+    // The pointer settings travel with the report and are validated.
+    HostInputSettingsEvent with_pointer{650U, SettingOrigin::host, PointerSettings{}};
+    with_pointer.pointer.drag_width = 8.0;
+    with_pointer.pointer.drag_height = 6.0;
+    with_pointer.pointer.drag_origin = SettingOrigin::host;
+    with_pointer.pointer.native_hover = true;
+    HostEvent pointer_report{10, 10, with_pointer};
+    require(fixture.host.session().dispatch(std::move(pointer_report)).accepted() &&
+                fixture.window.presentation_settings().pointer == with_pointer.pointer,
+            "the drag and hover settings reach the window");
+    HostInputSettingsEvent negative_drag = with_pointer;
+    negative_drag.pointer.drag_width = -1.0;
+    HostEvent negative{11, 11, negative_drag};
+    require(fixture.host.session().dispatch(std::move(negative)).error == HostDispatchError::invalid_payload &&
+                fixture.window.presentation_settings().pointer.drag_width == 8.0,
+            "a negative drag size is refused, changing nothing");
+    HostEvent unfinite{12, 12, HostContextRequestEvent{ContextRequestOrigin::pointer,
+                                                       {std::numeric_limits<double>::infinity(), 0.0}}};
+    require(fixture.host.session().dispatch(std::move(unfinite)).error == HostDispatchError::invalid_payload,
+            "a context request at no finite position is refused");
+    HostEvent keyboard{13, 13, HostContextRequestEvent{ContextRequestOrigin::keyboard, {}}};
+    require(fixture.host.session().dispatch(std::move(keyboard)).accepted(),
+            "a keyboard context request is accepted");
+    HostEvent hover{14, 14, HostHoverEvent{{10.0, 10.0}}};
+    require(fixture.host.session().dispatch(std::move(hover)).accepted(), "a hover report is accepted");
+    require(host_event_name(HostEventPayload{HostContextRequestEvent{}}) == std::string("context_request") &&
+                host_event_name(HostEventPayload{HostHoverEvent{}}) == std::string("hover"),
+            "the events are named context_request and hover");
 }
 
 void test_lifecycle_transition_guards() {

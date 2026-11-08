@@ -1,9 +1,10 @@
 #pragma once
-// A copy of one window's interaction state (APP_WINDOW_RULES_DESIGN C.2),
-// for tests and diagnostics: SurfaceRoot::interaction_snapshot.
+// One window's input state (APP_WINDOW_RULES_DESIGN C.2): what is held and
+// where the pointer is, copied for tests and diagnostics by
+// SurfaceRoot::interaction_snapshot.
 
 #include "gui_forms/control/control/control.hpp"
-#include "gui_forms/window/interaction/interaction_types.hpp"
+#include "gui_forms/scheduler/types/scheduler_types.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -27,24 +28,13 @@ struct HeldKey final {
     }
 };
 
-// Where the gesture in progress stands.
-// - none: no gesture runs.
-// - pressed: a button is down and nothing else has happened.
-// - held: the primary press raised hold.
-// - dragging: the primary press raised drag_start.
-enum class GesturePhase : std::uint8_t {
-    none,
-    pressed,
-    held,
-    dragging,
-};
-
 // The state at the moment of the copy. The four controls are read from the
 // window's own registries (focus, capture, press and hover), not kept a
 // second time; a zero RuntimeId means none. The pointer fields hold the
 // last pointer event the window dispatched; `pointer_inside` turns false on
-// the pointer's leave. A window that has dispatched no input reports
-// empty input fields.
+// the pointer's leave, and `last_click_count` is the click count the host
+// reported for the last press. A window that has dispatched no input
+// reports empty input fields.
 struct InteractionSnapshot final {
     std::vector<HeldKey> held_keys{};  // in press order
     std::uint32_t untracked_key_presses{};
@@ -54,21 +44,26 @@ struct InteractionSnapshot final {
     bool primary_down{};
     bool secondary_down{};
     bool middle_down{};
+    std::uint32_t last_click_count{};
     RuntimeId focused{};
     RuntimeId captured{};
     RuntimeId pressed{};
     RuntimeId hovered{};
-    GesturePhase gesture{GesturePhase::none};
-    PointerButton gesture_button{PointerButton::none};
-    RuntimeId gesture_control{};
-    Point gesture_origin{};
-    // 2 while the press in progress is the second of a possible
-    // double-click, 1 for another primary press, 0 without one.
-    std::uint32_t gesture_click_count{};
-    // Interactions raised over the window's life, and gestures cancelled by
-    // capture or activation loss.
-    std::uint64_t interactions_raised{};
-    std::uint64_t gestures_cancelled{};
+    // Whether MouseHover was raised on the hovered control since the pointer
+    // entered it, and whether the window's hover timer is armed.
+    bool hover_raised{};
+    bool hover_pending{};
+};
+
+// Where the window's input state reads the time of an input event (a held
+// key's press time, the start of a hover). Steady-clock time unless a
+// source is installed: tests install one so that times are theirs. Its
+// times must be in the same domain as the times the window is polled with
+// (SurfaceRoot::poll_frame_schedule), which wakes a pending hover.
+class InputTimeSource {
+public:
+    virtual ~InputTimeSource() = default;
+    [[nodiscard]] virtual FrameTime now() const noexcept = 0;
 };
 
 } // namespace gui_forms

@@ -20,7 +20,6 @@
 #include "gui_forms/types.hpp"
 #include "gui_forms/theme.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
-#include "gui_forms/window/interaction/interaction_types.hpp"
 
 #include <atomic>
 #include <any>
@@ -707,6 +706,35 @@ public:
     [[nodiscard]] Event<const PointerEvent&>& pointer_preview_observed() noexcept {
         return pointer_preview_observed_;
     }
+    // The WinForms mouse events (owner's mouse-event rule, 2026-11-08). The
+    // window raises them on the UI thread in WinForms' order: MouseDown,
+    // then on the release over the pressed control Click and MouseClick
+    // (or, for a press the host counted as the second of a double-click on
+    // a control with ControlStyles::standard_double_click, DoubleClick and
+    // MouseDoubleClick), then MouseUp. Click needs
+    // ControlStyles::standard_click and is followed by on_activate.
+    // MouseEnter, MouseHover (once per entry, after the pointer rests within
+    // the hover rectangle for the hover time) and MouseLeave follow the
+    // pointer; MouseCaptureChanged is raised on the control losing the
+    // capture. The events are kept in a record made by the first accessor
+    // called, so a control nobody listens to stores none.
+    [[nodiscard]] Event<const MouseEventArgs&>& mouse_down() { return mouse_events().down; }
+    [[nodiscard]] Event<const MouseEventArgs&>& mouse_up() { return mouse_events().up; }
+    [[nodiscard]] Event<const MouseEventArgs&>& mouse_move() { return mouse_events().move; }
+    [[nodiscard]] Event<const MouseEventArgs&>& mouse_wheel() { return mouse_events().wheel; }
+    [[nodiscard]] Event<>& mouse_enter() { return mouse_events().enter; }
+    [[nodiscard]] Event<>& mouse_hover() { return mouse_events().hover; }
+    [[nodiscard]] Event<>& mouse_leave() { return mouse_events().leave; }
+    [[nodiscard]] Event<>& mouse_capture_changed() { return mouse_events().capture_changed; }
+    [[nodiscard]] Event<>& click() { return mouse_events().click; }
+    [[nodiscard]] Event<const MouseEventArgs&>& mouse_click() { return mouse_events().mouse_click; }
+    [[nodiscard]] Event<>& double_click() { return mouse_events().double_click; }
+    [[nodiscard]] Event<const MouseEventArgs&>& mouse_double_click() {
+        return mouse_events().mouse_double_click;
+    }
+    [[nodiscard]] Event<ContextMenuRequest&>& context_menu_requested() {
+        return mouse_events().context_menu_requested;
+    }
     [[nodiscard]] Event<bool>& focus_observed() noexcept {
         return focus_observed_;
     }
@@ -928,16 +956,11 @@ public:
     // focus. Controls with bounded focus-cue presentation may retarget here.
     virtual void on_focus_cue_changed(bool visible);
     virtual void on_activate();
-    // The window's gesture recognizer raised an interaction on this control
-    // (InteractionKind lists them and their order). It runs after the raw
-    // pointer event's route, on the UI thread; the base does nothing. A
-    // primary click is followed by on_activate.
-    virtual void on_interaction(const InteractionEvent& event);
-    // Whether a primary press moving past the drag threshold starts a drag
-    // gesture on this control (drag_start cancels its pending click). The
-    // base answers false, so a press that wanders still clicks when it is
-    // released over the control.
-    [[nodiscard]] virtual bool accepts_drag_gestures() const noexcept;
+    // A context menu was asked for on this control (ContextMenuRequest),
+    // before the control's ContextMenuRequested subscribers. A control that
+    // shows its own menu sets `request.handled`, which also stops the
+    // request reaching its ancestors. The base does nothing.
+    virtual void on_context_menu_requested(ContextMenuRequest& request);
 
     // Anatomy (stage T1). A control type opts in by overriding anatomy(),
     // publish_part_geometry() and anatomy_states() together; the defaults
@@ -1423,6 +1446,7 @@ private:
     ControlStyles styles_{ControlStyles::user_paint |
                           ControlStyles::resize_redraw |
                           ControlStyles::standard_click |
+                          ControlStyles::standard_double_click |
                           ControlStyles::selectable |
                           ControlStyles::all_painting_in_one_pass};
     std::vector<std::string> classes_;
@@ -1480,6 +1504,25 @@ private:
     Event<> validated_;
     Event<const PointerEvent&> pointer_observed_;
     Event<const PointerEvent&> pointer_preview_observed_;
+    // The WinForms mouse events (mouse_down and the rest), made on first
+    // access; null while nobody has asked for one.
+    struct MouseEvents final {
+        Event<const MouseEventArgs&> down;
+        Event<const MouseEventArgs&> up;
+        Event<const MouseEventArgs&> move;
+        Event<const MouseEventArgs&> wheel;
+        Event<> enter;
+        Event<> hover;
+        Event<> leave;
+        Event<> capture_changed;
+        Event<> click;
+        Event<const MouseEventArgs&> mouse_click;
+        Event<> double_click;
+        Event<const MouseEventArgs&> mouse_double_click;
+        Event<ContextMenuRequest&> context_menu_requested;
+    };
+    MouseEvents& mouse_events();
+    std::unique_ptr<MouseEvents> mouse_events_{};
     Event<bool> focus_observed_;
     Event<Rect> arranged_bounds_changed_;
     Event<HelpRequestEvent&> help_requested_;

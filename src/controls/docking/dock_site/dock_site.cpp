@@ -1740,7 +1740,7 @@ bool DockSite::handle_docking_key(KeyEvent& event) {
         std::optional<DockPanelId> panel = focused_panel();
         if (!panel) panel = (*workspace_).active_panel();
         if (panel) handled = begin_keyboard_move(*panel);
-    } else if (keys.matches(KeyCommand::position_menu, event) || keys.matches(KeyCommand::context_menu, event)) {
+    } else if (keys.matches(KeyCommand::position_menu, event)) {
         std::optional<DockPanelId> panel = focused_panel();
         if (!panel) panel = (*workspace_).active_panel();
         if (panel) handled = show_position_menu(*panel, MenuOpenMode::keyboard);
@@ -1754,6 +1754,16 @@ bool DockSite::handle_docking_key(KeyEvent& event) {
 void DockSite::on_key_preview(KeyEvent& event) {
     end_document_steps(event);
     static_cast<void>(handle_drag_key(event));
+}
+
+// A keyboard context request (the host's own: Windows' Shift+F10 and Menu
+// key, the Linux desktop's, macOS's show-menu action) that nothing inside
+// took opens the focused or active panel's position menu (G2-1).
+void DockSite::on_context_menu_requested(ContextMenuRequest& request) {
+    if (request.origin != ContextRequestOrigin::keyboard || workspace_ == nullptr) return;
+    std::optional<DockPanelId> panel = focused_panel();
+    if (!panel) panel = (*workspace_).active_panel();
+    if (panel && show_position_menu(*panel, MenuOpenMode::keyboard)) request.handled = true;
 }
 
 void DockSite::on_key(KeyEvent& event) {

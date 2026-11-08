@@ -792,6 +792,8 @@ gui_forms::DockSite
 
    .. cpp:function:: void on_key(KeyEvent& event) override
 
+   .. cpp:function:: void on_context_menu_requested(ContextMenuRequest& request) override
+
    .. cpp:function:: void on_key_bubble(KeyEvent& event) override
 
    .. cpp:function:: void on_focus_changed(bool focused) override

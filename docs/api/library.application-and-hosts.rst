@@ -95,6 +95,8 @@ Related types
      - HostColorDialogResult carries accepted/cancelled outcome and portable RGBA.
    * - :cpp:class:`HostCompositorEvent <gui_forms::HostCompositorEvent>`
      - The host's compositor and preference state (stage T5): reported once after attach and again whenever it changes (capability compositor_notifications).
+   * - :cpp:class:`HostContextRequestEvent <gui_forms::HostContextRequestEvent>`
+     - The platform asked for a context menu (owner's mouse-event rule): Windows WM_CONTEXTMENU (after the right button's release, or Shift+F10 and the Menu key), macOS menuForEvent: (the right button's press, or a Control-click).
    * - :cpp:class:`HostDialogHelpEvent <gui_forms::HostDialogHelpEvent>`
      - The user asked for help in an open message dialog: its Help button, or F1.
    * - :cpp:class:`HostDialogRequest <gui_forms::HostDialogRequest>`
@@ -111,6 +113,8 @@ Related types
      - HostFileDialogFilter carries a user-facing label and bounded extension vocabulary without native filter syntax.
    * - :cpp:class:`HostFolderDialogRequest <gui_forms::HostFolderDialogRequest>`
      - HostFolderDialogRequest declares portable title and initial directory for one folder selection.
+   * - :cpp:class:`HostHoverEvent <gui_forms::HostHoverEvent>`
+     - The pointer rested within the hover rectangle for the hover time, as the platform measured it (Windows WM_MOUSEHOVER).
    * - :cpp:class:`HostImage <gui_forms::HostImage>`
      - An owned host-service image, premultiplied BGRA8 like HostImageView.
    * - :cpp:class:`HostImageView <gui_forms::HostImageView>`
@@ -787,6 +791,20 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: HostContextRequestEvent final
+
+   ``#include <gui_forms/host/types/host_types.hpp>``
+
+   The platform asked for a context menu (owner's mouse-event rule): Windows WM_CONTEXTMENU (after the right button's release, or Shift+F10 and the Menu key), macOS menuForEvent: (the right button's press, or a Control-click). The Linux host, whose platform has no such event, emulates it: the right button's press, the Menu key and Shift+F10. A pointer request carries the pointer's window position; a keyboard request names none and goes to the focused control. The window raises ContextMenuRequested from it (SurfaceRoot::dispatch_context_request). A position that is not finite is refused as invalid_payload.
+
+   .. cpp:member:: ContextRequestOrigin origin
+
+      Default: ``{ContextRequestOrigin::pointer}``.
+
+   .. cpp:member:: Point position
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: HostDialogHelpEvent final
 
    ``#include <gui_forms/host/types/host_types.hpp>``
@@ -910,6 +928,16 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: HostHoverEvent final
+
+   ``#include <gui_forms/host/types/host_types.hpp>``
+
+   The pointer rested within the hover rectangle for the hover time, as the platform measured it (Windows WM_MOUSEHOVER). Sent only by a host whose input settings say native_hover; the window raises MouseHover on the hovered control. A position that is not finite is refused as invalid_payload.
+
+   .. cpp:member:: Point position
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: HostImage final
 
    ``#include <gui_forms/host/image/host_image.hpp>``
@@ -959,7 +987,7 @@ Related types
 
    ``#include <gui_forms/host/types/host_types.hpp>``
 
-   The platform's input settings that controls read (stage W, ListView label editing): reported after attach and again whenever the system setting changes. The session copies them into the window's PresentationSettings (double_click_milliseconds, double_click_origin and gestures), leaving every other field as it is. An interval of 0 or above maximum_double_click_milliseconds, or gesture settings that are not valid_gesture_settings, are refused as invalid_payload. A host reports the gesture values its platform has with origin host and leaves the others at their defaults (origin default_value).
+   The platform's input settings that controls read (stage W, ListView label editing): reported after attach and again whenever the system setting changes. The session copies them into the window's PresentationSettings (double_click_milliseconds, double_click_origin and pointer), leaving every other field as it is. An interval of 0 or above maximum_double_click_milliseconds, or pointer settings that are not valid_pointer_settings, are refused as invalid_payload. A host reports the pointer values its platform has with origin host and leaves the others at their defaults (origin default_value).
 
    .. cpp:member:: std::uint32_t double_click_milliseconds
 
@@ -969,7 +997,7 @@ Related types
 
       Default: ``{SettingOrigin::host}``.
 
-   .. cpp:member:: GestureSettings gestures
+   .. cpp:member:: PointerSettings pointer
 
 .. cpp:namespace:: gui_forms
 
@@ -3616,7 +3644,7 @@ Functions, constants and aliases
 
    Whether the rows run consecutively from 8, each with a feature.
 
-.. cpp:var:: constexpr std::array<HostProtocolRevision, 3> host_protocol_revisions
+.. cpp:var:: constexpr std::array<HostProtocolRevision, 4> host_protocol_revisions
 
    The host protocol's versions, one row each, from version 8 (earlier versions are not recorded). The current version is the last row's. A change to the protocol adds a row at the end, so two changes that claim the same version both add the same line and conflict when merged, and the checks below refuse a skipped or repeated version.
 
@@ -3664,7 +3692,7 @@ Functions, constants and aliases
 
 .. cpp:type:: HostDialogResultPayload = std::variant< HostMessageDialogResult, HostPathDialogResult, HostColorDialogResult>
 
-.. cpp:type:: HostEventPayload = std::variant< HostAttachEvent, HostResizeEvent, HostScaleEvent, HostActivationEvent, HostOcclusionEvent, HostDisplayEvent, DragEvent, PointerEvent, KeyEvent, TextInputEvent, HostCloseRequest, HostClosedEvent, HostShutdownEvent, HostCompositorEvent, HostInputSettingsEvent>
+.. cpp:type:: HostEventPayload = std::variant< HostAttachEvent, HostResizeEvent, HostScaleEvent, HostActivationEvent, HostOcclusionEvent, HostDisplayEvent, DragEvent, PointerEvent, KeyEvent, TextInputEvent, HostCloseRequest, HostClosedEvent, HostShutdownEvent, HostCompositorEvent, HostInputSettingsEvent, HostContextRequestEvent, HostHoverEvent>
 
 .. cpp:namespace:: gui_forms
 

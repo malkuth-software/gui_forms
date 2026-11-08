@@ -3816,12 +3816,13 @@ std::optional<Rect> Control::text_input_caret() const { return std::nullopt; }
 void Control::on_focus_cue_changed(bool) {}
 void Control::on_activate() {}
 
-void Control::on_interaction(const InteractionEvent& event) {
-    static_cast<void>(event);
+void Control::on_context_menu_requested(ContextMenuRequest& request) {
+    static_cast<void>(request);
 }
 
-bool Control::accepts_drag_gestures() const noexcept {
-    return false;
+Control::MouseEvents& Control::mouse_events() {
+    if (!mouse_events_) mouse_events_ = std::make_unique<MouseEvents>();
+    return *mouse_events_;
 }
 
 namespace {

@@ -747,13 +747,12 @@ void rebound_docking_keys() {
     require(key_up(window, PhysicalKey::q, Modifier::none) && !site.navigator_open() &&
                 active_is(workspace, "doc.second", "doc.second"),
             "releasing Alt activates the current row");
-    window.rebind_key_command(KeyCommand::position_menu, {});
-    window.rebind_key_command(KeyCommand::context_menu, {{PhysicalKey::m, Modifier::control | Modifier::shift}, {}});
+    window.rebind_key_command(KeyCommand::position_menu, {{PhysicalKey::m, Modifier::control | Modifier::shift}, {}});
     static_cast<void>(key(window, PhysicalKey::minus, Modifier::alt));
     require(!site.position_menu_open(),
-            "an unbound position_menu leaves Alt+Hyphen alone");
+            "a rebound position_menu leaves Alt+Hyphen alone");
     require(key(window, PhysicalKey::m, Modifier::control | Modifier::shift) && site.position_menu_open(),
-            "the rebound context_menu opens the position menu");
+            "the rebound position_menu opens the position menu");
     site.close_position_menu();
 }
 
@@ -798,11 +797,13 @@ void position_menu() {
     window.perform_layout();
     require((*workspace.layout().find_node(stack_of(workspace, "properties"))).kind == DockNodeKind::tool_stack,
             "Properties is a tool stack again");
-    // Shift+F10 opens the menu too; the context-menu key as well.
+    // A keyboard context request (the host's Shift+F10 or Menu key) opens
+    // it too; the keys themselves are the host's, not the core's.
     site.close_position_menu();
-    require(key(window, PhysicalKey::f10, Modifier::shift) && site.position_menu_open(), "Shift+F10 opens it");
-    site.close_position_menu();
-    require(key(window, PhysicalKey::context_menu) && site.position_menu_open(), "the context-menu key opens it");
+    require(!key(window, PhysicalKey::f10, Modifier::shift) && !site.position_menu_open(),
+            "Shift+F10 itself is no core key");
+    require(window.dispatch_context_request(ContextRequestOrigin::keyboard, Point{}) && site.position_menu_open(),
+            "a keyboard context request opens it");
     site.close_position_menu();
     // The caption's close button hides the panel.
     window.perform_layout();

@@ -755,16 +755,15 @@ void TabControl::on_key_preview(KeyEvent& event) {
 
 // While the control has focus its strip has the keyboard: the arrows along
 // the row, Home and End select (the strip's automatic activation). The
-// commands a tab control does not offer (closing, moving a tab, a tab's
-// context menu) are left to the controls around it.
+// commands a tab control does not offer (closing, moving a tab) are left to
+// the controls around it, as is a context request (none reaches the strip).
 void TabControl::on_key(KeyEvent& event) {
     if (event.handled || !strip_ || window() == nullptr ||
         (*window()).focused_control().get() != this) return;
     const KeyMap& keys = effective_key_map();
     const bool not_offered = keys.matches(KeyCommand::close_document, event) ||
                              keys.matches(KeyCommand::move_tab_later, event) ||
-                             keys.matches(KeyCommand::move_tab_earlier, event) ||
-                             keys.matches(KeyCommand::context_menu, event);
+                             keys.matches(KeyCommand::move_tab_earlier, event);
     if (not_offered) return;
     (*strip_).on_key(event);
 }
