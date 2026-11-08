@@ -3503,8 +3503,24 @@ void Control::arrange(Rect final_bounds) {
     }
 
     for (const Ptr& child : retained) {
-        if (!is_current_layout_child(child) || !(*child).visible.read() ||
-            (*child).dock.read() != DockStyle::none) {
+        if (!is_current_layout_child(child) || (*child).dock.read() != DockStyle::none) {
+            continue;
+        }
+        if (!(*child).visible.read()) {
+            // A hidden child keeps the distances its bounds were written
+            // with, as in Windows Forms: its reference is taken at the
+            // parent's first sized layout, not when the child is first
+            // shown. Taken then, against a client the window had since
+            // shrunk, a child anchored to both edges kept the shortfall as
+            // overhang beyond its parent (a Gallery page first shown in a
+            // short window could not scroll its last controls into view).
+            // A degenerate client, before the parent has a size, gives no
+            // reference; an automatically sized child takes its reference
+            // from its preferred size when shown.
+            const bool sized_client = client.width > 0.0 && client.height > 0.0;
+            if (sized_client && !(*child).auto_size.read() && !(*child).anchor_reference_) {
+                (*child).anchor_reference_ = AnchorReference{(*child).requested_bounds_, client};
+            }
             continue;
         }
         Rect authored = (*child).requested_bounds_;

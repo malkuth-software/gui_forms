@@ -121,6 +121,7 @@ int main(int argc, char** argv) {
             return EXIT_SUCCESS;
         }
         test_page_contract_and_rendering();
+        test_every_page_scrolls_to_its_end();
         test_catalog_pages_resolve_and_headers_describe_pages();
         test_gallery_semantic_surface();
         test_ranges_containers_and_animation();

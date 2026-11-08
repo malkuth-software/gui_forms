@@ -12,6 +12,7 @@ void test_page_contract_and_rendering();
 void test_gallery_semantic_surface();
 void test_anatomy_coverage();
 void test_schema_export();
+void test_every_page_scrolls_to_its_end();
 void test_display_commands_unchanged();
 
 void test_ranges_and_progress(gui_forms::Window& window);
