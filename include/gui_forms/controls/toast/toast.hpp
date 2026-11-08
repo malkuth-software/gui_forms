@@ -2,7 +2,7 @@
 
 #include "gui_forms/control.hpp"
 #include "gui_forms/event.hpp"
-#include "gui_forms/controls/notice_values/notice_values.hpp"
+#include "gui_forms/controls/info_banner/notice_values/notice_values.hpp"
 #include "gui_forms/window/toasts/toasts.hpp"
 
 #include <array>
