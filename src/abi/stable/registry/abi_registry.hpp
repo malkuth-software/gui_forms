@@ -216,8 +216,18 @@ private:
         std::uint64_t references = 0U;
         Component::Ptr object;
     };
-    // One sub-surface thread's domain (domain value = index + 1).
+    // One sub-surface thread's domain (domain value = index + 1). Move-only:
+    // its posted calls own their callbacks. The copy operations are deleted
+    // explicitly because libstdc++'s std::deque move constructor is not
+    // noexcept, so std::vector growth would otherwise pick the (implicitly
+    // declared, then ill-formed) copy constructor.
     struct SubSurfaceDomain {
+        SubSurfaceDomain() = default;
+        SubSurfaceDomain(const SubSurfaceDomain&) = delete;
+        SubSurfaceDomain& operator=(const SubSurfaceDomain&) = delete;
+        SubSurfaceDomain(SubSurfaceDomain&&) = default;
+        SubSurfaceDomain& operator=(SubSurfaceDomain&&) = default;
+
         bool occupied = false;
         std::thread::id thread{};
         // Objects of the domain released last off its thread.
