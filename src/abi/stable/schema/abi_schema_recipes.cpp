@@ -86,6 +86,15 @@ void describe_type<PageStrip>(SchemaSample& sample) {
     record_control(*strip, sample);
 }
 
+// A toast needs a message (an empty one is refused).
+template <>
+void describe_type<Toast>(SchemaSample& sample) {
+    ToastContent content{};
+    content.message = "Sample";
+    const std::shared_ptr<Toast> toast = make_control<Toast>(sample_id(), std::move(content));
+    record_control(*toast, sample);
+}
+
 template <>
 void describe_type<BackgroundWorker>(SchemaSample& sample) {
     describe_window_component<BackgroundWorker>(sample);

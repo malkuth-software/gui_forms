@@ -40,6 +40,7 @@
 #include "gui_forms/controls/docking/dock_workspace/dock_workspace.hpp"
 #include "gui_forms/controls/pages/page_strip/page_strip.hpp"
 #include "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp"
+#include "gui_forms/controls/toast/toast.hpp"
 #include "gui_forms/feedback/semantic_feedback/semantic_feedback.hpp"
 #include "gui_forms/image_list/image_list/image_list.hpp"
 #include "gui_forms/live_surface/surface/live_surface.hpp"
@@ -129,6 +130,7 @@ void describe_type(SchemaSample& sample) {
 template <> void describe_type<AnchoredOverlayLayer>(SchemaSample& sample);
 template <> void describe_type<DockSite>(SchemaSample& sample);
 template <> void describe_type<PageStrip>(SchemaSample& sample);
+template <> void describe_type<Toast>(SchemaSample& sample);
 
 // Components.
 template <> void describe_type<BackgroundWorker>(SchemaSample& sample);
