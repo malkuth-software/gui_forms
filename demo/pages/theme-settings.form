@@ -22,6 +22,8 @@ scaled-panel gallery.theme-settings.document {
   label gallery.theme-settings.lead {
     text: "Switch the running Gallery's theme and colour scheme, for every window, this window alone, or one preview.";
     classes: "muted" "body";
+    text-wrapping: word;
+    vertical-alignment: near;
     bounds: 26 52 920 24;
   }
 
@@ -38,6 +40,8 @@ scaled-panel gallery.theme-settings.document {
     label gallery.theme-settings.themes.note {
       text: "gui-forms and windows-professional carry the Gallery's own sheet; the familiar themes show their own look alone.";
       classes: "muted" "body";
+      text-wrapping: word;
+      vertical-alignment: near;
       bounds: 16 246 268 70;
     }
     button gallery.theme-settings.restore {
@@ -61,7 +65,7 @@ scaled-panel gallery.theme-settings.document {
       bounds: 16 38 260 26;
     }
     radio-button gallery.theme-settings.scheme.dark {
-      text: "Dark (where the theme has it)";
+      text: "Dark";
       indicator-style: modern;
       group-name: "gallery-theme-scheme";
       bounds: 16 72 260 26;
@@ -73,7 +77,7 @@ scaled-panel gallery.theme-settings.document {
       bounds: 16 106 260 26;
     }
     check-box gallery.theme-settings.follow-host {
-      text: "Follow the host's light or dark preference";
+      text: "Follow the host's scheme";
       indicator-style: toggle;
       bounds: 16 146 270 26;
       checked: bind(follow_host_);
@@ -86,28 +90,30 @@ scaled-panel gallery.theme-settings.document {
     design-size: 310 190;
     bounds: 664 92 310 190;
     radio-button gallery.theme-settings.scope.every-window {
-      text: "Every window (the resources' theme)";
+      text: "Every window";
       indicator-style: modern;
       group-name: "gallery-theme-scope";
       checked: true;
       bounds: 16 38 280 26;
     }
     radio-button gallery.theme-settings.scope.this-window {
-      text: "This window only (window override)";
+      text: "This window only";
       indicator-style: modern;
       group-name: "gallery-theme-scope";
       bounds: 16 72 280 26;
     }
     radio-button gallery.theme-settings.scope.preview {
-      text: "The preview only (control override)";
+      text: "The preview only";
       indicator-style: modern;
       group-name: "gallery-theme-scope";
       bounds: 16 106 280 26;
     }
     label gallery.theme-settings.scope.note {
-      text: "A window override keeps this window's theme when the resources' theme changes.";
+      text: "This window keeps its own theme when every window's theme changes.";
       classes: "muted" "body";
-      bounds: 16 140 280 40;
+      text-wrapping: word;
+      vertical-alignment: near;
+      bounds: 16 140 280 42;
     }
   }
 
@@ -146,6 +152,8 @@ scaled-panel gallery.theme-settings.document {
     label gallery.theme-settings.preview.caption {
       text: "Every stock control here takes the theme the scope selects.";
       classes: "muted" "body";
+      text-wrapping: word;
+      vertical-alignment: near;
       bounds: 16 130 598 24;
     }
   }

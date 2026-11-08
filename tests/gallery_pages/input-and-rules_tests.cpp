@@ -1,5 +1,7 @@
 #include "page_tests.hpp"
 
+#include <algorithm>
+#include <cmath>
 #include <span>
 #include <string>
 #include <string_view>
@@ -72,6 +74,21 @@ void test_input_and_rules(gui_forms::Window& window) {
             "the context request reaches the log");
     static_cast<void>(window.dispatch_key({KeyAction::down, PhysicalKey::escape}));
 
+    // The log keeps its history: a dozen more clicks append, the first
+    // lines stay, and the view scrolls so the newest line is its bottom
+    // row (a top index at the newest line showed that line alone).
+    for (std::size_t round = 0U; round < 12U; ++round) click(window, target);
+    window.perform_layout();
+    const std::size_t lines = (*log).items.read().size();
+    require(lines > 40U && find_line(*log, "MouseDown · primary ×1") == down,
+            "the log appends: earlier events stay in the history");
+    const ListBox& list = *log;
+    const double row_height = list.item_height.read() * list.effective_text_scale();
+    const std::size_t rows = static_cast<std::size_t>(
+        std::floor(std::max(0.0, list.arranged_bounds().height - 4.0) / row_height));
+    require(rows > 1U && list.top_index.read() + rows == lines,
+            "the newest line is the bottom row of a full view");
+
     // Arm the rules through the bound check box.
     click(window, clear);
     require((*log).items.read().empty(), "Clear empties the log");
@@ -104,14 +121,14 @@ void test_input_and_rules(gui_forms::Window& window) {
             "the double-click rule runs before the target's MouseDoubleClick subscribers");
     // DoubleClick itself is logged, and the view still shows it under the
     // release that followed (the newest line at the bottom of a full view).
-    const std::span<const std::string> lines = (*log).items.read();
+    const std::span<const std::string> logged = (*log).items.read();
     std::size_t double_click = no_line;
-    for (std::size_t index = 0U; index < lines.size(); ++index) {
-        if (lines[index] == "DoubleClick") double_click = index;
+    for (std::size_t index = 0U; index < logged.size(); ++index) {
+        if (logged[index] == "DoubleClick") double_click = index;
     }
     require(double_click != no_line && double_click < noted,
             "the second press's release raises DoubleClick before MouseDoubleClick");
-    require((*log).top_index.read() <= double_click && (*log).top_index.read() + 1U < lines.size(),
+    require((*log).top_index.read() <= double_click && (*log).top_index.read() + 1U < logged.size(),
             "the log view keeps the double-click's lines in sight, not the last line alone");
 
     // Revoked, the rules stop.
