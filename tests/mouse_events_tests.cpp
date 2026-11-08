@@ -144,6 +144,13 @@ void test_click_order() {
     fixture.pointer(PointerAction::up, PointerButton::primary, {20.0, 20.0});
     require(log == Log{"down:1", "up:1", "capture_changed"} && (*fixture.probe).activations == 2,
             "without standard_click there is no Click and no activation");
+
+    log.clear();
+    (*fixture.probe).set_style(ControlStyles::standard_double_click, true);
+    fixture.pointer(PointerAction::down, PointerButton::primary, {20.0, 20.0}, 2U);
+    fixture.pointer(PointerAction::up, PointerButton::primary, {20.0, 20.0}, 2U);
+    require(log == Log{"down:2", "up:2", "capture_changed"} && (*fixture.probe).activations == 2,
+            "as in WinForms, DoubleClick needs standard_click as well as standard_double_click");
 }
 
 void test_release_elsewhere_and_other_buttons() {

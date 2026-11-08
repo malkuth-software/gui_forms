@@ -1802,7 +1802,8 @@ void SurfaceRoot::raise_mouse_events(const PointerEvent& event, const Control::P
     // any button as in WinForms (unless the control raises clicks for the
     // primary button only, as ButtonBase does): Click and MouseClick, or
     // DoubleClick and MouseDoubleClick for a press the host counted as a
-    // double-click's second on a control with standard_double_click; then
+    // double-click's second on a control with standard_click and
+    // standard_double_click; then
     // MouseUp. A primary Click is followed by on_activate.
     const Control::Ptr released_over = hit_test(event.position);
     const bool primary = event.button == PointerButton::primary;
@@ -1817,7 +1818,10 @@ void SurfaceRoot::raise_mouse_events(const PointerEvent& event, const Control::P
     Window* const presenting = (*lifetime).window;
     if (clicked) {
         Control& control = *pressed_for_release;
-        const bool double_clicked = args.clicks >= 2U && control.has_style(ControlStyles::standard_double_click);
+        // As in WinForms, DoubleClick needs both StandardClick and
+        // StandardDoubleClick.
+        const bool double_clicked = args.clicks >= 2U && control.has_style(ControlStyles::standard_click) &&
+                                    control.has_style(ControlStyles::standard_double_click);
         const bool single_clicked = !double_clicked && control.has_style(ControlStyles::standard_click);
         if (double_clicked && control.mouse_events_) {
             (*control.mouse_events_).double_click.emit();

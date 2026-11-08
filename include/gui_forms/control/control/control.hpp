@@ -708,11 +708,12 @@ public:
     }
     // The WinForms mouse events (owner's mouse-event rule, 2026-11-08). The
     // window raises them on the UI thread in WinForms' order: MouseDown,
-    // then on the release over the pressed control Click and MouseClick
-    // (or, for a press the host counted as the second of a double-click on
-    // a control with ControlStyles::standard_double_click, DoubleClick and
-    // MouseDoubleClick), then MouseUp. Click needs
-    // ControlStyles::standard_click and is followed by on_activate.
+    // then on the release over the control the same button pressed Click
+    // and MouseClick (or, for a press the host counted as the second of a
+    // double-click on a control with ControlStyles::standard_double_click,
+    // DoubleClick and MouseDoubleClick), then MouseUp. Both need
+    // ControlStyles::standard_click, as in WinForms; a primary Click is
+    // followed by on_activate.
     // MouseEnter, MouseHover (once per entry, after the pointer rests within
     // the hover rectangle for the hover time) and MouseLeave follow the
     // pointer; MouseCaptureChanged is raised on the control losing the
