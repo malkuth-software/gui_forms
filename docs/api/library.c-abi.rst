@@ -164,6 +164,14 @@ Types
      - gf_property_value is the tagged scalar/string carrier used by foreign property getters, setters, converters, and editors.
    * - :cpp:class:`gf_rect <gf_rect>`
      - gf_rect projects renderer-neutral logical rectangle geometry across the stable C ABI.
+   * - :cpp:class:`gf_rule <gf_rule>`
+     -  
+   * - :cpp:class:`gf_rule_action <gf_rule_action>`
+     -  
+   * - :cpp:class:`gf_rule_condition <gf_rule_condition>`
+     -  
+   * - :cpp:class:`gf_rules_table <gf_rules_table>`
+     -  
    * - :cpp:class:`gf_run_options <gf_run_options>`
      -  
    * - :cpp:class:`gf_runtime_table <gf_runtime_table>`
@@ -2217,6 +2225,89 @@ Types
    .. cpp:member:: double width
 
    .. cpp:member:: double height
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_rule
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_rule_flags flags
+
+   .. cpp:member:: gf_rule_trigger_kind trigger
+
+   .. cpp:member:: uint32_t physical_key
+
+   .. cpp:member:: gf_object source
+
+   .. cpp:member:: gf_utf8_view interaction
+
+   .. cpp:member:: uint64_t condition_count
+
+   .. cpp:member:: const gf_rule_condition* conditions
+
+   .. cpp:member:: uint64_t action_count
+
+   .. cpp:member:: const gf_rule_action* actions
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_rule_action
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_rule_action_kind kind
+
+   .. cpp:member:: gf_object target
+
+   .. cpp:member:: gf_utf8_view property
+
+   .. cpp:member:: const gf_value* value
+
+   .. cpp:member:: const gf_callback* callback
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_rule_condition
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_rule_condition_kind kind
+
+   .. cpp:member:: gf_object object
+
+   .. cpp:member:: uint32_t physical_key
+
+   .. cpp:member:: uint32_t modifiers
+
+   .. cpp:member:: uint32_t negated
+
+   .. cpp:member:: uint32_t reserved
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_rules_table
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+
+   .. rubric:: Methods
+
+   .. cpp:member:: gf_status (*add)(gf_object window, const gf_rule* rule, gf_rule_token* token)
+
+   .. cpp:member:: gf_status (*remove)(gf_rule_token token)
+
+   .. cpp:member:: gf_status (*state)(gf_rule_token token, gf_rule_state* state)
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t abi_minor
 
 .. cpp:namespace:: 0
 

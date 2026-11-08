@@ -43,6 +43,10 @@ Two rules apply to the call:
   threaded sub-surface (`GF_TABLE_SUBSURFACES`, since 1.1): its build and
   posted callbacks on its own thread, objects owned by the thread that made
   them, and stale identities once it stops.
+  The rules table (`GF_TABLE_RULES`, since 1.1) is checked on a created
+  window in both modes: an interaction trigger with set, toggle and callback
+  actions, a negated condition, consume, duplicates, refusals, stale rules
+  and freed tokens.
   `GF_CONFORMANCE_FLAGS_NONE` leaves them out, for headless CI.
 
 A complete test program, as the SDK's own installed example builds it

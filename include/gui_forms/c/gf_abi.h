@@ -110,6 +110,7 @@ typedef uint32_t gf_table_id;
 #define GF_TABLE_BINDINGS 16u
 #define GF_TABLE_SUBSURFACES 17u
 #define GF_TABLE_APPLICATION 18u
+#define GF_TABLE_RULES 19u
 /* Platform extension tables have ids from 0x100. A library has one only on
  * its platform, and reports it as a host capability; elsewhere
  * gf_abi_get_table gives GF_STATUS_NOT_FOUND. */
@@ -1979,6 +1980,195 @@ typedef struct gf_application_table {
     /* Whether an application is current. */
     gf_status (GF_CALL* state)(gf_application_state* state);
 } gf_application_table;
+ * GF_TABLE_RULES (since 1.1): a window's rules (notes:planning
+ * APP_WINDOW_RULES_DESIGN Part C), as C++ RuleSet keeps them. A rule has one
+ * trigger, zero or more conditions that must all hold, and one or more
+ * actions run in order. The vocabulary is closed: the trigger, condition
+ * and action kinds below are the whole of it.
+ *
+ * Evaluation. For one occurrence of a trigger a window's rules on it are
+ * evaluated in the order they were added; each whose conditions all hold
+ * fires. A firing rule with GF_RULE_FLAGS_CONSUME stops the rules added
+ * after it and the occurrence's default route: a key then reaches no
+ * control and no key command (key rules see a key before the focused
+ * control), and a context-menu request reaches none of the control's
+ * ancestors. Control-event rules run when the control raises the event.
+ * A rule added while an occurrence is evaluated is first evaluated by the
+ * next one.
+ *
+ * Lifetime. A window's rules end with it. A rule naming an object (its
+ * trigger's source, a condition's object, an action's target) is disarmed
+ * when that object is disposed or destroyed; its token then reads
+ * GF_RULE_STATE_STALE. Each token add gives is freed by remove, which also
+ * ends the rule when it is still armed; a freed token gives
+ * GF_STATUS_STALE_HANDLE. An action's callback is released once the library
+ * will not call it again: after its rule ends, at the latest when its
+ * window is destroyed, on the UI thread. Every function is UI thread only.
+ */
+
+/* gf_rule_trigger_kind: what a rule fires on. */
+typedef uint32_t gf_rule_trigger_kind;
+/* A key's press (not the platform's auto-repeat), its release, its
+ * auto-repeat (the platform's own); physical_key names it. */
+#define GF_RULE_TRIGGER_KEY_PRESSED 1u
+#define GF_RULE_TRIGGER_KEY_RELEASED 2u
+#define GF_RULE_TRIGGER_KEY_REPEAT 3u
+/* The WinForms mouse events of the control source. */
+#define GF_RULE_TRIGGER_MOUSE_DOWN 4u
+#define GF_RULE_TRIGGER_MOUSE_UP 5u
+#define GF_RULE_TRIGGER_CLICK 6u
+#define GF_RULE_TRIGGER_MOUSE_CLICK 7u
+#define GF_RULE_TRIGGER_DOUBLE_CLICK 8u
+#define GF_RULE_TRIGGER_MOUSE_DOUBLE_CLICK 9u
+#define GF_RULE_TRIGGER_CONTEXT_MENU_REQUESTED 10u
+#define GF_RULE_TRIGGER_MOUSE_ENTER 11u
+#define GF_RULE_TRIGGER_MOUSE_HOVER 12u
+#define GF_RULE_TRIGGER_MOUSE_LEAVE 13u
+#define GF_RULE_TRIGGER_MOUSE_CAPTURE_CHANGED 14u
+/* The control source gained or lost the keyboard focus. */
+#define GF_RULE_TRIGGER_FOCUS_GAINED 15u
+#define GF_RULE_TRIGGER_FOCUS_LOST 16u
+/* Any interaction source's type raises, by its schema name
+ * (schema.interaction_at), in interaction. */
+#define GF_RULE_TRIGGER_INTERACTION 17u
+/* The command source was executed. */
+#define GF_RULE_TRIGGER_COMMAND_EXECUTED 18u
+
+/* gf_rule_condition_kind: a level read when the trigger occurs. */
+typedef uint32_t gf_rule_condition_kind;
+/* The key physical_key is held. */
+#define GF_RULE_CONDITION_KEY_DOWN 1u
+/* The held modifiers are exactly modifiers (GF_RULE_MODIFIER_*). */
+#define GF_RULE_CONDITION_MODIFIERS 2u
+/* The pointer is over the control object or one of its descendants. */
+#define GF_RULE_CONDITION_HOVERING 3u
+/* The control object is the window's pressed control. */
+#define GF_RULE_CONDITION_PRESSED 4u
+/* The control object has the keyboard focus. */
+#define GF_RULE_CONDITION_FOCUSED 5u
+/* The control object or one of its descendants has the keyboard focus. */
+#define GF_RULE_CONDITION_FOCUS_WITHIN 6u
+/* The control object is effectively enabled; effectively visible. */
+#define GF_RULE_CONDITION_ENABLED 7u
+#define GF_RULE_CONDITION_VISIBLE 8u
+/* The window is the active window. */
+#define GF_RULE_CONDITION_WINDOW_ACTIVE 9u
+
+/* The modifiers GF_RULE_CONDITION_MODIFIERS names, combined as flags. */
+#define GF_RULE_MODIFIER_SHIFT 1u
+#define GF_RULE_MODIFIER_CONTROL 2u
+#define GF_RULE_MODIFIER_ALT 4u
+#define GF_RULE_MODIFIER_META 8u
+
+/* gf_rule_action_kind: what a firing rule does. */
+typedef uint32_t gf_rule_action_kind;
+/* Calls callback with sender the trigger's source (zero for a key
+ * trigger), the trigger kind's name ("key_pressed", "click", ...) as name,
+ * and no payload. */
+#define GF_RULE_ACTION_CALLBACK 1u
+/* Executes the command target through the window's command route. */
+#define GF_RULE_ACTION_INVOKE 2u
+/* Writes value to target's property, as properties.set does. */
+#define GF_RULE_ACTION_SET 3u
+/* Writes the opposite of target's boolean property. */
+#define GF_RULE_ACTION_TOGGLE 4u
+/* Gives the control target the keyboard focus. */
+#define GF_RULE_ACTION_FOCUS 5u
+
+/* gf_rule_flags: how a rule fires. */
+typedef uint32_t gf_rule_flags;
+/* A firing ends the occurrence: later rules and the default route. */
+#define GF_RULE_FLAGS_CONSUME 1u
+
+/* gf_rule_state: where a rule is. */
+typedef uint32_t gf_rule_state;
+/* It fires. */
+#define GF_RULE_STATE_ARMED 1u
+/* Ended by remove (not reported: remove frees the token). */
+#define GF_RULE_STATE_REVOKED 2u
+/* An object it names was disposed or destroyed, or its window has gone. */
+#define GF_RULE_STATE_STALE 3u
+
+/* A rule's token: the same encoding as gf_object, in its own space. */
+typedef uint64_t gf_rule_token;
+
+/*
+ * A condition. The caller sets struct_size to sizeof(gf_rule_condition);
+ * object is the control the control conditions read, physical_key
+ * KEY_DOWN's key (a USB HID usage), modifiers MODIFIERS' set. negated is 1
+ * for a condition that holds when its level does not, else 0. Fields a kind
+ * does not read are zero; reserved is zero.
+ */
+typedef struct gf_rule_condition {
+    uint32_t struct_size;
+    gf_rule_condition_kind kind;
+    gf_object object;
+    uint32_t physical_key;
+    uint32_t modifiers;
+    uint32_t negated;
+    uint32_t reserved;
+} gf_rule_condition;
+
+/*
+ * An action. The caller sets struct_size to sizeof(gf_rule_action). target
+ * is INVOKE's command, SET's and TOGGLE's object and FOCUS's control;
+ * property names SET's and TOGGLE's property; value is SET's value (any
+ * kind but a collection; its text is copied); callback is CALLBACK's (the
+ * library takes it only when add returns GF_STATUS_OK). Fields a kind does
+ * not read are zero.
+ */
+typedef struct gf_rule_action {
+    uint32_t struct_size;
+    gf_rule_action_kind kind;
+    gf_object target;
+    gf_utf8_view property;
+    const gf_value* value;
+    const gf_callback* callback;
+} gf_rule_action;
+
+/*
+ * A rule. The caller sets struct_size to sizeof(gf_rule). trigger is its
+ * kind; physical_key names a key trigger's key, source the control of a
+ * control trigger or an interaction trigger (any object, for INTERACTION)
+ * or the command of COMMAND_EXECUTED, and interaction INTERACTION's schema
+ * name. conditions holds condition_count conditions (at most 8) and actions
+ * action_count actions (1 to 8); add copies them. Fields a kind does not
+ * read are zero.
+ */
+typedef struct gf_rule {
+    uint32_t struct_size;
+    gf_rule_flags flags;
+    gf_rule_trigger_kind trigger;
+    uint32_t physical_key;
+    gf_object source;
+    gf_utf8_view interaction;
+    uint64_t condition_count;
+    const gf_rule_condition* conditions;
+    uint64_t action_count;
+    const gf_rule_action* actions;
+} gf_rule;
+
+typedef struct gf_rules_table {
+    uint32_t struct_size;
+    uint32_t abi_minor;
+    /* Arms rule on window (from windows.create; created or running) and
+     * writes its token. GF_STATUS_INVALID_ARGUMENT for a malformed record
+     * (an unknown kind or flag, a missing key, object, property or
+     * callback, a collection value, nonzero reserved fields),
+     * GF_STATUS_WRONG_HANDLE_KIND when window is not a window or an object
+     * is not of the kind its field names, GF_STATUS_DISPOSED for a disposed
+     * window or object, GF_STATUS_NOT_FOUND for an interaction the
+     * source's type does not raise or a property the target lacks,
+     * GF_STATUS_INVALID_STATE when an armed rule has the same trigger and
+     * set of conditions, GF_STATUS_LIMIT_EXCEEDED past 8 conditions, 8
+     * actions, 1024 rules on the window or 4096 tokens not freed. A refused
+     * add changes nothing and leaves *token as it was. */
+    gf_status (GF_CALL* add)(gf_object window, const gf_rule* rule, gf_rule_token* token);
+    /* Ends token's rule when it is armed and frees the token. */
+    gf_status (GF_CALL* remove)(gf_rule_token token);
+    /* token's rule: GF_RULE_STATE_ARMED or GF_RULE_STATE_STALE. */
+    gf_status (GF_CALL* state)(gf_rule_token token, gf_rule_state* state);
+} gf_rules_table;
 
 /*
  * GF_TABLE_WINDOWS_PAINT_ENDPOINT (Windows only; host capability

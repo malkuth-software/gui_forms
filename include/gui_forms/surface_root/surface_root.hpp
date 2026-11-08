@@ -60,6 +60,7 @@ class BindingContext;
 class LiveSurface;
 class PaintFramebuffer;
 struct HelpRequestEvent;
+class RuleSet;
 namespace detail {
 struct LiveSurfaceIdleWake;
 class OverlayAttachment;
@@ -659,6 +660,11 @@ public:
     [[nodiscard]] Event<const FocusedControlChange&>& focused_control_changed() noexcept {
         return focused_control_changed_;
     }
+    // The window's rules (gui_forms/rules.hpp; notes:planning
+    // APP_WINDOW_RULES_DESIGN Part C), made on first use; the window owns
+    // them and they end with it. Key rules see each key before the control
+    // route. Root thread only. Defined with the rules, in gui_forms_controls.
+    [[nodiscard]] RuleSet& rules();
     // Help asked of the window as a whole, as Windows Forms raises
     // HelpRequested on a message box's owner form: the Help button of a
     // message box the window owns, or F1 while it is open
@@ -2037,6 +2043,13 @@ private:
     // The keyboard commands' keys, shared with the application's other
     // windows (see key_map); never null.
     std::shared_ptr<KeyBindings> key_bindings_{std::make_shared<KeyBindings>()};
+    // The window's rules (rules()), null until first used. Made by the
+    // rules library (gui_forms_controls), whose deleter the pointer carries,
+    // so the core never names RuleSet's members. offer_key_rules_ is the key
+    // route's entry into them, set with them: route_key calls it first, and
+    // a true result (a consuming rule) ends the key. Null without rules.
+    std::shared_ptr<RuleSet> rules_{};
+    bool (*offer_key_rules_)(RuleSet& rules, KeyEvent& event){};
 };
 
 } // namespace gui_forms

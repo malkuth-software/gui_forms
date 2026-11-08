@@ -5,7 +5,7 @@
 Events, values and commands
 ===========================
 
-Retained events and owned handlers, application-owned ``Value`` state, command bindings and semantic feedback records.
+Retained events and owned handlers, application-owned ``Value`` state, command bindings, a window's rules (a trigger, conditions and ordered actions) and semantic feedback records.
 
 .. list-table::
    :class: autosummary longtable
@@ -45,6 +45,28 @@ Related types
      - A Delegate binds invocation only.
    * - :cpp:class:`EventStatistics <gui_forms::EventStatistics>`
      - EventStatistics records connected, disconnected, and emitted-callback totals for deterministic lifecycle testing.
+   * - :cpp:class:`Rule <gui_forms::Rule>`
+     - A rule.
+   * - :cpp:class:`RuleAction <gui_forms::RuleAction>`
+     - An action of a rule; made by action() and the functions in namespace builtin.
+   * - :cpp:class:`RuleActionArgument <gui_forms::RuleActionArgument>`
+     - The argument a set action writes: integers, enumerations and bool in ``integer``, floating values in ``real`` (the Value's own type decides).
+   * - :cpp:class:`RuleAddResult <gui_forms::RuleAddResult>`
+     - add()'s explicit result: the token of the armed rule, or the refusal (and an empty token).
+   * - :cpp:class:`RuleCondition <gui_forms::RuleCondition>`
+     - A condition of a rule; made by the functions in namespace condition.
+   * - :cpp:class:`RuleFiring <gui_forms::RuleFiring>`
+     - One firing of a rule, passed to each of its program actions.
+   * - :cpp:class:`RuleSet <gui_forms::RuleSet>`
+     - A window's rules: armed by add(), evaluated as their triggers occur, in the order added.
+   * - :cpp:class:`RuleSetStatistics <gui_forms::RuleSetStatistics>`
+     - What a window's rules have done, for tests and diagnostics.
+   * - :cpp:class:`RuleToken <gui_forms::RuleToken>`
+     - A handle to one rule.
+   * - :cpp:class:`RuleTrigger <gui_forms::RuleTrigger>`
+     - The trigger of a rule; made by the functions in namespace trigger.
+   * - :cpp:class:`RuleValuePayload <gui_forms::RuleValuePayload>`
+     - What a value_changed trigger's Value held after the change: integers, enumerations and bool in ``integer`` (bool as 0 or 1), floating values in ``real``.
    * - :cpp:class:`SemanticFeedbackRecord <gui_forms::SemanticFeedbackRecord>`
      - SemanticFeedbackRecord preserves ordered kind, chosen cue, monotonic timestamp, user sound policy, host acceptance, and actual presentation.
    * - :cpp:class:`SubscriptionToken <gui_forms::SubscriptionToken>`
@@ -251,6 +273,250 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: Rule final
+
+   ``#include <gui_forms/rules/rule/rule.hpp>``
+
+   A rule. Evaluated when its trigger occurs: when every condition holds, its actions run in order. With ``consume``, a firing stops the rules declared after it for that occurrence and the occurrence's default route (the focused control and the key commands for a key; the ancestors for a context-menu request).
+
+   .. cpp:member:: RuleTrigger trigger
+
+   .. cpp:member:: std::vector<RuleCondition> conditions
+
+   .. cpp:member:: std::vector<RuleAction> actions
+
+   .. cpp:member:: bool consume
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: RuleAction final
+
+   ``#include <gui_forms/rules/rule/rule.hpp>``
+
+   An action of a rule; made by action() and the functions in namespace builtin. program: ``call`` runs ``function`` (a ``void (Context&, const RuleFiring&)`` stored as a plain function pointer) with ``context``. retained: a context the rule owns, released with the rule (the C ABI's callback loans); null for a C++ action, whose context is borrowed. invoke: ``command``, executed through the window's command route. set, toggle: ``value`` (a Value<T>) written by ``write`` from ``argument``. focus: ``control``, given the keyboard focus. anchor: the component the action names (a context that is a Component, the command, the Value), whose disposal disarms the rule.
+
+   .. cpp:member:: RuleActionKind kind
+
+      Default: ``{RuleActionKind::none}``.
+
+   .. cpp:member:: void* context
+
+   .. cpp:member:: void (*function)(){}
+
+   .. cpp:member:: RuleProgramCall call
+
+   .. cpp:member:: std::shared_ptr<const void> retained
+
+   .. cpp:member:: Command* command
+
+   .. cpp:member:: void* value
+
+   .. cpp:member:: RuleValueWrite write
+
+   .. cpp:member:: RuleActionArgument argument
+
+   .. cpp:member:: Control::WeakPtr control
+
+   .. cpp:member:: Component* anchor
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: RuleActionArgument final
+
+   ``#include <gui_forms/rules/rule/rule.hpp>``
+
+   The argument a set action writes: integers, enumerations and bool in ``integer``, floating values in ``real`` (the Value's own type decides).
+
+   .. cpp:member:: std::int64_t integer
+
+   .. cpp:member:: double real
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: RuleAddResult final
+
+   ``#include <gui_forms/rules/rule_set/rule_set.hpp>``
+
+   add()'s explicit result: the token of the armed rule, or the refusal (and an empty token).
+
+   .. cpp:member:: RuleToken token
+
+   .. cpp:member:: RuleRefusal refusal
+
+      Default: ``{RuleRefusal::none}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: RuleCondition final
+
+   ``#include <gui_forms/rules/rule/rule.hpp>``
+
+   A condition of a rule; made by the functions in namespace condition. A negated condition holds when its level does not (the not_ forms). physical_key: key_down's key; modifiers: the modifiers' exact set. control: the control hovering, pressed, focused, focus_within, enabled and visible read. flag: is_true's Value; number and expected: equals' Value and number. anchor: the Value is_true or equals reads, whose disposal disarms the rule (a control condition's control is anchored through ``control``).
+
+   .. cpp:member:: RuleConditionKind kind
+
+      Default: ``{RuleConditionKind::none}``.
+
+   .. cpp:member:: bool negated
+
+   .. cpp:member:: std::uint32_t physical_key
+
+   .. cpp:member:: Modifier modifiers
+
+      Default: ``{Modifier::none}``.
+
+   .. cpp:member:: Control::WeakPtr control
+
+   .. cpp:member:: const Value<bool>* flag
+
+   .. cpp:member:: const Value<int>* number
+
+   .. cpp:member:: int expected
+
+   .. cpp:member:: Component* anchor
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: RuleFiring final
+
+   ``#include <gui_forms/rules/rule/rule.hpp>``
+
+   One firing of a rule, passed to each of its program actions. The trigger payload pointers are borrowed for the action's call and are null where the trigger has none: ``key`` for the key triggers, ``mouse`` for mouse_down, mouse_up, mouse_click and mouse_double_click, ``context_request`` for context_menu_requested (an action may set its ``handled``), ``invocation`` for command_executed. ``control`` is the control the trigger names (null for the key triggers and command_executed). ``state`` is the window's input state as it was when the trigger occurred (one copy per occurrence that fires a rule). ``window`` is the window whose rules fired.
+
+   .. cpp:member:: RuleTriggerKind trigger
+
+      Default: ``{RuleTriggerKind::none}``.
+
+   .. cpp:member:: Control* control
+
+   .. cpp:member:: const KeyEvent* key
+
+   .. cpp:member:: const MouseEventArgs* mouse
+
+   .. cpp:member:: ContextMenuRequest* context_request
+
+   .. cpp:member:: const CommandInvocation* invocation
+
+   .. cpp:member:: RuleValuePayload value
+
+   .. cpp:member:: const InteractionSnapshot* state
+
+   .. cpp:member:: SurfaceRoot* window
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: RuleSet final
+
+   ``#include <gui_forms/rules/rule_set/rule_set.hpp>``
+
+   A window's rules: armed by add(), evaluated as their triggers occur, in the order added. Evaluation, input order and lifetime are described at the top of rule_set.hpp.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: explicit RuleSet(SurfaceRoot& window)
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: std::size_t armed_count() const noexcept
+
+      The armed rules.
+
+   .. cpp:function:: RuleSetStatistics statistics() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: RuleAddResult add(const Rule& rule)
+
+      Arms ``rule``, copying it, after validating it whole (RuleRefusal). The window's thread (std::logic_error elsewhere). May allocate and throw; a throw leaves the rule set as it was.
+
+   .. cpp:function:: bool offer_key(KeyEvent& event)
+
+      The window's key route, before the control route: offers ``event`` to the key rules and marks it handled when one consumed it. Returns whether one did.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: RuleSetStatistics final
+
+   ``#include <gui_forms/rules/rule_set/rule_set.hpp>``
+
+   What a window's rules have done, for tests and diagnostics. occurrences: trigger occurrences offered to at least one armed rule. evaluated: rules whose trigger matched an occurrence. fired: rules whose conditions held and whose actions ran. consumed: occurrences a consuming rule ended. refused: add() calls refused.
+
+   .. cpp:member:: std::uint64_t occurrences
+
+   .. cpp:member:: std::uint64_t evaluated
+
+   .. cpp:member:: std::uint64_t fired
+
+   .. cpp:member:: std::uint64_t consumed
+
+   .. cpp:member:: std::uint64_t refused
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: RuleToken final
+
+   ``#include <gui_forms/rules/rule_set/rule_set.hpp>``
+
+   A handle to one rule. It observes the rule and does not own it: dropping the token leaves the rule armed. revoke() ends the rule early.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: RuleToken() = default
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: RuleTokenState state() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void revoke() noexcept
+
+      Ends the rule if it is armed; afterwards the token reads revoked. A stale, revoked or empty token is left as it is.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: RuleTrigger final
+
+   ``#include <gui_forms/rules/rule/rule.hpp>``
+
+   The trigger of a rule; made by the functions in namespace trigger. The fields a kind does not read stay at their initial values. physical_key: the key triggers' USB HID usage (PhysicalKey). control: the control the control-event and interaction triggers name. command: command_executed's command. source: interaction's and value_changed's connection. anchor: the component the trigger names (control, command or Value), whose disposal disarms the rule.
+
+   .. cpp:member:: RuleTriggerKind kind
+
+      Default: ``{RuleTriggerKind::none}``.
+
+   .. cpp:member:: std::uint32_t physical_key
+
+   .. cpp:member:: Control::WeakPtr control
+
+   .. cpp:member:: Command* command
+
+   .. cpp:member:: std::shared_ptr<detail::RuleSource> source
+
+   .. cpp:member:: Component* anchor
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: RuleValuePayload final
+
+   ``#include <gui_forms/rules/rule/rule.hpp>``
+
+   What a value_changed trigger's Value held after the change: integers, enumerations and bool in ``integer`` (bool as 0 or 1), floating values in ``real``. ``present`` is false for other triggers.
+
+   .. cpp:member:: std::int64_t integer
+
+   .. cpp:member:: double real
+
+   .. cpp:member:: bool present
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: SemanticFeedbackRecord final
 
    ``#include <gui_forms/feedback/types/feedback_types.hpp>``
@@ -341,6 +607,140 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: RuleActionKind
+
+   ``#include <gui_forms/rules/rule/rule.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: program
+
+   .. cpp:enumerator:: invoke
+
+   .. cpp:enumerator:: set
+
+   .. cpp:enumerator:: toggle
+
+   .. cpp:enumerator:: focus
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: RuleConditionKind
+
+   ``#include <gui_forms/rules/rule/rule.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: key_down
+
+   .. cpp:enumerator:: modifiers
+
+   .. cpp:enumerator:: hovering
+
+   .. cpp:enumerator:: pressed
+
+   .. cpp:enumerator:: focused
+
+   .. cpp:enumerator:: focus_within
+
+   .. cpp:enumerator:: enabled
+
+   .. cpp:enumerator:: visible
+
+   .. cpp:enumerator:: window_active
+
+   .. cpp:enumerator:: is_true
+
+   .. cpp:enumerator:: equals
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: RuleRefusal
+
+   ``#include <gui_forms/rules/rule_set/rule_set.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: malformed_trigger
+
+   .. cpp:enumerator:: malformed_condition
+
+   .. cpp:enumerator:: malformed_action
+
+   .. cpp:enumerator:: no_actions
+
+   .. cpp:enumerator:: too_many_conditions
+
+   .. cpp:enumerator:: too_many_actions
+
+   .. cpp:enumerator:: disposed_reference
+
+   .. cpp:enumerator:: duplicate
+
+   .. cpp:enumerator:: limit_reached
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: RuleTokenState
+
+   ``#include <gui_forms/rules/rule_set/rule_set.hpp>``
+
+   .. cpp:enumerator:: empty
+
+   .. cpp:enumerator:: armed
+
+   .. cpp:enumerator:: revoked
+
+   .. cpp:enumerator:: stale
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: RuleTriggerKind
+
+   ``#include <gui_forms/rules/rule/rule.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: key_pressed
+
+   .. cpp:enumerator:: key_released
+
+   .. cpp:enumerator:: key_repeat
+
+   .. cpp:enumerator:: mouse_down
+
+   .. cpp:enumerator:: mouse_up
+
+   .. cpp:enumerator:: click
+
+   .. cpp:enumerator:: mouse_click
+
+   .. cpp:enumerator:: double_click
+
+   .. cpp:enumerator:: mouse_double_click
+
+   .. cpp:enumerator:: context_menu_requested
+
+   .. cpp:enumerator:: mouse_enter
+
+   .. cpp:enumerator:: mouse_hover
+
+   .. cpp:enumerator:: mouse_leave
+
+   .. cpp:enumerator:: mouse_capture_changed
+
+   .. cpp:enumerator:: focus_gained
+
+   .. cpp:enumerator:: focus_lost
+
+   .. cpp:enumerator:: interaction
+
+   .. cpp:enumerator:: command_executed
+
+   .. cpp:enumerator:: value_changed
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: SemanticFeedbackKind
 
    ``#include <gui_forms/feedback/types/feedback_types.hpp>``
@@ -383,3 +783,153 @@ Functions, constants and aliases
 ``#include <gui_forms/feedback/types/feedback_types.hpp>``
 
 .. cpp:function:: const char* semantic_feedback_kind_name(SemanticFeedbackKind kind) noexcept
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/rules/rule/rule.hpp>``
+
+.. cpp:function:: std::string_view rule_trigger_kind_name(RuleTriggerKind kind) noexcept
+
+   The vocabulary's names (snake_case, as the C ABI and diagnostics spell them); "none" for a value outside it.
+
+.. cpp:function:: std::string_view rule_condition_kind_name(RuleConditionKind kind) noexcept
+
+.. cpp:function:: std::string_view rule_action_kind_name(RuleActionKind kind) noexcept
+
+.. cpp:var:: constexpr std::size_t maximum_rule_conditions
+
+   The most conditions and actions one rule holds, and the most rules one window holds. add() refuses a rule past any of them. Value: ``8U``.
+
+.. cpp:var:: constexpr std::size_t maximum_rule_actions
+
+   Value: ``8U``.
+
+.. cpp:var:: constexpr std::size_t maximum_rules
+
+   Value: ``1024U``.
+
+.. cpp:type:: RuleProgramCall = void (*)(void* context, void (*function)(), const RuleFiring& firing)
+
+   Calls a program action's function with its context, both restored to their own types (detail::call_rule_program).
+
+.. cpp:type:: RuleValueWrite = void (*)(void* value, const RuleActionArgument& argument)
+
+   Writes a set or toggle action's Value from its argument (detail::write_rule_value, detail::toggle_rule_value).
+
+.. cpp:namespace:: gui_forms::trigger
+
+``#include <gui_forms/rules/rule/rule.hpp>``
+
+.. cpp:function:: RuleTrigger key_pressed(std::uint32_t physical_key)
+
+.. cpp:function:: RuleTrigger key_released(std::uint32_t physical_key)
+
+.. cpp:function:: RuleTrigger key_repeat(std::uint32_t physical_key)
+
+.. cpp:function:: RuleTrigger mouse_down(Control& control)
+
+.. cpp:function:: RuleTrigger mouse_up(Control& control)
+
+.. cpp:function:: RuleTrigger click(Control& control)
+
+.. cpp:function:: RuleTrigger mouse_click(Control& control)
+
+.. cpp:function:: RuleTrigger double_click(Control& control)
+
+.. cpp:function:: RuleTrigger mouse_double_click(Control& control)
+
+.. cpp:function:: RuleTrigger context_menu_requested(Control& control)
+
+.. cpp:function:: RuleTrigger mouse_enter(Control& control)
+
+.. cpp:function:: RuleTrigger mouse_hover(Control& control)
+
+.. cpp:function:: RuleTrigger mouse_leave(Control& control)
+
+.. cpp:function:: RuleTrigger mouse_capture_changed(Control& control)
+
+.. cpp:function:: RuleTrigger focus_gained(Control& control)
+
+.. cpp:function:: RuleTrigger focus_lost(Control& control)
+
+.. cpp:function:: RuleTrigger command_executed(Command& command)
+
+.. cpp:function:: template <typename... Arguments> RuleTrigger interaction(Control& control, Event<Arguments...>& event)
+
+   Any interaction of ``control``, named by its typed event, which must be one of ``control``'s own (``(*slider).value_changed()``, ``(*check).checked_changed()``).
+
+.. cpp:function:: template <typename T> RuleTrigger value_changed(Value<T>& value)
+
+.. cpp:namespace:: gui_forms::condition
+
+``#include <gui_forms/rules/rule/rule.hpp>``
+
+.. cpp:function:: RuleCondition key_down(std::uint32_t physical_key)
+
+.. cpp:function:: RuleCondition not_key_down(std::uint32_t physical_key)
+
+.. cpp:function:: RuleCondition modifiers(Modifier exact)
+
+.. cpp:function:: RuleCondition hovering(Control& control)
+
+.. cpp:function:: RuleCondition not_hovering(Control& control)
+
+.. cpp:function:: RuleCondition pressed(Control& control)
+
+.. cpp:function:: RuleCondition not_pressed(Control& control)
+
+.. cpp:function:: RuleCondition focused(Control& control)
+
+.. cpp:function:: RuleCondition not_focused(Control& control)
+
+.. cpp:function:: RuleCondition focus_within(Control& control)
+
+.. cpp:function:: RuleCondition not_focus_within(Control& control)
+
+.. cpp:function:: RuleCondition enabled(Control& control)
+
+.. cpp:function:: RuleCondition not_enabled(Control& control)
+
+.. cpp:function:: RuleCondition visible(Control& control)
+
+.. cpp:function:: RuleCondition not_visible(Control& control)
+
+.. cpp:function:: RuleCondition window_active()
+
+.. cpp:function:: RuleCondition not_window_active()
+
+.. cpp:function:: RuleCondition is_true(Value<bool>& flag)
+
+.. cpp:function:: RuleCondition not_true(Value<bool>& flag)
+
+.. cpp:function:: RuleCondition equals(Value<int>& number, int expected)
+
+.. cpp:function:: RuleCondition not_equals(Value<int>& number, int expected)
+
+.. cpp:namespace:: gui_forms::builtin
+
+``#include <gui_forms/rules/rule/rule.hpp>``
+
+.. cpp:function:: RuleAction invoke(Command& command)
+
+   Executes ``command`` through the firing window's command route (Command::execute_routed), as a menu or shortcut does.
+
+.. cpp:function:: template <typename T> RuleAction set(Value<T>& value, T written)
+
+   Writes ``written`` to ``value`` (Value::set: an equal value does nothing, a rejected one throws and stops the firing's later actions).
+
+.. cpp:function:: RuleAction toggle(Value<bool>& value)
+
+   Writes the opposite of ``value``'s current value.
+
+.. cpp:function:: RuleAction focus(Control& control)
+
+   Gives ``control`` the keyboard focus (SurfaceRoot::request_focus on the firing window); a control that cannot take it is left as it is.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/rules/rule_set/rule_set.hpp>``
+
+.. cpp:function:: std::string_view rule_refusal_name(RuleRefusal refusal) noexcept
+
+.. cpp:function:: RuleAddResult on(RuleSet& rules, const RuleTrigger& trigger, const RuleAction& built)

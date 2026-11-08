@@ -62,5 +62,6 @@
 #include "gui_forms/xml.hpp"
 
 #include "gui_forms/value.hpp"
+#include "gui_forms/rules.hpp"
 
 #include "gui_forms/threading.hpp"

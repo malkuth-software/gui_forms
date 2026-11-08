@@ -9,6 +9,7 @@
 #include "abi_tables.hpp"
 
 #include "../events/abi_event_catalog.hpp"
+#include "../events/abi_interactions.hpp"
 #include "../registry/abi_registry.hpp"
 
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
@@ -50,8 +51,10 @@ struct ConnectorBefore final {
     }
 };
 
+} // namespace
+
 // Whether source's type raises the interaction name.
-bool raises(const Component& source, std::string_view name) {
+bool raises_interaction(const Component& source, std::string_view name) {
     const std::vector<InteractionDeclaration> declared = source.interactions();
     for (const InteractionDeclaration& declaration : declared) {
         if (declaration.name == name) {
@@ -79,6 +82,8 @@ SubscriptionToken connect_interaction(Component& source, std::string_view name,
     }
     return SubscriptionToken{};
 }
+
+namespace {
 
 // What a subscription connects to: an interaction or a property's changes.
 // The shared body of subscribe and subscribe_property.
@@ -119,7 +124,7 @@ gf_status subscribe_to(gf_object source, gf_utf8_view name, const gf_callback* c
         if (!(*control).property_descriptor(name_text)) {
             return fail(GF_STATUS_NOT_FOUND, slot, "the source has no property of that name");
         }
-    } else if (!raises(*component, name_text)) {
+    } else if (!raises_interaction(*component, name_text)) {
         return fail(GF_STATUS_NOT_FOUND, slot, "the source's type does not raise an interaction of that name");
     }
     const gf_subscription reserved = registry().reserve_subscription(component);

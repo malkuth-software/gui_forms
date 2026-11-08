@@ -439,6 +439,8 @@ gui_forms::SurfaceRoot
         - Moves keyboard focus to a control, or clears it with null.
       * - :cpp:func:`text_input_caret <gui_forms::SurfaceRoot::text_input_caret>`
         - The box an input method places its windows by, in this root's coordinates: the focused control's Control::text_input_caret, or a one-unit-wide box at its left edge when it names none; none without an eligible focused control.
+      * - :cpp:func:`rules <gui_forms::SurfaceRoot::rules>`
+        - The window's rules (gui_forms/rules.hpp; notes:planning APP_WINDOW_RULES_DESIGN Part C), made on first use; the window owns them and they end with it.
       * - :cpp:func:`append_interactions <gui_forms::SurfaceRoot::append_interactions>`
         - The interactions a window raises, by the name of their event accessor, appended in declaration order: the window events the C ABI subscribes by name (stage C, tools/abi_event_catalog.py).
       * - :cpp:func:`request_help <gui_forms::SurfaceRoot::request_help>`
@@ -1195,6 +1197,10 @@ gui_forms::SurfaceRoot
    .. cpp:function:: std::optional<Rect> text_input_caret()
 
       The box an input method places its windows by, in this root's coordinates: the focused control's Control::text_input_caret, or a one-unit-wide box at its left edge when it names none; none without an eligible focused control. Hosts read it when the input method asks. Root thread only.
+
+   .. cpp:function:: RuleSet& rules()
+
+      The window's rules (gui_forms/rules.hpp; notes:planning APP_WINDOW_RULES_DESIGN Part C), made on first use; the window owns them and they end with it. Key rules see each key before the control route. Root thread only. Defined with the rules, in gui_forms_controls.
 
    .. cpp:function:: static void append_interactions(std::vector<InteractionDeclaration>& interactions)
 

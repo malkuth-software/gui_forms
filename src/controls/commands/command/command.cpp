@@ -135,7 +135,7 @@ bool Command::execute(std::string_view source_id) {
     return true;
 }
 
-bool Command::execute_routed(Window& window, std::string_view source_id) {
+bool Command::execute_routed(SurfaceRoot& window, std::string_view source_id) {
     if (!is_alive() || !state_.enabled || !validate_utf8(source_id).valid()) {
         return false;
     }

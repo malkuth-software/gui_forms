@@ -238,7 +238,7 @@ gui_forms::Command
       valid UTF-8, nothing is raised and it returns false. Bound buttons run
       the command through :cpp:func:`execute <gui_forms::Command::execute>`.
 
-   .. cpp:function:: bool execute_routed(Window& window, std::string_view source_id = {})
+   .. cpp:function:: bool execute_routed(SurfaceRoot& window, std::string_view source_id = {})
 
       ``execute_routed(window, source_id)`` runs the command through
       ``window``'s command routing chain: the first :cpp:class:`CommandTarget <gui_forms::CommandTarget>` with a

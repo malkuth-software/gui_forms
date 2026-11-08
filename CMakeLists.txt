@@ -787,6 +787,9 @@ add_library(gui_forms_controls STATIC
     src/controls/collections/command_bar.cpp
     src/controls/commands/command/command.cpp
     src/controls/commands/command_binding/command_binding.cpp
+    src/controls/rules/rule/rule.cpp
+    src/controls/rules/rule_set/rule_set.cpp
+    src/controls/rules/window_rules/window_rules.cpp
     src/controls/menu/context_menu/context_menu.cpp
     src/controls/menu/menu_strip/menu_strip.cpp
     src/controls/tool_strip/tool_strip.cpp
@@ -3626,6 +3629,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_docking_vocabulary_tests tests/docking_vocabulary_tests.cpp)
     target_link_libraries(gui_forms_docking_vocabulary_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_docking_vocabulary_tests COMMAND gui_forms_docking_vocabulary_tests)
+    add_executable(gui_forms_rules_tests tests/rules_tests.cpp)
+    target_link_libraries(gui_forms_rules_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_rules_tests COMMAND gui_forms_rules_tests)
     add_executable(gui_forms_command_route_tests tests/command_route_tests.cpp)
     target_link_libraries(gui_forms_command_route_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_command_route_tests COMMAND gui_forms_command_route_tests)
