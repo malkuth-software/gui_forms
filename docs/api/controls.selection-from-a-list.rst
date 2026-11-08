@@ -258,8 +258,12 @@ Related types
      - Whether row headers show their error glyphs (ShowRowErrors).
    * - :cpp:class:`DataGridViewSortCompareEvent <gui_forms::DataGridViewSortCompareEvent>`
      - Raised for each comparison while sort(column, direction) orders unbound rows, when it has a handler (Windows Forms' SortCompare).
+   * - :cpp:class:`DefaultGroupHeaderCapability <gui_forms::DefaultGroupHeaderCapability>`
+     - The default group's header; "Default" until set.
    * - :cpp:class:`ItemCheckEvent <gui_forms::ItemCheckEvent>`
      - ItemCheckEvent carries item index, current state, and mutable proposed state before a CheckedListBox commit.
+   * - :cpp:class:`LargeImageListCapability <gui_forms::LargeImageListCapability>`
+     - The images of the large-icon and tile views, looked up by each item's image_key; null for none.
    * - :cpp:class:`ListBox::Item <gui_forms::ListBox::Item>`
      -  
    * - :cpp:class:`ListBox::ItemParts <gui_forms::ListBox::ItemParts>`
@@ -296,12 +300,20 @@ Related types
      - The "sub_item" item system: one visible details-view cell past the first column.
    * - :cpp:class:`ListView::SubItemStates <gui_forms::ListView::SubItemStates>`
      -  
+   * - :cpp:class:`ListViewCapabilities <gui_forms::ListViewCapabilities>`
+     - Every ListView capability, in the order the declaring class takes them.
+   * - :cpp:class:`ListViewCheckBoxesCapability <gui_forms::ListViewCheckBoxesCapability>`
+     - Whether each item shows a check box (Windows Forms' CheckBoxes); item_checked and set_item_checked read and write the state.
    * - :cpp:class:`ListViewColumn <gui_forms::ListViewColumn>`
      - One details-view column.
    * - :cpp:class:`ListViewColumnClick <gui_forms::ListViewColumnClick>`
      - A click on a column header.
    * - :cpp:class:`ListViewColumnWidthChange <gui_forms::ListViewColumnWidthChange>`
      - A column's new width in logical units, after a divider drag ends or set_column_width() changes it.
+   * - :cpp:class:`ListViewDrawModeCapability <gui_forms::ListViewDrawModeCapability>`
+     - Content-only owner drawing (owner decision W-Q6; Windows Forms' OwnerDraw with DrawItem and DrawSubItem).
+   * - :cpp:class:`ListViewFullRowSelectCapability <gui_forms::ListViewFullRowSelectCapability>`
+     - Whether the selection highlight spans the whole details row rather than the first column's text.
    * - :cpp:class:`ListViewGroup <gui_forms::ListViewGroup>`
      - One group of a ListView (Windows Forms' ListViewGroup): a header over its items.
    * - :cpp:class:`ListViewInsertionMark <gui_forms::ListViewInsertionMark>`
@@ -316,8 +328,14 @@ Related types
      - The items of a virtual ListView (Windows Forms' VirtualMode with RetrieveVirtualItem).
    * - :cpp:class:`ListViewLabelEdit <gui_forms::ListViewLabelEdit>`
      - One label edit (Windows Forms' LabelEditEventArgs).
+   * - :cpp:class:`ListViewLabelEditCapability <gui_forms::ListViewLabelEditCapability>`
+     - Label editing (Windows Forms' LabelEdit, ListViewItem.BeginEdit, BeforeLabelEdit and AfterLabelEdit).
+   * - :cpp:class:`ListViewMultiSelectCapability <gui_forms::ListViewMultiSelectCapability>`
+     - Whether several items can be selected (Windows Forms' MultiSelect).
    * - :cpp:class:`ListViewSelectionChange <gui_forms::ListViewSelectionChange>`
      - A change of the selected items, after it happened.
+   * - :cpp:class:`ListViewViewCapability <gui_forms::ListViewViewCapability>`
+     - How the items are arranged (see ListViewView).
    * - :cpp:class:`ObjectColumnId <gui_forms::ObjectColumnId>`
      -  
    * - :cpp:class:`ObjectContextRequest <gui_forms::ObjectContextRequest>`
@@ -348,6 +366,12 @@ Related types
      - Stage T1 anatomy, as dot members.
    * - :cpp:class:`ObjectViewItem <gui_forms::ObjectViewItem>`
      - ObjectViewItem owns stable identity, primary/secondary text, icon/status metadata, and optional command data for one flat object row.
+   * - :cpp:class:`ShowGroupsCapability <gui_forms::ShowGroupsCapability>`
+     - Whether the items are shown in their groups (Windows Forms' ShowGroups; see groups).
+   * - :cpp:class:`SmallImageListCapability <gui_forms::SmallImageListCapability>`
+     - The images of the details, list and small-icon views, looked up by each item's image_key; null for none.
+   * - :cpp:class:`TileSizeCapability <gui_forms::TileSizeCapability>`
+     - The tile view's tile, in logical units at text scale 1 (Windows Forms' TileSize).
    * - :cpp:class:`TreeExpansionChange <gui_forms::TreeExpansionChange>`
      - TreeExpansionChange reports the exact node and resulting expanded state.
    * - :cpp:class:`TreeListActivation <gui_forms::TreeListActivation>`
@@ -2579,6 +2603,23 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> DefaultGroupHeaderCapability
+
+   ``#include <gui_forms/controls/panel/list_view/list_view_capabilities/list_view_capabilities.hpp>``
+
+   The default group's header; "Default" until set. Throws std::invalid_argument for invalid UTF-8.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DefaultGroupHeaderCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, DefaultGroupHeaderCapability<Declaring>> default_group_header
+
+      Default: ``{"Default"}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ItemCheckEvent final
 
    ``#include <gui_forms/controls/panel/list_box/checked_list_box/checked_list_box.hpp>``
@@ -2596,6 +2637,21 @@ Related types
       Default: ``{CheckState::unchecked}``.
 
    .. cpp:member:: bool cancel
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> LargeImageListCapability
+
+   ``#include <gui_forms/controls/panel/list_view/list_view_capabilities/list_view_capabilities.hpp>``
+
+   The images of the large-icon and tile views, looked up by each item's image_key; null for none. Throws std::invalid_argument for a list that is disposed or bound to another window.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(LargeImageListCapability& capability, std::shared_ptr<ImageList> incoming)
+
+   .. cpp:member:: PropertyCell<std::shared_ptr<ImageList>, LargeImageListCapability<Declaring>> large_image_list
 
 .. cpp:namespace:: gui_forms
 
@@ -2879,6 +2935,85 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> ListViewCapabilities : public ListViewViewCapability<Declaring>, public ListViewCheckBoxesCapability<Declaring>, public ListViewMultiSelectCapability<Declaring>, public ListViewFullRowSelectCapability<Declaring>, public SmallImageListCapability<Declaring>, public LargeImageListCapability<Declaring>, public FontCapability<Declaring>, public TileSizeCapability<Declaring>, public ListViewDrawModeCapability<Declaring>, public ShowGroupsCapability<Declaring>, public DefaultGroupHeaderCapability<Declaring>, public ListViewLabelEditCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/list_view/list_view_capabilities/list_view_capabilities.hpp>``
+
+   Every ListView capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: ListViewCapabilities()
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: ListViewView view
+
+      How the items are arranged (see ListViewView). Changing it drops the hot item and column and any revealed cut-off text. Throws std::invalid_argument for an unknown view.
+
+   .. cpp:member:: bool check_boxes
+
+      Whether each item shows a check box (Windows Forms' CheckBoxes); item_checked and set_item_checked read and write the state.
+
+   .. cpp:member:: bool multi_select
+
+      Whether several items can be selected (Windows Forms' MultiSelect). Turning it off keeps only the focused item selected (or the first selected one) and raises selection_changed when that drops any.
+
+   .. cpp:member:: bool full_row_select
+
+      Whether the selection highlight spans the whole details row rather than the first column's text.
+
+   .. cpp:member:: std::shared_ptr<ImageList> small_image_list
+
+      The images of the details, list and small-icon views, looked up by each item's image_key; null for none. Throws std::invalid_argument for a list that is disposed or bound to another window.
+
+   .. cpp:member:: std::shared_ptr<ImageList> large_image_list
+
+      The images of the large-icon and tile views, looked up by each item's image_key; null for none. Throws std::invalid_argument for a list that is disposed or bound to another window.
+
+   .. cpp:member:: FontSpec font
+
+      The font of the control's text (Font).
+
+   .. cpp:member:: Size tile_size
+
+      The tile view's tile, in logical units at text scale 1 (Windows Forms' TileSize). The default, an empty size, sizes tiles from the large icon and three lines of text. Throws std::invalid_argument unless both sides are zero, or both are finite and between minimum_tile_side and maximum_tile_side.
+
+   .. cpp:member:: ItemDrawMode draw_mode
+
+      Content-only owner drawing (owner decision W-Q6; Windows Forms' OwnerDraw with DrawItem and DrawSubItem). In ItemDrawMode::owner_draw the view raises draw_item_content for each painted item's own content (column 0: its icon and text) and, in the details view, for each visible sub-item cell (its column), and in the tile view for each sub-item line shown (its column), in paint order; the item's plate, check box and focus cue stay painted by role, and a handler's draw_default adds the default content. Column headers are not owner-drawn. A handler that changes the view's items, order, columns or view, or disposes it, ends that paint at once; the view is painted again with the change. Throws std::invalid_argument for an unknown mode.
+
+   .. cpp:member:: bool show_groups
+
+      Whether the items are shown in their groups (Windows Forms' ShowGroups; see groups). On by default.
+
+   .. cpp:member:: std::string default_group_header
+
+      The default group's header; "Default" until set. Throws std::invalid_argument for invalid UTF-8.
+
+   .. cpp:member:: bool label_edit
+
+      Label editing (Windows Forms' LabelEdit, ListViewItem.BeginEdit, BeforeLabelEdit and AfterLabelEdit). While label_edit is on, F2 on the focused item, or begin_label_edit, places a TextBox (the ``label_editor`` part) over the item's text with its text selected. Enter, a press elsewhere in the view, or focus leaving the editor commits the edit; Escape and cancel_label_edit cancel it. Each ended edit raises after_label_edit once, after the editor has closed. A committed label after_label_edit does not cancel becomes an ordinary item's text; in a virtual view the application stores it while handling after_label_edit, and the view shows what the source then retrieves. Replacing or sorting the items, a new virtual source or refresh_virtual_items cancels the edit once the change is made, before any selection event; scrolling keeps it, the editor following its item. A slow second click on the focused item does not begin an edit yet: the host does not report its double-click interval. Turning label_edit off cancels an edit in progress.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ListViewCheckBoxesCapability
+
+   ``#include <gui_forms/controls/panel/list_view/list_view_capabilities/list_view_capabilities.hpp>``
+
+   Whether each item shows a check box (Windows Forms' CheckBoxes); item_checked and set_item_checked read and write the state.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ListViewCheckBoxesCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ListViewCheckBoxesCapability<Declaring>> check_boxes
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ListViewColumn final
 
    ``#include <gui_forms/controls/panel/list_view/list_view.hpp>``
@@ -2924,6 +3059,38 @@ Related types
    .. cpp:member:: std::size_t column
 
    .. cpp:member:: double width
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ListViewDrawModeCapability
+
+   ``#include <gui_forms/controls/panel/list_view/list_view_capabilities/list_view_capabilities.hpp>``
+
+   Content-only owner drawing (owner decision W-Q6; Windows Forms' OwnerDraw with DrawItem and DrawSubItem). In ItemDrawMode::owner_draw the view raises draw_item_content for each painted item's own content (column 0: its icon and text) and, in the details view, for each visible sub-item cell (its column), and in the tile view for each sub-item line shown (its column), in paint order; the item's plate, check box and focus cue stay painted by role, and a handler's draw_default adds the default content. Column headers are not owner-drawn. A handler that changes the view's items, order, columns or view, or disposes it, ends that paint at once; the view is painted again with the change. Throws std::invalid_argument for an unknown mode.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ListViewDrawModeCapability& capability, ItemDrawMode incoming)
+
+   .. cpp:member:: PropertyCell<ItemDrawMode, ListViewDrawModeCapability<Declaring>> draw_mode
+
+      Default: ``{ItemDrawMode::normal}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ListViewFullRowSelectCapability
+
+   ``#include <gui_forms/controls/panel/list_view/list_view_capabilities/list_view_capabilities.hpp>``
+
+   Whether the selection highlight spans the whole details row rather than the first column's text.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ListViewFullRowSelectCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ListViewFullRowSelectCapability<Declaring>> full_row_select
 
 .. cpp:namespace:: gui_forms
 
@@ -3044,6 +3211,38 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> ListViewLabelEditCapability
+
+   ``#include <gui_forms/controls/panel/list_view/list_view_capabilities/list_view_capabilities.hpp>``
+
+   Label editing (Windows Forms' LabelEdit, ListViewItem.BeginEdit, BeforeLabelEdit and AfterLabelEdit). While label_edit is on, F2 on the focused item, or begin_label_edit, places a TextBox (the ``label_editor`` part) over the item's text with its text selected. Enter, a press elsewhere in the view, or focus leaving the editor commits the edit; Escape and cancel_label_edit cancel it. Each ended edit raises after_label_edit once, after the editor has closed. A committed label after_label_edit does not cancel becomes an ordinary item's text; in a virtual view the application stores it while handling after_label_edit, and the view shows what the source then retrieves. Replacing or sorting the items, a new virtual source or refresh_virtual_items cancels the edit once the change is made, before any selection event; scrolling keeps it, the editor following its item. A slow second click on the focused item does not begin an edit yet: the host does not report its double-click interval. Turning label_edit off cancels an edit in progress.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ListViewLabelEditCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ListViewLabelEditCapability<Declaring>> label_edit
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ListViewMultiSelectCapability
+
+   ``#include <gui_forms/controls/panel/list_view/list_view_capabilities/list_view_capabilities.hpp>``
+
+   Whether several items can be selected (Windows Forms' MultiSelect). Turning it off keeps only the focused item selected (or the first selected one) and raises selection_changed when that drops any.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ListViewMultiSelectCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ListViewMultiSelectCapability<Declaring>> multi_select
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ListViewSelectionChange final
 
    ``#include <gui_forms/controls/panel/list_view/list_view.hpp>``
@@ -3055,6 +3254,23 @@ Related types
    .. cpp:member:: std::size_t selected_count
 
    .. cpp:member:: std::optional<std::size_t> focused_index
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ListViewViewCapability
+
+   ``#include <gui_forms/controls/panel/list_view/list_view_capabilities/list_view_capabilities.hpp>``
+
+   How the items are arranged (see ListViewView). Changing it drops the hot item and column and any revealed cut-off text. Throws std::invalid_argument for an unknown view.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ListViewViewCapability& capability, ListViewView incoming)
+
+   .. cpp:member:: PropertyCell<ListViewView, ListViewViewCapability<Declaring>> view
+
+      Default: ``{ListViewView::details}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -3303,6 +3519,53 @@ Related types
    .. cpp:member:: std::string image_key
 
    .. cpp:member:: std::vector<ObjectDetailsCell> cells
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ShowGroupsCapability
+
+   ``#include <gui_forms/controls/panel/list_view/list_view_capabilities/list_view_capabilities.hpp>``
+
+   Whether the items are shown in their groups (Windows Forms' ShowGroups; see groups). On by default.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ShowGroupsCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ShowGroupsCapability<Declaring>> show_groups
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SmallImageListCapability
+
+   ``#include <gui_forms/controls/panel/list_view/list_view_capabilities/list_view_capabilities.hpp>``
+
+   The images of the details, list and small-icon views, looked up by each item's image_key; null for none. Throws std::invalid_argument for a list that is disposed or bound to another window.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SmallImageListCapability& capability, std::shared_ptr<ImageList> incoming)
+
+   .. cpp:member:: PropertyCell<std::shared_ptr<ImageList>, SmallImageListCapability<Declaring>> small_image_list
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TileSizeCapability
+
+   ``#include <gui_forms/controls/panel/list_view/list_view_capabilities/list_view_capabilities.hpp>``
+
+   The tile view's tile, in logical units at text scale 1 (Windows Forms' TileSize). The default, an empty size, sizes tiles from the large icon and three lines of text. Throws std::invalid_argument unless both sides are zero, or both are finite and between minimum_tile_side and maximum_tile_side.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TileSizeCapability& capability, Size incoming)
+
+   .. cpp:member:: PropertyCell<Size, TileSizeCapability<Declaring>> tile_size
 
 .. cpp:namespace:: gui_forms
 
@@ -4162,7 +4425,7 @@ Enumerations
 
 .. cpp:enum-class:: ListViewView
 
-   ``#include <gui_forms/controls/panel/list_view/list_view.hpp>``
+   ``#include <gui_forms/controls/panel/list_view/list_view_values/list_view_values.hpp>``
 
    .. cpp:enumerator:: details
 

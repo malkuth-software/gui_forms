@@ -5,6 +5,7 @@
 #include "gui_forms/gui_forms.hpp"
 #include "gui_forms/controls/button_base/button/button.hpp"
 #include "gui_forms/controls/data_grid_view/data_grid_view.hpp"
+#include "gui_forms/controls/panel/list_view/list_view.hpp"
 #include "gui_forms/controls/panel/month_calendar/month_calendar.hpp"
 #include "gui_forms/controls/panel/panel.hpp"
 #include "gui_forms/controls/panel/token_box/token_box.hpp"
@@ -299,6 +300,62 @@ void test_data_grid_view_properties() {
     }
 }
 
+void test_list_view_properties() {
+    std::shared_ptr<ListView> control = make_control<ListView>(StableId("generated.listview"));
+    {
+        const ListViewView sample = ListViewView::tile;
+        (*control).view = sample;
+        expect((*control).view.read() == sample, "ListView.view: a write stores");
+    }
+    {
+        const bool sample = !(*control).check_boxes.read();
+        (*control).check_boxes = sample;
+        expect((*control).check_boxes.read() == sample, "ListView.check_boxes: a write stores");
+    }
+    {
+        const bool sample = !(*control).multi_select.read();
+        (*control).multi_select = sample;
+        expect((*control).multi_select.read() == sample, "ListView.multi_select: a write stores");
+    }
+    {
+        const bool sample = !(*control).full_row_select.read();
+        (*control).full_row_select = sample;
+        expect((*control).full_row_select.read() == sample, "ListView.full_row_select: a write stores");
+    }
+    // small_image_list: no sample for std::shared_ptr<ImageList>; give the property a "sample".
+    // large_image_list: no sample for std::shared_ptr<ImageList>; give the property a "sample".
+    {
+        const FontSpec sample = FontSpec{FontRole::content, 12.0, 700, false};
+        (*control).font = sample;
+        expect((*control).font.read() == sample, "ListView.font: a write stores");
+    }
+    {
+        const Size sample = Size{120.0, 48.0};
+        (*control).tile_size = sample;
+        expect((*control).tile_size.read() == sample, "ListView.tile_size: a write stores");
+    }
+    {
+        const ItemDrawMode sample = ItemDrawMode::owner_draw;
+        (*control).draw_mode = sample;
+        expect((*control).draw_mode.read() == sample, "ListView.draw_mode: a write stores");
+    }
+    {
+        const bool sample = !(*control).show_groups.read();
+        (*control).show_groups = sample;
+        expect((*control).show_groups.read() == sample, "ListView.show_groups: a write stores");
+    }
+    {
+        const std::string sample = std::string{"Other"};
+        (*control).default_group_header = sample;
+        expect((*control).default_group_header.read() == sample, "ListView.default_group_header: a write stores");
+    }
+    {
+        const bool sample = !(*control).label_edit.read();
+        (*control).label_edit = sample;
+        expect((*control).label_edit.read() == sample, "ListView.label_edit: a write stores");
+    }
+}
+
 void test_month_calendar_properties() {
     std::shared_ptr<MonthCalendar> control = make_control<MonthCalendar>(StableId("generated.monthcalendar"));
     {
@@ -423,6 +480,7 @@ void test_tree_list_view_properties() {
 int main() {
     test_button_base_properties();
     test_data_grid_view_properties();
+    test_list_view_properties();
     test_month_calendar_properties();
     test_panel_properties();
     test_scrollable_control_properties();

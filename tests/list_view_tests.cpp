@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <iostream>
+#include <memory>
 #include <optional>
 #include <span>
 #include <stdexcept>
@@ -291,7 +292,7 @@ void selection_by_pointer_and_keyboard() {
     click(window, to_window(*view, centre(items[2].parts.text.bounds)), Modifier::none, 2U);
     require(activations.size() == 2U && activations[1] == 2U, "a double click activates the item");
 
-    (*view).set_multi_select(false);
+    (*view).multi_select = false;
     require((*view).selected_count() == 1U, "single selection keeps one item");
     click(window, to_window(*view, centre(items[4].parts.text.bounds)), Modifier::shift);
     require((*view).selected_count() == 1U && (*view).is_selected(4U), "Shift-click selects one item in single mode");
@@ -310,7 +311,7 @@ void type_ahead() {
 
 void check_boxes() {
     std::shared_ptr<ListView> view = details_view(4U);
-    (*view).set_check_boxes(true);
+    (*view).check_boxes = true;
     Window window(view, {400.0, 240.0});
     window.perform_layout();
     bool cancel = true;
@@ -387,7 +388,7 @@ void columns_click_sort_and_resize() {
 void views_lay_out_items() {
     std::shared_ptr<ListView> view = details_view(30U);
     Window window(view, {360.0, 200.0});
-    (*view).set_view(ListViewView::list);
+    (*view).view = ListViewView::list;
     window.perform_layout();
     std::vector<ListView::Item> items = (*view).realized_items();
     require(items.size() > 2U && items[1].parts.cell.bounds.y > items[0].parts.cell.bounds.y &&
@@ -402,14 +403,14 @@ void views_lay_out_items() {
                 *(*view).focused_index() > 1U,
             "Right moves to the next column of the list view");
 
-    (*view).set_view(ListViewView::small_icon);
+    (*view).view = ListViewView::small_icon;
     window.perform_layout();
     items = (*view).realized_items();
     require(items[1].parts.cell.bounds.x > items[0].parts.cell.bounds.x &&
                 items[1].parts.cell.bounds.y == items[0].parts.cell.bounds.y,
             "the small-icon view fills a row left to right");
 
-    (*view).set_view(ListViewView::large_icon);
+    (*view).view = ListViewView::large_icon;
     window.perform_layout();
     items = (*view).realized_items();
     require(items[0].parts.text.present && items[0].parts.cell.bounds.height > 40.0 &&
@@ -428,8 +429,8 @@ void tile_view() {
     items_with_gap[1].sub_items[0].clear();
     (*view).set_items(std::move(items_with_gap));
     Window window(view, {600.0, 260.0});
-    require((*view).tile_size() == Size{}, "tiles are sized automatically by default");
-    (*view).set_view(ListViewView::tile);
+    require((*view).tile_size.read() == Size{}, "tiles are sized automatically by default");
+    (*view).view = ListViewView::tile;
     window.perform_layout();
     std::vector<ListView::Item> items = (*view).realized_items();
     const Rect tile = items[0].parts.cell.bounds;
@@ -457,7 +458,7 @@ void tile_view() {
     require(key(window, PhysicalKey::down) && (*view).focused_index() == std::optional<std::size_t>(per_row),
             "Down moves to the tile below");
 
-    (*view).set_tile_size({300.0, 24.0});
+    (*view).tile_size = Size{300.0, 24.0};
     window.perform_layout();
     items = (*view).realized_items();
     require(items[0].parts.cell.bounds.width == 300.0 && items[0].parts.cell.bounds.height == 24.0,
@@ -469,20 +470,20 @@ void tile_view() {
 
     bool refused = false;
     try {
-        (*view).set_tile_size({10.0, 10.0});
+        (*view).tile_size = Size{10.0, 10.0};
     } catch (const std::invalid_argument&) {
         refused = true;
     }
     bool half_refused = false;
     try {
-        (*view).set_tile_size({0.0, 50.0});
+        (*view).tile_size = Size{0.0, 50.0};
     } catch (const std::invalid_argument&) {
         half_refused = true;
     }
-    require(refused && half_refused && (*view).tile_size() == Size{300.0, 24.0},
+    require(refused && half_refused && (*view).tile_size.read() == Size{300.0, 24.0},
             "a tile side outside the bounds, or one automatic side, is refused");
-    (*view).set_tile_size({});
-    require((*view).tile_size() == Size{}, "an empty size returns to automatic tiles");
+    (*view).tile_size = Size{};
+    require((*view).tile_size.read() == Size{}, "an empty size returns to automatic tiles");
 }
 
 std::vector<ListViewGroup> sample_groups() {
@@ -516,7 +517,7 @@ void groups() {
     std::shared_ptr<ListView> view = grouped_view();
     Window window(view, {400.0, 320.0});
     window.perform_layout();
-    require((*view).show_groups() && (*view).grouped() && (*view).default_group_header() == "Default",
+    require((*view).show_groups.read() && (*view).grouped() && (*view).default_group_header.read() == "Default",
             "a view with groups shows them by default");
     const std::vector<ListView::Group> groups = (*view).realized_groups();
     require(groups.size() == 3U && groups[0].index == 3U && groups[0].stable_id == "list.default-group" &&
@@ -568,22 +569,22 @@ void groups() {
                 children[5].stable_id == "list.group.b",
             "each shown group is a group node of its items, rows counted in the shown order");
 
-    (*view).set_view(ListViewView::small_icon);
+    (*view).view = ListViewView::small_icon;
     window.perform_layout();
     const std::vector<ListView::Item> icons = (*view).realized_items();
     require(icons.size() == 6U && icons[1].parts.cell.bounds.y == icons[0].parts.cell.bounds.y &&
                 icons[2].parts.cell.bounds.y > icons[1].parts.cell.bounds.y &&
                 icons[2].parts.cell.bounds.x == icons[0].parts.cell.bounds.x,
             "an icon view starts each group on a new row");
-    (*view).set_view(ListViewView::list);
+    (*view).view = ListViewView::list;
     window.perform_layout();
     require(!(*view).grouped() && (*view).realized_groups().empty(), "the list view does not show groups");
-    (*view).set_view(ListViewView::details);
-    (*view).set_show_groups(false);
+    (*view).view = ListViewView::details;
+    (*view).show_groups = false;
     window.perform_layout();
     require(!(*view).grouped() && (*view).realized_items()[0].index == 0U, "show_groups off shows the model order");
-    (*view).set_show_groups(true);
-    (*view).set_default_group_header("Other");
+    (*view).show_groups = true;
+    (*view).default_group_header = "Other";
     window.perform_layout();
     require((*view).realized_groups().size() == 3U, "groups show again");
     RecordingPainter renamed;
@@ -662,8 +663,8 @@ struct ReplaceItems final {
 // Leaves and re-enters the owner-draw mode, so that the next paint covers
 // the whole view: a window paints only what changed.
 void repaint_owner_drawn(ListView& view) {
-    view.set_draw_mode(ItemDrawMode::normal);
-    view.set_draw_mode(ItemDrawMode::owner_draw);
+    view.draw_mode = ItemDrawMode::normal;
+    view.draw_mode = ItemDrawMode::owner_draw;
 }
 
 // Content-only owner drawing (owner decision W-Q6): the application draws
@@ -674,14 +675,14 @@ void owner_draw() {
     std::shared_ptr<ListView> view = details_view(3U);
     Window window(view, {400.0, 240.0});
     window.perform_layout();
-    require((*view).draw_mode() == ItemDrawMode::normal, "a view draws its own content by default");
+    require((*view).draw_mode.read() == ItemDrawMode::normal, "a view draws its own content by default");
     bool refused = false;
     try {
-        (*view).set_draw_mode(static_cast<ItemDrawMode>(9));
+        (*view).draw_mode = static_cast<ItemDrawMode>(9);
     } catch (const std::invalid_argument&) {
         refused = true;
     }
-    require(refused && (*view).draw_mode() == ItemDrawMode::normal, "an unknown draw mode is refused");
+    require(refused && (*view).draw_mode.read() == ItemDrawMode::normal, "an unknown draw mode is refused");
 
     std::vector<ContentCall> calls;
     SubscriptionToken drawing = (*view).draw_item_content().subscribe(DrawContent{&calls, false});
@@ -689,7 +690,7 @@ void owner_draw() {
     static_cast<void>(window.paint(normal, {0.0, 0.0, 400.0, 240.0}));
     require(calls.empty() && painted(normal, "Delta 0"), "the normal mode raises nothing");
 
-    (*view).set_draw_mode(ItemDrawMode::owner_draw);
+    (*view).draw_mode = ItemDrawMode::owner_draw;
     (*view).set_selected(1U, true);
     window.perform_layout();
     RecordingPainter owner;
@@ -713,7 +714,7 @@ void owner_draw() {
     with_default.disconnect();
 
     calls.clear();
-    (*view).set_view(ListViewView::tile);
+    (*view).view = ListViewView::tile;
     SubscriptionToken tiles = (*view).draw_item_content().subscribe(DrawContent{&calls, false});
     repaint_owner_drawn(*view);
     window.perform_layout();
@@ -723,7 +724,7 @@ void owner_draw() {
                 calls[1].content.y > calls[0].content.y && !painted(tiled, "1 KB"),
             "a tile raises its content, then each sub-item line");
     tiles.disconnect();
-    (*view).set_view(ListViewView::details);
+    (*view).view = ListViewView::details;
 
     std::size_t replaced = 0U;
     SubscriptionToken replacing = (*view).draw_item_content().subscribe(ReplaceItems{view.get(), &replaced});
@@ -784,7 +785,7 @@ void insertion_mark() {
     (*view).set_items(sample_items(4U));
     require(!(*view).insertion_mark().has_value(), "replacing the items clears the mark");
 
-    (*view).set_view(ListViewView::large_icon);
+    (*view).view = ListViewView::large_icon;
     window.perform_layout();
     require((*view).show_insertion_mark({.index = 1U, .after = true}), "an icon view shows a mark");
     window.perform_layout();
@@ -816,7 +817,7 @@ void label_editing() {
                 !(*view).label_editor(),
             "without label_edit, F2 and begin_label_edit begin nothing and make no editor");
 
-    (*view).set_label_edit(true);
+    (*view).label_edit = true;
     require(key(window, PhysicalKey::f2) && (*view).label_edit_index() == 2U && before.size() == 1U &&
                 before[0].index == 2U && before[0].item_id == "item-2" && !before[0].label,
             "F2 raises before_label_edit for the focused item and puts it in edit");
@@ -882,13 +883,13 @@ void label_editing() {
             "sorting the items cancels the edit");
 
     require((*view).begin_label_edit(1U), "an edit opens again");
-    (*view).set_label_edit(false);
+    (*view).label_edit = false;
     require(!(*view).label_edit_index() && after.size() == ended + 2U && !after.back().label,
             "turning label_edit off cancels the edit");
 
     // An after_label_edit handler that replaces the items: the commit finds
     // no item with the edited ID to rename.
-    (*view).set_label_edit(true);
+    (*view).label_edit = true;
     require((*view).begin_label_edit(7U) && window.dispatch_text({"Lost"}), "an edit of the eighth item opens");
     SubscriptionToken reload = (*view).after_label_edit().subscribe(ReloadOnAfterEdit{view.get()});
     (*view).end_label_edit();
@@ -911,7 +912,7 @@ void slow_click_label_editing() {
     std::shared_ptr<ListView> view = details_view(20U);
     Window window(view, {400.0, 240.0});
     window.perform_layout();
-    (*view).set_label_edit(true);
+    (*view).label_edit = true;
     require(window.request_focus(view), "the view takes focus");
     const std::chrono::milliseconds interval(window.presentation_settings().double_click_milliseconds);
     const std::chrono::milliseconds margin(50);
@@ -959,8 +960,8 @@ void slow_click_label_editing() {
     const Point first = to_window(*view, centre(items[0].parts.text.bounds));
     click(window, first);
     click(window, first);
-    (*view).set_label_edit(false);
-    (*view).set_label_edit(true);
+    (*view).label_edit = false;
+    (*view).label_edit = true;
     static_cast<void>(window.poll_frame_schedule(FrameClock::now() + interval + margin));
     require(!(*view).label_edit_index(), "turning label_edit off drops the slow click");
 
@@ -982,7 +983,7 @@ void virtual_label_editing() {
     std::vector<ListViewLabelEdit> after;
     bool cancel = false;
     SubscriptionToken token = (*view).after_label_edit().subscribe(RecordLabelEdits{&after, &cancel});
-    (*view).set_label_edit(true);
+    (*view).label_edit = true;
     require((*view).begin_label_edit(4U) && (*(*view).label_editor()).text() == "Row 4",
             "a virtual item's label is edited from the source's text");
     require(window.dispatch_text({"Four"}) && key(window, PhysicalKey::enter) && after.size() == 1U &&
@@ -1047,7 +1048,7 @@ void virtual_mode() {
     (*view).refresh_virtual_items();
     require((*view).item_count() == 10U && (*view).selected_count() == 10U && !(*view).focused_index().has_value(),
             "a refresh keeps the selection below the new count and drops a focus past it");
-    (*view).set_check_boxes(true);
+    (*view).check_boxes = true;
     SubscriptionToken stored = (*view).item_checking().subscribe(StoreVirtualCheck{source.get()});
     window.perform_layout();
     const std::vector<ListView::Item> rows = (*view).realized_items();
@@ -1091,14 +1092,14 @@ void semantics() {
                 row.children[1].value == "1 KB" && row.children[2].value == "Image" &&
                 row.children[2].row_index == 1U && row.children[2].column_index == 3U,
             "a row holds one cell per column, the first holding the item's text");
-    (*view).set_multi_select(false);
-    (*view).set_view(ListViewView::list);
+    (*view).multi_select = false;
+    (*view).view = ListViewView::list;
     window.perform_layout();
     const SemanticDescriptor list = (*view).semantic_descriptor();
     require(list.role == SemanticRole::list && !list.row_count &&
                 !has_semantic_state(list.states, SemanticState::multiselectable),
             "the other views are lists, multiple-selection only while multi_select is set");
-    (*view).set_view(ListViewView::details);
+    (*view).view = ListViewView::details;
     window.perform_layout();
     std::vector<std::size_t> clicks;
     SubscriptionToken clicked = (*view).column_click().subscribe(RecordColumnClick{&clicks});
@@ -1110,6 +1111,99 @@ void semantics() {
             "the select action selects an item, and the list's value names it");
     require(!(*view).on_semantic_child_action("missing", SemanticAction::select, {}),
             "an unknown item refuses the action");
+}
+
+// The properties on capabilities (B7): a refused write leaves the cell, an
+// equal write does nothing, and the hand-written hooks keep what the setters
+// did.
+void capabilities() {
+    std::shared_ptr<ListView> view = details_view(4U);
+    Window window(view, {400.0, 240.0});
+    window.perform_layout();
+
+    // tile_size lays the view out again only while it shows tiles.
+    (*view).tile_size = Size{120.0, 48.0};
+    require(!has_dirty((*view).dirty(), Dirty::arrange), "a tile size outside the tile view lays nothing out");
+    (*view).view = ListViewView::tile;
+    window.perform_layout();
+    (*view).tile_size = Size{140.0, 48.0};
+    require(has_dirty((*view).dirty(), Dirty::arrange), "a tile size in the tile view lays the tiles out again");
+    (*view).view = ListViewView::details;
+    window.perform_layout();
+
+    // Turning multiple selection off keeps the focused item and raises one
+    // selection change; the equal write after it raises none.
+    int changes = 0;
+    const SubscriptionToken counted = (*view).selection_changed().subscribe(CountSelection{&changes});
+    (*view).select_all();
+    (*view).set_focused_index(2U);
+    changes = 0;
+    (*view).multi_select = false;
+    require(changes == 1 && (*view).selected_count() == 1U && (*view).is_selected(2U),
+            "single selection keeps the focused item and publishes once");
+    (*view).multi_select = false;
+    require(changes == 1, "an equal multi_select write raises nothing");
+    static_cast<void>(counted);
+
+    // An image list of the view's own window is taken; another window's, or
+    // a disposed one, is refused and the cell keeps its value.
+    const std::shared_ptr<ImageList> images = std::make_shared<ImageList>(window, Size{16.0, 16.0});
+    (*view).small_image_list = images;
+    require((*view).small_image_list.read() == images, "the window's image list is taken");
+    std::shared_ptr<Panel> other_root = make_control<Panel>(StableId("capabilities.other"));
+    const std::unique_ptr<Window> other_window = std::make_unique<Window>(other_root, Size{10.0, 10.0});
+    const std::shared_ptr<ImageList> foreign = std::make_shared<ImageList>(*other_window);
+    bool refused = false;
+    try {
+        (*view).large_image_list = foreign;
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*view).large_image_list.read() == nullptr,
+            "another window's image list is refused without a change");
+    const std::shared_ptr<ImageList> disposed = std::make_shared<ImageList>(window, Size{16.0, 16.0});
+    (*disposed).dispose();
+    refused = false;
+    try {
+        (*view).small_image_list = disposed;
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*view).small_image_list.read() == images, "a disposed image list is refused");
+    (*view).small_image_list = nullptr;
+    require(!(*view).small_image_list.read(), "null removes the image list");
+
+    // A new font reaches the label editor of an edit in progress.
+    require(window.request_focus(view), "the view takes focus");
+    (*view).label_edit = true;
+    require((*view).begin_label_edit(1U), "an edit begins");
+    const FontSpec larger{FontRole::content, 14.0, 400, false};
+    (*view).font = larger;
+    require((*(*view).label_editor()).font() == larger, "the label editor takes the view's new font");
+    (*view).cancel_label_edit();
+
+    // Refusals leave the cells as they were.
+    refused = false;
+    try {
+        (*view).view = static_cast<ListViewView>(9);
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*view).view.read() == ListViewView::details, "an unknown view is refused");
+    refused = false;
+    try {
+        (*view).default_group_header = std::string("\xff");
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*view).default_group_header.read() == "Default", "an invalid UTF-8 header is refused");
+    refused = false;
+    try {
+        (*view).font = FontSpec{FontRole::content, -1.0, 400, false};
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*view).font.read() == larger, "an invalid font is refused");
 }
 
 void refusals() {
@@ -1176,10 +1270,11 @@ int main() {
     scrolling();
     virtual_mode();
     semantics();
+    capabilities();
     refusals();
     std::cout << "ListView: parts, views, selection, keys, checks, columns, sorting, resizing, owner drawing, "
                  "insertion mark, label editing, "
                  "virtual mode, "
-                 "scrolling, semantics and refusals passed\n";
+                 "scrolling, semantics, capabilities and refusals passed\n";
     return 0;
 }

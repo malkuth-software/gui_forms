@@ -62,7 +62,7 @@ void test_checked_collections(gui_forms::Window& window) {
 
     // F2's label edit, opened through its public entry point for the same
     // reason. The edits leave the task's text as it was.
-    require((*list_view).label_edit() && (*list_view).begin_label_edit(0U) &&
+    require((*list_view).label_edit.read() && (*list_view).begin_label_edit(0U) &&
                 window.dispatch_text({"Discarded"}) &&
                 window.dispatch_key({KeyAction::down, PhysicalKey::escape}) &&
                 (*status).text() == "ListView rename of task.anatomy cancelled",

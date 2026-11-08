@@ -7,7 +7,7 @@ gui_forms::ListView
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: ListView final : public Control
+.. cpp:class:: ListView final : public Control, public ListViewCapabilities<ListView>
 
    ``#include <gui_forms/controls/panel/list_view/list_view.hpp>``
 
@@ -42,6 +42,53 @@ gui_forms::ListView
          first whose sub-item is not empty, as many as the tile's height has
          room for; the block of lines is centred on the tile.
 
+      **check_boxes** : ``bool``, default ``false``
+         Whether each item shows a check box.
+
+      **multi_select** : ``bool``, default ``true``
+         Whether more than one item can be selected. Turning it off keeps one
+         selected item.
+
+      **full_row_select** : ``bool``, default ``false``
+         Whether the details view highlights the whole row rather than the first
+         column's text.
+
+      **small_image_list** : ``std::shared_ptr<ImageList>``
+         The images of the details, list and small-icon views, looked up by
+         each item's ``image_key``. Without it those views show no icons.
+
+      **large_image_list** : ``std::shared_ptr<ImageList>``
+         The images of the large-icon and tile views.
+
+      **font** : ``FontSpec``
+         The font of item and header text.
+
+      **tile_size** : ``Size``, default empty (automatic)
+         The tile view's tile, in logical units at text scale 1 (Windows Forms'
+         ``TileSize``). An empty size makes tiles as wide as the large icon and
+         168 units of text, and as tall as the icon or three lines of text,
+         whichever is taller. A write throws ``std::invalid_argument``
+         unless both sides are zero, or both are finite and between
+         ``minimum_tile_side`` and ``maximum_tile_side``.
+
+      **draw_mode** : ``ItemDrawMode``, default ``ItemDrawMode::normal``
+         With ``ItemDrawMode::owner_draw`` the application draws the items'
+         content (Windows Forms' ``OwnerDraw``): see :cpp:func:`draw_item_content <gui_forms::ListView::draw_item_content>`. Throws
+         ``std::invalid_argument`` for an unknown mode.
+
+      **show_groups** : ``bool``, default ``true``
+         Whether the view shows its items in groups while it has groups. Groups
+         are not shown in the list view or in virtual mode.
+
+      **default_group_header** : ``std::string``, default ``"Default"``
+         The header of the default group, which holds the items whose group is
+         empty or names no group. Invalid UTF-8 throws ``std::invalid_argument``.
+
+      **label_edit** : ``bool``, default ``false``
+         Whether the user may edit items' labels in place (Windows Forms'
+         ``LabelEdit``): F2 on the focused item begins an edit. Turning it off
+         cancels an edit in progress.
+
       **columns** : ``std::span<const ListViewColumn>``
          The details view's columns. :cpp:func:`set_columns <gui_forms::ListView::set_columns>` replaces them and throws
          ``std::invalid_argument`` for a repeated ID or one that breaks the
@@ -67,14 +114,6 @@ gui_forms::ListView
          :cpp:class:`StableId <gui_forms::StableId>` segment rule, invalid UTF-8, an unknown alignment, or more than
          ``maximum_groups`` groups.
 
-      **show_groups** : ``bool``, default ``true``
-         Whether the view shows its items in groups while it has groups. Groups
-         are not shown in the list view or in virtual mode.
-
-      **default_group_header** : ``std::string``, default ``"Default"``
-         The header of the default group, which holds the items whose group is
-         empty or names no group. Invalid UTF-8 throws ``std::invalid_argument``.
-
       **grouped** : ``bool``, read-only
          Whether the items are shown in groups now.
 
@@ -84,17 +123,6 @@ gui_forms::ListView
       **virtual_source** : ``std::shared_ptr<ListViewItemSource>``
          The source, or null. :cpp:func:`set_virtual_source <gui_forms::ListView::set_virtual_source>` drops the ordinary items,
          clears the selection and reads the source's count.
-
-      **check_boxes** : ``bool``, default ``false``
-         Whether each item shows a check box.
-
-      **multi_select** : ``bool``, default ``true``
-         Whether more than one item can be selected. Turning it off keeps one
-         selected item.
-
-      **full_row_select** : ``bool``, default ``false``
-         Whether the details view highlights the whole row rather than the first
-         column's text.
 
       **selected_count** : ``std::size_t``, read-only
          The number of selected items.
@@ -118,37 +146,9 @@ gui_forms::ListView
       **sort_order** : ``ListViewSortOrder``, default ``ListViewSortOrder::none``, read-only
          The order the sort glyph shows.
 
-      **small_image_list** : ``std::shared_ptr<ImageList>``
-         The images of the details, list and small-icon views, looked up by
-         each item's ``image_key``. Without it those views show no icons.
-
-      **large_image_list** : ``std::shared_ptr<ImageList>``
-         The images of the large-icon and tile views.
-
-      **font** : ``FontSpec``
-         The font of item and header text.
-
-      **tile_size** : ``Size``, default empty (automatic)
-         The tile view's tile, in logical units at text scale 1 (Windows Forms'
-         ``TileSize``). An empty size makes tiles as wide as the large icon and
-         168 units of text, and as tall as the icon or three lines of text,
-         whichever is taller. :cpp:func:`set_tile_size <gui_forms::ListView::set_tile_size>` throws ``std::invalid_argument``
-         unless both sides are zero, or both are finite and between
-         ``minimum_tile_side`` and ``maximum_tile_side``.
-
-      **draw_mode** : ``ItemDrawMode``, default ``ItemDrawMode::normal``
-         With ``ItemDrawMode::owner_draw`` the application draws the items'
-         content (Windows Forms' ``OwnerDraw``): see :cpp:func:`draw_item_content <gui_forms::ListView::draw_item_content>`. Throws
-         ``std::invalid_argument`` for an unknown mode.
-
       **insertion_mark** : ``std::optional<ListViewInsertionMark>``, default none, read-only
          Where the insertion mark stands, as an item's index and whether the mark
          is after it, or none. See :cpp:func:`show_insertion_mark <gui_forms::ListView::show_insertion_mark>`.
-
-      **label_edit** : ``bool``, default ``false``
-         Whether the user may edit items' labels in place (Windows Forms'
-         ``LabelEdit``): F2 on the focused item begins an edit. Turning it off
-         cancels an edit in progress.
 
       **label_edit_index** : ``std::optional<std::size_t>``, read-only
          The item in edit, or none.
@@ -180,7 +180,7 @@ gui_forms::ListView
          line shown (its column), in paint order (Windows Forms' ``DrawItem`` and
          ``DrawSubItem``). The painter is clipped to the content rectangle; the
          item's plate, check box and focus cue are already painted by role.
-         ``text`` and :cpp:func:`font <gui_forms::ListView::font>` are the default content's. Set ``draw_default`` to add
+         ``text`` and :cpp:member:`font <gui_forms::ListView::font>` are the default content's. Set ``draw_default`` to add
          the default content. Column headers are not owner-drawn. A handler
          paints only; one that changes the items, their order, the columns or
          the view, or disposes the view, ends that paint, and the view is painted
@@ -327,14 +327,14 @@ gui_forms::ListView
    activates. Typing the first letters of an item's text selects the next
    matching item; virtual views do not search yet.
 
-   With :cpp:func:`label_edit <gui_forms::ListView::label_edit>` on, F2 begins editing the focused item's label in a
+   With :cpp:member:`label_edit <gui_forms::ListView::label_edit>` on, F2 begins editing the focused item's label in a
    :cpp:class:`TextBox <gui_forms::TextBox>` over its text. So does a slow second click, as in Windows: a
    single primary press without modifiers on the text of the item that was
    already focused and selected begins its edit once the window's double-click
    interval (``PresentationSettings::double_click_milliseconds``) passes. A second
    press within the interval is a double click and activates the item instead;
    a key, the wheel, another press, a change to the items, focus leaving the
-   view or turning :cpp:func:`label_edit <gui_forms::ListView::label_edit>` off in the wait drops the slow click.
+   view or turning :cpp:member:`label_edit <gui_forms::ListView::label_edit>` off in the wait drops the slow click.
 
    Enter, a press elsewhere in the view, or focus leaving the editor commits
    the edit; Escape cancels it. Replacing or sorting the items, a new virtual
@@ -344,7 +344,7 @@ gui_forms::ListView
 
    In the details view the control publishes the accessibility role ``table``,
    with the item count and the column count; in the other views it publishes
-   ``list``. It is ``multiselectable`` while :cpp:func:`multi_select <gui_forms::ListView::multi_select>` is on. In the details
+   ``list``. It is ``multiselectable`` while :cpp:member:`multi_select <gui_forms::ListView::multi_select>` is on. In the details
    view its children are the visible column headers, as ``column_header`` with
    their column index (counting from 1), and the visible items as ``row``, with
    their row index and a ``cell`` child per visible column that holds the
@@ -396,7 +396,7 @@ gui_forms::ListView
 
    .. rubric:: Properties
 
-   .. cpp:function:: ListViewView view() const noexcept
+   .. cpp:member:: ListViewView view
 
       How the items are arranged: ``details``, ``list`` (columns filled top to
       bottom, scrolled sideways), ``small_icon``, ``large_icon`` or ``tile``
@@ -405,9 +405,63 @@ gui_forms::ListView
       first whose sub-item is not empty, as many as the tile's height has
       room for; the block of lines is centred on the tile.
 
-   .. cpp:function:: void set_view(ListViewView view)
+   .. cpp:member:: bool check_boxes
 
-      Sets :cpp:func:`view <gui_forms::ListView::view>`; see the property's description above.
+      Whether each item shows a check box.
+
+   .. cpp:member:: bool multi_select
+
+      Whether more than one item can be selected. Turning it off keeps one
+      selected item.
+
+   .. cpp:member:: bool full_row_select
+
+      Whether the details view highlights the whole row rather than the first
+      column's text.
+
+   .. cpp:member:: std::shared_ptr<ImageList> small_image_list
+
+      The images of the details, list and small-icon views, looked up by
+      each item's ``image_key``. Without it those views show no icons.
+
+   .. cpp:member:: std::shared_ptr<ImageList> large_image_list
+
+      The images of the large-icon and tile views.
+
+   .. cpp:member:: FontSpec font
+
+      The font of item and header text.
+
+   .. cpp:member:: Size tile_size
+
+      The tile view's tile, in logical units at text scale 1 (Windows Forms'
+      ``TileSize``). An empty size makes tiles as wide as the large icon and
+      168 units of text, and as tall as the icon or three lines of text,
+      whichever is taller. A write throws ``std::invalid_argument``
+      unless both sides are zero, or both are finite and between
+      ``minimum_tile_side`` and ``maximum_tile_side``.
+
+   .. cpp:member:: ItemDrawMode draw_mode
+
+      With ``ItemDrawMode::owner_draw`` the application draws the items'
+      content (Windows Forms' ``OwnerDraw``): see :cpp:func:`draw_item_content <gui_forms::ListView::draw_item_content>`. Throws
+      ``std::invalid_argument`` for an unknown mode.
+
+   .. cpp:member:: bool show_groups
+
+      Whether the view shows its items in groups while it has groups. Groups
+      are not shown in the list view or in virtual mode.
+
+   .. cpp:member:: std::string default_group_header
+
+      The header of the default group, which holds the items whose group is
+      empty or names no group. Invalid UTF-8 throws ``std::invalid_argument``.
+
+   .. cpp:member:: bool label_edit
+
+      Whether the user may edit items' labels in place (Windows Forms'
+      ``LabelEdit``): F2 on the focused item begins an edit. Turning it off
+      cancels an edit in progress.
 
    .. cpp:function:: std::span<const ListViewColumn> columns() const noexcept
 
@@ -450,24 +504,6 @@ gui_forms::ListView
 
       Sets :cpp:func:`groups <gui_forms::ListView::groups>`; see the property's description above.
 
-   .. cpp:function:: bool show_groups() const noexcept
-
-      Whether the view shows its items in groups while it has groups. Groups
-      are not shown in the list view or in virtual mode.
-
-   .. cpp:function:: void set_show_groups(bool shown)
-
-      Sets :cpp:func:`show_groups <gui_forms::ListView::show_groups>`; see the property's description above.
-
-   .. cpp:function:: const std::string& default_group_header() const noexcept
-
-      The header of the default group, which holds the items whose group is
-      empty or names no group. Invalid UTF-8 throws ``std::invalid_argument``.
-
-   .. cpp:function:: void set_default_group_header(std::string header)
-
-      Sets :cpp:func:`default_group_header <gui_forms::ListView::default_group_header>`; see the property's description above.
-
    .. cpp:function:: bool grouped() const noexcept
 
       Whether the items are shown in groups now.
@@ -484,32 +520,6 @@ gui_forms::ListView
    .. cpp:function:: void set_virtual_source(std::shared_ptr<ListViewItemSource> source)
 
       Sets :cpp:func:`virtual_source <gui_forms::ListView::virtual_source>`; see the property's description above.
-
-   .. cpp:function:: bool check_boxes() const noexcept
-
-      Whether each item shows a check box.
-
-   .. cpp:function:: void set_check_boxes(bool shown)
-
-      Sets :cpp:func:`check_boxes <gui_forms::ListView::check_boxes>`; see the property's description above.
-
-   .. cpp:function:: bool multi_select() const noexcept
-
-      Whether more than one item can be selected. Turning it off keeps one
-      selected item.
-
-   .. cpp:function:: void set_multi_select(bool multiple)
-
-      Sets :cpp:func:`multi_select <gui_forms::ListView::multi_select>`; see the property's description above.
-
-   .. cpp:function:: bool full_row_select() const noexcept
-
-      Whether the details view highlights the whole row rather than the first
-      column's text.
-
-   .. cpp:function:: void set_full_row_select(bool full_row)
-
-      Sets :cpp:func:`full_row_select <gui_forms::ListView::full_row_select>`; see the property's description above.
 
    .. cpp:function:: std::size_t selected_count() const noexcept
 
@@ -548,68 +558,10 @@ gui_forms::ListView
 
       The order the sort glyph shows.
 
-   .. cpp:function:: std::shared_ptr<ImageList> small_image_list() const noexcept
-
-      The images of the details, list and small-icon views, looked up by
-      each item's ``image_key``. Without it those views show no icons.
-
-   .. cpp:function:: void set_small_image_list(std::shared_ptr<ImageList> images)
-
-      Sets :cpp:func:`small_image_list <gui_forms::ListView::small_image_list>`; see the property's description above.
-
-   .. cpp:function:: std::shared_ptr<ImageList> large_image_list() const noexcept
-
-      The images of the large-icon and tile views.
-
-   .. cpp:function:: void set_large_image_list(std::shared_ptr<ImageList> images)
-
-      Sets :cpp:func:`large_image_list <gui_forms::ListView::large_image_list>`; see the property's description above.
-
-   .. cpp:function:: FontSpec font() const noexcept
-
-      The font of item and header text.
-
-   .. cpp:function:: void set_font(FontSpec font)
-
-      Sets :cpp:func:`font <gui_forms::ListView::font>`; see the property's description above.
-
-   .. cpp:function:: Size tile_size() const noexcept
-
-      The tile view's tile, in logical units at text scale 1 (Windows Forms'
-      ``TileSize``). An empty size makes tiles as wide as the large icon and
-      168 units of text, and as tall as the icon or three lines of text,
-      whichever is taller. :cpp:func:`set_tile_size <gui_forms::ListView::set_tile_size>` throws ``std::invalid_argument``
-      unless both sides are zero, or both are finite and between
-      ``minimum_tile_side`` and ``maximum_tile_side``.
-
-   .. cpp:function:: void set_tile_size(Size size)
-
-      Sets :cpp:func:`tile_size <gui_forms::ListView::tile_size>`; see the property's description above.
-
-   .. cpp:function:: ItemDrawMode draw_mode() const noexcept
-
-      With ``ItemDrawMode::owner_draw`` the application draws the items'
-      content (Windows Forms' ``OwnerDraw``): see :cpp:func:`draw_item_content <gui_forms::ListView::draw_item_content>`. Throws
-      ``std::invalid_argument`` for an unknown mode.
-
-   .. cpp:function:: void set_draw_mode(ItemDrawMode mode)
-
-      Sets :cpp:func:`draw_mode <gui_forms::ListView::draw_mode>`; see the property's description above.
-
    .. cpp:function:: std::optional<ListViewInsertionMark> insertion_mark() const noexcept
 
       Where the insertion mark stands, as an item's index and whether the mark
       is after it, or none. See :cpp:func:`show_insertion_mark <gui_forms::ListView::show_insertion_mark>`.
-
-   .. cpp:function:: bool label_edit() const noexcept
-
-      Whether the user may edit items' labels in place (Windows Forms'
-      ``LabelEdit``): F2 on the focused item begins an edit. Turning it off
-      cancels an edit in progress.
-
-   .. cpp:function:: void set_label_edit(bool enabled)
-
-      Sets :cpp:func:`label_edit <gui_forms::ListView::label_edit>`; see the property's description above.
 
    .. cpp:function:: std::optional<std::size_t> label_edit_index() const noexcept
 
@@ -649,7 +601,7 @@ gui_forms::ListView
       line shown (its column), in paint order (Windows Forms' ``DrawItem`` and
       ``DrawSubItem``). The painter is clipped to the content rectangle; the
       item's plate, check box and focus cue are already painted by role.
-      ``text`` and :cpp:func:`font <gui_forms::ListView::font>` are the default content's. Set ``draw_default`` to add
+      ``text`` and :cpp:member:`font <gui_forms::ListView::font>` are the default content's. Set ``draw_default`` to add
       the default content. Column headers are not owner-drawn. A handler
       paints only; one that changes the items, their order, the columns or
       the view, or disposes the view, ends that paint, and the view is painted
@@ -774,7 +726,7 @@ gui_forms::ListView
       Puts an item in label edit (Windows Forms' ``ListViewItem.BeginEdit``),
       after committing any other edit: raises :cpp:func:`before_label_edit <gui_forms::ListView::before_label_edit>`, scrolls the
       item into view and places the editor, with the item's text selected,
-      over its ``text`` part. Returns false when :cpp:func:`label_edit <gui_forms::ListView::label_edit>` is off, the view
+      over its ``text`` part. Returns false when :cpp:member:`label_edit <gui_forms::ListView::label_edit>` is off, the view
       does not show the item, or a handler cancelled or changed the items.
       Throws ``std::out_of_range`` for an index past the end.
 
@@ -881,7 +833,7 @@ gui_forms::ListView
 
    .. cpp:member:: constexpr double minimum_tile_side
 
-      The tile view's tile, in logical units at text scale 1 (Windows Forms' TileSize). The default, an empty size, sizes tiles from the large icon and three lines of text. Throws std::invalid_argument unless both sides are zero, or both are finite and between minimum_tile_side and maximum_tile_side. Default: ``24.0``.
+      The bounds of each side of a set tile_size, in logical units at text scale 1. Default: ``24.0``.
 
    .. cpp:member:: constexpr double maximum_tile_side
 

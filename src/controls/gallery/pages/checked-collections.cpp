@@ -97,8 +97,8 @@ private:
     // A details ListView with check boxes. A header click sorts through
     // the sort_items helper; the view itself never reorders.
     void build_list_view() {
-        (*list_view_).set_check_boxes(true);
-        (*list_view_).set_full_row_select(true);
+        (*list_view_).check_boxes = true;
+        (*list_view_).full_row_select = true;
         (*list_view_).set_columns({
             {.stable_id = "task", .text = "Task", .width = 260.0},
             {.stable_id = "owner", .text = "Owner", .width = 140.0},
@@ -117,7 +117,7 @@ private:
         });
         on((*list_view_).column_click(), *this, &CheckedCollectionsPage::on_column_click);
         on((*list_view_).item_checked(), *this, &CheckedCollectionsPage::on_list_view_checked);
-        (*list_view_).set_label_edit(true);
+        (*list_view_).label_edit = true;
         on((*list_view_).after_label_edit(), *this, &CheckedCollectionsPage::on_list_view_renamed);
         (*mark_toggle_).set_style(page_style());
         on((*mark_toggle_).clicked(), *this, &CheckedCollectionsPage::on_mark_toggled);

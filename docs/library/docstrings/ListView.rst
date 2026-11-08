@@ -94,7 +94,7 @@ tile_size : default empty (automatic)
     The tile view's tile, in logical units at text scale 1 (Windows Forms'
     `TileSize`). An empty size makes tiles as wide as the large icon and
     168 units of text, and as tall as the icon or three lines of text,
-    whichever is taller. `set_tile_size` throws `std::invalid_argument`
+    whichever is taller. A write throws `std::invalid_argument`
     unless both sides are zero, or both are finite and between
     `minimum_tile_side` and `maximum_tile_side`.
 draw_mode : default ``ItemDrawMode::normal``

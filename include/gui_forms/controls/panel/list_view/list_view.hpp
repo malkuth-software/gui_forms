@@ -1,6 +1,8 @@
 #pragma once
 
 #include "gui_forms/control.hpp"
+#include "gui_forms/controls/panel/list_view/list_view_capabilities/list_view_capabilities.hpp"
+#include "gui_forms/controls/panel/list_view/list_view_values/list_view_values.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/image_list.hpp"
 #include "gui_forms/scheduler.hpp"
@@ -27,21 +29,6 @@ class VScrollBar;
 namespace detail {
 class CutOffTextRevealer;
 } // namespace detail
-
-// How a ListView arranges its items (Windows Forms' View).
-//
-// - details: one row per item, with the columns' headers above and each
-//   column's text (the item's text, then its sub-items) in the row;
-// - list: small-icon rows filled top to bottom, then in further columns to
-//   the right; the view scrolls sideways;
-// - small_icon: small-icon cells filled left to right, then in further rows;
-// - large_icon: large-icon cells with the text under the icon, filled left to
-//   right, then in further rows;
-// - tile: tiles of `tile_size` filled left to right, then in further rows,
-//   each with the large icon at its left and, beside it, the item's text over
-//   one line per column after the first holding a sub-item, as far as the
-//   tile's height allows.
-enum class ListViewView : std::uint8_t { details, list, small_icon, large_icon, tile };
 
 // How a column's text sits in its cells. The first column's text always
 // starts at the left, after the check box and icon, as in Windows Forms.
@@ -190,7 +177,7 @@ struct ListViewLabelEdit final {
 // labels are edited in place (label_edit), and an application may draw
 // items' content itself (draw_mode), and items are shown in groups (groups,
 // show_groups). Tooltips and hot-tracking activation are not supported yet.
-class ListView final : public Control {
+class ListView final : public Control, public ListViewCapabilities<ListView> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
     // Development bounds, not measured capacity.
@@ -203,9 +190,6 @@ public:
     explicit ListView(StableId stable_id);
     ~ListView() override;
     void initialize_control_tree();
-
-    [[nodiscard]] ListViewView view() const noexcept { return view_; }
-    void set_view(ListViewView view);
 
     [[nodiscard]] std::span<const ListViewColumn> columns() const noexcept { return columns_; }
     // Replaces the columns. Throws std::invalid_argument for an empty or
@@ -240,12 +224,6 @@ public:
     // maximum_groups groups.
     [[nodiscard]] std::span<const ListViewGroup> groups() const noexcept { return groups_; }
     void set_groups(std::vector<ListViewGroup> groups);
-    [[nodiscard]] bool show_groups() const noexcept { return show_groups_; }
-    void set_show_groups(bool shown);
-    // The default group's header; "Default" until set. Throws
-    // std::invalid_argument for invalid UTF-8.
-    [[nodiscard]] const std::string& default_group_header() const noexcept { return default_group_header_; }
-    void set_default_group_header(std::string header);
     // Whether the items are shown in groups now.
     [[nodiscard]] bool grouped() const noexcept;
 
@@ -262,23 +240,12 @@ public:
     // repaints. Throws std::logic_error outside virtual mode.
     void refresh_virtual_items();
 
-    [[nodiscard]] bool check_boxes() const noexcept { return check_boxes_; }
-    void set_check_boxes(bool shown);
     // Throws std::out_of_range for an index past the end.
     [[nodiscard]] bool item_checked(std::size_t index) const;
     // Sets an ordinary item's checked state and raises item_checked when it
     // changes. Throws std::out_of_range for an index past the end and
     // std::logic_error in virtual mode, where the source owns it.
     void set_item_checked(std::size_t index, bool checked);
-
-    [[nodiscard]] bool multi_select() const noexcept { return multi_select_; }
-    // Turning multiple selection off keeps only the focused item selected
-    // (or the first selected one).
-    void set_multi_select(bool multiple);
-    // Whether the selection highlight spans the whole details row rather
-    // than the first column's text.
-    [[nodiscard]] bool full_row_select() const noexcept { return full_row_select_; }
-    void set_full_row_select(bool full_row);
 
     [[nodiscard]] std::size_t selected_count() const noexcept { return selected_count_; }
     // The selected indices in ascending order.
@@ -315,39 +282,13 @@ public:
     // std::logic_error in virtual mode.
     void sort_items(std::size_t column, ListViewSortOrder order);
 
-    [[nodiscard]] std::shared_ptr<ImageList> small_image_list() const noexcept { return small_images_; }
-    [[nodiscard]] std::shared_ptr<ImageList> large_image_list() const noexcept { return large_images_; }
-    // Throws std::invalid_argument for a list bound to another window.
-    void set_small_image_list(std::shared_ptr<ImageList> images);
-    void set_large_image_list(std::shared_ptr<ImageList> images);
-
-    [[nodiscard]] FontSpec font() const noexcept { return font_; }
-    void set_font(FontSpec font);
-
-    // The tile view's tile, in logical units at text scale 1 (Windows Forms'
-    // TileSize). The default, an empty size, sizes tiles from the large
-    // icon and three lines of text. Throws std::invalid_argument unless
-    // both sides are zero, or both are finite and between minimum_tile_side
-    // and maximum_tile_side.
+    // The bounds of each side of a set tile_size, in logical units at text
+    // scale 1.
     static constexpr double minimum_tile_side = 24.0;
     static constexpr double maximum_tile_side = 2048.0;
-    [[nodiscard]] Size tile_size() const noexcept { return tile_size_; }
-    void set_tile_size(Size size);
 
-    // Content-only owner drawing (owner decision W-Q6; Windows Forms'
-    // OwnerDraw with DrawItem and DrawSubItem). In ItemDrawMode::owner_draw
-    // the view raises draw_item_content for each painted item's own content
-    // (column 0: its icon and text) and, in the details view, for each
-    // visible sub-item cell (its column), and in the tile view for each
-    // sub-item line shown (its column), in paint order; the item's plate,
-    // check box and focus cue stay painted by role, and a handler's
-    // draw_default adds the default content. Column headers are not
-    // owner-drawn. A handler that changes the view's items, order, columns
-    // or view, or disposes it, ends that paint at once; the view is painted
-    // again with the change. Throws std::invalid_argument for an unknown
-    // mode.
-    [[nodiscard]] ItemDrawMode draw_mode() const noexcept { return draw_mode_; }
-    void set_draw_mode(ItemDrawMode mode);
+    // Raised for each owner-drawn content while draw_mode is
+    // ItemDrawMode::owner_draw (see draw_mode).
     [[nodiscard]] Event<ItemContentPaint&>& draw_item_content() noexcept { return draw_item_content_; }
 
     // The item under a point in window coordinates, if any.
@@ -373,24 +314,6 @@ public:
     // when the view shows no items.
     [[nodiscard]] std::optional<ListViewInsertionMark> insertion_mark_at(Point window_point) const;
 
-    // Label editing (Windows Forms' LabelEdit, ListViewItem.BeginEdit,
-    // BeforeLabelEdit and AfterLabelEdit). While label_edit is on, F2 on the
-    // focused item, or begin_label_edit, places a TextBox (the
-    // `label_editor` part) over the item's text with its text selected.
-    // Enter, a press elsewhere in the view, or focus leaving the editor
-    // commits the edit; Escape and cancel_label_edit cancel it. Each ended
-    // edit raises after_label_edit once, after the editor has closed. A
-    // committed label after_label_edit does not cancel becomes an ordinary
-    // item's text; in a virtual view the application stores it while
-    // handling after_label_edit, and the view shows what the source then
-    // retrieves. Replacing or sorting the items, a new virtual source or
-    // refresh_virtual_items cancels the edit once the change is made, before
-    // any selection event; scrolling keeps it, the editor following its item.
-    // A slow second click on the focused item does not begin an edit yet: the
-    // host does not report its double-click interval. Turning label_edit off
-    // cancels an edit in progress.
-    [[nodiscard]] bool label_edit() const noexcept { return label_edit_; }
-    void set_label_edit(bool enabled);
     // Begins editing the label of the item at `index`, after committing any
     // other edit in progress: raises before_label_edit, scrolls the item into
     // view and focuses the editor. True when the item is in edit (also when
@@ -699,11 +622,12 @@ private:
     void on_vertical_scroll(double value);
     void on_horizontal_scroll(double value);
     void image_list_changed(const ImageListChange& change);
-    // Replaces the image list in `slot` (small_images_ or large_images_) and
-    // its change subscription `subscription`, after the checks the public
-    // setters state.
-    void set_image_list(std::shared_ptr<ImageList> images, std::shared_ptr<ImageList>& slot,
-                        SubscriptionToken& subscription);
+    // Throws std::invalid_argument unless `images` is null or a live list of
+    // the view's window (any window before the view is in one).
+    void require_window_image_list(const std::shared_ptr<ImageList>& images) const;
+    // Replaces `subscription` with one to `images`' changes (none for null)
+    // and invalidates the view.
+    void watch_image_list(const std::shared_ptr<ImageList>& images, SubscriptionToken& subscription);
 
     // Selection operations. Each returns whether the selected set changed.
     [[nodiscard]] bool select_only(std::size_t index);
@@ -764,7 +688,6 @@ private:
     // with the view.
     std::unique_ptr<detail::CutOffTextRevealer> reveal_;
     std::optional<ListViewInsertionMark> insertion_mark_{};
-    bool label_edit_{};
     // Set while close_label_editor moves focus, so that the editor's focus
     // loss does not end the edit a second time.
     bool closing_label_editor_{};
@@ -783,8 +706,6 @@ private:
     std::size_t top_item_{};
     bool top_header_{};
     std::vector<ListViewGroup> groups_{};
-    std::string default_group_header_{"Default"};
-    bool show_groups_{true};
     // The grouped display order, rebuilt when model_revision_ moves:
     // display_order_[position] is an index, display_position_[index] a
     // position, and display_counts_[group] the items of each group in
@@ -795,22 +716,13 @@ private:
     mutable std::uint64_t display_revision_{};
     mutable bool display_valid_{};
     double horizontal_offset_{};
-    ListViewView view_{ListViewView::details};
     std::optional<std::size_t> sort_column_{};
     ListViewSortOrder sort_order_{ListViewSortOrder::none};
-    ItemDrawMode draw_mode_{ItemDrawMode::normal};
     // Moves with every change to the items, their order, the columns or the
     // view, so that a paint can tell an owner-draw handler changed them.
     std::uint64_t model_revision_{};
-    bool check_boxes_{};
-    bool multi_select_{true};
-    bool full_row_select_{};
     bool focused_{};
     bool synchronizing_scroll_{};
-    FontSpec font_{FontRole::content, 10.5, 400, false};
-    Size tile_size_{};
-    std::shared_ptr<ImageList> small_images_{};
-    std::shared_ptr<ImageList> large_images_{};
     SubscriptionToken small_images_changed_{};
     SubscriptionToken large_images_changed_{};
     std::shared_ptr<VScrollBar> vertical_bar_{};
@@ -834,6 +746,46 @@ private:
     Event<ListViewLabelEdit&> before_label_edit_{};
     Event<ListViewLabelEdit&> after_label_edit_{};
     Event<ItemContentPaint&> draw_item_content_{};
+    // property_codemod begin ListView (tools/property_families/list_view.json; generated, do not edit)
+private:
+    friend struct ListViewViewCapability<ListView>;
+    friend struct ListViewCheckBoxesCapability<ListView>;
+    friend struct ListViewMultiSelectCapability<ListView>;
+    friend struct ListViewFullRowSelectCapability<ListView>;
+    friend struct SmallImageListCapability<ListView>;
+    friend struct LargeImageListCapability<ListView>;
+    friend struct FontCapability<ListView>;
+    friend struct TileSizeCapability<ListView>;
+    friend struct ListViewDrawModeCapability<ListView>;
+    friend struct ShowGroupsCapability<ListView>;
+    friend struct DefaultGroupHeaderCapability<ListView>;
+    friend struct ListViewLabelEditCapability<ListView>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(view)& cell, ListViewView& incoming);
+    void written(const decltype(view)& cell);
+    void prepare_write(const decltype(check_boxes)& cell, bool& incoming);
+    void written(const decltype(check_boxes)& cell);
+    void prepare_write(const decltype(multi_select)& cell, bool& incoming);
+    void written(const decltype(multi_select)& cell);
+    void prepare_write(const decltype(full_row_select)& cell, bool& incoming);
+    void written(const decltype(full_row_select)& cell);
+    void prepare_write(const decltype(small_image_list)& cell, std::shared_ptr<ImageList>& incoming);
+    void written(const decltype(small_image_list)& cell);
+    void prepare_write(const decltype(large_image_list)& cell, std::shared_ptr<ImageList>& incoming);
+    void written(const decltype(large_image_list)& cell);
+    void prepare_write(const decltype(font)& cell, FontSpec& incoming);
+    void written(const decltype(font)& cell);
+    void prepare_write(const decltype(tile_size)& cell, Size& incoming);
+    void written(const decltype(tile_size)& cell);
+    void prepare_write(const decltype(draw_mode)& cell, ItemDrawMode& incoming);
+    void written(const decltype(draw_mode)& cell);
+    void prepare_write(const decltype(show_groups)& cell, bool& incoming);
+    void written(const decltype(show_groups)& cell);
+    void prepare_write(const decltype(default_group_header)& cell, std::string& incoming);
+    void written(const decltype(default_group_header)& cell);
+    void prepare_write(const decltype(label_edit)& cell, bool& incoming);
+    void written(const decltype(label_edit)& cell);
+    // property_codemod end ListView
 };
 
 } // namespace gui_forms

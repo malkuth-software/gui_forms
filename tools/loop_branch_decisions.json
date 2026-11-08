@@ -305,14 +305,14 @@
     {
       "path": "src/controls/panel/list_view/list_view.cpp",
       "function": "gui_forms::semantic_virtual_children",
-      "condition": "check_boxes_",
+      "condition": "check_boxes.read()",
       "decision": "keep",
       "reason": "publishes one semantic node per item; the flag decides one field of each node"
     },
     {
       "path": "src/controls/panel/list_view/list_view.cpp",
       "function": "gui_forms::semantic_virtual_children",
-      "condition": "view_ == ListViewView::details",
+      "condition": "view.read() == ListViewView::details",
       "decision": "keep",
       "reason": "publishes one semantic node per item; the flag decides one field of each node"
     },

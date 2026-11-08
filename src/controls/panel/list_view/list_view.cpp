@@ -11,6 +11,7 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
 #include <array>
@@ -204,11 +205,14 @@ void ListView::initialize_control_tree() {
 
 // -- model -------------------------------------------------------------------
 
-void ListView::set_view(ListViewView view) {
+void ListView::prepare_write(const decltype(view)&, ListViewView& incoming) {
     require_mutable();
-    if (!valid_view(view)) throw std::invalid_argument("ListView view is invalid");
-    if (view_ == view) return;
-    view_ = view;
+    if (!valid_view(incoming)) throw std::invalid_argument("ListView view is invalid");
+}
+
+// A new view drops the hot item and column and any revealed text, and moves
+// the model revision, so a paint in progress ends.
+void ListView::written(const decltype(view)&) {
     hot_index_.reset();
     conceal_cut_off_text();
     ++model_revision_;
@@ -395,13 +399,6 @@ const ListViewItem& ListView::item_at(std::size_t index, ListViewItem& scratch) 
 
 // -- checks, selection and focus ----------------------------------------------
 
-void ListView::set_check_boxes(bool shown) {
-    require_mutable();
-    if (check_boxes_ == shown) return;
-    check_boxes_ = shown;
-    invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
-}
-
 bool ListView::item_checked(std::size_t index) const {
     if (index >= item_count()) throw std::out_of_range("ListView item index is past the end");
     ListViewItem scratch;
@@ -423,7 +420,7 @@ void ListView::set_item_checked(std::size_t index, bool checked) {
 }
 
 void ListView::toggle_check(std::size_t index) {
-    if (!check_boxes_ || index >= item_count()) return;
+    if (!check_boxes.read() || index >= item_count()) return;
     ListViewItem scratch;
     const ListViewItem& item = item_at(index, scratch);
     ListViewItemCheck check{std::string(stable_id().value()), index, item.stable_id, item.checked,
@@ -440,11 +437,14 @@ void ListView::toggle_check(std::size_t index) {
     item_checked_.emit(check);
 }
 
-void ListView::set_multi_select(bool multiple) {
+void ListView::prepare_write(const decltype(multi_select)&, bool&) {
     require_mutable();
-    if (multi_select_ == multiple) return;
-    multi_select_ = multiple;
-    if (multiple || selected_count_ <= 1U) {
+}
+
+// Turning multiple selection off keeps the focused item, or else the first
+// selected one, and publishes the narrowed selection.
+void ListView::written(const decltype(multi_select)&) {
+    if (multi_select.read() || selected_count_ <= 1U) {
         invalidate(Dirty::semantics);
         return;
     }
@@ -457,13 +457,6 @@ void ListView::set_multi_select(bool multiple) {
     static_cast<void>(select_only(keep));
     anchor_index_ = keep;
     publish_selection();
-}
-
-void ListView::set_full_row_select(bool full_row) {
-    require_mutable();
-    if (full_row_select_ == full_row) return;
-    full_row_select_ = full_row;
-    invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
 std::vector<std::size_t> ListView::selected_indices() const {
@@ -502,7 +495,7 @@ bool ListView::toggle_selected(std::size_t index) {
         --selected_count_;
         return true;
     }
-    if (!multi_select_) return select_only(index);
+    if (!multi_select.read()) return select_only(index);
     selected_[index] = 1U;
     ++selected_count_;
     return true;
@@ -511,7 +504,7 @@ bool ListView::toggle_selected(std::size_t index) {
 bool ListView::assign_selected(std::size_t index, bool selected) {
     const bool current = selected_[index] != 0U;
     if (current == selected) return false;
-    if (selected && !multi_select_) return select_only(index);
+    if (selected && !multi_select.read()) return select_only(index);
     selected_[index] = selected ? 1U : 0U;
     if (selected) {
         ++selected_count_;
@@ -588,7 +581,7 @@ void ListView::select_all() {
     require_mutable();
     const std::size_t count = item_count();
     if (count == 0U) return;
-    if (!multi_select_) {
+    if (!multi_select.read()) {
         // One item at most: the focused one, or the first.
         const std::size_t only = focused_index_.value_or(0U);
         if (select_only(only)) publish_selection();
@@ -623,16 +616,16 @@ void ListView::move_focus(std::size_t index) {
 void ListView::choose(std::size_t index, Modifier modifiers, bool move_only) {
     const bool control = has_modifier(modifiers, Modifier::control) || has_modifier(modifiers, Modifier::meta);
     const bool shift = has_modifier(modifiers, Modifier::shift);
-    if (move_only && multi_select_) {
+    if (move_only && multi_select.read()) {
         move_focus(index);
         return;
     }
     bool changed = false;
-    if (multi_select_ && shift) {
+    if (multi_select.read() && shift) {
         const std::size_t anchor = anchor_index_.value_or(focused_index_.value_or(index));
         changed = select_range(anchor, index, control);
         anchor_index_ = anchor;
-    } else if (multi_select_ && control) {
+    } else if (multi_select.read() && control) {
         changed = toggle_selected(index);
         anchor_index_ = index;
     } else {
@@ -753,12 +746,12 @@ void ListView::sync_scroll_bars(const Layout& placed) {
     }
     if (!placed.horizontal_bar.empty()) {
         HScrollBar& bar = *horizontal_bar_;
-        if (view_ == ListViewView::list && maximum_line > 0.0) {
+        if (view.read() == ListViewView::list && maximum_line > 0.0) {
             bar.set_range(0.0, maximum_line);
             bar.set_small_change(1.0);
             bar.set_large_change(page);
             bar.set_value(std::clamp(top, 0.0, maximum_line));
-        } else if (view_ == ListViewView::details) {
+        } else if (view.read() == ListViewView::details) {
             const double visible = placed.viewport.width / placed.scale;
             const double maximum_offset = std::max(0.0, placed.columns_width / placed.scale - visible);
             if (maximum_offset > 0.0) {
@@ -780,12 +773,12 @@ void ListView::on_vertical_scroll(double value) {
 
 void ListView::on_horizontal_scroll(double value) {
     if (synchronizing_scroll_ || !is_alive()) return;
-    if (view_ == ListViewView::list) {
+    if (view.read() == ListViewView::list) {
         const double line = std::max(0.0, std::round(value));
         set_top_line(static_cast<std::size_t>(line));
         return;
     }
-    if (view_ != ListViewView::details || horizontal_offset_ == value) return;
+    if (view.read() != ListViewView::details || horizontal_offset_ == value) return;
     horizontal_offset_ = std::max(0.0, value);
     invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
@@ -856,31 +849,40 @@ void ListView::sort_items(std::size_t column, ListViewSortOrder order) {
 
 // -- images and font -----------------------------------------------------------
 
-void ListView::set_image_list(std::shared_ptr<ImageList> images, std::shared_ptr<ImageList>& slot,
-                              SubscriptionToken& subscription) {
-    require_mutable();
+void ListView::require_window_image_list(const std::shared_ptr<ImageList>& images) const {
     // A list must be alive and, once this view is in a window, that window's.
     const Window* const host = window();
     if (images && (!(*images).is_alive() || (host != nullptr && !(*images).belongs_to(*host)))) {
         throw std::invalid_argument("ListView requires a live ImageList of its own Window");
     }
-    if (slot == images) return;
+}
+
+void ListView::watch_image_list(const std::shared_ptr<ImageList>& images, SubscriptionToken& subscription) {
     subscription.disconnect();
-    slot = std::move(images);
-    if (slot) {
+    if (images) {
         const Delegate<const ImageListChange&> changed =
             Delegate<const ImageListChange&>::bind<ListView, &ListView::image_list_changed>(*this);
-        subscription = (*slot).changed().subscribe(*this, changed);
+        subscription = (*images).changed().subscribe(*this, changed);
     }
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
-void ListView::set_small_image_list(std::shared_ptr<ImageList> images) {
-    set_image_list(std::move(images), small_images_, small_images_changed_);
+void ListView::prepare_write(const decltype(small_image_list)&, std::shared_ptr<ImageList>& incoming) {
+    require_mutable();
+    require_window_image_list(incoming);
 }
 
-void ListView::set_large_image_list(std::shared_ptr<ImageList> images) {
-    set_image_list(std::move(images), large_images_, large_images_changed_);
+void ListView::written(const decltype(small_image_list)&) {
+    watch_image_list(small_image_list.read(), small_images_changed_);
+}
+
+void ListView::prepare_write(const decltype(large_image_list)&, std::shared_ptr<ImageList>& incoming) {
+    require_mutable();
+    require_window_image_list(incoming);
+}
+
+void ListView::written(const decltype(large_image_list)&) {
+    watch_image_list(large_image_list.read(), large_images_changed_);
 }
 
 void ListView::image_list_changed(const ImageListChange&) {
@@ -889,41 +891,34 @@ void ListView::image_list_changed(const ImageListChange&) {
 
 void ListView::on_attached_to_window() {
     Control::on_attached_to_window();
-    if ((small_images_ && !(*small_images_).belongs_to(*window())) ||
-        (large_images_ && !(*large_images_).belongs_to(*window()))) {
+    if ((small_image_list.read() && !(*small_image_list.read()).belongs_to(*window())) ||
+        (large_image_list.read() && !(*large_image_list.read()).belongs_to(*window()))) {
         throw std::logic_error("ListView cannot attach to a Window other than its ImageLists'");
     }
 }
 
-void ListView::set_draw_mode(ItemDrawMode mode) {
+void ListView::prepare_write(const decltype(font)&, FontSpec& incoming) {
     require_mutable();
-    if (mode != ItemDrawMode::normal && mode != ItemDrawMode::owner_draw) {
-        throw std::invalid_argument("ListView draw mode is invalid");
-    }
-    if (draw_mode_ == mode) return;
-    draw_mode_ = mode;
-    invalidate(Dirty::paint);
+    if (!valid_font_spec(incoming)) throw std::invalid_argument("ListView font specification is invalid");
+    set_font_from_code(true);
 }
 
-void ListView::set_font(FontSpec font) {
-    require_mutable();
-    if (!valid_font_spec(font)) throw std::invalid_argument("ListView font specification is invalid");
-    set_font_from_code(true);
-    if (font_ == font) return;
-    font_ = font;
-    if (label_editor_) (*label_editor_).set_font(font_);
+void ListView::written(const decltype(font)&) {
+    if (label_editor_) (*label_editor_).set_font(font.read());
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
-void ListView::set_tile_size(Size size) {
+void ListView::prepare_write(const decltype(tile_size)&, Size& incoming) {
     require_mutable();
-    const bool automatic = size.width == 0.0 && size.height == 0.0;
-    if (!automatic && (!valid_tile_side(size.width) || !valid_tile_side(size.height))) {
+    const bool automatic = incoming.width == 0.0 && incoming.height == 0.0;
+    if (!automatic && (!valid_tile_side(incoming.width) || !valid_tile_side(incoming.height))) {
         throw std::invalid_argument("ListView tile size is outside the tile side bounds");
     }
-    if (tile_size_ == size) return;
-    tile_size_ = size;
-    if (view_ != ListViewView::tile) return;
+}
+
+// Only the tile view lays out tiles.
+void ListView::written(const decltype(tile_size)&) {
+    if (view.read() != ListViewView::tile) return;
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
@@ -947,32 +942,25 @@ void ListView::set_groups(std::vector<ListViewGroup> groups) {
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
-void ListView::set_show_groups(bool shown) {
+void ListView::prepare_write(const decltype(show_groups)&, bool&) {
     require_mutable();
-    if (show_groups_ == shown) return;
-    show_groups_ = shown;
+}
+
+void ListView::written(const decltype(show_groups)&) {
     ++model_revision_;
     hot_index_.reset();
     conceal_cut_off_text();
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
-void ListView::set_default_group_header(std::string header) {
-    require_mutable();
-    if (!validate_utf8(header).valid()) throw std::invalid_argument("ListView group header is not valid UTF-8");
-    if (default_group_header_ == header) return;
-    default_group_header_ = std::move(header);
-    invalidate(Dirty::paint | Dirty::semantics);
-}
-
 bool ListView::grouped() const noexcept {
-    const bool result = show_groups_ && !groups_.empty() && !source_ && view_ != ListViewView::list;
+    const bool result = show_groups.read() && !groups_.empty() && !source_ && view.read() != ListViewView::list;
     return result;
 }
 
 const std::string& ListView::group_header(std::size_t group) const noexcept {
     if (group < groups_.size()) return groups_[group].header;
-    return default_group_header_;
+    return default_group_header.read();
 }
 
 std::string ListView::group_identity(std::size_t group) const {
@@ -1111,7 +1099,7 @@ std::size_t ListView::position_line(const Layout& placed, std::size_t position) 
 }
 
 double ListView::line_offset(const Layout& placed, std::size_t line) const noexcept {
-    const double extent = view_ == ListViewView::list ? placed.cell.width : placed.cell.height;
+    const double extent = view.read() == ListViewView::list ? placed.cell.width : placed.cell.height;
     if (!placed.grouped || placed.bands.empty()) return static_cast<double>(line) * extent;
     const std::size_t band = band_of_line(placed, line);
     const std::size_t headers = band + (line > placed.bands[band].first_line ? 1U : 0U);
@@ -1158,13 +1146,13 @@ void ListView::store_top_line(const Layout& placed, std::size_t line) {
 // -- layout ------------------------------------------------------------------
 
 double ListView::text_line_height() const {
-    const ResolvedTextLayout metrics = resolve_text_layout_utf8("Mg", text_font(font_));
+    const ResolvedTextLayout metrics = resolve_text_layout_utf8("Mg", text_font(font.read()));
     return metrics.logical_size.height;
 }
 
 Size ListView::icon_size(bool large) const noexcept {
     const double scale = effective_text_scale();
-    const std::shared_ptr<ImageList>& images = large ? large_images_ : small_images_;
+    const std::shared_ptr<ImageList>& images = large ? large_image_list.read() : small_image_list.read();
     const double fallback = large ? default_large_icon : default_small_icon;
     Size size{fallback, fallback};
     if (images) size = (*images).image_size();
@@ -1187,11 +1175,11 @@ ListView::Layout ListView::layout_for(Rect client) const {
     const double line = text_line_height();
     placed.text_line = line;
     double row = std::max(minimum_row_height * scale, line + row_text_padding * scale);
-    if (check_boxes_) row = std::max(row, (check_size + cell_padding) * scale);
-    if (small_images_) row = std::max(row, icon_size(false).height + cell_padding * scale);
+    if (check_boxes.read()) row = std::max(row, (check_size + cell_padding) * scale);
+    if (small_image_list.read()) row = std::max(row, icon_size(false).height + cell_padding * scale);
     placed.row_height = row;
-    const bool details = view_ == ListViewView::details;
-    const bool list = view_ == ListViewView::list;
+    const bool details = view.read() == ListViewView::details;
+    const bool list = view.read() == ListViewView::list;
     double columns_width = 0.0;
     for (const ListViewColumn& column : columns_) columns_width += column.width * scale;
     placed.columns_width = columns_width;
@@ -1200,13 +1188,13 @@ ListView::Layout ListView::layout_for(Rect client) const {
     const double header_height = details && !columns_.empty() ? row + 2.0 * scale : 0.0;
     if (details) {
         placed.cell = {columns_width, row};
-    } else if (view_ == ListViewView::large_icon) {
+    } else if (view.read() == ListViewView::large_icon) {
         const Size large = icon_size(true);
         placed.cell = {std::max(large_cell_width * scale, large.width + cell_padding * 4.0 * scale),
                        large.height + line + (cell_padding * 3.0 + row_text_padding) * scale};
-    } else if (view_ == ListViewView::tile) {
-        if (tile_size_.width > 0.0) {
-            placed.cell = {tile_size_.width * scale, tile_size_.height * scale};
+    } else if (view.read() == ListViewView::tile) {
+        if (tile_size.read().width > 0.0) {
+            placed.cell = {tile_size.read().width * scale, tile_size.read().height * scale};
         } else {
             const Size large = icon_size(true);
             const double text_height = line * static_cast<double>(tile_text_lines);
@@ -1344,7 +1332,7 @@ Rect ListView::item_bounds(const Layout& placed, std::size_t index) const noexce
         const std::size_t line = position_line(placed, position);
         const double along = static_cast<double>(position - line_first(placed, line));
         const double y = placed.viewport.y + line_offset(placed, line) - line_offset(placed, placed.top_line);
-        if (view_ == ListViewView::details) {
+        if (view.read() == ListViewView::details) {
             const Rect row{placed.viewport.x - placed.horizontal_offset * placed.scale, y, placed.cell.width,
                            placed.cell.height};
             return row;
@@ -1357,12 +1345,12 @@ Rect ListView::item_bounds(const Layout& placed, std::size_t index) const noexce
     const double relative = static_cast<double>(line) - static_cast<double>(placed.top_line);
     const double along = static_cast<double>(position);
     const Rect area = placed.viewport;
-    if (view_ == ListViewView::details) {
+    if (view.read() == ListViewView::details) {
         const Rect row{area.x - placed.horizontal_offset * placed.scale, area.y + relative * placed.row_height,
                        placed.cell.width, placed.cell.height};
         return row;
     }
-    if (view_ == ListViewView::list) {
+    if (view.read() == ListViewView::list) {
         const Rect cell{area.x + relative * placed.cell.width, area.y + along * placed.cell.height,
                         placed.cell.width, placed.cell.height};
         return cell;
@@ -1417,29 +1405,29 @@ ListView::ItemParts ListView::item_parts(const Layout& placed, std::size_t index
     Rect text{};
     Rect face{};
     Rect inner_clip = clip;
-    if (view_ == ListViewView::large_icon) {
+    if (view.read() == ListViewView::large_icon) {
         const Size image = icon_size(true);
         const double top = cell.y + cell_padding * scale;
-        if (large_images_) {
+        if (large_image_list.read()) {
             icon = {std::floor(cell.x + (cell.width - image.width) * 0.5), top, image.width, image.height};
         }
-        if (check_boxes_) check_well = {cell.x + 2.0 * scale, top, check_size * scale, check_size * scale};
+        if (check_boxes.read()) check_well = {cell.x + 2.0 * scale, top, check_size * scale, check_size * scale};
         const double text_top = top + image.height + cell_padding * scale;
         text = {cell.x + 2.0 * scale, text_top, std::max(0.0, cell.width - 4.0 * scale),
                 std::max(0.0, cell.y + cell.height - 2.0 * scale - text_top)};
         face = {cell.x + scale, cell.y + scale, std::max(0.0, cell.width - 2.0 * scale),
                 std::max(0.0, cell.height - 2.0 * scale)};
-    } else if (view_ == ListViewView::tile) {
+    } else if (view.read() == ListViewView::tile) {
         // The check box and icon sit at the tile's left, centred on it; the
         // text block beside them is centred too.
         const double middle = cell.y + cell.height * 0.5;
         double x = cell.x + cell_padding * scale;
-        if (check_boxes_) {
+        if (check_boxes.read()) {
             const double side = check_size * scale;
             check_well = {x, std::floor(middle - side * 0.5), side, side};
             x += side + cell_padding * scale;
         }
-        if (large_images_) {
+        if (large_image_list.read()) {
             const Size image = icon_size(true);
             icon = {x, std::floor(middle - image.height * 0.5), image.width, image.height};
             x += image.width + cell_padding * scale;
@@ -1454,18 +1442,18 @@ ListView::ItemParts ListView::item_parts(const Layout& placed, std::size_t index
                 std::max(0.0, cell.height - 2.0 * scale)};
     } else {
         double first_right = cell.x + cell.width;
-        if (view_ == ListViewView::details) {
+        if (view.read() == ListViewView::details) {
             first_right = cell.x + columns_.front().width * scale;
             inner_clip = Rect::intersection(clip, {cell.x, cell.y, first_right - cell.x, cell.height});
         }
         const double middle = cell.y + cell.height * 0.5;
         double x = cell.x + cell_padding * scale;
-        if (check_boxes_) {
+        if (check_boxes.read()) {
             const double side = check_size * scale;
             check_well = {x, std::floor(middle - side * 0.5), side, side};
             x += side + cell_padding * scale;
         }
-        if (small_images_) {
+        if (small_image_list.read()) {
             const Size image = icon_size(false);
             icon = {x, std::floor(middle - image.height * 0.5), image.width, image.height};
             x += image.width + cell_padding * scale;
@@ -1473,7 +1461,7 @@ ListView::ItemParts ListView::item_parts(const Layout& placed, std::size_t index
         text = {x, cell.y, std::max(0.0, first_right - cell_padding * scale - x), cell.height};
         const double face_left = x - 2.0 * scale;
         face = {face_left, cell.y, std::max(0.0, first_right - face_left), cell.height};
-        if (view_ == ListViewView::details && full_row_select_) face = cell;
+        if (view.read() == ListViewView::details && full_row_select.read()) face = cell;
     }
     Rect check{};
     if (!check_well.empty()) {
@@ -1481,7 +1469,7 @@ ListView::ItemParts ListView::item_parts(const Layout& placed, std::size_t index
         check = {check_well.x + inset, check_well.y + inset, std::max(0.0, check_well.width - inset * 2.0),
                  std::max(0.0, check_well.height - inset * 2.0)};
     }
-    const Rect face_clip = view_ == ListViewView::details && full_row_select_ ? clip : inner_clip;
+    const Rect face_clip = view.read() == ListViewView::details && full_row_select.read() ? clip : inner_clip;
     ItemParts parts;
     parts.cell = PartGeometry::from_bounds(Rect::intersection(cell, clip));
     parts.item_face = PartGeometry::from_bounds(Rect::intersection(face, face_clip));
@@ -1536,7 +1524,7 @@ AnatomyStateSet ListView::item_states(std::size_t index, bool checked) const {
     if (selected_[index] != 0U) states.insert(AnatomyState::selected);
     if (hot_index_ == index) states.insert(AnatomyState::hot);
     if (focused_index_ == index) states.insert(AnatomyState::current);
-    if (check_boxes_ && checked) states.insert(AnatomyState::checked);
+    if (check_boxes.read() && checked) states.insert(AnatomyState::checked);
     if (!effectively_enabled()) states.insert(AnatomyState::disabled);
     const Window* const host = attached_window();
     if (focused_ && focused_index_ == index && host != nullptr && (*host).focus_cue_visible()) {
@@ -1590,7 +1578,7 @@ void ListView::paint_column(Painter& painter, const Layout& placed, std::size_t 
     const ColumnParts parts = column_parts(placed, column, cell);
     const AnatomyStateSet states = column_states(column);
     PartPaint part;
-    part.font = text_font(font_);
+    part.font = text_font(font.read());
     part.states = states;
     // Header cells are flat at rest and show a plate when hot or pressed:
     // the menu_item family's look.
@@ -1635,7 +1623,7 @@ bool ListView::paint_item(Painter& painter, const Layout& placed, std::size_t in
     const ItemParts parts = item_parts(placed, index, cell);
     const AnatomyStateSet states = item_states(index, item.checked);
     PartPaint part;
-    part.font = text_font(font_);
+    part.font = text_font(font.read());
     part.states = states;
     part.family = ControlVisualRole::selection;
     part.role = PartRole::face;
@@ -1657,7 +1645,7 @@ bool ListView::paint_item(Painter& painter, const Layout& placed, std::size_t in
         }
         part.family = ControlVisualRole::selection;
     }
-    const bool owner_drawn = draw_mode_ == ItemDrawMode::owner_draw;
+    const bool owner_drawn = draw_mode.read() == ItemDrawMode::owner_draw;
     bool default_content = true;
     if (owner_drawn) {
         // The handlers see the identity through the view's own copy, which
@@ -1680,7 +1668,7 @@ bool ListView::paint_item(Painter& painter, const Layout& placed, std::size_t in
     }
     if (default_content && parts.icon.present && !item.image_key.empty()) {
         const std::shared_ptr<ImageList>& images =
-            view_ == ListViewView::large_icon || view_ == ListViewView::tile ? large_images_ : small_images_;
+            view.read() == ListViewView::large_icon || view.read() == ListViewView::tile ? large_image_list.read() : small_image_list.read();
         const Window* const host = attached_window();
         const double density = host != nullptr ? (*host).scale() : 1.0;
         const ImageListResolution resolved = (*images).resolve(item.image_key, image_state(states), density);
@@ -1694,14 +1682,14 @@ bool ListView::paint_item(Painter& painter, const Layout& placed, std::size_t in
     }
     part.role = PartRole::content;
     part.bounds = parts.text.bounds;
-    part.alignment = view_ == ListViewView::large_icon ? PartTextAlignment::center : PartTextAlignment::start;
+    part.alignment = view.read() == ListViewView::large_icon ? PartTextAlignment::center : PartTextAlignment::start;
     if (default_content) {
         details_detail::elide_to_width(painter, item.text, part.font, part.bounds.width, paint_text_);
         part.text = paint_text_;
         paint_part(painter, *this, part);
         part.text = {};
     }
-    if (view_ == ListViewView::details) {
+    if (view.read() == ListViewView::details) {
         AnatomyStateSet sub_states;
         if (states.contains(AnatomyState::selected)) sub_states.insert(AnatomyState::selected);
         if (states.contains(AnatomyState::disabled)) sub_states.insert(AnatomyState::disabled);
@@ -1736,7 +1724,7 @@ bool ListView::paint_item(Painter& painter, const Layout& placed, std::size_t in
         part.states = states;
         part.alignment = PartTextAlignment::start;
     }
-    if (view_ == ListViewView::tile && !paint_tile_lines(painter, placed, index, parts, states)) return false;
+    if (view.read() == ListViewView::tile && !paint_tile_lines(painter, placed, index, parts, states)) return false;
     part.role = PartRole::focus;
     part.bounds = parts.cell_focus.bounds;
     paint_part(painter, *this, part);
@@ -1752,7 +1740,7 @@ bool ListView::paint_tile_lines(Painter& painter, const Layout& placed, std::siz
     const std::size_t lines = tile_line_count(item, columns_.size(), placed.tile_lines);
     const Rect first = parts.text.bounds;
     PartPaint part;
-    part.font = text_font(font_);
+    part.font = text_font(font.read());
     part.states = states;
     part.family = ControlVisualRole::selection;
     part.role = PartRole::content;
@@ -1763,7 +1751,7 @@ bool ListView::paint_tile_lines(Painter& painter, const Layout& placed, std::siz
         const Rect bounds{first.x, first.y + placed.text_line * static_cast<double>(shown), first.width,
                           placed.text_line};
         ++shown;
-        if (draw_mode_ == ItemDrawMode::owner_draw) {
+        if (draw_mode.read() == ItemDrawMode::owner_draw) {
             ItemContentPaint request{.painter = painter,
                                      .index = index,
                                      .column = column,
@@ -1791,9 +1779,9 @@ void ListView::paint_group(Painter& painter, const Layout& placed, std::size_t b
     const GroupParts parts = group_parts(placed, band, placed.viewport);
     const std::size_t group = placed.bands[band].group;
     PartPaint part;
-    FontSpec font = text_font(font_);
-    font.weight = 700;
-    part.font = font;
+    FontSpec header_font = text_font(font.read());
+    header_font.weight = 700;
+    part.font = header_font;
     if (!effectively_enabled()) part.states.insert(AnatomyState::disabled);
     part.family = ControlVisualRole::panel;
     part.role = PartRole::caption;
@@ -1951,15 +1939,15 @@ ListView::Hit ListView::hit_test(const Layout& placed, Point local) const {
     if (placed.grouped) {
         const std::size_t line = line_at_offset(placed, line_offset(placed, placed.top_line) + down);
         const std::size_t along =
-            view_ == ListViewView::details ? 0U : static_cast<std::size_t>(across / placed.cell.width);
+            view.read() == ListViewView::details ? 0U : static_cast<std::size_t>(across / placed.cell.width);
         if (along >= line_items(placed, line)) return hit;
         index = index_at(placed, line_first(placed, line) + along);
     } else {
         std::size_t line = 0U;
         std::size_t position = 0U;
-        if (view_ == ListViewView::details) {
+        if (view.read() == ListViewView::details) {
             line = placed.top_line + static_cast<std::size_t>(down / placed.row_height);
-        } else if (view_ == ListViewView::list) {
+        } else if (view.read() == ListViewView::list) {
             line = placed.top_line + static_cast<std::size_t>(across / placed.cell.width);
             position = static_cast<std::size_t>(down / placed.cell.height);
         } else {
@@ -1973,7 +1961,7 @@ ListView::Hit ListView::hit_test(const Layout& placed, Point local) const {
     if (!item_bounds(placed, index).contains(local)) return hit;
     hit.index = index;
     hit.zone = HitZone::item;
-    if (check_boxes_) {
+    if (check_boxes.read()) {
         const ItemParts parts = item_parts(placed, index, placed.viewport);
         if (parts.check_well.present && parts.check_well.bounds.contains(local)) hit.zone = HitZone::check;
     }
@@ -1986,8 +1974,8 @@ ListView::Hit ListView::hit_test(const Layout& placed, Point local) const {
 // the check box stay in view, and keeps the row's states. Owner-drawn
 // content is the application's, so its text is never revealed.
 void ListView::reveal_cut_off_text(const Layout& placed, const Hit& hit, Point local) {
-    const bool revealing_view = view_ == ListViewView::details || view_ == ListViewView::list;
-    if (hit.zone != HitZone::item || !revealing_view || draw_mode_ == ItemDrawMode::owner_draw ||
+    const bool revealing_view = view.read() == ListViewView::details || view.read() == ListViewView::list;
+    if (hit.zone != HitZone::item || !revealing_view || draw_mode.read() == ItemDrawMode::owner_draw ||
         label_edit_index_) {
         conceal_cut_off_text();
         return;
@@ -2000,7 +1988,7 @@ void ListView::reveal_cut_off_text(const Layout& placed, const Hit& hit, Point l
     std::size_t column = 0U;
     Rect text_cell = parts.text.bounds;
     double row_right = parts.item_face.bounds.x + parts.item_face.bounds.width;
-    if (view_ == ListViewView::details) {
+    if (view.read() == ListViewView::details) {
         std::optional<std::size_t> under{};
         for (std::size_t candidate = 0; candidate < columns_.size() && !under; ++candidate) {
             if (!column_visible(placed, candidate)) continue;
@@ -2036,7 +2024,7 @@ void ListView::reveal_cut_off_text(const Layout& placed, const Hit& hit, Point l
     revealed.row = {absolute.x + row_left, absolute.y + cell.y, std::max(0.0, row_right - row_left), cell.height};
     revealed.cell = {absolute.x + text_cell.x, absolute.y + text_cell.y, text_cell.width, text_cell.height};
     revealed.text = std::string(text);
-    revealed.font = text_font(font_);
+    revealed.font = text_font(font.read());
     revealed.paint = detail::RevealPaint{.family = ControlVisualRole::selection, .states = states};
     static_cast<void>((*reveal_).reveal(shared_from_this(), std::move(revealed)));
 }
@@ -2057,7 +2045,7 @@ Rect ListView::insertion_mark_bounds(const Layout& placed) const noexcept {
     const double thickness = insertion_thickness * placed.scale;
     // The details and list views stack items down a line, so their gaps
     // run between rows; the icon views' gaps run between cells of a row.
-    const bool between_rows = view_ == ListViewView::details || view_ == ListViewView::list;
+    const bool between_rows = view.read() == ListViewView::details || view.read() == ListViewView::list;
     Rect bar{};
     if (between_rows) {
         const double edge = mark.after ? cell.y + cell.height : cell.y;
@@ -2104,15 +2092,15 @@ std::optional<ListViewInsertionMark> ListView::insertion_mark_at(Point window_po
         // A header names its group's first line.
         if (header_line(placed, line)) ++line;
         std::size_t along =
-            view_ == ListViewView::details ? 0U : static_cast<std::size_t>(across / placed.cell.width);
+            view.read() == ListViewView::details ? 0U : static_cast<std::size_t>(across / placed.cell.width);
         along = std::min(along, line_items(placed, line) - 1U);
         index = index_at(placed, line_first(placed, line) + along);
     } else {
         std::size_t line = placed.top_line;
         std::size_t position = 0U;
-        if (view_ == ListViewView::details) {
+        if (view.read() == ListViewView::details) {
             line += static_cast<std::size_t>(down / placed.row_height);
-        } else if (view_ == ListViewView::list) {
+        } else if (view.read() == ListViewView::list) {
             line += static_cast<std::size_t>(across / placed.cell.width);
             position = static_cast<std::size_t>(down / placed.cell.height);
         } else {
@@ -2123,7 +2111,7 @@ std::optional<ListViewInsertionMark> ListView::insertion_mark_at(Point window_po
         index = std::min(line * placed.per_line + position, placed.shown_count - 1U);
     }
     const Rect cell = item_bounds(placed, index);
-    const bool between_rows = view_ == ListViewView::details || view_ == ListViewView::list;
+    const bool between_rows = view.read() == ListViewView::details || view.read() == ListViewView::list;
     const Point clamped{area.x + across, area.y + down};
     const bool after = between_rows ? clamped.y >= cell.y + cell.height * 0.5
                                     : clamped.x >= cell.x + cell.width * 0.5;
@@ -2224,7 +2212,7 @@ void ListView::on_pointer(PointerEvent& event) {
         if (event.wheel_delta.y == 0.0 && event.wheel_delta.x == 0.0) return;
         cancel_label_click();
         const bool sideways = event.wheel_delta.x != 0.0 || has_modifier(event.modifiers, Modifier::shift);
-        if (sideways && view_ == ListViewView::details) {
+        if (sideways && view.read() == ListViewView::details) {
             const double delta = event.wheel_delta.x != 0.0 ? event.wheel_delta.x : event.wheel_delta.y;
             set_horizontal_offset(std::max(0.0, horizontal_offset_ - delta * horizontal_key_step * 2.0));
         } else {
@@ -2241,7 +2229,7 @@ void ListView::on_pointer(PointerEvent& event) {
         // press, without modifiers, on the text of the item that was already
         // focused and selected while the view had focus.
         cancel_label_click();
-        const bool slow_click = label_edit_ && focused_ && event.button == PointerButton::primary &&
+        const bool slow_click = label_edit.read() && focused_ && event.button == PointerButton::primary &&
                                 event.click_count == 1U && event.modifiers == Modifier::none &&
                                 hit.zone == HitZone::item && focused_index_ == hit.index &&
                                 hit.index < selected_.size() && selected_[hit.index] != 0U &&
@@ -2303,9 +2291,9 @@ std::optional<std::size_t> ListView::navigation_target(std::uint32_t key, std::s
     // view's columns and the icon views' rows) or to the next item.
     std::size_t vertical = 1U;
     std::size_t horizontal = 0U;
-    if (view_ == ListViewView::list) {
+    if (view.read() == ListViewView::list) {
         horizontal = per;
-    } else if (view_ != ListViewView::details) {
+    } else if (view.read() != ListViewView::details) {
         vertical = per;
         horizontal = 1U;
     }
@@ -2349,7 +2337,7 @@ std::optional<std::size_t> ListView::grouped_navigation_target(std::uint32_t key
         const std::size_t moved = line_first(placed, target) + std::min(along, line_items(placed, target) - 1U);
         return index_at(placed, moved);
     }
-    if (view_ == ListViewView::details) return std::nullopt;
+    if (view.read() == ListViewView::details) return std::nullopt;
     if (key == PhysicalKey::left) return index_at(placed, position > 0U ? position - 1U : position);
     if (key == PhysicalKey::right) return index_at(placed, std::min(position + 1U, last));
     return std::nullopt;
@@ -2386,7 +2374,7 @@ void ListView::on_key(KeyEvent& event) {
                          has_modifier(event.modifiers, Modifier::meta);
     const bool shift = has_modifier(event.modifiers, Modifier::shift);
     const std::size_t from = std::min(focused_index_.value_or(0U), placed.shown_count - 1U);
-    if (event.physical_key == PhysicalKey::f2 && label_edit_ && focused_index_) {
+    if (event.physical_key == PhysicalKey::f2 && label_edit.read() && focused_index_) {
         static_cast<void>(begin_label_edit(*focused_index_));
         event.handled = true;
         return;
@@ -2402,9 +2390,9 @@ void ListView::on_key(KeyEvent& event) {
         return;
     }
     if (event.physical_key == PhysicalKey::space) {
-        if (check_boxes_ && !control) {
+        if (check_boxes.read() && !control) {
             toggle_check(from);
-        } else if (control && multi_select_) {
+        } else if (control && multi_select.read()) {
             const bool changed = toggle_selected(from);
             anchor_index_ = from;
             move_focus(from);
@@ -2419,7 +2407,7 @@ void ListView::on_key(KeyEvent& event) {
     if (!target) {
         // The details view scrolls sideways with Left and Right.
         const bool sideways = event.physical_key == PhysicalKey::left || event.physical_key == PhysicalKey::right;
-        if (!sideways || view_ != ListViewView::details) return;
+        if (!sideways || view.read() != ListViewView::details) return;
         const double step = event.physical_key == PhysicalKey::left ? -horizontal_key_step : horizontal_key_step;
         set_horizontal_offset(std::max(0.0, placed.horizontal_offset + step));
         event.handled = true;
@@ -2487,14 +2475,16 @@ void ListView::on_focus_changed(bool focused) {
 
 // -- label editing -------------------------------------------------------------
 
-void ListView::set_label_edit(bool enabled) {
+void ListView::prepare_write(const decltype(label_edit)&, bool&) {
     require_mutable();
-    if (label_edit_ == enabled) return;
-    label_edit_ = enabled;
-    if (!enabled) {
-        cancel_label_click();
-        cancel_label_edit();
-    }
+}
+
+// Turning label editing off cancels a pending slow click and an edit in
+// progress; the view's look does not change.
+void ListView::written(const decltype(label_edit)&) {
+    if (label_edit.read()) return;
+    cancel_label_click();
+    cancel_label_edit();
 }
 
 // The slow click's timer finds the view through a weak reference; a view
@@ -2533,7 +2523,7 @@ void ListView::cancel_label_click() noexcept {
 void ListView::label_click_elapsed() {
     const std::optional<PendingLabelClick> pending = label_click_;
     cancel_label_click();
-    if (!pending || !label_edit_ || !focused_ || label_edit_index_) return;
+    if (!pending || !label_edit.read() || !focused_ || label_edit_index_) return;
     const PendingLabelClick& click = *pending;
     if (click.revision != model_revision_ || focused_index_ != click.index) return;
     if (click.index >= selected_.size() || selected_[click.index] == 0U || click.index >= item_count()) return;
@@ -2561,7 +2551,7 @@ void ListView::create_label_editor() {
     label_editor_ = make_control<TextBox>(StableId(prefix + ".label-editor"));
     TextBox& editor = *label_editor_;
     editor.border_style = BorderStyle::none;
-    editor.set_font(font_);
+    editor.set_font(font.read());
     add_child(label_editor_);
     set_child_layout_collapsed(label_editor_, true);
     label_editor_focus_ = editor.focus_observed().subscribe(
@@ -2581,13 +2571,13 @@ bool ListView::begin_label_edit(std::size_t index) {
     require_mutable();
     cancel_label_click();
     if (index >= item_count()) throw std::out_of_range("ListView item index is past the end");
-    if (!label_edit_) return false;
+    if (!label_edit.read()) return false;
     if (label_edit_index_ && *label_edit_index_ == index) return true;
     const Control::Ptr lifetime = shared_from_this();
     if (label_edit_index_) {
         end_label_edit();
         // The commit's handlers may change or end the view, or begin an edit.
-        if (!is_alive() || !label_edit_ || index >= item_count()) return false;
+        if (!is_alive() || !label_edit.read() || index >= item_count()) return false;
         if (label_edit_index_) return *label_edit_index_ == index;
     }
     if (index >= layout().shown_count) return false;
@@ -2598,7 +2588,7 @@ bool ListView::begin_label_edit(std::size_t index) {
     request.index = index;
     request.item_id = item_id;
     before_label_edit_.emit(request);
-    if (request.cancel || !is_alive() || !label_edit_ || label_edit_index_) return false;
+    if (request.cancel || !is_alive() || !label_edit.read() || label_edit_index_) return false;
     // A handler may have changed the items: the edit begins only on the item
     // it was asked for, still shown at `index`.
     if (index >= item_count() || index >= layout().shown_count) return false;
@@ -2680,14 +2670,14 @@ SemanticDescriptor ListView::semantic_descriptor() const {
     // The details view is a table (12.13) whose rows hold a cell per
     // column, sized by every item and every column, realized or not; the
     // other views are lists.
-    if (view_ == ListViewView::details) {
+    if (view.read() == ListViewView::details) {
         descriptor.role = SemanticRole::table;
         descriptor.row_count = item_count();
         descriptor.column_count = columns_.size();
     } else {
         descriptor.role = SemanticRole::list;
     }
-    if (multi_select_) descriptor.states |= SemanticState::multiselectable;
+    if (multi_select.read()) descriptor.states |= SemanticState::multiselectable;
     descriptor.name = accessible_name.read();
     descriptor.description = accessible_description.read();
     if (selected_count_ == 1U && focused_index_ && selected_[*focused_index_] != 0U) {
@@ -2741,18 +2731,18 @@ std::vector<SemanticNode> ListView::semantic_virtual_children() const {
         node.stable_id = item.stable_id;
         node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
         node.name = item.text;
-        if (view_ == ListViewView::details) {
+        if (view.read() == ListViewView::details) {
             node.role = SemanticRole::row;
             node.row_index = position + 1U;
             append_row_cells(placed, index, item, node);
         } else {
-            node.role = check_boxes_ ? SemanticRole::check_list_item : SemanticRole::list_item;
+            node.role = check_boxes.read() ? SemanticRole::check_list_item : SemanticRole::list_item;
         }
         node.bounds = {absolute.x + bounds.x, absolute.y + bounds.y, bounds.width, bounds.height};
         node.states = SemanticState::visible | SemanticState::focusable | enabled_state;
         if (selected_[index] != 0U) node.states |= SemanticState::selected;
         if (focused_ && focused_index_ == index) node.states |= SemanticState::focused;
-        if (check_boxes_) {
+        if (check_boxes.read()) {
             node.value = item.checked ? "checked" : "unchecked";
             node.states |= SemanticState::checkable;
             if (item.checked) node.states |= SemanticState::checked;
@@ -2850,7 +2840,7 @@ bool ListView::on_semantic_child_action(std::string_view id, SemanticAction acti
         move_focus(*index);
     } else if (action == SemanticAction::select) {
         choose(*index, Modifier::none, false);
-    } else if (check_boxes_) {
+    } else if (check_boxes.read()) {
         // Press toggles a check-list item, as CheckedListBox's do.
         move_focus(*index);
         toggle_check(*index);
@@ -3041,7 +3031,7 @@ std::size_t ListView::realized_row_count(const Layout& placed) const noexcept {
 // Sub-items are realized row by row, across the visible columns after the
 // first.
 std::size_t ListView::realized_sub_item_count(const Layout& placed) const noexcept {
-    if (view_ != ListViewView::details || columns_.size() < 2U) return 0U;
+    if (view.read() != ListViewView::details || columns_.size() < 2U) return 0U;
     std::size_t columns = visible_column_count(placed);
     if (column_visible(placed, 0U)) --columns;
     const std::size_t result = realized_row_count(placed) * columns;
@@ -3056,7 +3046,7 @@ std::size_t ListView::realized_sub_item_column(const Layout& placed, std::size_t
 
 std::size_t ListView::realized_item_count() const {
     const Layout placed = layout();
-    const std::size_t columns = view_ == ListViewView::details ? visible_column_count(placed) : 0U;
+    const std::size_t columns = view.read() == ListViewView::details ? visible_column_count(placed) : 0U;
     const std::size_t result =
         realized_row_count(placed) + realized_sub_item_count(placed) + columns + realized_group_count(placed);
     return result;
@@ -3082,7 +3072,7 @@ ListView::RealizedSlot ListView::realized_slot(const Layout& placed, std::size_t
         slot.column = realized_sub_item_column(placed, position % per_row);
         return slot;
     }
-    const std::size_t columns = view_ == ListViewView::details ? visible_column_count(placed) : 0U;
+    const std::size_t columns = view.read() == ListViewView::details ? visible_column_count(placed) : 0U;
     if (item < rows + sub_items + columns) {
         slot.system = column_system;
         slot.column = visible_column(placed, item - rows - sub_items);
@@ -3198,7 +3188,7 @@ std::vector<ListView::SubItem> ListView::realized_sub_items() const {
 
 std::vector<ListView::Column> ListView::realized_columns() const {
     const Layout placed = layout();
-    const std::size_t count = view_ == ListViewView::details ? visible_column_count(placed) : 0U;
+    const std::size_t count = view.read() == ListViewView::details ? visible_column_count(placed) : 0U;
     std::vector<Column> records;
     records.reserve(count);
     for (std::size_t position = 0; position < count; ++position) {
@@ -3258,5 +3248,45 @@ void ListView::append_interactions(std::vector<InteractionDeclaration>& interact
     Control::append_interactions(interactions);
     interactions.insert(interactions.end(), list_view_interactions.begin(), list_view_interactions.end());
 }
+
+// property_codemod begin ListView (tools/property_families/list_view.json; generated, do not edit)
+
+void ListView::prepare_write(const decltype(check_boxes)&, bool&) {
+    require_mutable();
+}
+
+void ListView::written(const decltype(check_boxes)&) {
+    invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+void ListView::prepare_write(const decltype(full_row_select)&, bool&) {
+    require_mutable();
+}
+
+void ListView::written(const decltype(full_row_select)&) {
+    invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+void ListView::prepare_write(const decltype(draw_mode)&, ItemDrawMode& incoming) {
+    require_mutable();
+    if (incoming != ItemDrawMode::normal && incoming != ItemDrawMode::owner_draw) {
+        throw std::invalid_argument("ListView draw mode is invalid");
+    }
+}
+
+void ListView::written(const decltype(draw_mode)&) {
+    invalidate(Dirty::paint);
+}
+
+void ListView::prepare_write(const decltype(default_group_header)&, std::string& incoming) {
+    require_mutable();
+    if (!validate_utf8(incoming).valid()) throw std::invalid_argument("ListView group header is not valid UTF-8");
+}
+
+void ListView::written(const decltype(default_group_header)&) {
+    invalidate(Dirty::paint | Dirty::semantics);
+}
+
+// property_codemod end ListView
 
 } // namespace gui_forms
