@@ -7,7 +7,7 @@ gui_forms::TabControl
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: TabControl final : public ContainerControl
+.. cpp:class:: TabControl final : public ContainerControl, public TabControlCapabilities<TabControl>
 
    ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control.hpp>``
 
@@ -32,6 +32,41 @@ gui_forms::TabControl
 
    :Properties:
 
+      **alignment** : ``TabAlignment``, default ``TabAlignment::top``
+         The edge the tabs run along: top or bottom with tabs side by side, left
+         or right with tabs stacked. The display area takes the rest.
+
+      **appearance** : ``TabAppearance``, default ``TabAppearance::normal``
+         How tabs are drawn, through the theme's recipes until the tab stack has
+         its own look: :cpp:enumerator:`TabAppearance::normal <gui_forms::TabAppearance::normal>` flat at rest with a plate when hot
+         or selected, the selected tab joined to the page; :cpp:enumerator:`TabAppearance::buttons <gui_forms::TabAppearance::buttons>`
+         a button's plate on every tab; :cpp:enumerator:`TabAppearance::flat_buttons <gui_forms::TabAppearance::flat_buttons>` a command
+         button's lighter plate on every tab.
+
+      **size_mode** : ``TabSizeMode``, default ``TabSizeMode::normal``
+         How wide each tab is: :cpp:enumerator:`TabSizeMode::normal <gui_forms::TabSizeMode::normal>` its caption plus padding,
+         :cpp:enumerator:`TabSizeMode::fill_to_right <gui_forms::TabSizeMode::fill_to_right>` the row shared equally, :cpp:enumerator:`TabSizeMode::fixed <gui_forms::TabSizeMode::fixed>`
+         :cpp:member:`item_size <gui_forms::TabControl::item_size>` whatever the caption.
+
+      **item_size** : ``Size``, default ``{120.0, 30.0}``
+         In logical units before the window's text scale. Its height is the
+         thickness of a top or bottom tab row, its width the thickness of a left
+         or right column, in every size mode. Under :cpp:enumerator:`TabSizeMode::fixed <gui_forms::TabSizeMode::fixed>` it is
+         every tab's size. Smaller than 24 by 18, larger than 1024 by 1024, or
+         not finite, throws ``std::invalid_argument``.
+
+      **image_list** : ``std::shared_ptr<ImageList>``, default null
+         The images the pages' ``image_key`` and ``image_index`` name. A tab shows its
+         image before its caption, painted by the strip as the tab's icon part.
+         Throws ``std::invalid_argument`` for a disposed list or one that belongs to
+         another window, and keeps the old list. Changes to the list move the
+         image an index names.
+
+      **draw_mode** : ``ItemDrawMode``, default ``ItemDrawMode::normal``
+         With ``ItemDrawMode::owner_draw`` the application draws the tabs'
+         content (Windows Forms' ``DrawMode.OwnerDrawFixed``): see
+         :cpp:func:`draw_item_content <gui_forms::TabControl::draw_item_content>`. Throws ``std::invalid_argument`` for an unknown mode.
+
       **pages** : ``std::vector<std::shared_ptr<TabPage>>``, read-only
          The pages in tab order. Only pages that are still children of the
          control are listed.
@@ -49,39 +84,9 @@ gui_forms::TabControl
          The selected page, or null. :cpp:func:`set_selected_tab <gui_forms::TabControl::set_selected_tab>` selects a page of this
          control and throws ``std::invalid_argument`` for any other page.
 
-      **alignment** : ``TabAlignment``, default ``TabAlignment::top``
-         The edge the tabs run along: top or bottom with tabs side by side, left
-         or right with tabs stacked. The display area takes the rest.
-
-      **appearance** : ``TabAppearance``, default ``TabAppearance::normal``
-         How tabs are drawn, through the theme's recipes until the tab stack has
-         its own look: :cpp:enumerator:`TabAppearance::normal <gui_forms::TabAppearance::normal>` flat at rest with a plate when hot
-         or selected, the selected tab joined to the page; :cpp:enumerator:`TabAppearance::buttons <gui_forms::TabAppearance::buttons>`
-         a button's plate on every tab; :cpp:enumerator:`TabAppearance::flat_buttons <gui_forms::TabAppearance::flat_buttons>` a command
-         button's lighter plate on every tab.
-
-      **size_mode** : ``TabSizeMode``, default ``TabSizeMode::normal``
-         How wide each tab is: :cpp:enumerator:`TabSizeMode::normal <gui_forms::TabSizeMode::normal>` its caption plus padding,
-         :cpp:enumerator:`TabSizeMode::fill_to_right <gui_forms::TabSizeMode::fill_to_right>` the row shared equally, :cpp:enumerator:`TabSizeMode::fixed <gui_forms::TabSizeMode::fixed>`
-         :cpp:func:`item_size <gui_forms::TabControl::item_size>` whatever the caption.
-
-      **item_size** : ``Size``, default ``{120.0, 30.0}``
-         In logical units before the window's text scale. Its height is the
-         thickness of a top or bottom tab row, its width the thickness of a left
-         or right column, in every size mode. Under :cpp:enumerator:`TabSizeMode::fixed <gui_forms::TabSizeMode::fixed>` it is
-         every tab's size. Smaller than 24 by 18, larger than 1024 by 1024, or
-         not finite, throws ``std::invalid_argument``.
-
       **style** : ``BasicControlStyle``
          Kept for compatibility: the control paints by role from the window's
          theme and no longer reads it.
-
-      **image_list** : ``std::shared_ptr<ImageList>``, default null
-         The images the pages' ``image_key`` and ``image_index`` name. A tab shows its
-         image before its caption, painted by the strip as the tab's icon part.
-         Throws ``std::invalid_argument`` for a disposed list or one that belongs to
-         another window, and keeps the old list. Changes to the list move the
-         image an index names.
 
       **display_bounds** : ``Rect``, read-only
          The area given to the selected page, in the control's coordinates. With
@@ -90,11 +95,6 @@ gui_forms::TabControl
 
       **overflowing** : ``bool``, read-only
          Whether the tabs do not all fit, so the scroll and list buttons show.
-
-      **draw_mode** : ``ItemDrawMode``, default ``ItemDrawMode::normal``
-         With ``ItemDrawMode::owner_draw`` the application draws the tabs'
-         content (Windows Forms' ``DrawMode.OwnerDrawFixed``): see
-         :cpp:func:`draw_item_content <gui_forms::TabControl::draw_item_content>`. Throws ``std::invalid_argument`` for an unknown mode.
 
       **parts** : ``Parts``, read-only
 
@@ -301,6 +301,47 @@ gui_forms::TabControl
 
    .. rubric:: Properties
 
+   .. cpp:member:: TabAlignment alignment
+
+      The edge the tabs run along: top or bottom with tabs side by side, left
+      or right with tabs stacked. The display area takes the rest.
+
+   .. cpp:member:: TabAppearance appearance
+
+      How tabs are drawn, through the theme's recipes until the tab stack has
+      its own look: :cpp:enumerator:`TabAppearance::normal <gui_forms::TabAppearance::normal>` flat at rest with a plate when hot
+      or selected, the selected tab joined to the page; :cpp:enumerator:`TabAppearance::buttons <gui_forms::TabAppearance::buttons>`
+      a button's plate on every tab; :cpp:enumerator:`TabAppearance::flat_buttons <gui_forms::TabAppearance::flat_buttons>` a command
+      button's lighter plate on every tab.
+
+   .. cpp:member:: TabSizeMode size_mode
+
+      How wide each tab is: :cpp:enumerator:`TabSizeMode::normal <gui_forms::TabSizeMode::normal>` its caption plus padding,
+      :cpp:enumerator:`TabSizeMode::fill_to_right <gui_forms::TabSizeMode::fill_to_right>` the row shared equally, :cpp:enumerator:`TabSizeMode::fixed <gui_forms::TabSizeMode::fixed>`
+      :cpp:member:`item_size <gui_forms::TabControl::item_size>` whatever the caption.
+
+   .. cpp:member:: Size item_size
+
+      In logical units before the window's text scale. Its height is the
+      thickness of a top or bottom tab row, its width the thickness of a left
+      or right column, in every size mode. Under :cpp:enumerator:`TabSizeMode::fixed <gui_forms::TabSizeMode::fixed>` it is
+      every tab's size. Smaller than 24 by 18, larger than 1024 by 1024, or
+      not finite, throws ``std::invalid_argument``.
+
+   .. cpp:member:: std::shared_ptr<ImageList> image_list
+
+      The images the pages' ``image_key`` and ``image_index`` name. A tab shows its
+      image before its caption, painted by the strip as the tab's icon part.
+      Throws ``std::invalid_argument`` for a disposed list or one that belongs to
+      another window, and keeps the old list. Changes to the list move the
+      image an index names.
+
+   .. cpp:member:: ItemDrawMode draw_mode
+
+      With ``ItemDrawMode::owner_draw`` the application draws the tabs'
+      content (Windows Forms' ``DrawMode.OwnerDrawFixed``): see
+      :cpp:func:`draw_item_content <gui_forms::TabControl::draw_item_content>`. Throws ``std::invalid_argument`` for an unknown mode.
+
    .. cpp:function:: std::vector<std::shared_ptr<TabPage>> pages() const
 
       The pages in tab order. Only pages that are still children of the
@@ -330,49 +371,6 @@ gui_forms::TabControl
 
       Sets :cpp:func:`selected_tab <gui_forms::TabControl::selected_tab>`; see the property's description above.
 
-   .. cpp:function:: TabAlignment alignment() const noexcept
-
-      The edge the tabs run along: top or bottom with tabs side by side, left
-      or right with tabs stacked. The display area takes the rest.
-
-   .. cpp:function:: void set_alignment(TabAlignment alignment)
-
-      Sets :cpp:func:`alignment <gui_forms::TabControl::alignment>`; see the property's description above.
-
-   .. cpp:function:: TabAppearance appearance() const noexcept
-
-      How tabs are drawn, through the theme's recipes until the tab stack has
-      its own look: :cpp:enumerator:`TabAppearance::normal <gui_forms::TabAppearance::normal>` flat at rest with a plate when hot
-      or selected, the selected tab joined to the page; :cpp:enumerator:`TabAppearance::buttons <gui_forms::TabAppearance::buttons>`
-      a button's plate on every tab; :cpp:enumerator:`TabAppearance::flat_buttons <gui_forms::TabAppearance::flat_buttons>` a command
-      button's lighter plate on every tab.
-
-   .. cpp:function:: void set_appearance(TabAppearance appearance)
-
-      Sets :cpp:func:`appearance <gui_forms::TabControl::appearance>`; see the property's description above.
-
-   .. cpp:function:: TabSizeMode size_mode() const noexcept
-
-      How wide each tab is: :cpp:enumerator:`TabSizeMode::normal <gui_forms::TabSizeMode::normal>` its caption plus padding,
-      :cpp:enumerator:`TabSizeMode::fill_to_right <gui_forms::TabSizeMode::fill_to_right>` the row shared equally, :cpp:enumerator:`TabSizeMode::fixed <gui_forms::TabSizeMode::fixed>`
-      :cpp:func:`item_size <gui_forms::TabControl::item_size>` whatever the caption.
-
-   .. cpp:function:: void set_size_mode(TabSizeMode mode)
-
-      Sets :cpp:func:`size_mode <gui_forms::TabControl::size_mode>`; see the property's description above.
-
-   .. cpp:function:: Size item_size() const noexcept
-
-      In logical units before the window's text scale. Its height is the
-      thickness of a top or bottom tab row, its width the thickness of a left
-      or right column, in every size mode. Under :cpp:enumerator:`TabSizeMode::fixed <gui_forms::TabSizeMode::fixed>` it is
-      every tab's size. Smaller than 24 by 18, larger than 1024 by 1024, or
-      not finite, throws ``std::invalid_argument``.
-
-   .. cpp:function:: void set_item_size(Size size)
-
-      Sets :cpp:func:`item_size <gui_forms::TabControl::item_size>`; see the property's description above.
-
    .. cpp:function:: const BasicControlStyle& style() const noexcept
 
       Kept for compatibility: the control paints by role from the window's
@@ -381,18 +379,6 @@ gui_forms::TabControl
    .. cpp:function:: void set_style(BasicControlStyle style)
 
       Sets :cpp:func:`style <gui_forms::TabControl::style>`; see the property's description above.
-
-   .. cpp:function:: std::shared_ptr<ImageList> image_list() const noexcept
-
-      The images the pages' ``image_key`` and ``image_index`` name. A tab shows its
-      image before its caption, painted by the strip as the tab's icon part.
-      Throws ``std::invalid_argument`` for a disposed list or one that belongs to
-      another window, and keeps the old list. Changes to the list move the
-      image an index names.
-
-   .. cpp:function:: void set_image_list(std::shared_ptr<ImageList> image_list)
-
-      Sets :cpp:func:`image_list <gui_forms::TabControl::image_list>`; see the property's description above.
 
    .. cpp:function:: Rect display_bounds() const noexcept
 
@@ -403,16 +389,6 @@ gui_forms::TabControl
    .. cpp:function:: bool overflowing() const
 
       Whether the tabs do not all fit, so the scroll and list buttons show.
-
-   .. cpp:function:: ItemDrawMode draw_mode() const noexcept
-
-      With ``ItemDrawMode::owner_draw`` the application draws the tabs'
-      content (Windows Forms' ``DrawMode.OwnerDrawFixed``): see
-      :cpp:func:`draw_item_content <gui_forms::TabControl::draw_item_content>`. Throws ``std::invalid_argument`` for an unknown mode.
-
-   .. cpp:function:: void set_draw_mode(ItemDrawMode mode)
-
-      Sets :cpp:func:`draw_mode <gui_forms::TabControl::draw_mode>`; see the property's description above.
 
    .. cpp:function:: Parts parts() const
 

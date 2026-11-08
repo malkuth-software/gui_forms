@@ -5,6 +5,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
 #include "../../scrollable_anatomy.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
 #include <array>
@@ -59,8 +60,8 @@ protected:
     [[nodiscard]] ControlVisualRole tab_family() const noexcept override {
         const std::shared_ptr<TabControl> owner = std::dynamic_pointer_cast<TabControl>(parent());
         if (!owner) return ControlVisualRole::menu_item;
-        if ((*owner).appearance() == TabAppearance::buttons) return ControlVisualRole::button;
-        if ((*owner).appearance() == TabAppearance::flat_buttons) return ControlVisualRole::command_button;
+        if ((*owner).appearance.read() == TabAppearance::buttons) return ControlVisualRole::button;
+        if ((*owner).appearance.read() == TabAppearance::flat_buttons) return ControlVisualRole::command_button;
         return ControlVisualRole::menu_item;
     }
 };
@@ -115,16 +116,19 @@ void TabControl::initialize_control_tree() {
     add_child(strip_);
 }
 
-ItemDrawMode TabControl::draw_mode() const noexcept {
+
+// draw_mode is the strip's; before the strip exists it reads as normal.
+void TabControl::write_view(const decltype(draw_mode)&, ItemDrawMode incoming) {
+    require_mutable();
+    if (!strip_) throw std::logic_error("TabControl has no tab strip yet");
+    (*strip_).draw_mode = incoming;
+}
+
+ItemDrawMode TabControl::read_view(const decltype(draw_mode)&) const {
     const ItemDrawMode mode = strip_ ? (*strip_).draw_mode.read() : ItemDrawMode::normal;
     return mode;
 }
 
-void TabControl::set_draw_mode(ItemDrawMode mode) {
-    require_mutable();
-    if (!strip_) throw std::logic_error("TabControl has no tab strip yet");
-    (*strip_).draw_mode = mode;
-}
 
 void TabControl::on_strip_draw_item_content(ItemContentPaint& item) {
     draw_item_content_.emit(item);
@@ -362,48 +366,9 @@ void TabControl::set_selected_tab(const std::shared_ptr<TabPage>& page) {
     set_selected_index(*index);
 }
 
-void TabControl::set_alignment(TabAlignment alignment) {
-    require_mutable();
-    if (alignment_ == alignment) return;
-    alignment_ = alignment;
-    configure_strip();
-    invalidate(Dirty::measure | Dirty::arrange | Dirty::paint |
-               Dirty::hit_test | Dirty::semantics);
-}
 
-void TabControl::set_appearance(TabAppearance appearance) {
-    require_mutable();
-    if (appearance_ == appearance) return;
-    appearance_ = appearance;
-    if (strip_) (*strip_).invalidate(Dirty::paint);
-    invalidate(Dirty::paint | Dirty::semantics);
-}
 
-void TabControl::set_size_mode(TabSizeMode mode) {
-    require_mutable();
-    if (mode != TabSizeMode::normal && mode != TabSizeMode::fill_to_right && mode != TabSizeMode::fixed) {
-        throw std::invalid_argument("TabControl size mode is invalid");
-    }
-    if (size_mode_ == mode) return;
-    size_mode_ = mode;
-    configure_strip();
-    invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
-}
 
-void TabControl::set_item_size(Size size) {
-    require_mutable();
-    if (!std::isfinite(size.width) || !std::isfinite(size.height) ||
-        size.width < 24.0 || size.height < 18.0 ||
-        size.width > PageItemWidths::maximum_width || size.height > PageItemWidths::maximum_width) {
-        throw std::invalid_argument(
-            "TabControl item size must be finite, at least 24 by 18 and at most 1024 by 1024");
-    }
-    if (item_size_ == size) return;
-    item_size_ = size;
-    configure_strip();
-    invalidate(Dirty::measure | Dirty::arrange | Dirty::paint |
-               Dirty::hit_test | Dirty::semantics);
-}
 
 void TabControl::set_style(BasicControlStyle style) {
     require_mutable();
@@ -412,19 +377,78 @@ void TabControl::set_style(BasicControlStyle style) {
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
-// The strip checks the list first, so a refused list changes neither.
-void TabControl::set_image_list(std::shared_ptr<ImageList> image_list) {
+void TabControl::prepare_write(const decltype(alignment)&, TabAlignment& incoming) {
     require_mutable();
-    if (image_list_ == image_list) return;
-    if (strip_) (*strip_).image_list = image_list;
+    if (incoming != TabAlignment::top && incoming != TabAlignment::bottom && incoming != TabAlignment::left &&
+        incoming != TabAlignment::right) {
+        throw std::invalid_argument("TabControl alignment is invalid");
+    }
+}
+
+void TabControl::written(const decltype(alignment)&) {
+    configure_strip();
+    invalidate(Dirty::measure | Dirty::arrange | Dirty::paint |
+               Dirty::hit_test | Dirty::semantics);
+}
+
+void TabControl::prepare_write(const decltype(appearance)&, TabAppearance& incoming) {
+    require_mutable();
+    if (incoming != TabAppearance::normal && incoming != TabAppearance::buttons &&
+        incoming != TabAppearance::flat_buttons) {
+        throw std::invalid_argument("TabControl appearance is invalid");
+    }
+}
+
+void TabControl::written(const decltype(appearance)&) {
+    if (strip_) (*strip_).invalidate(Dirty::paint);
+    invalidate(Dirty::paint | Dirty::semantics);
+}
+
+void TabControl::prepare_write(const decltype(size_mode)&, TabSizeMode& incoming) {
+    require_mutable();
+    if (incoming != TabSizeMode::normal && incoming != TabSizeMode::fill_to_right &&
+        incoming != TabSizeMode::fixed) {
+        throw std::invalid_argument("TabControl size mode is invalid");
+    }
+}
+
+void TabControl::written(const decltype(size_mode)&) {
+    configure_strip();
+    invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+void TabControl::prepare_write(const decltype(item_size)&, Size& incoming) {
+    require_mutable();
+    if (!std::isfinite(incoming.width) || !std::isfinite(incoming.height) ||
+        incoming.width < 24.0 || incoming.height < 18.0 ||
+        incoming.width > PageItemWidths::maximum_width || incoming.height > PageItemWidths::maximum_width) {
+        throw std::invalid_argument(
+            "TabControl item size must be finite, at least 24 by 18 and at most 1024 by 1024");
+    }
+}
+
+void TabControl::written(const decltype(item_size)&) {
+    configure_strip();
+    invalidate(Dirty::measure | Dirty::arrange | Dirty::paint |
+               Dirty::hit_test | Dirty::semantics);
+}
+
+// The strip checks the list first, so a refused list changes neither; an
+// unchanged list is an unchanged write on the strip as well.
+void TabControl::prepare_write(const decltype(image_list)&, std::shared_ptr<ImageList>& incoming) {
+    require_mutable();
+    if (strip_) (*strip_).image_list = incoming;
+}
+
+void TabControl::written(const decltype(image_list)&) {
     image_list_token_.disconnect();
-    image_list_ = std::move(image_list);
-    if (image_list_) {
-        image_list_token_ = (*image_list_).changed().subscribe(
+    if (image_list.read()) {
+        image_list_token_ = (*image_list.read()).changed().subscribe(
             *this, Delegate<const ImageListChange&>::bind<TabControl, &TabControl::on_image_list_changed>(*this));
     }
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test);
 }
+
 
 void TabControl::on_image_list_changed(const ImageListChange&) {
     // Arranging again maps each image_index to the key now at that index.
@@ -434,10 +458,10 @@ void TabControl::on_image_list_changed(const ImageListChange&) {
 std::string TabControl::tab_image_key(const TabPage& page) const {
     if (!page.image_key().empty()) return page.image_key();
     const int index = page.image_index();
-    if (index < 0 || !image_list_ || !(*image_list_).is_alive()) return {};
+    if (index < 0 || !image_list.read() || !(*image_list.read()).is_alive()) return {};
     const std::size_t position = static_cast<std::size_t>(index);
-    if (position >= (*image_list_).count()) return {};
-    std::string key((*image_list_).key_at(position));
+    if (position >= (*image_list.read()).count()) return {};
+    std::string key((*image_list.read()).key_at(position));
     return key;
 }
 
@@ -449,15 +473,15 @@ std::string TabControl::tab_image_key(const TabPage& page) const {
 void TabControl::configure_strip() {
     if (!strip_) return;
     PageStripPlacement placement = PageStripPlacement::top;
-    if (alignment_ == TabAlignment::bottom) placement = PageStripPlacement::bottom;
-    if (alignment_ == TabAlignment::left) placement = PageStripPlacement::left;
-    if (alignment_ == TabAlignment::right) placement = PageStripPlacement::right;
+    if (alignment.read() == TabAlignment::bottom) placement = PageStripPlacement::bottom;
+    if (alignment.read() == TabAlignment::left) placement = PageStripPlacement::left;
+    if (alignment.read() == TabAlignment::right) placement = PageStripPlacement::right;
     PageItemSizing sizing = PageItemSizing::content;
-    if (size_mode_ == TabSizeMode::fill_to_right) sizing = PageItemSizing::fill;
-    if (size_mode_ == TabSizeMode::fixed) sizing = PageItemSizing::fixed;
-    const bool row = alignment_ == TabAlignment::top || alignment_ == TabAlignment::bottom;
+    if (size_mode.read() == TabSizeMode::fill_to_right) sizing = PageItemSizing::fill;
+    if (size_mode.read() == TabSizeMode::fixed) sizing = PageItemSizing::fixed;
+    const bool row = alignment.read() == TabAlignment::top || alignment.read() == TabAlignment::bottom;
     PageItemWidths widths = (*strip_).item_widths.read();
-    widths.fixed = row ? item_size_.width : item_size_.height;
+    widths.fixed = row ? item_size.read().width : item_size.read().height;
     (*strip_).placement = placement;
     (*strip_).item_sizing = sizing;
     (*strip_).item_widths = widths;
@@ -469,9 +493,9 @@ Rect TabControl::header_bounds() const noexcept {
     const Rect bounds{0.0, 0.0, committed_arranged_bounds().width,
                       committed_arranged_bounds().height};
     const double scale = effective_text_scale();
-    const double row = std::min(item_size_.height * scale, bounds.height);
-    const double column = std::min(item_size_.width * scale, bounds.width);
-    switch (alignment_) {
+    const double row = std::min(item_size.read().height * scale, bounds.height);
+    const double column = std::min(item_size.read().width * scale, bounds.width);
+    switch (alignment.read()) {
     case TabAlignment::top:
         return {0.0, 0.0, bounds.width, row};
     case TabAlignment::bottom:
@@ -610,9 +634,9 @@ bool TabControl::overflowing() const {
 Rect TabControl::display_bounds() const noexcept {
     const Rect bounds{0.0, 0.0, committed_arranged_bounds().width,
                       committed_arranged_bounds().height};
-    const Size item{item_size_.width * effective_text_scale(),
-                    item_size_.height * effective_text_scale()};
-    switch (alignment_) {
+    const Size item{item_size.read().width * effective_text_scale(),
+                    item_size.read().height * effective_text_scale()};
+    switch (alignment.read()) {
     case TabAlignment::top:
         return {0.0, std::min(bounds.height, item.height - 1.0),
                 bounds.width,
@@ -767,7 +791,7 @@ SemanticDescriptor TabControl::semantic_descriptor() const {
     descriptor.description = accessible_description.read();
     const std::shared_ptr<TabPage> selected = selected_page_.lock();
     if (selected) descriptor.value = (*selected).text();
-    const bool row = alignment_ == TabAlignment::top || alignment_ == TabAlignment::bottom;
+    const bool row = alignment.read() == TabAlignment::top || alignment.read() == TabAlignment::bottom;
     descriptor.orientation = row ? SemanticOrientation::horizontal : SemanticOrientation::vertical;
     descriptor.actions = {SemanticAction::focus};
     descriptor.exposed = true;
@@ -824,7 +848,6 @@ bool TabControl::on_semantic_child_action(std::string_view child_stable_id,
     }
     return false;
 }
-
 
 namespace {
 
@@ -963,5 +986,9 @@ void TabControl::append_interactions(std::vector<InteractionDeclaration>& intera
     ContainerControl::append_interactions(interactions);
     interactions.insert(interactions.end(), tab_control_interactions.begin(), tab_control_interactions.end());
 }
+
+// property_codemod begin TabControl (tools/property_families/tab_control.json; generated, do not edit)
+
+// property_codemod end TabControl
 
 } // namespace gui_forms

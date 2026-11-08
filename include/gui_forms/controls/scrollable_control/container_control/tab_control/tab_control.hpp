@@ -2,8 +2,10 @@
 
 #include "gui_forms/controls/scrollable_control/container_control/container_control.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/tab_control/tab_page/tab_page.hpp"
+#include "gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_values/tab_control_values.hpp"
 #include "gui_forms/pages/page_set/page_set.hpp"
 #include "gui_forms/theme/owner_draw/owner_draw.hpp"
+#include "gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_capabilities/tab_control_capabilities.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -21,32 +23,6 @@ class ImageList;
 class PageStrip;
 struct ImageListChange;
 struct PageInvocation;
-
-enum class TabAlignment : std::uint8_t {
-    top,
-    bottom,
-    left,
-    right,
-};
-
-// How the tabs are drawn (until stage T4 draws Plan Paint's tab stack, each
-// is a recipe family of the by-role paint path): `normal`, flat at rest with
-// a plate when hot or selected (the menu-item family); `buttons`, a button's
-// plate on every tab; `flat_buttons`, a command button's lighter plate.
-enum class TabAppearance : std::uint8_t {
-    normal,
-    buttons,
-    flat_buttons,
-};
-
-// How wide each tab is (Windows Forms TabSizeMode). `normal`: its caption
-// plus padding. `fill_to_right`: the row shared equally among the tabs.
-// `fixed`: `item_size` along the row, whatever the caption.
-enum class TabSizeMode : std::uint8_t {
-    normal,
-    fill_to_right,
-    fixed,
-};
 
 struct TabSelectionChange final {
     std::optional<std::size_t> old_index;
@@ -86,7 +62,7 @@ struct TabControlEvent final {
 // list buttons) and keys serve the tabs. The strip is an internal child: it
 // takes no focus (the control keeps it, as one tab stop) and publishes no
 // semantics of its own (the control publishes its tabs as before).
-class TabControl final : public ContainerControl {
+class TabControl final : public ContainerControl, public TabControlCapabilities<TabControl> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
     // The most pages a tab control holds: its strip's set's capacity.
@@ -109,34 +85,13 @@ public:
     }
     void set_selected_index(std::size_t index);
     void set_selected_tab(const std::shared_ptr<TabPage>& page);
-    [[nodiscard]] TabAlignment alignment() const noexcept { return alignment_; }
-    void set_alignment(TabAlignment alignment);
-    [[nodiscard]] TabAppearance appearance() const noexcept { return appearance_; }
-    void set_appearance(TabAppearance appearance);
-    [[nodiscard]] TabSizeMode size_mode() const noexcept { return size_mode_; }
-    void set_size_mode(TabSizeMode mode);
-    [[nodiscard]] Size item_size() const noexcept { return item_size_; }
-    void set_item_size(Size size);
     [[nodiscard]] const BasicControlStyle& style() const noexcept { return style_; }
     void set_style(BasicControlStyle style);
-    // The images the pages' image_key and image_index name (Windows Forms'
-    // ImageList); a tab shows its image before its text. Throws
-    // std::invalid_argument for a disposed list or one belonging to another
-    // window, and keeps the old list.
-    [[nodiscard]] std::shared_ptr<ImageList> image_list() const noexcept { return image_list_; }
-    void set_image_list(std::shared_ptr<ImageList> image_list);
     [[nodiscard]] Rect tab_bounds(std::size_t index) const;
     [[nodiscard]] Rect display_bounds() const noexcept;
     // Whether the tabs do not all fit, so the strip shows its scroll and list
     // buttons.
     [[nodiscard]] bool overflowing() const;
-    // Content-only owner drawing of the tabs (owner decision W-Q6; Windows
-    // Forms' DrawMode with DrawItem), the strip's: in ItemDrawMode::owner_draw
-    // draw_item_content is raised for each painted tab's icon and label, with
-    // the tab's index and its page's stable ID; the tab's plate and focus cue
-    // stay painted by role. See PageStrip::draw_item_content.
-    [[nodiscard]] ItemDrawMode draw_mode() const noexcept;
-    void set_draw_mode(ItemDrawMode mode);
     [[nodiscard]] Event<ItemContentPaint&>& draw_item_content() noexcept { return draw_item_content_; }
     [[nodiscard]] Event<const TabSelectionChange&>& selected_index_changed() noexcept {
         return selected_index_changed_;
@@ -240,12 +195,6 @@ private:
     std::weak_ptr<TabPage> selected_page_;
     RememberedFocusMap remembered_focus_;
     BasicControlStyle style_;
-    // Shared with the strip, which paints the images.
-    std::shared_ptr<ImageList> image_list_{};
-    Size item_size_{120.0, 30.0};
-    TabAlignment alignment_{TabAlignment::top};
-    TabAppearance appearance_{TabAppearance::normal};
-    TabSizeMode size_mode_{TabSizeMode::normal};
     // The strip's pages: one record per live page in tab order, the page's
     // stable ID its PageId and its text its title; the set's selection is
     // the control's. The strip borrows the set and is released before the
@@ -267,6 +216,28 @@ private:
     Event<const TabControlEvent&> deselected_;
     Event<const TabControlEvent&> selected_;
     Event<ItemContentPaint&> draw_item_content_;
+    // property_codemod begin TabControl (tools/property_families/tab_control.json; generated, do not edit)
+private:
+    friend struct TabControlAlignmentCapability<TabControl>;
+    friend struct TabControlAppearanceCapability<TabControl>;
+    friend struct TabControlSizeModeCapability<TabControl>;
+    friend struct TabControlItemSizeCapability<TabControl>;
+    friend struct TabControlImageListCapability<TabControl>;
+    friend struct TabControlDrawModeCapability<TabControl>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(alignment)& cell, TabAlignment& incoming);
+    void written(const decltype(alignment)& cell);
+    void prepare_write(const decltype(appearance)& cell, TabAppearance& incoming);
+    void written(const decltype(appearance)& cell);
+    void prepare_write(const decltype(size_mode)& cell, TabSizeMode& incoming);
+    void written(const decltype(size_mode)& cell);
+    void prepare_write(const decltype(item_size)& cell, Size& incoming);
+    void written(const decltype(item_size)& cell);
+    void prepare_write(const decltype(image_list)& cell, std::shared_ptr<ImageList>& incoming);
+    void written(const decltype(image_list)& cell);
+    void write_view(const decltype(draw_mode)& cell, ItemDrawMode incoming);
+    [[nodiscard]] ItemDrawMode read_view(const decltype(draw_mode)& cell) const;
+    // property_codemod end TabControl
 };
 
 } // namespace gui_forms

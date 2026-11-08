@@ -176,10 +176,24 @@ Related types
      -  
    * - :cpp:class:`TabControl::Parts <gui_forms::TabControl::Parts>`
      - Stage T1 anatomy, as dot members.
+   * - :cpp:class:`TabControlAlignmentCapability <gui_forms::TabControlAlignmentCapability>`
+     - The edge the tabs sit on (Windows Forms' Alignment; default top).
+   * - :cpp:class:`TabControlAppearanceCapability <gui_forms::TabControlAppearanceCapability>`
+     - How the tabs are drawn (see TabAppearance; default normal).
    * - :cpp:class:`TabControlCancelEvent <gui_forms::TabControlCancelEvent>`
      - A page about to be left or chosen (Windows Forms' TabControlCancelEventArgs): ``page`` at ``index``.
+   * - :cpp:class:`TabControlCapabilities <gui_forms::TabControlCapabilities>`
+     - Every TabControl capability, in the order the declaring class takes them.
+   * - :cpp:class:`TabControlDrawModeCapability <gui_forms::TabControlDrawModeCapability>`
+     - Content-only owner drawing of the tabs (owner decision W-Q6; Windows Forms' DrawMode with DrawItem), the strip's: in ItemDrawMode::owner_draw draw_item_content is raised for each painted tab's icon and label, with the tab's index and its page's stable ID; the tab's plate and focus cue stay painted by role.
    * - :cpp:class:`TabControlEvent <gui_forms::TabControlEvent>`
      - A page left or chosen (Windows Forms' TabControlEventArgs).
+   * - :cpp:class:`TabControlImageListCapability <gui_forms::TabControlImageListCapability>`
+     - The images the pages' image_key and image_index name (Windows Forms' ImageList), or null; a tab shows its image before its text.
+   * - :cpp:class:`TabControlItemSizeCapability <gui_forms::TabControlItemSizeCapability>`
+     - A tab's size: its height across the row, and its width along it in TabSizeMode::fixed (default 120 by 30).
+   * - :cpp:class:`TabControlSizeModeCapability <gui_forms::TabControlSizeModeCapability>`
+     - How wide each tab is (see TabSizeMode; default normal).
    * - :cpp:class:`TabSelectionChange <gui_forms::TabSelectionChange>`
      - TabSelectionChange reports previous/current tab indices and stable page identities after one accepted selection.
    * - :cpp:class:`TextItemsCapability <gui_forms::TextItemsCapability>`
@@ -1259,6 +1273,40 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> TabControlAlignmentCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_capabilities/tab_control_capabilities.hpp>``
+
+   The edge the tabs sit on (Windows Forms' Alignment; default top). An unknown alignment throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TabControlAlignmentCapability& capability, TabAlignment incoming)
+
+   .. cpp:member:: PropertyCell<TabAlignment, TabControlAlignmentCapability<Declaring>> alignment
+
+      Default: ``{TabAlignment::top}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TabControlAppearanceCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_capabilities/tab_control_capabilities.hpp>``
+
+   How the tabs are drawn (see TabAppearance; default normal). An unknown appearance throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TabControlAppearanceCapability& capability, TabAppearance incoming)
+
+   .. cpp:member:: PropertyCell<TabAppearance, TabControlAppearanceCapability<Declaring>> appearance
+
+      Default: ``{TabAppearance::normal}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: TabControlCancelEvent final
 
    ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control.hpp>``
@@ -1277,6 +1325,58 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> TabControlCapabilities : public TabControlAlignmentCapability<Declaring>, public TabControlAppearanceCapability<Declaring>, public TabControlSizeModeCapability<Declaring>, public TabControlItemSizeCapability<Declaring>, public TabControlImageListCapability<Declaring>, public TabControlDrawModeCapability<Declaring>
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_capabilities/tab_control_capabilities.hpp>``
+
+   Every TabControl capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: TabAlignment alignment
+
+      The edge the tabs sit on (Windows Forms' Alignment; default top). An unknown alignment throws std::invalid_argument.
+
+   .. cpp:member:: TabAppearance appearance
+
+      How the tabs are drawn (see TabAppearance; default normal). An unknown appearance throws std::invalid_argument.
+
+   .. cpp:member:: TabSizeMode size_mode
+
+      How wide each tab is (see TabSizeMode; default normal). An unknown mode throws std::invalid_argument.
+
+   .. cpp:member:: Size item_size
+
+      A tab's size: its height across the row, and its width along it in TabSizeMode::fixed (default 120 by 30). A size that is not finite, under 24 by 18 or over 1024 by 1024 throws std::invalid_argument.
+
+   .. cpp:member:: std::shared_ptr<ImageList> image_list
+
+      The images the pages' image_key and image_index name (Windows Forms' ImageList), or null; a tab shows its image before its text. A disposed list or one belonging to another window throws std::invalid_argument and keeps the old list.
+
+   .. cpp:member:: ItemDrawMode draw_mode
+
+      Content-only owner drawing of the tabs (owner decision W-Q6; Windows Forms' DrawMode with DrawItem), the strip's: in ItemDrawMode::owner_draw draw_item_content is raised for each painted tab's icon and label, with the tab's index and its page's stable ID; the tab's plate and focus cue stay painted by role. See PageStrip::draw_item_content.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TabControlDrawModeCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_capabilities/tab_control_capabilities.hpp>``
+
+   Content-only owner drawing of the tabs (owner decision W-Q6; Windows Forms' DrawMode with DrawItem), the strip's: in ItemDrawMode::owner_draw draw_item_content is raised for each painted tab's icon and label, with the tab's index and its page's stable ID; the tab's plate and focus cue stay painted by role. See PageStrip::draw_item_content.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TabControlDrawModeCapability& capability, ItemDrawMode incoming)
+
+   .. cpp:function:: static ItemDrawMode read(const TabControlDrawModeCapability& capability)
+
+   .. cpp:member:: PropertyView<ItemDrawMode, TabControlDrawModeCapability<Declaring>> draw_mode
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: TabControlEvent final
 
    ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control.hpp>``
@@ -1290,6 +1390,55 @@ Related types
    .. cpp:member:: TabControlAction action
 
       Default: ``{TabControlAction::selected}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TabControlImageListCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_capabilities/tab_control_capabilities.hpp>``
+
+   The images the pages' image_key and image_index name (Windows Forms' ImageList), or null; a tab shows its image before its text. A disposed list or one belonging to another window throws std::invalid_argument and keeps the old list.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TabControlImageListCapability& capability, std::shared_ptr<ImageList> incoming)
+
+   .. cpp:member:: PropertyCell<std::shared_ptr<ImageList>, TabControlImageListCapability<Declaring>> image_list
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TabControlItemSizeCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_capabilities/tab_control_capabilities.hpp>``
+
+   A tab's size: its height across the row, and its width along it in TabSizeMode::fixed (default 120 by 30). A size that is not finite, under 24 by 18 or over 1024 by 1024 throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TabControlItemSizeCapability& capability, Size incoming)
+
+   .. cpp:member:: PropertyCell<Size, TabControlItemSizeCapability<Declaring>> item_size
+
+      Default: ``{120.0, 30.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TabControlSizeModeCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_capabilities/tab_control_capabilities.hpp>``
+
+   How wide each tab is (see TabSizeMode; default normal). An unknown mode throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TabControlSizeModeCapability& capability, TabSizeMode incoming)
+
+   .. cpp:member:: PropertyCell<TabSizeMode, TabControlSizeModeCapability<Declaring>> size_mode
+
+      Default: ``{TabSizeMode::normal}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -1521,7 +1670,7 @@ Enumerations
 
 .. cpp:enum-class:: TabAlignment
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control.hpp>``
+   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_values/tab_control_values.hpp>``
 
    .. cpp:enumerator:: top
 
@@ -1535,7 +1684,7 @@ Enumerations
 
 .. cpp:enum-class:: TabAppearance
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control.hpp>``
+   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_values/tab_control_values.hpp>``
 
    .. cpp:enumerator:: normal
 
@@ -1561,7 +1710,7 @@ Enumerations
 
 .. cpp:enum-class:: TabSizeMode
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control.hpp>``
+   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_values/tab_control_values.hpp>``
 
    .. cpp:enumerator:: normal
 

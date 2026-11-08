@@ -356,7 +356,7 @@ void roles_actions_and_fields() {
                 (*tabs).selected_index() == 1U,
             "selecting a tab still works");
 
-    (*tabs).set_alignment(TabAlignment::left);
+    (*tabs).alignment = TabAlignment::left;
     window.perform_layout();
     require((*tabs).semantic_descriptor().orientation == SemanticOrientation::vertical,
             "a tab column along a side is vertical");

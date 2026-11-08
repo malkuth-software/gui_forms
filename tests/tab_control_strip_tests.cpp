@@ -237,18 +237,18 @@ void sizing_modes() {
             "under the normal size mode a tab is as wide as its caption and reaches the row's content edge");
     require((*tabs).display_bounds() == Rect{0.0, 29.0, 600.0, 171.0},
             "the display keeps its place under the tabs");
-    (*tabs).set_size_mode(TabSizeMode::fixed);
+    (*tabs).size_mode = TabSizeMode::fixed;
     window.perform_layout();
     require(near((*tabs).tab_bounds(0U).width, 120.0) && near((*tabs).tab_bounds(1U).width, 120.0) &&
                 (*tabs).tab_bounds(1U).x >= (*tabs).tab_bounds(0U).right(),
             "under the fixed size mode every tab is item_size wide, side by side");
-    (*tabs).set_item_size({90.0, 26.0});
+    (*tabs).item_size = Size{90.0, 26.0};
     window.perform_layout();
     require(near((*tabs).tab_bounds(2U).width, 90.0) &&
                 near((*tabs).tab_bounds(2U).y + (*tabs).tab_bounds(2U).height, 26.0) &&
                 (*tabs).display_bounds() == Rect{0.0, 25.0, 600.0, 175.0},
             "the fixed tab follows item_size, and so does the row");
-    (*tabs).set_size_mode(TabSizeMode::fill_to_right);
+    (*tabs).size_mode = TabSizeMode::fill_to_right;
     window.perform_layout();
     const double first = (*tabs).tab_bounds(0U).width;
     require(near(first, (*tabs).tab_bounds(1U).width) && near(first, (*tabs).tab_bounds(2U).width) &&
@@ -256,14 +256,14 @@ void sizing_modes() {
             "under fill_to_right the tabs share the row equally");
     bool refused = false;
     try {
-        (*tabs).set_item_size({2000.0, 30.0});
+        (*tabs).item_size = Size{2000.0, 30.0};
     } catch (const std::invalid_argument&) {
         refused = true;
     }
-    require(refused && (*tabs).item_size() == Size{90.0, 26.0}, "an item size beyond 1024 is refused");
+    require(refused && (*tabs).item_size.read() == Size{90.0, 26.0}, "an item size beyond 1024 is refused");
 
-    (*tabs).set_size_mode(TabSizeMode::normal);
-    (*tabs).set_alignment(TabAlignment::left);
+    (*tabs).size_mode = TabSizeMode::normal;
+    (*tabs).alignment = TabAlignment::left;
     window.perform_layout();
     (*tabs).set_selected_index(1U);
     window.perform_layout();
@@ -385,8 +385,8 @@ void host_map_keeps_ctrl_tab() {
 
 std::size_t paint_allocations(std::size_t page_count) {
     std::shared_ptr<TabControl> tabs = tab_control("tabs", numbered(page_count), {0.0, 0.0, 4000.0, 200.0});
-    (*tabs).set_size_mode(TabSizeMode::fixed);
-    (*tabs).set_item_size({40.0, 30.0});
+    (*tabs).size_mode = TabSizeMode::fixed;
+    (*tabs).item_size = Size{40.0, 30.0};
     Window window(tabs, {4000.0, 200.0});
     window.perform_layout();
     const Control::Ptr strip = window.find("tabs.strip");

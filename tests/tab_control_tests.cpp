@@ -275,7 +275,7 @@ void test_alignment_appearance_and_semantics() {
         {TabAlignment::right, {0.0, 0.0, 361.0, 260.0}},
     }};
     for (const std::pair<TabAlignment, Rect>& alignment_spec : alignments) {
-        (*fixture.tabs).set_alignment(alignment_spec.first);
+        (*fixture.tabs).alignment = alignment_spec.first;
         window.perform_layout();
         require((*fixture.tabs).display_bounds() == alignment_spec.second,
                 "TabControl alignment must reserve the correct content edge");
@@ -283,12 +283,28 @@ void test_alignment_appearance_and_semantics() {
     for (const TabAppearance appearance :
          {TabAppearance::normal, TabAppearance::buttons,
           TabAppearance::flat_buttons}) {
-        (*fixture.tabs).set_appearance(appearance);
+        (*fixture.tabs).appearance = appearance;
         RecordingPainter painter;
         window.paint(painter, {0.0, 0.0, 480.0, 260.0});
         require(painter.fills >= 5U && painter.strokes >= 5U,
                 "every TabControl appearance must produce a complete retained frame");
     }
+    bool alignment_refused = false;
+    try {
+        (*fixture.tabs).alignment = static_cast<TabAlignment>(9);
+    } catch (const std::invalid_argument&) {
+        alignment_refused = true;
+    }
+    bool appearance_refused = false;
+    try {
+        (*fixture.tabs).appearance = static_cast<TabAppearance>(9);
+    } catch (const std::invalid_argument&) {
+        appearance_refused = true;
+    }
+    require(alignment_refused && appearance_refused &&
+                (*fixture.tabs).alignment.read() == TabAlignment::right &&
+                (*fixture.tabs).appearance.read() == TabAppearance::flat_buttons,
+            "an unknown alignment or appearance is refused and changes nothing");
 
     const SemanticSnapshot before = window.semantic_snapshot();
     const std::string json = before.to_json();
@@ -349,7 +365,7 @@ struct SetImageIndex final {
 struct SetImageList final {
     TabControl* tabs{};
     std::shared_ptr<ImageList> list{};
-    void operator()() const { (*tabs).set_image_list(list); }
+    void operator()() const { (*tabs).image_list = list; }
 };
 
 bool painted(const RecordingPainter& painter, ImageId image) {
@@ -381,8 +397,8 @@ void test_tab_images() {
     std::shared_ptr<ImageList> images = std::make_shared<ImageList>(window, Size{16.0, 16.0});
     (*images).add_image("folder", folder.image);
     (*images).add_image("chart", chart.image);
-    (*fixture.tabs).set_image_list(images);
-    require((*fixture.tabs).image_list() == images, "the control keeps its image list");
+    (*fixture.tabs).image_list = images;
+    require((*fixture.tabs).image_list.read() == images, "the control keeps its image list");
     window.perform_layout();
     const std::vector<TabControl::Item> items = (*fixture.tabs).realized_items();
     require(items.size() == 3U && items[0].parts.tab_icon.present && !items[1].parts.tab_icon.present &&
@@ -412,10 +428,10 @@ void test_tab_images() {
 
     Window other_window(make_control<Panel>(StableId("tabs.other.root")), {200.0, 100.0});
     std::shared_ptr<ImageList> foreign = std::make_shared<ImageList>(other_window, Size{16.0, 16.0});
-    require(throws(SetImageList{fixture.tabs.get(), foreign}) && (*fixture.tabs).image_list() == images,
+    require(throws(SetImageList{fixture.tabs.get(), foreign}) && (*fixture.tabs).image_list.read() == images,
             "a list of another window is refused and the old list kept");
-    (*fixture.tabs).set_image_list(nullptr);
-    require((*fixture.tabs).image_list() == nullptr, "the image list can be cleared");
+    (*fixture.tabs).image_list = nullptr;
+    require((*fixture.tabs).image_list.read() == nullptr, "the image list can be cleared");
 }
 
 } // namespace
@@ -449,7 +465,7 @@ public:
 
     void operator()(ItemContentPaint&) const {
         ++calls_;
-        tabs_.set_size_mode(TabSizeMode::fixed);
+        tabs_.size_mode = TabSizeMode::fixed;
     }
 
 private:
@@ -464,12 +480,12 @@ void test_owner_draw() {
     Fixture fixture = make_fixture();
     Window window(fixture.tabs, {480.0, 260.0});
     window.perform_layout();
-    require((*fixture.tabs).draw_mode() == ItemDrawMode::normal, "tabs draw their own content by default");
+    require((*fixture.tabs).draw_mode.read() == ItemDrawMode::normal, "tabs draw their own content by default");
     std::vector<std::size_t> indices;
     std::vector<std::string> identities;
     SubscriptionToken drawing =
         (*fixture.tabs).draw_item_content().subscribe(DrawTabContent(indices, identities));
-    (*fixture.tabs).set_draw_mode(ItemDrawMode::owner_draw);
+    (*fixture.tabs).draw_mode = ItemDrawMode::owner_draw;
     window.perform_layout();
     RecordingPainter painter;
     window.paint(painter, {0.0, 0.0, 480.0, 260.0});
@@ -484,12 +500,12 @@ void test_owner_draw() {
     std::size_t calls = 0U;
     SubscriptionToken resizing =
         (*fixture.tabs).draw_item_content().subscribe(ResizeTabsWhilePainting(*fixture.tabs, calls));
-    (*fixture.tabs).set_draw_mode(ItemDrawMode::normal);
-    (*fixture.tabs).set_draw_mode(ItemDrawMode::owner_draw);
+    (*fixture.tabs).draw_mode = ItemDrawMode::normal;
+    (*fixture.tabs).draw_mode = ItemDrawMode::owner_draw;
     window.perform_layout();
     RecordingPainter interrupted;
     window.paint(interrupted, {0.0, 0.0, 480.0, 260.0});
-    require(calls == 1U && (*fixture.tabs).size_mode() == TabSizeMode::fixed,
+    require(calls == 1U && (*fixture.tabs).size_mode.read() == TabSizeMode::fixed,
             "a handler that changes the strip ends that paint at once");
     resizing.disconnect();
 }

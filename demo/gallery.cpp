@@ -233,7 +233,7 @@ void install_page_fixtures(Window& window) {
             std::shared_ptr<gui_forms::ImageList> tab_icons =
                 std::make_shared<ImageList>(window, Size{16.0, 16.0});
             (*tab_icons).add_image("folder", icon_normal.image);
-            (*tabs).set_image_list(std::move(tab_icons));
+            (*tabs).image_list = std::move(tab_icons);
         }
     }
     const std::vector<std::byte> patch_pixels = make_nine_patch_surface();

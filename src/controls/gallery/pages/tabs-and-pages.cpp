@@ -58,7 +58,7 @@ private:
     void build_primary() {
         TabControl& primary = *document_.gallery_tabs_primary;
         primary.set_style(page_style());
-        primary.set_item_size({150.0, 30.0});
+        primary.item_size = {150.0, 30.0};
         for (std::size_t index = 0U; index < primary_names.size(); ++index) {
             std::shared_ptr<TabPage> tab_page = make_control<TabPage>(
                 StableId("gallery.tabs.primary." + std::string(primary_ids[index])),
@@ -137,9 +137,9 @@ private:
         for (std::size_t index = 0U; index < variants_spec.size(); ++index) {
             TabControl& tabs = *variants[index];
             tabs.set_style(page_style());
-            tabs.set_alignment(std::get<0>(variants_spec[index]));
-            tabs.set_appearance(std::get<1>(variants_spec[index]));
-            tabs.set_item_size(index == 0U ? Size{86.0, 28.0} : Size{82.0, 28.0});
+            tabs.alignment = std::get<0>(variants_spec[index]);
+            tabs.appearance = std::get<1>(variants_spec[index]);
+            tabs.item_size = index == 0U ? Size{86.0, 28.0} : Size{82.0, 28.0};
             for (std::size_t page_index = 0U; page_index < 3U; ++page_index) {
                 std::shared_ptr<TabPage> tab_page = make_control<TabPage>(
                     StableId("gallery.tabs.variant." + std::to_string(index) +

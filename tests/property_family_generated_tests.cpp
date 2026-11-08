@@ -57,6 +57,7 @@
 #include "gui_forms/controls/scrollable_control/container_control/container_control.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/split_container/split_container.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/split_container/splitter_panel/splitter_panel.hpp"
+#include "gui_forms/controls/scrollable_control/container_control/tab_control/tab_control.hpp"
 #include "gui_forms/controls/scrollable_control/scrollable_control.hpp"
 #include "gui_forms/controls/search_field/search_field.hpp"
 #include "gui_forms/controls/splitter/splitter.hpp"
@@ -1544,6 +1545,31 @@ void test_splitter_panel_properties() {
     }
 }
 
+void test_tab_control_properties() {
+    std::shared_ptr<TabControl> control = make_control<TabControl>(StableId("generated.tabcontrol"));
+    {
+        const TabAlignment sample = TabAlignment::left;
+        (*control).alignment = sample;
+        expect((*control).alignment.read() == sample, "TabControl.alignment: a write stores");
+    }
+    {
+        const TabAppearance sample = TabAppearance::buttons;
+        (*control).appearance = sample;
+        expect((*control).appearance.read() == sample, "TabControl.appearance: a write stores");
+    }
+    {
+        const TabSizeMode sample = TabSizeMode::fixed;
+        (*control).size_mode = sample;
+        expect((*control).size_mode.read() == sample, "TabControl.size_mode: a write stores");
+    }
+    {
+        const Size sample = Size{96.0, 28.0};
+        (*control).item_size = sample;
+        expect((*control).item_size.read() == sample, "TabControl.item_size: a write stores");
+    }
+    // image_list: no sample for std::shared_ptr<ImageList>; give the property a "sample".
+}
+
 void test_text_block_properties() {
     std::shared_ptr<TextBlock> control = make_control<TextBlock>(StableId("generated.textblock"));
     {
@@ -1918,6 +1944,7 @@ int main() {
     test_split_container_properties();
     test_splitter_properties();
     test_splitter_panel_properties();
+    test_tab_control_properties();
     test_text_block_properties();
     test_text_box_properties();
     test_toggle_switch_properties();
