@@ -363,7 +363,7 @@ int main()
     // The third row (gamma), below the list's 2-pixel frame.
     const gui_forms::Rect collection_bounds = (*collection).absolute_bounds();
     const gui_forms::Point gamma_point{collection_bounds.x + collection_bounds.width * 0.5,
-                                       collection_bounds.y + 2.0 + (*collection).item_height() * 2.5};
+                                       collection_bounds.y + 2.0 + (*collection).item_height.read() * 2.5};
     (void)(*window).dispatch_pointer({gui_forms::PointerAction::down,
                                     gui_forms::PointerButton::primary, gamma_point});
     (void)(*window).dispatch_pointer({gui_forms::PointerAction::up,

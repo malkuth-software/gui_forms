@@ -151,7 +151,7 @@ Select a range of rows in an extended-selection list:
    std::shared_ptr<gf::ListBox> languages =
        gf::make_control<gf::ListBox>(gf::StableId("options.languages"));
    (*languages).items = {"English", "French", "German", "Italian"};
-   (*languages).set_selection_mode(gf::ListSelectionMode::multiple_extended);
+   (*languages).selection_mode = gf::ListSelectionMode::multiple_extended;
    (*languages).select_index(1U);         // French, which becomes the anchor
    (*languages).select_index(3U, true);   // French through Italian
    // (*languages).selected_indices() is now {1, 2, 3}

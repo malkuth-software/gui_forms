@@ -1,8 +1,10 @@
 #pragma once
 
+#include "gui_forms/controls/panel/list_box/list_box_values/list_box_values.hpp"
 #include "gui_forms/controls/panel/panel.hpp"
 #include "gui_forms/controls/panel/text_items_capability/text_items_capability.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
+#include "gui_forms/controls/panel/list_box/list_box_capabilities/list_box_capabilities.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -14,18 +16,13 @@
 
 namespace gui_forms {
 
-enum class ListSelectionMode : std::uint8_t {
-    one,
-    multiple_extended,
-};
-
 struct ListSelectionChange final {
     std::vector<std::size_t> previous;
     std::vector<std::size_t> current;
     std::optional<std::size_t> active_index;
 };
 
-class ListBox : public Panel, public TextItemsCapability<ListBox> {
+class ListBox : public Panel, public TextItemsCapability<ListBox>, public ListBoxCapabilities<ListBox> {
 public:
     explicit ListBox(StableId stable_id);
 
@@ -35,22 +32,12 @@ public:
     // at the next flush.
     void set_item_stable_ids(std::vector<std::string> stable_ids);
     [[nodiscard]] std::string item_stable_id(std::size_t index) const;
-    [[nodiscard]] ListSelectionMode selection_mode() const noexcept {
-        return selection_mode_;
-    }
-    void set_selection_mode(ListSelectionMode mode);
     [[nodiscard]] std::span<const std::size_t> selected_indices() const noexcept {
         return selected_;
     }
     [[nodiscard]] std::optional<std::size_t> selected_index() const noexcept;
     void select_index(std::size_t index, bool extend = false, bool toggle = false);
     void clear_selection();
-    [[nodiscard]] std::size_t top_index() const noexcept { return top_index_; }
-    void set_top_index(std::size_t index);
-    [[nodiscard]] double item_height() const noexcept { return item_height_; }
-    void set_item_height(double height);
-    [[nodiscard]] FontSpec font() const noexcept { return font_; }
-    void set_font(FontSpec font);
 
     [[nodiscard]] Event<const ListSelectionChange&>& selection_changed() noexcept {
         return selection_changed_;
@@ -168,12 +155,39 @@ private:
     std::optional<std::size_t> anchor_index_;
     std::optional<std::size_t> hovered_index_;
     std::size_t top_index_{};
-    double item_height_{26.0};
-    FontSpec font_{FontRole::content, 12.0, 400, false};
-    ListSelectionMode selection_mode_{ListSelectionMode::one};
     bool focused_{};
     Event<const ListSelectionChange&> selection_changed_;
     Event<std::size_t> item_activated_;
+    // property_codemod begin ListBox (tools/property_families/list_box.json; generated, do not edit)
+public:
+    // ListBox's property table: Panel's entries, then its own.
+    static constexpr std::size_t list_box_property_count = Panel::panel_property_count + 1U;
+    [[nodiscard]] static const std::array<PropertyEntry, list_box_property_count>& list_box_property_entries() noexcept;
+    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
+
+protected:
+    // on_<property>_changed runs after a changed write's touch and raises the
+    // change event; an override calls the base. coerce_<property> runs last
+    // before the compare and may rewrite the incoming value.
+    virtual void coerce_item_height(double& incoming);
+    virtual void on_font_changed();
+    virtual void coerce_font(FontSpec& incoming);
+
+private:
+    friend struct ListBoxSelectionModeCapability<ListBox>;
+    friend struct ListBoxTopIndexCapability<ListBox>;
+    friend struct ListBoxItemHeightCapability<ListBox>;
+    friend struct FontCapability<ListBox>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(selection_mode)& cell, ListSelectionMode& incoming);
+    void written(const decltype(selection_mode)& cell);
+    void write_view(const decltype(top_index)& cell, std::size_t incoming);
+    [[nodiscard]] std::size_t read_view(const decltype(top_index)& cell) const;
+    void prepare_write(const decltype(item_height)& cell, double& incoming);
+    void written(const decltype(item_height)& cell);
+    void prepare_write(const decltype(font)& cell, FontSpec& incoming);
+    void written(const decltype(font)& cell);
+    // property_codemod end ListBox
 };
 
 } // namespace gui_forms

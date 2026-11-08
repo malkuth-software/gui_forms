@@ -1,0 +1,141 @@
+{
+  "family": "ListBox",
+  "step": "B5",
+  "declaring": "ListBox",
+  "header": "include/gui_forms/controls/panel/list_box/list_box.hpp",
+  "source": "src/controls/panel/list_box/list_box.cpp",
+  "capabilities_header": "include/gui_forms/controls/panel/list_box/list_box_capabilities/list_box_capabilities.hpp",
+  "base": "Panel",
+  "shared": [
+    "FontCapability"
+  ],
+  "includes": [
+    "gui_forms/controls/panel/list_box/list_box_values/list_box_values.hpp",
+    "gui_forms/types.hpp"
+  ],
+  "properties": [
+    {
+      "name": "selection_mode",
+      "capability": "ListBoxSelectionMode",
+      "value": "ListSelectionMode",
+      "initial": "ListSelectionMode::one",
+      "comment": "One selected item, or an extended selection with Shift and Ctrl (SelectionMode). Switching to one keeps only the active (or first) selected item and raises selection_changed when that drops others.",
+      "getter": "selection_mode",
+      "setter": "set_selection_mode",
+      "clear": null,
+      "field": "selection_mode_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": {
+        "kind": "enumeration",
+        "category": "Behavior",
+        "description": "One selected item, or an extended selection with Shift and Ctrl.",
+        "default": "BindingValue{PropertyEnumValue{\"list_selection_mode\", \"one\", 0}}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": "list_selection_mode_enum()",
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written narrows a multiple selection to one item through apply_selection"
+      ],
+      "sample": "ListSelectionMode::multiple_extended"
+    },
+    {
+      "name": "top_index",
+      "capability": "ListBoxTopIndex",
+      "value": "std::size_t",
+      "initial": "0U",
+      "comment": "The first visible row (TopIndex); a view onto the list's scroll position. Zero in an empty list; otherwise an index outside the items throws std::out_of_range. Item edits and making a row visible move it.",
+      "getter": "top_index",
+      "setter": "set_top_index",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "a view onto top_index_, which the list moves itself without hooks (item edits, ensure_visible during arrange; the flush settles their damage); write_view keeps set_top_index's refusal and invalidation"
+      ],
+      "effects": null,
+      "storage": "view"
+    },
+    {
+      "name": "item_height",
+      "capability": "ListBoxItemHeight",
+      "value": "double",
+      "initial": "26.0",
+      "comment": "The height of each row before text scaling (ItemHeight), 12 to 256 (std::invalid_argument otherwise). coerce_item_height may rewrite a write after that check.",
+      "getter": "item_height",
+      "setter": "set_item_height",
+      "clear": null,
+      "field": "item_height_",
+      "event": null,
+      "on_changed": false,
+      "coerce": true,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": "Dirty::measure | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "prepare": [
+        "if (!std::isfinite(incoming) || incoming < 12.0 || incoming > 256.0) {",
+        "    throw std::invalid_argument(\"ListBox item height must be finite and between 12 and 256\");",
+        "}"
+      ],
+      "sample": "30.0"
+    },
+    {
+      "name": "font",
+      "capability": "Font",
+      "value": "FontSpec",
+      "initial": "FontRole::content, 12.0, 400, false",
+      "comment": "The rows' font (Font). Throws std::invalid_argument for an invalid FontSpec; any write marks the font as set from code.",
+      "getter": "font",
+      "setter": "set_font",
+      "clear": null,
+      "field": "font_",
+      "event": null,
+      "on_changed": true,
+      "coerce": true,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": "Dirty::measure | Dirty::paint | Dirty::semantics",
+      "prepare": [
+        "if (!valid_font_spec(incoming)) throw std::invalid_argument(\"ListBox font specification is invalid\");",
+        "set_font_from_code(true);"
+      ],
+      "sample": "FontSpec{FontRole::content, 14.0, 400, false}"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "items",
+      "reason": "a collection; stays methods (W owns collections)"
+    },
+    {
+      "name": "item_stable_ids",
+      "reason": "a collection; stays a method"
+    },
+    {
+      "name": "selected_indices",
+      "reason": "selection state changed through select_index and clear_selection"
+    }
+  ],
+  "test": {
+    "type": "ListBox",
+    "include": "gui_forms/controls/panel/list_box/list_box.hpp"
+  }
+}

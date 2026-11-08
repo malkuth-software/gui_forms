@@ -171,7 +171,7 @@ std::unique_ptr<gui_forms::Window> make_controller_window(
         rows.push_back(capability.id + " · " + capability.state + " · " + capability.detail);
     }
     (*report).items = std::move(rows);
-    (*report).set_item_height(32);
+    (*report).item_height = 32;
     (*root).add_child(report);
 
     std::shared_ptr<gui_forms::Button> reset = std::make_shared<Button>(StableId("demo.reset"), "Reset to reference");

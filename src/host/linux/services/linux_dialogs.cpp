@@ -485,9 +485,9 @@ HostDialogResult retained_dialog(NativeWindow &owner,
         state.button("host.dialog.up", "Up", {646, 16, 58, 32}, 2));
     state.list = make_control<ListBox>(StableId("host.dialog.files"));
     (*state.list).set_bounds({16, 60, 688, 340});
-    (*state.list).set_font({FontRole::content, 15, 400, false});
+    (*state.list).font = FontSpec{FontRole::content, 15, 400, false};
     if (state.multiple)
-      (*state.list).set_selection_mode(ListSelectionMode::multiple_extended);
+      (*state.list).selection_mode = ListSelectionMode::multiple_extended;
     (*state.root).add_child(state.list);
     state.name =
         make_control<TextBox>(StableId("host.dialog.filename"), suggested);

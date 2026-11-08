@@ -126,7 +126,7 @@ struct ListFixture final {
 void test_list_damage_is_limited_to_shown_rows() {
     ListFixture fixture;
     ListBox& list = *fixture.list;
-    require(list.top_index() == 0U, "the list starts at the top");
+    require(list.top_index.read() == 0U, "the list starts at the top");
 
     list.items.replace(1U, "Replaced");
     DamageRegion damage = fixture.damage_after_layout();
@@ -216,7 +216,7 @@ void test_selection_and_identities_follow_edits() {
     (*list).items.erase(5U, 1U);
     require(!(*list).selected_index() && changes == 3U, "erasing the selected item clears the selection");
     (*list).items.clear();
-    require((*list).items.read().empty() && (*list).top_index() == 0U, "clear empties the list");
+    require((*list).items.read().empty() && (*list).top_index.read() == 0U, "clear empties the list");
     require(changed.connected(), "the subscription stays connected");
 }
 

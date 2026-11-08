@@ -274,6 +274,14 @@ Related types
      -  
    * - :cpp:class:`ListBox::Parts <gui_forms::ListBox::Parts>`
      - Stage T1 anatomy, as dot members.
+   * - :cpp:class:`ListBoxCapabilities <gui_forms::ListBoxCapabilities>`
+     - Every ListBox capability, in the order the declaring class takes them.
+   * - :cpp:class:`ListBoxItemHeightCapability <gui_forms::ListBoxItemHeightCapability>`
+     - The height of each row before text scaling (ItemHeight), 12 to 256 (std::invalid_argument otherwise).
+   * - :cpp:class:`ListBoxSelectionModeCapability <gui_forms::ListBoxSelectionModeCapability>`
+     - One selected item, or an extended selection with Shift and Ctrl (SelectionMode).
+   * - :cpp:class:`ListBoxTopIndexCapability <gui_forms::ListBoxTopIndexCapability>`
+     - The first visible row (TopIndex); a view onto the list's scroll position.
    * - :cpp:class:`ListSelectionChange <gui_forms::ListSelectionChange>`
      - ListSelectionChange reports previous/current indices plus the exact selected-index snapshot after one mutation.
    * - :cpp:class:`ListView::Column <gui_forms::ListView::Column>`
@@ -2761,6 +2769,89 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> ListBoxCapabilities : public ListBoxSelectionModeCapability<Declaring>, public ListBoxTopIndexCapability<Declaring>, public ListBoxItemHeightCapability<Declaring>, public FontCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/list_box/list_box_capabilities/list_box_capabilities.hpp>``
+
+   Every ListBox capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: ListBoxCapabilities()
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: ListSelectionMode selection_mode
+
+      One selected item, or an extended selection with Shift and Ctrl (SelectionMode). Switching to one keeps only the active (or first) selected item and raises selection_changed when that drops others.
+
+   .. cpp:member:: std::size_t top_index
+
+      The first visible row (TopIndex); a view onto the list's scroll position. Zero in an empty list; otherwise an index outside the items throws std::out_of_range. Item edits and making a row visible move it.
+
+   .. cpp:member:: double item_height
+
+      The height of each row before text scaling (ItemHeight), 12 to 256 (std::invalid_argument otherwise). coerce_item_height may rewrite a write after that check.
+
+   .. cpp:member:: FontSpec font
+
+      The font of the control's text (Font).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ListBoxItemHeightCapability
+
+   ``#include <gui_forms/controls/panel/list_box/list_box_capabilities/list_box_capabilities.hpp>``
+
+   The height of each row before text scaling (ItemHeight), 12 to 256 (std::invalid_argument otherwise). coerce_item_height may rewrite a write after that check.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ListBoxItemHeightCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, ListBoxItemHeightCapability<Declaring>> item_height
+
+      Default: ``{26.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ListBoxSelectionModeCapability
+
+   ``#include <gui_forms/controls/panel/list_box/list_box_capabilities/list_box_capabilities.hpp>``
+
+   One selected item, or an extended selection with Shift and Ctrl (SelectionMode). Switching to one keeps only the active (or first) selected item and raises selection_changed when that drops others.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ListBoxSelectionModeCapability& capability, ListSelectionMode incoming)
+
+   .. cpp:member:: PropertyCell<ListSelectionMode, ListBoxSelectionModeCapability<Declaring>> selection_mode
+
+      Default: ``{ListSelectionMode::one}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ListBoxTopIndexCapability
+
+   ``#include <gui_forms/controls/panel/list_box/list_box_capabilities/list_box_capabilities.hpp>``
+
+   The first visible row (TopIndex); a view onto the list's scroll position. Zero in an empty list; otherwise an index outside the items throws std::out_of_range. Item edits and making a row visible move it.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ListBoxTopIndexCapability& capability, std::size_t incoming)
+
+   .. cpp:function:: static std::size_t read(const ListBoxTopIndexCapability& capability)
+
+   .. cpp:member:: PropertyView<std::size_t, ListBoxTopIndexCapability<Declaring>> top_index
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ListSelectionChange final
 
    ``#include <gui_forms/controls/panel/list_box/list_box.hpp>``
@@ -4441,7 +4532,7 @@ Enumerations
 
 .. cpp:enum-class:: ListSelectionMode
 
-   ``#include <gui_forms/controls/panel/list_box/list_box.hpp>``
+   ``#include <gui_forms/controls/panel/list_box/list_box_values/list_box_values.hpp>``
 
    .. cpp:enumerator:: one
 

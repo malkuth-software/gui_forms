@@ -9,6 +9,7 @@
 #include "gui_forms/detail/algorithm/binary_search.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
 #include <array>
@@ -46,24 +47,6 @@ ListBox::ListBox(StableId stable_id) : Panel(std::move(stable_id)) {
     items_registration.should_serialize = detail::BoundMemberFunction<bool (ListBox::*)() const noexcept>(
         *this, &ListBox::should_serialize_items_property);
     define_bindable_property(std::move(items_registration));
-
-    // What a form document sets besides the items (stage FD6.3); it raises
-    // no change event.
-    PropertyDescriptor mode;
-    mode.name = "selection_mode";
-    mode.kind = BindingValueKind::enumeration;
-    mode.category = "Behavior";
-    mode.description = "One selected item, or an extended selection with Shift and Ctrl.";
-    mode.default_value = BindingValue{PropertyEnumValue{"list_selection_mode", "one", 0}};
-    mode.invalidation_effects = Dirty::paint | Dirty::semantics;
-    mode.bindable = false;
-    mode.enumeration = list_selection_mode_enum();
-    define_bindable_property({
-        std::move(mode),
-        detail::EnumerationPropertyGetter<ListBox, ListSelectionMode>(
-            *this, &ListBox::selection_mode, list_selection_mode_enum()),
-        detail::EnumerationPropertySetter<ListBox, ListSelectionMode>(*this, &ListBox::set_selection_mode),
-        {}, {}, {}});
 }
 
 BindingValue ListBox::items_property_value() const {
@@ -182,11 +165,14 @@ std::string ListBox::item_stable_id(std::size_t index) const {
            std::to_string(index);
 }
 
-void ListBox::set_selection_mode(ListSelectionMode mode) {
+void ListBox::prepare_write(const decltype(selection_mode)&, ListSelectionMode&) {
     require_mutable();
-    if (selection_mode_ == mode) return;
-    selection_mode_ = mode;
-    if (mode == ListSelectionMode::one && selected_.size() > 1U) {
+}
+
+// Narrowing to one item keeps the active (or first) selected row; dropping
+// the others raises selection_changed before the repaint request.
+void ListBox::written(const decltype(selection_mode)&) {
+    if (selection_mode.read() == ListSelectionMode::one && selected_.size() > 1U) {
         const std::size_t retained = active_index_.value_or(selected_.front());
         apply_selection({retained}, retained);
     }
@@ -217,7 +203,7 @@ void ListBox::select_index(std::size_t index, bool extend, bool toggle) {
     if (index >= items.read().size()) {
         throw std::out_of_range("ListBox selection index is outside the collection");
     }
-    if (selection_mode_ == ListSelectionMode::one) {
+    if (selection_mode.read() == ListSelectionMode::one) {
         apply_selection({index}, index);
         anchor_index_ = index;
     } else if (extend && anchor_index_) {
@@ -248,37 +234,20 @@ void ListBox::clear_selection() {
     anchor_index_.reset();
 }
 
-void ListBox::set_top_index(std::size_t index) {
+std::size_t ListBox::read_view(const decltype(top_index)&) const {
+    return top_index_;
+}
+
+void ListBox::write_view(const decltype(top_index)&, std::size_t incoming) {
     require_mutable();
     if (items.read().empty()) {
-        if (index != 0U) throw std::out_of_range("empty ListBox top index must be zero");
-    } else if (index >= items.read().size()) {
+        if (incoming != 0U) throw std::out_of_range("empty ListBox top index must be zero");
+    } else if (incoming >= items.read().size()) {
         throw std::out_of_range("ListBox top index is outside the collection");
     }
-    if (top_index_ == index) return;
-    top_index_ = index;
+    if (top_index_ == incoming) return;
+    top_index_ = incoming;
     invalidate(Dirty::paint | Dirty::semantics);
-}
-
-void ListBox::set_item_height(double height) {
-    require_mutable();
-    if (!std::isfinite(height) || height < 12.0 || height > 256.0) {
-        throw std::invalid_argument("ListBox item height must be finite and between 12 and 256");
-    }
-    if (item_height_ == height) return;
-    item_height_ = height;
-    invalidate(Dirty::measure | Dirty::paint | Dirty::hit_test | Dirty::semantics);
-}
-
-void ListBox::set_font(FontSpec font) {
-    require_mutable();
-    if (!valid_font_spec(font)) {
-        throw std::invalid_argument("ListBox font specification is invalid");
-    }
-    set_font_from_code(true);
-    if (font_ == font) return;
-    font_ = font;
-    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
 }
 
 std::size_t ListBox::visible_row_count() const noexcept {
@@ -286,7 +255,7 @@ std::size_t ListBox::visible_row_count() const noexcept {
     if (height <= 4.0) {
         height = requested_bounds().height;
     }
-    const double row_height = item_height_ * effective_text_scale();
+    const double row_height = item_height.read() * effective_text_scale();
     return std::max<std::size_t>(1U, static_cast<std::size_t>(
         std::floor(std::max(0.0, height - 4.0) / row_height)));
 }
@@ -325,7 +294,7 @@ void ListBox::settle_items_damage(bool window_moved) {
     if (!structural_from && settled_rows_.empty()) return;
     const Rect bounds = local_bounds();
     if (bounds.empty()) return;
-    const double row_height = item_height_ * effective_text_scale();
+    const double row_height = item_height.read() * effective_text_scale();
     const double row_width = std::max(0.0, bounds.width - 4.0);
     const double content_bottom = std::max(2.0, bounds.height - 2.0);
     const std::size_t window_end = top_index_ + visible_row_count() + 1U;
@@ -350,7 +319,7 @@ std::optional<std::size_t> ListBox::index_at(Point absolute) const noexcept {
     if (!bounds.contains(absolute)) return {};
     const double local_y = absolute.y - bounds.y - 2.0;
     if (local_y < 0.0) return {};
-    const double row_height = item_height_ * effective_text_scale();
+    const double row_height = item_height.read() * effective_text_scale();
     const std::size_t index = top_index_ +
         static_cast<std::size_t>(std::floor(local_y / row_height));
     return index < items.read().size() ? std::optional<std::size_t>{index}
@@ -374,8 +343,8 @@ void ListBox::on_paint(Painter& painter, Rect) {
     if (has_background_override() || overridden) well.authored_background = background();
     well.key = PartKey{"well", {}, {}};
     paint_part(painter, *this, well);
-    const FontSpec font = text_font(font_);
-    const double row_height = item_height_ * effective_text_scale();
+    const FontSpec row_font = text_font(font.read());
+    const double row_height = item_height.read() * effective_text_scale();
     painter.save();
     painter.clip_rect({2.0, 2.0, std::max(0.0, bounds.width - 4.0),
                        std::max(0.0, bounds.height - 4.0)});
@@ -408,11 +377,11 @@ void ListBox::on_paint(Painter& painter, Rect) {
         text.role = PartRole::content;
         text.states = row_states;
         text.text = items.read()[index];
-        text.font = font;
+        text.font = row_font;
         if (overridden) text.authored_foreground = selected && focused_ ? style().highlight : style().text;
         const double left = row_text_left();
         paint_text_part_at(painter, *this, text,
-                           {left, y + std::max(font.size, row_height * 0.5 + 4.0)},
+                           {left, y + std::max(row_font.size, row_height * 0.5 + 4.0)},
                            std::max(0.0, row.x + row.width - left));
         if (focused_ && active_index_ == index) {
             PartPaint ring;
@@ -455,7 +424,7 @@ void ListBox::on_pointer(PointerEvent& event) {
             const std::ptrdiff_t next = std::clamp<std::ptrdiff_t>(
                 static_cast<std::ptrdiff_t>(top_index_) + direction * 3,
                 0, static_cast<std::ptrdiff_t>(items.read().size() - 1U));
-            set_top_index(static_cast<std::size_t>(next));
+            top_index = static_cast<std::size_t>(next);
             event.handled = true;
         }
         return;
@@ -506,7 +475,7 @@ void ListBox::on_focus_changed(bool focused) {
 SemanticDescriptor ListBox::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::list;
-    if (selection_mode_ == ListSelectionMode::multiple_extended) {
+    if (selection_mode.read() == ListSelectionMode::multiple_extended) {
         descriptor.states |= SemanticState::multiselectable;
     }
     descriptor.name = accessible_name.read();
@@ -527,7 +496,7 @@ std::vector<SemanticNode> ListBox::semantic_virtual_children() const {
     const Rect list_bounds = absolute_bounds();
     const std::size_t visible_count = visible_row_count();
     const std::size_t visible_end = std::min(items.read().size(), top_index_ + visible_count);
-    const double row_height = item_height_ * effective_text_scale();
+    const double row_height = item_height.read() * effective_text_scale();
     for (std::size_t index = 0; index < items.read().size(); ++index) {
         SemanticNode node;
         node.stable_id = item_stable_id(index);
@@ -593,7 +562,6 @@ bool ListBox::on_semantic_child_action(std::string_view child_stable_id,
     }
     return true;
 }
-
 
 namespace {
 
@@ -685,12 +653,12 @@ ListBox::ItemParts ListBox::list_item_parts(std::size_t item) const {
     const Rect bounds = local_bounds();
     const Rect content{2.0, 2.0, std::max(0.0, bounds.width - 4.0),
                        std::max(0.0, bounds.height - 4.0)};
-    const double row_height = item_height_ * effective_text_scale();
+    const double row_height = item_height.read() * effective_text_scale();
     const double y = 2.0 + static_cast<double>(item) * row_height;
     const Rect row{2.0, y, std::max(0.0, bounds.width - 4.0), row_height};
     const std::size_t index = realized_item_index(item);
-    const FontSpec font = text_font(font_);
-    const ResolvedTextLayout text = resolve_text_layout_utf8(items.read()[index], font);
+    const FontSpec label_font = text_font(font.read());
+    const ResolvedTextLayout text = resolve_text_layout_utf8(items.read()[index], label_font);
     const double label_left = row_text_left();
     const double label_width = std::min(text.logical_size.width,
                                         std::max(0.0, row.right() - label_left));
@@ -758,5 +726,100 @@ void ListBox::append_interactions(std::vector<InteractionDeclaration>& interacti
     Panel::append_interactions(interactions);
     interactions.insert(interactions.end(), list_box_interactions.begin(), list_box_interactions.end());
 }
+
+// property_codemod begin ListBox (tools/property_families/list_box.json; generated, do not edit)
+
+namespace {
+
+PropertyDescriptor list_box_selection_mode_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "selection_mode";
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.category = "Behavior";
+    descriptor.description = "One selected item, or an extended selection with Shift and Ctrl.";
+    descriptor.default_value = BindingValue{PropertyEnumValue{"list_selection_mode", "one", 0}};
+    descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.enumeration = list_selection_mode_enum();
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_list_box_selection_mode() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        list_box_selection_mode_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+} // namespace
+
+PropertyType PropertyValueTraits<ListSelectionMode>::type() {
+    return PropertyType{BindingValueKind::enumeration, false, list_selection_mode_enum()};
+}
+
+BindingValue PropertyValueTraits<ListSelectionMode>::to_binding(ListSelectionMode value) {
+    PropertyDescriptor descriptor;
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.enumeration = list_selection_mode_enum();
+    const std::optional<BindingValue> converted =
+        convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
+    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    return *converted;
+}
+
+ListSelectionMode PropertyValueTraits<ListSelectionMode>::from_binding(const BindingValue& value) {
+    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
+    return static_cast<ListSelectionMode>(choice.value);
+}
+
+const std::array<PropertyEntry, ListBox::list_box_property_count>& ListBox::list_box_property_entries() noexcept {
+    static constexpr std::array<PropertyEntry, 1U> own{{
+        {"selection_mode", &describe_list_box_selection_mode,
+         &read_cell_entry<ListBox, decltype(&ListBox::selection_mode), &ListBox::selection_mode>,
+         &write_cell_entry<ListBox, decltype(&ListBox::selection_mode), &ListBox::selection_mode>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+    }};
+    static_assert(property_names_distinct(own), "ListBox's property table names a property twice");
+    static const std::array<PropertyEntry, list_box_property_count> entries =
+        join_property_tables(Panel::panel_property_entries(), own);
+    return entries;
+}
+
+std::span<const PropertyEntry> ListBox::property_table() const noexcept {
+    const std::array<PropertyEntry, list_box_property_count>& entries = list_box_property_entries();
+    return std::span<const PropertyEntry>(entries);
+}
+
+void ListBox::prepare_write(const decltype(item_height)&, double& incoming) {
+    require_mutable();
+    if (!std::isfinite(incoming) || incoming < 12.0 || incoming > 256.0) {
+        throw std::invalid_argument("ListBox item height must be finite and between 12 and 256");
+    }
+    coerce_item_height(incoming);
+}
+
+void ListBox::written(const decltype(item_height)&) {
+    invalidate(Dirty::measure | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+void ListBox::coerce_item_height(double&) {}
+
+void ListBox::prepare_write(const decltype(font)&, FontSpec& incoming) {
+    require_mutable();
+    if (!valid_font_spec(incoming)) throw std::invalid_argument("ListBox font specification is invalid");
+    set_font_from_code(true);
+    coerce_font(incoming);
+}
+
+void ListBox::written(const decltype(font)&) {
+    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
+    on_font_changed();
+}
+
+void ListBox::on_font_changed() {}
+
+void ListBox::coerce_font(FontSpec&) {}
+
+// property_codemod end ListBox
 
 } // namespace gui_forms

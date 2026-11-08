@@ -4,6 +4,7 @@
 #include "headless_host.hpp"
 #include "support/named_callbacks.hpp"
 
+#include <cmath>
 #include <cstdlib>
 #include <iostream>
 #include <limits>
@@ -88,6 +89,23 @@ public:
 
 private:
     std::string& values_;
+};
+
+// coerce_item_height rounds a row height up to an even pixel count, and
+// on_font_changed counts each changed font write after the touch.
+class EvenRowListBox final : public ListBox {
+public:
+    using ListBox::ListBox;
+    int font_changes{};
+
+protected:
+    void coerce_item_height(double& incoming) override {
+        incoming = 2.0 * std::ceil(incoming * 0.5);
+    }
+    void on_font_changed() override {
+        ListBox::on_font_changed();
+        ++font_changes;
+    }
 };
 
 void test_unicode_editing_selection_and_history() {
@@ -360,7 +378,7 @@ void test_list_box_selection_navigation_and_mutation() {
     require(window.dispatch_key(enter) && activations == 3U,
             "ListBox Enter must activate its active item");
 
-    (*list).set_selection_mode(ListSelectionMode::multiple_extended);
+    (*list).selection_mode = ListSelectionMode::multiple_extended;
     (*list).select_index(4U, true, false);
     require((*list).selected_indices().size() == 3U &&
                 (*list).selected_indices().front() == 2U &&
@@ -377,7 +395,7 @@ void test_list_box_selection_navigation_and_mutation() {
     require((*list).selected_indices().front() == 1U &&
                 (*list).selected_indices().back() == 3U,
             "ListBox collection mutation must remap retained selection indices");
-    (*list).set_top_index(2U);
+    (*list).top_index = 2U;
     RecordingPainter painter;
     window.paint(painter, {0.0, 0.0, 180.0, 86.0});
     require(painter.painted_text.find("Delta") != std::string::npos &&
@@ -402,8 +420,8 @@ void test_combo_box_scrollbar_reaches_last_item() {
     const Rect bounds = (*list).absolute_bounds();
     require(bounds.y >= 0 && bounds.y + bounds.height <= 220, "tall overlay fits a short window");
     (*bar).set_value((*bar).maximum());
-    require((*list).top_index() > 0, "scrollbar changes the list viewport");
-    const Point last{bounds.x + 15, bounds.y + 2 + (23 - (*list).top_index()) * 26.0 + 13};
+    require((*list).top_index.read() > 0, "scrollbar changes the list viewport");
+    const Point last{bounds.x + 15, bounds.y + 2 + (23 - (*list).top_index.read()) * 26.0 + 13};
     window.dispatch_pointer({PointerAction::down, PointerButton::primary, last});
     window.dispatch_pointer({PointerAction::up, PointerButton::primary, last});
     require((*combo).selected_index() == 23 && !(*combo).dropped_down(),
@@ -770,6 +788,52 @@ void test_numeric_up_down_property_capabilities() {
     static_cast<void>(changed);
 }
 
+void test_list_box_property_capabilities() {
+    std::shared_ptr<EvenRowListBox> list = make_control<EvenRowListBox>(StableId("input.list.caps"));
+    (*list).items = {"one", "two", "three", "four"};
+    std::size_t changes{};
+    const SubscriptionToken changed = (*list).selection_changed().subscribe(
+        test_support::IncrementCounter<std::size_t, const ListSelectionChange&>(changes));
+    (*list).selection_mode = ListSelectionMode::multiple_extended;
+    (*list).select_index(1U);
+    (*list).select_index(3U, false, true);
+    require((*list).selected_indices().size() == 2U && changes == 2U, "an extended list keeps two rows");
+    (*list).selection_mode = ListSelectionMode::one;
+    require((*list).selected_indices().size() == 1U && (*list).selected_indices()[0] == 3U && changes == 3U,
+            "switching to one keeps the active row and raises selection_changed");
+    (*list).set_property_value("selection_mode", BindingValue{PropertyEnumValue{"list_selection_mode", "multiple_extended", 1}});
+    require((*list).selection_mode.read() == ListSelectionMode::multiple_extended, "a table write sets the mode");
+
+    (*list).top_index = 2U;
+    require((*list).top_index.read() == 2U, "top_index is written");
+    bool refused = false;
+    try {
+        (*list).top_index = 4U;
+    } catch (const std::out_of_range&) {
+        refused = true;
+    }
+    require(refused && (*list).top_index.read() == 2U, "a top index outside the items is refused");
+    (*list).items = {"only"};
+    require((*list).top_index.read() == 0U, "shrinking the items moves top_index back into range");
+
+    (*list).item_height = 27.0;
+    require((*list).item_height.read() == 28.0, "coerce_item_height rewrites the incoming height");
+    refused = false;
+    try {
+        (*list).item_height = 8.0;
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*list).item_height.read() == 28.0, "a height under 12 is refused");
+
+    const FontSpec larger{FontRole::content, 14.0, 400, false};
+    (*list).font = larger;
+    (*list).font = larger;
+    require((*list).font.read() == larger && (*list).font_changes == 1,
+            "on_font_changed runs once per changed font");
+    static_cast<void>(changed);
+}
+
 int main() {
     try {
         test_unicode_editing_selection_and_history();
@@ -786,6 +850,7 @@ int main() {
         test_list_box_model_stable_item_ids();
         test_text_box_property_capabilities();
         test_numeric_up_down_property_capabilities();
+        test_list_box_property_capabilities();
         std::cout << "gui_forms_input_controls_tests: all tests passed\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {

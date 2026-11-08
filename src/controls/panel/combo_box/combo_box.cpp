@@ -687,7 +687,7 @@ void ComboBox::set_font(FontSpec font) {
     if (font_ == font) return;
     font_ = font;
     if (editor_) (*editor_).font = font;
-    if (overlay_list_) (*overlay_list_).set_font(font);
+    if (overlay_list_) (*overlay_list_).font = font;
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
 }
 
@@ -728,7 +728,7 @@ void ComboBox::open_drop_down(std::string_view pattern) {
     std::shared_ptr<gui_forms::ListBox> list = make_control<DropDownList>(StableId(prefix + ".overlay.list"));
     (*list).set_paint_plane(PaintPlane::overlay);
     (*list).items = std::vector<std::string>(items.read().begin(), items.read().end());
-    (*list).set_font(font_);
+    (*list).font = font_;
     (*list).set_requested_bounds(
         {overlay_x, overlay_y, overlay_width, overlay_height});
     if (selected_index_) {
@@ -778,7 +778,7 @@ void ComboBox::open_field_list(double width, double height) {
     std::shared_ptr<gui_forms::ListBox> field_list = make_control<DropDownList>(StableId(prefix + ".overlay.list"));
     (*field_list).set_focusable(false);
     (*field_list).set_paint_plane(PaintPlane::overlay);
-    (*field_list).set_font(font_);
+    (*field_list).font = font_;
     (*anchored).set_content(field_list);
     OverlayToken field_token = (*window()).open_overlay(shared_from_this(), anchored);
     overlay_layer_ = anchored;

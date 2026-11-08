@@ -11,7 +11,7 @@ void test_checked_collections(gui_forms::Window& window) {
             "gallery checked page must retain a public check-state collection");
     const Rect checked_bounds = (*checked).absolute_bounds();
     const Point last_row{checked_bounds.x + 14.0,
-                         checked_bounds.y + 2.0 + 5.5 * (*checked).item_height()};
+                         checked_bounds.y + 2.0 + 5.5 * (*checked).item_height.read()};
     require(window.dispatch_pointer({PointerAction::down, PointerButton::primary,
                                      last_row}) &&
                 window.dispatch_pointer({PointerAction::up, PointerButton::primary,

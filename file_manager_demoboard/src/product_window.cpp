@@ -1483,8 +1483,8 @@ private:
         completions_ = make_control<ListBox>(
             StableId("fm.path.matrix.completions"));
         (*completions_).set_style(house_style());
-        (*completions_).set_font({FontRole::content, 10.0, 500, false});
-        (*completions_).set_item_height(25.0);
+        (*completions_).font = FontSpec{FontRole::content, 10.0, 500, false};
+        (*completions_).item_height = 25.0;
         (*completions_).accessible_name = "Path completions";
         (*completions_).visible = false;
         (*content_).add_at(completions_, {10.0, 85.0, 840.0, 79.0});

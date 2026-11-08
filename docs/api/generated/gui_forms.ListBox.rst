@@ -7,7 +7,7 @@ gui_forms::ListBox
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: ListBox : public Panel, public TextItemsCapability<ListBox>
+.. cpp:class:: ListBox : public Panel, public TextItemsCapability<ListBox>, public ListBoxCapabilities<ListBox>
 
    ``#include <gui_forms/controls/panel/list_box/list_box.hpp>``
 
@@ -58,13 +58,6 @@ gui_forms::ListBox
          ``one`` while several rows are selected keeps only the active row (or
          the first selected row), and raises :cpp:func:`selection_changed <gui_forms::ListBox::selection_changed>`.
 
-      **selected_indices** : ``std::span<const std::size_t>``, read-only
-         The indices of all selected rows, in ascending order.
-
-      **selected_index** : ``std::optional<std::size_t>``, read-only
-         The lowest selected index, or no value when nothing is selected. In
-         ``one`` mode this is the selected row.
-
       **top_index** : ``std::size_t``, default ``0``
          The index of the first row shown at the top of the list. The mouse
          wheel moves it by three rows, and selecting a row scrolls it into view.
@@ -78,6 +71,13 @@ gui_forms::ListBox
       **font** : ``FontSpec``, default ``FontSpec{FontRole::content, 12.0, 400, false}``
          The font of the row text. An invalid specification throws
          ``std::invalid_argument``.
+
+      **selected_indices** : ``std::span<const std::size_t>``, read-only
+         The indices of all selected rows, in ascending order.
+
+      **selected_index** : ``std::optional<std::size_t>``, read-only
+         The lowest selected index, or no value when nothing is selected. In
+         ``one`` mode this is the selected row.
 
       **parts** : ``Parts``, read-only
 
@@ -119,6 +119,8 @@ gui_forms::ListBox
         - Selects a row and makes it active, as a click does.
       * - :cpp:func:`clear_selection <gui_forms::ListBox::clear_selection>`
         - Deselects every row and clears the active row and the anchor.
+      * - :cpp:func:`list_box_property_entries <gui_forms::ListBox::list_box_property_entries>`
+        -  
       * - :cpp:func:`set_item_stable_ids <gui_forms::ListBox::set_item_stable_ids>`
         - Gives each row its own accessibility ID, in row order.
 
@@ -167,7 +169,7 @@ gui_forms::ListBox
       std::shared_ptr<gf::ListBox> languages =
           gf::make_control<gf::ListBox>(gf::StableId("options.languages"));
       (*languages).items = {"English", "French", "German", "Italian"};
-      (*languages).set_selection_mode(gf::ListSelectionMode::multiple_extended);
+      (*languages).selection_mode = gf::ListSelectionMode::multiple_extended;
       (*languages).select_index(1U);         // French, which becomes the anchor
       (*languages).select_index(3U, true);   // French through Italian
       // (*languages).selected_indices() is now {1, 2, 3}
@@ -229,16 +231,29 @@ gui_forms::ListBox
       it reaches: a replaced row, or the rows from an insertion or erasure
       down; an edit below the rows in view repaints nothing.
 
-   .. cpp:function:: ListSelectionMode selection_mode() const noexcept
+   .. cpp:member:: ListSelectionMode selection_mode
 
       :cpp:enumerator:`ListSelectionMode::one <gui_forms::ListSelectionMode::one>` allows at most one selected row;
       :cpp:enumerator:`ListSelectionMode::multiple_extended <gui_forms::ListSelectionMode::multiple_extended>` allows several. Switching to
       ``one`` while several rows are selected keeps only the active row (or
       the first selected row), and raises :cpp:func:`selection_changed <gui_forms::ListBox::selection_changed>`.
 
-   .. cpp:function:: void set_selection_mode(ListSelectionMode mode)
+   .. cpp:member:: std::size_t top_index
 
-      Sets :cpp:func:`selection_mode <gui_forms::ListBox::selection_mode>`; see the property's description above.
+      The index of the first row shown at the top of the list. The mouse
+      wheel moves it by three rows, and selecting a row scrolls it into view.
+      Setting an index outside the items throws ``std::out_of_range``; for an
+      empty list only ``0`` is accepted.
+
+   .. cpp:member:: double item_height
+
+      Height of each row in logical pixels, before text scaling. Values
+      outside 12 to 256, or not finite, throw ``std::invalid_argument``.
+
+   .. cpp:member:: FontSpec font
+
+      The font of the row text. An invalid specification throws
+      ``std::invalid_argument``.
 
    .. cpp:function:: std::span<const std::size_t> selected_indices() const noexcept
 
@@ -248,35 +263,6 @@ gui_forms::ListBox
 
       The lowest selected index, or no value when nothing is selected. In
       ``one`` mode this is the selected row.
-
-   .. cpp:function:: std::size_t top_index() const noexcept
-
-      The index of the first row shown at the top of the list. The mouse
-      wheel moves it by three rows, and selecting a row scrolls it into view.
-      Setting an index outside the items throws ``std::out_of_range``; for an
-      empty list only ``0`` is accepted.
-
-   .. cpp:function:: void set_top_index(std::size_t index)
-
-      Sets :cpp:func:`top_index <gui_forms::ListBox::top_index>`; see the property's description above.
-
-   .. cpp:function:: double item_height() const noexcept
-
-      Height of each row in logical pixels, before text scaling. Values
-      outside 12 to 256, or not finite, throw ``std::invalid_argument``.
-
-   .. cpp:function:: void set_item_height(double height)
-
-      Sets :cpp:func:`item_height <gui_forms::ListBox::item_height>`; see the property's description above.
-
-   .. cpp:function:: FontSpec font() const noexcept
-
-      The font of the row text. An invalid specification throws
-      ``std::invalid_argument``.
-
-   .. cpp:function:: void set_font(FontSpec font)
-
-      Sets :cpp:func:`font <gui_forms::ListBox::font>`; see the property's description above.
 
    .. cpp:function:: Parts parts() const
 
@@ -325,6 +311,8 @@ gui_forms::ListBox
    .. cpp:function:: void clear_selection()
 
       Deselects every row and clears the active row and the anchor.
+
+   .. cpp:function:: static const std::array<PropertyEntry, list_box_property_count>& list_box_property_entries() noexcept
 
    .. cpp:function:: void set_item_stable_ids(std::vector<std::string> stable_ids)
 
@@ -439,3 +427,23 @@ gui_forms::ListBox
       *Protected.*
 
       The row's states the list itself tracks.
+
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
+   .. cpp:function:: virtual void coerce_item_height(double& incoming)
+
+      *Protected.*
+
+      on_<property>_changed runs after a changed write's touch and raises the change event; an override calls the base. coerce_<property> runs last before the compare and may rewrite the incoming value.
+
+   .. cpp:function:: virtual void on_font_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void coerce_font(FontSpec& incoming)
+
+      *Protected.*
+
+   .. cpp:member:: constexpr std::size_t list_box_property_count
+
+      ListBox's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 1U``.

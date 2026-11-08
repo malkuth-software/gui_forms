@@ -392,7 +392,7 @@ void TextBox::open_auto_complete_list() {
         (*session.list).items = session.suggestions;
         (*session.list).set_matches(prefix_matches(session.suggestions.size(), session.typed.size()));
         (*session.list).clear_selection();
-        (*session.list).set_top_index(0U);
+        (*session.list).top_index = 0U;
         session.synchronizing = false;
         place_auto_complete_list();
         return;
@@ -409,7 +409,7 @@ void TextBox::open_auto_complete_list() {
     // The list never takes focus: typing stays in this box.
     (*list).set_focusable(false);
     (*list).set_paint_plane(PaintPlane::overlay);
-    (*list).set_font(font.read());
+    (*list).font = font.read();
     (*list).items = session.suggestions;
     (*list).set_matches(prefix_matches(session.suggestions.size(), session.typed.size()));
     (*layer).set_content(list);
@@ -443,7 +443,7 @@ void TextBox::place_auto_complete_list() {
     const Control::Ptr anchor = (*session.layer).anchor();
     const double width = anchor ? (*anchor).absolute_bounds().width : absolute_bounds().width;
     const std::size_t rows = std::min(auto_complete_visible_rows, session.suggestions.size());
-    const double row_height = (*session.list).item_height() * effective_text_scale();
+    const double row_height = (*session.list).item_height.read() * effective_text_scale();
     const double height = static_cast<double>(rows) * row_height + 4.0;
     AnchoredOverlayPlacement placement{};
     placement.preferred_size = Size{std::max(width, 80.0), height};

@@ -40,8 +40,8 @@ Point row_point(const CheckedListBox& list, std::size_t index) {
     const Rect bounds = list.absolute_bounds();
     return {bounds.x + 12.0,
             bounds.y + 2.0 +
-                (static_cast<double>(index - list.top_index()) + 0.5) *
-                    list.item_height()};
+                (static_cast<double>(index - list.top_index.read()) + 0.5) *
+                    list.item_height.read()};
 }
 
 class ObserveItemChecking final {

@@ -8,6 +8,7 @@
 #include "gui_forms/controls/panel/domain_up_down/domain_up_down.hpp"
 #include "gui_forms/controls/panel/group_box/group_box.hpp"
 #include "gui_forms/controls/panel/group_box/scaled_group_box/scaled_group_box.hpp"
+#include "gui_forms/controls/panel/list_box/list_box.hpp"
 #include "gui_forms/controls/panel/list_view/list_view.hpp"
 #include "gui_forms/controls/panel/masked_text_box/masked_text_box.hpp"
 #include "gui_forms/controls/panel/month_calendar/month_calendar.hpp"
@@ -361,6 +362,28 @@ void test_group_box_properties() {
         const bool sample = !(*control).use_mnemonic.read();
         (*control).use_mnemonic = sample;
         expect((*control).use_mnemonic.read() == sample, "GroupBox.use_mnemonic: a write stores");
+    }
+}
+
+void test_list_box_properties() {
+    std::shared_ptr<ListBox> control = make_control<ListBox>(StableId("generated.listbox"));
+    {
+        const ListSelectionMode sample = ListSelectionMode::multiple_extended;
+        (*control).selection_mode = sample;
+        expect((*control).selection_mode.read() == sample, "ListBox.selection_mode: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("selection_mode");
+        expect(by_name && *by_name == PropertyValueTraits<ListSelectionMode>::to_binding(sample),
+               "ListBox.selection_mode: the table reads the cell");
+    }
+    {
+        const double sample = 30.0;
+        (*control).item_height = sample;
+        expect((*control).item_height.read() == sample, "ListBox.item_height: a write stores");
+    }
+    {
+        const FontSpec sample = FontSpec{FontRole::content, 14.0, 400, false};
+        (*control).font = sample;
+        expect((*control).font.read() == sample, "ListBox.font: a write stores");
     }
 }
 
@@ -776,6 +799,7 @@ int main() {
     test_data_grid_view_properties();
     test_domain_up_down_properties();
     test_group_box_properties();
+    test_list_box_properties();
     test_list_view_properties();
     test_masked_text_box_properties();
     test_month_calendar_properties();
