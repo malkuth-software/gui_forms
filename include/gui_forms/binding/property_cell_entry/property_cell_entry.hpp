@@ -62,10 +62,8 @@ struct AssignedMemberValue<ChildPropertyView<Value, Capability>> {
 // declared type, as `decltype((*control).text)` spells it): converted to the
 // member's PropertyType with the property conversion rules, then through
 // PropertyValueTraits, as write_cell_entry converts a table write. Generated
-// forms assign a property with it (CLOSURE P-6):
-//
-//   (*made.ok).text = gui_forms::assigned_property_value<decltype((*made.ok).text)>(
-//       gui_forms::BindingValue{std::string("OK")});
+// forms assign a property with it (CLOSURE P-6), as in
+// `(*made.ok).text = gui_forms::assigned_property_value<decltype((*made.ok).text)>(gui_forms::BindingValue{std::string("OK")});`.
 //
 // Throws std::invalid_argument when `value` has no form of the member's
 // type, or what the traits throw for a value outside a narrower type.
