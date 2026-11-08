@@ -34,22 +34,17 @@ constexpr std::array<PartField<ProgressRing::Parts>, 4> progress_ring_part_field
 
 constexpr std::array<PartDeclaration, 4> progress_ring_parts = part_declarations(progress_ring_part_fields);
 
-constexpr std::array<AnatomyState, 4> progress_ring_states{
-    AnatomyState::normal, AnatomyState::enabled, AnatomyState::disabled, AnatomyState::reduced_motion,
+// "indeterminate" (AnatomyState::indeterminate, as on ProgressBar) names the
+// turning ring for a theme's selectors (`:state(indeterminate)`).
+constexpr std::array<AnatomyState, 5> progress_ring_states{
+    AnatomyState::normal, AnatomyState::indeterminate, AnatomyState::enabled, AnatomyState::disabled,
+    AnatomyState::reduced_motion,
 };
-
-// "indeterminate" names the turning ring for a theme's selectors
-// (`:state(indeterminate)` on the control's parts).
-constexpr std::array<CustomStateDeclaration, 1> progress_ring_custom_states{{
-    {.name = "indeterminate"},
-}};
-constexpr CustomStateIndex indeterminate_state{0U};
 
 constexpr ControlAnatomy progress_ring_anatomy{
     .control_id = "progress_ring",
     .parts = progress_ring_parts,
     .states = progress_ring_states,
-    .custom_states = progress_ring_custom_states,
 };
 
 constexpr FrameInterval step_interval =
@@ -195,7 +190,7 @@ const ControlAnatomy& ProgressRing::anatomy() const noexcept {
 
 AnatomyStateSet ProgressRing::anatomy_states() const {
     AnatomyStateSet states = base_anatomy_states();
-    if (indeterminate.read()) states.insert(indeterminate_state);
+    if (indeterminate.read()) states.insert(AnatomyState::indeterminate);
     const Window* const window = attached_window();
     if (window != nullptr && (*window).presentation_settings().reduced_motion) {
         states.insert(AnatomyState::reduced_motion);

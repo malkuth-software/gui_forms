@@ -1817,8 +1817,8 @@
         {"name": "fill", "role": "fill", "composed_from": null, "states": []},
         {"name": "activity", "role": "activity", "composed_from": null, "states": []}
       ],
-      "states": ["normal", "enabled", "disabled", "reduced_motion"],
-      "custom_states": ["indeterminate"],
+      "states": ["normal", "indeterminate", "enabled", "disabled", "reduced_motion"],
+      "custom_states": [],
       "item_systems": [],
       "properties": [
         {"name": "accessible_description", "kind": "text", "category": "Accessibility", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},

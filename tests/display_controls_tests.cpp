@@ -1167,11 +1167,12 @@ void test_progress_ring() {
     (*ring).on_paint(painted, bounds);
     require(!clock.control_ambient(*ring), "a determinate ring is off the motion clock");
 
-    const std::optional<CustomStateIndex> turning = find_custom_state((*ring).anatomy(), "indeterminate");
-    require(turning && !(*ring).anatomy_states().contains(*turning), "determinate is not the indeterminate state");
+    // The turning ring is the standard indeterminate state, as on ProgressBar.
+    require(!(*ring).anatomy_states().contains(AnatomyState::indeterminate),
+            "determinate is not the indeterminate state");
     (*ring).indeterminate = true;
     window.perform_layout();
-    require((*ring).anatomy_states().contains(*turning), "indeterminate publishes its state");
+    require((*ring).anatomy_states().contains(AnatomyState::indeterminate), "indeterminate publishes its state");
     const ProgressRing::Parts spinning = (*ring).parts();
     require(spinning.activity.present && !spinning.fill.present, "an indeterminate ring publishes its activity part");
     const SemanticDescriptor busy = (*ring).semantic_descriptor();
