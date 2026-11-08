@@ -75,6 +75,16 @@ public:
                                                 ControlVisualContext context) const;
     [[nodiscard]] ResolvedControlRecipe resolve(const Control& control, ControlVisualRole role,
                                                 ControlVisualContext context, AnatomyStateSet states) const;
+    // Where each field of `control`'s recipe in `role` and `context` came
+    // from (T4 cascade spec, item 5), for an editor's query: the facts
+    // resolve() reads, through CompiledThemeRules::resolve_provenance,
+    // into `result`, its parameters left unset (a recipe has no
+    // primitive). In forced high contrast the fields the engine's pass
+    // draws are at forced_high_contrast in its layer, unauthored. Paint
+    // never calls it; the borrows in `result` stay valid while this theme,
+    // the control's inline style and its window's user theme live.
+    void provenance(const Control& control, ControlVisualRole role, ControlVisualContext context,
+                    CompiledThemeRules::PartProvenance& result) const;
     // `control`'s primary text font (T4 fonts): `own`, the font it holds,
     // with the font fields (RecipeField::font_family to letter_spacing) of
     // the theme's rules matching it at rest in place: no part, the region

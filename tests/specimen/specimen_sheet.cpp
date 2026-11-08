@@ -10,7 +10,7 @@
 //
 // The Gallery's own theme (windows-professional) is drawn unless --theme
 // names the default theme `gui-forms` (stage T4, phase 3) or a
-// Windows-familiar theme (phase 7, familiar_theme_named); --light
+// familiar theme (phase 7, familiar_theme_named); --light
 // captures light only, at scales 1 and 2.
 //
 // A full run writes, under <directory>, one PNG contact sheet per

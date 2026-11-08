@@ -440,7 +440,81 @@ void test_application_theme() {
             "the process default is built once, from the default base");
 }
 
+// Provenance per field (T4 cascade spec, item 5): each rule of a closure
+// compiled onto gui-forms is placed in its own sheet with its layer, its
+// pack and the pack's manifest hash; a control's recipe fields name the
+// rule that won each, and an unset field is the built-in recipe's.
+void test_provenance() {
+    ImageRegistry images{};
+    ThemeLibrary library{};
+    const ThemePackage base = package("base", "#pad { outline: 1px solid }\n#pad { color: #a01010 }");
+    require(library.install(base).empty(), "the imported package is installed");
+    const ThemePackage top = package("top", "@import \"base\";\n\n#pad { outline: 2px solid }",
+                                     Extras{.pins = {{"base", hex_of(base.manifest)}}});
+    std::vector<ControlAnatomy> stock(stock_control_anatomies().begin(), stock_control_anatomies().end());
+    stock.push_back(controls[0]);
+    ThemeCompileOptions onto = options();
+    onto.controls = stock;
+    onto.base = ThemeBase::gui_forms;
+    const std::array<ThemePackage, 1> programs{{top}};
+    const ThemeCompileResult result = compile_theme_packages(programs, library, images, onto);
+    require(result.succeeded(), "the closure compiles onto gui-forms");
+    if (!result.succeeded()) return;
+    const Theme& theme = *result.theme();
+    bool gui_forms_placed = false;
+    bool base_placed = false;
+    bool top_placed = false;
+    for (const ThemeRule& rule : theme.definition().rules.rules) {
+        const RuleProvenance& provenance = rule.provenance;
+        if (provenance.pack == "gui-forms") {
+            gui_forms_placed = provenance.file == "gui-forms/light.css" &&
+                               provenance.layer == ThemeLayer::library_pack && provenance.pack_hash.empty() &&
+                               provenance.line >= 1U;
+        }
+        if (provenance.pack == "base" && provenance.line == 2U) {
+            base_placed = provenance.file == "base/theme.theme.css" && provenance.layer == ThemeLayer::library_pack &&
+                          provenance.pack_hash == hex_of(base.manifest) && provenance.column >= 1U;
+        }
+        if (provenance.pack == "top") {
+            top_placed = provenance.file == "top/theme.theme.css" && provenance.layer == ThemeLayer::project_theme &&
+                         provenance.line == 3U;
+        }
+    }
+    require(gui_forms_placed, "the base sheet's rules are a library pack's, in gui-forms/light.css");
+    require(base_placed, "an imported package's rule is a library pack's, at its own line, with its hash");
+    require(top_placed, "the program's package is the project theme, at its own line");
+    const std::shared_ptr<Pad> pad = make_control<Pad>(StableId("pad"));
+    CompiledThemeRules::PartProvenance fields{};
+    theme.provenance(*pad, ControlVisualRole::button, ControlVisualContext{}, fields);
+    const CompiledThemeRules::FieldProvenance& width =
+        fields.recipe_fields[static_cast<std::size_t>(RecipeField::outline_width)];
+    require(width.authored && width.layer == ThemeLayer::project_theme && width.source != nullptr &&
+                (*width.source).pack == "top" && width.selector != nullptr && (*width.selector).stable_id == "pad",
+            "the outline width is the program's rule");
+    const CompiledThemeRules::FieldProvenance& text =
+        fields.recipe_fields[static_cast<std::size_t>(RecipeField::text)];
+    require(text.authored && text.layer == ThemeLayer::library_pack && text.source != nullptr &&
+                (*text.source).pack == "base" && (*text.source).line == 2U &&
+                text.origin.source == ColourSource::literal,
+            "the text colour is the imported pack's literal");
+    const CompiledThemeRules::FieldProvenance& glyph =
+        fields.recipe_fields[static_cast<std::size_t>(RecipeField::glyph)];
+    require(!glyph.authored || glyph.layer == ThemeLayer::library_pack,
+            "a field no package sets is the built-in recipe's or the base sheet's");
+    require(fields.parameter_count == 0U, "a recipe has no primitive parameters");
+    ControlVisualContext forced{};
+    forced.high_contrast = true;
+    theme.provenance(*pad, ControlVisualRole::button, forced, fields);
+    const CompiledThemeRules::FieldProvenance& pass =
+        fields.recipe_fields[static_cast<std::size_t>(RecipeField::text)];
+    require(!pass.authored && pass.layer == ThemeLayer::forced_high_contrast,
+            "in forced high contrast the pass draws the text colour");
+    require(theme_layer_name(ThemeLayer::inline_code) == "inline_code" && theme_layer_name(ThemeLayer::count).empty(),
+            "the layers are named");
+}
+
 int main() {
+    test_provenance();
     test_base_theme();
     test_application_theme();
     test_one_package();

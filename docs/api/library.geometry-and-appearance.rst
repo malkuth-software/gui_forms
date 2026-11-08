@@ -52,8 +52,12 @@ Types
      - One state of a compiled machine (see PresentationState).
    * - :cpp:class:`CompiledThemeRules::CompiledTransition <gui_forms::CompiledThemeRules::CompiledTransition>`
      - A checked transition: an engine property, or the parameter at ``parameter``.
+   * - :cpp:class:`CompiledThemeRules::FieldProvenance <gui_forms::CompiledThemeRules::FieldProvenance>`
+     - Where one resolved field came from (T4 cascade spec, item 5).
    * - :cpp:class:`CompiledThemeRules::PartFacts <gui_forms::CompiledThemeRules::PartFacts>`
      - What a part is: the facts its selectors are matched against.
+   * - :cpp:class:`CompiledThemeRules::PartProvenance <gui_forms::CompiledThemeRules::PartProvenance>`
+     - The provenance of every field of the part ``facts`` name: its primitive parameters (by position; ``parameter_count`` are the chosen primitive's, none when no rule selects one), its material fields and its recipe fields (by their positions), as resolve(), resolve_recipe_fields() and the primitive's parameters resolve them.
    * - :cpp:class:`CompiledThemeRules::RecipeResolution <gui_forms::CompiledThemeRules::RecipeResolution>`
      - The winning declaration of each recipe field (RecipeField) of the rules matching a control, by the field's position, or null where no matching rule sets it; they belong to the compiled rules.
    * - :cpp:class:`CompiledThemeRules::Resolution <gui_forms::CompiledThemeRules::Resolution>`
@@ -310,6 +314,8 @@ Types
      -  
    * - :cpp:class:`RuleExclusion <gui_forms::RuleExclusion>`
      - One argument of a selector's ``:not()`` (selector step 2): a compound of a control type, a stable ID, classes, states and a family, each optional; it excludes the parts it matches.
+   * - :cpp:class:`RuleProvenance <gui_forms::RuleProvenance>`
+     - Where a rule was written (T4 cascade spec, item 5), for an editor's queries; paint never reads it.
    * - :cpp:class:`RuleSelector <gui_forms::RuleSelector>`
      - ``family``, when set, is a control visual family's registered name (the theme's ControlVisualRole, such as ``accent_button``): the selector matches only parts resolved for that family (PartFacts::family).
    * - :cpp:class:`RuleSpecificity <gui_forms::RuleSpecificity>`
@@ -819,6 +825,10 @@ Types
 
       The recipe fields' cascade for a control: ``facts`` name no part and the region role. Linear in the number of rules, and at once when no rule sets a recipe field.
 
+   .. cpp:function:: void resolve_provenance(const PartFacts& facts, PartProvenance& result) const noexcept
+
+      Fills ``result`` with the provenance of the part ``facts`` name, for an editor's query: linear in the number of rules, allocating nothing. Paint never calls it. The borrows in ``result`` stay valid while these rules and the facts' inline style and user theme live.
+
    .. cpp:function:: const BackdropDeclaration* resolve_backdrop(const PartFacts& facts) const noexcept
 
       The winning backdrop of the surface ``facts`` name (PartFacts::surface, its root control's classes and ID): the last matching rule's, which belongs to the compiled rules or to the user theme's, or null where no matching rule declares one. ``backdrop: none`` wins as a chain of length 0. Linear in the number of rules.
@@ -873,6 +883,32 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: CompiledThemeRules::FieldProvenance final
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   Where one resolved field came from (T4 cascade spec, item 5). ``authored`` is whether a rule set it; where none did, the built-in recipe's value stands, at ``built_in`` in the built-in layer. ``source`` and ``selector`` are the winning rule's provenance and selector, which belong to the compiled rules (this table, or the facts' inline style or user theme) and are null where no rule set the field; ``origin`` is a colour's (ColourOrigin, none for a value that is not a colour).
+
+   .. cpp:member:: bool authored
+
+   .. cpp:member:: CascadeLevel level
+
+      Default: ``{CascadeLevel::built_in}``.
+
+   .. cpp:member:: ThemeLayer layer
+
+      Default: ``{ThemeLayer::built_in}``.
+
+   .. cpp:member:: const RuleProvenance* source
+
+   .. cpp:member:: const RuleSelector* selector
+
+   .. cpp:member:: RuleSpecificity specificity
+
+   .. cpp:member:: ColourOrigin origin
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: CompiledThemeRules::PartFacts final
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
@@ -924,6 +960,22 @@ Types
       The part's control's ancestors, its parent first, and their keys (fill_ancestor_facts): read only by rules with ancestor compounds (uses_ancestors). Borrowed for the call.
 
    .. cpp:member:: AncestorBloom ancestor_bloom
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: CompiledThemeRules::PartProvenance final
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   The provenance of every field of the part ``facts`` name: its primitive parameters (by position; ``parameter_count`` are the chosen primitive's, none when no rule selects one), its material fields and its recipe fields (by their positions), as resolve(), resolve_recipe_fields() and the primitive's parameters resolve them.
+
+   .. cpp:member:: std::array<FieldProvenance, maximum_primitive_parameters> parameters
+
+   .. cpp:member:: std::size_t parameter_count
+
+   .. cpp:member:: std::array<FieldProvenance, material_field_count> materials
+
+   .. cpp:member:: std::array<FieldProvenance, recipe_field_count> recipe_fields
 
 .. cpp:namespace:: gui_forms
 
@@ -4508,6 +4560,32 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: RuleProvenance final
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   Where a rule was written (T4 cascade spec, item 5), for an editor's queries; paint never reads it. ``layer`` as above; ``pack`` and ``pack_hash`` name a library pack or a project package (its manifest's name and the SHA-256 of its manifest, 64 lowercase hexadecimal digits), empty elsewhere; ``file``, ``line`` and ``column`` (from 1; 0 for none) place the rule's first token in its own sheet, and ``offset`` is that token's byte offset in the text compiled (a closure's combined sheets until the package compiler places it); ``setter`` names the C++ setter of inline code that is not a written style (empty otherwise).
+
+   .. cpp:member:: ThemeLayer layer
+
+      Default: ``{ThemeLayer::project_theme}``.
+
+   .. cpp:member:: std::string pack
+
+   .. cpp:member:: std::string pack_hash
+
+   .. cpp:member:: std::string file
+
+   .. cpp:member:: std::uint32_t line
+
+   .. cpp:member:: std::uint32_t column
+
+   .. cpp:member:: std::uint32_t offset
+
+   .. cpp:member:: std::string setter
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: RuleSelector final
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
@@ -4738,6 +4816,10 @@ Types
    .. cpp:function:: ResolvedControlRecipe resolve(const Control& control, ControlVisualRole role, ControlVisualContext context, AnatomyStateSet states) const
 
       Bounds role/state indices and chooses ordinary, selected, high-contrast, or high-contrast-selected recipe deterministically.
+
+   .. cpp:function:: void provenance(const Control& control, ControlVisualRole role, ControlVisualContext context, CompiledThemeRules::PartProvenance& result) const
+
+      Where each field of ``control``'s recipe in ``role`` and ``context`` came from (T4 cascade spec, item 5), for an editor's query: the facts resolve() reads, through CompiledThemeRules::resolve_provenance, into ``result``, its parameters left unset (a recipe has no primitive). In forced high contrast the fields the engine's pass draws are at forced_high_contrast in its layer, unauthored. Paint never calls it; the borrows in ``result`` stay valid while this theme, the control's inline style and its window's user theme live.
 
    .. cpp:function:: ResolvedFont resolve_font(const Control& control, FontSpec own) const noexcept
 
@@ -5182,6 +5264,10 @@ Types
    .. cpp:member:: std::optional<BackdropDeclaration> backdrop
 
       A surface rule's backdrop (``backdrop:``), or none.
+
+   .. cpp:member:: RuleProvenance provenance
+
+      Where the rule was written. Not compared: two rules that cascade alike are equal wherever they were written.
 
 .. cpp:namespace:: gui_forms
 
@@ -6845,6 +6931,28 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: ThemeLayer
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   .. cpp:enumerator:: built_in
+
+   .. cpp:enumerator:: library_pack
+
+   .. cpp:enumerator:: project_theme
+
+   .. cpp:enumerator:: user_theme
+
+   .. cpp:enumerator:: inline_code
+
+   .. cpp:enumerator:: forced_high_contrast
+
+   .. cpp:enumerator:: fallback_theme
+
+   .. cpp:enumerator:: count
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: ThemeRuleSet
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
@@ -7411,6 +7519,8 @@ Functions, constants and aliases
 .. cpp:function:: bool recipe_declaration_admitted(const RecipeDeclaration& declaration) noexcept
 
    Whether ``declaration`` is one a recipe admits: a field below ``count``, and a finite value within its field's range.
+
+.. cpp:function:: std::string_view theme_layer_name(ThemeLayer layer) noexcept
 
 .. cpp:function:: std::string_view rule_diagnostic_name(RuleDiagnosticKind kind) noexcept
 

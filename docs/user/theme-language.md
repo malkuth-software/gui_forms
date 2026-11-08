@@ -66,6 +66,20 @@ The theme in effect for a control is its own override
 (`Control::set_theme_override`), else its window's, else the program's
 (`ApplicationResources::set_theme`), else the built-in default theme.
 
+Every compiled rule keeps where it was written (`ThemeRule::provenance`):
+its layer (`ThemeLayer`: built-in, library pack, project theme, user
+theme, inline code), the pack that wrote it (its name and the SHA-256 of
+its manifest) and the file, line and column of its first token in its own
+sheet. GUI.Forms' base sheet and the packages a program's packages import
+are library packs; the program's packages are the project theme. An editor
+asks where each resolved field came from with
+`CompiledThemeRules::resolve_provenance` (a part's primitive parameters,
+material fields and recipe fields) or `Theme::provenance` (a control's
+recipe): the winning rule's layer, cascade level, selector, specificity,
+source and colour origin, or the built-in recipe where no rule set the
+field; in forced high contrast the fields the engine's pass draws are its
+own. Paint never computes provenance.
+
 ## Sheets
 
 The source is UTF-8 (a leading byte order mark is kept and ignored), at most

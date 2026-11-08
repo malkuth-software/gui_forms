@@ -162,6 +162,42 @@ void place(ThemeDiagnostic& diagnostic, std::span<const ClosureSegment> segments
     diagnostic.position = lines.position(pack.sheet, theme_language::ByteOffset{static_cast<std::uint32_t>(within)});
 }
 
+// Places each rule of the combined text (provenance file closure_file) in
+// its own sheet (T4 cascade spec, item 5): the sheet's file, the line and
+// column within it, its pack's name and manifest hash, and its layer:
+// GUI.Forms' base sheet and the packages `roots` import are library packs,
+// the roots themselves the project theme; a user theme's rules keep the
+// user layer. `segments` are in increasing order of start.
+void place_rules(ThemeRuleSheet& sheet, std::span<const ClosureSegment> segments,
+                 std::span<const VerifiedThemePack* const> roots, const VerifiedThemePack* base, ThemeRuleSet set) {
+    if (segments.empty()) return;
+    std::vector<theme_language::LineStartTable> lines(segments.size());
+    for (std::size_t index = 0U; index < segments.size(); ++index) lines[index].reset((*segments[index].pack).sheet);
+    for (ThemeRule& rule : sheet.rules) {
+        RuleProvenance& provenance = rule.provenance;
+        if (provenance.file != closure_file) continue;
+        const std::size_t offset = provenance.offset;
+        std::size_t found = 0U;
+        for (std::size_t index = 0U; index < segments.size(); ++index) {
+            if (segments[index].start <= offset) found = index;
+        }
+        const VerifiedThemePack& pack = *segments[found].pack;
+        const std::size_t within = std::min(offset - segments[found].start, pack.sheet.size());
+        const theme_language::SourcePosition position =
+            lines[found].position(pack.sheet, theme_language::ByteOffset{static_cast<std::uint32_t>(within)});
+        provenance.file = sheet_file(pack);
+        provenance.line = position.line.value;
+        provenance.column = position.column.value;
+        provenance.offset = position.offset.value;
+        provenance.pack = pack.manifest.name;
+        const bool own_base = &pack == base;
+        if (!own_base) provenance.pack_hash = theme_language::package_sha256_hex(pack.identity);
+        if (set == ThemeRuleSet::user) continue;
+        const bool root = std::find(roots.begin(), roots.end(), &pack) != roots.end();
+        provenance.layer = root && !own_base ? ThemeLayer::project_theme : ThemeLayer::library_pack;
+    }
+}
+
 // The coverage names no control type of `controls` has (W106).
 void check_coverage(const VerifiedThemePack& pack, std::span<const ControlAnatomy> controls,
                     std::vector<ThemeCompileDiagnostic>& diagnostics) {
@@ -438,6 +474,7 @@ ThemeCompileResult compile_closure(std::span<const VerifiedThemePack* const> roo
         found.push_back(public_diagnostic(placed));
     }
     if (outcome != theme_language::CompileOutcome::compiled) return ThemeCompileResult::refused(std::move(found));
+    place_rules((*definition).rules, segments, roots, onto_gui_forms ? &base_pack : nullptr, set);
     // A program theme with rules for the dark scheme but no dark variant
     // (T4 theme variants): a dark window shows GUI.Forms' own dark theme,
     // so the rules apply nowhere. A user theme is layered, and has none.

@@ -206,6 +206,22 @@ std::string_view cascade_level_name(CascadeLevel level) noexcept {
     return {};
 }
 
+std::string_view theme_layer_name(ThemeLayer layer) noexcept {
+    switch (layer) {
+    case ThemeLayer::built_in: return "built_in";
+    case ThemeLayer::library_pack: return "library_pack";
+    case ThemeLayer::project_theme: return "project_theme";
+    case ThemeLayer::user_theme: return "user_theme";
+    case ThemeLayer::inline_code: return "inline_code";
+    case ThemeLayer::forced_high_contrast: return "forced_high_contrast";
+    case ThemeLayer::fallback_theme: return "fallback_theme";
+    case ThemeLayer::count:
+    // A value outside the layers names none: the one fallback.
+    default: break;
+    }
+    return {};
+}
+
 bool valid_style_class_name(std::string_view name) noexcept {
     if (name.empty() || name.size() > maximum_style_class_length) return false;
     if (!lowercase_letter(name.front())) return false;
@@ -1462,6 +1478,8 @@ void CompiledThemeRules::add_rules(CompiledThemeRules& result, const ThemeRuleSh
         compiled.specificity = rule.specificity ? *rule.specificity : rule_specificity(rule.selector);
         compiled.order = index;
         compiled.source_position = rule.source_position;
+        compiled.provenance = rule.provenance;
+        if (engine_table) compiled.provenance.layer = ThemeLayer::built_in;
         compiled.selector = rule.selector;
         for (const AnatomyState state : rule.selector.states) compiled.states.insert(state);
         for (const RuleAncestor& ancestor : rule.selector.ancestors) {
@@ -2583,6 +2601,76 @@ CompiledThemeRules::RecipeResolution CompiledThemeRules::resolve_recipe_fields(c
         result.authored = true;
     }
     return result;
+}
+
+CompiledThemeRules::FieldProvenance CompiledThemeRules::field_provenance(const CompiledRule& rule,
+                                                                        ColourOrigin origin) noexcept {
+    FieldProvenance result{};
+    result.authored = true;
+    result.level = rule.level;
+    result.source = &rule.provenance;
+    result.selector = &rule.selector;
+    result.specificity = rule.specificity;
+    result.origin = origin;
+    // The level names the layer where it is one of its own: the built-in
+    // table, a user theme, inline code and forced high contrast; the sheet
+    // levels take the layer the compiler recorded.
+    switch (rule.level) {
+    case CascadeLevel::built_in: result.layer = ThemeLayer::built_in; break;
+    case CascadeLevel::user_theme:
+    case CascadeLevel::important_user_theme: result.layer = ThemeLayer::user_theme; break;
+    case CascadeLevel::inline_style:
+    case CascadeLevel::important_inline_style: result.layer = ThemeLayer::inline_code; break;
+    case CascadeLevel::forced_high_contrast: result.layer = ThemeLayer::forced_high_contrast; break;
+    case CascadeLevel::base_sheet:
+    case CascadeLevel::theme_sheet:
+    case CascadeLevel::class_rule:
+    case CascadeLevel::stable_id_rule:
+    case CascadeLevel::important_base_sheet:
+    case CascadeLevel::important_theme_sheet:
+    case CascadeLevel::count:
+    default: result.layer = rule.provenance.layer; break;
+    }
+    return result;
+}
+
+void CompiledThemeRules::resolve_provenance(const PartFacts& facts, PartProvenance& result) const noexcept {
+    result = PartProvenance{};
+    ScopedWinners winners{};
+    resolve_scoped(facts, winners);
+    // The primitive's winner first, as resolve() finds it: the last
+    // matching rule that selects, rules being in ascending precedence.
+    const CompiledRule* winner = nullptr;
+    RuleWalk choosing(*this, facts, true, &winners);
+    for (const CompiledRule* next = choosing.next(); next != nullptr; next = choosing.next()) {
+        if ((*next).selects && matches(*next, facts)) winner = next;
+    }
+    const EnginePrimitive* primitive = nullptr;
+    if (winner != nullptr && (*winner).primitive != nullptr &&
+        paints_role((*(*winner).primitive).descriptor(), facts.role)) {
+        primitive = (*winner).primitive;
+        result.parameter_count = default_parameters((*primitive).descriptor()).count;
+    }
+    // Then every field: the last matching declaration of each wins, a
+    // parameter only from the rules selecting the chosen primitive.
+    RuleWalk walk(*this, facts, true, &winners);
+    for (const CompiledRule* next = walk.next(); next != nullptr; next = walk.next()) {
+        const CompiledRule& rule = *next;
+        const bool parameters = primitive != nullptr && rule.primitive == primitive;
+        const bool declares = parameters || !rule.materials.empty() || !rule.recipe_fields.empty();
+        if (!declares || !matches(rule, facts)) continue;
+        for (const MaterialDeclaration& declaration : rule.materials) {
+            result.materials[static_cast<std::size_t>(declaration.field)] = field_provenance(rule, declaration.origin);
+        }
+        for (const RecipeDeclaration& declaration : rule.recipe_fields) {
+            const std::size_t position = static_cast<std::size_t>(declaration.field);
+            result.recipe_fields[position] = field_provenance(rule, declaration.origin);
+        }
+        if (!parameters) continue;
+        for (const CompiledDeclaration& declaration : rule.parameters) {
+            result.parameters[declaration.parameter] = field_provenance(rule, declaration.origin);
+        }
+    }
 }
 
 const BackdropDeclaration* CompiledThemeRules::resolve_backdrop(const PartFacts& facts) const noexcept {

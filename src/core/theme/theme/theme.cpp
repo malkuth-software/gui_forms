@@ -11,6 +11,7 @@
 #include "../theme_compiler/theme_source_record.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <memory>
 #include <span>
@@ -1764,6 +1765,43 @@ ResolvedControlRecipe Theme::resolve(const Control& control, ControlVisualRole r
     const AnatomyStateSet states = visual_context_states(context);
     ResolvedControlRecipe result = resolve(control, role, context, states);
     return result;
+}
+
+void Theme::provenance(const Control& control, ControlVisualRole role, ControlVisualContext context,
+                       CompiledThemeRules::PartProvenance& result) const {
+    const bool forced = context.high_contrast;
+    CompiledThemeRules::PartFacts facts{};
+    facts.control_type = control.anatomy().control_id;
+    facts.stable_id = control.stable_id().value();
+    facts.classes = control.classes();
+    facts.inline_rules = control.inline_style_rules();
+    facts.states = visual_context_states(context);
+    facts.forced_high_contrast = forced;
+    facts.family = control_visual_role_name(role);
+    const SurfaceRoot* const window = control.attached_surface_root();
+    if (window != nullptr) facts.media = window_media_facts(*window);
+    if (window != nullptr) facts.user_rules = (*window).user_theme_rules();
+    std::vector<AncestorFacts> ancestors{};
+    detail::attach_ancestor_facts(control, engine_.rules(), ancestors, facts);
+    engine_.rules().resolve_provenance(facts, result);
+    result.parameters = {};
+    result.parameter_count = 0U;
+    if (!forced) return;
+    // The pass draws every field no important inline declaration sets, and
+    // its colours stand over every declaration's (resolve() above).
+    CompiledThemeRules::FieldProvenance pass{};
+    pass.level = CascadeLevel::forced_high_contrast;
+    pass.layer = ThemeLayer::forced_high_contrast;
+    const std::array<RecipeField, 6> pass_colours{RecipeField::text,        RecipeField::outline_colour,
+                                                  RecipeField::text_shadow, RecipeField::muted_text,
+                                                  RecipeField::glyph,       RecipeField::default_outline_colour};
+    for (const RecipeField field : pass_colours) result.recipe_fields[static_cast<std::size_t>(field)] = pass;
+    for (CompiledThemeRules::FieldProvenance& field : result.recipe_fields) {
+        if (!field.authored) field = pass;
+    }
+    for (CompiledThemeRules::FieldProvenance& field : result.materials) {
+        if (!field.authored) field = pass;
+    }
 }
 
 ResolvedFont Theme::resolve_font(const Control& control, FontSpec own) const noexcept {

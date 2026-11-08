@@ -531,6 +531,11 @@ private:
     [[nodiscard]] bool rule_selects_only_surfaces() const noexcept;
     // The lowered declarations as a rule for each selector (EmittedRule).
     [[nodiscard]] bool emit_rule(const EmittedRule& emitted, std::uint32_t at);
+    // Where the rule being lowered, whose first token is `token`, was
+    // written (ThemeRule::provenance): this source's file, the token's
+    // line, column and offset, and its layer. A package compiler places a
+    // closure's rules in their own sheets afterwards.
+    [[nodiscard]] RuleProvenance rule_provenance(std::uint32_t token);
 
     // Substitutes and reads the declaration's value into value_, the
     // parameters being parameter_names_; false after an error.
@@ -1138,6 +1143,7 @@ bool CompilePass::emit_definitions(std::span<const LoweredSelector> selectors, b
         if (!(selector.specificity == rule_specificity(selector.selector))) rule.specificity = selector.specificity;
         rule.scoped_definitions = definitions;
         rule.source_position = positions_ ? source_position_ : 0U;
+        rule.provenance = rule_provenance(at);
         sheet_.rules.push_back(std::move(rule));
     }
     return true;
@@ -3383,6 +3389,7 @@ bool CompilePass::emit_rule(const EmittedRule& emitted, std::uint32_t at) {
     const bool style_rule = input_.form == ThemeSheetForm::inline_style || in_inline_segment(source_position_);
     if (!style_rule) lowered.reads = variations_.read_names;
     lowered.source_position = positions_ && !style_rule ? source_position_ : 0U;
+    lowered.provenance = rule_provenance(at);
     // A borrowed selection alone declares nothing of the rule's own.
     const std::size_t owned = emitted.borrowed ? selections : 0U;
     if (lowered.declarations.size() == owned && lowered.transitions.empty() && lowered.materials.empty() &&
@@ -3542,6 +3549,29 @@ std::string_view CompilePass::range_text(TokenRange range) const noexcept {
     const std::size_t end = static_cast<std::size_t>(last.offset.value) + last.length.value;
     const std::string_view text = input_.source.text.substr(first.offset.value, end - first.offset.value);
     return text;
+}
+
+RuleProvenance CompilePass::rule_provenance(std::uint32_t token) {
+    RuleProvenance result{};
+    result.file = std::string(input_.source.file);
+    if (token < tokens_.tokens.size()) {
+        const SourcePosition position = cursor_.locate(tokens_.tokens[token].offset);
+        result.line = position.line.value;
+        result.column = position.column.value;
+        result.offset = position.offset.value;
+    }
+    const bool inline_style = input_.form == ThemeSheetForm::inline_style;
+    if (input_.user_theme) {
+        result.layer = ThemeLayer::user_theme;
+    } else if (inline_style || in_inline_segment(source_position_)) {
+        result.layer = ThemeLayer::inline_code;
+        result.setter = "set_inline_style";
+    } else if (in_base_origin(source_position_)) {
+        result.layer = ThemeLayer::library_pack;
+    } else {
+        result.layer = ThemeLayer::project_theme;
+    }
+    return result;
 }
 
 void CompilePass::report(DiagnosticCode code, std::uint32_t token, std::string detail) {

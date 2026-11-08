@@ -1166,6 +1166,51 @@ struct ScopedCondition final {
     }
 };
 
+// The layer of the cascade a rule was written in (T4 cascade spec, item
+// 5): the built-in recipe, a library pack (an imported package, or the
+// GUI.Forms base sheet under a program's packages), the project theme (a
+// program's own packages), a user theme, inline code, forced high contrast
+// (the engine's own pass, never a rule's) or the fallback theme (a dark
+// window showing GUI.Forms' own theme, W403).
+enum class ThemeLayer : std::uint8_t {
+    built_in,
+    library_pack,
+    project_theme,
+    user_theme,
+    inline_code,
+    forced_high_contrast,
+    fallback_theme,
+    count,
+};
+
+[[nodiscard]] std::string_view theme_layer_name(ThemeLayer layer) noexcept;
+
+// Where a rule was written (T4 cascade spec, item 5), for an editor's
+// queries; paint never reads it. `layer` as above; `pack` and `pack_hash`
+// name a library pack or a project package (its manifest's name and the
+// SHA-256 of its manifest, 64 lowercase hexadecimal digits), empty
+// elsewhere; `file`, `line` and `column` (from 1; 0 for none) place the
+// rule's first token in its own sheet, and `offset` is that token's byte
+// offset in the text compiled (a closure's combined sheets until the
+// package compiler places it); `setter` names the C++ setter of inline
+// code that is not a written style (empty otherwise).
+struct RuleProvenance final {
+    ThemeLayer layer{ThemeLayer::project_theme};
+    std::string pack{};
+    std::string pack_hash{};
+    std::string file{};
+    std::uint32_t line{};
+    std::uint32_t column{};
+    std::uint32_t offset{};
+    std::string setter{};
+
+    friend bool operator==(const RuleProvenance& left, const RuleProvenance& right) noexcept {
+        return left.layer == right.layer && left.pack == right.pack && left.pack_hash == right.pack_hash &&
+               left.file == right.file && left.line == right.line && left.column == right.column &&
+               left.offset == right.offset && left.setter == right.setter;
+    }
+};
+
 struct ThemeRule final {
     std::string label{};
     CascadeLevel level{CascadeLevel::theme_sheet};
@@ -1194,6 +1239,9 @@ struct ThemeRule final {
     std::uint32_t source_position{};
     // A surface rule's backdrop (`backdrop:`), or none.
     std::optional<BackdropDeclaration> backdrop{};
+    // Where the rule was written. Not compared: two rules that cascade
+    // alike are equal wherever they were written.
+    RuleProvenance provenance{};
 
     friend bool operator==(const ThemeRule& left, const ThemeRule& right) noexcept {
         return left.label == right.label && left.level == right.level && left.selector == right.selector &&
@@ -1594,6 +1642,41 @@ public:
     // rule sets a recipe field.
     [[nodiscard]] RecipeResolution resolve_recipe_fields(const PartFacts& facts) const noexcept;
 
+    // Where one resolved field came from (T4 cascade spec, item 5).
+    // `authored` is whether a rule set it; where none did, the built-in
+    // recipe's value stands, at `built_in` in the built-in layer. `source`
+    // and `selector` are the winning rule's provenance and selector, which
+    // belong to the compiled rules (this table, or the facts' inline style
+    // or user theme) and are null where no rule set the field; `origin` is
+    // a colour's (ColourOrigin, none for a value that is not a colour).
+    struct FieldProvenance final {
+        bool authored{};
+        CascadeLevel level{CascadeLevel::built_in};
+        ThemeLayer layer{ThemeLayer::built_in};
+        const RuleProvenance* source{};
+        const RuleSelector* selector{};
+        RuleSpecificity specificity{};
+        ColourOrigin origin{};
+    };
+
+    // The provenance of every field of the part `facts` name: its
+    // primitive parameters (by position; `parameter_count` are the chosen
+    // primitive's, none when no rule selects one), its material fields and
+    // its recipe fields (by their positions), as resolve(),
+    // resolve_recipe_fields() and the primitive's parameters resolve them.
+    struct PartProvenance final {
+        std::array<FieldProvenance, maximum_primitive_parameters> parameters{};
+        std::size_t parameter_count{};
+        std::array<FieldProvenance, material_field_count> materials{};
+        std::array<FieldProvenance, recipe_field_count> recipe_fields{};
+    };
+
+    // Fills `result` with the provenance of the part `facts` name, for an
+    // editor's query: linear in the number of rules, allocating nothing.
+    // Paint never calls it. The borrows in `result` stay valid while these
+    // rules and the facts' inline style and user theme live.
+    void resolve_provenance(const PartFacts& facts, PartProvenance& result) const noexcept;
+
     // The winning backdrop of the surface `facts` name (PartFacts::surface,
     // its root control's classes and ID): the last matching rule's, which
     // belongs to the compiled rules or to the user theme's, or null where no
@@ -1689,6 +1772,9 @@ private:
         // ThemeRule::source_position.
         std::vector<std::uint32_t> reads{};
         std::uint32_t source_position{};
+        // ThemeRule::provenance, its layer the built-in one in the
+        // engine's own table.
+        RuleProvenance provenance{};
     };
 
     // Compiles `sheet`'s rules into `result` at their authored levels, or,
@@ -1698,6 +1784,9 @@ private:
     // Numbers every compiled machine (CompiledTransition::machine), in rule
     // order, once the rules are final.
     void number_machines() noexcept;
+    // One field's provenance from the rule whose declaration of it won,
+    // drawn in `origin` (FieldProvenance; the borrows are the rule's).
+    [[nodiscard]] static FieldProvenance field_provenance(const CompiledRule& rule, ColourOrigin origin) noexcept;
     // The winning rule's primitive and parameters into `result`.
     void resolve_primitive(const PartFacts& facts, const ScopedWinners& winners, const CompiledRule& chosen,
                            Resolution& result) const noexcept;
