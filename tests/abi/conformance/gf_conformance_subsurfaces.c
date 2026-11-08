@@ -7,6 +7,10 @@
  * releases the build callback on its thread; a build that hands over no
  * root fails with a reason. */
 
+/* glibc declares usleep only with _DEFAULT_SOURCE under strict C11; macOS
+ * and MinGW declare it regardless. Must precede every include. */
+#define _DEFAULT_SOURCE 1
+
 #include "gf_conformance_internal.h"
 
 #include <pthread.h>
