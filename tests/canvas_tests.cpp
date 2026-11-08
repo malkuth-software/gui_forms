@@ -79,7 +79,7 @@ void derived_canvas_keeps_routing_presentation_and_resource_lifetime() {
     const std::shared_ptr<Control> root = make_control<Control>(StableId("tools.root"));
     const std::shared_ptr<ToolCanvas> canvas = make_control<ToolCanvas>(StableId("tools.canvas"));
     (*canvas).set_requested_bounds({10, 10, 40, 40});
-    (*canvas).set_bitmap(std::make_shared<gui_drawing::Bitmap>(4, 4));
+    (*canvas).bitmap = std::make_shared<gui_drawing::Bitmap>(4, 4);
     (*canvas).set_view(2, {0, 0});
     (*root).add_child(canvas);
     Window window(root, {100, 100});
@@ -101,17 +101,17 @@ void canvas_projects_bitmap_changes_as_local_window_damage() {
     std::shared_ptr<gui_forms::RasterCanvas> canvas = make_control<RasterCanvas>(StableId("canvas.surface"));
     (*root).set_requested_bounds({0, 0, 120, 90});
     (*canvas).set_requested_bounds({10, 20, 80, 60});
-    (*canvas).set_zoom(2.0);
-    (*canvas).set_transparency_cell_size(12.0);
+    (*canvas).zoom = 2.0;
+    (*canvas).transparency_cell_size = 12.0;
     std::shared_ptr<gui_drawing::Bitmap> bitmap = std::make_shared<gui_drawing::Bitmap>(4, 4);
-    (*canvas).set_bitmap(bitmap);
+    (*canvas).bitmap = bitmap;
     (*root).add_child(canvas);
 
     Window window(root, {120, 90});
     window.perform_layout();
     CHECK(window.image_resource_snapshot().resource_count == 1U);
     CHECK((*canvas).presented_generation() == 1U);
-    CHECK((*canvas).transparency_cell_size() == 12.0);
+    CHECK((*canvas).transparency_cell_size.read() == 12.0);
     CHECK((*canvas).client_to_bitmap({4, 6}) ==
           (gui_drawing::PointF{2, 3}));
     CHECK((*canvas).bitmap_to_client({1, 1, 2, 2}) ==
@@ -163,7 +163,7 @@ void canvas_uploads_bgra_storage_without_changing_document_truth() {
     (*canvas).set_requested_bounds({0, 0, 20, 20});
     std::shared_ptr<gui_drawing::Bitmap> bitmap = std::make_shared<gui_drawing::Bitmap>(1, 1);
     (*bitmap).set_pixel(0, 0, gui_drawing::Color::from_rgb(255, 0, 0));
-    (*canvas).set_bitmap(bitmap);
+    (*canvas).bitmap = bitmap;
     (*root).add_child(canvas);
     Window window(root, {20, 20});
     window.perform_layout();
@@ -261,7 +261,7 @@ void strided_edits_match_a_fresh_publication() {
         }
     }
     const std::shared_ptr<RasterCanvas> canvas = make_control<RasterCanvas>(StableId("edited.tiles"));
-    (*canvas).set_bitmap(edited);
+    (*canvas).bitmap = edited;
     Window window(canvas, {200, 200});
     window.perform_layout();
     CHECK(window.image_resources().image_ids().size() == 6U);
@@ -278,7 +278,7 @@ void strided_edits_match_a_fresh_publication() {
         seed += 101U;
         CHECK((*canvas).synchronize_bitmap());
         const std::shared_ptr<RasterCanvas> fresh = make_control<RasterCanvas>(StableId("fresh.tiles"));
-        (*fresh).set_bitmap(mirror);
+        (*fresh).bitmap = mirror;
         Window fresh_window(fresh, {200, 200});
         fresh_window.perform_layout();
         CHECK(tile_contents(window) == tile_contents(fresh_window));
@@ -288,7 +288,7 @@ void strided_edits_match_a_fresh_publication() {
 void tiled_updates_include_sampling_gutters_and_recover_resources() {
     const std::shared_ptr<RasterCanvas> canvas = make_control<RasterCanvas>(StableId("tiles"));
     const std::shared_ptr<gui_drawing::Bitmap> bitmap = std::make_shared<gui_drawing::Bitmap>(1025, 1025);
-    (*canvas).set_bitmap(bitmap);
+    (*canvas).bitmap = bitmap;
     Window window(canvas, {200, 200});
     window.perform_layout();
     std::vector<ImageId> ids = window.image_resources().image_ids();
@@ -326,7 +326,7 @@ void tiled_updates_include_sampling_gutters_and_recover_resources() {
     CHECK(window.image_resource_snapshot().resource_count == 9);
     (*canvas).clear_bitmap();
     CHECK(window.image_resource_snapshot().resource_count == 0);
-    (*canvas).set_bitmap(bitmap);
+    (*canvas).bitmap = bitmap;
     CHECK(window.image_resource_snapshot().resource_count == 9);
     (*canvas).dispose();
     CHECK(window.image_resource_snapshot().resource_count == 0);
@@ -337,10 +337,10 @@ void explicit_window_quota_rolls_back_partial_tile_publication() {
     limits.maximum_total_encoded_bytes = 8000;
     const std::shared_ptr<RasterCanvas> canvas = make_control<RasterCanvas>(StableId("quota"));
     Window window(canvas, {100, 100}, limits);
-    (*canvas).set_bitmap(std::make_shared<gui_drawing::Bitmap>(1025, 3));
+    (*canvas).bitmap = std::make_shared<gui_drawing::Bitmap>(1025, 3);
     CHECK((*canvas).last_resource_error() == ImageResourceError::registry_encoded_limit_exceeded);
     CHECK(window.image_resource_snapshot().resource_count == 0);
-    (*canvas).set_bitmap(std::make_shared<gui_drawing::Bitmap>(1, 1));
+    (*canvas).bitmap = std::make_shared<gui_drawing::Bitmap>(1, 1);
     CHECK((*canvas).last_resource_error() == ImageResourceError::none);
     CHECK(window.image_resource_snapshot().resource_count == 1);
 }
@@ -352,7 +352,7 @@ void hundred_megapixel_publication_probe() {
     ImageRegistryLimits limits;
     limits.maximum_total_encoded_bytes = 512ULL * 1024ULL * 1024ULL;
     limits.maximum_total_decoded_bytes = 512ULL * 1024ULL * 1024ULL;
-    (*canvas).set_bitmap(bitmap);
+    (*canvas).bitmap = bitmap;
     Window window(canvas, {1200, 800}, limits);
     window.perform_layout();
     const std::chrono::steady_clock::time_point published = std::chrono::steady_clock::now();

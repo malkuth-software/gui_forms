@@ -50,6 +50,7 @@
 #include "gui_forms/controls/panel/token_box/token_box.hpp"
 #include "gui_forms/controls/panel/tree_list_view/tree_list_view.hpp"
 #include "gui_forms/controls/panel/tree_view/tree_view.hpp"
+#include "gui_forms/controls/raster_canvas/raster_canvas.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/container_control.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/split_container/split_container.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/split_container/splitter_panel/splitter_panel.hpp"
@@ -1239,6 +1240,30 @@ void test_property_list_properties() {
     std::shared_ptr<PropertyList> control = make_control<PropertyList>(StableId("generated.propertylist"));
 }
 
+void test_raster_canvas_properties() {
+    std::shared_ptr<RasterCanvas> control = make_control<RasterCanvas>(StableId("generated.rastercanvas"));
+    {
+        const ImageSampling sample = ImageSampling::linear;
+        (*control).sampling = sample;
+        expect((*control).sampling.read() == sample, "RasterCanvas.sampling: a write stores");
+    }
+    {
+        const bool sample = !(*control).transparency_grid.read();
+        (*control).transparency_grid = sample;
+        expect((*control).transparency_grid.read() == sample, "RasterCanvas.transparency_grid: a write stores");
+    }
+    {
+        const Color sample = Color::rgba(40, 44, 52);
+        (*control).canvas_background = sample;
+        expect((*control).canvas_background.read() == sample, "RasterCanvas.canvas_background: a write stores");
+    }
+    {
+        const double sample = 8.0;
+        (*control).transparency_cell_size = sample;
+        expect((*control).transparency_cell_size.read() == sample, "RasterCanvas.transparency_cell_size: a write stores");
+    }
+}
+
 void test_review_card_properties() {
     std::shared_ptr<ReviewCard> control = make_control<ReviewCard>(StableId("generated.reviewcard"));
     // record: no sample for ReviewRecord; give the property a "sample".
@@ -1708,6 +1733,7 @@ int main() {
     test_picture_box_properties();
     test_property_grid_properties();
     test_property_list_properties();
+    test_raster_canvas_properties();
     test_review_card_properties();
     test_rich_text_box_properties();
     test_scaled_group_box_properties();

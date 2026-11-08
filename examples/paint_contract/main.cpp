@@ -92,7 +92,7 @@ int main() {
     (*root).set_requested_bounds({0, 0, 100, 100});
     (*canvas).set_requested_bounds({10, 20, 40, 40});
     (*canvas).set_view(2.0, {0, 0});
-    (*canvas).set_bitmap(display);
+    (*canvas).bitmap = display;
     (*root).add_child(canvas);
     std::unique_ptr<Window> window = std::make_unique<Window>(root, Size{100, 100});
     (*window).perform_layout();

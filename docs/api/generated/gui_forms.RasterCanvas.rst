@@ -7,7 +7,7 @@ gui_forms::RasterCanvas
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: RasterCanvas : public Control
+.. cpp:class:: RasterCanvas : public Control, public RasterCanvasCapabilities<RasterCanvas>
 
    ``#include <gui_forms/controls/raster_canvas/raster_canvas.hpp>``
 
@@ -103,11 +103,11 @@ gui_forms::RasterCanvas
       * - :cpp:func:`synchronize_bitmap <gui_forms::RasterCanvas::synchronize_bitmap>`
         - Brings the window's copy of the bitmap up to date after the application has edited it.
       * - :cpp:func:`bitmap_to_client <gui_forms::RasterCanvas::bitmap_to_client>`
-        - Maps a rectangle of bitmap pixels to client coordinates under the current :cpp:func:`zoom <gui_forms::RasterCanvas::zoom>` and :cpp:func:`view_origin <gui_forms::RasterCanvas::view_origin>`.
+        - Maps a rectangle of bitmap pixels to client coordinates under the current :cpp:member:`zoom <gui_forms::RasterCanvas::zoom>` and :cpp:member:`view_origin <gui_forms::RasterCanvas::view_origin>`.
       * - :cpp:func:`client_to_bitmap <gui_forms::RasterCanvas::client_to_bitmap>`
         - Maps a point in client coordinates to a fractional bitmap coordinate.
       * - :cpp:func:`set_view <gui_forms::RasterCanvas::set_view>`
-        - ``set_view(zoom, origin)`` sets :cpp:func:`zoom <gui_forms::RasterCanvas::zoom>` and :cpp:func:`view_origin <gui_forms::RasterCanvas::view_origin>` together, with one repaint.
+        - ``set_view(zoom, origin)`` sets :cpp:member:`zoom <gui_forms::RasterCanvas::zoom>` and :cpp:member:`view_origin <gui_forms::RasterCanvas::view_origin>` together, with one repaint.
       * - :cpp:func:`set_transparency_colors <gui_forms::RasterCanvas::set_transparency_colors>`
         - ``set_transparency_colors(first, second)`` sets the two checkerboard colours.
 
@@ -130,12 +130,12 @@ gui_forms::RasterCanvas
    nothing to upload.
 
    The bitmap is uploaded when the canvas is attached to a window, or by
-   :cpp:func:`set_bitmap <gui_forms::RasterCanvas::set_bitmap>` on a canvas already attached, in tiles of at most 512 by 512
+   ``set_bitmap`` on a canvas already attached, in tiles of at most 512 by 512
    pixels, each with a one-pixel border shared with its neighbours. Detaching or
    disposing the canvas, clearing or replacing its bitmap removes the tiles from
    the window. When the upload on attachment fails, attaching throws
    ``std::runtime_error`` naming the resource error. An upload started by
-   :cpp:func:`set_bitmap <gui_forms::RasterCanvas::set_bitmap>` does not throw: the canvas stays empty and :cpp:func:`last_resource_error <gui_forms::RasterCanvas::last_resource_error>`
+   ``set_bitmap`` does not throw: the canvas stays empty and :cpp:func:`last_resource_error <gui_forms::RasterCanvas::last_resource_error>`
    says why.
 
    Bitmaps are premultiplied BGRA8 (``gui_drawing::PixelFormat::bgra32_premultiplied``),
@@ -172,8 +172,8 @@ gui_forms::RasterCanvas
       std::shared_ptr<gf::RasterCanvas> canvas =
           gf::make_control<gf::RasterCanvas>(gf::StableId("paint.canvas"));
       (*canvas).set_requested_bounds({0.0, 0.0, 256.0, 256.0});
-      (*canvas).set_zoom(4.0);
-      (*canvas).set_bitmap(document);
+      (*canvas).zoom = 4.0;
+      (*canvas).bitmap = document;
       gf::Window window(canvas, gf::Size{256.0, 256.0});   // uploads the bitmap
       window.perform_layout();
 
@@ -192,15 +192,15 @@ gui_forms::RasterCanvas
           explicit PencilCanvas(gf::StableId id) : gf::RasterCanvas(std::move(id)) {}
 
           void on_pointer(gf::PointerEvent& event) override {
-              if (event.action != gf::PointerAction::down || !bitmap()) return;
+              if (event.action != gf::PointerAction::down || !bitmap.read()) return;
               const gui_drawing::PointF at =
                   client_to_bitmap(point_from_window(event.position));
               if (at.x < 0.0 || at.y < 0.0 ||
-                  at.x >= static_cast<double>((*bitmap()).width()) ||
-                  at.y >= static_cast<double>((*bitmap()).height())) {
+                  at.x >= static_cast<double>((*bitmap.read()).width()) ||
+                  at.y >= static_cast<double>((*bitmap.read()).height())) {
                   return;
               }
-              (*bitmap()).set_pixel(static_cast<std::uint32_t>(at.x),
+              (*bitmap.read()).set_pixel(static_cast<std::uint32_t>(at.x),
                                     static_cast<std::uint32_t>(at.y),
                                     gui_drawing::Color::from_rgb(0, 0, 0));
               static_cast<void>(synchronize_bitmap());
@@ -212,8 +212,8 @@ gui_forms::RasterCanvas
           std::shared_ptr<PencilCanvas> canvas =
               gf::make_control<PencilCanvas>(gf::StableId("sketch.canvas"));
           (*canvas).set_requested_bounds({0.0, 0.0, 128.0, 128.0});
-          (*canvas).set_zoom(4.0);
-          (*canvas).set_bitmap(std::make_shared<gui_drawing::Bitmap>(32U, 32U));
+          (*canvas).zoom = 4.0;
+          (*canvas).bitmap = std::make_shared<gui_drawing::Bitmap>(32U, 32U);
           gf::Window window(canvas, gf::Size{128.0, 128.0});
           window.perform_layout();
 
@@ -230,77 +230,49 @@ gui_forms::RasterCanvas
 
    .. rubric:: Properties
 
-   .. cpp:function:: const std::shared_ptr<gui_drawing::Bitmap>& bitmap() const noexcept
+   .. cpp:member:: std::shared_ptr<gui_drawing::Bitmap> bitmap
 
       The bitmap shown, shared with the application. Setting a different bitmap
       releases the old one's uploaded tiles and, while the canvas is attached to
       a window, uploads the new one at once. Setting the same pointer again does
       nothing; setting a null pointer is the same as :cpp:func:`clear_bitmap <gui_forms::RasterCanvas::clear_bitmap>`.
 
-   .. cpp:function:: void set_bitmap(std::shared_ptr<gui_drawing::Bitmap> bitmap)
-
-      Sets :cpp:func:`bitmap <gui_forms::RasterCanvas::bitmap>`; see the property's description above.
-
-   .. cpp:function:: double zoom() const noexcept
+   .. cpp:member:: double zoom
 
       Client units per bitmap pixel: at 4.0, one pixel covers four by four
       units. It must lie in [1/64, 256]; any other value throws
       ``std::invalid_argument``.
 
-   .. cpp:function:: void set_zoom(double zoom)
-
-      Sets :cpp:func:`zoom <gui_forms::RasterCanvas::zoom>`; see the property's description above.
-
-   .. cpp:function:: gui_drawing::PointF view_origin() const noexcept
+   .. cpp:member:: gui_drawing::PointF view_origin
 
       The bitmap coordinate shown at the canvas's top-left corner, in bitmap
       pixels. Both coordinates must be finite and no larger than 1,000,000,000
       in magnitude, or ``std::invalid_argument`` is thrown.
 
-   .. cpp:function:: void set_view_origin(gui_drawing::PointF origin)
-
-      Sets :cpp:func:`view_origin <gui_forms::RasterCanvas::view_origin>`; see the property's description above.
-
-   .. cpp:function:: ImageSampling sampling() const noexcept
+   .. cpp:member:: ImageSampling sampling
 
       How pixels are resampled when zoomed. :cpp:enumerator:`ImageSampling::nearest <gui_forms::ImageSampling::nearest>` keeps hard
       pixel edges and :cpp:enumerator:`ImageSampling::linear <gui_forms::ImageSampling::linear>` blends them. With linear
       sampling, the repaint after an edit grows by one pixel on each side to
       cover the blended edge.
 
-   .. cpp:function:: void set_sampling(ImageSampling sampling)
-
-      Sets :cpp:func:`sampling <gui_forms::RasterCanvas::sampling>`; see the property's description above.
-
-   .. cpp:function:: bool transparency_grid() const noexcept
+   .. cpp:member:: bool transparency_grid
 
       Whether a checkerboard is drawn under the visible part of the bitmap, so
       that transparent pixels can be seen. Its two colours are set with
       :cpp:func:`set_transparency_colors <gui_forms::RasterCanvas::set_transparency_colors>`; the defaults are ``Color::rgba(246, 247, 249)``
       and ``Color::rgba(211, 215, 220)``.
 
-   .. cpp:function:: void set_transparency_grid(bool visible)
-
-      Sets :cpp:func:`transparency_grid <gui_forms::RasterCanvas::transparency_grid>`; see the property's description above.
-
-   .. cpp:function:: Color canvas_background() const noexcept
+   .. cpp:member:: Color canvas_background
 
       Fill for the whole canvas, visible around the bitmap when the bitmap is
       smaller than the view or panned away.
 
-   .. cpp:function:: void set_canvas_background(Color color)
-
-      Sets :cpp:func:`canvas_background <gui_forms::RasterCanvas::canvas_background>`; see the property's description above.
-
-   .. cpp:function:: double transparency_cell_size() const noexcept
+   .. cpp:member:: double transparency_cell_size
 
       Side of one checkerboard cell in client units. Zero picks a size that
       grows with the visible area and is never below 8. Any other value must
       lie in [2, 128], or ``std::invalid_argument`` is thrown.
-
-   .. cpp:function:: void set_transparency_cell_size(double size)
-
-      Sets :cpp:func:`transparency_cell_size <gui_forms::RasterCanvas::transparency_cell_size>`; see the property's description above.
 
    .. cpp:function:: std::uint64_t presented_generation() const noexcept
 
@@ -345,7 +317,7 @@ gui_forms::RasterCanvas
    .. cpp:function:: Rect bitmap_to_client(gui_drawing::RectI pixels) const noexcept
 
       Maps a rectangle of bitmap pixels to client coordinates under the current
-      :cpp:func:`zoom <gui_forms::RasterCanvas::zoom>` and :cpp:func:`view_origin <gui_forms::RasterCanvas::view_origin>`. Use it to draw a selection over the image.
+      :cpp:member:`zoom <gui_forms::RasterCanvas::zoom>` and :cpp:member:`view_origin <gui_forms::RasterCanvas::view_origin>`. Use it to draw a selection over the image.
 
    .. cpp:function:: gui_drawing::PointF client_to_bitmap(Point client) const noexcept
 
@@ -354,8 +326,8 @@ gui_forms::RasterCanvas
 
    .. cpp:function:: void set_view(double zoom, gui_drawing::PointF origin)
 
-      ``set_view(zoom, origin)`` sets :cpp:func:`zoom <gui_forms::RasterCanvas::zoom>` and :cpp:func:`view_origin <gui_forms::RasterCanvas::view_origin>` together, with one
-      repaint. :cpp:func:`set_zoom <gui_forms::RasterCanvas::set_zoom>` and :cpp:func:`set_view_origin <gui_forms::RasterCanvas::set_view_origin>` each call it with the other
+      ``set_view(zoom, origin)`` sets :cpp:member:`zoom <gui_forms::RasterCanvas::zoom>` and :cpp:member:`view_origin <gui_forms::RasterCanvas::view_origin>` together, with one
+      repaint. ``set_zoom`` and ``set_view_origin`` each call it with the other
       value unchanged.
 
    .. cpp:function:: void set_transparency_colors(Color first, Color second)

@@ -1,0 +1,188 @@
+{
+  "family": "RasterCanvas",
+  "step": "M-S8",
+  "declaring": "RasterCanvas",
+  "header": "include/gui_forms/controls/raster_canvas/raster_canvas.hpp",
+  "source": "src/controls/raster_canvas/raster_canvas.cpp",
+  "capabilities_header": "include/gui_forms/controls/raster_canvas/raster_canvas_capabilities/raster_canvas_capabilities.hpp",
+  "base": "Control",
+  "shared": [],
+  "includes": [
+    "gui_forms/drawing/bitmap/bitmap.hpp",
+    "gui_forms/drawing/geometry/point_f/point_f.hpp",
+    "gui_forms/types.hpp",
+    "<memory>"
+  ],
+  "test": {
+    "type": "RasterCanvas",
+    "include": "gui_forms/controls/raster_canvas/raster_canvas.hpp"
+  },
+  "properties": [
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "hand": [
+        "a view onto bitmap_ (disposal drops it without a write): the write releases the old tiles, resets the presented generation and resource error and republishes before invalidating"
+      ],
+      "hooks": "hand",
+      "effects": null,
+      "name": "bitmap",
+      "capability": "RasterCanvasBitmap",
+      "value": "std::shared_ptr<gui_drawing::Bitmap>",
+      "comment": "The bitmap shown, shared with the application, or null for none. A new bitmap drops the published tiles and, when attached to a window, publishes the whole bitmap again.",
+      "getter": "bitmap",
+      "setter": "set_bitmap",
+      "field": null,
+      "storage": "view"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "hand": [
+        "a view: the write goes through set_view with the current origin"
+      ],
+      "hooks": "hand",
+      "effects": null,
+      "name": "zoom",
+      "capability": "RasterCanvasZoom",
+      "value": "double",
+      "field": null,
+      "storage": "view",
+      "comment": "Client units per bitmap pixel, 1/64 to 256 (default 1). A value outside that range throws std::invalid_argument and changes nothing; set_view changes zoom and view_origin together.",
+      "getter": "zoom",
+      "setter": "set_zoom"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "hand": [
+        "a view: the write goes through set_view with the current zoom"
+      ],
+      "hooks": "hand",
+      "effects": null,
+      "name": "view_origin",
+      "capability": "RasterCanvasViewOrigin",
+      "value": "gui_drawing::PointF",
+      "field": null,
+      "storage": "view",
+      "comment": "The bitmap point shown at the client's top-left corner. A non-finite or unbounded origin throws std::invalid_argument and changes nothing.",
+      "getter": "view_origin",
+      "setter": "set_view_origin"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "hand": [],
+      "hooks": "generated",
+      "effects": "Dirty::paint",
+      "name": "sampling",
+      "capability": "RasterCanvasSampling",
+      "value": "ImageSampling",
+      "initial": "ImageSampling::nearest",
+      "comment": "How magnified or reduced pixels are sampled (default nearest). A value outside the enumeration throws std::invalid_argument.",
+      "prepare": [
+        "if (incoming != ImageSampling::nearest && incoming != ImageSampling::linear) {",
+        "    throw std::invalid_argument(\"canvas image sampling is outside the enum\");",
+        "}"
+      ],
+      "sample": "ImageSampling::linear",
+      "getter": "sampling",
+      "setter": "set_sampling",
+      "field": "sampling_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "hand": [],
+      "hooks": "generated",
+      "effects": "Dirty::paint",
+      "name": "transparency_grid",
+      "capability": "RasterCanvasTransparencyGrid",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether transparent pixels show a checkerboard (default true).",
+      "getter": "transparency_grid",
+      "setter": "set_transparency_grid",
+      "field": "transparency_grid_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "hand": [],
+      "hooks": "generated",
+      "effects": "Dirty::paint",
+      "name": "canvas_background",
+      "capability": "RasterCanvasCanvasBackground",
+      "value": "Color",
+      "initial": "Color::rgba(112, 118, 126)",
+      "field": "background_",
+      "comment": "The fill around the bitmap.",
+      "sample": "Color::rgba(40, 44, 52)",
+      "getter": "canvas_background",
+      "setter": "set_canvas_background"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "hand": [],
+      "hooks": "generated",
+      "effects": "Dirty::paint",
+      "name": "transparency_cell_size",
+      "capability": "RasterCanvasTransparencyCellSize",
+      "value": "double",
+      "initial": "0.0",
+      "comment": "The checkerboard cell size in client units, 2 to 128; zero (the default) selects an adaptive bounded size. Any other value throws std::invalid_argument.",
+      "prepare": [
+        "if (!std::isfinite(incoming) || (incoming != 0.0 && (incoming < 2.0 || incoming > 128.0))) {",
+        "    throw std::invalid_argument(\"canvas transparency cell size must be zero or within [2, 128]\");",
+        "}"
+      ],
+      "sample": "8.0",
+      "getter": "transparency_cell_size",
+      "setter": "set_transparency_cell_size",
+      "field": "transparency_cell_size_"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "view",
+      "reason": "set_view(zoom, origin) is a multi-value call"
+    },
+    {
+      "name": "transparency_colors",
+      "reason": "set_transparency_colors(first, second) is a multi-value call"
+    },
+    {
+      "name": "clear_bitmap",
+      "reason": "shorthand for writing a null bitmap"
+    }
+  ]
+}

@@ -51,6 +51,22 @@ Related types
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`RasterCanvas::States <gui_forms::RasterCanvas::States>`
      -  
+   * - :cpp:class:`RasterCanvasBitmapCapability <gui_forms::RasterCanvasBitmapCapability>`
+     - The bitmap shown, shared with the application, or null for none.
+   * - :cpp:class:`RasterCanvasCanvasBackgroundCapability <gui_forms::RasterCanvasCanvasBackgroundCapability>`
+     - The fill around the bitmap.
+   * - :cpp:class:`RasterCanvasCapabilities <gui_forms::RasterCanvasCapabilities>`
+     - Every RasterCanvas capability, in the order the declaring class takes them.
+   * - :cpp:class:`RasterCanvasSamplingCapability <gui_forms::RasterCanvasSamplingCapability>`
+     - How magnified or reduced pixels are sampled (default nearest).
+   * - :cpp:class:`RasterCanvasTransparencyCellSizeCapability <gui_forms::RasterCanvasTransparencyCellSizeCapability>`
+     - The checkerboard cell size in client units, 2 to 128; zero (the default) selects an adaptive bounded size.
+   * - :cpp:class:`RasterCanvasTransparencyGridCapability <gui_forms::RasterCanvasTransparencyGridCapability>`
+     - Whether transparent pixels show a checkerboard (default true).
+   * - :cpp:class:`RasterCanvasViewOriginCapability <gui_forms::RasterCanvasViewOriginCapability>`
+     - The bitmap point shown at the client's top-left corner.
+   * - :cpp:class:`RasterCanvasZoomCapability <gui_forms::RasterCanvasZoomCapability>`
+     - Client units per bitmap pixel, 1/64 to 256 (default 1).
    * - :cpp:class:`SubSurface <gui_forms::SubSurface>`
      - A SurfaceRoot whose output is a LiveSurface and whose host is a control of its parent window (design note section 2).
    * - :cpp:class:`SubSurfaceConfiguration <gui_forms::SubSurfaceConfiguration>`
@@ -215,6 +231,164 @@ Related types
    .. cpp:member:: bool focused
 
    .. cpp:member:: bool focus_visible
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RasterCanvasBitmapCapability
+
+   ``#include <gui_forms/controls/raster_canvas/raster_canvas_capabilities/raster_canvas_capabilities.hpp>``
+
+   The bitmap shown, shared with the application, or null for none. A new bitmap drops the published tiles and, when attached to a window, publishes the whole bitmap again.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RasterCanvasBitmapCapability& capability, std::shared_ptr<gui_drawing::Bitmap> incoming)
+
+   .. cpp:function:: static std::shared_ptr<gui_drawing::Bitmap> read(const RasterCanvasBitmapCapability& capability)
+
+   .. cpp:member:: PropertyView<std::shared_ptr<gui_drawing::Bitmap>, RasterCanvasBitmapCapability<Declaring>> bitmap
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RasterCanvasCanvasBackgroundCapability
+
+   ``#include <gui_forms/controls/raster_canvas/raster_canvas_capabilities/raster_canvas_capabilities.hpp>``
+
+   The fill around the bitmap.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RasterCanvasCanvasBackgroundCapability& capability, Color incoming)
+
+   .. cpp:member:: PropertyCell<Color, RasterCanvasCanvasBackgroundCapability<Declaring>> canvas_background
+
+      Default: ``{Color::rgba(112, 118, 126)}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RasterCanvasCapabilities : public RasterCanvasBitmapCapability<Declaring>, public RasterCanvasZoomCapability<Declaring>, public RasterCanvasViewOriginCapability<Declaring>, public RasterCanvasSamplingCapability<Declaring>, public RasterCanvasTransparencyGridCapability<Declaring>, public RasterCanvasCanvasBackgroundCapability<Declaring>, public RasterCanvasTransparencyCellSizeCapability<Declaring>
+
+   ``#include <gui_forms/controls/raster_canvas/raster_canvas_capabilities/raster_canvas_capabilities.hpp>``
+
+   Every RasterCanvas capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::shared_ptr<gui_drawing::Bitmap> bitmap
+
+      The bitmap shown, shared with the application, or null for none. A new bitmap drops the published tiles and, when attached to a window, publishes the whole bitmap again.
+
+   .. cpp:member:: double zoom
+
+      Client units per bitmap pixel, 1/64 to 256 (default 1). A value outside that range throws std::invalid_argument and changes nothing; set_view changes zoom and view_origin together.
+
+   .. cpp:member:: gui_drawing::PointF view_origin
+
+      The bitmap point shown at the client's top-left corner. A non-finite or unbounded origin throws std::invalid_argument and changes nothing.
+
+   .. cpp:member:: ImageSampling sampling
+
+      How magnified or reduced pixels are sampled (default nearest). A value outside the enumeration throws std::invalid_argument.
+
+   .. cpp:member:: bool transparency_grid
+
+      Whether transparent pixels show a checkerboard (default true).
+
+   .. cpp:member:: Color canvas_background
+
+      The fill around the bitmap.
+
+   .. cpp:member:: double transparency_cell_size
+
+      The checkerboard cell size in client units, 2 to 128; zero (the default) selects an adaptive bounded size. Any other value throws std::invalid_argument.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RasterCanvasSamplingCapability
+
+   ``#include <gui_forms/controls/raster_canvas/raster_canvas_capabilities/raster_canvas_capabilities.hpp>``
+
+   How magnified or reduced pixels are sampled (default nearest). A value outside the enumeration throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RasterCanvasSamplingCapability& capability, ImageSampling incoming)
+
+   .. cpp:member:: PropertyCell<ImageSampling, RasterCanvasSamplingCapability<Declaring>> sampling
+
+      Default: ``{ImageSampling::nearest}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RasterCanvasTransparencyCellSizeCapability
+
+   ``#include <gui_forms/controls/raster_canvas/raster_canvas_capabilities/raster_canvas_capabilities.hpp>``
+
+   The checkerboard cell size in client units, 2 to 128; zero (the default) selects an adaptive bounded size. Any other value throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RasterCanvasTransparencyCellSizeCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, RasterCanvasTransparencyCellSizeCapability<Declaring>> transparency_cell_size
+
+      Default: ``{0.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RasterCanvasTransparencyGridCapability
+
+   ``#include <gui_forms/controls/raster_canvas/raster_canvas_capabilities/raster_canvas_capabilities.hpp>``
+
+   Whether transparent pixels show a checkerboard (default true).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RasterCanvasTransparencyGridCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, RasterCanvasTransparencyGridCapability<Declaring>> transparency_grid
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RasterCanvasViewOriginCapability
+
+   ``#include <gui_forms/controls/raster_canvas/raster_canvas_capabilities/raster_canvas_capabilities.hpp>``
+
+   The bitmap point shown at the client's top-left corner. A non-finite or unbounded origin throws std::invalid_argument and changes nothing.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RasterCanvasViewOriginCapability& capability, gui_drawing::PointF incoming)
+
+   .. cpp:function:: static gui_drawing::PointF read(const RasterCanvasViewOriginCapability& capability)
+
+   .. cpp:member:: PropertyView<gui_drawing::PointF, RasterCanvasViewOriginCapability<Declaring>> view_origin
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RasterCanvasZoomCapability
+
+   ``#include <gui_forms/controls/raster_canvas/raster_canvas_capabilities/raster_canvas_capabilities.hpp>``
+
+   Client units per bitmap pixel, 1/64 to 256 (default 1). A value outside that range throws std::invalid_argument and changes nothing; set_view changes zoom and view_origin together.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RasterCanvasZoomCapability& capability, double incoming)
+
+   .. cpp:function:: static double read(const RasterCanvasZoomCapability& capability)
+
+   .. cpp:member:: PropertyView<double, RasterCanvasZoomCapability<Declaring>> zoom
 
 .. cpp:namespace:: gui_forms
 

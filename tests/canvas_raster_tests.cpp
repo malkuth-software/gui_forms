@@ -27,10 +27,10 @@ void compare(ImageSampling sampling, double zoom, double scale, bool edited) {
     }
     static_cast<void>((*bitmap).commit_edit(edit.token));
     const std::shared_ptr<RasterCanvas> canvas = make_control<RasterCanvas>(StableId("raster"));
-    (*canvas).set_bitmap(bitmap);
-    (*canvas).set_transparency_grid(false);
-    (*canvas).set_canvas_background(Color::rgba(23, 37, 51));
-    (*canvas).set_sampling(sampling);
+    (*canvas).bitmap = bitmap;
+    (*canvas).transparency_grid = false;
+    (*canvas).canvas_background = Color::rgba(23, 37, 51);
+    (*canvas).sampling = sampling;
     (*canvas).set_view(zoom, {470.3, 480.7});
     const Size size{180, 150};
     Window window(canvas, size);
@@ -84,8 +84,8 @@ void large_native_probe() {
     const std::chrono::steady_clock::time_point started = std::chrono::steady_clock::now();
     const std::shared_ptr<gui_drawing::Bitmap> bitmap = std::make_shared<gui_drawing::Bitmap>(10000, 10000);
     const std::shared_ptr<RasterCanvas> canvas = make_control<RasterCanvas>(StableId("large.raster"));
-    (*canvas).set_bitmap(bitmap);
-    (*canvas).set_transparency_grid(false);
+    (*canvas).bitmap = bitmap;
+    (*canvas).transparency_grid = false;
     ImageRegistryLimits limits;
     limits.maximum_total_encoded_bytes = 512ULL * 1024ULL * 1024ULL;
     limits.maximum_total_decoded_bytes = 512ULL * 1024ULL * 1024ULL;

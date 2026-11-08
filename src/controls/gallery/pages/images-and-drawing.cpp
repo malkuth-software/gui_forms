@@ -76,9 +76,9 @@ void ImagesPage::fill_primitives() {
                                    gui_drawing::Color::from_rgb(211U, 121U, 42U));
     }
     RasterCanvas& raster = *document_.gallery_images_raster_canvas;
-    raster.set_bitmap(std::move(raster_bitmap));
-    raster.set_zoom(6.0);
-    raster.set_transparency_cell_size(8.0);
+    raster.bitmap = std::move(raster_bitmap);
+    raster.zoom = 6.0;
+    raster.transparency_cell_size = 8.0;
 }
 
 void add_images_and_drawing(const std::shared_ptr<Surface>& page,
