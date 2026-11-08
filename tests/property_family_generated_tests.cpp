@@ -289,6 +289,11 @@ void test_data_grid_view_properties() {
         (*control).edit_mode = sample;
         expect((*control).edit_mode.read() == sample, "DataGridView.edit_mode: a write stores");
     }
+    {
+        const bool sample = true;
+        (*control).cells_on_sub_surface = sample;
+        expect((*control).cells_on_sub_surface.read() == sample, "DataGridView.cells_on_sub_surface: a write stores");
+    }
 }
 
 void test_scrollable_control_properties() {

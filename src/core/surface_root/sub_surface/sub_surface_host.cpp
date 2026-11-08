@@ -573,6 +573,7 @@ void SubSurfaceHost::configure_region() {
                            pixel_height == pixel_height_ && scale == configured_scale_;
     if (unchanged) return;
     const Size logical{bounds.width, bounds.height};
+    const bool started_now = !thread_;
     if (!thread_) {
         LiveSurfaceDescription description;
         description.width = pixel_width;
@@ -626,7 +627,11 @@ void SubSurfaceHost::configure_region() {
     const Control::Ptr self = shared_from_this();
     static_cast<void>((*window).queue_live_surface_presentation(self, surface_));
     static_cast<void>((*window).require_live_surface_content(self, content_epoch_));
-    invalidate(Dirty::paint);
+    // Only a new surface or device size repaints the host: the window
+    // composes each new frame through the live surface path, and a
+    // redraw-all sent while its owner paints (a DataGridView's cell region)
+    // must not damage that owner again.
+    if (resized || started_now) invalidate(Dirty::paint);
 }
 
 void SubSurfaceHost::stop_thread() noexcept {

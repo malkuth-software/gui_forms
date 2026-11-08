@@ -43,6 +43,7 @@
 #include "gui_forms/controls/container/master_detail_view/master_detail_view.hpp"
 #include "gui_forms/controls/data_grid_view/data_grid_view.hpp"
 #include "gui_forms/controls/data_grid_view/data_grid_view_row_order.hpp"
+#include "gui_forms/controls/data_grid_view/data_grid_view_types/data_grid_view_types.hpp"
 #include "gui_forms/controls/docking/dock_navigator/dock_navigator.hpp"
 #include "gui_forms/controls/docking/dock_site/dock_site.hpp"
 #include "gui_forms/controls/docking/dock_workspace/dock_workspace.hpp"

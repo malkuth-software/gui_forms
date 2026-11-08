@@ -156,6 +156,8 @@ Related types
      - A range of DataGridViewCellsSnapshot::lines: ``count`` lines from ``first``.
    * - :cpp:class:`DataGridViewCellsLook <gui_forms::DataGridViewCellsLook>`
      - The grid's look, which the sub-surface's control takes over so that the theme selects and colours its parts as it does the grid's: the grid's style classes and inline style select rules (its stable ID is the control's own, DataGridViewCellsContent); its effective back and fore colours (Control::ambient_back_color, ambient_fore_color) stand for its authored ones.
+   * - :cpp:class:`DataGridViewCellsOnSubSurfaceCapability <gui_forms::DataGridViewCellsOnSubSurfaceCapability>`
+     - Whether the cells are painted on a threaded sub-surface (stage S7): the grid resolves each frame's visible cells into a snapshot and its cell region shows them, off the UI thread.
    * - :cpp:class:`DataGridViewCellsParts <gui_forms::DataGridViewCellsParts>`
      - The parts of one cell, placed in the region's coordinates; a part the cell's kind does not show is absent (PartGeometry::present).
    * - :cpp:class:`DataGridViewCellsSnapshot <gui_forms::DataGridViewCellsSnapshot>`
@@ -1128,7 +1130,7 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> DataGridViewCapabilities : public DataGridViewAutoSizeColumnsModeCapability<Declaring>, public DataGridViewAutoSizeRowsModeCapability<Declaring>, public DataGridViewClipboardCopyModeCapability<Declaring>, public DataGridViewRowOrderPolicyCapability<Declaring>, public DataGridViewRowOrderThresholdsCapability<Declaring>, public DataGridViewAllowUserToDeleteRowsCapability<Declaring>, public DataGridViewShowCellErrorsCapability<Declaring>, public DataGridViewShowRowErrorsCapability<Declaring>, public DataGridViewShowEditingIconCapability<Declaring>, public DataGridViewDefaultCellStyleCapability<Declaring>, public DataGridViewRowsDefaultCellStyleCapability<Declaring>, public DataGridViewAlternatingRowsDefaultCellStyleCapability<Declaring>, public DataGridViewColumnHeadersDefaultCellStyleCapability<Declaring>, public DataGridViewRowHeadersDefaultCellStyleCapability<Declaring>, public DataGridViewEnableHeadersVisualStylesCapability<Declaring>, public DataGridViewGridColorCapability<Declaring>, public DataGridViewBackgroundColorCapability<Declaring>, public DataGridViewBorderStyleCapability<Declaring>, public DataGridViewCellBorderStyleCapability<Declaring>, public DataGridViewColumnHeadersBorderStyleCapability<Declaring>, public DataGridViewRowHeadersBorderStyleCapability<Declaring>, public DataGridViewDrawModeCapability<Declaring>, public DataGridViewColumnHeadersVisibleCapability<Declaring>, public DataGridViewRowHeadersVisibleCapability<Declaring>, public DataGridViewColumnHeadersHeightCapability<Declaring>, public DataGridViewRowHeadersWidthCapability<Declaring>, public DataGridViewRowHeightCapability<Declaring>, public FontCapability<Declaring>, public DataGridViewReadOnlyCapability<Declaring>, public DataGridViewAllowUserToResizeColumnsCapability<Declaring>, public DataGridViewAllowUserToResizeRowsCapability<Declaring>, public DataGridViewAllowUserToOrderColumnsCapability<Declaring>, public DataGridViewSelectionModeCapability<Declaring>, public DataGridViewMultiSelectCapability<Declaring>, public DataGridViewEditModeCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> DataGridViewCapabilities : public DataGridViewAutoSizeColumnsModeCapability<Declaring>, public DataGridViewAutoSizeRowsModeCapability<Declaring>, public DataGridViewClipboardCopyModeCapability<Declaring>, public DataGridViewRowOrderPolicyCapability<Declaring>, public DataGridViewRowOrderThresholdsCapability<Declaring>, public DataGridViewAllowUserToDeleteRowsCapability<Declaring>, public DataGridViewShowCellErrorsCapability<Declaring>, public DataGridViewShowRowErrorsCapability<Declaring>, public DataGridViewShowEditingIconCapability<Declaring>, public DataGridViewDefaultCellStyleCapability<Declaring>, public DataGridViewRowsDefaultCellStyleCapability<Declaring>, public DataGridViewAlternatingRowsDefaultCellStyleCapability<Declaring>, public DataGridViewColumnHeadersDefaultCellStyleCapability<Declaring>, public DataGridViewRowHeadersDefaultCellStyleCapability<Declaring>, public DataGridViewEnableHeadersVisualStylesCapability<Declaring>, public DataGridViewGridColorCapability<Declaring>, public DataGridViewBackgroundColorCapability<Declaring>, public DataGridViewBorderStyleCapability<Declaring>, public DataGridViewCellBorderStyleCapability<Declaring>, public DataGridViewColumnHeadersBorderStyleCapability<Declaring>, public DataGridViewRowHeadersBorderStyleCapability<Declaring>, public DataGridViewDrawModeCapability<Declaring>, public DataGridViewColumnHeadersVisibleCapability<Declaring>, public DataGridViewRowHeadersVisibleCapability<Declaring>, public DataGridViewColumnHeadersHeightCapability<Declaring>, public DataGridViewRowHeadersWidthCapability<Declaring>, public DataGridViewRowHeightCapability<Declaring>, public FontCapability<Declaring>, public DataGridViewReadOnlyCapability<Declaring>, public DataGridViewAllowUserToResizeColumnsCapability<Declaring>, public DataGridViewAllowUserToResizeRowsCapability<Declaring>, public DataGridViewAllowUserToOrderColumnsCapability<Declaring>, public DataGridViewSelectionModeCapability<Declaring>, public DataGridViewMultiSelectCapability<Declaring>, public DataGridViewEditModeCapability<Declaring>, public DataGridViewCellsOnSubSurfaceCapability<Declaring>
 
    ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
 
@@ -1281,6 +1283,10 @@ Related types
    .. cpp:member:: DataGridViewEditMode edit_mode
 
       What starts an edit (EditMode).
+
+   .. cpp:member:: bool cells_on_sub_surface
+
+      Whether the cells are painted on a threaded sub-surface (stage S7): the grid resolves each frame's visible cells into a snapshot and its cell region shows them, off the UI thread. Owner drawing keeps the cells on the UI thread.
 
 .. cpp:namespace:: gui_forms
 
@@ -1498,6 +1504,23 @@ Related types
    .. cpp:member:: std::optional<Color> back_color
 
    .. cpp:member:: std::optional<Color> fore_color
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DataGridViewCellsOnSubSurfaceCapability
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp>``
+
+   Whether the cells are painted on a threaded sub-surface (stage S7): the grid resolves each frame's visible cells into a snapshot and its cell region shows them, off the UI thread. Owner drawing keeps the cells on the UI thread.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DataGridViewCellsOnSubSurfaceCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, DataGridViewCellsOnSubSurfaceCapability<Declaring>> cells_on_sub_surface
+
+      Default: ``{false}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -4259,3 +4282,9 @@ Functions, constants and aliases
 .. cpp:function:: void paint_data_grid_view_cell(Painter& painter, const Control& owner, const DataGridViewCellsSnapshot& snapshot, const DataGridViewCellsCell& cell, Rect data)
 
    Paints one resolved cell of ``snapshot``, its parts in the grid's order, cut to ``data`` (the region's data area), for ``owner`` (whose theme and look select the parts). It is the cell painter both sides share: the sub-surface's control and, once wired, the grid itself. The cell must be one ``data_grid_view_cells_snapshot_valid`` accepted.
+
+.. cpp:function:: void paint_data_grid_view_cell_selection(Painter& painter, const Control& owner, const DataGridViewCellsCell& cell)
+
+   The same cell painted in two steps, for the grid's owner drawing, which draws between them: the selection plate, then the other parts. Without ``default_content`` the content parts (link, text, image, check box, button) are the owner's and are left out; the drop-down, the error glyph, the rules and the focus part are drawn either way.
+
+.. cpp:function:: void paint_data_grid_view_cell_parts(Painter& painter, const Control& owner, const DataGridViewCellsSnapshot& snapshot, const DataGridViewCellsCell& cell, Rect data, bool default_content)

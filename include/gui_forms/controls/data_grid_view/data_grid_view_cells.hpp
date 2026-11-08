@@ -155,6 +155,14 @@ struct DataGridViewCellsSnapshot final {
 // one `data_grid_view_cells_snapshot_valid` accepted.
 void paint_data_grid_view_cell(Painter& painter, const Control& owner, const DataGridViewCellsSnapshot& snapshot,
                                const DataGridViewCellsCell& cell, Rect data);
+// The same cell painted in two steps, for the grid's owner drawing, which
+// draws between them: the selection plate, then the other parts. Without
+// `default_content` the content parts (link, text, image, check box,
+// button) are the owner's and are left out; the drop-down, the error
+// glyph, the rules and the focus part are drawn either way.
+void paint_data_grid_view_cell_selection(Painter& painter, const Control& owner, const DataGridViewCellsCell& cell);
+void paint_data_grid_view_cell_parts(Painter& painter, const Control& owner, const DataGridViewCellsSnapshot& snapshot,
+                                     const DataGridViewCellsCell& cell, Rect data, bool default_content);
 
 // The sub-surface's root control, private to the library
 // (src/controls/data_grid_view/data_grid_view_cells_control.hpp): it paints

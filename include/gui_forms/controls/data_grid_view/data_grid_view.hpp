@@ -9,6 +9,7 @@
 #include "gui_forms/controls/panel/text_box/text_box.hpp"
 #include "gui_forms/controls/range_control/scroll_bar/h_scroll_bar/h_scroll_bar.hpp"
 #include "gui_forms/controls/range_control/scroll_bar/v_scroll_bar/v_scroll_bar.hpp"
+#include "gui_forms/controls/data_grid_view/data_grid_view_cells.hpp"
 #include "gui_forms/controls/data_grid_view/data_grid_view_row_heights.hpp"
 #include "gui_forms/controls/data_grid_view/data_grid_view_row_order.hpp"
 #include "gui_forms/controls/data_grid_view/data_grid_view_types/data_grid_view_types.hpp"
@@ -34,6 +35,7 @@ namespace gui_forms {
 struct FocusedControlChange;
 
 class BindingSource;
+class SubSurfaceHost;
 
 // One column. `name` is the column's identity: unique within the grid, not
 // empty, and without '.', since a cell's stable ID is its row's ID, '.' and
@@ -1221,6 +1223,19 @@ private:
     // grid's structure: the paint then stops.
     [[nodiscard]] bool paint_cell(Painter& painter, DataGridViewRowPosition row, std::size_t column,
                                   const GridLayout& layout);
+    // Resolves one cell for the shared cell painter (stage S7), its parts
+    // moved by `offset`, appending its text and wrapped lines to `into`'s
+    // buffers. False when a cell_formatting handler changed the grid's
+    // structure (nothing is appended then).
+    [[nodiscard]] bool resolve_cell(DataGridViewRowPosition row, std::size_t column, const GridLayout& layout,
+                                    Point offset, DataGridViewCellsSnapshot& into, DataGridViewCellsCell& resolved);
+    // The cell region (cells_on_sub_surface): resolves the visible cells
+    // into a snapshot in the region's coordinates and sends it with a new
+    // content epoch. False when a handler changed the grid's structure: the
+    // paint then stops and the next one sends the cells.
+    [[nodiscard]] bool send_cells_snapshot(const GridLayout& layout, const Parts& grid);
+    // Whether this paint's cells go to the cell region.
+    [[nodiscard]] bool cells_on_region() const noexcept;
     // Throws std::invalid_argument for a style the setters refuse.
     static void validate_cell_style(const DataGridViewCellStyle& style);
     void require_column(std::size_t column) const;
@@ -1346,6 +1361,13 @@ private:
     std::shared_ptr<TextBox> editor_{};
     std::shared_ptr<VScrollBar> vertical_bar_{};
     std::shared_ptr<HScrollBar> horizontal_bar_{};
+    // The cell region while cells_on_sub_surface: the first child, under the
+    // editor and the bars, transparent to hit testing (the grid keeps its
+    // input) and no tab stop.
+    std::shared_ptr<SubSurfaceHost> cells_host_{};
+    // One resolved cell's text and lines while the grid paints its cells
+    // itself, kept so that its buffers are reused from cell to cell.
+    DataGridViewCellsSnapshot paint_scratch_{};
     SubscriptionToken editor_focus_{};
     // The window whose focus changes the grid follows, and the subscription.
     Window* followed_window_{};
@@ -1548,6 +1570,7 @@ private:
     friend struct DataGridViewSelectionModeCapability<DataGridView>;
     friend struct DataGridViewMultiSelectCapability<DataGridView>;
     friend struct DataGridViewEditModeCapability<DataGridView>;
+    friend struct DataGridViewCellsOnSubSurfaceCapability<DataGridView>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(auto_size_columns_mode)& cell, DataGridViewAutoSizeColumnsMode& incoming);
     void written(const decltype(auto_size_columns_mode)& cell);
@@ -1619,6 +1642,8 @@ private:
     void written(const decltype(multi_select)& cell);
     void prepare_write(const decltype(edit_mode)& cell, DataGridViewEditMode& incoming);
     void written(const decltype(edit_mode)& cell);
+    void prepare_write(const decltype(cells_on_sub_surface)& cell, bool& incoming);
+    void written(const decltype(cells_on_sub_surface)& cell);
     // property_codemod end DataGridView
 };
 

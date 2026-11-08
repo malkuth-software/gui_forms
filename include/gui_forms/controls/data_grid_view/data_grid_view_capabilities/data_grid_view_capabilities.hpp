@@ -471,6 +471,19 @@ struct DataGridViewEditModeCapability {
     }
 };
 
+// Whether the cells are painted on a threaded sub-surface (stage S7): the grid resolves each frame's visible cells into a snapshot and its cell region shows them, off the UI thread. Owner drawing keeps the cells on the UI thread.
+template <typename Declaring>
+struct DataGridViewCellsOnSubSurfaceCapability {
+    PropertyCell<bool, DataGridViewCellsOnSubSurfaceCapability<Declaring>> cells_on_sub_surface{false};
+
+    static void assign(DataGridViewCellsOnSubSurfaceCapability& capability, bool incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.cells_on_sub_surface), incoming);
+        if (!capability.cells_on_sub_surface.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.cells_on_sub_surface));
+    }
+};
+
 // Every DataGridView capability, in the order the declaring class takes them.
 template <typename Declaring>
 struct DataGridViewCapabilities : public DataGridViewAutoSizeColumnsModeCapability<Declaring>,
@@ -507,7 +520,8 @@ struct DataGridViewCapabilities : public DataGridViewAutoSizeColumnsModeCapabili
                                   public DataGridViewAllowUserToOrderColumnsCapability<Declaring>,
                                   public DataGridViewSelectionModeCapability<Declaring>,
                                   public DataGridViewMultiSelectCapability<Declaring>,
-                                  public DataGridViewEditModeCapability<Declaring> {
+                                  public DataGridViewEditModeCapability<Declaring>,
+                                  public DataGridViewCellsOnSubSurfaceCapability<Declaring> {
     DataGridViewCapabilities() : FontCapability<Declaring>(FontSpec{FontSpec{FontRole::content, 11.0, 400, false}}) {}
 };
 

@@ -11,6 +11,7 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
 
 #include <algorithm>
 #include <array>
@@ -1904,6 +1905,11 @@ void DataGridView::arrange(Rect final_bounds) {
     if (horizontal_bar_) {
         set_child_layout_collapsed(horizontal_bar_, layout.horizontal_bar.empty());
         set_child_layout(horizontal_bar_, layout.horizontal_bar);
+    }
+    // The cell region covers the data area (stage S7).
+    if (cells_host_) {
+        set_child_layout_collapsed(cells_host_, layout.data.empty());
+        set_child_layout(cells_host_, layout.data);
     }
     if (editor_) {
         const Parts placed = grid_parts(layout);

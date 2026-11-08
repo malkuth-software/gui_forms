@@ -53,27 +53,39 @@ bool data_grid_view_cells_snapshot_valid(const DataGridViewCellsSnapshot& snapsh
     return true;
 }
 
-// The grid's paint_cell, from a resolved cell: the selection plate, the
-// content (link, wrapped or single-line text), the image, the check box,
-// the button, the drop-down actuator, the error glyph, the rules and the
-// focus part, in that order.
+// A resolved cell, as the grid paints it: the selection plate, the content
+// (link, wrapped or single-line text), the image, the check box, the
+// button, the drop-down actuator, the error glyph, the rules and the focus
+// part, in that order.
 void paint_data_grid_view_cell(Painter& painter, const Control& owner, const DataGridViewCellsSnapshot& snapshot,
                                const DataGridViewCellsCell& cell, Rect data) {
+    paint_data_grid_view_cell_selection(painter, owner, cell);
+    paint_data_grid_view_cell_parts(painter, owner, snapshot, cell, data, true);
+}
+
+void paint_data_grid_view_cell_selection(Painter& painter, const Control& owner, const DataGridViewCellsCell& cell) {
+    if (!cell.parts.cell.present) return;
+    // The selection plate: transparent at rest in the selection recipe.
+    PartPaint part;
+    part.states = cell.states;
+    part.font = cell.font;
+    part.family = ControlVisualRole::selection;
+    part.role = PartRole::selection;
+    part.bounds = cell.parts.selection.bounds;
+    part.authored_background = cell.parts.selection.authored_background;
+    paint_part(painter, owner, part);
+}
+
+void paint_data_grid_view_cell_parts(Painter& painter, const Control& owner, const DataGridViewCellsSnapshot& snapshot,
+                                     const DataGridViewCellsCell& cell, Rect data, bool default_content) {
     const DataGridViewCellsParts& parts = cell.parts;
     if (!parts.cell.present) return;
     const std::string_view text = text_of(snapshot, cell.text);
     PartPaint part;
     part.states = cell.states;
     part.font = cell.font;
-    // The selection plate: transparent at rest in the selection recipe.
-    part.family = ControlVisualRole::selection;
-    part.role = PartRole::selection;
-    part.bounds = parts.selection.bounds;
-    part.authored_background = parts.selection.authored_background;
-    paint_part(painter, owner, part);
-    part.authored_background.reset();
     part.family = ControlVisualRole::editor;
-    if (parts.link.present) {
+    if (default_content && parts.link.present) {
         part.family = cell.visited ? ControlVisualRole::visited_link : ControlVisualRole::link;
         part.role = PartRole::content;
         part.bounds = parts.link.bounds;
@@ -88,7 +100,7 @@ void paint_data_grid_view_cell(Painter& painter, const Control& owner, const Dat
             part.mark = PartMark::none;
         }
         part.family = ControlVisualRole::editor;
-    } else if (parts.content.present && !cell.editing_text && cell.lines.count != 0U) {
+    } else if (default_content && parts.content.present && !cell.editing_text && cell.lines.count != 0U) {
         // Wrapped text: each line a content part of one line's height, the
         // whole cut to the content box so that lines past it do not reach
         // the next row.
@@ -108,7 +120,7 @@ void paint_data_grid_view_cell(Painter& painter, const Control& owner, const Dat
         part.authored_foreground.reset();
         part.text = {};
         part.alignment = PartTextAlignment::start;
-    } else if (parts.content.present && !cell.editing_text) {
+    } else if (default_content && parts.content.present && !cell.editing_text) {
         part.role = PartRole::content;
         part.bounds = parts.content.bounds;
         part.text = text;
@@ -119,7 +131,7 @@ void paint_data_grid_view_cell(Painter& painter, const Control& owner, const Dat
         part.text = {};
         part.alignment = PartTextAlignment::start;
     }
-    if (parts.image.present) {
+    if (default_content && parts.image.present) {
         // Drawn whole and cut at the cell's inside, so that an image wider
         // than its cell, or one partly scrolled away, keeps its shape.
         painter.save();
@@ -131,7 +143,7 @@ void paint_data_grid_view_cell(Painter& painter, const Control& owner, const Dat
         part.image = {};
         painter.restore();
     }
-    if (parts.check_well.present) {
+    if (default_content && parts.check_well.present) {
         part.family = ControlVisualRole::choice;
         part.role = PartRole::well;
         part.bounds = parts.check_well.bounds;
@@ -145,7 +157,7 @@ void paint_data_grid_view_cell(Painter& painter, const Control& owner, const Dat
             part.mark = PartMark::none;
         }
     }
-    if (parts.button_face.present) {
+    if (default_content && parts.button_face.present) {
         part.family = ControlVisualRole::button;
         part.role = PartRole::face;
         part.bounds = parts.button_face.bounds;

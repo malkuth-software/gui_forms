@@ -7,6 +7,7 @@
 // epoch's snapshot (newest wins; a resize keeps a waiting update).
 
 #include "gui_forms/gui_forms.hpp"
+#include "gui_forms/controls/data_grid_view/data_grid_view.hpp"
 #include "gui_forms/controls/data_grid_view/data_grid_view_cells.hpp"
 #include "../src/controls/data_grid_view/data_grid_view_cells_control.hpp"
 #include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
@@ -322,10 +323,95 @@ void region_shows_each_epochs_snapshot() {
     require(!(*host).started(), "leaving the window stops the cells' thread");
 }
 
+// An owner-draw handler that counts its calls and asks for the default
+// content.
+struct AskDefaultContent final {
+    std::size_t* calls{};
+    void operator()(ItemContentPaint& item) const {
+        ++*calls;
+        item.draw_default = true;
+    }
+};
+
+// Part 2: a DataGridView with cells_on_sub_surface paints its headers on the
+// UI thread and sends its visible cells to its region, which shows each
+// paint's cells at that paint's epoch; scrolling sends the new rows; owner
+// drawing and turning the property off bring the cells back to the UI
+// thread.
+void grid_sends_its_cells_to_its_region() {
+    std::shared_ptr<TextLog> log = std::make_shared<TextLog>();
+    std::shared_ptr<DataGridView> grid = make_control<DataGridView>(StableId("grid.s7"));
+    std::vector<DataGridViewColumn> columns;
+    columns.push_back({.name = "a", .header_text = "A", .width = 80.0});
+    columns.push_back({.name = "b", .header_text = "B", .width = 80.0});
+    columns.push_back({.name = "c", .header_text = "C", .width = 80.0});
+    (*grid).set_columns(std::move(columns));
+    for (std::size_t index = 0U; index < 200U; ++index) {
+        const std::string row = "r" + std::to_string(index);
+        DataGridViewRow added{};
+        added.stable_id = DataGridViewRowId{"row" + std::to_string(index)};
+        added.cells = {BindingValue{row + "c0"}, BindingValue{row + "c1"}, BindingValue{row + "c2"}};
+        static_cast<void>((*grid).add_row(std::move(added)));
+    }
+    (*grid).set_allow_user_to_add_rows(false);
+    (*grid).cells_on_sub_surface = true;
+    TextRaster raster(log);
+    Window window(grid, Size{300.0, 200.0});
+    window.set_framebuffer_painter(&raster);
+    window.flush();
+    std::shared_ptr<SubSurfaceHost> host{};
+    const std::span<const Control::Ptr> children = (*grid).children();
+    if (!children.empty()) host = std::dynamic_pointer_cast<SubSurfaceHost>(children[0]);
+    require(static_cast<bool>(host), "the cell region is the grid's first child");
+    require((*host).hit_test_transparent.read() && !(*host).focusable(),
+            "the region leaves hit testing and focus to the grid");
+    require((*host).started(), "the region starts once the grid is arranged in a window");
+
+    TextPainter first({});
+    static_cast<void>(window.paint(first));
+    require(contains(first.texts, "A") && !contains(first.texts, "r0c0"),
+            "the UI thread paints the headers and leaves the cells to the region");
+    const std::shared_ptr<LiveSurface> surface = (*host).live_surface();
+    require(wait_for_content_tag(*surface, (*host).content_epoch()), "the region publishes the paint's epoch");
+    const std::vector<std::string> shown = newest_frame(*log);
+    require(contains(shown, "r0c0") && contains(shown, "r0c2") && contains(shown, "r1c0"),
+            "the region shows the visible cells");
+
+    (*grid).set_first_displayed_row(DataGridViewRowPosition{10U});
+    window.flush();
+    TextPainter scrolled({});
+    static_cast<void>(window.paint(scrolled));
+    require(!contains(scrolled.texts, "r10c0"), "a scrolled grid still leaves the cells to the region");
+    require(wait_for_content_tag(*surface, (*host).content_epoch()), "the region publishes the scroll's epoch");
+    const std::vector<std::string> after_scroll = newest_frame(*log);
+    require(contains(after_scroll, "r10c0") && !contains(after_scroll, "r0c0"),
+            "the region shows the rows the scroll brought in");
+
+    // Owner drawing: the handler runs on the UI thread and asks for the
+    // default content, which the UI thread paints.
+    std::size_t asked = 0U;
+    SubscriptionToken drawing = (*grid).draw_item_content().subscribe(AskDefaultContent{&asked});
+    (*grid).draw_mode = ItemDrawMode::owner_draw;
+    window.flush();
+    TextPainter owner_drawn({});
+    static_cast<void>(window.paint(owner_drawn));
+    require(asked > 0U && contains(owner_drawn.texts, "r10c0"), "owner drawing paints the cells on the UI thread");
+    (*grid).draw_mode = ItemDrawMode::normal;
+    drawing.disconnect();
+
+    (*grid).cells_on_sub_surface = false;
+    window.flush();
+    require(!(*host).started(), "turning the region off stops its thread");
+    TextPainter plain({});
+    static_cast<void>(window.paint(plain));
+    require(contains(plain.texts, "r10c0"), "without the region the UI thread paints the cells");
+}
+
 int run_all() {
     snapshots_are_checked_whole();
     cells_paint_resolved_parts();
     region_shows_each_epochs_snapshot();
+    grid_sends_its_cells_to_its_region();
     return 0;
 }
 

@@ -1385,27 +1385,87 @@ void DataGridView::paint_row(Painter& painter, DataGridViewRowPosition row, cons
     }
 }
 
-bool DataGridView::paint_cell(Painter& painter, DataGridViewRowPosition row, std::size_t column,
-                              const GridLayout& layout) {
+namespace {
+
+// A part, a rectangle, moved by `offset` (the cell region's origin).
+[[nodiscard]] PartGeometry moved_part(PartGeometry part, Point offset) noexcept {
+    part.bounds.x += offset.x;
+    part.bounds.y += offset.y;
+    return part;
+}
+
+[[nodiscard]] Rect moved_rect(Rect rect, Point offset) noexcept {
+    const Rect result{rect.x + offset.x, rect.y + offset.y, rect.width, rect.height};
+    return result;
+}
+
+} // namespace
+
+bool DataGridView::resolve_cell(DataGridViewRowPosition row, std::size_t column, const GridLayout& layout,
+                                Point offset, DataGridViewCellsSnapshot& into, DataGridViewCellsCell& resolved) {
     const std::uint64_t revision = structure_revision_;
     const CellLayout placed = cell_layout(row, column, layout);
     if (structure_revision_ != revision) return false;
     const CellParts& parts = placed.parts;
+    resolved = DataGridViewCellsCell{};
+    DataGridViewCellsParts& out = resolved.parts;
+    out.cell = moved_part(parts.cell, offset);
     if (!parts.cell.present) return true;
-    const AnatomyStateSet states = cell_states(row, column);
+    out.selection = moved_part(parts.cell_selection, offset);
+    out.content = moved_part(parts.cell_content, offset);
+    out.link = moved_part(parts.cell_link, offset);
+    out.link_underline = moved_part(parts.cell_link_underline, offset);
+    out.check_well = moved_part(parts.cell_check_well, offset);
+    out.check_indicator = moved_part(parts.cell_check_indicator, offset);
+    out.button_face = moved_part(parts.cell_button_face, offset);
+    out.button_label = moved_part(parts.cell_button_label, offset);
+    out.drop_down = moved_part(parts.cell_drop_down, offset);
+    out.drop_down_glyph = moved_part(parts.cell_drop_down_glyph, offset);
+    out.vertical_rule = moved_part(parts.cell_vertical_rule, offset);
+    out.horizontal_rule = moved_part(parts.cell_horizontal_rule, offset);
+    out.focus = moved_part(parts.cell_focus, offset);
+    out.error = moved_part(parts.cell_error, offset);
     const DataGridViewCellStyle& style = placed.content.style;
-    const bool text_edit = editing_ && edit_kind_ == EditKind::text && is_current_cell(row, column);
-    PartPaint part;
-    part.states = states;
-    part.font = (style.font ? effective_font(*style.font) : text_font(font.read()));
-    // The selection plate: transparent at rest in the selection recipe.
-    part.family = ControlVisualRole::selection;
-    part.role = PartRole::selection;
-    part.bounds = parts.cell_selection.bounds;
-    part.authored_background = parts.cell_selection.authored_background;
-    paint_part(painter, *this, part);
-    part.authored_background.reset();
-    part.family = ControlVisualRole::editor;
+    resolved.states = cell_states(row, column);
+    resolved.visited = resolved.states.contains(visited_state);
+    resolved.editing_text = editing_ && edit_kind_ == EditKind::text && is_current_cell(row, column);
+    resolved.font = (style.font ? effective_font(*style.font) : text_font(font.read()));
+    resolved.alignment = text_alignment(style.alignment);
+    const std::size_t text_begin = into.text.size();
+    into.text.append(placed.content.text);
+    resolved.text = DataGridViewCellsTextRange{text_begin, into.text.size()};
+    // Wrapped lines are byte ranges of the cell's text; in the snapshot they
+    // are ranges of its shared buffer.
+    resolved.lines.first = into.lines.size();
+    resolved.lines.count = placed.lines.size();
+    for (const WrappedTextLine& line : placed.lines) {
+        into.lines.push_back(DataGridViewCellsTextRange{text_begin + line.begin_byte, text_begin + line.end_byte});
+    }
+    resolved.lines_box = moved_rect(placed.lines_box, offset);
+    resolved.line_height = placed.line_height;
+    resolved.content_box = moved_rect(placed.content_box, offset);
+    if (parts.cell_image.present) {
+        // Drawn whole at its own bounds and cut at the cell's inside.
+        const Rect inside = cell_inside(cell_bounds(row, column, layout));
+        const std::optional<CellImage> image = cell_image(row, column, inside);
+        if (image) {
+            out.image = PartGeometry::from_bounds(moved_rect((*image).bounds, offset));
+            resolved.image = (*image).image;
+            resolved.image_clip = moved_rect(inside, offset);
+        }
+    }
+    return true;
+}
+
+bool DataGridView::paint_cell(Painter& painter, DataGridViewRowPosition row, std::size_t column,
+                              const GridLayout& layout) {
+    const std::uint64_t revision = structure_revision_;
+    paint_scratch_.text.clear();
+    paint_scratch_.lines.clear();
+    DataGridViewCellsCell resolved{};
+    if (!resolve_cell(row, column, layout, Point{}, paint_scratch_, resolved)) return false;
+    if (!resolved.parts.cell.present) return true;
+    paint_data_grid_view_cell_selection(painter, *this, resolved);
     // Owner drawing (owner decision W-Q6) replaces the content parts unless
     // a handler asks for them.
     bool default_content = true;
@@ -1415,148 +1475,14 @@ bool DataGridView::paint_cell(Painter& painter, DataGridViewRowPosition row, std
                                  .index = row.value,
                                  .column = column,
                                  .stable_id = paint_stable_id_,
-                                 .content = Rect::intersection(placed.content_box, layout.data),
-                                 .states = states,
-                                 .font = part.font,
-                                 .text = item_content_text(*this, ControlVisualRole::editor, states)};
+                                 .content = Rect::intersection(resolved.content_box, layout.data),
+                                 .states = resolved.states,
+                                 .font = resolved.font,
+                                 .text = item_content_text(*this, ControlVisualRole::editor, resolved.states)};
         default_content = raise_item_content_paint(draw_item_content_, request);
         if (!is_alive() || structure_revision_ != revision) return false;
     }
-    const std::string& text = placed.content.text;
-    if (default_content && parts.cell_link.present) {
-        // A link cell draws its text as a link (owner decision W-Q5): the
-        // visited_link family once visited, else link, over the selection
-        // plate. The text starts at the link's own start, which the
-        // cell's alignment placed. The underline is the glyph role's
-        // underline mark (owner decision, 2026-10-28).
-        part.family = states.contains(visited_state) ? ControlVisualRole::visited_link : ControlVisualRole::link;
-        part.role = PartRole::content;
-        part.bounds = parts.cell_link.bounds;
-        part.text = text;
-        paint_part(painter, *this, part);
-        part.text = {};
-        if (parts.cell_link_underline.present) {
-            part.role = PartRole::glyph;
-            part.mark = PartMark::underline;
-            part.bounds = parts.cell_link_underline.bounds;
-            paint_part(painter, *this, part);
-            part.mark = PartMark::none;
-        }
-        part.family = ControlVisualRole::editor;
-    } else if (default_content && parts.cell_content.present && !text_edit && !placed.lines.empty()) {
-        // Wrapped text: each line a content part of one line's height, the
-        // whole cut to the content area so that lines past it do not reach
-        // the next row.
-        painter.save();
-        painter.clip_rect(Rect::intersection(placed.content_box, layout.data));
-        part.role = PartRole::content;
-        part.alignment = text_alignment(style.alignment);
-        part.authored_foreground = parts.cell_content.authored_foreground;
-        const Rect box = placed.lines_box;
-        for (std::size_t index = 0U; index < placed.lines.size(); ++index) {
-            const WrappedTextLine& line = placed.lines[index];
-            part.bounds = {box.x, box.y + placed.line_height * static_cast<double>(index), box.width,
-                           placed.line_height};
-            part.text = std::string_view(text).substr(line.begin_byte, line.end_byte - line.begin_byte);
-            paint_part(painter, *this, part);
-        }
-        painter.restore();
-        part.authored_foreground.reset();
-        part.text = {};
-        part.alignment = PartTextAlignment::start;
-    } else if (default_content && parts.cell_content.present && !text_edit) {
-        part.role = PartRole::content;
-        part.bounds = parts.cell_content.bounds;
-        part.text = text;
-        part.alignment = text_alignment(style.alignment);
-        part.authored_foreground = parts.cell_content.authored_foreground;
-        paint_part(painter, *this, part);
-        part.authored_foreground.reset();
-        part.text = {};
-        part.alignment = PartTextAlignment::start;
-    }
-    if (default_content && parts.cell_image.present) {
-        // Drawn whole and cut at the cell's edges, so that an image wider
-        // than its cell, or one partly scrolled away, keeps its shape.
-        const Rect inside = cell_inside(cell_bounds(row, column, layout));
-        const std::optional<CellImage> image = cell_image(row, column, inside);
-        if (image) {
-            painter.save();
-            painter.clip_rect(Rect::intersection(inside, layout.data));
-            part.role = PartRole::image;
-            part.bounds = (*image).bounds;
-            part.image = (*image).image;
-            paint_part(painter, *this, part);
-            part.image = {};
-            painter.restore();
-        }
-    }
-    if (default_content && parts.cell_check_well.present) {
-        part.family = ControlVisualRole::choice;
-        part.role = PartRole::well;
-        part.bounds = parts.cell_check_well.bounds;
-        paint_part(painter, *this, part);
-        // The indicator is a mark: drawn while checked, absent otherwise.
-        if (states.contains(AnatomyState::checked)) {
-            part.role = PartRole::indicator;
-            part.bounds = parts.cell_check_indicator.bounds;
-            part.mark = PartMark::check;
-            paint_part(painter, *this, part);
-            part.mark = PartMark::none;
-        }
-    }
-    if (default_content && parts.cell_button_face.present) {
-        part.family = ControlVisualRole::button;
-        part.role = PartRole::face;
-        part.bounds = parts.cell_button_face.bounds;
-        paint_part(painter, *this, part);
-        part.role = PartRole::label;
-        part.bounds = parts.cell_button_label.bounds;
-        part.text = text;
-        part.alignment = PartTextAlignment::center;
-        part.authored_foreground = parts.cell_button_label.authored_foreground;
-        paint_part(painter, *this, part);
-        part.authored_foreground.reset();
-        part.text = {};
-        part.alignment = PartTextAlignment::start;
-    }
-    if (parts.cell_drop_down.present) {
-        // A drop-down actuator in a strip-like family: flat at rest.
-        part.family = ControlVisualRole::menu_item;
-        part.role = PartRole::actuator;
-        part.bounds = parts.cell_drop_down.bounds;
-        paint_part(painter, *this, part);
-        part.role = PartRole::glyph;
-        part.bounds = parts.cell_drop_down_glyph.bounds;
-        part.mark = PartMark::arrow_down;
-        paint_part(painter, *this, part);
-        part.mark = PartMark::none;
-    }
-    if (parts.cell_error.present) {
-        part.family = ControlVisualRole::panel;
-        part.role = PartRole::glyph;
-        part.bounds = parts.cell_error.bounds;
-        part.mark = PartMark::error;
-        paint_part(painter, *this, part);
-        part.mark = PartMark::none;
-    }
-    part.family = ControlVisualRole::panel;
-    part.role = PartRole::divider;
-    if (parts.cell_vertical_rule.present) {
-        part.bounds = parts.cell_vertical_rule.bounds;
-        part.authored_foreground = parts.cell_vertical_rule.authored_foreground;
-        paint_part(painter, *this, part);
-    }
-    if (parts.cell_horizontal_rule.present) {
-        part.bounds = parts.cell_horizontal_rule.bounds;
-        part.authored_foreground = parts.cell_horizontal_rule.authored_foreground;
-        paint_part(painter, *this, part);
-    }
-    part.authored_foreground.reset();
-    part.family = ControlVisualRole::editor;
-    part.role = PartRole::focus;
-    part.bounds = parts.cell_focus.bounds;
-    paint_part(painter, *this, part);
+    paint_data_grid_view_cell_parts(painter, *this, paint_scratch_, resolved, layout.data, default_content);
     return true;
 }
 
@@ -1631,7 +1557,10 @@ void DataGridView::on_paint(Painter& painter, Rect) {
         paint_part(painter, *this, surface);
         painter.restore();
     }
-    if (!layout.data.empty()) {
+    if (!layout.data.empty() && cells_on_region()) {
+        // The cell region paints the cells, off this thread (stage S7).
+        if (!send_cells_snapshot(layout, grid)) return;
+    } else if (!layout.data.empty()) {
         painter.save();
         painter.clip_rect(layout.data);
         bool unchanged = true;

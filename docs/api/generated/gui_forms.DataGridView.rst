@@ -163,6 +163,9 @@ gui_forms::DataGridView
       **edit_mode** : ``DataGridViewEditMode``
          What starts an edit (EditMode).
 
+      **cells_on_sub_surface** : ``bool``
+         Whether the cells are painted on a threaded sub-surface (stage S7): the grid resolves each frame's visible cells into a snapshot and its cell region shows them, off the UI thread. Owner drawing keeps the cells on the UI thread.
+
       **columns** : ``std::span<const DataGridViewColumn>``
          The columns, in display order. :cpp:func:`set_columns <gui_forms::DataGridView::set_columns>` replaces them, :cpp:func:`add_column <gui_forms::DataGridView::add_column>`
          appends one and :cpp:func:`remove_column_at <gui_forms::DataGridView::remove_column_at>` removes one. A column name must be
@@ -1006,6 +1009,10 @@ gui_forms::DataGridView
    .. cpp:member:: DataGridViewEditMode edit_mode
 
       What starts an edit (EditMode).
+
+   .. cpp:member:: bool cells_on_sub_surface
+
+      Whether the cells are painted on a threaded sub-surface (stage S7): the grid resolves each frame's visible cells into a snapshot and its cell region shows them, off the UI thread. Owner drawing keeps the cells on the UI thread.
 
    .. cpp:function:: std::span<const DataGridViewColumn> columns() const noexcept
 

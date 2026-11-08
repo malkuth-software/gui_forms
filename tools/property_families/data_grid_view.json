@@ -754,6 +754,27 @@
         "if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(DataGridViewEditMode::edit_programmatically)) throw std::invalid_argument(\"DataGridView edit mode is outside the enumeration\");"
       ],
       "sample": "DataGridViewEditMode::edit_on_enter"
+    },
+    {
+      "name": "cells_on_sub_surface",
+      "capability": "DataGridViewCellsOnSubSurface",
+      "value": "bool",
+      "initial": "false",
+      "comment": "Whether the cells are painted on a threaded sub-surface (stage S7): the grid resolves each frame's visible cells into a snapshot and its cell region shows them, off the UI thread. Owner drawing keeps the cells on the UI thread.",
+      "getter": "cells_on_sub_surface",
+      "setter": "set_cells_on_sub_surface",
+      "clear": null,
+      "field": "cells_on_sub_surface_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "written starts or stops the cell region (its SubSurfaceHost child); in data_grid_view_cells_region.cpp"
+      ],
+      "sample": "true"
     }
   ]
 }
