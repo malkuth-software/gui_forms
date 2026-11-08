@@ -178,10 +178,12 @@ void ToggleSwitch::on_paint(Painter& painter, Rect) {
     thumb.key = PartKey{"thumb", {}, {}};
     paint_part(painter, *this, thumb);
     const FontSpec spec = label_font();
+    // The part borrows the text; the local keeps it alive through the paint.
+    const std::string shown = display_text();
     if (placed.label.width > 0.0) {
         PartPaint label{.role = PartRole::label, .bounds = placed.label, .states = states,
                         .family = ControlVisualRole::choice};
-        label.text = display_text();
+        label.text = shown;
         label.font = spec;
         paint_part(painter, *this, label);
     }
