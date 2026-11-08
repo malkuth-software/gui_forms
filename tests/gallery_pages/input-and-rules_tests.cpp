@@ -10,7 +10,7 @@ constexpr std::size_t no_line = static_cast<std::size_t>(-1);
 
 // The index of the first log line at or after `from` that contains `text`.
 std::size_t find_line(const ListBox& log, std::string_view text, std::size_t from = 0U) {
-    const std::span<const std::string> items = log.items();
+    const std::span<const std::string> items = log.items.read();
     for (std::size_t index = from; index < items.size(); ++index) {
         if (items[index].find(text) != std::string::npos) return index;
     }
@@ -70,10 +70,10 @@ void test_input_and_rules(gui_forms::Window& window) {
 
     // Arm the rules through the bound check box.
     click(window, clear);
-    require((*log).items().empty(), "Clear empties the log");
-    require((*statistics).text() == "Rules not armed", "the rules start unarmed");
+    require((*log).items.read().empty(), "Clear empties the log");
+    require((*statistics).text.read() == "Rules not armed", "the rules start unarmed");
     click(window, armed);
-    require(find_line(*log, "Rules armed") != no_line && (*statistics).text().find("Occurrences") == 0U,
+    require(find_line(*log, "Rules armed") != no_line && (*statistics).text.read().find("Occurrences") == 0U,
             "checking the bound box arms the rules and shows the window's rule statistics");
 
     // Rule 1: a Shift+click on the button is consumed before its command.
@@ -84,11 +84,11 @@ void test_input_and_rules(gui_forms::Window& window) {
     require(find_line(*log, "The button's command ran (1)") != no_line, "a plain click still runs the command");
 
     // Rule 2: H while hovering the target toggles the bound Marked box.
-    require(!(*marked).checked(), "Marked starts cleared");
+    require(!(*marked).checked.read(), "Marked starts cleared");
     static_cast<void>(window.dispatch_pointer({PointerAction::move, PointerButton::none, center(target)}));
     static_cast<void>(window.dispatch_key({KeyAction::down, PhysicalKey::h}));
     static_cast<void>(window.dispatch_key({KeyAction::up, PhysicalKey::h}));
-    require((*marked).checked() && find_line(*log, "Rule 2") != no_line,
+    require((*marked).checked.read() && find_line(*log, "Rule 2") != no_line,
             "H over the target toggles the Value the Marked box binds");
 
     // Rule 3 notes the double-click before the target's subscribers.
@@ -101,7 +101,7 @@ void test_input_and_rules(gui_forms::Window& window) {
 
     // Revoked, the rules stop.
     click(window, armed);
-    require(find_line(*log, "Rules revoked") != no_line && (*statistics).text() == "Rules not armed",
+    require(find_line(*log, "Rules revoked") != no_line && (*statistics).text.read() == "Rules not armed",
             "clearing the bound box revokes the rules");
     click(window, clear);
     press(window, center(button), Modifier::shift, 1U);

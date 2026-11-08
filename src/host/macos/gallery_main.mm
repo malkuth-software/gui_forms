@@ -20,7 +20,6 @@ int main(int argc, char** argv) {
     options.initial_size = gui_forms::gallery::gallery_default_size;
     options.minimum_size = gui_forms::gallery::gallery_minimum_size;
     gui_forms::demo::apply_program_options(*program, options);
-    const std::unique_ptr<gui_forms::Application> application = gui_forms::gallery::create_gallery_application();
     std::unique_ptr<gui_forms::Window> window = gui_forms::gallery::make_gallery();
     if (!(*program).page.empty() && !gui_forms::gallery::select_gallery_page(*window, (*program).page)) {
         std::fprintf(stderr, "unknown Gallery page: %s\n", (*program).page.c_str());

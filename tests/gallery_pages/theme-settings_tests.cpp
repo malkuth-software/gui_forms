@@ -71,7 +71,7 @@ void test_theme_settings(gui_forms::Window& window) {
     overrides = window.presentation_overrides();
     require(overrides == nullptr || (!(*overrides).colour_scheme && !(*overrides).high_contrast),
             "Restore clears the scheme overrides the page set");
-    require((*light).checked(), "Restore checks Light again");
+    require((*light).checked.read(), "Restore checks Light again");
 }
 
 } // namespace gallery_pages_tests

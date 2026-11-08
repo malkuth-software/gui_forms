@@ -213,14 +213,14 @@ std::shared_ptr<const Theme> ThemeSettingsPage::build_theme(Window& window, cons
 }
 
 ThemeScope ThemeSettingsPage::scope() const noexcept {
-    if ((*document_.gallery_theme_settings_scope_this_window).checked()) return ThemeScope::this_window;
-    if ((*document_.gallery_theme_settings_scope_preview).checked()) return ThemeScope::preview;
+    if ((*document_.gallery_theme_settings_scope_this_window).checked.read()) return ThemeScope::this_window;
+    if ((*document_.gallery_theme_settings_scope_preview).checked.read()) return ThemeScope::preview;
     return ThemeScope::every_window;
 }
 
 SchemeChoice ThemeSettingsPage::scheme() const noexcept {
-    if ((*document_.gallery_theme_settings_scheme_dark).checked()) return SchemeChoice::dark;
-    if ((*document_.gallery_theme_settings_scheme_high_contrast).checked()) return SchemeChoice::high_contrast;
+    if ((*document_.gallery_theme_settings_scheme_dark).checked.read()) return SchemeChoice::dark;
+    if ((*document_.gallery_theme_settings_scheme_high_contrast).checked.read()) return SchemeChoice::high_contrast;
     return SchemeChoice::light;
 }
 
@@ -296,9 +296,9 @@ void ThemeSettingsPage::offer_dark(const Theme& theme) {
     const bool dark = theme.supports(ColourScheme::dark);
     RadioButton& dark_radio = *document_.gallery_theme_settings_scheme_dark;
     dark_radio.enabled = dark && !follow_host_.get();
-    if (dark || !dark_radio.checked()) return;
+    if (dark || !dark_radio.checked.read()) return;
     updating_scheme_ = true;
-    (*document_.gallery_theme_settings_scheme_light).set_checked(true);
+    (*document_.gallery_theme_settings_scheme_light).checked = true;
     updating_scheme_ = false;
     apply_scheme();
 }
@@ -311,15 +311,15 @@ void ThemeSettingsPage::refresh_state() {
     }
     const std::shared_ptr<ApplicationResources> resources = (*target).resources();
     const std::string resources_id((*resources).program_theme().id());
-    (*document_.gallery_theme_settings_state_resources).set_text("Resources' theme: " + resources_id);
+    (*document_.gallery_theme_settings_state_resources).text = "Resources' theme: " + resources_id;
     const std::string window_id((*target).theme().id());
     (*document_.gallery_theme_settings_state_window)
-        .set_text(window_override_ ? "This window: " + window_id + " (window override)"
-                                   : "This window: " + window_id + " (follows the resources)");
+        .text = window_override_ ? "This window: " + window_id + " (window override)"
+                                   : "This window: " + window_id + " (follows the resources)";
     const std::shared_ptr<const Theme> preview = (*document_.gallery_theme_settings_preview).theme_override();
     (*document_.gallery_theme_settings_state_preview)
-        .set_text(preview ? "Preview: " + std::string((*preview).id()) + " (control override)"
-                          : std::string("Preview: follows the window"));
+        .text = preview ? "Preview: " + std::string((*preview).id()) + " (control override)"
+                          : std::string("Preview: follows the window");
     std::string scheme_text = "Scheme: ";
     const PresentationOverrides* const overrides = (*target).presentation_overrides();
     if (overrides != nullptr && (*overrides).high_contrast.value_or(false)) {
@@ -329,11 +329,11 @@ void ThemeSettingsPage::refresh_state() {
     } else {
         scheme_text += follow_host_.get() ? "the host's preference" : "the window's own";
     }
-    (*document_.gallery_theme_settings_state_scheme).set_text(std::move(scheme_text));
+    (*document_.gallery_theme_settings_state_scheme).text = std::move(scheme_text);
 }
 
 void ThemeSettingsPage::report(std::string text) {
-    (*document_.gallery_theme_settings_state_resources).set_text(std::move(text));
+    (*document_.gallery_theme_settings_state_resources).text = std::move(text);
 }
 
 // The Gallery's own hook for a window theme (GalleryContext::
@@ -403,8 +403,8 @@ void ThemeSettingsPage::on_restore() {
     selected_.reset();
     (*document_.gallery_theme_settings_themes).clear_selection();
     updating_scheme_ = true;
-    (*document_.gallery_theme_settings_scheme_light).set_checked(true);
-    (*document_.gallery_theme_settings_scope_every_window).set_checked(true);
+    (*document_.gallery_theme_settings_scheme_light).checked = true;
+    (*document_.gallery_theme_settings_scope_every_window).checked = true;
     updating_scheme_ = false;
     (*document_.gallery_theme_settings_scheme_dark).enabled = !follow_host_.get();
     PresentationOverrides overrides{};

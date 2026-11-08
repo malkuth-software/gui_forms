@@ -200,24 +200,24 @@ void InputAndRulesPage::subscribe_target() {
 // newest line in view and refreshes the count and the rules' statistics.
 void InputAndRulesPage::log(std::string line) {
     ++lines_logged_;
-    (*log_).add_item(std::move(line));
-    if ((*log_).items().size() > maximum_log_lines) (*log_).remove_item(0U);
-    const std::size_t count = (*log_).items().size();
-    (*log_).set_top_index(count - 1U);
-    (*log_count_).set_text(std::to_string(lines_logged_) + " events logged · " + std::to_string(count) +
-                           " shown");
+    (*log_).items.append(std::move(line));
+    if ((*log_).items.read().size() > maximum_log_lines) (*log_).items.erase(0U, 1U);
+    const std::size_t count = (*log_).items.read().size();
+    (*log_).top_index = count - 1U;
+    (*log_count_).text = std::to_string(lines_logged_) + " events logged · " + std::to_string(count) +
+                           " shown";
     refresh_statistics();
 }
 
 void InputAndRulesPage::refresh_statistics() {
     if (ruled_window_ == nullptr || click_rule_.state() != RuleTokenState::armed) {
-        (*statistics_).set_text("Rules not armed");
+        (*statistics_).text = "Rules not armed";
         return;
     }
     const RuleSetStatistics statistics = (*ruled_window_).rules().statistics();
-    (*statistics_).set_text("Occurrences " + std::to_string(statistics.occurrences) + " · fired " +
+    (*statistics_).text = "Occurrences " + std::to_string(statistics.occurrences) + " · fired " +
                             std::to_string(statistics.fired) + " · consumed " +
-                            std::to_string(statistics.consumed));
+                            std::to_string(statistics.consumed);
 }
 
 // The rules need the window, which the page reaches through its target
@@ -320,9 +320,9 @@ void InputAndRulesPage::on_press() {
 }
 
 void InputAndRulesPage::on_clear() {
-    (*log_).clear_items();
+    (*log_).items.clear();
     lines_logged_ = 0U;
-    (*log_count_).set_text("No events yet");
+    (*log_count_).text = "No events yet";
     refresh_statistics();
 }
 
