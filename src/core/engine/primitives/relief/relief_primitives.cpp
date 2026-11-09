@@ -343,8 +343,11 @@ const PrimitiveDescriptor well_descriptor{
 
 // -- the etched divider and the seam ---------------------------------------------
 
-// An instrument's graticule (W-5) is ruled as a divider.
-const PartRole divider_roles[] = {PartRole::divider, PartRole::graticule};
+// An instrument's graticule (W-5) and a plot's rules (axis, ticks, grid,
+// crosshair) are ruled as a divider.
+const PartRole divider_roles[] = {PartRole::divider,    PartRole::graticule,  PartRole::axis,
+                                  PartRole::tick,       PartRole::grid_major, PartRole::grid_minor,
+                                  PartRole::crosshair};
 const PartRole seam_roles[] = {PartRole::seam};
 
 const PrimitiveParameterDeclaration divider_parameters[] = {

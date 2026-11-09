@@ -35,6 +35,8 @@ bool surface_role(PartRole role) noexcept {
     case PartRole::activity:
     case PartRole::selection:
     case PartRole::plot:
+    case PartRole::legend:
+    case PartRole::color_scale:
         return true;
     case PartRole::region:
     case PartRole::shadow:
@@ -60,6 +62,16 @@ bool surface_role(PartRole role) noexcept {
     case PartRole::image:
     case PartRole::graticule:
     case PartRole::trace:
+    case PartRole::axis:
+    case PartRole::tick:
+    case PartRole::tick_label:
+    case PartRole::grid_major:
+    case PartRole::grid_minor:
+    case PartRole::legend_entry:
+    case PartRole::marker:
+    case PartRole::crosshair:
+    case PartRole::annotation:
+    case PartRole::series:
     case PartRole::count:
         return false;
     }
@@ -656,7 +668,8 @@ bool ground_role(const PartPaint& part) noexcept {
     if (surface_role(part.role)) return true;
     const bool marked = part.mark != PartMark::none;
     const bool pointer_like = part.role == PartRole::indicator || part.role == PartRole::trace ||
-                              part.role == PartRole::glyph;
+                              part.role == PartRole::glyph || part.role == PartRole::marker ||
+                              part.role == PartRole::series;
     const bool ground = pointer_like && !marked;
     return ground;
 }
@@ -678,6 +691,9 @@ void apply_authored_colours(const PartPaint& part, bool disabled, bool important
     case PartRole::label:
     case PartRole::content:
     case PartRole::caret:
+    case PartRole::tick_label:
+    case PartRole::legend_entry:
+    case PartRole::annotation:
         if (!important_text) {
             recipe.text = ink;
             recipe.muted_text = ink;
@@ -685,6 +701,8 @@ void apply_authored_colours(const PartPaint& part, bool disabled, bool important
         return;
     case PartRole::indicator:
     case PartRole::trace:
+    case PartRole::marker:
+    case PartRole::series:
     case PartRole::glyph:
     case PartRole::disclosure:
     case PartRole::grip:
@@ -694,6 +712,11 @@ void apply_authored_colours(const PartPaint& part, bool disabled, bool important
     case PartRole::divider:
     case PartRole::seam:
     case PartRole::graticule:
+    case PartRole::axis:
+    case PartRole::tick:
+    case PartRole::grid_major:
+    case PartRole::grid_minor:
+    case PartRole::crosshair:
         // paint_rule draws in the border's colour, else the muted text's.
         if (recipe.material.border) {
             (*recipe.material.border).color = ink;
@@ -976,10 +999,14 @@ void paint_part_from_recipe(Painter& painter, const PartPaint& part,
     case PartRole::drop:
     case PartRole::validation:
     case PartRole::plot:
+    case PartRole::legend:
+    case PartRole::color_scale:
         paint_surface(painter, part, recipe);
         return;
     case PartRole::indicator:
     case PartRole::trace:
+    case PartRole::marker:
+    case PartRole::series:
     case PartRole::glyph:
         if (part.mark == PartMark::none) {
             paint_surface(painter, part, recipe);
@@ -991,6 +1018,11 @@ void paint_part_from_recipe(Painter& painter, const PartPaint& part,
     case PartRole::divider:
     case PartRole::seam:
     case PartRole::graticule:
+    case PartRole::axis:
+    case PartRole::tick:
+    case PartRole::grid_major:
+    case PartRole::grid_minor:
+    case PartRole::crosshair:
         paint_rule(painter, part.bounds, recipe);
         return;
     case PartRole::grip: {
@@ -1002,6 +1034,9 @@ void paint_part_from_recipe(Painter& painter, const PartPaint& part,
     case PartRole::caption:
     case PartRole::label:
     case PartRole::content:
+    case PartRole::tick_label:
+    case PartRole::legend_entry:
+    case PartRole::annotation:
         // The recipe is resolved in the disabled state, so its text is the
         // theme's own disabled text (owner ruling, 2026-11-02).
         // A secondary text is drawn in the muted ink; disabled text of either
