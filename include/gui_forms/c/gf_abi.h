@@ -1618,9 +1618,57 @@ typedef struct gf_controls_table {
     gf_status (GF_CALL* invalidate)(gf_object object, const gf_logical_rect* damage);
 } gf_controls_table;
 
+/* gf_text_ink_role: a theme ink for decorated text (C++ TextInkRole): the
+ * editor's content or secondary ink, or the link, visited link or notice
+ * family's text colour. */
+typedef uint32_t gf_text_ink_role;
+#define GF_TEXT_INK_ROLE_TEXT 0u
+#define GF_TEXT_INK_ROLE_MUTED 1u
+#define GF_TEXT_INK_ROLE_LINK 2u
+#define GF_TEXT_INK_ROLE_VISITED_LINK 3u
+#define GF_TEXT_INK_ROLE_NOTICE 4u
+
+/* gf_text_underline: how decorated text is underlined (C++ TextUnderline). */
+typedef uint32_t gf_text_underline;
+#define GF_TEXT_UNDERLINE_NONE 0u
+#define GF_TEXT_UNDERLINE_SINGLE 1u
+#define GF_TEXT_UNDERLINE_SQUIGGLE 2u
+
+/* gf_text_decoration_fields: which fields of a gf_text_decoration it sets;
+ * a field without its bit leaves that aspect to the layers under it. */
+typedef uint32_t gf_text_decoration_fields;
+#define GF_TEXT_DECORATION_INK 0x1u
+#define GF_TEXT_DECORATION_FOREGROUND 0x2u
+#define GF_TEXT_DECORATION_WEIGHT 0x4u
+#define GF_TEXT_DECORATION_ITALIC 0x8u
+#define GF_TEXT_DECORATION_UNDERLINE 0x10u
+#define GF_TEXT_DECORATION_UNDERLINE_COLOR 0x20u
+#define GF_TEXT_DECORATION_BACKGROUND 0x40u
+
+/*
+ * One styled text run (since 1.1; C++ TextDecoration): UTF-8 byte offsets
+ * [start, end) into the text and the look it gives that text. Colours are
+ * 0xRRGGBBAA; weight is 1 to 1000; italic is 0 or 1. tag belongs to the
+ * caller and comes back unchanged. reserved is 0.
+ */
+typedef struct gf_text_decoration {
+    uint64_t start;
+    uint64_t end;
+    gf_text_decoration_fields fields;
+    gf_text_ink_role ink;
+    uint32_t foreground;
+    uint32_t weight;
+    uint32_t italic;
+    gf_text_underline underline;
+    uint32_t underline_color;
+    uint32_t background;
+    uint32_t tag;
+    uint32_t reserved;
+} gf_text_decoration;
+
 /*
  * GF_TABLE_TEXT_EDITING: a text box's selection, grapheme navigation, edits
- * and history (TextBox). Positions are UTF-8 byte offsets
+ * and history (TextBox), and its styled text runs (since 1.1). Positions are UTF-8 byte offsets
  * into the text property; a position inside a grapheme cluster or past the
  * text gives GF_STATUS_INVALID_ARGUMENT. Another control gives
  * GF_STATUS_WRONG_HANDLE_KIND. UI thread only.
@@ -1645,6 +1693,33 @@ typedef struct gf_text_editing_table {
     gf_status (GF_CALL* redo)(gf_object object, uint32_t* changed);
     /* Starts the history afresh without touching the text. */
     gf_status (GF_CALL* clear_undo_history)(gf_object object);
+    /* Styled text runs (since 1.1; TextBox::set_decorations): decoration
+     * layers over the text, composed in ascending layer order, which follow
+     * every edit and never change the text. A multiline box draws them. A
+     * range past the text, a range ending before it starts, a weight
+     * outside 1 to 1000, an underline or ink out of range, an unknown field
+     * bit or a nonzero reserved gives GF_STATUS_INVALID_ARGUMENT and changes
+     * nothing. decorations may be null when count is 0.
+     * Replaces layer's decorations; count 0 clears the layer. */
+    gf_status (GF_CALL* set_decorations)(gf_object object, uint32_t layer,
+                                         const gf_text_decoration* decorations, uint64_t count);
+    /* Replaces layer's decorations within [start, end) only, as an
+     * incremental highlighter does after an edit: decorations inside go,
+     * those crossing the bounds keep their parts outside, and the given
+     * ones (each inside the range) come in. Repaints only that range's
+     * rows unless a weight or italics changed. */
+    gf_status (GF_CALL* replace_decorations)(gf_object object, uint32_t layer, uint64_t start, uint64_t end,
+                                             const gf_text_decoration* decorations, uint64_t count);
+    /* Clears every layer. */
+    gf_status (GF_CALL* clear_decorations)(gf_object object);
+    /* The number of decorations in layer, in start order (0 for a layer
+     * without any). */
+    gf_status (GF_CALL* decoration_count)(gf_object object, uint32_t layer, uint64_t* count);
+    /* Decoration index (below decoration_count) of layer, as it stands
+     * after the edits since it was set. GF_STATUS_INVALID_ARGUMENT past the
+     * end. */
+    gf_status (GF_CALL* decoration_at)(gf_object object, uint32_t layer, uint64_t index,
+                                       gf_text_decoration* decoration);
 } gf_text_editing_table;
 
 /*

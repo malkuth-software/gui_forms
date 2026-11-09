@@ -1,18 +1,22 @@
 // GF_TABLE_TEXT_EDITING: a text box's selection, grapheme navigation, edits
-// and history. See gf_abi.h.
+// and history, and its styled text runs. See gf_abi.h.
 
 #include "abi_control_entry.hpp"
 #include "abi_tables.hpp"
+#include "../values/abi_values.hpp"
 
 #include "gui_forms/controls/panel/text_box/text_box.hpp"
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 #include "gui_forms/text/text_store/text_store.hpp"
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
 #include <memory>
+#include <span>
 #include <string_view>
+#include <vector>
 
 namespace gui_forms::abi1 {
 namespace {
@@ -24,8 +28,131 @@ constexpr SlotIdentity replace_range_slot{GF_TABLE_TEXT_EDITING, 3U};
 constexpr SlotIdentity undo_slot{GF_TABLE_TEXT_EDITING, 4U};
 constexpr SlotIdentity redo_slot{GF_TABLE_TEXT_EDITING, 5U};
 constexpr SlotIdentity clear_undo_history_slot{GF_TABLE_TEXT_EDITING, 6U};
+constexpr SlotIdentity set_decorations_slot{GF_TABLE_TEXT_EDITING, 7U};
+constexpr SlotIdentity replace_decorations_slot{GF_TABLE_TEXT_EDITING, 8U};
+constexpr SlotIdentity clear_decorations_slot{GF_TABLE_TEXT_EDITING, 9U};
+constexpr SlotIdentity decoration_count_slot{GF_TABLE_TEXT_EDITING, 10U};
+constexpr SlotIdentity decoration_at_slot{GF_TABLE_TEXT_EDITING, 11U};
 
 constexpr const char* not_text_box = "the control is not a text box";
+
+// The C vocabularies by value: gf_text_ink_role and gf_text_underline.
+constexpr std::array<TextInkRole, 5> ink_roles{TextInkRole::text, TextInkRole::muted, TextInkRole::link,
+                                               TextInkRole::visited_link, TextInkRole::notice};
+constexpr std::array<TextUnderline, 3> underlines{TextUnderline::none, TextUnderline::single,
+                                                  TextUnderline::squiggle};
+constexpr std::uint32_t known_decoration_fields =
+    GF_TEXT_DECORATION_INK | GF_TEXT_DECORATION_FOREGROUND | GF_TEXT_DECORATION_WEIGHT |
+    GF_TEXT_DECORATION_ITALIC | GF_TEXT_DECORATION_UNDERLINE | GF_TEXT_DECORATION_UNDERLINE_COLOR |
+    GF_TEXT_DECORATION_BACKGROUND;
+
+// A caller's decoration record as a TextDecoration: false, leaving
+// `decoration` unspecified, when a field is out of range, a range lies past
+// the text of `text_size` bytes or ends before it starts, or an unknown bit
+// or the reserved field is set.
+bool decoration_from_record(const gf_text_decoration& record, std::size_t text_size,
+                            TextDecoration& decoration) noexcept {
+    if ((record.fields & ~known_decoration_fields) != 0U || record.reserved != 0U) return false;
+    if (record.start > record.end || record.end > text_size) return false;
+    decoration = TextDecoration{};
+    decoration.range = Utf8Range{Utf8Offset{static_cast<std::size_t>(record.start)},
+                                 Utf8Offset{static_cast<std::size_t>(record.end)}};
+    decoration.tag = record.tag;
+    TextDecorationStyle& style = decoration.style;
+    if ((record.fields & GF_TEXT_DECORATION_INK) != 0U) {
+        if (record.ink >= ink_roles.size()) return false;
+        style.ink = ink_roles[record.ink];
+    }
+    if ((record.fields & GF_TEXT_DECORATION_FOREGROUND) != 0U) style.foreground = unpacked_color(record.foreground);
+    if ((record.fields & GF_TEXT_DECORATION_WEIGHT) != 0U) {
+        if (record.weight < 1U || record.weight > 1000U) return false;
+        style.weight = static_cast<std::uint16_t>(record.weight);
+    }
+    if ((record.fields & GF_TEXT_DECORATION_ITALIC) != 0U) {
+        if (record.italic > 1U) return false;
+        style.italic = record.italic == 1U;
+    }
+    if ((record.fields & GF_TEXT_DECORATION_UNDERLINE) != 0U) {
+        if (record.underline >= underlines.size()) return false;
+        style.underline = underlines[record.underline];
+    }
+    if ((record.fields & GF_TEXT_DECORATION_UNDERLINE_COLOR) != 0U) {
+        style.underline_color = unpacked_color(record.underline_color);
+    }
+    if ((record.fields & GF_TEXT_DECORATION_BACKGROUND) != 0U) style.background = unpacked_color(record.background);
+    return true;
+}
+
+// Position of `value` in `table`; every value of the C++ enumerations is
+// listed, so it is always found.
+template <typename Enumeration, std::size_t Count>
+std::uint32_t vocabulary_index(const std::array<Enumeration, Count>& table, Enumeration value) noexcept {
+    std::uint32_t index = 0U;
+    for (std::size_t position = 0U; position < Count; ++position) {
+        if (table[position] == value) index = static_cast<std::uint32_t>(position);
+    }
+    return index;
+}
+
+gf_text_decoration record_from_decoration(const TextDecoration& decoration) noexcept {
+    gf_text_decoration record{};
+    record.start = decoration.range.start.value();
+    record.end = decoration.range.end.value();
+    record.tag = decoration.tag;
+    const TextDecorationStyle& style = decoration.style;
+    if (style.ink.has_value()) {
+        record.fields |= GF_TEXT_DECORATION_INK;
+        record.ink = vocabulary_index(ink_roles, *style.ink);
+    }
+    if (style.foreground.has_value()) {
+        record.fields |= GF_TEXT_DECORATION_FOREGROUND;
+        record.foreground = packed_color(*style.foreground);
+    }
+    if (style.weight.has_value()) {
+        record.fields |= GF_TEXT_DECORATION_WEIGHT;
+        record.weight = *style.weight;
+    }
+    if (style.italic.has_value()) {
+        record.fields |= GF_TEXT_DECORATION_ITALIC;
+        record.italic = *style.italic ? 1U : 0U;
+    }
+    if (style.underline.has_value()) {
+        record.fields |= GF_TEXT_DECORATION_UNDERLINE;
+        record.underline = vocabulary_index(underlines, *style.underline);
+    }
+    if (style.underline_color.has_value()) {
+        record.fields |= GF_TEXT_DECORATION_UNDERLINE_COLOR;
+        record.underline_color = packed_color(*style.underline_color);
+    }
+    if (style.background.has_value()) {
+        record.fields |= GF_TEXT_DECORATION_BACKGROUND;
+        record.background = packed_color(*style.background);
+    }
+    return record;
+}
+
+// Reads `count` caller records into `decorations` (filled, not appended):
+// GF_STATUS_OK, or the failure for a null array with a count or a malformed
+// record. Nothing in the box changes here.
+gf_status read_decorations(const gf_text_decoration* records, std::uint64_t count, std::size_t text_size,
+                           SlotIdentity slot, std::vector<TextDecoration>& decorations) {
+    decorations.clear();
+    if (count == 0U) return GF_STATUS_OK;
+    if (records == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, slot, "decorations are null with a count");
+    }
+    const std::span<const gf_text_decoration> given(records, static_cast<std::size_t>(count));
+    decorations.reserve(given.size());
+    for (const gf_text_decoration& record : given) {
+        TextDecoration decoration{};
+        if (!decoration_from_record(record, text_size, decoration)) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, slot,
+                        "a decoration lies past the text, ends before it starts or has a field out of range");
+        }
+        decorations.push_back(decoration);
+    }
+    return GF_STATUS_OK;
+}
 
 // A caller's byte offset as an offset into text: false when it lies past
 // the text.
@@ -202,6 +329,113 @@ gf_status GF_CALL text_editing_clear_undo_history(gf_object object) noexcept {
     }
 }
 
+gf_status GF_CALL text_editing_set_decorations(gf_object object, std::uint32_t layer,
+                                              const gf_text_decoration* decorations, std::uint64_t count) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(set_decorations_slot.table_id, set_decorations_slot.slot_index);
+        std::shared_ptr<TextBox> box;
+        const gf_status entered = enter_typed_control(object, set_decorations_slot, not_text_box, box);
+        if (entered != GF_STATUS_OK) {
+            return entered;
+        }
+        std::vector<TextDecoration> read;
+        const gf_status parsed = read_decorations(decorations, count, (*box).text.read().size(),
+                                                  set_decorations_slot, read);
+        if (parsed != GF_STATUS_OK) {
+            return parsed;
+        }
+        (*box).set_decorations(TextDecorationLayer{layer}, read);
+        return GF_STATUS_OK;
+    } catch (...) {
+        return fail_with_current_exception(set_decorations_slot);
+    }
+}
+
+gf_status GF_CALL text_editing_replace_decorations(gf_object object, std::uint32_t layer, std::uint64_t start,
+                                                  std::uint64_t end, const gf_text_decoration* decorations,
+                                                  std::uint64_t count) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(replace_decorations_slot.table_id, replace_decorations_slot.slot_index);
+        std::shared_ptr<TextBox> box;
+        const gf_status entered = enter_typed_control(object, replace_decorations_slot, not_text_box, box);
+        if (entered != GF_STATUS_OK) {
+            return entered;
+        }
+        const std::size_t size = (*box).text.read().size();
+        if (start > end || end > size) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, replace_decorations_slot, "the range lies within the text");
+        }
+        std::vector<TextDecoration> read;
+        const gf_status parsed = read_decorations(decorations, count, size, replace_decorations_slot, read);
+        if (parsed != GF_STATUS_OK) {
+            return parsed;
+        }
+        const Utf8Range range{Utf8Offset{static_cast<std::size_t>(start)}, Utf8Offset{static_cast<std::size_t>(end)}};
+        // TextDecorations::replace_range refuses a decoration outside the
+        // range (std::invalid_argument: GF_STATUS_INVALID_ARGUMENT).
+        (*box).replace_decorations(TextDecorationLayer{layer}, range, read);
+        return GF_STATUS_OK;
+    } catch (...) {
+        return fail_with_current_exception(replace_decorations_slot);
+    }
+}
+
+gf_status GF_CALL text_editing_clear_decorations(gf_object object) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(clear_decorations_slot.table_id, clear_decorations_slot.slot_index);
+        std::shared_ptr<TextBox> box;
+        const gf_status entered = enter_typed_control(object, clear_decorations_slot, not_text_box, box);
+        if (entered != GF_STATUS_OK) {
+            return entered;
+        }
+        (*box).clear_all_decorations();
+        return GF_STATUS_OK;
+    } catch (...) {
+        return fail_with_current_exception(clear_decorations_slot);
+    }
+}
+
+gf_status GF_CALL text_editing_decoration_count(gf_object object, std::uint32_t layer, std::uint64_t* count) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(decoration_count_slot.table_id, decoration_count_slot.slot_index);
+        if (count == nullptr) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, decoration_count_slot, "decoration_count needs an output");
+        }
+        std::shared_ptr<TextBox> box;
+        const gf_status entered = enter_typed_control(object, decoration_count_slot, not_text_box, box);
+        if (entered != GF_STATUS_OK) {
+            return entered;
+        }
+        *count = (*box).decorations().items(TextDecorationLayer{layer}).size();
+        return GF_STATUS_OK;
+    } catch (...) {
+        return fail_with_current_exception(decoration_count_slot);
+    }
+}
+
+gf_status GF_CALL text_editing_decoration_at(gf_object object, std::uint32_t layer, std::uint64_t index,
+                                             gf_text_decoration* decoration) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(decoration_at_slot.table_id, decoration_at_slot.slot_index);
+        if (decoration == nullptr) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, decoration_at_slot, "decoration_at needs an output");
+        }
+        std::shared_ptr<TextBox> box;
+        const gf_status entered = enter_typed_control(object, decoration_at_slot, not_text_box, box);
+        if (entered != GF_STATUS_OK) {
+            return entered;
+        }
+        const std::span<const TextDecoration> items = (*box).decorations().items(TextDecorationLayer{layer});
+        if (index >= items.size()) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, decoration_at_slot, "the index lies past the layer's decorations");
+        }
+        *decoration = record_from_decoration(items[static_cast<std::size_t>(index)]);
+        return GF_STATUS_OK;
+    } catch (...) {
+        return fail_with_current_exception(decoration_at_slot);
+    }
+}
+
 constexpr gf_text_editing_table table{
     .struct_size = sizeof(gf_text_editing_table),
     .abi_minor = GF_ABI_MINOR,
@@ -212,6 +446,11 @@ constexpr gf_text_editing_table table{
     .undo = &text_editing_undo,
     .redo = &text_editing_redo,
     .clear_undo_history = &text_editing_clear_undo_history,
+    .set_decorations = &text_editing_set_decorations,
+    .replace_decorations = &text_editing_replace_decorations,
+    .clear_decorations = &text_editing_clear_decorations,
+    .decoration_count = &text_editing_decoration_count,
+    .decoration_at = &text_editing_decoration_at,
 };
 
 } // namespace

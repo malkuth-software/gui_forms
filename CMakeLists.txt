@@ -900,6 +900,8 @@ add_library(gui_forms_controls STATIC
     src/controls/panel/rich_text_box/rich_text_box_layout.cpp
     src/controls/panel/text_box/text_box_scroll.cpp
     src/controls/panel/text_box/text_box_auto_complete.cpp
+    src/controls/panel/text_box/text_box_decorations.cpp
+    src/controls/panel/text_box/text_decorations/text_decorations.cpp
     src/controls/panel/text_box/auto_complete/auto_complete.cpp
     src/controls/panel/list_box/list_box.cpp
     src/controls/panel/list_box/checked_list_box/checked_list_box.cpp
@@ -3476,6 +3478,11 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_multiline_text_box_tests PRIVATE
         gui_forms_controls gui_forms_host_headless)
     add_test(NAME gui_forms_multiline_text_box_tests COMMAND gui_forms_multiline_text_box_tests)
+
+    add_executable(gui_forms_text_decorations_tests tests/text_decorations_tests.cpp)
+    target_link_libraries(gui_forms_text_decorations_tests PRIVATE
+        gui_forms_controls gui_forms_host_headless)
+    add_test(NAME gui_forms_text_decorations_tests COMMAND gui_forms_text_decorations_tests)
 
     add_executable(gui_forms_semantic_text_tests tests/semantic_text_tests.cpp)
     target_link_libraries(gui_forms_semantic_text_tests PRIVATE
