@@ -1065,9 +1065,18 @@ public static unsafe class Layout
             failures += expect(output, "gf_dock_location.reserved offset", (long)((byte*)&value.reserved - start), 36);
         }
         {
+            gf_dock_options value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_dock_options size", sizeof(gf_dock_options), 16);
+            failures += expect(output, "gf_dock_options.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_dock_options.flags offset", (long)((byte*)&value.flags - start), 4);
+            failures += expect(output, "gf_dock_options.area_background offset", (long)((byte*)&value.area_background - start), 8);
+            failures += expect(output, "gf_dock_options.reserved offset", (long)((byte*)&value.reserved - start), 12);
+        }
+        {
             gf_docking_table value = default;
             byte* start = (byte*)&value;
-            failures += expect(output, "gf_docking_table size", sizeof(gf_docking_table), 112);
+            failures += expect(output, "gf_docking_table size", sizeof(gf_docking_table), 136);
             failures += expect(output, "gf_docking_table.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
             failures += expect(output, "gf_docking_table.abi_minor offset", (long)((byte*)&value.abi_minor - start), 4);
             failures += expect(output, "gf_docking_table.register_panel offset", (long)((byte*)&value.register_panel - start), 8);
@@ -1083,6 +1092,9 @@ public static unsafe class Layout
             failures += expect(output, "gf_docking_table.panel_at offset", (long)((byte*)&value.panel_at - start), 88);
             failures += expect(output, "gf_docking_table.floating_sites offset", (long)((byte*)&value.floating_sites - start), 96);
             failures += expect(output, "gf_docking_table.floating_site offset", (long)((byte*)&value.floating_site - start), 104);
+            failures += expect(output, "gf_docking_table.update_panel offset", (long)((byte*)&value.update_panel - start), 112);
+            failures += expect(output, "gf_docking_table.set_options offset", (long)((byte*)&value.set_options - start), 120);
+            failures += expect(output, "gf_docking_table.set_floating_window_visibility offset", (long)((byte*)&value.set_floating_window_visibility - start), 128);
         }
         {
             gf_windows_paint_endpoint_table value = default;

@@ -29,6 +29,15 @@ bool DockLayout::register_panel(const DockPanelDescriptor& descriptor) {
     return true;
 }
 
+bool DockLayout::update_panel(const DockPanelDescriptor& descriptor) {
+    for (DockPanelDescriptor& existing : descriptors_) {
+        if (!(existing.id == descriptor.id)) continue;
+        existing = descriptor;
+        return true;
+    }
+    return false;
+}
+
 const DockPanelDescriptor* DockLayout::find_descriptor(const DockPanelId& panel) const noexcept {
     const DockPanelDescriptor* descriptor = detail::find_dock_descriptor(descriptors_, panel);
     return descriptor;
@@ -60,6 +69,28 @@ void DockLayout::set_application_version(std::uint32_t version) noexcept {
     state_.application_version = version;
 }
 
+// The first panel `after` puts on a side or edge its descriptor does not
+// allow, where the current state had it elsewhere; none when there is none.
+std::optional<DockPanelId> DockLayout::side_refusal(const DockLayoutState& after) const {
+    for (const DockNode& node : after.nodes) {
+        if (node.kind != DockNodeKind::tool_stack || node.panels.empty()) continue;
+        const DockNodePlace place = detail::dock_place_of(after, node.id);
+        const bool sided = place.region == DockRegion::main_tools || place.region == DockRegion::auto_hidden;
+        if (!sided || !place.side) continue;
+        for (const DockPanelId& panel : node.panels) {
+            const DockPanelDescriptor* const descriptor = find_descriptor(panel);
+            if (descriptor == nullptr || (*descriptor).allowed.allows_side(*place.side)) continue;
+            const DockPanelLocation before = detail::locate_dock_panel(state_, panel);
+            if (!(before.stack == DockNodeId{})) {
+                const DockNodePlace was = detail::dock_place_of(state_, before.stack);
+                if (was.region == place.region && was.side == place.side) continue;
+            }
+            return panel;
+        }
+    }
+    return std::nullopt;
+}
+
 DockTransactionResult DockLayout::run(const DockTransaction& transaction, DockLayoutState& scratch) const {
     const DockRules rules{.descriptors = descriptors_,
                           .groups = groups_,
@@ -76,6 +107,19 @@ DockTransactionResult DockLayout::run(const DockTransaction& transaction, DockLa
             result.refusal = std::move(refusal);
             return result;
         }
+    }
+    // The side restrictions (DockAllowedPlacements::left to bottom) are
+    // known only once the edits placed their stacks: a panel the
+    // transaction moved onto a side or edge it does not allow refuses the
+    // transaction. A panel left where it stood is not refused, so a
+    // descriptor updated after placement restricts later moves only.
+    const std::optional<DockPanelId> misplaced = side_refusal(scratch);
+    if (misplaced) {
+        result.refusal.reason = DockRefusalReason::placement_not_allowed;
+        result.refusal.layer = DockRefusalLayer::panel;
+        result.refusal.panel = *misplaced;
+        result.refusal.edit_index = transaction.edits.size();
+        return result;
     }
     const DockInvariantResult invariants = detail::check_dock_invariants(scratch);
     if (!invariants) {

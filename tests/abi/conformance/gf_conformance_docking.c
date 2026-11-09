@@ -78,7 +78,7 @@ static void registering(gf_kit* kit, gf_object workspace, gf_object first, gf_ob
     gf_kit_status(kit, (*kit).docking.register_panel(workspace, &wrong), GF_STATUS_INVALID_ARGUMENT,
                   "a ratio outside (0, 1) is refused");
     wrong.default_ratio = 0.25;
-    wrong.allowed = 0x80u;
+    wrong.allowed = 0x1000u;
     gf_kit_status(kit, (*kit).docking.register_panel(workspace, &wrong), GF_STATUS_INVALID_ARGUMENT,
                   "an unknown allowed flag is refused");
     gf_kit_status(kit, (*kit).docking.register_panel(workspace, NULL), GF_STATUS_INVALID_ARGUMENT,
@@ -247,6 +247,65 @@ static void persistence(gf_kit* kit, gf_object workspace) {
     gf_kit_check(kit, radio.placement == GF_DOCK_PLACEMENT_DOCKED, "and leaves the layout");
 }
 
+// Side restrictions, the close button and the workspace's options.
+static void restricting(gf_kit* kit, gf_object workspace) {
+    gf_dock_panel left_only = panel_record("left-only", "Left only", GF_DOCK_PANEL_KIND_TOOL, 0u);
+    left_only.allowed = GF_DOCK_ALLOWED_ALL & ~(GF_DOCK_ALLOWED_SIDE_TOP | GF_DOCK_ALLOWED_SIDE_RIGHT |
+                                                GF_DOCK_ALLOWED_SIDE_BOTTOM);
+    left_only.allowed |= GF_DOCK_ALLOWED_CLOSE_BUTTON_HIDDEN;
+    gf_kit_status(kit, (*kit).docking.register_panel(workspace, &left_only), GF_STATUS_OK,
+                  "register a panel restricted to the left with no close button");
+    gf_dock_edit right = edit_record(GF_DOCK_EDIT_DOCK_AT_EDGE, "left-only");
+    right.side = GF_DOCK_SIDE_RIGHT;
+    gf_dock_refusal refusal = GF_DOCK_REFUSAL_NONE;
+    gf_kit_status(kit, apply(kit, workspace, &right, &refusal), GF_STATUS_INVALID_STATE,
+                  "docking it on a side it does not allow is refused");
+    gf_kit_check(kit, refusal == GF_DOCK_REFUSAL_PLACEMENT_NOT_ALLOWED, "as a placement not allowed");
+    gf_dock_edit left = edit_record(GF_DOCK_EDIT_DOCK_AT_EDGE, "left-only");
+    left.side = GF_DOCK_SIDE_LEFT;
+    gf_kit_status(kit, apply(kit, workspace, &left, NULL), GF_STATUS_OK, "docking it on the left is applied");
+    gf_dock_location placed = located(kit, workspace, "left-only");
+    gf_kit_check(kit, placed.side == GF_DOCK_SIDE_LEFT, "it stands left of the document area");
+    gf_dock_edit pin = edit_record(GF_DOCK_EDIT_AUTO_HIDE, "left-only");
+    pin.side = GF_DOCK_SIDE_BOTTOM;
+    gf_kit_status(kit, apply(kit, workspace, &pin, NULL), GF_STATUS_INVALID_STATE,
+                  "auto-hiding it to an edge it does not allow is refused");
+
+    left_only.allowed = GF_DOCK_ALLOWED_ALL;
+    gf_kit_status(kit, (*kit).docking.update_panel(workspace, &left_only), GF_STATUS_OK,
+                  "update the panel to allow every side");
+    gf_kit_status(kit, apply(kit, workspace, &right, NULL), GF_STATUS_OK, "now it docks on the right");
+    placed = located(kit, workspace, "left-only");
+    gf_kit_check(kit, placed.side == GF_DOCK_SIDE_RIGHT, "and stands right of the document area");
+    gf_dock_panel stranger = panel_record("stranger", "Stranger", GF_DOCK_PANEL_KIND_TOOL, 0u);
+    gf_kit_status(kit, (*kit).docking.update_panel(workspace, &stranger), GF_STATUS_NOT_FOUND,
+                  "updating an unregistered panel is refused");
+    left_only.kind = GF_DOCK_PANEL_KIND_DOCUMENT;
+    gf_kit_status(kit, (*kit).docking.update_panel(workspace, &left_only), GF_STATUS_INVALID_ARGUMENT,
+                  "an update keeps the panel's kind");
+    gf_dock_edit close = edit_record(GF_DOCK_EDIT_CLOSE, "left-only");
+    gf_kit_status(kit, apply(kit, workspace, &close, NULL), GF_STATUS_OK, "close it again");
+
+    gf_dock_options options;
+    memset(&options, 0, sizeof(options));
+    options.struct_size = (uint32_t)sizeof(options);
+    options.flags = GF_DOCK_OPTION_FLOATS_SHOWN_WHILE_INACTIVE | GF_DOCK_OPTION_DOCUMENT_TABS_HIDDEN |
+                    GF_DOCK_OPTION_AUTO_HIDE_NO_HOVER | GF_DOCK_OPTION_AREA_BACKGROUND;
+    options.area_background = 0x202020ffu;
+    gf_kit_status(kit, (*kit).docking.set_options(workspace, &options), GF_STATUS_OK, "set every option");
+    options.flags = 0u;
+    gf_kit_status(kit, (*kit).docking.set_options(workspace, &options), GF_STATUS_OK, "clear them");
+    options.flags = 0x100u;
+    gf_kit_status(kit, (*kit).docking.set_options(workspace, &options), GF_STATUS_INVALID_ARGUMENT,
+                  "an unknown option is refused");
+    gf_kit_status(kit, (*kit).docking.set_options(workspace, NULL), GF_STATUS_INVALID_ARGUMENT,
+                  "a missing options record is refused");
+    gf_kit_status(kit, (*kit).docking.set_floating_window_visibility(workspace, 4096u, GF_DOCK_WINDOW_VISIBILITY_SHOWN),
+                  GF_STATUS_NOT_FOUND, "an unknown floating site has no window option");
+    gf_kit_status(kit, (*kit).docking.set_floating_window_visibility(workspace, 1u, 7u), GF_STATUS_INVALID_ARGUMENT,
+                  "an unknown visibility is refused");
+}
+
 void gf_kit_docking(gf_kit* kit) {
     const gf_object workspace = gf_kit_create(kit, "dock_workspace", "kit.dock");
     gf_create_arguments arguments;
@@ -274,6 +333,7 @@ void gf_kit_docking(gf_kit* kit) {
     registering(kit, workspace, first, second);
     editing(kit, workspace);
     persistence(kit, workspace);
+    restricting(kit, workspace);
     gf_kit_check(kit, changes.invoked >= 10u, "every applied edit and the restore raised layout_changed");
     gf_kit_status(kit, (*kit).docking.attach_windows(workspace), GF_STATUS_INVALID_STATE,
                   "no window runs to attach");

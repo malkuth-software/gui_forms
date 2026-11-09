@@ -316,6 +316,10 @@ public:
     // application is active (floating tools) and the primary window is not
     // minimized. Other kinds are shown or hidden directly.
     [[nodiscard]] HostServiceStatus set_visible(HostWindowId window, bool visible);
+    // Whether a floating tool window stays shown while the application is
+    // inactive (a program's option, as owned forms behave), instead of the
+    // policy's hiding it; other kinds ignore it. Applies the policy at once.
+    [[nodiscard]] HostServiceStatus set_shown_while_inactive(HostWindowId window, bool shown);
     // Runs the platform's event loop nested inside the caller until `window`
     // closes, as Form.ShowDialog does: meanwhile the run's other windows
     // that `window` does not own refuse user input (the adapter disables
@@ -461,6 +465,9 @@ private:
         bool requested_visible{};
         bool shown{};
         bool minimized{};
+        // A floating tool window kept shown while the application is
+        // inactive (set_shown_while_inactive).
+        bool shown_while_inactive{};
         // A following window's offset from the primary window's client
         // origin (until first learned), and the client origins the policy
         // last placed it at (most recent first). A report at one of those

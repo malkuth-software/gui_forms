@@ -351,7 +351,8 @@ private:
     // Whether one panel may stand in a stack of this kind in this region:
     // the panel layer (kind and allowed placements) and the site layer.
     [[nodiscard]] DockRefusal admit_panel(const DockPanelId& panel_id, DockNodeKind stack_kind,
-                                          DockRegion region) const {
+                                          const DockNodePlace& place) const {
+        const DockRegion region = place.region;
         const DockPanelDescriptor* descriptor = find_dock_descriptor(rules_.descriptors, panel_id);
         if (descriptor == nullptr) return refuse(DockRefusalReason::unknown_panel, DockRefusalLayer::model, panel_id);
         const DockPanelDescriptor& panel = *descriptor;
@@ -367,6 +368,8 @@ private:
         if (region == DockRegion::document_area) allowed = panel.allowed.document_area;
         if (region == DockRegion::floating) allowed = panel.allowed.floating;
         if (region == DockRegion::auto_hidden) allowed = panel.allowed.auto_hidden;
+        const bool sided = region == DockRegion::main_tools || region == DockRegion::auto_hidden;
+        if (allowed && sided && place.side && !panel.allowed.allows_side(*place.side)) allowed = false;
         if (!allowed) return refuse(DockRefusalReason::placement_not_allowed, DockRefusalLayer::panel, panel_id);
         const DockSiteRestrictions& site = site_rules(region);
         const bool kind_accepted = is_tool ? site.accepts_tools : site.accepts_documents;
@@ -404,10 +407,10 @@ private:
         return accepted();
     }
 
-    [[nodiscard]] DockRefusal admit_stack(DockNodeId stack_id, DockRegion region) const {
+    [[nodiscard]] DockRefusal admit_stack(DockNodeId stack_id, const DockNodePlace& place) const {
         const DockNode& stack = *find_dock_node(state_, stack_id);
         for (const DockPanelId& panel : stack.panels) {
-            const DockRefusal panel_refusal = admit_panel(panel, stack.kind, region);
+            const DockRefusal panel_refusal = admit_panel(panel, stack.kind, place);
             if (is_refusal(panel_refusal)) return panel_refusal;
         }
         const DockRefusal members = admit_members(stack_id);
@@ -484,7 +487,8 @@ private:
             const DockRefusal added = add_stack(kind, std::move(panels), 0, item);
             if (is_refusal(added)) return added;
         }
-        const DockRefusal admitted = admit_stack(item, region);
+        const DockNodePlace checked_place{.region = region, .site = {}, .side = std::nullopt};
+        const DockRefusal admitted = admit_stack(item, checked_place);
         return admitted;
     }
 
@@ -548,7 +552,7 @@ private:
         const DockNodePlace place = dock_place_of(state_, stack_id);
         const DockNodeKind stack_kind = (*find_dock_node(state_, stack_id)).kind;
         for (const DockPanelId& panel : incoming) {
-            const DockRefusal admitted = admit_panel(panel, stack_kind, place.region);
+            const DockRefusal admitted = admit_panel(panel, stack_kind, place);
             if (is_refusal(admitted)) return admitted;
         }
         DockNode& stack = *find_dock_node(state_, stack_id);
@@ -641,7 +645,8 @@ private:
         if (place.region != DockRegion::main_tools) {
             return refuse(DockRefusalReason::not_in_main_site, DockRefusalLayer::model);
         }
-        const DockRefusal admitted = admit_stack(stack_id, DockRegion::auto_hidden);
+        const DockNodePlace checked_place{.region = DockRegion::auto_hidden, .site = {}, .side = edge};
+        const DockRefusal admitted = admit_stack(stack_id, checked_place);
         if (is_refusal(admitted)) return admitted;
         const StackSurroundings surroundings = surroundings_of(state_, stack_id);
         DockAutoHideEntry entry{};
@@ -668,7 +673,8 @@ private:
         const DockAutoHideEntry* found = find_dock_auto_hidden(state_, stack_id);
         if (found == nullptr) return refuse(DockRefusalReason::not_auto_hidden, DockRefusalLayer::model);
         const DockAutoHideEntry entry = *found;
-        const DockRefusal admitted = admit_stack(stack_id, DockRegion::main_tools);
+        const DockNodePlace checked_place{.region = DockRegion::main_tools, .site = {}, .side = std::nullopt};
+        const DockRefusal admitted = admit_stack(stack_id, checked_place);
         if (is_refusal(admitted)) return admitted;
         unlink_stack(stack_id);
         DockNodeId target = entry.neighbour;
@@ -783,7 +789,8 @@ private:
         DockNodeId stack_id{};
         const DockRefusal added = add_stack(DockNodeKind::tool_stack, std::move(panels), 0, stack_id);
         if (is_refusal(added)) return added;
-        const DockRefusal admitted = admit_stack(stack_id, DockRegion::auto_hidden);
+        const DockNodePlace checked_place{.region = DockRegion::auto_hidden, .site = {}, .side = edge};
+        const DockRefusal admitted = admit_stack(stack_id, checked_place);
         if (is_refusal(admitted)) return admitted;
         DockAutoHideEntry entry{};
         entry.stack = stack_id;

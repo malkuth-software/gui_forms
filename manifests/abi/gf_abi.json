@@ -1824,8 +1824,73 @@
       "type": "uint32"
     },
     {
+      "name": "GF_DOCK_ALLOWED_SIDE_LEFT",
+      "value": 128,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_ALLOWED_SIDE_TOP",
+      "value": 256,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_ALLOWED_SIDE_RIGHT",
+      "value": 512,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_ALLOWED_SIDE_BOTTOM",
+      "value": 1024,
+      "type": "uint32"
+    },
+    {
       "name": "GF_DOCK_ALLOWED_ALL",
-      "value": 127,
+      "value": 2047,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_ALLOWED_CLOSE_BUTTON_HIDDEN",
+      "value": 2048,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_OPTION_FLOATS_SHOWN_WHILE_INACTIVE",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_OPTION_DOCUMENT_TABS_HIDDEN",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_OPTION_AUTO_HIDE_NO_HOVER",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_OPTION_AREA_BACKGROUND",
+      "value": 8,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_OPTION_ALL",
+      "value": 15,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_WINDOW_VISIBILITY_WORKSPACE",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_WINDOW_VISIBILITY_SHOWN",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_WINDOW_VISIBILITY_POLICY",
+      "value": 2,
       "type": "uint32"
     },
     {
@@ -2279,6 +2344,14 @@
     },
     {
       "name": "gf_dock_allowed",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_dock_option_flags",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_dock_window_visibility",
       "type": "uint32_t"
     },
     {
@@ -9943,9 +10016,41 @@
       ]
     },
     {
+      "name": "gf_dock_options",
+      "kind": "extensible",
+      "size": 16,
+      "align": 4,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "flags",
+          "type": "gf_dock_option_flags",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "area_background",
+          "type": "uint32_t",
+          "offset": 8,
+          "size": 4
+        },
+        {
+          "name": "reserved",
+          "type": "uint32_t",
+          "offset": 12,
+          "size": 4
+        }
+      ]
+    },
+    {
       "name": "gf_docking_table",
       "kind": "table",
-      "size": 112,
+      "size": 136,
       "align": 8,
       "fields": [
         {
@@ -10271,6 +10376,70 @@
               {
                 "name": "first_stack",
                 "type": "uint32_t*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "update_panel",
+          "type": "function",
+          "offset": 112,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "workspace",
+                "type": "gf_object"
+              },
+              {
+                "name": "panel",
+                "type": "const gf_dock_panel*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "set_options",
+          "type": "function",
+          "offset": 120,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "workspace",
+                "type": "gf_object"
+              },
+              {
+                "name": "options",
+                "type": "const gf_dock_options*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "set_floating_window_visibility",
+          "type": "function",
+          "offset": 128,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "workspace",
+                "type": "gf_object"
+              },
+              {
+                "name": "site",
+                "type": "uint32_t"
+              },
+              {
+                "name": "visibility",
+                "type": "gf_dock_window_visibility"
               }
             ]
           },

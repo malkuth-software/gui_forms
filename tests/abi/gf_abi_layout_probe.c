@@ -739,7 +739,12 @@ GF_LAYOUT_ASSERT(offsetof(gf_dock_location, side) == 24, "gf_dock_location.side 
 GF_LAYOUT_ASSERT(offsetof(gf_dock_location, selected) == 28, "gf_dock_location.selected offset");
 GF_LAYOUT_ASSERT(offsetof(gf_dock_location, stack_panel_count) == 32, "gf_dock_location.stack_panel_count offset");
 GF_LAYOUT_ASSERT(offsetof(gf_dock_location, reserved) == 36, "gf_dock_location.reserved offset");
-GF_LAYOUT_ASSERT(sizeof(gf_docking_table) == 112, "gf_docking_table size");
+GF_LAYOUT_ASSERT(sizeof(gf_dock_options) == 16, "gf_dock_options size");
+GF_LAYOUT_ASSERT(offsetof(gf_dock_options, struct_size) == 0, "gf_dock_options.struct_size offset");
+GF_LAYOUT_ASSERT(offsetof(gf_dock_options, flags) == 4, "gf_dock_options.flags offset");
+GF_LAYOUT_ASSERT(offsetof(gf_dock_options, area_background) == 8, "gf_dock_options.area_background offset");
+GF_LAYOUT_ASSERT(offsetof(gf_dock_options, reserved) == 12, "gf_dock_options.reserved offset");
+GF_LAYOUT_ASSERT(sizeof(gf_docking_table) == 136, "gf_docking_table size");
 GF_LAYOUT_ASSERT(offsetof(gf_docking_table, struct_size) == 0, "gf_docking_table.struct_size offset");
 GF_LAYOUT_ASSERT(offsetof(gf_docking_table, abi_minor) == 4, "gf_docking_table.abi_minor offset");
 GF_LAYOUT_ASSERT(offsetof(gf_docking_table, register_panel) == 8, "gf_docking_table.register_panel offset");
@@ -755,6 +760,9 @@ GF_LAYOUT_ASSERT(offsetof(gf_docking_table, document_area) == 80, "gf_docking_ta
 GF_LAYOUT_ASSERT(offsetof(gf_docking_table, panel_at) == 88, "gf_docking_table.panel_at offset");
 GF_LAYOUT_ASSERT(offsetof(gf_docking_table, floating_sites) == 96, "gf_docking_table.floating_sites offset");
 GF_LAYOUT_ASSERT(offsetof(gf_docking_table, floating_site) == 104, "gf_docking_table.floating_site offset");
+GF_LAYOUT_ASSERT(offsetof(gf_docking_table, update_panel) == 112, "gf_docking_table.update_panel offset");
+GF_LAYOUT_ASSERT(offsetof(gf_docking_table, set_options) == 120, "gf_docking_table.set_options offset");
+GF_LAYOUT_ASSERT(offsetof(gf_docking_table, set_floating_window_visibility) == 128, "gf_docking_table.set_floating_window_visibility offset");
 GF_LAYOUT_ASSERT(sizeof(gf_windows_paint_endpoint_table) == 104, "gf_windows_paint_endpoint_table size");
 GF_LAYOUT_ASSERT(offsetof(gf_windows_paint_endpoint_table, struct_size) == 0, "gf_windows_paint_endpoint_table.struct_size offset");
 GF_LAYOUT_ASSERT(offsetof(gf_windows_paint_endpoint_table, abi_minor) == 4, "gf_windows_paint_endpoint_table.abi_minor offset");

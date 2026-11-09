@@ -39,6 +39,9 @@ constexpr SlotIdentity document_area_slot{GF_TABLE_DOCKING, 9U};
 constexpr SlotIdentity panel_at_slot{GF_TABLE_DOCKING, 10U};
 constexpr SlotIdentity floating_sites_slot{GF_TABLE_DOCKING, 11U};
 constexpr SlotIdentity floating_site_slot{GF_TABLE_DOCKING, 12U};
+constexpr SlotIdentity update_panel_slot{GF_TABLE_DOCKING, 13U};
+constexpr SlotIdentity set_options_slot{GF_TABLE_DOCKING, 14U};
+constexpr SlotIdentity set_floating_window_visibility_slot{GF_TABLE_DOCKING, 15U};
 
 constexpr const char* not_workspace = "the object is not a dock workspace";
 
@@ -46,6 +49,8 @@ constexpr const char* not_workspace = "the object is not a dock workspace";
 constexpr std::uint32_t panel_size_1_1 = 136U;
 constexpr std::uint32_t edit_size_1_1 = 104U;
 constexpr std::uint32_t location_size_1_1 = 40U;
+constexpr std::uint32_t options_size_1_1 = 16U;
+static_assert(sizeof(gf_dock_options) == options_size_1_1);
 static_assert(sizeof(gf_dock_panel) == panel_size_1_1);
 static_assert(sizeof(gf_dock_edit) == edit_size_1_1);
 static_assert(sizeof(gf_dock_location) == location_size_1_1);
@@ -216,7 +221,8 @@ gf_status read_descriptor(const gf_dock_panel* record, SlotIdentity slot, DockPa
     if (record == nullptr || (*record).struct_size < panel_size_1_1 || (*record).reserved != 0U) {
         return fail(GF_STATUS_INVALID_ARGUMENT, slot, "a panel record has at least the 1.1 size and reserved zero");
     }
-    if ((*record).kind > GF_DOCK_PANEL_KIND_DOCUMENT || ((*record).allowed & ~GF_DOCK_ALLOWED_ALL) != 0U ||
+    constexpr gf_dock_allowed known_allowed = GF_DOCK_ALLOWED_ALL | GF_DOCK_ALLOWED_CLOSE_BUTTON_HIDDEN;
+    if ((*record).kind > GF_DOCK_PANEL_KIND_DOCUMENT || ((*record).allowed & ~known_allowed) != 0U ||
         (*record).dock_as_document > 1U) {
         return fail(GF_STATUS_INVALID_ARGUMENT, slot,
                     "a panel has a known kind, known allowed flags and dock_as_document 0 or 1");
@@ -264,6 +270,15 @@ gf_status read_descriptor(const gf_dock_panel* record, SlotIdentity slot, DockPa
     made.allowed.tabbed = (allowed & GF_DOCK_ALLOWED_TABBED) != 0U;
     made.allowed.hidden = (allowed & GF_DOCK_ALLOWED_HIDDEN) != 0U;
     made.allowed.closed = (allowed & GF_DOCK_ALLOWED_CLOSED) != 0U;
+    // No side named permits every side.
+    constexpr gf_dock_allowed sides = GF_DOCK_ALLOWED_SIDE_LEFT | GF_DOCK_ALLOWED_SIDE_TOP |
+                                      GF_DOCK_ALLOWED_SIDE_RIGHT | GF_DOCK_ALLOWED_SIDE_BOTTOM;
+    const bool every_side = (allowed & sides) == 0U;
+    made.allowed.left = every_side || (allowed & GF_DOCK_ALLOWED_SIDE_LEFT) != 0U;
+    made.allowed.top = every_side || (allowed & GF_DOCK_ALLOWED_SIDE_TOP) != 0U;
+    made.allowed.right = every_side || (allowed & GF_DOCK_ALLOWED_SIDE_RIGHT) != 0U;
+    made.allowed.bottom = every_side || (allowed & GF_DOCK_ALLOWED_SIDE_BOTTOM) != 0U;
+    made.close_button_visible = (allowed & GF_DOCK_ALLOWED_CLOSE_BUTTON_HIDDEN) == 0U;
     made.minimum_size = Size{minimum.width, minimum.height};
     made.default_placement.kind = static_cast<DockPlacementKind>(placement);
     made.default_placement.side = static_cast<DockSide>((*record).default_side);
@@ -817,6 +832,97 @@ gf_status GF_CALL docking_floating_site(gf_object workspace, std::uint32_t site,
     }
 }
 
+gf_status GF_CALL docking_update_panel(gf_object workspace, const gf_dock_panel* panel) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(update_panel_slot.table_id, update_panel_slot.slot_index);
+        WorkspacePtr typed;
+        const gf_status entered = enter_workspace(workspace, update_panel_slot, typed);
+        if (entered != GF_STATUS_OK) {
+            return entered;
+        }
+        DockPanelDescriptor descriptor{};
+        std::string title;
+        const gf_status read = read_descriptor(panel, update_panel_slot, descriptor, title);
+        if (read != GF_STATUS_OK) {
+            return read;
+        }
+        const DockPanelRegistration* const registered = (*typed).find_registration(descriptor.id);
+        if (registered == nullptr) {
+            return fail(GF_STATUS_NOT_FOUND, update_panel_slot, "no panel of that id is registered");
+        }
+        if ((*registered).descriptor.kind != descriptor.kind) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, update_panel_slot, "a panel keeps the kind it was registered with");
+        }
+        // The group is not in the record: the registered one stays.
+        descriptor.group = (*registered).descriptor.group;
+        const DockPanelId id = descriptor.id;
+        if (!(*typed).update_panel(descriptor)) {
+            return fail(GF_STATUS_INVALID_STATE, update_panel_slot, "the workspace refused the descriptor");
+        }
+        static_cast<void>((*typed).set_panel_title(id, std::move(title)));
+        return GF_STATUS_OK;
+    } catch (...) {
+        return fail_with_current_exception(update_panel_slot);
+    }
+}
+
+gf_status GF_CALL docking_set_options(gf_object workspace, const gf_dock_options* options) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(set_options_slot.table_id, set_options_slot.slot_index);
+        if (options == nullptr || (*options).struct_size < options_size_1_1 || (*options).reserved != 0U ||
+            ((*options).flags & ~GF_DOCK_OPTION_ALL) != 0U) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, set_options_slot,
+                        "an options record has at least the 1.1 size, known flags and reserved zero");
+        }
+        WorkspacePtr typed;
+        const gf_status entered = enter_workspace(workspace, set_options_slot, typed);
+        if (entered != GF_STATUS_OK) {
+            return entered;
+        }
+        const gf_dock_option_flags flags = (*options).flags;
+        (*typed).set_floats_shown_while_inactive((flags & GF_DOCK_OPTION_FLOATS_SHOWN_WHILE_INACTIVE) != 0U);
+        (*typed).set_document_tabs_shown((flags & GF_DOCK_OPTION_DOCUMENT_TABS_HIDDEN) == 0U);
+        (*typed).set_auto_hide_opens_on_hover((flags & GF_DOCK_OPTION_AUTO_HIDE_NO_HOVER) == 0U);
+        std::optional<Color> area{};
+        if ((flags & GF_DOCK_OPTION_AREA_BACKGROUND) != 0U) {
+            const std::uint32_t rgba = (*options).area_background;
+            area = Color::rgba(static_cast<std::uint8_t>(rgba >> 24U), static_cast<std::uint8_t>(rgba >> 16U),
+                               static_cast<std::uint8_t>(rgba >> 8U), static_cast<std::uint8_t>(rgba));
+        }
+        (*typed).set_area_background(area);
+        return GF_STATUS_OK;
+    } catch (...) {
+        return fail_with_current_exception(set_options_slot);
+    }
+}
+
+gf_status GF_CALL docking_set_floating_window_visibility(gf_object workspace, std::uint32_t site,
+                                                         gf_dock_window_visibility visibility) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(set_floating_window_visibility_slot.table_id,
+                                            set_floating_window_visibility_slot.slot_index);
+        if (visibility > GF_DOCK_WINDOW_VISIBILITY_POLICY) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, set_floating_window_visibility_slot,
+                        "a visibility is WORKSPACE, SHOWN or POLICY");
+        }
+        WorkspacePtr typed;
+        const gf_status entered = enter_workspace(workspace, set_floating_window_visibility_slot, typed);
+        if (entered != GF_STATUS_OK) {
+            return entered;
+        }
+        if ((*typed).layout().find_floating_site(DockSiteId{site}) == nullptr) {
+            return fail(GF_STATUS_NOT_FOUND, set_floating_window_visibility_slot, "no floating site of that number");
+        }
+        std::optional<bool> shown{};
+        if (visibility == GF_DOCK_WINDOW_VISIBILITY_SHOWN) shown = true;
+        if (visibility == GF_DOCK_WINDOW_VISIBILITY_POLICY) shown = false;
+        (*typed).set_floating_window_shown_while_inactive(DockSiteId{site}, shown);
+        return GF_STATUS_OK;
+    } catch (...) {
+        return fail_with_current_exception(set_floating_window_visibility_slot);
+    }
+}
+
 const gf_docking_table table{
     .struct_size = static_cast<std::uint32_t>(sizeof(gf_docking_table)),
     .abi_minor = GF_ABI_MINOR,
@@ -833,6 +939,9 @@ const gf_docking_table table{
     .panel_at = &docking_panel_at,
     .floating_sites = &docking_floating_sites,
     .floating_site = &docking_floating_site,
+    .update_panel = &docking_update_panel,
+    .set_options = &docking_set_options,
+    .set_floating_window_visibility = &docking_set_floating_window_visibility,
 };
 
 } // namespace

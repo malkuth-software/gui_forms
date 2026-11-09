@@ -640,6 +640,7 @@ void DockSite::stale_flyout_elapsed() {
 // -- hover, leave and outside presses ------------------------------------------------------------
 
 void DockSite::start_hover(const DockPanelId& panel) {
+    if (workspace_ != nullptr && !(*workspace_).auto_hide_opens_on_hover()) return;
     if (hover_panel_ == panel && hover_timer_.connected()) return;
     stop_hover();
     Window* const host = attached_window();
@@ -761,7 +762,7 @@ DockSite::Hit DockSite::flyout_hit(Point local) const {
         return hit;
     }
     if (!placed.caption.contains(local)) return hit;
-    const CaptionGeometry caption = caption_geometry(placed.caption, pin_shown(stacks_[index]));
+    const CaptionGeometry caption = caption_geometry(placed.caption, pin_shown(stacks_[index]), close_shown(stacks_[index]));
     hit.zone = Zone::caption;
     if (caption.menu.contains(local)) hit.zone = Zone::menu;
     if (caption.pin.contains(local)) hit.zone = Zone::pin;

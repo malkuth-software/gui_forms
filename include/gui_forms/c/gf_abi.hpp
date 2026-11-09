@@ -2295,6 +2295,31 @@ public:
         return called;
     }
 
+    [[nodiscard]] gf_status update_panel(gf_object workspace, const gf_dock_panel* panel) const noexcept {
+        if (table_.struct_size < 120u || table_.update_panel == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.update_panel(workspace, panel);
+        return called;
+    }
+
+    [[nodiscard]] gf_status set_options(gf_object workspace, const gf_dock_options* options) const noexcept {
+        if (table_.struct_size < 128u || table_.set_options == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_options(workspace, options);
+        return called;
+    }
+
+    [[nodiscard]] gf_status set_floating_window_visibility(gf_object workspace, uint32_t site,
+                                                           gf_dock_window_visibility visibility) const noexcept {
+        if (table_.struct_size < 136u || table_.set_floating_window_visibility == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_floating_window_visibility(workspace, site, visibility);
+        return called;
+    }
+
 private:
     gf_docking_table table_;
 };

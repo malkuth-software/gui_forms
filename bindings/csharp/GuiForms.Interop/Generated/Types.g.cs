@@ -1138,7 +1138,17 @@ public unsafe struct gf_dock_location
     public uint reserved;
 }
 
-/// <summary>gf_docking_table (table, 112 bytes).</summary>
+/// <summary>gf_dock_options (extensible, 16 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_dock_options
+{
+    public uint struct_size;
+    public gf_dock_option_flags flags;
+    public uint area_background;
+    public uint reserved;
+}
+
+/// <summary>gf_docking_table (table, 136 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_docking_table
 {
@@ -1157,6 +1167,9 @@ public unsafe struct gf_docking_table
     public delegate* unmanaged[Cdecl]<gf_object, uint, ulong, byte*, ulong, ulong*, gf_status> panel_at;
     public delegate* unmanaged[Cdecl]<gf_object, uint*, ulong, ulong*, gf_status> floating_sites;
     public delegate* unmanaged[Cdecl]<gf_object, uint, gf_logical_rect*, uint*, gf_status> floating_site;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_dock_panel*, gf_status> update_panel;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_dock_options*, gf_status> set_options;
+    public delegate* unmanaged[Cdecl]<gf_object, uint, gf_dock_window_visibility, gf_status> set_floating_window_visibility;
 }
 
 /// <summary>gf_windows_paint_endpoint_table (table, 104 bytes).</summary>

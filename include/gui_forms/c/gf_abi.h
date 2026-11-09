@@ -2925,7 +2925,11 @@ typedef uint32_t gf_dock_node_kind;
 /* gf_dock_allowed: the places a panel permits, as flags. DOCKED: a tool
  * stack of the main site; DOCUMENT_AREA: the document area (a tool panel
  * also needs dock_as_document); TABBED: sharing a stack; HIDDEN: the
- * close button and the hide edit hide it (else a close closes it). */
+ * close button and the hide edit hide it (else a close closes it).
+ * SIDE_LEFT to SIDE_BOTTOM: the sides of the document area its docked stack
+ * may stand on and the window edges it may be auto-hidden to; none of the
+ * four set permits every side. CLOSE_BUTTON_HIDDEN (not a place, outside
+ * ALL): its caption and tab show no close button. */
 typedef uint32_t gf_dock_allowed;
 #define GF_DOCK_ALLOWED_DOCKED 0x1u
 #define GF_DOCK_ALLOWED_DOCUMENT_AREA 0x2u
@@ -2934,7 +2938,35 @@ typedef uint32_t gf_dock_allowed;
 #define GF_DOCK_ALLOWED_TABBED 0x10u
 #define GF_DOCK_ALLOWED_HIDDEN 0x20u
 #define GF_DOCK_ALLOWED_CLOSED 0x40u
-#define GF_DOCK_ALLOWED_ALL 0x7fu
+#define GF_DOCK_ALLOWED_SIDE_LEFT 0x80u
+#define GF_DOCK_ALLOWED_SIDE_TOP 0x100u
+#define GF_DOCK_ALLOWED_SIDE_RIGHT 0x200u
+#define GF_DOCK_ALLOWED_SIDE_BOTTOM 0x400u
+#define GF_DOCK_ALLOWED_ALL 0x7ffu
+#define GF_DOCK_ALLOWED_CLOSE_BUTTON_HIDDEN 0x800u
+
+/* gf_dock_option_flags: a workspace's options (set_options).
+ * FLOATS_SHOWN_WHILE_INACTIVE: floating tool windows stay shown while the
+ * application is inactive (else the host hides them then);
+ * DOCUMENT_TABS_HIDDEN: document stacks show no tab strip (a single
+ * document interface); AUTO_HIDE_NO_HOVER: resting the pointer on a side tab
+ * does not open its flyout (a press does); AREA_BACKGROUND: area_background
+ * paints the document area in place of the theme's well. */
+typedef uint32_t gf_dock_option_flags;
+#define GF_DOCK_OPTION_FLOATS_SHOWN_WHILE_INACTIVE 0x1u
+#define GF_DOCK_OPTION_DOCUMENT_TABS_HIDDEN 0x2u
+#define GF_DOCK_OPTION_AUTO_HIDE_NO_HOVER 0x4u
+#define GF_DOCK_OPTION_AREA_BACKGROUND 0x8u
+#define GF_DOCK_OPTION_ALL 0xfu
+
+/* gf_dock_window_visibility: one floating window's override of
+ * FLOATS_SHOWN_WHILE_INACTIVE. WORKSPACE: the workspace's option; SHOWN:
+ * stays shown while the application is inactive; POLICY: the host hides it
+ * then. */
+typedef uint32_t gf_dock_window_visibility;
+#define GF_DOCK_WINDOW_VISIBILITY_WORKSPACE 0u
+#define GF_DOCK_WINDOW_VISIBILITY_SHOWN 1u
+#define GF_DOCK_WINDOW_VISIBILITY_POLICY 2u
 
 /* gf_dock_edit_kind: one primitive layout edit (C++ DockEdit). */
 typedef uint32_t gf_dock_edit_kind;
@@ -3063,6 +3095,18 @@ typedef struct gf_dock_location {
     uint32_t reserved;
 } gf_dock_location;
 
+/*
+ * A workspace's options, read during the call; struct_size at least the 1.1
+ * size, reserved zero. flags (gf_dock_option_flags); area_background a
+ * colour as 0xRRGGBBAA, read only with AREA_BACKGROUND.
+ */
+typedef struct gf_dock_options {
+    uint32_t struct_size;
+    gf_dock_option_flags flags;
+    uint32_t area_background;
+    uint32_t reserved;
+} gf_dock_options;
+
 typedef struct gf_docking_table {
     uint32_t struct_size;
     uint32_t abi_minor;
@@ -3121,6 +3165,21 @@ typedef struct gf_docking_table {
      * units) and its first stack (zero when it has none). */
     gf_status (GF_CALL* floating_site)(gf_object workspace, uint32_t site, gf_logical_rect* frame,
                                        uint32_t* first_stack);
+    /* Replaces a registered panel's restrictions, defaults, minimum size,
+     * close button and title (gf_dock_panel); content is not read
+     * (set_panel_content). Where the panel stands is unchanged; later edits
+     * obey the new restrictions. An unregistered id gives
+     * GF_STATUS_NOT_FOUND; another kind than it was registered with gives
+     * GF_STATUS_INVALID_ARGUMENT. */
+    gf_status (GF_CALL* update_panel)(gf_object workspace, const gf_dock_panel* panel);
+    /* Sets the workspace's options (gf_dock_options); each takes effect at
+     * once. */
+    gf_status (GF_CALL* set_options)(gf_object workspace, const gf_dock_options* options);
+    /* Sets one floating site's override of FLOATS_SHOWN_WHILE_INACTIVE
+     * (gf_dock_window_visibility), kept while the site exists. An unknown
+     * site gives GF_STATUS_NOT_FOUND. */
+    gf_status (GF_CALL* set_floating_window_visibility)(gf_object workspace, uint32_t site,
+                                                        gf_dock_window_visibility visibility);
 } gf_docking_table;
 
 /*
