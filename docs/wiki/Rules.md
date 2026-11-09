@@ -20,10 +20,11 @@ const gf::RuleAddResult added = window.rules().add(rule);   // added.token, or a
   `context_menu_requested`, focus, `interaction(c, event)`,
   `command_executed`, `value_changed`. Conditions: `key_down`, `modifiers`,
   `hovering`, `pressed`, `focused`, `focus_within`, `enabled`, `visible`,
-  `window_active`, `is_true`, `equals`, each with a `not_` form.
+  `window_active`, `is_true`, `equals`, `dragging`, `drop_candidate`, each
+  with a `not_` form.
 - **Actions** are named functions `void f(Context&, const gf::RuleFiring&)`
   or built-ins: `invoke(command)`, `set(value, x)`, `toggle(flag)`,
-  `focus(c)`. No lambdas.
+  `focus(c)`, `begin_keyboard_drag(c)`. No lambdas.
 - **Order.** Rules on one trigger are evaluated in the order they were
   added; every matching rule fires. `consume` stops later rules and the
   default route. Key rules run before the focused control.

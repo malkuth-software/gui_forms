@@ -73,7 +73,9 @@ enum class RuleTriggerKind : std::uint8_t {
 };
 
 // The condition kinds. The numbers through window_active are the C ABI's
-// GF_RULE_CONDITION_* values; is_true and equals are C++ only.
+// GF_RULE_CONDITION_* values; is_true and equals are C++ only. dragging and
+// drop_candidate (the drag engine's, roadmap 2.1) are C++ only until the C
+// ABI admits them (phase E4), which keeps their numbers.
 enum class RuleConditionKind : std::uint8_t {
     none = 0,
     // The physical key is held (the window's input state).
@@ -96,10 +98,17 @@ enum class RuleConditionKind : std::uint8_t {
     // A bound model: a Value<bool> holds true; a Value<int> holds a number.
     is_true = 10,
     equals = 11,
+    // A drag session of the window's drag engine is running (planning,
+    // dragging or settling) on the control or one of its descendants.
+    dragging = 12,
+    // The control is the container of the running drag's selected
+    // candidate (the group container its client named).
+    drop_candidate = 13,
 };
 
-// The action kinds. The numbers are the C ABI's GF_RULE_ACTION_* values
-// (program is a gf_callback there).
+// The action kinds. The numbers through focus are the C ABI's
+// GF_RULE_ACTION_* values (program is a gf_callback there);
+// begin_keyboard_drag is C++ only until the C ABI admits it (phase E4).
 enum class RuleActionKind : std::uint8_t {
     none = 0,
     program = 1,
@@ -107,6 +116,8 @@ enum class RuleActionKind : std::uint8_t {
     set = 3,
     toggle = 4,
     focus = 5,
+    // Enters the control's keyboard drag mode (Control::begin_keyboard_drag).
+    begin_keyboard_drag = 6,
 };
 
 // The most conditions and actions one rule holds, and the most rules one
@@ -194,8 +205,8 @@ struct RuleTrigger final {
 // A condition of a rule; made by the functions in namespace condition. A
 // negated condition holds when its level does not (the `not_` forms).
 //   physical_key: key_down's key; modifiers: the modifiers' exact set.
-//   control: the control hovering, pressed, focused, focus_within, enabled
-//     and visible read.
+//   control: the control hovering, pressed, focused, focus_within, enabled,
+//     visible, dragging and drop_candidate read.
 //   flag: is_true's Value; number and expected: equals' Value and number.
 //   anchor: the Value is_true or equals reads, whose disposal disarms the
 //     rule (a control condition's control is anchored through `control`).
@@ -234,6 +245,7 @@ using RuleValueWrite = void (*)(void* value, const RuleActionArgument& argument)
 //   invoke: `command`, executed through the window's command route.
 //   set, toggle: `value` (a Value<T>) written by `write` from `argument`.
 //   focus: `control`, given the keyboard focus.
+//   begin_keyboard_drag: `control`, whose keyboard drag mode is entered.
 //   anchor: the component the action names (a context that is a Component,
 //     the command, the Value), whose disposal disarms the rule.
 struct RuleAction final {
@@ -420,6 +432,11 @@ namespace condition {
 [[nodiscard]] RuleCondition not_visible(Control& control);
 [[nodiscard]] RuleCondition window_active();
 [[nodiscard]] RuleCondition not_window_active();
+// The drag engine's levels (C++ only for now; see RuleConditionKind).
+[[nodiscard]] RuleCondition dragging(Control& control);
+[[nodiscard]] RuleCondition not_dragging(Control& control);
+[[nodiscard]] RuleCondition drop_candidate(Control& control);
+[[nodiscard]] RuleCondition not_drop_candidate(Control& control);
 [[nodiscard]] RuleCondition is_true(Value<bool>& flag);
 [[nodiscard]] RuleCondition not_true(Value<bool>& flag);
 [[nodiscard]] RuleCondition equals(Value<int>& number, int expected);
@@ -475,6 +492,11 @@ template <typename T>
 // Gives `control` the keyboard focus (SurfaceRoot::request_focus on the
 // firing window); a control that cannot take it is left as it is.
 [[nodiscard]] RuleAction focus(Control& control);
+
+// Enters `control`'s keyboard drag mode (Control::begin_keyboard_drag), so
+// that an application can bind its own move key; a control that declares
+// no drag, or a window already running one, is left as it is.
+[[nodiscard]] RuleAction begin_keyboard_drag(Control& control);
 
 } // namespace builtin
 

@@ -120,6 +120,8 @@ follow WinForms' order and use the host's click count (see
 | `window_active()` | the window is the active window |
 | `is_true(flag)` | a `Value<bool>` holds true |
 | `equals(number, n)` | a `Value<int>` holds `n` |
+| `dragging(c)` | a drag is running on the control or one of its descendants |
+| `drop_candidate(c)` | the control holds the running drag's selected drop candidate |
 
 Every condition has a `not_` form, such as `not_focused(c)` or
 `not_window_active()`. Negation is spelled only through these forms. To say
@@ -134,6 +136,12 @@ Every condition has a `not_` form, such as `not_focused(c)` or
 - `builtin::set(value, x)` writes a `Value<T>`.
 - `builtin::toggle(flag)` writes the opposite of a `Value<bool>`.
 - `builtin::focus(c)` gives a control the keyboard focus.
+- `builtin::begin_keyboard_drag(c)` starts the control's keyboard move mode,
+  for a control that can be dragged, so an application can bind its own
+  move key.
+
+`dragging`, `drop_candidate` and `begin_keyboard_drag` are C++ only for
+now; the C ABI does not offer them yet.
 
 The built-in actions let simple rules work without any program code.
 
