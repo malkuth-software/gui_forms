@@ -352,7 +352,7 @@ void Panel::written(const decltype(border_style)&) {
 
 void Panel::prepare_write(const decltype(visual_role)&, ControlVisualRole& incoming) {
     require_mutable();
-    if (incoming != ControlVisualRole::window && incoming != ControlVisualRole::panel && incoming != ControlVisualRole::card && incoming != ControlVisualRole::editor) throw std::invalid_argument("panel visual role must be window, panel, card, or editor");
+    if (incoming != ControlVisualRole::window && incoming != ControlVisualRole::panel && incoming != ControlVisualRole::card && incoming != ControlVisualRole::editor && incoming != ControlVisualRole::notice) throw std::invalid_argument("panel visual role must be window, panel, card, editor, or notice");
 }
 
 void Panel::written(const decltype(visual_role)&) {

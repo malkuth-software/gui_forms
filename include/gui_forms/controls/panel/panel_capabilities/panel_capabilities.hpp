@@ -38,7 +38,7 @@ struct BorderStyleCapability {
     }
 };
 
-// The recipe family the panel paints with: window, panel, card, or editor (the recessed field ground of the Panel-derived editors such as NumericUpDown and TreeView).
+// The recipe family the panel paints with: window, panel, card, editor (the recessed field ground of the Panel-derived editors such as NumericUpDown and TreeView), or notice (a staged InstrumentRack module).
 template <typename Declaring>
 struct VisualRoleCapability {
     PropertyCell<ControlVisualRole, VisualRoleCapability<Declaring>> visual_role{ControlVisualRole::panel};

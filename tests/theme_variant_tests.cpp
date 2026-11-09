@@ -183,6 +183,13 @@ void test_module_and_preview_grounds_follow_scheme() {
         spec.name = ids[index];
         spec.status_text = "state";
         spec.state = states[index];
+        // A module holds one through eight fields.
+        InstrumentFieldSpec field{};
+        field.stable_id = "value";
+        field.name = "Value";
+        field.value = "1";
+        field.editor = InstrumentFieldEditor::text;
+        spec.fields.push_back(field);
         modules.push_back(spec);
     }
     (*rack).set_modules(std::move(modules));
