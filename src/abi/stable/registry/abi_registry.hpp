@@ -207,6 +207,10 @@ public:
     void end_run();
     [[nodiscard]] gf_status running_window(gf_object root, SlotIdentity slot,
                                            ApplicationWindowHandle& window);
+    // The run under way: its root and its window (inactive until ready).
+    // GF_STATUS_INVALID_STATE when no window is running.
+    [[nodiscard]] gf_status current_run(SlotIdentity slot, gf_object& root,
+                                        ApplicationWindowHandle& window);
 
 private:
     struct ObjectSlot {

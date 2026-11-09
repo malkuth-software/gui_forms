@@ -90,6 +90,10 @@ void gf_kit_diagnostics(gf_kit* kit);
 void gf_kit_threads(gf_kit* kit);
 void gf_kit_window(gf_kit* kit);
 void gf_kit_window_handle(gf_kit* kit);
+/* Modal and owned windows and anchored overlays (since 1.1): the refusals
+ * need no window; gf_kit_modal runs one. */
+void gf_kit_modal_refusals(gf_kit* kit);
+void gf_kit_modal(gf_kit* kit);
 void gf_kit_window_events(gf_kit* kit);
 void gf_kit_themes(gf_kit* kit);
 void gf_kit_proxies(gf_kit* kit);

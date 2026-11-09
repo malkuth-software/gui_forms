@@ -39,6 +39,8 @@ Related types
      - Everything an application is made with.
    * - :cpp:class:`ApplicationCreateResult <gui_forms::ApplicationCreateResult>`
      - What Application::create gave: an application owned by the caller, with the theme compile's warnings in ``findings``, or a refusal with nothing made and, for theme_refused, the compile's diagnostics.
+   * - :cpp:class:`ApplicationModalResult <gui_forms::ApplicationModalResult>`
+     - What ApplicationWindows::show_modal gives back.
    * - :cpp:class:`ApplicationResult <gui_forms::ApplicationResult>`
      -  
    * - :cpp:class:`ApplicationThemeConfig <gui_forms::ApplicationThemeConfig>`
@@ -295,6 +297,22 @@ Related types
    .. cpp:member:: std::unique_ptr<Application> application
 
    .. cpp:member:: std::vector<ThemeCompileDiagnostic> findings
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ApplicationModalResult final
+
+   ``#include <gui_forms/application/application.hpp>``
+
+   What ApplicationWindows::show_modal gives back.
+
+   .. cpp:member:: HostServiceStatus status
+
+      The open's or the nested loop's refusal; accepted once the window has closed (or the run quit during the loop).
+
+   .. cpp:member:: DialogResult dialog_result
+
+      The window's dialog result when it closed: the last value its model (SurfaceRoot::dialog_result) had, or cancel when it closed without one (its close box, a destroy_window), as Form.ShowDialog reports. none when the window never opened. Default: ``{DialogResult::none}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -2031,6 +2049,10 @@ Related types
 
    .. rubric:: Properties
 
+   .. cpp:function:: std::size_t modal_depth() const noexcept
+
+      The number of run_modal calls under way on the stack.
+
    .. cpp:function:: HostWindowId primary() const noexcept
 
    .. cpp:function:: bool application_active() const noexcept
@@ -2080,6 +2102,10 @@ Related types
    .. cpp:function:: HostServiceStatus query_monitors(HostMonitorResult& result)
 
       As query_monitors, filling ``result`` (its monitor storage reused, so a repeated query on an unchanged table allocates nothing where the adapter fills in place) and returning its status. On a refusal ``result`` holds the status and no monitors.
+
+   .. cpp:function:: HostServiceStatus run_modal(HostWindowId window)
+
+      Runs the platform's event loop nested inside the caller until ``window`` closes, as Form.ShowDialog does: meanwhile the run's other windows that ``window`` does not own refuse user input (the adapter disables them), while posted work, timers, wakes and repaint continue in every window. Returns once ``window`` is no longer live, after its closed callback; the adapter releases the native window after the outer loop turn, never inside this call. When the run is told to quit during the nested loop (the primary window closed, a quit message), the nested loop ends at once and the quit reaches the outer loop, so this may return while ``window`` is still live (the run is ending). Needs runtime_windows and supports_modal_windows() (else unsupported); ``window`` must be live and owned and must not be a popup or floating window (invalid_argument); at most maximum_modal_depth calls nest (modal_limit). A callback inside the loop may call it again for another window.
 
    .. cpp:function:: std::optional<HostWindowId> find(std::string_view stable_id) const noexcept
 
@@ -2152,6 +2178,10 @@ Related types
 
       Whether the run's popup and Splash windows have per-pixel alpha now, so the core may draw a shadow or fade around their content. True unless the adapter says otherwise; an X11 run without a compositing manager reports false and its transient windows stay real windows, opaque, with no shadow or fade (owner, 2026-11-08: Q-S2 (b)).
 
+   .. cpp:function:: virtual bool supports_modal_windows() const noexcept
+
+      Whether the adapter runs a nested event loop for run_modal. False unless the adapter says so; run_modal is then unsupported.
+
    .. cpp:function:: virtual HostWindowFrameResult frame_impl(HostWindowId window) = 0
 
       *Protected.*
@@ -2202,6 +2232,12 @@ Related types
 
       *Protected.*
 
+   .. cpp:function:: virtual HostServiceStatus run_modal_impl(HostWindowId window)
+
+      *Protected.*
+
+      Called only after run_modal's validation, with the depth already counted: disables the other windows, runs nested loop turns until ``window`` is not live or the run quits (handing the quit on to the outer loop), restores the windows it disabled and returns accepted. The default is unsupported, for an adapter whose supports_modal_windows() is false.
+
    .. cpp:member:: constexpr std::size_t maximum_windows
 
       Default: ``64U``.
@@ -2213,6 +2249,10 @@ Related types
    .. cpp:member:: constexpr std::size_t maximum_stable_id_bytes
 
       Default: ``1024U``.
+
+   .. cpp:member:: constexpr std::size_t maximum_modal_depth
+
+      Nested run_modal calls (a modal window over a modal window), as HostServices bounds nested native dialogs. Default: ``8U``.
 
    .. cpp:member:: constexpr double maximum_desktop_coordinate
 

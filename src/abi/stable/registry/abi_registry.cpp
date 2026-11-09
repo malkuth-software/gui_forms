@@ -822,6 +822,12 @@ std::uint64_t HandleRegistry::run_posted(std::size_t maximum) {
         {
             const std::scoped_lock lock(mutex_);
             std::deque<PostedCall>& posted = posted_locked(domain);
+            // A posted callback may run a nested loop (windows.show_modal)
+            // whose turns run posted work too, taking calls this pass
+            // counted: the pass ends when the queue is empty.
+            if (posted.empty()) {
+                break;
+            }
             call = std::move(posted.front());
             posted.pop_front();
             const ObjectSlot* found = object_slot_locked(call.target);
@@ -899,6 +905,16 @@ gf_status HandleRegistry::running_window(gf_object root, SlotIdentity slot, Appl
     if (!running_ || run_root_ != root) {
         return fail(GF_STATUS_INVALID_STATE, slot, "the object is not the root of the running window");
     }
+    window = run_window_;
+    return GF_STATUS_OK;
+}
+
+gf_status HandleRegistry::current_run(SlotIdentity slot, gf_object& root, ApplicationWindowHandle& window) {
+    const std::scoped_lock lock(mutex_);
+    if (!running_) {
+        return fail(GF_STATUS_INVALID_STATE, slot, "no window is running");
+    }
+    root = run_root_;
     window = run_window_;
     return GF_STATUS_OK;
 }

@@ -709,6 +709,47 @@ typedef struct gf_run_options {
     const gf_callback* closed;
 } gf_run_options;
 
+/* gf_owned_window_flags: how show_modal and show_owned open a window. */
+typedef uint32_t gf_owned_window_flags;
+#define GF_OWNED_WINDOW_FLAGS_NONE 0u
+/* The host's tool window style: a smaller title bar and no taskbar button. */
+#define GF_OWNED_WINDOW_TOOL 1u
+
+/*
+ * How show_modal and show_owned open a window over the running one (since
+ * 1.1). owner is the root of the running window or of an owned window that
+ * is open; zero means the running window. width and height are the client
+ * size in logical units; zero keeps the default. ready, closing and closed
+ * may each be null; the library calls them with sender the window's root
+ * and releases each once, on the UI thread, after the window has closed
+ * (for show_owned, possibly after show_owned has returned).
+ */
+typedef struct gf_owned_window_options {
+    uint32_t struct_size;
+    gf_owned_window_flags flags;
+    gf_utf8_view title;
+    double width;
+    double height;
+    gf_object owner;
+    const gf_callback* ready;
+    const gf_callback* closing;
+    const gf_callback* closed;
+} gf_owned_window_options;
+
+/* gf_dialog_result_code: a modal window's result, Form.DialogResult's
+ * values (a button's dialog_result property takes the same names). */
+typedef uint32_t gf_dialog_result_code;
+#define GF_DIALOG_RESULT_NONE 0u
+#define GF_DIALOG_RESULT_OK 1u
+#define GF_DIALOG_RESULT_CANCEL 2u
+#define GF_DIALOG_RESULT_ABORT 3u
+#define GF_DIALOG_RESULT_RETRY 4u
+#define GF_DIALOG_RESULT_IGNORE 5u
+#define GF_DIALOG_RESULT_YES 6u
+#define GF_DIALOG_RESULT_NO 7u
+#define GF_DIALOG_RESULT_TRY_AGAIN 10u
+#define GF_DIALOG_RESULT_CONTINUE 11u
+
 /*
  * GF_TABLE_WINDOWS: one window at a time, on the platform's host.
  *
@@ -730,6 +771,14 @@ typedef struct gf_run_options {
  * help_requested, presentation_changed, theme_changed). Its subscriptions
  * end when the window is destroyed, each callback released once on the UI
  * thread; a disposed window refuses new ones with GF_STATUS_DISPOSED.
+ *
+ * During the run, show_modal and show_owned open further windows over a
+ * root control (since 1.1), owned by the running window or by another of
+ * them: a modal window, as Form.ShowDialog shows one, or a non-modal owned
+ * window, as Form.Show(owner). Their stable id is their root's, unique
+ * among open windows ("main" is the running window's). request_close
+ * closes them too. They share the library's theme, images and published
+ * values as they stand when the window opens.
  */
 typedef struct gf_windows_table {
     uint32_t struct_size;
@@ -763,6 +812,31 @@ typedef struct gf_windows_table {
      * 1 when a handler or provider handled it, else 0 (since 1.1). UI thread.
      * GF_STATUS_DISPOSED once the window is gone. */
     gf_status (GF_CALL* request_help)(gf_object window, uint32_t* handled);
+    /* Opens a window over root, a control with no parent and not in a
+     * window, owned by options.owner, and runs a nested event loop until it
+     * closes (since 1.1): the run's other windows refuse the user's input
+     * meanwhile, while posted work, events of other sources, timers and
+     * repaint continue in every window. A dialog result other than none
+     * set on the window (a button's dialog_result, the window's own) asks
+     * it to close; its closing callback may cancel. Returns once the
+     * window has closed and its closed callback has run, with result its
+     * dialog result (GF_DIALOG_RESULT_CANCEL when it closed without one).
+     * When the run ends during the loop (the running window closed), the
+     * loop ends with GF_STATUS_CANCELLED and the window closes with the
+     * run. A callback inside the loop may call show_modal again, up to 8
+     * deep (GF_STATUS_LIMIT_EXCEEDED beyond). UI thread, during a run
+     * (GF_STATUS_INVALID_STATE otherwise); GF_STATUS_UNSUPPORTED_CAPABILITY
+     * where the host has no nested loop; GF_STATUS_INVALID_STATE when root
+     * has a parent or a window or its stable id is taken; result may be
+     * null. Nothing is opened on a refusal. */
+    gf_status (GF_CALL* show_modal)(gf_object root, const gf_owned_window_options* options,
+                                    gf_dialog_result_code* result);
+    /* Opens a window over root owned by options.owner, as show_modal does,
+     * and returns once it is ready, without a nested loop (since 1.1). The
+     * window closes through request_close, its close box, its owner
+     * closing or the run ending. The same refusals as show_modal, without
+     * the depth limit. */
+    gf_status (GF_CALL* show_owned)(gf_object root, const gf_owned_window_options* options);
 } gf_windows_table;
 
 /* gf_schema_kind: what a schema type is. A control is created and placed in
@@ -1652,7 +1726,51 @@ typedef struct gf_text_editing_table {
  * without a parent, shown over its owner's window until close_overlay, until
  * its owner leaves the window or until the window closes. Tooltips belong to
  * a tool_tip component (create_with). UI thread only.
+ *
+ * open_anchored (since 1.1) shows a content control beside an anchor, as a
+ * menu, drop-down or context menu shows: an anchored overlay in the
+ * anchor's window, placed below or above the anchor and kept inside the
+ * window, with click-away and Escape dismissal. Menus, drop-downs and
+ * context menus are overlays, not native windows.
  */
+
+/* gf_anchored_overlay_flags: how open_anchored shows its content. */
+typedef uint32_t gf_anchored_overlay_flags;
+#define GF_ANCHORED_OVERLAY_FLAGS_NONE 0u
+/* Prefer the space above the anchor (else below). */
+#define GF_ANCHORED_OVERLAY_ABOVE 1u
+/* Align the content's right edge with the anchor's (else the left edges). */
+#define GF_ANCHORED_OVERLAY_ALIGN_FAR 2u
+/* Never flip to the other side when the preferred one is too small. */
+#define GF_ANCHORED_OVERLAY_NO_FLIP 4u
+/* A click outside the content does not dismiss it. */
+#define GF_ANCHORED_OVERLAY_KEEP_ON_CLICK_AWAY 8u
+/* Escape does not dismiss it. */
+#define GF_ANCHORED_OVERLAY_KEEP_ON_ESCAPE 16u
+/* The content takes the keyboard focus, contained in it while open and
+ * given back to where it was when it closes (a menu, a drop-down list).
+ * Without it the focus stays where it is (a passive pop-up). */
+#define GF_ANCHORED_OVERLAY_TAKE_FOCUS 32u
+
+/*
+ * How open_anchored shows content (since 1.1). width and height are the
+ * content's preferred size in logical units (zero: its measured size); gap
+ * is the distance from the anchor. events, which may be null, receives the
+ * overlay's events with sender the content: "click_away" and "escape_key"
+ * when the user asks to dismiss it (setting the event's cancel keeps it
+ * open, for staged dismissal; otherwise it closes), then "closed" once it
+ * has closed for any reason (close_anchored, dismissal, the anchor leaving
+ * the window, the window closing), after which the callback is released.
+ */
+typedef struct gf_anchored_overlay_options {
+    uint32_t struct_size;
+    gf_anchored_overlay_flags flags;
+    double width;
+    double height;
+    double gap;
+    const gf_callback* events;
+} gf_anchored_overlay_options;
+
 typedef struct gf_overlays_table {
     uint32_t struct_size;
     uint32_t abi_minor;
@@ -1668,6 +1786,18 @@ typedef struct gf_overlays_table {
      * pointer leaves or hide_tool_tip). */
     gf_status (GF_CALL* show_tool_tip)(gf_object tool_tip, gf_object target, uint64_t duration_ms);
     gf_status (GF_CALL* hide_tool_tip)(gf_object tool_tip);
+    /* Shows content, a control with no parent and not in a window, beside
+     * anchor, a control in a running window (since 1.1). The library holds
+     * content while it is open. GF_STATUS_INVALID_STATE when anchor is not
+     * in a window or is disabled, or content is already open or has a
+     * parent; GF_STATUS_INVALID_ARGUMENT for options smaller than their 1.1
+     * size, unknown flags or a size or gap that is negative or not finite.
+     * Nothing is shown on a refusal. */
+    gf_status (GF_CALL* open_anchored)(gf_object anchor, gf_object content,
+                                       const gf_anchored_overlay_options* options);
+    /* Closes content's anchored overlay: its "closed" event follows before
+     * this returns. GF_STATUS_NOT_FOUND when it is not open (since 1.1). */
+    gf_status (GF_CALL* close_anchored)(gf_object content);
 } gf_overlays_table;
 
 /*

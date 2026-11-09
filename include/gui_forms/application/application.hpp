@@ -160,6 +160,18 @@ struct ApplicationWindowOpenResult final {
     ApplicationWindowHandle window{};
 };
 
+// What ApplicationWindows::show_modal gives back.
+struct ApplicationModalResult final {
+    // The open's or the nested loop's refusal; accepted once the window
+    // has closed (or the run quit during the loop).
+    HostServiceStatus status{};
+    // The window's dialog result when it closed: the last value its model
+    // (SurfaceRoot::dialog_result) had, or cancel when it closed without
+    // one (its close box, a destroy_window), as Form.ShowDialog reports.
+    // none when the window never opened.
+    DialogResult dialog_result{DialogResult::none};
+};
+
 struct ApplicationWindowAtResult final {
     HostServiceStatus status{};
     // False when no window of the run is topmost at the point.
@@ -185,6 +197,18 @@ public:
     // request starts the entry is consumed, as Application::run consumes its
     // entries. The window's ready callback runs before this returns.
     [[nodiscard]] ApplicationWindowOpenResult open_window(ApplicationWindow&& window) const;
+    // Opens `window` as open_window does and runs a nested event loop until
+    // it closes (HostWindowing::run_modal), as Form.ShowDialog does: the
+    // run's other windows refuse user input meanwhile, while posted work,
+    // timers and repaint continue everywhere. The entry must name an owner
+    // (owner_id) and must not be a popup or floating window
+    // (invalid_argument). A dialog result other than none set on the
+    // window's model while it is open asks the window to close (its
+    // closing handler may cancel; the window then stays and the result
+    // stays set). Returns after the window's closed callback. Unsupported
+    // where the host has no nested loop (supports_modal_windows), refused
+    // with modal_limit past HostWindowing::maximum_modal_depth.
+    [[nodiscard]] ApplicationModalResult show_modal(ApplicationWindow&& window) const;
     // Closes and destroys a window this run opened, or an owned initial
     // window, without asking its closing handler (HostWindowing::
     // destroy_window). Its closed callback runs before this returns.

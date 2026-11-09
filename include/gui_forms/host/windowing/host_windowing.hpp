@@ -267,6 +267,9 @@ public:
     static constexpr std::size_t maximum_windows = 64U;
     static constexpr std::size_t maximum_floating_windows = 32U;
     static constexpr std::size_t maximum_stable_id_bytes = 1024U;
+    // Nested run_modal calls (a modal window over a modal window), as
+    // HostServices bounds nested native dialogs.
+    static constexpr std::size_t maximum_modal_depth = 8U;
     // Frame requests: each extent 1 to 32768 logical units, each origin
     // coordinate within plus or minus this bound.
     static constexpr double maximum_desktop_coordinate = 1000000.0;
@@ -313,6 +316,24 @@ public:
     // application is active (floating tools) and the primary window is not
     // minimized. Other kinds are shown or hidden directly.
     [[nodiscard]] HostServiceStatus set_visible(HostWindowId window, bool visible);
+    // Runs the platform's event loop nested inside the caller until `window`
+    // closes, as Form.ShowDialog does: meanwhile the run's other windows
+    // that `window` does not own refuse user input (the adapter disables
+    // them), while posted work, timers, wakes and repaint continue in every
+    // window. Returns once `window` is no longer live, after its closed
+    // callback; the adapter releases the native window after the outer
+    // loop turn, never inside this call. When the run is told to quit
+    // during the nested loop (the primary window closed, a quit message),
+    // the nested loop ends at once and the quit reaches the outer loop, so
+    // this may return while `window` is still live (the run is ending).
+    // Needs runtime_windows and supports_modal_windows() (else
+    // unsupported); `window` must be live and owned and must not be a
+    // popup or floating window (invalid_argument); at most
+    // maximum_modal_depth calls nest (modal_limit). A callback inside the
+    // loop may call it again for another window.
+    [[nodiscard]] HostServiceStatus run_modal(HostWindowId window);
+    // The number of run_modal calls under way on the stack.
+    [[nodiscard]] std::size_t modal_depth() const noexcept { return modal_depth_; }
 
     // Table queries (no capability needed).
     [[nodiscard]] std::optional<HostWindowId> find(std::string_view stable_id) const noexcept;
@@ -348,6 +369,9 @@ public:
     // manager reports false and its transient windows stay real windows,
     // opaque, with no shadow or fade (owner, 2026-11-08: Q-S2 (b)).
     [[nodiscard]] virtual bool transient_windows_translucent() const noexcept;
+    // Whether the adapter runs a nested event loop for run_modal. False
+    // unless the adapter says so; run_modal is then unsupported.
+    [[nodiscard]] virtual bool supports_modal_windows() const noexcept;
     [[nodiscard]] Event<const HostWindowFrameEvent&>& frame_changed() noexcept {
         return frame_changed_;
     }
@@ -416,6 +440,13 @@ protected:
     // floating windows by the policy and for any window by set_visible.
     [[nodiscard]] virtual HostServiceStatus show_impl(HostWindowId window) = 0;
     [[nodiscard]] virtual HostServiceStatus hide_impl(HostWindowId window) = 0;
+    // Called only after run_modal's validation, with the depth already
+    // counted: disables the other windows, runs nested loop turns until
+    // `window` is not live or the run quits (handing the quit on to the
+    // outer loop), restores the windows it disabled and returns accepted.
+    // The default is unsupported, for an adapter whose
+    // supports_modal_windows() is false.
+    [[nodiscard]] virtual HostServiceStatus run_modal_impl(HostWindowId window);
 
 private:
     struct WindowRecord final {
@@ -473,6 +504,8 @@ private:
     std::vector<WindowRecord> windows_;
     std::uint64_t next_window_{1U};
     HostWindowId primary_{};
+    // run_modal calls under way, at most maximum_modal_depth.
+    std::size_t modal_depth_{};
     Event<const HostWindowFrameEvent&> frame_changed_;
 };
 

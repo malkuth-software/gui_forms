@@ -643,6 +643,79 @@ ApplicationWindowOpenResult ApplicationWindows::open_window(ApplicationWindow&& 
     return result;
 }
 
+namespace {
+// One show_modal call's outcome, shared by the call and the subscription
+// to the model's dialog_result_changed (which may outlive neither: the
+// call disconnects it before returning).
+struct ModalOutcome final {
+    DialogResult dialog_result{DialogResult::none};
+    // Set once the window is ready; until then a result is only recorded.
+    ApplicationWindowHandle window{};
+};
+
+// dialog_result_changed's target during show_modal: records the result and,
+// for one other than none, asks the window to close.
+struct ModalDialogResultChanged final {
+    std::shared_ptr<ModalOutcome> outcome{};
+    void operator()(DialogResult result) const {
+        (*outcome).dialog_result = result;
+        if (result == DialogResult::none || !(*outcome).window.active()) return;
+        static_cast<void>((*outcome).window.request_close());
+    }
+};
+} // namespace
+
+ApplicationModalResult ApplicationWindows::show_modal(ApplicationWindow&& window) const {
+    ApplicationModalResult result;
+    const std::shared_ptr<detail::ApplicationRunState> run = live_run(run_, result.status);
+    if (!run) return result;
+    if (!window.model || window.owner_id.empty() || window.popup.has_value() ||
+        window.floating != HostWindowFloating::none) {
+        result.status.error = HostServiceError::invalid_argument;
+        return result;
+    }
+    HostWindowing& windowing = *(*run).windowing;
+    if (!windowing.supports_modal_windows()) {
+        result.status.error = HostServiceError::unsupported;
+        return result;
+    }
+    if (windowing.modal_depth() >= HostWindowing::maximum_modal_depth) {
+        result.status.error = HostServiceError::modal_limit;
+        return result;
+    }
+    // Subscribed before the open, so a result set by the ready callback is
+    // seen. The token is safe after the model is gone (Event's slots hold
+    // the event weakly).
+    const std::shared_ptr<ModalOutcome> outcome = std::make_shared<ModalOutcome>();
+    (*outcome).dialog_result = (*window.model).dialog_result();
+    SubscriptionToken subscription =
+        (*window.model).dialog_result_changed().subscribe(ModalDialogResultChanged{outcome});
+    const ApplicationWindowOpenResult opened = open_window(std::move(window));
+    if (!opened.status.accepted()) {
+        result.status = opened.status;
+        return result;
+    }
+    (*outcome).window = opened.window;
+    // A result set before the window was ready closes it now.
+    if ((*outcome).dialog_result != DialogResult::none && opened.window.active()) {
+        static_cast<void>(opened.window.request_close());
+    }
+    // The open's callbacks may already have closed the window.
+    const HostWindowId id = opened.window.id();
+    if (id.valid() && windowing.live(id)) {
+        try {
+            result.status = windowing.run_modal(id);
+        } catch (...) {
+            subscription.disconnect();
+            throw;
+        }
+    }
+    subscription.disconnect();
+    result.dialog_result = (*outcome).dialog_result == DialogResult::none
+        ? DialogResult::cancel : (*outcome).dialog_result;
+    return result;
+}
+
 HostServiceStatus ApplicationWindows::destroy_window(const ApplicationWindowHandle& window) const {
     HostServiceStatus status;
     const std::shared_ptr<detail::ApplicationRunState> run = live_run(run_, status);

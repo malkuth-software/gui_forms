@@ -1,13 +1,16 @@
-// GF_TABLE_OVERLAYS: overlay roots and tooltips. See gf_abi.h.
+// GF_TABLE_OVERLAYS: overlay roots, anchored overlays (since 1.1) and
+// tooltips. See gf_abi.h.
 
 #include "abi_control_entry.hpp"
 #include "abi_tables.hpp"
 
 #include "gui_forms/components/tool_tip/tool_tip.hpp"
+#include "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp"
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 #include "gui_forms/window.hpp"
 
 #include <chrono>
+#include <cmath>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -23,6 +26,8 @@ constexpr SlotIdentity close_overlay_slot{GF_TABLE_OVERLAYS, 1U};
 constexpr SlotIdentity set_tool_tip_slot{GF_TABLE_OVERLAYS, 2U};
 constexpr SlotIdentity show_tool_tip_slot{GF_TABLE_OVERLAYS, 3U};
 constexpr SlotIdentity hide_tool_tip_slot{GF_TABLE_OVERLAYS, 4U};
+constexpr SlotIdentity open_anchored_slot{GF_TABLE_OVERLAYS, 5U};
+constexpr SlotIdentity close_anchored_slot{GF_TABLE_OVERLAYS, 6U};
 
 // The open overlays, by the overlay's identity. Owned here and used on the UI
 // thread only. A token the window has closed (its owner left the window,
@@ -172,6 +177,256 @@ gf_status GF_CALL overlays_hide_tool_tip(gf_object tool_tip) noexcept {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Anchored overlays (since 1.1): open_anchored and close_anchored.
+
+// The 1.1 size of gf_anchored_overlay_options.
+constexpr std::uint32_t anchored_options_size_1_1 = 40U;
+static_assert(sizeof(gf_anchored_overlay_options) == anchored_options_size_1_1);
+
+constexpr gf_anchored_overlay_flags known_anchored_flags =
+    GF_ANCHORED_OVERLAY_ABOVE | GF_ANCHORED_OVERLAY_ALIGN_FAR | GF_ANCHORED_OVERLAY_NO_FLIP |
+    GF_ANCHORED_OVERLAY_KEEP_ON_CLICK_AWAY | GF_ANCHORED_OVERLAY_KEEP_ON_ESCAPE |
+    GF_ANCHORED_OVERLAY_TAKE_FOCUS;
+
+// One open anchored overlay: the layer the library made around the
+// caller's content, the overlay and focus scope it holds in the anchor's
+// window, and the caller's events callback. Owned by anchored_overlays()
+// while open; the subscriptions' targets hold it weakly. UI thread only.
+struct AnchoredSession final {
+    gf_object content = 0U;
+    Control::Ptr content_control;
+    std::shared_ptr<AnchoredOverlayLayer> layer;
+    // The anchor's window, observed while the overlay is connected: the
+    // window detaches the overlay (closing its focus scope) before it goes.
+    Window* window = nullptr;
+    OverlayToken token;
+    FocusScopeId scope{};
+    std::unique_ptr<CallbackBinding> events;
+    SubscriptionToken dismiss;
+    SubscriptionToken revoked;
+    bool closed = false;
+};
+
+// The open anchored overlays, by their content's identity.
+std::unordered_map<gf_object, std::shared_ptr<AnchoredSession>>& anchored_overlays() {
+    static std::unordered_map<gf_object, std::shared_ptr<AnchoredSession>> sessions;
+    return sessions;
+}
+
+// Sends one event to the session's callback with the content as sender.
+// Returns the event's cancel field.
+std::uint32_t emit_anchored(const AnchoredSession& session, std::string_view name) noexcept {
+    if (!session.events) {
+        return 0U;
+    }
+    gf_event event{};
+    event.struct_size = sizeof(gf_event);
+    event.sender = session.content;
+    event.name.data = name.data();
+    event.name.size = name.size();
+    (*session.events).invoke(event);
+    return event.cancel;
+}
+
+// Closes the session once: the focus scope (while the overlay is still
+// attached), the subscriptions, the overlay, the layer's hold on the
+// content; then "closed" and the callback's release. The caller holds a
+// reference, so erasing the map's entry does not destroy the session
+// under it.
+void close_anchored_session(const std::shared_ptr<AnchoredSession>& session) noexcept {
+    AnchoredSession& held = *session;
+    if (held.closed) {
+        return;
+    }
+    held.closed = true;
+    if (held.window != nullptr && held.scope && held.token.connected()) {
+        try {
+            static_cast<void>((*held.window).end_focus_scope(held.scope));
+        } catch (...) {
+        }
+    }
+    held.scope = {};
+    held.dismiss.disconnect();
+    held.revoked.disconnect();
+    held.token.disconnect();
+    held.window = nullptr;
+    if (held.layer) {
+        try {
+            (*held.layer).clear_content();
+        } catch (...) {
+        }
+    }
+    static_cast<void>(emit_anchored(held, "closed"));
+    held.events.reset();
+    std::unordered_map<gf_object, std::shared_ptr<AnchoredSession>>& sessions = anchored_overlays();
+    const std::unordered_map<gf_object, std::shared_ptr<AnchoredSession>>::iterator entry =
+        sessions.find(held.content);
+    if (entry != sessions.end() && (*entry).second == session) {
+        sessions.erase(entry);
+    }
+}
+
+// The layer's dismiss_requested: the caller may cancel, else it closes.
+struct AnchoredDismissRequested final {
+    std::weak_ptr<AnchoredSession> session;
+    void operator()(OverlayDismissReason reason) const {
+        const std::shared_ptr<AnchoredSession> held = session.lock();
+        if (!held || (*held).closed) {
+            return;
+        }
+        const std::string_view name = reason == OverlayDismissReason::click_away ? "click_away" : "escape_key";
+        const std::uint32_t cancel = emit_anchored(*held, name);
+        if (cancel == 0U) {
+            close_anchored_session(held);
+        }
+    }
+};
+
+// The overlay's closed event: the window revoked it (the anchor left the
+// window, the window closed) or it was disconnected.
+struct AnchoredRevoked final {
+    std::weak_ptr<AnchoredSession> session;
+    void operator()() const {
+        const std::shared_ptr<AnchoredSession> held = session.lock();
+        if (held) {
+            close_anchored_session(held);
+        }
+    }
+};
+
+gf_status open_anchored_overlay(gf_object anchor, gf_object content, const gf_anchored_overlay_options* options) {
+    if (options == nullptr || (*options).struct_size < anchored_options_size_1_1 ||
+        ((*options).flags & ~known_anchored_flags) != 0U || !std::isfinite((*options).width) ||
+        !std::isfinite((*options).height) || !std::isfinite((*options).gap) || (*options).width < 0.0 ||
+        (*options).height < 0.0 || (*options).gap < 0.0) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, open_anchored_slot,
+                    "the options need at least the 1.1 size, known flags and a finite, non-negative size and gap");
+    }
+    Control::Ptr anchor_control;
+    const gf_status entered = enter_live_control(anchor, open_anchored_slot, anchor_control);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    Control::Ptr content_control;
+    const gf_status found = registry().find_object(content, open_anchored_slot, content_control);
+    if (found != GF_STATUS_OK) {
+        return found;
+    }
+    if (!(*content_control).is_alive()) {
+        return fail(GF_STATUS_DISPOSED, open_anchored_slot, "the content has been disposed");
+    }
+    if (anchored_overlays().find(content) != anchored_overlays().end()) {
+        return fail(GF_STATUS_INVALID_STATE, open_anchored_slot, "the content is already open");
+    }
+    if ((*content_control).parent() || (*content_control).attached()) {
+        return fail(GF_STATUS_INVALID_STATE, open_anchored_slot, "the content has a parent or is in a window");
+    }
+    Window* const window = (*anchor_control).attached_window();
+    if (window == nullptr) {
+        return fail(GF_STATUS_INVALID_STATE, open_anchored_slot, "the anchor is not in a window");
+    }
+    std::unique_ptr<CallbackBinding> events;
+    if ((*options).events != nullptr) {
+        gf_callback copy{};
+        const gf_status read = read_callback((*options).events, open_anchored_slot, copy);
+        if (read != GF_STATUS_OK) {
+            return read;
+        }
+        events = std::make_unique<CallbackBinding>(copy);
+    }
+    const gf_anchored_overlay_flags flags = (*options).flags;
+    const Size client = (*window).client_size();
+    // A zero extent takes the content's own measure within the window.
+    Size preferred{(*options).width, (*options).height};
+    if (preferred.width == 0.0 || preferred.height == 0.0) {
+        const Size measured = (*content_control).measure(client);
+        if (preferred.width == 0.0) preferred.width = measured.width;
+        if (preferred.height == 0.0) preferred.height = measured.height;
+    }
+    AnchoredOverlayPlacement placement;
+    placement.preferred_size = preferred;
+    placement.horizontal_alignment = (flags & GF_ANCHORED_OVERLAY_ALIGN_FAR) != 0U
+        ? OverlayHorizontalAlignment::far : OverlayHorizontalAlignment::near;
+    placement.vertical_preference = (flags & GF_ANCHORED_OVERLAY_ABOVE) != 0U
+        ? OverlayVerticalPreference::above : OverlayVerticalPreference::below;
+    placement.gap = (*options).gap;
+    placement.allow_vertical_flip = (flags & GF_ANCHORED_OVERLAY_NO_FLIP) == 0U;
+
+    const std::shared_ptr<AnchoredSession> session = std::make_shared<AnchoredSession>();
+    AnchoredSession& held = *session;
+    held.content = content;
+    held.content_control = content_control;
+    held.events = std::move(events);
+    try {
+        const std::string layer_id = std::string((*content_control).stable_id().value()) + ".anchored.layer";
+        held.layer = make_control<AnchoredOverlayLayer>(StableId(layer_id), anchor_control, placement);
+        (*held.layer).set_requested_bounds({0.0, 0.0, client.width, client.height});
+        (*held.layer).dismiss_on_click_away = (flags & GF_ANCHORED_OVERLAY_KEEP_ON_CLICK_AWAY) == 0U;
+        (*held.layer).dismiss_on_escape = (flags & GF_ANCHORED_OVERLAY_KEEP_ON_ESCAPE) == 0U;
+        (*held.layer).set_content(content_control);
+        // Window::open_overlay refuses a disabled or hidden anchor
+        // (std::logic_error: GF_STATUS_INVALID_STATE).
+        held.token = (*window).open_overlay(anchor_control, held.layer);
+        held.window = window;
+        if ((flags & GF_ANCHORED_OVERLAY_TAKE_FOCUS) != 0U) {
+            held.scope = (*window).begin_focus_scope(held.layer, content_control);
+        }
+        held.dismiss = (*held.layer).dismiss_requested().subscribe(AnchoredDismissRequested{session});
+        if (Event<>* closed = held.token.closed_event()) {
+            held.revoked = (*closed).subscribe(AnchoredRevoked{session});
+        }
+        anchored_overlays().insert_or_assign(content, session);
+    } catch (...) {
+        // Nothing stays open, and the caller keeps its callback.
+        if (held.events) (*held.events).disarm();
+        held.events.reset();
+        held.closed = true;
+        if (held.scope && held.token.connected()) {
+            static_cast<void>((*window).end_focus_scope(held.scope));
+        }
+        held.dismiss.disconnect();
+        held.revoked.disconnect();
+        held.token.disconnect();
+        if (held.layer) (*held.layer).clear_content();
+        anchored_overlays().erase(content);
+        throw;
+    }
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL overlays_open_anchored(gf_object anchor, gf_object content,
+                                         const gf_anchored_overlay_options* options) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(open_anchored_slot.table_id, open_anchored_slot.slot_index);
+        const gf_status opened = open_anchored_overlay(anchor, content, options);
+        return opened;
+    } catch (...) {
+        return fail_with_current_exception(open_anchored_slot);
+    }
+}
+
+gf_status GF_CALL overlays_close_anchored(gf_object content) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(close_anchored_slot.table_id, close_anchored_slot.slot_index);
+        const gf_status entered = registry().enter_ui(close_anchored_slot, false);
+        if (entered != GF_STATUS_OK) {
+            return entered;
+        }
+        std::unordered_map<gf_object, std::shared_ptr<AnchoredSession>>& sessions = anchored_overlays();
+        const std::unordered_map<gf_object, std::shared_ptr<AnchoredSession>>::iterator entry =
+            sessions.find(content);
+        if (entry == sessions.end()) {
+            return fail(GF_STATUS_NOT_FOUND, close_anchored_slot, "the content is not open");
+        }
+        const std::shared_ptr<AnchoredSession> session = (*entry).second;
+        close_anchored_session(session);
+        return GF_STATUS_OK;
+    } catch (...) {
+        return fail_with_current_exception(close_anchored_slot);
+    }
+}
+
 constexpr gf_overlays_table table{
     .struct_size = sizeof(gf_overlays_table),
     .abi_minor = GF_ABI_MINOR,
@@ -180,6 +435,8 @@ constexpr gf_overlays_table table{
     .set_tool_tip = &overlays_set_tool_tip,
     .show_tool_tip = &overlays_show_tool_tip,
     .hide_tool_tip = &overlays_hide_tool_tip,
+    .open_anchored = &overlays_open_anchored,
+    .close_anchored = &overlays_close_anchored,
 };
 
 } // namespace

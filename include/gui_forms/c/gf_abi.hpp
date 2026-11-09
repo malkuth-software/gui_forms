@@ -508,6 +508,22 @@ public:
         return called;
     }
 
+    [[nodiscard]] gf_status show_modal(gf_object root, const gf_owned_window_options* options, gf_dialog_result_code* result) const noexcept {
+        if (table_.struct_size < 64u || table_.show_modal == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.show_modal(root, options, result);
+        return called;
+    }
+
+    [[nodiscard]] gf_status show_owned(gf_object root, const gf_owned_window_options* options) const noexcept {
+        if (table_.struct_size < 72u || table_.show_owned == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.show_owned(root, options);
+        return called;
+    }
+
 private:
     gf_windows_table table_;
 };
@@ -1276,6 +1292,22 @@ public:
             return GF_STATUS_UNSUPPORTED_VERSION;
         }
         const gf_status called = table_.hide_tool_tip(tool_tip);
+        return called;
+    }
+
+    [[nodiscard]] gf_status open_anchored(gf_object anchor, gf_object content, const gf_anchored_overlay_options* options) const noexcept {
+        if (table_.struct_size < 56u || table_.open_anchored == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.open_anchored(anchor, content, options);
+        return called;
+    }
+
+    [[nodiscard]] gf_status close_anchored(gf_object content) const noexcept {
+        if (table_.struct_size < 64u || table_.close_anchored == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.close_anchored(content);
         return called;
     }
 

@@ -1,12 +1,13 @@
 // Stage DK phase W0: runtime windows, frames in desktop logical units, the
 // screen pointer, the window under a point and ordering, on the headless
-// reference host (decisions 6 and 7).
+// reference host (decisions 6 and 7); modal windows (show_modal).
 #include "gui_forms/application.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/host.hpp"
 #include "application/headless_application.hpp"
 
 #include <cmath>
+#include <cstdint>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
@@ -451,6 +452,160 @@ void test_primary_close_ends_the_run() {
     require(journal.lines == "closed palette\nclosed main\n", "owned window did not close before its owner");
     require(application.windowing().window_count() == 0U, "windows left after the primary closed");
 }
+// run_modal's nested loop on the headless host: what a turn does.
+enum class ModalTurnAction : std::uint8_t {
+    // Sets the modal model's dialog result to ok on the second turn.
+    set_ok,
+    // The user closes the modal window on the first turn.
+    user_close,
+    // The run quits on the first turn.
+    quit,
+    // The first turn shows a second modal window over the first, whose own
+    // first turn closes it; the second turn closes the first.
+    nest,
+};
+
+struct ModalTurnScript final {
+    host::HeadlessApplication* application{};
+    Window* model{};
+    ModalTurnAction action{ModalTurnAction::set_ok};
+    // Observations, owned by the test.
+    int* turns{};
+    bool* main_blocked{};
+    std::string* trace{};
+    bool operator()(HostWindowId window) const;
+};
+
+// The inner window's turns in the nest script.
+struct InnerModalTurn final {
+    host::HeadlessApplication* application{};
+    std::string* trace{};
+    bool operator()(HostWindowId window) const {
+        *trace += "inner turn depth=" + std::to_string((*application).windowing().modal_depth()) + "\n";
+        (*application).simulate_user_close(window);
+        return true;
+    }
+};
+
+bool ModalTurnScript::operator()(HostWindowId window) const {
+    ++(*turns);
+    host::HeadlessApplication& app = *application;
+    const HostWindowId main_id = app.id("main");
+    *main_blocked = app.windowing().input_blocked(main_id);
+    // The user cannot close the window under the modal one.
+    app.simulate_user_close(main_id);
+    switch (action) {
+    case ModalTurnAction::set_ok:
+        if (*turns == 2) (*model).set_dialog_result(DialogResult::ok);
+        return true;
+    case ModalTurnAction::user_close:
+        app.simulate_user_close(window);
+        return true;
+    case ModalTurnAction::quit:
+        return false;
+    case ModalTurnAction::nest:
+        if (*turns == 1) {
+            app.windowing().set_modal_turn(InnerModalTurn{application, trace});
+            ApplicationWindow inner = make_entry("modal.inner", "modal");
+            const ApplicationModalResult shown = app.handle("main").windows().show_modal(std::move(inner));
+            *trace += "inner result=" + std::to_string(static_cast<int>(shown.dialog_result)) + "\n";
+            // Back to this script for the outer window's next turn.
+            app.windowing().set_modal_turn(*this);
+            return true;
+        }
+        app.simulate_user_close(window);
+        return true;
+    }
+    return true;
+}
+
+void test_modal_windows() {
+    Journal journal;
+    ApplicationWindowHandle main;
+    ApplicationWindowHandle tool;
+    host::HeadlessApplication application(main_and_tool(journal, &main, &tool));
+    const ApplicationWindows windows = main.windows();
+
+    // Without a nested loop the host refuses, leaving nothing open.
+    require(!application.windowing().supports_modal_windows(), "headless modal loop on by default");
+    ApplicationWindow refused = make_entry("modal", "main");
+    require(windows.show_modal(std::move(refused)).status.error == HostServiceError::unsupported,
+            "show_modal without a nested loop accepted");
+    require(windows.window_count() == 2U, "refused modal window opened");
+
+    int turns = 0;
+    bool main_blocked = false;
+    std::string trace;
+    ModalTurnScript script{&application, nullptr, ModalTurnAction::set_ok, &turns, &main_blocked, &trace};
+
+    // A dialog result set during the loop closes the window and is the
+    // result; the window under it refused input meanwhile.
+    ApplicationWindow first = make_entry("modal", "main");
+    script.model = first.model.get();
+    application.windowing().set_modal_turn(script);
+    journal.lines.clear();
+    observe(first, journal);
+    const ApplicationModalResult ok = windows.show_modal(std::move(first));
+    require(ok.status.accepted(), "show_modal refused");
+    require(ok.dialog_result == DialogResult::ok, "dialog result not reported");
+    require(turns == 2, "nested loop did not stop when the window closed");
+    require(main_blocked, "the owner took input during the modal loop");
+    require(!application.windowing().input_blocked(main.id()), "the owner stayed blocked after the loop");
+    require(main.active(), "the user closed the owner during the modal loop");
+    require(journal.lines == "ready modal\nclosed modal\n", "modal callbacks wrong");
+    require(contains(application.windowing().trace(), "run_modal "), "nested loop missing from the trace");
+    require(application.windowing().modal_depth() == 0U, "modal depth not restored");
+    application.reclaim();
+
+    // The close box gives cancel.
+    turns = 0;
+    ApplicationWindow second = make_entry("modal", "main");
+    script.model = second.model.get();
+    script.action = ModalTurnAction::user_close;
+    application.windowing().set_modal_turn(script);
+    const ApplicationModalResult closed = windows.show_modal(std::move(second));
+    require(closed.status.accepted() && closed.dialog_result == DialogResult::cancel,
+            "a modal window closed by the user did not give cancel");
+    require(turns == 1, "close box: wrong number of turns");
+    application.reclaim();
+
+    // A quit ends the loop with the window still open.
+    turns = 0;
+    ApplicationWindow third = make_entry("modal", "main");
+    script.model = third.model.get();
+    script.action = ModalTurnAction::quit;
+    application.windowing().set_modal_turn(script);
+    const ApplicationModalResult quit = windows.show_modal(std::move(third));
+    require(quit.status.accepted() && quit.dialog_result == DialogResult::cancel, "quit: wrong result");
+    const HostWindowId left_open = application.id("modal");
+    require(application.windowing().live(left_open), "quit closed the modal window");
+    require(!application.windowing().input_blocked(main.id()), "quit left the owner blocked");
+    require(windows.destroy_window(application.handle("modal")).accepted(), "quit window not destroyable");
+    application.reclaim();
+
+    // A modal window over a modal window.
+    turns = 0;
+    trace.clear();
+    ApplicationWindow fourth = make_entry("modal", "main");
+    script.model = fourth.model.get();
+    script.action = ModalTurnAction::nest;
+    application.windowing().set_modal_turn(script);
+    const ApplicationModalResult nested = windows.show_modal(std::move(fourth));
+    require(nested.status.accepted() && nested.dialog_result == DialogResult::cancel, "nest: wrong result");
+    require(trace == "inner turn depth=2\ninner result=2\n", "nested modal loop wrong");
+    application.reclaim();
+
+    // Refusals: no owner, a popup, a floating window.
+    ApplicationWindow unowned = make_entry("modal", "");
+    unowned.tool_window = true;
+    require(windows.show_modal(std::move(unowned)).status.error == HostServiceError::invalid_argument,
+            "unowned modal window accepted");
+    ApplicationWindow popup = make_entry("modal", "main");
+    popup.popup = HostPopupPlacement{};
+    require(windows.show_modal(std::move(popup)).status.error == HostServiceError::invalid_argument,
+            "modal popup accepted");
+    require(windows.window_count() == 2U, "a refused modal window opened");
+}
 } // namespace
 
 int main() {
@@ -464,6 +619,7 @@ int main() {
         test_pointer_window_at_and_ordering();
         test_threads_shutdown_and_capabilities();
         test_primary_close_ends_the_run();
+        test_modal_windows();
         std::cout << "gui_forms_runtime_windows_tests: all tests passed\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {

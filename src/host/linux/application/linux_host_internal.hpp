@@ -44,6 +44,10 @@ public:
   [[nodiscard]] bool supports_popup_windows() const noexcept override;
   [[nodiscard]] bool supports_splash_windows() const noexcept override;
   [[nodiscard]] bool transient_windows_translucent() const noexcept override;
+  // run_modal's nested loop: Runtime::step turns, with the other windows
+  // marked modal (NativeWindow::modal drops their input, as a retained
+  // dialog does).
+  [[nodiscard]] bool supports_modal_windows() const noexcept override;
 
 protected:
   HostWindowFrameResult frame_impl(HostWindowId window) override;
@@ -56,9 +60,13 @@ protected:
   void query_monitors_into_impl(HostMonitorResult &result) override;
   HostServiceStatus show_impl(HostWindowId window) override;
   HostServiceStatus hide_impl(HostWindowId window) override;
+  HostServiceStatus run_modal_impl(HostWindowId window) override;
 
 private:
   NativeWindow *native(HostWindowId window) noexcept;
+  // Whether `window` is `ancestor` or owned by it at any depth.
+  [[nodiscard]] bool owned_by(HostWindowId window,
+                              HostWindowId ancestor) const noexcept;
   // The child of the root window that holds `window` (the window manager's
   // frame, or the window itself without a reparenting window manager).
   ::Window top_level(::Window window) const;

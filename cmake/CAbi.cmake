@@ -198,6 +198,7 @@ add_library(gui_forms_abi_conformance_kit STATIC
     tests/abi/conformance/gf_conformance_events.c
     tests/abi/conformance/gf_conformance_families.c
     tests/abi/conformance/gf_conformance_kit.c
+    tests/abi/conformance/gf_conformance_modal.c
     tests/abi/conformance/gf_conformance_ownership.c
     tests/abi/conformance/gf_conformance_proxies.c
     tests/abi/conformance/gf_conformance_schema.c

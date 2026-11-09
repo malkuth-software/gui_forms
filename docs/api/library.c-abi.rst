@@ -68,6 +68,8 @@ Types
      - gd_string_view is a non-owning bounded drawing-ABI string view with explicit validation before copying.
    * - :cpp:class:`gf_abi_version_info <gf_abi_version_info>`
      - gf_abi_version_info is the size-prefixed output record of the library and ABI versions.
+   * - :cpp:class:`gf_anchored_overlay_options <gf_anchored_overlay_options>`
+     -  
    * - :cpp:class:`gf_api_v0 <gf_api_v0>`
      - gf_api_v0 is the size-versioned negotiated function table for generational control ownership, properties, layout/scroll, hierarchy, input, fields, dialogs/services, property proxies, callbacks, host execution, dispatch, and deterministic retirement.
    * - :cpp:class:`gf_application_config <gf_application_config>`
@@ -145,6 +147,8 @@ Types
    * - :cpp:class:`gf_objects_table <gf_objects_table>`
      -  
    * - :cpp:class:`gf_overlays_table <gf_overlays_table>`
+     -  
+   * - :cpp:class:`gf_owned_window_options <gf_owned_window_options>`
      -  
    * - :cpp:class:`gf_paint_target <gf_paint_target>`
      -  
@@ -1128,6 +1132,24 @@ Types
 
 .. cpp:namespace:: 0
 
+.. cpp:struct:: gf_anchored_overlay_options
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_anchored_overlay_flags flags
+
+   .. cpp:member:: double width
+
+   .. cpp:member:: double height
+
+   .. cpp:member:: double gap
+
+   .. cpp:member:: const gf_callback* events
+
+.. cpp:namespace:: 0
+
 .. cpp:struct:: gf_api_v0
 
    ``#include <gui_forms/c_api.h>``
@@ -2042,9 +2064,37 @@ Types
 
    .. cpp:member:: gf_status (*hide_tool_tip)(gf_object tool_tip)
 
+   .. cpp:member:: gf_status (*open_anchored)(gf_object anchor, gf_object content, const gf_anchored_overlay_options* options)
+
+   .. cpp:member:: gf_status (*close_anchored)(gf_object content)
+
    .. cpp:member:: uint32_t struct_size
 
    .. cpp:member:: uint32_t abi_minor
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_owned_window_options
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_owned_window_flags flags
+
+   .. cpp:member:: gf_utf8_view title
+
+   .. cpp:member:: double width
+
+   .. cpp:member:: double height
+
+   .. cpp:member:: gf_object owner
+
+   .. cpp:member:: const gf_callback* ready
+
+   .. cpp:member:: const gf_callback* closing
+
+   .. cpp:member:: const gf_callback* closed
 
 .. cpp:namespace:: 0
 
@@ -3112,6 +3162,10 @@ Types
 
    .. cpp:member:: gf_status (*request_help)(gf_object window, uint32_t* handled)
 
+   .. cpp:member:: gf_status (*show_modal)(gf_object root, const gf_owned_window_options* options, gf_dialog_result_code* result)
+
+   .. cpp:member:: gf_status (*show_owned)(gf_object root, const gf_owned_window_options* options)
+
    .. cpp:member:: uint32_t struct_size
 
    .. cpp:member:: uint32_t abi_minor
@@ -3283,6 +3337,10 @@ Types
    .. cpp:function:: gf_status show_tool_tip(gf_object tool_tip, gf_object target, uint64_t duration_ms) const noexcept
 
    .. cpp:function:: gf_status hide_tool_tip(gf_object tool_tip) const noexcept
+
+   .. cpp:function:: gf_status open_anchored(gf_object anchor, gf_object content, const gf_anchored_overlay_options* options) const noexcept
+
+   .. cpp:function:: gf_status close_anchored(gf_object content) const noexcept
 
    .. cpp:function:: gf_status set_tool_tip(gf_object tool_tip, gf_object target, gf_utf8_view text) const noexcept
 
@@ -3772,3 +3830,7 @@ Types
    .. cpp:function:: gf_status interaction_at(uint64_t interaction, gf_schema_interaction* record) const noexcept
 
    .. cpp:function:: gf_status request_help(gf_object window, uint32_t* handled) const noexcept
+
+   .. cpp:function:: gf_status show_modal(gf_object root, const gf_owned_window_options* options, gf_dialog_result_code* result) const noexcept
+
+   .. cpp:function:: gf_status show_owned(gf_object root, const gf_owned_window_options* options) const noexcept

@@ -155,6 +155,21 @@ void window_slots(const ObjectsTable& objects, const WindowsTable& windows) {
     require(older.interaction_count(&count) == GF_STATUS_UNSUPPORTED_VERSION &&
                 older.request_help(window.get(), &handled) == GF_STATUS_UNSUPPORTED_VERSION,
             "a 1.0 windows table serves none of the 1.1 slots");
+
+    // Modal and owned windows (since 1.1): refused outside a run, and not
+    // served by a table that ends before them.
+    gf_owned_window_options owned{};
+    owned.struct_size = static_cast<std::uint32_t>(sizeof(owned));
+    gf_dialog_result_code result = 99u;
+    require(windows.show_owned(root.get(), &owned) == GF_STATUS_INVALID_STATE &&
+                windows.show_modal(root.get(), &owned, &result) == GF_STATUS_INVALID_STATE && result == 99u,
+            "show_owned and show_modal outside a run");
+    gf_windows_table before_modal = windows.c_table();
+    before_modal.struct_size = static_cast<std::uint32_t>(offsetof(gf_windows_table, show_modal));
+    const WindowsTable without_modal = WindowsTable::adopt(before_modal);
+    require(without_modal.show_modal(root.get(), &owned, &result) == GF_STATUS_UNSUPPORTED_VERSION &&
+                without_modal.show_owned(root.get(), &owned) == GF_STATUS_UNSUPPORTED_VERSION,
+            "a table without the modal slots serves neither");
 }
 
 } // namespace

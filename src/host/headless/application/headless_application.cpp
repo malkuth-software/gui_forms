@@ -171,6 +171,49 @@ bool HeadlessWindowing::transient_windows_translucent() const noexcept {
     return translucent_;
 }
 
+bool HeadlessWindowing::supports_modal_windows() const noexcept {
+    const bool supported = static_cast<bool>(modal_turn_);
+    return supported;
+}
+
+bool HeadlessWindowing::input_blocked(HostWindowId window) const noexcept {
+    for (std::size_t index = 0U; index < blocked_.size(); ++index) {
+        if (blocked_[index] == window) return true;
+    }
+    return false;
+}
+
+HostServiceStatus HeadlessWindowing::run_modal_impl(HostWindowId window) {
+    // Blocks every live window that is not `window` or owned by it at any
+    // depth (ownership chains are at most maximum_windows long).
+    const std::size_t blocked_before = blocked_.size();
+    for (std::size_t index = 0U; index < natives_.size(); ++index) {
+        const HostWindowId candidate = natives_[index].id;
+        bool owned_by_modal = false;
+        HostWindowId current = candidate;
+        for (std::size_t depth = 0U; depth <= maximum_windows && current.valid(); ++depth) {
+            if (current == window) {
+                owned_by_modal = true;
+                break;
+            }
+            const std::optional<HostWindowId> next = owner(current);
+            if (!next.has_value()) break;
+            current = *next;
+        }
+        if (!owned_by_modal) blocked_.push_back(candidate);
+    }
+    note("run_modal " + std::to_string(window.value));
+    // The target is copied: a turn may replace it.
+    const std::function<bool(HostWindowId)> turn = modal_turn_;
+    bool quit = false;
+    for (std::size_t count = 0U; count < maximum_modal_turns && !quit && live(window); ++count) {
+        quit = !turn(window);
+    }
+    note("run_modal_end " + std::to_string(window.value));
+    blocked_.resize(blocked_before);
+    return {};
+}
+
 void HeadlessWindowing::create_native(HostWindowId window, std::string_view stable_id,
                                       Rect content, Size minimum_size, bool decorated) {
     NativeWindow entry;
@@ -675,6 +718,9 @@ void HeadlessApplication::request_close(HostWindowId window) {
 void HeadlessApplication::simulate_user_close(HostWindowId window) {
     WindowEntry* found = entry(window);
     if (found == nullptr) return;
+    // A window under a modal one refuses the user's close, as a disabled
+    // native window does.
+    if (windowing_.input_blocked(window)) return;
     HostCloseRequest request{HostCloseReason::user, false, (*found).options.hide_on_close};
     if ((*found).options.closing) (*found).options.closing(request);
     found = entry(window);

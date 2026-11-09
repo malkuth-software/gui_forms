@@ -3487,68 +3487,8 @@ int run_windows_application(std::vector<WindowsApplicationWindow> windows,
 
     MSG message{};
     bool quit{};
-    std::vector<HANDLE> clocks;
-    clocks.reserve(WindowsApplicationRun::reserved_slots);
     while (!quit) {
-        // A window opened or closed in the previous turn changes the slots;
-        // their count is read afresh in every pass.
-        clocks.clear();
-        for (std::size_t index = 0; index < (*run).slot_count(); ++index) {
-            const HANDLE clock = (*(*run).slot_at(index).state).live_frame_clock();
-            if (clock != nullptr) clocks.push_back(clock);
-        }
-        if (clocks.size() >= MAXIMUM_WAIT_OBJECTS) {
-            clocks.resize(MAXIMUM_WAIT_OBJECTS - 1U);
-        }
-        const DWORD wait = MsgWaitForMultipleObjectsEx(
-            static_cast<DWORD>(clocks.size()),
-            clocks.empty() ? nullptr : clocks.data(), INFINITE,
-            QS_ALLINPUT, MWMO_INPUTAVAILABLE);
-        if (wait == WAIT_FAILED) break;
-        if (wait >= WAIT_OBJECT_0 && wait < WAIT_OBJECT_0 + clocks.size()) {
-            const HANDLE ready = clocks[wait - WAIT_OBJECT_0];
-            for (std::size_t index = 0; index < (*run).slot_count(); ++index) {
-                WindowsHostState& state = *(*run).slot_at(index).state;
-                if (state.live_frame_clock() == ready) {
-                    state.mark_live_frame_due();
-                    break;
-                }
-            }
-        }
-
-        const std::chrono::steady_clock::time_point batch_started =
-            std::chrono::steady_clock::now();
-        for (std::size_t drained = 0U; drained < 32U; ++drained) {
-            MSG pending{};
-            if (!detail::take_window_message(pending, drained % 2U == 0U)) break;
-            if (pending.message == WM_QUIT) {
-                message = pending;
-                quit = true;
-                break;
-            }
-            TranslateMessage(&pending);
-            DispatchMessageW(&pending);
-            // Finish an input/ordinary pair before applying the time budget.
-            if (drained % 2U == 1U && std::chrono::steady_clock::now() - batch_started >=
-                std::chrono::milliseconds(4)) {
-                break;
-            }
-        }
-        for (std::size_t index = 0; index < (*run).slot_count(); ++index) {
-            WindowsHostState& state = *(*run).slot_at(index).state;
-            const HANDLE clock = state.live_frame_clock();
-            if (clock != nullptr && WaitForSingleObject(clock, 0U) == WAIT_OBJECT_0) {
-                state.mark_live_frame_due();
-            }
-        }
-        if (!quit) {
-            for (std::size_t index = 0; index < (*run).slot_count(); ++index) {
-                (*(*run).slot_at(index).state).present_pending_frame();
-            }
-            // The end of the turn: no message of a closed window is on the
-            // stack, so runtime windows closed in it are released.
-            (*run).reclaim();
-        }
+        quit = (*run).turn(message, true);
     }
     // The program's handles stop reaching the windowing before the remaining
     // windows are destroyed, so a closed callback cannot open another.

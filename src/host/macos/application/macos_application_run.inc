@@ -135,6 +135,13 @@ public:
     // Splash windows (owner, 2026-11-08: APP_WINDOW_RULES_DESIGN Part S) are
     // the same panels, ignoring the mouse and never key, at their own level.
     [[nodiscard]] bool supports_splash_windows() const noexcept override { return true; }
+    // run_modal's nested loop is an AppKit modal session
+    // (beginModalSessionForWindow:): AppKit refuses the other windows'
+    // input while the main queue, timers and display continue.
+    [[nodiscard]] bool supports_modal_windows() const noexcept override { return true; }
+
+protected:
+    HostServiceStatus run_modal_impl(gui_forms::HostWindowId window) override;
 
 private:
     // Releases a window whose initialization failed, before it was shown.
@@ -413,8 +420,50 @@ void MacApplicationRun::close_finished(gui_forms::HostWindowId window) noexcept 
         if (candidate.id != window) continue;
         candidate.close_finished = true;
         if (!candidate.initial) schedule_reclaim();
-        return;
+        break;
     }
+    // A nested modal loop waits for the next event; a close that came from
+    // the main queue or a timer brings none, so one is posted for the loop
+    // to wake on and check its window again.
+    if (modal_depth() > 0U) {
+        NSEvent* wake = [NSEvent otherEventWithType:NSEventTypeApplicationDefined
+                                           location:NSZeroPoint
+                                      modifierFlags:0
+                                          timestamp:0.0
+                                       windowNumber:0
+                                            context:nil
+                                            subtype:0
+                                              data1:0
+                                              data2:0];
+        if (wake != nil) [NSApp postEvent:wake atStart:NO];
+    }
+}
+
+HostServiceStatus MacApplicationRun::run_modal_impl(gui_forms::HostWindowId window) {
+    MacRunSlot* found = slot(window);
+    if (found == nullptr) return {HostServiceError::after_shutdown};
+    NSWindow* modalWindow = (*found).window;
+    const gui_forms::HostWindowId main_window = primary();
+    // AppKit's modal session refuses key and mouse events to the
+    // application's other windows; posted work, damage collection and
+    // close requests (post_main_work), timers and display continue in
+    // NSModalPanelRunLoopMode, a common mode.
+    NSModalSession session = [NSApp beginModalSessionForWindow:modalWindow];
+    while (live(window) && (!main_window.valid() || live(main_window))) {
+        const NSModalResponse response = [NSApp runModalSession:session];
+        if (response != NSModalResponseContinue) break;
+        if (!live(window)) break;
+        // Waits for the next event without taking it (runModalSession takes
+        // it on the next pass), servicing the run loop's sources meanwhile.
+        static_cast<void>([NSApp nextEventMatchingMask:NSEventMaskAny
+                                             untilDate:[NSDate distantFuture]
+                                                inMode:NSModalPanelRunLoopMode
+                                               dequeue:NO]);
+    }
+    [NSApp endModalSession:session];
+    // Releases that waited for the nested loop to end (reclaim).
+    schedule_reclaim();
+    return {};
 }
 
 namespace {
@@ -430,14 +479,18 @@ void reclaim_mac_run(void* context) {
 void MacApplicationRun::schedule_reclaim() {
     if (reclaim_scheduled_) return;
     reclaim_scheduled_ = true;
-    // Released by reclaim_mac_run on the main queue, whether or not the run
-    // still lives.
+    // Released by reclaim_mac_run on the main thread (post_main_work),
+    // whether or not the run still lives.
     std::weak_ptr<MacRunAlive>* context = new std::weak_ptr<MacRunAlive>(alive_);
-    dispatch_async_f(dispatch_get_main_queue(), context, &reclaim_mac_run);
+    post_main_work(context, &reclaim_mac_run);
 }
 
 void MacApplicationRun::reclaim() {
     reclaim_scheduled_ = false;
+    // Inside a nested modal loop some window's event or callback is on the
+    // stack below it, so nothing is released: run_modal_impl schedules the
+    // release again when its loop ends.
+    if (modal_depth() > 0U) return;
     for (std::size_t index = slots_.size(); index > 0U; --index) {
         MacRunSlot& candidate = *slots_[index - 1U];
         if (candidate.initial || !candidate.close_finished) continue;
